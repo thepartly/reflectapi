@@ -16,7 +16,20 @@ Schema {
                     _debug: "",
                 },
             ],
-            _debug: "",
+            _debug: "reflect_demo::test",
+        },
+        Type {
+            name: "TestStructNested",
+            fields: [
+                Field {
+                    name: "_f",
+                    type_ref: TypeRef {
+                        name: "String",
+                    },
+                    _debug: "",
+                },
+            ],
+            _debug: "reflect_demo::test_lib",
         },
     ],
     _debug: "",

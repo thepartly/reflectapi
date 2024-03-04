@@ -16,7 +16,7 @@ Schema {
                     _debug: "",
                 },
             ],
-            _debug: "",
+            _debug: "reflect_demo::test",
         },
     ],
     _debug: "",

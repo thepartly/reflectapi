@@ -38,6 +38,14 @@ impl Type {
             _debug: String::new(),
         }
     }
+
+    pub fn from_json(json: &str) -> Self {
+        serde_json::from_str(json).unwrap()
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string_pretty(self).unwrap()
+    }
 }
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
 pub struct Field {

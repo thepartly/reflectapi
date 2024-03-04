@@ -16,7 +16,7 @@ Schema {
                     _debug: "",
                 },
             ],
-            _debug: "",
+            _debug: "reflect_demo::test",
         },
         Type {
             name: "TestStructNested",
@@ -29,7 +29,7 @@ Schema {
                     _debug: "",
                 },
             ],
-            _debug: "",
+            _debug: "reflect_demo::test_lib",
         },
     ],
     _debug: "",

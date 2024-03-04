@@ -34,22 +34,23 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         );
     };
 
-    let mut schema = Schema::new();
     let ctxt = Context::new(reflect_type);
-    let input_type = visit_container(&ctxt, &serde_input);
-    schema.types.push(input_type);
+    let mut reflect_input = visit_type(&ctxt, &serde_input);
+    reflect_input._debug = std::module_path!().to_string();
     if let Err(err) = ctxt.check() {
         proc_macro_error::abort!(err.span(), err.to_string());
     }
 
+    let mut schema = Schema::new();
+    schema.types.push(reflect_input);
     let unknown_types = schema
         .types
         .iter()
-        .filter(|t| t.name == "TestStructWithNested")
-        .map(|_t| proc_macro2::Ident::new("TestStructNested", proc_macro2::Span::call_site()))
+        .filter(|t| t.name == "TestStructWithNested" || t.name == "TestStructWithNestedExternal")
+        .map(|_t| quote::quote!(crate::test_lib::TestStructNested))
         .collect::<Vec<_>>();
-
     let tokenizable_schema = crate::tokenizable_schema::TokenizableSchema::new(schema);
+    // let tokenizable_type = crate::tokenizable_schema::TokenizableType::new(reflect_input);
     if reflect_type == ReflectType::Input {
         let mut unknown_types_schemas = quote::quote! {};
         for ty in unknown_types.iter() {
@@ -63,9 +64,15 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
             impl reflect::Input for #name {
                 fn reflect_input() -> reflect::Schema {
                     let mut result = #tokenizable_schema;
+                    result.types[0]._debug = std::module_path!().to_string();
                     #unknown_types_schemas;
                     result
                 }
+                // fn reflect_input_type() -> reflect::Type {
+                //     let mut result = #tokenizable_type;
+                //     #unknown_types_schemas;
+                //     result
+                // }
             }
         })
     } else {
@@ -81,6 +88,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
             impl reflect::Output for #name {
                 fn reflect_output() -> reflect::Schema {
                     let mut result = #tokenizable_schema;
+                    result.types[0]._debug = std::module_path!().to_string();
                     #unknown_types_schemas;
                     result
                 }
@@ -89,10 +97,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
     }
 }
 
-fn visit_container<'a>(
-    cx: &Context,
-    container: &serde_derive_internals::ast::Container<'a>,
-) -> Type {
+fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Container<'a>) -> Type {
     let ident_name = container.ident.to_token_stream().to_string();
     let mut result = Type::new(ident_name);
 
@@ -170,7 +175,13 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
                     );
                 }
             });
-            let tr = path.path.segments.iter().map(|i| i.ident.to_string()).collect::<Vec<_>>().join("::");
+            let tr = path
+                .path
+                .segments
+                .iter()
+                .map(|i| i.ident.to_string())
+                .collect::<Vec<_>>()
+                .join("::");
             return reflect_schema::TypeRef::new(tr);
         }
         syn::Type::Array(_) => {
