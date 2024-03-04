@@ -7,3 +7,7 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1.0.197", features = ["derive"] }
+
+# This is unnecessary long term,
+# but we use it for now to speed up the development
+serde_json = "1.0.114"

@@ -1,4 +1,4 @@
-#[derive(reflect_derive::Reflect)]
+#[derive(reflect::Reflect)]
 struct MyStruct {
     #[reflect(serialize_type = "u32")]
     field: u32,

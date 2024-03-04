@@ -1,4 +1,4 @@
-#[derive(serde::Deserialize, reflect_derive::Reflect)]
+#[derive(serde::Deserialize, reflect::Reflect)]
 struct MyStruct {
     #[serde(unknown_attributes)]
     field: u32,

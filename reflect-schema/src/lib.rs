@@ -1,5 +1,6 @@
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Schema {
+    pub name: String,
     pub types: Vec<Type>,
     pub _debug: String,
 }
@@ -7,9 +8,18 @@ pub struct Schema {
 impl Schema {
     pub fn new() -> Self {
         Schema {
+            name: String::new(),
             types: Vec::new(),
             _debug: String::new(),
         }
+    }
+
+    pub fn from_json(json: &str) -> Self {
+        serde_json::from_str(json).unwrap()
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap()
     }
 }
 

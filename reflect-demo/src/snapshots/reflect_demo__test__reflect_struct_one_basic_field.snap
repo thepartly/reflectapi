@@ -1,5 +1,21 @@
 ---
 source: reflect-demo/src/main.rs
-expression: "TestStructOneBasicField::reflect_schema()"
+expression: "TestStructOneBasicField::reflect()"
 ---
-"{\n  \"types\": [\n    {\n      \"name\": \"TestStructOneBasicField\",\n      \"fields\": [\n        {\n          \"name\": \"_f\",\n          \"ty\": \"Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { ident: \\\"u32\\\", span: #0 bytes(848..851) }, arguments: PathArguments::None }] } }\",\n          \"_debug\": \"\"\n        }\n      ],\n      \"_debug\": \"\"\n    }\n  ],\n  \"_debug\": \"\"\n}"
+Schema {
+    name: "",
+    types: [
+        Type {
+            name: "TestStructOneBasicField",
+            fields: [
+                Field {
+                    name: "_f",
+                    ty: "Type::Path { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { ident: \"u32\", span: #0 bytes(833..836) }, arguments: PathArguments::None }] } }",
+                    _debug: "",
+                },
+            ],
+            _debug: "",
+        },
+    ],
+    _debug: "",
+}

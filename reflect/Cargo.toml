@@ -1,15 +1,10 @@
 [package]
-name = "reflect-demo"
+name = "reflect"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reflect.workspace = true
-
-serde = { version = "1.0.197", features = ["derive"] }
-
-[dev-dependencies]
-trybuild = "1.0.0"
-insta = "1.36.1"
+reflect-derive.workspace = true
+reflect-schema.workspace = true
