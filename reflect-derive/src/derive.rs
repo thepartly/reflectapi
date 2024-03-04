@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::ToTokens;
 use reflect_schema::{Field, Schema, Type};
-use syn::{parse_macro_input, spanned::Spanned};
+use syn::parse_macro_input;
 
 use crate::{
     context::{Context, ReflectType},
