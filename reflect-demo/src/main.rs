@@ -1,9 +1,21 @@
+use reflect::Input;
+use reflect::Output;
+
 #[derive(reflect::Input)]
 struct MyStruct {
     /// some docs
     // #[serde(flatten)]
     // #[reflect(invalid)]
     _f: u32,
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithNested {
+    _f: TestStructNested,
+}
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructNested {
+    _f: String,
 }
 
 trait MyTrait {}
@@ -17,6 +29,9 @@ fn main() {
 
 #[cfg(test)]
 mod test {
+    use reflect::Input;
+    use reflect::Output;
+
     #[test]
     fn compiler_error_cases() {
         let t = trybuild::TestCases::new();
@@ -103,14 +118,31 @@ mod test {
     }
     #[test]
     fn test_reflect_struct_one_basic_field_string_reflect_both_equally2_input() {
-        insta::allow_duplicates! {
-            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_input());
-        }
+        insta::assert_debug_snapshot!(
+            TestStructOneBasicFieldStringReflectBothEqually::reflect_input()
+        );
     }
     #[test]
     fn test_reflect_struct_one_basic_field_string_reflect_both_equally2_output() {
-        insta::allow_duplicates! {
-            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBothEqually2::reflect_output());
-        }
+        insta::assert_debug_snapshot!(
+            TestStructOneBasicFieldStringReflectBothEqually2::reflect_output()
+        );
+    }
+
+    #[derive(reflect::Input, reflect::Output)]
+    struct TestStructWithNested {
+        _f: TestStructNested,
+    }
+    #[derive(reflect::Input, reflect::Output)]
+    struct TestStructNested {
+        _f: String,
+    }
+    #[test]
+    fn test_reflect_struct_with_nested_input() {
+        insta::assert_debug_snapshot!(TestStructWithNested::reflect_input());
+    }
+    #[test]
+    fn test_reflect_struct_with_nested_output() {
+        insta::assert_debug_snapshot!(TestStructWithNested::reflect_output());
     }
 }

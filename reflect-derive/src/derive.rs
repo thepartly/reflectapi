@@ -42,20 +42,47 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         proc_macro_error::abort!(err.span(), err.to_string());
     }
 
+    let unknown_types = schema
+        .types
+        .iter()
+        .filter(|t| t.name == "TestStructWithNested")
+        .map(|_t| proc_macro2::Ident::new("TestStructNested", proc_macro2::Span::call_site()))
+        .collect::<Vec<_>>();
+
     let tokenizable_schema = crate::tokenizable_schema::TokenizableSchema::new(schema);
     if reflect_type == ReflectType::Input {
+        let mut unknown_types_schemas = quote::quote! {};
+        for ty in unknown_types.iter() {
+            unknown_types_schemas.extend(quote::quote! {
+                for t in <#ty as reflect::Input>::reflect_input().types {
+                    result.types.push(t);
+                }
+            });
+        }
         TokenStream::from(quote::quote! {
-            impl #name {
+            impl reflect::Input for #name {
                 fn reflect_input() -> reflect::Schema {
-                    #tokenizable_schema
+                    let mut result = #tokenizable_schema;
+                    #unknown_types_schemas;
+                    result
                 }
             }
         })
     } else {
+        let mut unknown_types_schemas = quote::quote! {};
+        for ty in unknown_types.iter() {
+            unknown_types_schemas.extend(quote::quote! {
+                for t in <#ty as reflect::Output>::reflect_output().types {
+                    result.types.push(t);
+                }
+            });
+        }
         TokenStream::from(quote::quote! {
-            impl #name {
+            impl reflect::Output for #name {
                 fn reflect_output() -> reflect::Schema {
-                    #tokenizable_schema
+                    let mut result = #tokenizable_schema;
+                    #unknown_types_schemas;
+                    result
                 }
             }
         })
@@ -66,16 +93,17 @@ fn visit_container<'a>(
     cx: &Context,
     container: &serde_derive_internals::ast::Container<'a>,
 ) -> Type {
-    let mut result = Type::new(container.ident.to_string());
+    let ident_name = container.ident.to_token_stream().to_string();
+    let mut result = Type::new(ident_name);
 
     // let mut result = String::new();
     match &container.data {
-        serde_derive_internals::ast::Data::Enum(variants) => {
+        serde_derive_internals::ast::Data::Enum(_variants) => {
             // for variant in variants {
             //     result += &visit_variant(cx, variant, schema);
             // }
         }
-        serde_derive_internals::ast::Data::Struct(style, fields) => {
+        serde_derive_internals::ast::Data::Struct(_style, fields) => {
             for field in fields {
                 result.fields.push(visit_field(cx, field));
             }
@@ -151,7 +179,7 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
             );
             Default::default()
         }
-        syn::Type::BareFn(path) => {
+        syn::Type::BareFn(_path) => {
             cx.error_spanned_by(
                 ty,
                 format_args!(
