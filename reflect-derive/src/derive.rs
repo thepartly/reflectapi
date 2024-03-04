@@ -170,7 +170,8 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
                     );
                 }
             });
-            return reflect_schema::TypeRef::new(path.to_token_stream().to_string());
+            let tr = path.path.segments.iter().map(|i| i.ident.to_string()).collect::<Vec<_>>().join("::");
+            return reflect_schema::TypeRef::new(tr);
         }
         syn::Type::Array(_) => {
             cx.error_spanned_by(

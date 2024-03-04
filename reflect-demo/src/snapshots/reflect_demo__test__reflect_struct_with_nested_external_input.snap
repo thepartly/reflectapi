@@ -1,0 +1,23 @@
+---
+source: reflect-demo/src/main.rs
+expression: "TestStructWithNestedExternal::reflect_input()"
+---
+Schema {
+    name: "",
+    types: [
+        Type {
+            name: "TestStructWithNestedExternal",
+            fields: [
+                Field {
+                    name: "_f",
+                    type_ref: TypeRef {
+                        name: "crate::test_lib::TestStructNested",
+                    },
+                    _debug: "",
+                },
+            ],
+            _debug: "",
+        },
+    ],
+    _debug: "",
+}

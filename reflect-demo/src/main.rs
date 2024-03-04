@@ -1,3 +1,5 @@
+mod test_lib;
+
 use reflect::Input;
 use reflect::Output;
 
@@ -144,5 +146,18 @@ mod test {
     #[test]
     fn test_reflect_struct_with_nested_output() {
         insta::assert_debug_snapshot!(TestStructWithNested::reflect_output());
+    }
+
+    #[derive(reflect::Input, reflect::Output)]
+    struct TestStructWithNestedExternal {
+        _f: crate::test_lib::TestStructNested,
+    }
+    #[test]
+    fn test_reflect_struct_with_nested_external_input() {
+        insta::assert_debug_snapshot!(TestStructWithNestedExternal::reflect_input());
+    }
+    #[test]
+    fn test_reflect_struct_with_nested_external_output() {
+        insta::assert_debug_snapshot!(TestStructWithNestedExternal::reflect_output());
     }
 }
