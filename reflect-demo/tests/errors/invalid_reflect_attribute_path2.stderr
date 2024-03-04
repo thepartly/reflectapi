@@ -1,5 +1,5 @@
 error: failed to parse type reference path: ""
- --> tests/errors/invalid_reflect_attribute_path2.rs:3:32
+ --> tests/errors/invalid_reflect_attribute_path2.rs:3:29
   |
-3 |     #[reflect(serialize_type = "")]
-  |                                ^^
+3 |     #[reflect(output_type = "")]
+  |                             ^^

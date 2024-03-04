@@ -1,6 +1,6 @@
 #[derive(reflect::Input)]
 struct MyStruct {
-    field: u32,
+    field: Vec<u32>,
 }
 
 fn main() {}

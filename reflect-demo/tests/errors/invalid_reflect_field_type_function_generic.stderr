@@ -1,0 +1,5 @@
+error: reflect::Input/reflect::Output does not support trait object field type
+ --> tests/errors/invalid_reflect_field_type_function_generic.rs:3:12
+  |
+3 |     field: dyn Fn(&str) -> i32,
+  |            ^^^

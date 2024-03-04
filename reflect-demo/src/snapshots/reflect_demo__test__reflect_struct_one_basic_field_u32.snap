@@ -1,0 +1,23 @@
+---
+source: reflect-demo/src/main.rs
+expression: "TestStructOneBasicFieldU32::reflect()"
+---
+Schema {
+    name: "",
+    types: [
+        Type {
+            name: "TestStructOneBasicFieldU32",
+            fields: [
+                Field {
+                    name: "_f",
+                    type_ref: TypeRef {
+                        name: "u32",
+                    },
+                    _debug: "",
+                },
+            ],
+            _debug: "",
+        },
+    ],
+    _debug: "",
+}

@@ -1,0 +1,23 @@
+---
+source: reflect-demo/src/main.rs
+expression: "TestStructOneBasicFieldString::reflect()"
+---
+Schema {
+    name: "",
+    types: [
+        Type {
+            name: "TestStructOneBasicFieldString",
+            fields: [
+                Field {
+                    name: "_f",
+                    type_ref: TypeRef {
+                        name: "String",
+                    },
+                    _debug: "",
+                },
+            ],
+            _debug: "",
+        },
+    ],
+    _debug: "",
+}

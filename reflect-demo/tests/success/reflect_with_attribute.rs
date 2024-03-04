@@ -1,4 +1,4 @@
-#[derive(reflect::Reflect)]
+#[derive(reflect::Input)]
 struct MyStruct {
     #[reflect(type = "u32")]
     field: u32,

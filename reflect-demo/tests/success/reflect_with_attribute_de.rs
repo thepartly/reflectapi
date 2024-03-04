@@ -1,6 +1,6 @@
-#[derive(reflect::Reflect)]
+#[derive(reflect::Input)]
 struct MyStruct {
-    #[reflect(deserialize_type = "u32")]
+    #[reflect(input_type = "u32")]
     field: u32,
 }
 

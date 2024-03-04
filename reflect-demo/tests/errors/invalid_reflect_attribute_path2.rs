@@ -1,6 +1,6 @@
-#[derive(serde::Deserialize, reflect::Reflect)]
+#[derive(serde::Deserialize, reflect::Input)]
 struct MyStruct {
-    #[reflect(serialize_type = "")]
+    #[reflect(output_type = "")]
     field: u32,
 }
 

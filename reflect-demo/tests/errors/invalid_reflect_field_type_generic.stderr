@@ -1,0 +1,5 @@
+error: reflect::Input/reflect::Output does not support generic field type
+ --> tests/errors/invalid_reflect_field_type_generic.rs:3:12
+  |
+3 |     field: Vec<u32>,
+  |            ^^^

@@ -1,5 +1,5 @@
 error: expected `=`
- --> tests/errors/invalid_reflect_attribute_path.rs:3:29
+ --> tests/errors/invalid_reflect_attribute_path.rs:3:26
   |
-3 |     #[reflect(serialize_type)]
-  |                             ^
+3 |     #[reflect(output_type)]
+  |                          ^

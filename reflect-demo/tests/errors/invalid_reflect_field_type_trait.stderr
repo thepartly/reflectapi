@@ -1,0 +1,5 @@
+error: reflect::Input/reflect::Output does not support trait object field type
+ --> tests/errors/invalid_reflect_field_type_trait.rs:7:12
+  |
+7 |     field: dyn MyTrait,
+  |            ^^^

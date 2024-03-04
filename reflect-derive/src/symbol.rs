@@ -6,8 +6,8 @@ pub struct Symbol(&'static str);
 
 pub const REFLECT: Symbol = Symbol("reflect");
 pub const TYPE: Symbol = Symbol("type");
-pub const DESERIALIZE_TYPE: Symbol = Symbol("deserialize_type");
-pub const SERIALIZE_TYPE: Symbol = Symbol("serialize_type");
+pub const INPUT_TYPE: Symbol = Symbol("input_type");
+pub const OUTPUT_TYPE: Symbol = Symbol("output_type");
 
 impl PartialEq<Symbol> for Ident {
     fn eq(&self, word: &Symbol) -> bool {

@@ -1,11 +1,14 @@
 use proc_macro::TokenStream;
 use quote::ToTokens;
 use reflect_schema::{Field, Schema, Type};
-use syn::{parse_macro_input, spanned::Spanned, token};
+use syn::{parse_macro_input, spanned::Spanned};
 
-use crate::symbol::*;
+use crate::{
+    context::{Context, ReflectType},
+    symbol::*,
+};
 
-pub(crate) fn derive_reflect(input: TokenStream) -> TokenStream {
+pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> TokenStream {
     let input = parse_macro_input!(input as syn::DeriveInput);
     let input_dump = format!("{:#?}", input);
     let name = input.ident.clone();
@@ -19,7 +22,7 @@ pub(crate) fn derive_reflect(input: TokenStream) -> TokenStream {
     if ctxt.check().is_err() {
         proc_macro_error::abort!(
             input.ident,
-            "failure to derive Reflect while serde attributes compilation fails"
+            "failure to derive reflect::Input/reflect::Output while serde attributes compilation fails"
         );
     }
 
@@ -27,23 +30,23 @@ pub(crate) fn derive_reflect(input: TokenStream) -> TokenStream {
         // TODO when can this happen?
         proc_macro_error::abort!(
             input.ident,
-            "failure to derive Reflect without serde::Serialize and/or serde::Deserialize"
+            "failure to derive reflect::Input/reflect::Output without serde::Serialize and/or serde::Deserialize"
         );
     };
 
     let mut schema = Schema::new();
-    let ctxt = serde_derive_internals::Ctxt::new();
+    let ctxt = Context::new(reflect_type);
     let input_type = visit_container(&ctxt, &serde_input, &mut schema);
     schema.types.push(input_type);
     if let Err(err) = ctxt.check() {
         proc_macro_error::abort!(err.span(), err.to_string());
     }
 
-    // let ctxt = serde_derive_internals::Ctxt::new();
+    // let ctxt = crate::context::Ctxt::new();
     // if ctxt.check().is_err() {
     //     proc_macro_error::abort!(
     //         input.ident,
-    //         "failure to derive Reflect while serde attributes compilation fails"
+    //         "failure to derive reflect::Input/reflect::Output while serde attributes compilation fails"
     //     );
     // }
     // visit_container(&ctxt, serde_input);
@@ -68,23 +71,27 @@ pub(crate) fn derive_reflect(input: TokenStream) -> TokenStream {
 
     let tokenizable_schema = crate::tokenizable_schema::TokenizableSchema::new(schema);
 
-    TokenStream::from(quote::quote! {
-        impl #name {
-            // fn reflect() -> String {
-            //     String::from(#input_dump)
-            // }
-            // fn reflect_debug(&self) -> String {
-            //     String::from(#reflect_input)
-            // }
-            fn reflect() -> reflect::Schema {
-                #tokenizable_schema
+    if reflect_type == ReflectType::Input {
+        TokenStream::from(quote::quote! {
+            impl #name {
+                fn reflect_input() -> reflect::Schema {
+                    #tokenizable_schema
+                }
             }
-        }
-    })
+        })
+    } else {
+        TokenStream::from(quote::quote! {
+            impl #name {
+                fn reflect_output() -> reflect::Schema {
+                    #tokenizable_schema
+                }
+            }
+        })
+    }
 }
 
 fn visit_container<'a>(
-    cx: &serde_derive_internals::Ctxt,
+    cx: &Context,
     container: &serde_derive_internals::ast::Container<'a>,
     schema: &mut Schema,
 ) -> Type {
@@ -107,7 +114,7 @@ fn visit_container<'a>(
 }
 
 // fn visit_variant<'a>(
-//     cx: &serde_derive_internals::Ctxt,
+//     cx: &crate::context::Ctxt,
 //     variant: &serde_derive_internals::ast::Variant<'a>,
 //     schema: &mut Schema,
 // ) -> String {
@@ -119,45 +126,210 @@ fn visit_container<'a>(
 // }
 
 fn visit_field<'a>(
-    cx: &serde_derive_internals::Ctxt,
+    cx: &Context,
     field: &serde_derive_internals::ast::Field<'a>,
     schema: &mut Schema,
 ) -> reflect_schema::Field {
-    let attrs = &field.original.attrs;
+    let attrs = parse_field_attributes(cx, field.original);
+    let field_type = match cx.reflect_type() {
+        ReflectType::Input => attrs.input_type,
+        ReflectType::Output => attrs.output_type,
+    };
 
-    // field.original.attrs
-    // let mut debug = String::new();
-    // let field_dump = format!("{:#?}", field.member);
-    // debug += &format!("field member: {}\n", field_dump);
-    // debug += &format!("field attrs: {:#?}\n", attrs);
-
-    field_from_ast(cx, field.original);
-
+    let field_type = match field_type {
+        Some(field_type) => field_type,
+        None => visit_field_type(cx, &field.original.ty),
+    };
     match field.member {
         syn::Member::Named(ref ident) => {
             // ident.type_id();
             // ident.
             // debug += &format!("field ident: {}\n", ident);
-            Field::new(ident.to_string(), format!("{:?}", field.original.ty))
+            Field::new(ident.to_string(), field_type)
         }
         syn::Member::Unnamed(ref index) => {
             // debug += &format!("field index: {}\n", index.index);
-            Field::new(index.index.to_string(), format!("{:?}", field.original.ty))
+            Field::new(index.index.to_string(), field_type)
+        }
+    }
+}
+
+fn visit_field_type<'a>(
+    cx: &Context,
+    ty: &syn::Type,
+    // schema: &mut Schema,
+) -> reflect_schema::TypeRef {
+    match ty {
+        syn::Type::Path(path) => {
+            // visit_type_path(cx, path, ty.span());
+            if path.qself.is_some() {
+                cx.error_spanned_by(
+                    ty,
+                    format_args!("reflect::Input/reflect::Output does not support qualified Self type reference"),
+                );
+            }
+            path.path.segments.iter().for_each(|i| match i.arguments {
+                syn::PathArguments::None => {}
+                syn::PathArguments::AngleBracketed(_) => {
+                    cx.error_spanned_by(
+                        ty,
+                        format_args!("reflect::Input/reflect::Output does not support generic field type"),
+                    );
+                }
+                syn::PathArguments::Parenthesized(_) => {
+                    cx.error_spanned_by(
+                        ty,
+                        format_args!(
+                            "reflect::Input/reflect::Output does not support parenthesized field type path arguments"
+                        ),
+                    );
+                }
+            });
+            return reflect_schema::TypeRef::new(path.to_token_stream().to_string());
+        }
+        syn::Type::Array(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!("reflect::Input/reflect::Output does not support array field type"),
+            );
+            Default::default()
+        }
+        syn::Type::BareFn(path) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!(
+                    "reflect::Input/reflect::Output does not support bare function field type"
+                ),
+            );
+            Default::default()
+        }
+        syn::Type::Group(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!("reflect::Input/reflect::Output does not support group field type"),
+            );
+            Default::default()
+        }
+        syn::Type::ImplTrait(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!(
+                    "reflect::Input/reflect::Output does not support impl trait field type"
+                ),
+            );
+            Default::default()
+        }
+        syn::Type::Infer(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!("reflect::Input/reflect::Output does not support infer field type"),
+            );
+            Default::default()
+        }
+        syn::Type::Macro(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!("reflect::Input/reflect::Output does not support macro field type"),
+            );
+            Default::default()
+        }
+        syn::Type::Never(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!("reflect::Input/reflect::Output does not support never field type"),
+            );
+            Default::default()
+        }
+        syn::Type::Paren(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!("reflect::Input/reflect::Output does not support paren field type"),
+            );
+            Default::default()
+        }
+        syn::Type::Ptr(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!("reflect::Input/reflect::Output does not support pointer field type"),
+            );
+            Default::default()
+        }
+        syn::Type::Reference(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!(
+                    "reflect::Input/reflect::Output does not support reference field type"
+                ),
+            );
+            Default::default()
+        }
+        syn::Type::Slice(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!("reflect::Input/reflect::Output does not support slice field type"),
+            );
+            Default::default()
+        }
+        syn::Type::TraitObject(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!(
+                    "reflect::Input/reflect::Output does not support trait object field type"
+                ),
+            );
+            Default::default()
+        }
+        syn::Type::Tuple(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!("reflect::Input/reflect::Output does not support tuple field type"),
+            );
+            Default::default()
+        }
+        syn::Type::Verbatim(_) => {
+            cx.error_spanned_by(
+                ty,
+                format_args!("reflect::Input/reflect::Output does not support verbatim field type"),
+            );
+            Default::default()
+        }
+        _ => {
+            cx.error_spanned_by(
+                ty,
+                format_args!(
+                    "reflect::Input/reflect::Output does not support `{}` field type definition variant",
+                    ty.to_token_stream().to_string()
+                ),
+            );
+            Default::default()
+        }
+    }
+}
+
+struct ParsedFieldAttributes {
+    pub input_type: Option<reflect_schema::TypeRef>,
+    pub output_type: Option<reflect_schema::TypeRef>,
+}
+
+impl Default for ParsedFieldAttributes {
+    fn default() -> Self {
+        ParsedFieldAttributes {
+            input_type: None,
+            output_type: None,
         }
     }
 }
 
 // impl Field {
 /// Extract out the `#[serde(...)]` attributes from a struct field.
-fn field_from_ast(
-    cx: &serde_derive_internals::Ctxt,
+fn parse_field_attributes(
+    cx: &Context,
     // index: usize,
     field: &syn::Field,
     // attrs: Option<&Variant>,
     // container_default: &Default,
-) -> () {
-    // let mut serialize_type = "serialize_type";
-    // let mut deserialize_type = "deserialize_type";
+) -> ParsedFieldAttributes {
+    let mut result = ParsedFieldAttributes::default();
 
     // let ident = match &field.ident {
     //     Some(ident) => unraw(ident),
@@ -193,37 +365,48 @@ fn field_from_ast(
         }
 
         if let Err(err) = attr.parse_nested_meta(|meta| {
-            if meta.path == SERIALIZE_TYPE {
+            if meta.path == OUTPUT_TYPE {
                 let supported_path = syn::Path::from(syn::Ident::new("u32", attr.span()));
-                // #[reflect(serialize_type = "...")]
-                if let Some(path) = parse_lit_into_expr_path(cx, SERIALIZE_TYPE, &meta)? {
+                // #[reflect(output_type = "...")]
+                if let Some(path) = parse_lit_into_expr_path(cx, OUTPUT_TYPE, &meta)? {
                     if path.path != supported_path {
                         return Err(meta.error(format_args!(
                             "unknown reflect type reference path attribute"
                         )));
                     }
-                    // serialize_with.set(&meta.path, path);
+                    let referred_type = visit_field_type(
+                        cx,
+                        &syn::Type::Path(syn::TypePath {
+                            qself: path.qself,
+                            path: path.path,
+                        }),
+                    );
+                    result.output_type = Some(referred_type);
                 }
-            } else if meta.path == DESERIALIZE_TYPE {
-                // #[reflect(deserialize_type = "...")]
-                if let Some(path) = parse_lit_into_expr_path(cx, DESERIALIZE_TYPE, &meta)? {
-                    // deserialize_with.set(&meta.path, path);
+            } else if meta.path == INPUT_TYPE {
+                // #[reflect(input_type = "...")]
+                if let Some(path) = parse_lit_into_expr_path(cx, INPUT_TYPE, &meta)? {
+                    let referred_type = visit_field_type(
+                        cx,
+                        &syn::Type::Path(syn::TypePath {
+                            qself: path.qself,
+                            path: path.path,
+                        }),
+                    );
+                    result.input_type = Some(referred_type);
                 }
             } else if meta.path == TYPE {
                 // #[reflect(type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, TYPE, &meta)? {
-                    // let mut ser_path = path.clone();
-                    // ser_path
-                    //     .path
-                    //     .segments
-                    //     .push(Ident::new("serialize", Span::call_site()).into());
-                    // serialize_with.set(&meta.path, ser_path);
-                    // let mut de_path = path;
-                    // de_path
-                    //     .path
-                    //     .segments
-                    //     .push(Ident::new("deserialize", Span::call_site()).into());
-                    // deserialize_with.set(&meta.path, de_path);
+                    let referred_type = visit_field_type(
+                        cx,
+                        &syn::Type::Path(syn::TypePath {
+                            qself: path.qself,
+                            path: path.path,
+                        }),
+                    );
+                    result.output_type = Some(referred_type.clone());
+                    result.input_type = Some(referred_type);
                 }
             } else {
                 let path = meta.path.to_token_stream().to_string().replace(' ', "");
@@ -311,10 +494,12 @@ fn field_from_ast(
     //     flatten: flatten.get(),
     //     transparent: false,
     // }
+
+    result
 }
 
 fn parse_lit_into_expr_path(
-    cx: &serde_derive_internals::Ctxt,
+    cx: &Context,
     attr_name: Symbol,
     meta: &syn::meta::ParseNestedMeta,
 ) -> syn::Result<Option<syn::ExprPath>> {
@@ -336,7 +521,7 @@ fn parse_lit_into_expr_path(
 }
 
 fn get_lit_str(
-    cx: &serde_derive_internals::Ctxt,
+    cx: &Context,
     attr_name: Symbol,
     meta_item_name: Symbol,
     meta: &syn::meta::ParseNestedMeta,
