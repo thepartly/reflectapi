@@ -1,0 +1,5 @@
+error: unknown reflect field attribute `unknown_attributes`
+ --> tests/errors/invalid_reflect_attributes.rs:3:15
+  |
+3 |     #[reflect(unknown_attributes)]
+  |               ^^^^^^^^^^^^^^^^^^

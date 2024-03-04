@@ -1,0 +1,5 @@
+error: unknown reflect type reference path attribute
+ --> tests/errors/invalid_reflect_attribute_path3.rs:3:15
+  |
+3 |     #[reflect(serialize_type = "invalid")]
+  |               ^^^^^^^^^^^^^^

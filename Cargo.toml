@@ -1,0 +1,9 @@
+edition = "2021"
+
+[workspace]
+members = ["reflect-demo", "reflect-derive", "reflect-schema"]
+resolver = "2"
+
+[workspace.dependencies]
+reflect-derive = { path = "reflect-derive" }
+reflect-schema = { path = "reflect-schema" }
