@@ -1,0 +1,36 @@
+---
+source: reflect-demo/src/main.rs
+expression: "TestStructWithNested::reflect_output()"
+---
+Schema {
+    name: "",
+    types: [
+        Type {
+            name: "TestStructWithNested",
+            fields: [
+                Field {
+                    name: "_f",
+                    type_ref: TypeRef {
+                        name: "TestStructNested",
+                    },
+                    _debug: "",
+                },
+            ],
+            _debug: "",
+        },
+        Type {
+            name: "TestStructNested",
+            fields: [
+                Field {
+                    name: "_f",
+                    type_ref: TypeRef {
+                        name: "String",
+                    },
+                    _debug: "",
+                },
+            ],
+            _debug: "",
+        },
+    ],
+    _debug: "",
+}
