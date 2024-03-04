@@ -1,6 +1,6 @@
 ---
 source: reflect-demo/src/main.rs
-expression: "TestStructOneBasicFieldU32::reflect()"
+expression: "TestStructOneBasicFieldU32::reflect_input()"
 ---
 Schema {
     name: "",

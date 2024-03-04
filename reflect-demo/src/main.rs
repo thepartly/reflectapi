@@ -52,11 +52,12 @@ mod test {
         _f: String,
     }
     #[test]
-    fn test_reflect_struct_one_basic_field_string_reflect_both() {
-        insta::allow_duplicates! {
-            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_input());
-            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_output());
-        }
+    fn test_reflect_struct_one_basic_field_string_reflect_both_input() {
+        insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_input());
+    }
+    #[test]
+    fn test_reflect_struct_one_basic_field_string_reflect_both_output() {
+        insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_output());
     }
 
     #[derive(reflect::Input, reflect::Output)]
@@ -65,15 +66,51 @@ mod test {
         _f: String,
     }
     #[test]
-    fn test_reflect_struct_one_basic_field_string_reflect_both_input() {
+    fn test_reflect_struct_one_basic_field_string_reflect_both_with_attributes_input() {
+        insta::assert_debug_snapshot!(
+            TestStructOneBasicFieldStringReflectBothDifferently::reflect_input()
+        );
+    }
+    #[test]
+    fn test_reflect_struct_one_basic_field_string_reflect_both_with_attributes_output() {
+        insta::assert_debug_snapshot!(
+            TestStructOneBasicFieldStringReflectBothDifferently::reflect_output()
+        );
+    }
+
+    #[derive(reflect::Input, reflect::Output)]
+    struct TestStructOneBasicFieldStringReflectBothEqually {
+        #[reflect(output_type = "u32", input_type = "u32")]
+        _f: String,
+    }
+    #[test]
+    fn test_reflect_struct_one_basic_field_string_reflect_both_equally_input() {
         insta::allow_duplicates! {
-            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBothDifferently::reflect_input());
+            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_input());
         }
     }
     #[test]
-    fn test_reflect_struct_one_basic_field_string_reflect_both_output() {
+    fn test_reflect_struct_one_basic_field_string_reflect_both_equally_output() {
         insta::allow_duplicates! {
-            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBothDifferently::reflect_output());
+            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_output());
+        }
+    }
+
+    #[derive(reflect::Input, reflect::Output)]
+    struct TestStructOneBasicFieldStringReflectBothEqually2 {
+        #[reflect(type = "u32")]
+        _f: String,
+    }
+    #[test]
+    fn test_reflect_struct_one_basic_field_string_reflect_both_equally2_input() {
+        insta::allow_duplicates! {
+            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_input());
+        }
+    }
+    #[test]
+    fn test_reflect_struct_one_basic_field_string_reflect_both_equally2_output() {
+        insta::allow_duplicates! {
+            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBothEqually2::reflect_output());
         }
     }
 }

@@ -1,17 +1,17 @@
 ---
 source: reflect-demo/src/main.rs
-expression: "TestStructOneBasicFieldStringReflectBothDifferently::reflect_input()"
+expression: "TestStructOneBasicFieldStringReflectBoth::reflect_input()"
 ---
 Schema {
     name: "",
     types: [
         Type {
-            name: "TestStructOneBasicFieldStringReflectBothDifferently",
+            name: "TestStructOneBasicFieldStringReflectBoth",
             fields: [
                 Field {
                     name: "_f",
                     type_ref: TypeRef {
-                        name: "i32",
+                        name: "String",
                     },
                     _debug: "",
                 },

@@ -10,7 +10,7 @@ use crate::{
 
 pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> TokenStream {
     let input = parse_macro_input!(input as syn::DeriveInput);
-    let input_dump = format!("{:#?}", input);
+    // let input_dump = format!("{:#?}", input);
     let name = input.ident.clone();
 
     let ctxt = serde_derive_internals::Ctxt::new();
@@ -36,41 +36,13 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
     let mut schema = Schema::new();
     let ctxt = Context::new(reflect_type);
-    let input_type = visit_container(&ctxt, &serde_input, &mut schema);
+    let input_type = visit_container(&ctxt, &serde_input);
     schema.types.push(input_type);
     if let Err(err) = ctxt.check() {
         proc_macro_error::abort!(err.span(), err.to_string());
     }
 
-    // let ctxt = crate::context::Ctxt::new();
-    // if ctxt.check().is_err() {
-    //     proc_macro_error::abort!(
-    //         input.ident,
-    //         "failure to derive reflect::Input/reflect::Output while serde attributes compilation fails"
-    //     );
-    // }
-    // visit_container(&ctxt, serde_input);
-
-    // println!("{:#?}", input_dump);
-
-    // proc_macro_error::abort!(input.ident, input_dump);
-
-    // let serde_dump = format!("{:#?}", result);
-
-    // expand::my_derive(input)
-    //     .unwrap_or_else(|err| err.to_compile_error())
-    //     .into()
-
-    // .ok_or(())
-    // .and_then(|serde| Self::from_serde(&ctxt, serde));
-
-    // ctxt.check()
-    //     .map(|_| result.expect("from_ast set no errors on Ctxt, so should have returned Ok"))
-
-    // let schema_json = serde_json::to_string_pretty(&schema).unwrap();
-
     let tokenizable_schema = crate::tokenizable_schema::TokenizableSchema::new(schema);
-
     if reflect_type == ReflectType::Input {
         TokenStream::from(quote::quote! {
             impl #name {
@@ -93,7 +65,6 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 fn visit_container<'a>(
     cx: &Context,
     container: &serde_derive_internals::ast::Container<'a>,
-    schema: &mut Schema,
 ) -> Type {
     let mut result = Type::new(container.ident.to_string());
 
@@ -106,7 +77,7 @@ fn visit_container<'a>(
         }
         serde_derive_internals::ast::Data::Struct(style, fields) => {
             for field in fields {
-                result.fields.push(visit_field(cx, field, schema));
+                result.fields.push(visit_field(cx, field));
             }
         }
     }
@@ -128,7 +99,6 @@ fn visit_container<'a>(
 fn visit_field<'a>(
     cx: &Context,
     field: &serde_derive_internals::ast::Field<'a>,
-    schema: &mut Schema,
 ) -> reflect_schema::Field {
     let attrs = parse_field_attributes(cx, field.original);
     let field_type = match cx.reflect_type() {
@@ -141,27 +111,14 @@ fn visit_field<'a>(
         None => visit_field_type(cx, &field.original.ty),
     };
     match field.member {
-        syn::Member::Named(ref ident) => {
-            // ident.type_id();
-            // ident.
-            // debug += &format!("field ident: {}\n", ident);
-            Field::new(ident.to_string(), field_type)
-        }
-        syn::Member::Unnamed(ref index) => {
-            // debug += &format!("field index: {}\n", index.index);
-            Field::new(index.index.to_string(), field_type)
-        }
+        syn::Member::Named(ref ident) => Field::new(ident.to_string(), field_type),
+        syn::Member::Unnamed(ref index) => Field::new(index.index.to_string(), field_type),
     }
 }
 
-fn visit_field_type<'a>(
-    cx: &Context,
-    ty: &syn::Type,
-    // schema: &mut Schema,
-) -> reflect_schema::TypeRef {
+fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef {
     match ty {
         syn::Type::Path(path) => {
-            // visit_type_path(cx, path, ty.span());
             if path.qself.is_some() {
                 cx.error_spanned_by(
                     ty,
@@ -320,38 +277,9 @@ impl Default for ParsedFieldAttributes {
     }
 }
 
-// impl Field {
-/// Extract out the `#[serde(...)]` attributes from a struct field.
-fn parse_field_attributes(
-    cx: &Context,
-    // index: usize,
-    field: &syn::Field,
-    // attrs: Option<&Variant>,
-    // container_default: &Default,
-) -> ParsedFieldAttributes {
+/// Extract out the `#[reflect(...)]` attributes from a struct field.
+fn parse_field_attributes(cx: &Context, field: &syn::Field) -> ParsedFieldAttributes {
     let mut result = ParsedFieldAttributes::default();
-
-    // let ident = match &field.ident {
-    //     Some(ident) => unraw(ident),
-    //     None => index.to_string(),
-    // };
-
-    // if let Some(borrow_attribute) = attrs.and_then(|variant| variant.borrow.as_ref()) {
-    //     if let Ok(borrowable) = borrowable_lifetimes(cx, &ident, field) {
-    //         if let Some(lifetimes) = &borrow_attribute.lifetimes {
-    //             for lifetime in lifetimes {
-    //                 if !borrowable.contains(lifetime) {
-    //                     let msg =
-    //                         format!("field `{}` does not have lifetime {}", ident, lifetime);
-    //                     cx.error_spanned_by(field, msg);
-    //                 }
-    //             }
-    //             borrowed_lifetimes.set(&borrow_attribute.path, lifetimes.clone());
-    //         } else {
-    //             borrowed_lifetimes.set(&borrow_attribute.path, borrowable);
-    //         }
-    //     }
-    // }
 
     for attr in &field.attrs {
         if attr.path() != REFLECT {
@@ -366,14 +294,8 @@ fn parse_field_attributes(
 
         if let Err(err) = attr.parse_nested_meta(|meta| {
             if meta.path == OUTPUT_TYPE {
-                let supported_path = syn::Path::from(syn::Ident::new("u32", attr.span()));
                 // #[reflect(output_type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, OUTPUT_TYPE, &meta)? {
-                    if path.path != supported_path {
-                        return Err(meta.error(format_args!(
-                            "unknown reflect type reference path attribute"
-                        )));
-                    }
                     let referred_type = visit_field_type(
                         cx,
                         &syn::Type::Path(syn::TypePath {
@@ -417,84 +339,6 @@ fn parse_field_attributes(
             cx.syn_error(err);
         }
     }
-
-    // // Is skip_deserializing, initialize the field to Default::default() unless a
-    // // different default is specified by `#[serde(default = "...")]` on
-    // // ourselves or our container (e.g. the struct we are in).
-    // if let Default::None = *container_default {
-    //     if skip_deserializing.0.value.is_some() {
-    //         default.set_if_none(Default::Default);
-    //     }
-    // }
-
-    // let mut borrowed_lifetimes = borrowed_lifetimes.get().unwrap_or_default();
-    // if !borrowed_lifetimes.is_empty() {
-    //     // Cow<str> and Cow<[u8]> never borrow by default:
-    //     //
-    //     //     impl<'de, 'a, T: ?Sized> Deserialize<'de> for Cow<'a, T>
-    //     //
-    //     // A #[serde(borrow)] attribute enables borrowing that corresponds
-    //     // roughly to these impls:
-    //     //
-    //     //     impl<'de: 'a, 'a> Deserialize<'de> for Cow<'a, str>
-    //     //     impl<'de: 'a, 'a> Deserialize<'de> for Cow<'a, [u8]>
-    //     if is_cow(&field.ty, is_str) {
-    //         let mut path = syn::Path {
-    //             leading_colon: None,
-    //             segments: Punctuated::new(),
-    //         };
-    //         let span = Span::call_site();
-    //         path.segments.push(Ident::new("_serde", span).into());
-    //         path.segments.push(Ident::new("__private", span).into());
-    //         path.segments.push(Ident::new("de", span).into());
-    //         path.segments
-    //             .push(Ident::new("borrow_cow_str", span).into());
-    //         let expr = syn::ExprPath {
-    //             attrs: Vec::new(),
-    //             qself: None,
-    //             path,
-    //         };
-    //         deserialize_with.set_if_none(expr);
-    //     } else if is_cow(&field.ty, is_slice_u8) {
-    //         let mut path = syn::Path {
-    //             leading_colon: None,
-    //             segments: Punctuated::new(),
-    //         };
-    //         let span = Span::call_site();
-    //         path.segments.push(Ident::new("_serde", span).into());
-    //         path.segments.push(Ident::new("__private", span).into());
-    //         path.segments.push(Ident::new("de", span).into());
-    //         path.segments
-    //             .push(Ident::new("borrow_cow_bytes", span).into());
-    //         let expr = syn::ExprPath {
-    //             attrs: Vec::new(),
-    //             qself: None,
-    //             path,
-    //         };
-    //         deserialize_with.set_if_none(expr);
-    //     }
-    // } else if is_implicitly_borrowed(&field.ty) {
-    //     // Types &str and &[u8] are always implicitly borrowed. No need for
-    //     // a #[serde(borrow)].
-    //     collect_lifetimes(&field.ty, &mut borrowed_lifetimes);
-    // }
-
-    // Field {
-    //     name: Name::from_attrs(ident, ser_name, de_name, Some(de_aliases)),
-    //     skip_serializing: skip_serializing.get(),
-    //     skip_deserializing: skip_deserializing.get(),
-    //     skip_serializing_if: skip_serializing_if.get(),
-    //     default: default.get().unwrap_or(Default::None),
-    //     serialize_with: serialize_with.get(),
-    //     deserialize_with: deserialize_with.get(),
-    //     ser_bound: ser_bound.get(),
-    //     de_bound: de_bound.get(),
-    //     borrowed_lifetimes,
-    //     getter: getter.get(),
-    //     flatten: flatten.get(),
-    //     transparent: false,
-    // }
-
     result
 }
 
@@ -503,7 +347,7 @@ fn parse_lit_into_expr_path(
     attr_name: Symbol,
     meta: &syn::meta::ParseNestedMeta,
 ) -> syn::Result<Option<syn::ExprPath>> {
-    let string = match get_lit_str(cx, attr_name, attr_name, meta)? {
+    let string = match parse_lit_str(cx, attr_name, attr_name, meta)? {
         Some(string) => string,
         None => return Ok(None),
     };
@@ -520,7 +364,7 @@ fn parse_lit_into_expr_path(
     })
 }
 
-fn get_lit_str(
+fn parse_lit_str(
     cx: &Context,
     attr_name: Symbol,
     meta_item_name: Symbol,
