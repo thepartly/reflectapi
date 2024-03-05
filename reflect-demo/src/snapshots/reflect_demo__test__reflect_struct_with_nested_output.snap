@@ -6,9 +6,6 @@ expression: "TestStructWithNested::reflect_output()"
   "name": "",
   "types": [
     {
-      "name": "std::string::String"
-    },
-    {
       "name": "reflect_demo::test::TestStructNested",
       "fields": [
         {
@@ -29,6 +26,9 @@ expression: "TestStructWithNested::reflect_output()"
           }
         }
       ]
+    },
+    {
+      "name": "std::string::String"
     }
   ]
 }

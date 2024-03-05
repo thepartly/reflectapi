@@ -39,53 +39,53 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
     let reflect_type_name = type_schema.name.clone();
     let reflect_type_refs = type_schema.get_type_refs();
     let tokenizable_type_schema = crate::tokenizable_schema::TokenizableType::new(type_schema);
-    let (fn_reflect_ident, fn_reflect_name_ident, fn_reflect_type_ident, trait_ident) =
-        match reflect_type {
-            ReflectType::Input => (
-                quote::quote!(reflect_input),
-                quote::quote!(reflect_input_name),
-                quote::quote!(reflect_input_type),
-                quote::quote!(reflect::Input),
-            ),
-            ReflectType::Output => (
-                quote::quote!(reflect_output),
-                quote::quote!(reflect_output_name),
-                quote::quote!(reflect_output_type),
-                quote::quote!(reflect::Output),
-            ),
-        };
+    let (fn_reflect_ident, fn_reflect_type_ident, trait_ident) = match reflect_type {
+        ReflectType::Input => (
+            quote::quote!(reflect_input),
+            quote::quote!(reflect_input_type),
+            quote::quote!(reflect::Input),
+        ),
+        ReflectType::Output => (
+            quote::quote!(reflect_output),
+            quote::quote!(reflect_output_type),
+            quote::quote!(reflect::Output),
+        ),
+    };
 
     let mut reflect_type_refs_processing = quote::quote! {};
     for type_ref in reflect_type_refs.into_iter() {
         let type_ref_ident = type_ref_to_syn_path(&type_ref);
         reflect_type_refs_processing.extend(quote::quote! {
             {
-                let reflectable_type_name = <#type_ref_ident as #trait_ident>::#fn_reflect_name_ident();
-                if !schema.has_type(&reflectable_type_name) {
-                    <#type_ref_ident as #trait_ident>::#fn_reflect_type_ident(schema);
-                }
+                let reflectable_type_name = <#type_ref_ident as #trait_ident>::#fn_reflect_type_ident(schema);
                 type_refs_map.insert(String::from(#type_ref), reflectable_type_name);
             }
         });
     }
     TokenStream::from(quote::quote! {
         impl #trait_ident for #name {
-            fn #fn_reflect_ident() -> reflect::Schema {
-                let mut result = reflect::Schema::new();
-                Self::#fn_reflect_type_ident(&mut result);
-                result
-            }
-            fn #fn_reflect_name_ident() -> String {
-                format!("{}::{}", std::module_path!(), #reflect_type_name)
-            }
-            fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> () {
+            fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> String {
+                let full_type_name = format!("{}::{}", std::module_path!(), #reflect_type_name);
+                if schema.has_type(&full_type_name) {
+                    return full_type_name;
+                }
                 let mut result = #tokenizable_type_schema;
-                result.name = Self::#fn_reflect_name_ident();
+                result.name = full_type_name.clone();
                 schema.reserve_type(result.name.clone());
                 let mut type_refs_map = std::collections::HashMap::new();
                 #reflect_type_refs_processing;
                 result.remap_type_refs(&type_refs_map);
                 schema.insert_type(result);
+                full_type_name
+            }
+        }
+
+        impl #name {
+            fn #fn_reflect_ident() -> reflect::Schema {
+                let mut result = reflect::Schema::new();
+                <Self as #trait_ident>::#fn_reflect_type_ident(&mut result);
+                result.sort_types();
+                result
             }
         }
     })

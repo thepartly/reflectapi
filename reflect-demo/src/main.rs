@@ -1,8 +1,5 @@
 mod test_lib;
 
-use reflect::Input;
-use reflect::Output;
-
 #[derive(reflect::Input, reflect::Output)]
 struct MyStruct {
     /// some docs
@@ -33,9 +30,6 @@ fn main() {
 
 #[cfg(test)]
 mod test {
-    use reflect::Input;
-    use reflect::Output;
-
     #[test]
     fn compiler_error_cases() {
         let t = trybuild::TestCases::new();

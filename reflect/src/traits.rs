@@ -1,43 +1,25 @@
 use reflect_schema::Schema;
 
 pub trait Input {
-    fn reflect_input() -> crate::Schema;
-    fn reflect_input_name() -> String;
-    fn reflect_input_type(schema: &mut Schema) -> ();
+    fn reflect_input_type(schema: &mut Schema) -> String;
 }
 
 pub trait Output {
-    fn reflect_output() -> crate::Schema;
-    fn reflect_output_name() -> String;
-    fn reflect_output_type(schema: &mut Schema) -> ();
+    fn reflect_output_type(schema: &mut Schema) -> String;
 }
 
 pub trait Reflect {
-    fn reflect() -> crate::Schema;
-    fn reflect_name() -> String;
-    fn reflect_type(schema: &mut Schema) -> ();
+    fn reflect_type(schema: &mut Schema) -> String;
 }
 
 impl<T: Reflect> Input for T {
-    fn reflect_input() -> crate::Schema {
-        T::reflect()
-    }
-    fn reflect_input_name() -> String {
-        T::reflect_name()
-    }
-    fn reflect_input_type(schema: &mut Schema) -> () {
+    fn reflect_input_type(schema: &mut Schema) -> String {
         T::reflect_type(schema)
     }
 }
 
 impl<T: Reflect> Output for T {
-    fn reflect_output() -> crate::Schema {
-        T::reflect()
-    }
-    fn reflect_output_name() -> String {
-        T::reflect_name()
-    }
-    fn reflect_output_type(schema: &mut Schema) -> () {
+    fn reflect_output_type(schema: &mut Schema) -> String {
         T::reflect_type(schema)
     }
 }
@@ -45,16 +27,10 @@ impl<T: Reflect> Output for T {
 macro_rules! impl_reflect {
     ($type:ty) => {
         impl Reflect for $type {
-            fn reflect() -> crate::Schema {
-                let mut schema = Schema::new();
-                schema.name = stringify!($type).to_string();
-                schema
-            }
-            fn reflect_name() -> String {
-                stringify!($type).to_string()
-            }
-            fn reflect_type(schema: &mut Schema) -> () {
-                schema.insert_type(crate::Type::new(Self::reflect_name()));
+            fn reflect_type(schema: &mut Schema) -> String {
+                let name = stringify!($type).to_string();
+                schema.insert_type(crate::Type::new(name.clone()));
+                name
             }
         }
     };

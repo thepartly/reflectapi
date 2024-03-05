@@ -6,7 +6,15 @@ expression: "TestStructWithNestedExternal::reflect_input()"
   "name": "",
   "types": [
     {
-      "name": "std::string::String"
+      "name": "reflect_demo::test::TestStructWithNestedExternal",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "reflect_demo::test_lib::TestStructNested"
+          }
+        }
+      ]
     },
     {
       "name": "reflect_demo::test_lib::TestStructNested",
@@ -20,15 +28,7 @@ expression: "TestStructWithNestedExternal::reflect_input()"
       ]
     },
     {
-      "name": "reflect_demo::test::TestStructWithNestedExternal",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "reflect_demo::test_lib::TestStructNested"
-          }
-        }
-      ]
+      "name": "std::string::String"
     }
   ]
 }

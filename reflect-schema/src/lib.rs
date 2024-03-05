@@ -57,16 +57,26 @@ impl Schema {
     }
 
     pub fn from_json(json: &str) -> Self {
-        let result: Self = serde_json::from_str(json).unwrap();
-        let mut types_map = HashMap::new();
-        for (i, ty) in result.types().enumerate() {
-            types_map.insert(ty.name.clone(), i);
-        }
+        let mut result: Self = serde_json::from_str(json).unwrap();
+        result.build_types_map();
         result
     }
 
     pub fn to_json(&self) -> String {
         serde_json::to_string_pretty(self).unwrap()
+    }
+
+    pub fn sort_types(&mut self) {
+        self.types.sort_by(|a, b| a.name.cmp(&b.name));
+        self.build_types_map();
+    }
+
+    fn build_types_map(&mut self) {
+        let mut types_map = HashMap::new();
+        for (i, ty) in self.types().enumerate() {
+            types_map.insert(ty.name.clone(), i);
+        }
+        self.types_map = types_map;
     }
 }
 

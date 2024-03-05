@@ -6,9 +6,6 @@ expression: "TestStructOneBasicFieldStringReflectBoth::reflect_input()"
   "name": "",
   "types": [
     {
-      "name": "std::string::String"
-    },
-    {
       "name": "reflect_demo::test::TestStructOneBasicFieldStringReflectBoth",
       "fields": [
         {
@@ -18,6 +15,9 @@ expression: "TestStructOneBasicFieldStringReflectBoth::reflect_input()"
           }
         }
       ]
+    },
+    {
+      "name": "std::string::String"
     }
   ]
 }
