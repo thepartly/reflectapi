@@ -37,8 +37,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
     }
 
     let reflect_type_name = type_schema.name.clone();
-    let reflect_type_refs = type_schema.get_type_refs();
-    let tokenizable_type_schema = crate::tokenizable_schema::TokenizableType::new(type_schema);
+    let reflect_type_refs = type_schema.fields();
     let (fn_reflect_ident, fn_reflect_type_ident, trait_ident) = match reflect_type {
         ReflectType::Input => (
             quote::quote!(reflect_input),
@@ -54,14 +53,16 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
     let mut reflect_type_refs_processing = quote::quote! {};
     for type_ref in reflect_type_refs.into_iter() {
-        let type_ref_ident = type_ref_to_syn_path(&type_ref);
+        let type_ref_name = type_ref.type_ref.name.as_str();
+        let type_ref_ident = type_ref_to_syn_path(type_ref_name);
         reflect_type_refs_processing.extend(quote::quote! {
             {
                 let reflectable_type_name = <#type_ref_ident as #trait_ident>::#fn_reflect_type_ident(schema);
-                type_refs_map.insert(String::from(#type_ref), reflectable_type_name);
+                type_refs_map.insert(String::from(#type_ref_name), reflectable_type_name);
             }
         });
     }
+    let tokenizable_type_schema = crate::tokenizable_schema::TokenizableType::new(type_schema);
     TokenStream::from(quote::quote! {
         impl #trait_ident for #name {
             fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> String {

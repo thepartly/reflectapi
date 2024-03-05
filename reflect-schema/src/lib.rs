@@ -107,11 +107,8 @@ impl Type {
         serde_json::to_string_pretty(self).unwrap()
     }
 
-    pub fn get_type_refs(&self) -> Vec<String> {
-        self.fields
-            .iter()
-            .map(|field| field.type_ref.name.clone())
-            .collect()
+    pub fn fields(&self) -> std::slice::Iter<Field> {
+        self.fields.iter()
     }
 
     pub fn remap_type_refs(&mut self, remap: &std::collections::HashMap<String, String>) {
