@@ -4,7 +4,7 @@ error: unknown serde field attribute `unknown_attributes`
 3 |     #[serde(unknown_attributes)]
   |             ^^^^^^^^^^^^^^^^^^
 
-error: failure to derive reflect::Input/reflect::Output while serde attributes compilation fails
+error: failure to derive reflect::Input/reflect::Output while serde compilation fails
  --> tests/errors/invalid_serde_attributes.rs:2:8
   |
 2 | struct MyStruct {
