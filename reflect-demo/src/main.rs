@@ -1,21 +1,31 @@
 mod test_lib;
 
-#[derive(reflect::Input, reflect::Output)]
-struct MyStruct {
-    /// some docs
-    // #[serde(flatten)]
-    // #[reflect(invalid)]
-    _f: u32,
-    _f2: i8,
+// #[derive(reflect::Input, reflect::Output)]
+// struct MyStruct {
+//     /// some docs
+//     // #[serde(flatten)]
+//     // #[reflect(invalid)]
+//     _f: u32,
+//     _f2: i8,
+// }
+
+// #[derive(reflect::Input, reflect::Output)]
+// struct TestStructWithNested {
+//     _f: TestStructNested,
+// }
+// #[derive(reflect::Input, reflect::Output)]
+// struct TestStructNested {
+//     _f: String,
+// }
+
+#[derive(reflect::Input)]
+struct TestStructWithVec {
+    // _f: Vec<u8>,
 }
 
-#[derive(reflect::Input, reflect::Output)]
-struct TestStructWithNested {
-    _f: TestStructNested,
-}
-#[derive(reflect::Input, reflect::Output)]
-struct TestStructNested {
-    _f: String,
+#[derive(reflect::Input)]
+struct TestStructWithNestedExternal {
+    _f: crate::test_lib::TestStructNested,
 }
 
 trait MyTrait {}
@@ -24,8 +34,8 @@ trait MyTrait {}
 // impl<'de, T: serde::Deserialize<'de>> MyTrait for T {}
 
 fn main() {
-    println!("{}", MyStruct::reflect_input());
-    println!("{}", TestStructWithNested::reflect_output());
+    // println!("{}", MyStruct::reflect_input());
+    println!("{}", TestStructWithNestedExternal::reflect_input());
 }
 
 #[cfg(test)]

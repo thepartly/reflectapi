@@ -78,6 +78,14 @@ impl Schema {
         }
         self.types_map = types_map;
     }
+
+    pub fn _debug(&mut self, debug: Option<String>) -> String {
+        if let Some(debug) = debug {
+            std::mem::replace(&mut self._debug, debug)
+        } else {
+            self._debug.clone()
+        }
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
@@ -118,6 +126,14 @@ impl Type {
             }
         }
     }
+
+    pub fn _debug(&mut self, debug: Option<String>) -> String {
+        if let Some(debug) = debug {
+            std::mem::replace(&mut self._debug, debug)
+        } else {
+            self._debug.clone()
+        }
+    }
 }
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
 pub struct Field {
@@ -135,6 +151,14 @@ impl Field {
             name,
             type_ref: ty,
             _debug: String::new(),
+        }
+    }
+
+    pub fn _debug(&mut self, debug: Option<String>) -> String {
+        if let Some(debug) = debug {
+            std::mem::replace(&mut self._debug, debug)
+        } else {
+            self._debug.clone()
         }
     }
 }
@@ -155,10 +179,11 @@ impl TypeRef {
         }
     }
 
-    pub fn invalid() -> Self {
-        TypeRef {
-            name: String::new(),
-            _debug: String::new(),
+    pub fn _debug(&mut self, debug: Option<String>) -> String {
+        if let Some(debug) = debug {
+            std::mem::replace(&mut self._debug, debug)
+        } else {
+            self._debug.clone()
         }
     }
 }

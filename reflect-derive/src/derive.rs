@@ -32,9 +32,12 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
     let ctxt = Context::new(reflect_type);
     let type_schema = visit_type(&ctxt, &serde_input);
-    if let Err(err) = ctxt.check() {
-        proc_macro_error::abort!(err.span(), err.to_string());
-    }
+    let encountered_type_refs = match ctxt.check() {
+        Err(err) => {
+            proc_macro_error::abort!(err.span(), err.to_string());
+        }
+        Ok(encountered_type_refs) => encountered_type_refs,
+    };
 
     let reflect_type_name = type_schema.name.clone();
     let reflect_type_refs = type_schema.fields();
@@ -54,7 +57,9 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
     let mut reflect_type_refs_processing = quote::quote! {};
     for type_ref in reflect_type_refs.into_iter() {
         let type_ref_name = type_ref.type_ref.name.as_str();
-        let type_ref_ident = type_ref_to_syn_path(type_ref_name);
+        let type_ref_ident = encountered_type_refs.get(type_ref_name).unwrap();
+        // .map(|ty| ty.clone())
+        // .unwrap_or_else(|| syn::Type::Path(type_ref_to_syn_path(type_ref_name)));
         reflect_type_refs_processing.extend(quote::quote! {
             {
                 let reflectable_type_name = <#type_ref_ident as #trait_ident>::#fn_reflect_type_ident(schema);
@@ -145,10 +150,12 @@ fn visit_field<'a>(
 }
 
 fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef {
+    let result = reflect_schema::TypeRef::new(ty.to_token_stream().to_string().replace(' ', ""));
+    cx.encountered_type_ref(result.name.clone(), ty.clone());
     match ty {
         syn::Type::Path(path) => {
             if path.qself.is_some() {
-                cx.error_spanned_by(
+                cx.impl_error(
                     ty,
                     format_args!("reflect::Input/reflect::Output does not support qualified Self type reference"),
                 );
@@ -156,13 +163,13 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
             path.path.segments.iter().for_each(|i| match i.arguments {
                 syn::PathArguments::None => {}
                 syn::PathArguments::AngleBracketed(_) => {
-                    cx.error_spanned_by(
+                    cx.impl_error(
                         ty,
                         format_args!("reflect::Input/reflect::Output does not support generic field type"),
                     );
                 }
                 syn::PathArguments::Parenthesized(_) => {
-                    cx.error_spanned_by(
+                    cx.impl_error(
                         ty,
                         format_args!(
                             "reflect::Input/reflect::Output does not support parenthesized field type path arguments"
@@ -170,132 +177,121 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
                     );
                 }
             });
-            let tr = path
-                .path
-                .segments
-                .iter()
-                .map(|i| i.ident.to_string())
-                .collect::<Vec<_>>()
-                .join("::");
-            return reflect_schema::TypeRef::new(tr);
+            // let tr = path
+            //     .path
+            //     .segments
+            //     .iter()
+            //     .map(|i| i.ident.to_string())
+            //     .collect::<Vec<_>>()
+            //     .join("::");
+            // let mut r = reflect_schema::TypeRef::new(tr);
+            // r._debug(Some(format!("{}/{}", result.name, r.name.clone())));
+            // return r;
+            // result._debug(Some(tr));
         }
         syn::Type::Array(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support array field type"),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::BareFn(_path) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!(
                     "reflect::Input/reflect::Output does not support bare function field type"
                 ),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Group(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support group field type"),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::ImplTrait(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!(
                     "reflect::Input/reflect::Output does not support impl trait field type"
                 ),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Infer(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support infer field type"),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Macro(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support macro field type"),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Never(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support never field type"),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Paren(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support paren field type"),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Ptr(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support pointer field type"),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Reference(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!(
                     "reflect::Input/reflect::Output does not support reference field type"
                 ),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Slice(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support slice field type"),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::TraitObject(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!(
                     "reflect::Input/reflect::Output does not support trait object field type"
                 ),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Tuple(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support tuple field type"),
             );
-            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Verbatim(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support verbatim field type"),
             );
-            reflect_schema::TypeRef::invalid()
         }
         _ => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 ty,
                 format_args!(
                     "reflect::Input/reflect::Output does not support `{}` field type definition variant",
                     ty.to_token_stream().to_string()
                 ),
             );
-            reflect_schema::TypeRef::invalid()
         }
     }
+    result
 }
 
 struct ParsedFieldAttributes {
@@ -390,7 +386,7 @@ fn parse_lit_into_expr_path(
     Ok(match string.parse() {
         Ok(expr) => Some(expr),
         Err(_) => {
-            cx.error_spanned_by(
+            cx.impl_error(
                 &string,
                 format!("failed to parse type reference path: {:?}", string.value()),
             );
@@ -417,14 +413,14 @@ fn parse_lit_str(
     {
         let suffix = lit.suffix();
         if !suffix.is_empty() {
-            cx.error_spanned_by(
+            cx.impl_error(
                 lit,
                 format!("unexpected suffix `{}` on string literal", suffix),
             );
         }
         Ok(Some(lit.clone()))
     } else {
-        cx.error_spanned_by(
+        cx.impl_error(
             expr,
             format!(
                 "expected serde {} attribute to be a string: `{} = \"...\"`",
@@ -435,24 +431,25 @@ fn parse_lit_str(
     }
 }
 
-fn type_ref_to_syn_path(str: &str) -> syn::Path {
-    let (leading_colon, path_parts) = if str.starts_with("::") {
-        (
-            Some(syn::Token![::](proc_macro2::Span::call_site())),
-            str.split("::").skip(1).collect::<Vec<_>>(),
-        )
-    } else {
-        (None, str.split("::").collect::<Vec<_>>())
-    };
-    let segments = path_parts
-        .iter()
-        .map(|s| syn::PathSegment {
-            ident: syn::Ident::new(s, proc_macro2::Span::call_site()),
-            arguments: syn::PathArguments::None,
-        })
-        .collect();
-    syn::Path {
-        leading_colon,
-        segments,
-    }
-}
+// fn type_ref_to_syn_path(str: &str) -> syn::TypePath {
+//     let (leading_colon, path_parts) = if str.starts_with("::") {
+//         (
+//             Some(syn::Token![::](proc_macro2::Span::call_site())),
+//             str.split("::").skip(1).collect::<Vec<_>>(),
+//         )
+//     } else {
+//         (None, str.split("::").collect::<Vec<_>>())
+//     };
+//     let segments = path_parts
+//         .iter()
+//         .map(|s| syn::PathSegment {
+//             ident: syn::Ident::new(s, proc_macro2::Span::call_site()),
+//             arguments: syn::PathArguments::None,
+//         })
+//         .collect();
+//     let path = syn::Path {
+//         leading_colon,
+//         segments,
+//     };
+//     syn::TypePath { qself: None, path }
+// }
