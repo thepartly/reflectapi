@@ -3,7 +3,7 @@ mod test_lib;
 use reflect::Input;
 use reflect::Output;
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, reflect::Output)]
 struct MyStruct {
     /// some docs
     // #[serde(flatten)]
@@ -23,11 +23,11 @@ struct TestStructNested {
 trait MyTrait {}
 
 // impl<T: serde::Serialize> MyTrait for T {}
-impl<'de, T: serde::Deserialize<'de>> MyTrait for T {}
+// impl<'de, T: serde::Deserialize<'de>> MyTrait for T {}
 
 fn main() {
     println!("{:#?}", MyStruct::reflect_input());
-    println!("{:#?}", TestStructWithNested::reflect_input());
+    println!("{:#?}", TestStructWithNested::reflect_output());
 }
 
 #[cfg(test)]
@@ -53,7 +53,7 @@ mod test {
     }
     #[test]
     fn test_reflect_struct_one_basic_field_u32() {
-        insta::assert_debug_snapshot!(TestStructOneBasicFieldU32::reflect_input());
+        insta::assert_snapshot!(TestStructOneBasicFieldU32::reflect_input());
     }
 
     #[derive(reflect::Input)]
@@ -62,7 +62,7 @@ mod test {
     }
     #[test]
     fn test_reflect_struct_one_basic_field_string() {
-        insta::assert_debug_snapshot!(TestStructOneBasicFieldString::reflect_input());
+        insta::assert_snapshot!(TestStructOneBasicFieldString::reflect_input());
     }
 
     #[derive(reflect::Input, reflect::Output)]
@@ -71,11 +71,11 @@ mod test {
     }
     #[test]
     fn test_reflect_struct_one_basic_field_string_reflect_both_input() {
-        insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_input());
+        insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_input());
     }
     #[test]
     fn test_reflect_struct_one_basic_field_string_reflect_both_output() {
-        insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_output());
+        insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_output());
     }
 
     #[derive(reflect::Input, reflect::Output)]
@@ -85,13 +85,13 @@ mod test {
     }
     #[test]
     fn test_reflect_struct_one_basic_field_string_reflect_both_with_attributes_input() {
-        insta::assert_debug_snapshot!(
+        insta::assert_snapshot!(
             TestStructOneBasicFieldStringReflectBothDifferently::reflect_input()
         );
     }
     #[test]
     fn test_reflect_struct_one_basic_field_string_reflect_both_with_attributes_output() {
-        insta::assert_debug_snapshot!(
+        insta::assert_snapshot!(
             TestStructOneBasicFieldStringReflectBothDifferently::reflect_output()
         );
     }
@@ -104,13 +104,13 @@ mod test {
     #[test]
     fn test_reflect_struct_one_basic_field_string_reflect_both_equally_input() {
         insta::allow_duplicates! {
-            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_input());
+            insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_input());
         }
     }
     #[test]
     fn test_reflect_struct_one_basic_field_string_reflect_both_equally_output() {
         insta::allow_duplicates! {
-            insta::assert_debug_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_output());
+            insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_output());
         }
     }
 
@@ -121,15 +121,11 @@ mod test {
     }
     #[test]
     fn test_reflect_struct_one_basic_field_string_reflect_both_equally2_input() {
-        insta::assert_debug_snapshot!(
-            TestStructOneBasicFieldStringReflectBothEqually::reflect_input()
-        );
+        insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_input());
     }
     #[test]
     fn test_reflect_struct_one_basic_field_string_reflect_both_equally2_output() {
-        insta::assert_debug_snapshot!(
-            TestStructOneBasicFieldStringReflectBothEqually2::reflect_output()
-        );
+        insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBothEqually2::reflect_output());
     }
 
     #[derive(reflect::Input, reflect::Output)]
@@ -142,11 +138,11 @@ mod test {
     }
     #[test]
     fn test_reflect_struct_with_nested_input() {
-        insta::assert_debug_snapshot!(TestStructWithNested::reflect_input());
+        insta::assert_snapshot!(TestStructWithNested::reflect_input());
     }
     #[test]
     fn test_reflect_struct_with_nested_output() {
-        insta::assert_debug_snapshot!(TestStructWithNested::reflect_output());
+        insta::assert_snapshot!(TestStructWithNested::reflect_output());
     }
 
     #[derive(reflect::Input, reflect::Output)]
@@ -155,10 +151,10 @@ mod test {
     }
     #[test]
     fn test_reflect_struct_with_nested_external_input() {
-        insta::assert_debug_snapshot!(TestStructWithNestedExternal::reflect_input());
+        insta::assert_snapshot!(TestStructWithNestedExternal::reflect_input());
     }
     #[test]
     fn test_reflect_struct_with_nested_external_output() {
-        insta::assert_debug_snapshot!(TestStructWithNestedExternal::reflect_output());
+        insta::assert_snapshot!(TestStructWithNestedExternal::reflect_output());
     }
 }

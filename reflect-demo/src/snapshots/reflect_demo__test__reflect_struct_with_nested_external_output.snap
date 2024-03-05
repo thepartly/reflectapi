@@ -2,39 +2,35 @@
 source: reflect-demo/src/main.rs
 expression: "TestStructWithNestedExternal::reflect_output()"
 ---
-Schema {
-    name: "",
-    types: [
-        Type {
-            name: "reflect_demo::test_lib::TestStructNested",
-            fields: [
-                Field {
-                    name: "_f",
-                    type_ref: TypeRef {
-                        name: "String",
-                    },
-                    _debug: "",
-                },
-            ],
-            _debug: "",
-        },
-        Type {
-            name: "reflect_demo::test::TestStructWithNestedExternal",
-            fields: [
-                Field {
-                    name: "_f",
-                    type_ref: TypeRef {
-                        name: "reflect_demo::test_lib::TestStructNested",
-                    },
-                    _debug: "",
-                },
-            ],
-            _debug: "",
-        },
-    ],
-    _debug: "",
-    types_map: {
-        "reflect_demo::test_lib::TestStructNested": 0,
-        "reflect_demo::test::TestStructWithNestedExternal": 1,
+{
+  "name": "",
+  "types": [
+    {
+      "name": "reflect_demo::test_lib::TestStructNested",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "String"
+          },
+          "_debug": ""
+        }
+      ],
+      "_debug": ""
     },
+    {
+      "name": "reflect_demo::test::TestStructWithNestedExternal",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "reflect_demo::test_lib::TestStructNested"
+          },
+          "_debug": ""
+        }
+      ],
+      "_debug": ""
+    }
+  ],
+  "_debug": ""
 }

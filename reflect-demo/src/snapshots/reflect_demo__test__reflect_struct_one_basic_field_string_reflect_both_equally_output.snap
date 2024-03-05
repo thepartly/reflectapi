@@ -2,25 +2,22 @@
 source: reflect-demo/src/main.rs
 expression: "TestStructOneBasicFieldStringReflectBothEqually::reflect_output()"
 ---
-Schema {
-    name: "",
-    types: [
-        Type {
-            name: "reflect_demo::test::TestStructOneBasicFieldStringReflectBothEqually",
-            fields: [
-                Field {
-                    name: "_f",
-                    type_ref: TypeRef {
-                        name: "u32",
-                    },
-                    _debug: "",
-                },
-            ],
-            _debug: "",
-        },
-    ],
-    _debug: "",
-    types_map: {
-        "reflect_demo::test::TestStructOneBasicFieldStringReflectBothEqually": 0,
-    },
+{
+  "name": "",
+  "types": [
+    {
+      "name": "reflect_demo::test::TestStructOneBasicFieldStringReflectBothEqually",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "u32"
+          },
+          "_debug": ""
+        }
+      ],
+      "_debug": ""
+    }
+  ],
+  "_debug": ""
 }

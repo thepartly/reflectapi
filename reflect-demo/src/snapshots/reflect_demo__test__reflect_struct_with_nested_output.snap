@@ -2,39 +2,35 @@
 source: reflect-demo/src/main.rs
 expression: "TestStructWithNested::reflect_output()"
 ---
-Schema {
-    name: "",
-    types: [
-        Type {
-            name: "reflect_demo::test::TestStructNested",
-            fields: [
-                Field {
-                    name: "_f",
-                    type_ref: TypeRef {
-                        name: "String",
-                    },
-                    _debug: "",
-                },
-            ],
-            _debug: "",
-        },
-        Type {
-            name: "reflect_demo::test::TestStructWithNested",
-            fields: [
-                Field {
-                    name: "_f",
-                    type_ref: TypeRef {
-                        name: "reflect_demo::test::TestStructNested",
-                    },
-                    _debug: "",
-                },
-            ],
-            _debug: "",
-        },
-    ],
-    _debug: "",
-    types_map: {
-        "reflect_demo::test::TestStructWithNested": 1,
-        "reflect_demo::test::TestStructNested": 0,
+{
+  "name": "",
+  "types": [
+    {
+      "name": "reflect_demo::test::TestStructNested",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "String"
+          },
+          "_debug": ""
+        }
+      ],
+      "_debug": ""
     },
+    {
+      "name": "reflect_demo::test::TestStructWithNested",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "reflect_demo::test::TestStructNested"
+          },
+          "_debug": ""
+        }
+      ],
+      "_debug": ""
+    }
+  ],
+  "_debug": ""
 }

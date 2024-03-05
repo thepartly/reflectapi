@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Schema {
@@ -8,6 +8,12 @@ pub struct Schema {
 
     #[serde(skip_serializing, default)]
     types_map: HashMap<String, usize>,
+}
+
+impl Display for Schema {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.to_json().as_str())
+    }
 }
 
 impl Schema {
