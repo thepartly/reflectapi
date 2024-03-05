@@ -58,8 +58,6 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
     for type_ref in reflect_type_refs.into_iter() {
         let type_ref_name = type_ref.type_ref.name.as_str();
         let type_ref_ident = encountered_type_refs.get(type_ref_name).unwrap();
-        // .map(|ty| ty.clone())
-        // .unwrap_or_else(|| syn::Type::Path(type_ref_to_syn_path(type_ref_name)));
         reflect_type_refs_processing.extend(quote::quote! {
             {
                 let reflectable_type_name = <#type_ref_ident as #trait_ident>::#fn_reflect_type_ident(schema);
