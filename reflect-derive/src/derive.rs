@@ -183,7 +183,7 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support array field type"),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::BareFn(_path) => {
             cx.error_spanned_by(
@@ -192,14 +192,14 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
                     "reflect::Input/reflect::Output does not support bare function field type"
                 ),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Group(_) => {
             cx.error_spanned_by(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support group field type"),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::ImplTrait(_) => {
             cx.error_spanned_by(
@@ -208,42 +208,42 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
                     "reflect::Input/reflect::Output does not support impl trait field type"
                 ),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Infer(_) => {
             cx.error_spanned_by(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support infer field type"),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Macro(_) => {
             cx.error_spanned_by(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support macro field type"),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Never(_) => {
             cx.error_spanned_by(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support never field type"),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Paren(_) => {
             cx.error_spanned_by(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support paren field type"),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Ptr(_) => {
             cx.error_spanned_by(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support pointer field type"),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Reference(_) => {
             cx.error_spanned_by(
@@ -252,14 +252,14 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
                     "reflect::Input/reflect::Output does not support reference field type"
                 ),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Slice(_) => {
             cx.error_spanned_by(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support slice field type"),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::TraitObject(_) => {
             cx.error_spanned_by(
@@ -268,21 +268,21 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
                     "reflect::Input/reflect::Output does not support trait object field type"
                 ),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Tuple(_) => {
             cx.error_spanned_by(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support tuple field type"),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         syn::Type::Verbatim(_) => {
             cx.error_spanned_by(
                 ty,
                 format_args!("reflect::Input/reflect::Output does not support verbatim field type"),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
         _ => {
             cx.error_spanned_by(
@@ -292,7 +292,7 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
                     ty.to_token_stream().to_string()
                 ),
             );
-            Default::default()
+            reflect_schema::TypeRef::invalid()
         }
     }
 }

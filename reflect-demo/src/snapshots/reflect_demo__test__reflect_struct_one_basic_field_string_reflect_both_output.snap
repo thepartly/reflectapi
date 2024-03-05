@@ -12,12 +12,9 @@ expression: "TestStructOneBasicFieldStringReflectBoth::reflect_output()"
           "name": "_f",
           "type": {
             "name": "String"
-          },
-          "_debug": ""
+          }
         }
-      ],
-      "_debug": ""
+      ]
     }
-  ],
-  "_debug": ""
+  ]
 }

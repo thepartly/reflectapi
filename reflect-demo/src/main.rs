@@ -9,6 +9,7 @@ struct MyStruct {
     // #[serde(flatten)]
     // #[reflect(invalid)]
     _f: u32,
+    _f2: i8,
 }
 
 #[derive(reflect::Input, reflect::Output)]
@@ -26,8 +27,8 @@ trait MyTrait {}
 // impl<'de, T: serde::Deserialize<'de>> MyTrait for T {}
 
 fn main() {
-    println!("{:#?}", MyStruct::reflect_input());
-    println!("{:#?}", TestStructWithNested::reflect_output());
+    println!("{}", MyStruct::reflect_input());
+    println!("{}", TestStructWithNested::reflect_output());
 }
 
 #[cfg(test)]

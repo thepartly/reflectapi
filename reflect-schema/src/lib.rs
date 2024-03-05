@@ -4,6 +4,8 @@ use std::{collections::HashMap, fmt::Display};
 pub struct Schema {
     pub name: String,
     pub types: Vec<Type>,
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
     pub _debug: String,
 
     #[serde(skip_serializing, default)]
@@ -71,6 +73,8 @@ impl Schema {
 pub struct Type {
     pub name: String,
     pub fields: Vec<Field>,
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
     pub _debug: String,
 }
 
@@ -119,6 +123,8 @@ pub struct Field {
     pub name: String,
     #[serde(rename = "type")]
     pub type_ref: TypeRef,
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
     pub _debug: String,
 }
 
@@ -135,11 +141,24 @@ impl Field {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
 pub struct TypeRef {
     pub name: String,
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub _debug: String,
 }
 
 impl TypeRef {
     pub fn new(name: String) -> Self {
-        TypeRef { name }
+        TypeRef {
+            name,
+            _debug: String::new(),
+        }
+    }
+
+    pub fn invalid() -> Self {
+        TypeRef {
+            name: String::new(),
+            _debug: String::new(),
+        }
     }
 
     pub fn is_standard_type(&self) -> bool {
@@ -147,13 +166,5 @@ impl TypeRef {
         const STANDARD_TYPES: [&str; 4] = ["String", "Vec", "i32", "u32"];
         // TODO optimize with static hashset
         STANDARD_TYPES.contains(&self.name.as_str())
-    }
-}
-
-impl Default for TypeRef {
-    fn default() -> Self {
-        TypeRef {
-            name: String::new(),
-        }
     }
 }

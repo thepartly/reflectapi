@@ -12,11 +12,9 @@ expression: "TestStructWithNested::reflect_output()"
           "name": "_f",
           "type": {
             "name": "String"
-          },
-          "_debug": ""
+          }
         }
-      ],
-      "_debug": ""
+      ]
     },
     {
       "name": "reflect_demo::test::TestStructWithNested",
@@ -25,12 +23,9 @@ expression: "TestStructWithNested::reflect_output()"
           "name": "_f",
           "type": {
             "name": "reflect_demo::test::TestStructNested"
-          },
-          "_debug": ""
+          }
         }
-      ],
-      "_debug": ""
+      ]
     }
-  ],
-  "_debug": ""
+  ]
 }
