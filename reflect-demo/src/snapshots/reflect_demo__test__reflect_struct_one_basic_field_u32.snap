@@ -6,6 +6,9 @@ expression: "TestStructOneBasicFieldU32::reflect_input()"
   "name": "",
   "types": [
     {
+      "name": "u32"
+    },
+    {
       "name": "reflect_demo::test::TestStructOneBasicFieldU32",
       "fields": [
         {

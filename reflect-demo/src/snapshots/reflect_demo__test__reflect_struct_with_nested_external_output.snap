@@ -6,12 +6,15 @@ expression: "TestStructWithNestedExternal::reflect_output()"
   "name": "",
   "types": [
     {
+      "name": "std::string::String"
+    },
+    {
       "name": "reflect_demo::test_lib::TestStructNested",
       "fields": [
         {
           "name": "_f",
           "type": {
-            "name": "String"
+            "name": "std::string::String"
           }
         }
       ]

@@ -1,21 +1,37 @@
-error[E0277]: the trait bound `TestStructNested: Input` is not satisfied
+error[E0277]: the trait bound `TestStructNested: Reflect` is not satisfied
  --> tests/errors/invalid_reflect_on_nested_struct.rs:1:10
   |
 1 | #[derive(reflect::Input, reflect::Output)]
-  |          ^^^^^^^^^^^^^^ the trait `Input` is not implemented for `TestStructNested`
+  |          ^^^^^^^^^^^^^^ the trait `Reflect` is not implemented for `TestStructNested`
   |
-  = help: the following other types implement trait `Input`:
+  = help: the following other types implement trait `Reflect`:
+            bool
+            char
             i8
-            TestStructWithNested
+            i16
+            i32
+            i64
+            u8
+            u16
+          and $N others
+  = note: required for `TestStructNested` to implement `Input`
   = note: this error originates in the derive macro `reflect::Input` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0277]: the trait bound `TestStructNested: reflect::Output` is not satisfied
+error[E0277]: the trait bound `TestStructNested: Reflect` is not satisfied
  --> tests/errors/invalid_reflect_on_nested_struct.rs:1:26
   |
 1 | #[derive(reflect::Input, reflect::Output)]
-  |                          ^^^^^^^^^^^^^^^ the trait `reflect::Output` is not implemented for `TestStructNested`
+  |                          ^^^^^^^^^^^^^^^ the trait `Reflect` is not implemented for `TestStructNested`
   |
-  = help: the following other types implement trait `reflect::Output`:
+  = help: the following other types implement trait `Reflect`:
+            bool
+            char
             i8
-            TestStructWithNested
+            i16
+            i32
+            i64
+            u8
+            u16
+          and $N others
+  = note: required for `TestStructNested` to implement `reflect::Output`
   = note: this error originates in the derive macro `reflect::Output` (in Nightly builds, run with -Z macro-backtrace for more info)

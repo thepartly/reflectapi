@@ -6,6 +6,9 @@ expression: "TestStructOneBasicFieldStringReflectBothEqually::reflect_input()"
   "name": "",
   "types": [
     {
+      "name": "u32"
+    },
+    {
       "name": "reflect_demo::test::TestStructOneBasicFieldStringReflectBothEqually",
       "fields": [
         {

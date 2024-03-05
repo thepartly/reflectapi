@@ -6,12 +6,15 @@ expression: "TestStructOneBasicFieldString::reflect_input()"
   "name": "",
   "types": [
     {
+      "name": "std::string::String"
+    },
+    {
       "name": "reflect_demo::test::TestStructOneBasicFieldString",
       "fields": [
         {
           "name": "_f",
           "type": {
-            "name": "String"
+            "name": "std::string::String"
           }
         }
       ]

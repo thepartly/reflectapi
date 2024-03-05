@@ -3,6 +3,7 @@ use std::{collections::HashMap, fmt::Display};
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Schema {
     pub name: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub types: Vec<Type>,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -72,6 +73,7 @@ impl Schema {
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
 pub struct Type {
     pub name: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub fields: Vec<Field>,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -98,20 +100,12 @@ impl Type {
     pub fn get_type_refs(&self) -> Vec<String> {
         self.fields
             .iter()
-            .filter(|field| !field.type_ref.is_standard_type())
             .map(|field| field.type_ref.name.clone())
             .collect()
     }
 
     pub fn remap_type_refs(&mut self, remap: &std::collections::HashMap<String, String>) {
         for field in self.fields.iter_mut() {
-            if field.type_ref.is_standard_type() {
-                // TODO need to remap standard types, like:
-                // better to do it on TypeRef creation, so these are allways full path
-                // "String" -> "std::string::String"
-                // "Vec" -> "std::collections::Vec"
-                continue;
-            }
             if let Some(new_path) = remap.get(&field.type_ref.name) {
                 field.type_ref.name = new_path.clone();
             }
@@ -159,12 +153,5 @@ impl TypeRef {
             name: String::new(),
             _debug: String::new(),
         }
-    }
-
-    pub fn is_standard_type(&self) -> bool {
-        // TODO add more standard types here
-        const STANDARD_TYPES: [&str; 4] = ["String", "Vec", "i32", "u32"];
-        // TODO optimize with static hashset
-        STANDARD_TYPES.contains(&self.name.as_str())
     }
 }
