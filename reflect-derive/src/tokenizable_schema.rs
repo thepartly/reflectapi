@@ -1,24 +1,24 @@
 use quote::ToTokens;
-use reflect_schema::{Schema, Type};
+use reflect_schema::Type;
 
-pub(crate) struct TokenizableSchema {
-    pub inner: Schema,
-}
+// pub(crate) struct TokenizableSchema {
+//     pub inner: Schema,
+// }
 
-impl TokenizableSchema {
-    pub fn new(inner: Schema) -> Self {
-        TokenizableSchema { inner }
-    }
-}
+// impl TokenizableSchema {
+//     pub fn new(inner: Schema) -> Self {
+//         TokenizableSchema { inner }
+//     }
+// }
 
-impl ToTokens for TokenizableSchema {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let schema = self.inner.to_json();
-        tokens.extend(quote::quote! {
-            reflect::Schema::from_json(#schema)
-        });
-    }
-}
+// impl ToTokens for TokenizableSchema {
+//     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+//         let schema = self.inner.to_json();
+//         tokens.extend(quote::quote! {
+//             reflect::Schema::from_json(#schema)
+//         });
+//     }
+// }
 
 pub(crate) struct TokenizableType {
     pub inner: Type,

@@ -6,20 +6,7 @@ Schema {
     name: "",
     types: [
         Type {
-            name: "TestStructWithNestedExternal",
-            fields: [
-                Field {
-                    name: "_f",
-                    type_ref: TypeRef {
-                        name: "crate::test_lib::TestStructNested",
-                    },
-                    _debug: "",
-                },
-            ],
-            _debug: "reflect_demo::test",
-        },
-        Type {
-            name: "TestStructNested",
+            name: "reflect_demo::test_lib::TestStructNested",
             fields: [
                 Field {
                     name: "_f",
@@ -29,8 +16,25 @@ Schema {
                     _debug: "",
                 },
             ],
-            _debug: "reflect_demo::test_lib",
+            _debug: "",
+        },
+        Type {
+            name: "reflect_demo::test::TestStructWithNestedExternal",
+            fields: [
+                Field {
+                    name: "_f",
+                    type_ref: TypeRef {
+                        name: "reflect_demo::test_lib::TestStructNested",
+                    },
+                    _debug: "",
+                },
+            ],
+            _debug: "",
         },
     ],
     _debug: "",
+    types_map: {
+        "reflect_demo::test_lib::TestStructNested": 0,
+        "reflect_demo::test::TestStructWithNestedExternal": 1,
+    },
 }

@@ -6,7 +6,7 @@ Schema {
     name: "",
     types: [
         Type {
-            name: "TestStructOneBasicFieldStringReflectBothEqually",
+            name: "reflect_demo::test::TestStructOneBasicFieldStringReflectBothEqually",
             fields: [
                 Field {
                     name: "_f",
@@ -16,8 +16,11 @@ Schema {
                     _debug: "",
                 },
             ],
-            _debug: "reflect_demo::test",
+            _debug: "",
         },
     ],
     _debug: "",
+    types_map: {
+        "reflect_demo::test::TestStructOneBasicFieldStringReflectBothEqually": 0,
+    },
 }

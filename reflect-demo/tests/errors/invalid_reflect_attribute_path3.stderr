@@ -1,5 +1,7 @@
-error: unknown reflect type reference path attribute
- --> tests/errors/invalid_reflect_attribute_path3.rs:3:15
+error[E0412]: cannot find type `invalid` in this scope
+ --> tests/errors/invalid_reflect_attribute_path3.rs:1:30
   |
-3 |     #[reflect(output_type = "invalid")]
-  |               ^^^^^^^^^^^
+1 | #[derive(serde::Deserialize, reflect::Output)]
+  |                              ^^^^^^^^^^^^^^^ not found in this scope
+  |
+  = note: this error originates in the derive macro `reflect::Output` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -27,6 +27,7 @@ impl<'de, T: serde::Deserialize<'de>> MyTrait for T {}
 
 fn main() {
     println!("{:#?}", MyStruct::reflect_input());
+    println!("{:#?}", TestStructWithNested::reflect_input());
 }
 
 #[cfg(test)]
