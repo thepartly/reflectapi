@@ -42,25 +42,14 @@ impl Schema {
         self.types.iter()
     }
 
-    pub fn has_type(&self, name: &str) -> bool {
-        self.types_map.contains_key(name)
-    }
-
-    pub fn get_type(&self, name: &str) -> Option<&Type> {
-        let Some(&index) = self.types_map.get(name) else {
-            return None;
-        };
-        if index == usize::MAX {
-            return None;
-        }
-        Some(&self.types[index])
-    }
-
-    pub fn reserve_type(&mut self, name: String) {
-        self.types_map.insert(name, usize::MAX);
+    pub fn reserve_type(&mut self, name: String) -> bool {
+        self.ensure_types_map();
+        let r = self.types_map.insert(name, usize::MAX);
+        r.is_none()
     }
 
     pub fn insert_type(&mut self, ty: Type) {
+        self.ensure_types_map();
         if let Some(index) = self.types_map.get(ty.name()) {
             if index != &usize::MAX {
                 return;
@@ -83,6 +72,12 @@ impl Schema {
     pub fn sort_types(&mut self) {
         self.types.sort_by(|a, b| a.name().cmp(&b.name()));
         self.build_types_map();
+    }
+
+    fn ensure_types_map(&mut self) {
+        if self.types_map.is_empty() && !self.types.is_empty() {
+            self.build_types_map();
+        }
     }
 
     fn build_types_map(&mut self) {

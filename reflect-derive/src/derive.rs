@@ -39,7 +39,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         Ok(encountered_type_refs) => encountered_type_refs,
     };
 
-    let reflect_type_name = type_schema.name().clone();
+    let reflect_type_name = type_schema.name();
     let reflect_type_refs = type_schema.type_refs();
     let (fn_reflect_ident, fn_reflect_type_ident, trait_ident) = match reflect_type {
         ReflectType::Input => (
@@ -70,12 +70,11 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         impl #trait_ident for #name {
             fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> String {
                 let full_type_name = format!("{}::{}", std::module_path!(), #reflect_type_name);
-                if schema.has_type(&full_type_name) {
+                if !schema.reserve_type(full_type_name.clone()) {
                     return full_type_name;
                 }
                 let mut result = #tokenizable_type_schema;
                 result.rename(full_type_name.clone());
-                schema.reserve_type(result.name().into());
                 let mut type_refs_map = std::collections::HashMap::new();
                 #reflect_type_refs_processing;
                 result.remap_type_refs(&type_refs_map);

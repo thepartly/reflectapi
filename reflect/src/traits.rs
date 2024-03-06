@@ -13,6 +13,9 @@ macro_rules! impl_reflect {
         impl Input for $type {
             fn reflect_input_type(schema: &mut Schema) -> String {
                 let name = stringify!($type).to_string();
+                if !schema.reserve_type(name.clone()) {
+                    return name;
+                }
                 schema.insert_type(crate::Primitive::new(name.clone()).into());
                 name
             }
@@ -20,6 +23,9 @@ macro_rules! impl_reflect {
         impl Output for $type {
             fn reflect_output_type(schema: &mut Schema) -> String {
                 let name = stringify!($type).to_string();
+                if !schema.reserve_type(name.clone()) {
+                    return name;
+                }
                 schema.insert_type(crate::Primitive::new(name.clone()).into());
                 name
             }
@@ -44,6 +50,9 @@ impl_reflect!(std::string::String);
 // impl<T: Input> Input for Vec<T> {
 //     fn reflect_input_type(schema: &mut Schema) -> String {
 //         let name = format!("Vec<{}>", T::reflect_input_type(schema));
+//         if !schema.reserve_type(name.clone()) {
+//             return name;
+//         }
 //         schema.insert_type(crate::Primitive::new(name.clone()).into());
 //         name
 //     }
