@@ -18,10 +18,10 @@ mod test_lib;
 //     _f: String,
 // }
 
-#[derive(reflect::Input)]
-struct TestStructWithVec {
-    // _f: Vec<u8>,
-}
+// #[derive(reflect::Input)]
+// struct TestStructWithVec {
+//     _f: Vec<u8>,
+// }
 
 #[derive(reflect::Input)]
 struct TestStructWithNestedExternal {
@@ -35,7 +35,7 @@ trait MyTrait {}
 
 fn main() {
     // println!("{}", MyStruct::reflect_input());
-    println!("{}", TestStructWithNestedExternal::reflect_input());
+    // println!("{}", TestStructWithVec::reflect_input());
 }
 
 #[cfg(test)]

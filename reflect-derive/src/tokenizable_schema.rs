@@ -20,17 +20,17 @@ use reflect_schema::Type;
 //     }
 // }
 
-pub(crate) struct TokenizableType {
-    pub inner: Type,
+pub(crate) struct TokenizableType<'a> {
+    pub inner: &'a Type,
 }
 
-impl TokenizableType {
-    pub fn new(inner: Type) -> Self {
+impl<'a> TokenizableType<'a> {
+    pub fn new(inner: &'a Type) -> Self {
         TokenizableType { inner }
     }
 }
 
-impl ToTokens for TokenizableType {
+impl<'a> ToTokens for TokenizableType<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let schema = self.inner.to_json();
         tokens.extend(quote::quote! {

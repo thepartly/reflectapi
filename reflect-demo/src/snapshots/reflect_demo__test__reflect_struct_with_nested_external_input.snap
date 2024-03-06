@@ -6,6 +6,7 @@ expression: "TestStructWithNestedExternal::reflect_input()"
   "name": "",
   "types": [
     {
+      "kind": "struct",
       "name": "reflect_demo::test::TestStructWithNestedExternal",
       "fields": [
         {
@@ -17,6 +18,7 @@ expression: "TestStructWithNestedExternal::reflect_input()"
       ]
     },
     {
+      "kind": "struct",
       "name": "reflect_demo::test_lib::TestStructNested",
       "fields": [
         {
@@ -28,6 +30,7 @@ expression: "TestStructWithNestedExternal::reflect_input()"
       ]
     },
     {
+      "kind": "primitive",
       "name": "std::string::String"
     }
   ]

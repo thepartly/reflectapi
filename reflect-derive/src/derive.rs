@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use reflect_schema::{Field, Type};
+use reflect_schema::{Field, Struct, Type};
 
 use crate::{
     context::{Context, ReflectType},
@@ -39,8 +39,8 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         Ok(encountered_type_refs) => encountered_type_refs,
     };
 
-    let reflect_type_name = type_schema.name.clone();
-    let reflect_type_refs = type_schema.fields();
+    let reflect_type_name = type_schema.name().clone();
+    let reflect_type_refs = type_schema.type_refs();
     let (fn_reflect_ident, fn_reflect_type_ident, trait_ident) = match reflect_type {
         ReflectType::Input => (
             quote::quote!(reflect_input),
@@ -56,7 +56,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
     let mut reflect_type_refs_processing = quote::quote! {};
     for type_ref in reflect_type_refs.into_iter() {
-        let type_ref_name = type_ref.type_ref.name.as_str();
+        let type_ref_name = type_ref.name.as_str();
         let type_ref_ident = encountered_type_refs.get(type_ref_name).unwrap();
         reflect_type_refs_processing.extend(quote::quote! {
             {
@@ -65,7 +65,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
             }
         });
     }
-    let tokenizable_type_schema = crate::tokenizable_schema::TokenizableType::new(type_schema);
+    let tokenizable_type_schema = crate::tokenizable_schema::TokenizableType::new(&type_schema);
     TokenStream::from(quote::quote! {
         impl #trait_ident for #name {
             fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> String {
@@ -74,8 +74,8 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
                     return full_type_name;
                 }
                 let mut result = #tokenizable_type_schema;
-                result.name = full_type_name.clone();
-                schema.reserve_type(result.name.clone());
+                result.rename(full_type_name.clone());
+                schema.reserve_type(result.name().into());
                 let mut type_refs_map = std::collections::HashMap::new();
                 #reflect_type_refs_processing;
                 result.remap_type_refs(&type_refs_map);
@@ -97,7 +97,6 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
 fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Container<'a>) -> Type {
     let ident_name = container.ident.to_token_stream().to_string();
-    let mut result = Type::new(ident_name);
 
     // let mut result = String::new();
     match &container.data {
@@ -105,14 +104,16 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
             // for variant in variants {
             //     result += &visit_variant(cx, variant, schema);
             // }
+            unimplemented!("enum")
         }
         serde_derive_internals::ast::Data::Struct(_style, fields) => {
+            let mut result = Struct::new(ident_name);
             for field in fields {
                 result.fields.push(visit_field(cx, field));
             }
+            result.into()
         }
     }
-    result
 }
 
 // fn visit_variant<'a>(
@@ -147,8 +148,9 @@ fn visit_field<'a>(
     }
 }
 
-fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef {
-    let result = reflect_schema::TypeRef::new(ty.to_token_stream().to_string().replace(' ', ""));
+fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeReference {
+    let result =
+        reflect_schema::TypeReference::new(ty.to_token_stream().to_string().replace(' ', ""));
     cx.encountered_type_ref(result.name.clone(), ty.clone());
     match ty {
         syn::Type::Path(path) => {
@@ -161,10 +163,10 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
             path.path.segments.iter().for_each(|i| match i.arguments {
                 syn::PathArguments::None => {}
                 syn::PathArguments::AngleBracketed(_) => {
-                    cx.impl_error(
-                        ty,
-                        format_args!("reflect::Input/reflect::Output does not support generic field type"),
-                    );
+                    // cx.impl_error(
+                    //     ty,
+                    //     format_args!("reflect::Input/reflect::Output does not support generic field type"),
+                    // );
                 }
                 syn::PathArguments::Parenthesized(_) => {
                     cx.impl_error(
@@ -182,7 +184,7 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
             //     .map(|i| i.ident.to_string())
             //     .collect::<Vec<_>>()
             //     .join("::");
-            // let mut r = reflect_schema::TypeRef::new(tr);
+            // let mut r = reflect_schema::TypeReference::new(tr);
             // r._debug(Some(format!("{}/{}", result.name, r.name.clone())));
             // return r;
             // result._debug(Some(tr));
@@ -293,8 +295,8 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
 }
 
 struct ParsedFieldAttributes {
-    pub input_type: Option<reflect_schema::TypeRef>,
-    pub output_type: Option<reflect_schema::TypeRef>,
+    pub input_type: Option<reflect_schema::TypeReference>,
+    pub output_type: Option<reflect_schema::TypeReference>,
 }
 
 impl Default for ParsedFieldAttributes {

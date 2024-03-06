@@ -6,6 +6,7 @@ expression: "TestStructOneBasicFieldStringReflectBoth::reflect_output()"
   "name": "",
   "types": [
     {
+      "kind": "struct",
       "name": "reflect_demo::test::TestStructOneBasicFieldStringReflectBoth",
       "fields": [
         {
@@ -17,6 +18,7 @@ expression: "TestStructOneBasicFieldStringReflectBoth::reflect_output()"
       ]
     },
     {
+      "kind": "primitive",
       "name": "std::string::String"
     }
   ]

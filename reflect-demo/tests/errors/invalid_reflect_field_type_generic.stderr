@@ -1,5 +1,16 @@
-error: reflect::Input/reflect::Output does not support generic field type
+error[E0277]: the trait bound `Vec<u32>: Input` is not satisfied
  --> tests/errors/invalid_reflect_field_type_generic.rs:3:12
   |
 3 |     field: Vec<u32>,
-  |            ^^^
+  |            ^^^^^^^^ the trait `Input` is not implemented for `Vec<u32>`
+  |
+  = help: the following other types implement trait `Input`:
+            bool
+            char
+            i8
+            i16
+            i32
+            i64
+            u8
+            u16
+          and $N others

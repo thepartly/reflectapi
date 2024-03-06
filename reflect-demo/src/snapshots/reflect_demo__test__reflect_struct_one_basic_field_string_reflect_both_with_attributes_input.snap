@@ -6,9 +6,11 @@ expression: "TestStructOneBasicFieldStringReflectBothDifferently::reflect_input(
   "name": "",
   "types": [
     {
+      "kind": "primitive",
       "name": "i32"
     },
     {
+      "kind": "struct",
       "name": "reflect_demo::test::TestStructOneBasicFieldStringReflectBothDifferently",
       "fields": [
         {

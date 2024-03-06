@@ -13,14 +13,14 @@ macro_rules! impl_reflect {
         impl Input for $type {
             fn reflect_input_type(schema: &mut Schema) -> String {
                 let name = stringify!($type).to_string();
-                schema.insert_type(crate::Type::new(name.clone()));
+                schema.insert_type(crate::Primitive::new(name.clone()).into());
                 name
             }
         }
         impl Output for $type {
             fn reflect_output_type(schema: &mut Schema) -> String {
                 let name = stringify!($type).to_string();
-                schema.insert_type(crate::Type::new(name.clone()));
+                schema.insert_type(crate::Primitive::new(name.clone()).into());
                 name
             }
         }
@@ -40,3 +40,11 @@ impl_reflect!(f64);
 impl_reflect!(bool);
 impl_reflect!(char);
 impl_reflect!(std::string::String);
+
+// impl<T: Input> Input for Vec<T> {
+//     fn reflect_input_type(schema: &mut Schema) -> String {
+//         let name = format!("Vec<{}>", T::reflect_input_type(schema));
+//         schema.insert_type(crate::Primitive::new(name.clone()).into());
+//         name
+//     }
+// }
