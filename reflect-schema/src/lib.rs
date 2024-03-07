@@ -13,9 +13,6 @@ pub struct Schema {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub types: Vec<Type>,
 
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    _debug: String,
-
     #[serde(skip_serializing, default)]
     types_map: HashMap<String, usize>,
 }
@@ -34,7 +31,6 @@ impl Schema {
             functions: Vec::new(),
             types: Vec::new(),
             types_map: HashMap::new(),
-            _debug: String::new(),
         }
     }
 
@@ -90,14 +86,6 @@ impl Schema {
         }
         self.types_map = types_map;
     }
-
-    pub fn _debug(&mut self, debug: Option<String>) -> String {
-        if let Some(debug) = debug {
-            std::mem::replace(&mut self._debug, debug)
-        } else {
-            self._debug.clone()
-        }
-    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -134,9 +122,6 @@ pub struct Function {
     ///
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub serialization: Vec<SerializationMode>,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    _debug: String,
 }
 
 impl Function {
@@ -151,15 +136,6 @@ impl Function {
             error_type: None,
             error_headers: std::collections::HashMap::new(),
             serialization: Vec::new(),
-            _debug: String::new(),
-        }
-    }
-
-    pub fn _debug(&mut self, debug: Option<String>) -> String {
-        if let Some(debug) = debug {
-            std::mem::replace(&mut self._debug, debug)
-        } else {
-            self._debug.clone()
         }
     }
 }
@@ -181,30 +157,15 @@ pub struct TypeReference {
      */
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub parameters: Vec<TypeReference>,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    _debug: String,
 }
 
 impl TypeReference {
     pub fn new(name: String, parameters: Vec<TypeReference>) -> Self {
-        TypeReference {
-            name,
-            parameters,
-            _debug: String::new(),
-        }
+        TypeReference { name, parameters }
     }
 
     pub fn parameters(&self) -> std::slice::Iter<TypeReference> {
         self.parameters.iter()
-    }
-
-    pub fn _debug(&mut self, debug: Option<String>) -> String {
-        if let Some(debug) = debug {
-            std::mem::replace(&mut self._debug, debug)
-        } else {
-            self._debug.clone()
-        }
     }
 }
 
@@ -213,7 +174,6 @@ impl From<&str> for TypeReference {
         TypeReference {
             name: name.into(),
             parameters: Vec::new(),
-            _debug: String::new(),
         }
     }
 }
@@ -223,7 +183,6 @@ impl From<String> for TypeReference {
         TypeReference {
             name,
             parameters: Vec::new(),
-            _debug: String::new(),
         }
     }
 }
@@ -236,7 +195,22 @@ pub struct TypeParameter {
 }
 
 impl TypeParameter {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String, description: String) -> Self {
+        TypeParameter { name, description }
+    }
+}
+
+impl From<&str> for TypeParameter {
+    fn from(name: &str) -> Self {
+        TypeParameter {
+            name: name.into(),
+            description: String::new(),
+        }
+    }
+}
+
+impl From<String> for TypeParameter {
+    fn from(name: String) -> Self {
         TypeParameter {
             name,
             description: String::new(),
@@ -302,9 +276,6 @@ pub struct Primitive {
     /// Generic type parameters, if any
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub parameters: Vec<TypeParameter>,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    _debug: String,
 }
 
 impl Primitive {
@@ -313,15 +284,6 @@ impl Primitive {
             name,
             description,
             parameters,
-            _debug: String::new(),
-        }
-    }
-
-    pub fn _debug(&mut self, debug: Option<String>) -> String {
-        if let Some(debug) = debug {
-            std::mem::replace(&mut self._debug, debug)
-        } else {
-            self._debug.clone()
         }
     }
 }
@@ -344,9 +306,6 @@ pub struct Struct {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub fields: Vec<Field>,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    _debug: String,
 }
 
 impl Struct {
@@ -356,7 +315,6 @@ impl Struct {
             description: String::new(),
             parameters: Vec::new(),
             fields: Vec::new(),
-            _debug: String::new(),
         }
     }
 
@@ -370,14 +328,6 @@ impl Struct {
     ) {
         for field in self.fields.iter_mut() {
             field.replace_type_reference(remap);
-        }
-    }
-
-    pub fn _debug(&mut self, debug: Option<String>) -> String {
-        if let Some(debug) = debug {
-            std::mem::replace(&mut self._debug, debug)
-        } else {
-            self._debug.clone()
         }
     }
 }
@@ -421,9 +371,6 @@ pub struct Field {
     /// Default is false
     #[serde(skip_serializing_if = "is_false", default)]
     pub flattened: bool,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    _debug: String,
 }
 
 impl Field {
@@ -434,7 +381,6 @@ impl Field {
             type_ref: ty,
             required: false,
             flattened: false,
-            _debug: String::new(),
         }
     }
 
@@ -444,14 +390,6 @@ impl Field {
     ) {
         if let Some(new_type_ref) = remap.get(&self.type_ref) {
             self.type_ref = new_type_ref.clone();
-        }
-    }
-
-    pub fn _debug(&mut self, debug: Option<String>) -> String {
-        if let Some(debug) = debug {
-            std::mem::replace(&mut self._debug, debug)
-        } else {
-            self._debug.clone()
         }
     }
 }
@@ -475,9 +413,6 @@ pub struct Enum {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub variants: Vec<Variant>,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    _debug: String,
 }
 
 impl Enum {
@@ -488,7 +423,6 @@ impl Enum {
             parameters: Vec::new(),
             representation: Representation::String,
             variants: Vec::new(),
-            _debug: String::new(),
         }
     }
 
@@ -502,14 +436,6 @@ impl Enum {
     ) {
         for variant in self.variants.iter_mut() {
             variant.replace_type_references(remap);
-        }
-    }
-
-    pub fn _debug(&mut self, debug: Option<String>) -> String {
-        if let Some(debug) = debug {
-            std::mem::replace(&mut self._debug, debug)
-        } else {
-            self._debug.clone()
         }
     }
 }
@@ -530,9 +456,6 @@ pub struct Variant {
     pub fields: Vec<Field>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub discriminant: Option<i32>,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    _debug: String,
 }
 
 impl Variant {
@@ -542,7 +465,6 @@ impl Variant {
             description: String::new(),
             fields: Vec::new(),
             discriminant: None,
-            _debug: String::new(),
         }
     }
 
@@ -556,14 +478,6 @@ impl Variant {
     ) {
         for field in self.fields.iter_mut() {
             field.replace_type_reference(remap);
-        }
-    }
-
-    pub fn _debug(&mut self, debug: Option<String>) -> String {
-        if let Some(debug) = debug {
-            std::mem::replace(&mut self._debug, debug)
-        } else {
-            self._debug.clone()
         }
     }
 }
@@ -622,9 +536,6 @@ pub struct Alias {
     /// Aliased type
     #[serde(rename = "type")]
     pub type_ref: TypeReference,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    _debug: String,
 }
 
 impl Alias {
@@ -634,7 +545,6 @@ impl Alias {
             description: String::new(),
             parameters: Vec::new(),
             type_ref: ty,
-            _debug: String::new(),
         }
     }
 
@@ -644,14 +554,6 @@ impl Alias {
     ) {
         if let Some(new_type_reference) = remap.get(&self.type_ref) {
             self.type_ref = new_type_reference.clone();
-        }
-    }
-
-    pub fn _debug(&mut self, debug: Option<String>) -> String {
-        if let Some(debug) = debug {
-            std::mem::replace(&mut self._debug, debug)
-        } else {
-            self._debug.clone()
         }
     }
 }

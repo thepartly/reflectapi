@@ -11,8 +11,8 @@ error[E0277]: the trait bound `TestStructNested: Input` is not satisfied
             i16
             i32
             i64
+            i128
             u8
-            u16
           and $N others
 
 error[E0277]: the trait bound `TestStructNested: reflect::Output` is not satisfied
@@ -28,6 +28,6 @@ error[E0277]: the trait bound `TestStructNested: reflect::Output` is not satisfi
             i16
             i32
             i64
+            i128
             u8
-            u16
           and $N others

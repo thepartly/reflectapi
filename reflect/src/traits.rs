@@ -59,11 +59,25 @@ impl<T: Input> Input for Vec<T> {
             let type_def = crate::Primitive::new(
                 type_name.into(),
                 "Expandable array type".into(),
-                vec![crate::TypeParameter::new("T".into())],
+                vec!["T".into()],
             );
             schema.insert_type(type_def.into());
         }
-
         crate::TypeReference::new(type_name.into(), vec![T::reflect_input_type(schema)])
+    }
+}
+
+impl<T: Output> Output for Vec<T> {
+    fn reflect_output_type(schema: &mut crate::Schema) -> TypeReference {
+        let type_name = "std::vec::Vec";
+        if schema.reserve_type(type_name) {
+            let type_def = crate::Primitive::new(
+                type_name.into(),
+                "Expandable array type".into(),
+                vec!["T".into()],
+            );
+            schema.insert_type(type_def.into());
+        }
+        crate::TypeReference::new(type_name.into(), vec![T::reflect_output_type(schema)])
     }
 }
