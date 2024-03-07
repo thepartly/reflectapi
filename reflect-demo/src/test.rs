@@ -214,3 +214,64 @@ fn test_reflect_struct_option_input() {
 fn test_reflect_struct_option_output() {
     insta::assert_json_snapshot!(TestStructOption::reflect_output());
 }
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructNewtype(String);
+#[test]
+fn test_reflect_struct_newtype_input() {
+    insta::assert_json_snapshot!(TestStructNewtype::reflect_input());
+}
+#[test]
+fn test_reflect_struct_newtype_output() {
+    insta::assert_json_snapshot!(TestStructNewtype::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructTuple(u8, String);
+#[test]
+fn test_reflect_struct_tuple_input() {
+    insta::assert_json_snapshot!(TestStructTuple::reflect_input());
+}
+#[test]
+fn test_reflect_struct_tuple_output() {
+    insta::assert_json_snapshot!(TestStructTuple::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithTuple {
+    _f: (u8, String),
+}
+#[test]
+fn test_reflect_struct_with_tuple_input() {
+    insta::assert_json_snapshot!(TestStructWithTuple::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_tuple_output() {
+    insta::assert_json_snapshot!(TestStructWithTuple::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithTuple12 {
+    _f: (
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+        String,
+    ),
+}
+#[test]
+fn test_reflect_struct_with_tuple12_input() {
+    insta::assert_json_snapshot!(TestStructWithTuple12::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_tuple12_output() {
+    insta::assert_json_snapshot!(TestStructWithTuple12::reflect_output());
+}

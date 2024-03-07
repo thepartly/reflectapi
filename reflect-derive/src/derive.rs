@@ -269,10 +269,10 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
             );
         }
         syn::Type::Tuple(_) => {
-            cx.impl_error(
-                ty,
-                format_args!("reflect::Input/reflect::Output does not support tuple field type"),
-            );
+            // cx.impl_error(
+            //     ty,
+            //     format_args!("reflect::Input/reflect::Output does not support tuple field type"),
+            // );
         }
         syn::Type::Verbatim(_) => {
             cx.impl_error(

@@ -17,7 +17,7 @@ fn reflect_type_simple(
     }
     crate::TypeReference::new(type_name.into(), Vec::new())
 }
-macro_rules! impl_reflect {
+macro_rules! impl_reflect_simple {
     ($type:ty, $description:tt) => {
         impl Input for $type {
             fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
@@ -32,21 +32,21 @@ macro_rules! impl_reflect {
     };
 }
 
-impl_reflect!(i8, "8-bit signed integer");
-impl_reflect!(i16, "16-bit signed integer");
-impl_reflect!(i32, "32-bit signed integer");
-impl_reflect!(i64, "64-bit signed integer");
-impl_reflect!(i128, "128-bit signed integer");
-impl_reflect!(u8, "8-bit unsigned integer");
-impl_reflect!(u16, "16-bit unsigned integer");
-impl_reflect!(u32, "32-bit unsigned integer");
-impl_reflect!(u64, "64-bit unsigned integer");
-impl_reflect!(u128, "128-bit unsigned integer");
-impl_reflect!(f32, "32-bit floating point number");
-impl_reflect!(f64, "64-bit floating point number");
-impl_reflect!(bool, "Boolean value");
-impl_reflect!(char, "Unicode character");
-impl_reflect!(std::string::String, "UTF-8 encoded string");
+impl_reflect_simple!(i8, "8-bit signed integer");
+impl_reflect_simple!(i16, "16-bit signed integer");
+impl_reflect_simple!(i32, "32-bit signed integer");
+impl_reflect_simple!(i64, "64-bit signed integer");
+impl_reflect_simple!(i128, "128-bit signed integer");
+impl_reflect_simple!(u8, "8-bit unsigned integer");
+impl_reflect_simple!(u16, "16-bit unsigned integer");
+impl_reflect_simple!(u32, "32-bit unsigned integer");
+impl_reflect_simple!(u64, "64-bit unsigned integer");
+impl_reflect_simple!(u128, "128-bit unsigned integer");
+impl_reflect_simple!(f32, "32-bit floating point number");
+impl_reflect_simple!(f64, "64-bit floating point number");
+impl_reflect_simple!(bool, "Boolean value");
+impl_reflect_simple!(char, "Unicode character");
+impl_reflect_simple!(std::string::String, "UTF-8 encoded string");
 
 fn reflect_type_vector(schema: &mut crate::Schema) -> String {
     let type_name = "std::vec::Vec";
@@ -137,3 +137,59 @@ impl<K: Output, V: Output> Output for std::collections::HashMap<K, V> {
         )
     }
 }
+
+fn reflect_type_tuple(schema: &mut crate::Schema, count: usize) -> String {
+    let type_name = format!("std::tuple::Tuple{}", count);
+    if schema.reserve_type(&type_name) {
+        let parameters = (1..(count+1)).map(|i| format!("T{}", i).into()).collect();
+        let type_def = crate::Primitive::new(
+            type_name.clone(),
+            format!("Tuple holding {} elements", count),
+            parameters,
+        );
+        schema.insert_type(type_def.into());
+    }
+    type_name
+}
+macro_rules! count {
+    () => (0usize);
+    ( $x:tt $($xs:tt)* ) => (1usize + count!($($xs)*));
+}
+macro_rules! impl_reflect_tuple {
+    ( $( $name:ident )+)  => {
+        impl<$($name: Input),+> Input for ($($name,)+)
+        {
+            fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+                let type_name = reflect_type_tuple(schema, count!($($name)*));
+                crate::TypeReference::new(
+                    type_name,
+                    vec![$($name::reflect_input_type(schema)),+],
+                )
+            }
+        }
+
+        impl<$($name: Output),+> Output for ($($name,)+)
+        {
+            fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+                let type_name = reflect_type_tuple(schema, count!($($name)*));
+                crate::TypeReference::new(
+                    type_name,
+                    vec![$($name::reflect_output_type(schema)),+],
+                )
+            }
+        }
+    };
+}
+
+impl_reflect_tuple! { A }
+impl_reflect_tuple! { A B }
+impl_reflect_tuple! { A B C }
+impl_reflect_tuple! { A B C D }
+impl_reflect_tuple! { A B C D E }
+impl_reflect_tuple! { A B C D E F }
+impl_reflect_tuple! { A B C D E F G }
+impl_reflect_tuple! { A B C D E F G H }
+impl_reflect_tuple! { A B C D E F G H I }
+impl_reflect_tuple! { A B C D E F G H I J }
+impl_reflect_tuple! { A B C D E F G H I J K }
+impl_reflect_tuple! { A B C D E F G H I J K L }

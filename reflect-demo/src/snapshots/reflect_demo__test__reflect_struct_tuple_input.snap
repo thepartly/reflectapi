@@ -1,0 +1,37 @@
+---
+source: reflect-demo/src/test.rs
+expression: "TestStructTuple::reflect_input()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::test::TestStructTuple",
+      "fields": [
+        {
+          "name": "0",
+          "type": {
+            "name": "u8"
+          }
+        },
+        {
+          "name": "1",
+          "type": {
+            "name": "std::string::String"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}
