@@ -222,3 +222,31 @@ impl<T: Output, const N: usize> Output for [T; N] {
         )
     }
 }
+
+fn reflect_type_pointer(schema: &mut crate::Schema, type_name: &str) -> String {
+    if schema.reserve_type(&type_name) {
+        let type_def = crate::Primitive::new(
+            type_name.into(),
+            "Pointer type".into(),
+            vec!["T".into()],
+        );
+        schema.insert_type(type_def.into());
+    }
+    type_name.into()
+}
+impl<T: Input> Input for std::sync::Arc<T> {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_pointer(schema, "std::sync::Arc"),
+            vec![T::reflect_input_type(schema)],
+        )
+    }
+}
+impl<T: Output> Output for std::sync::Arc<T> {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_pointer(schema, "std::sync::Arc"),
+            vec![T::reflect_output_type(schema)],
+        )
+    }
+}

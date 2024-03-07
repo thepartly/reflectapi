@@ -288,3 +288,29 @@ fn test_reflect_struct_with_fixed_size_array_input() {
 fn test_reflect_struct_with_fixed_size_array_output() {
     insta::assert_json_snapshot!(TestStructWithFixedSizeArray::reflect_output());
 }
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithArc {
+    _f: std::sync::Arc<u8>,
+}
+#[test]
+fn test_reflect_struct_with_arc_input() {
+    insta::assert_json_snapshot!(TestStructWithArc::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_arc_output() {
+    insta::assert_json_snapshot!(TestStructWithArc::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithSelfViaArc {
+    _f: std::sync::Arc<Self>,
+}
+#[test]
+fn test_reflect_struct_with_self_via_arc_input() {
+    insta::assert_json_snapshot!(TestStructWithSelfViaArc::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_self_via_arc_output() {
+    insta::assert_json_snapshot!(TestStructWithSelfViaArc::reflect_output());
+}
