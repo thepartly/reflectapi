@@ -1,0 +1,53 @@
+---
+source: reflect-demo/src/main.rs
+expression: "TestStructWithVecExternal::reflect_output()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::test::TestStructWithVecExternal",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::vec::Vec",
+            "parameters": [
+              {
+                "name": "reflect_demo::test_lib::TestStructNested"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::test_lib::TestStructNested",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::string::String"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
+    },
+    {
+      "kind": "primitive",
+      "name": "std::vec::Vec",
+      "description": "Expandable array type",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ]
+    }
+  ]
+}

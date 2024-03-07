@@ -162,4 +162,44 @@ mod test {
     fn test_reflect_struct_with_nested_external_output() {
         insta::assert_snapshot!(TestStructWithNestedExternal::reflect_output());
     }
+
+    #[derive(reflect::Input, reflect::Output)]
+    struct TestStructWithVec {
+        _f: Vec<u8>,
+    }
+    #[test]
+    fn test_reflect_struct_with_vec_input() {
+        insta::assert_snapshot!(TestStructWithVec::reflect_input());
+    }
+    #[test]
+    fn test_reflect_struct_with_vec_output() {
+        insta::assert_snapshot!(TestStructWithVec::reflect_output());
+    }
+
+    #[derive(reflect::Input, reflect::Output)]
+    struct TestStructWithVecTwo {
+        _f: Vec<u8>,
+        _f2: Vec<i8>,
+    }
+    #[test]
+    fn test_reflect_struct_with_vec_two_input() {
+        insta::assert_snapshot!(TestStructWithVecTwo::reflect_input());
+    }
+    #[test]
+    fn test_reflect_struct_with_vec_two_output() {
+        insta::assert_snapshot!(TestStructWithVecTwo::reflect_output());
+    }
+
+    #[derive(reflect::Input, reflect::Output)]
+    struct TestStructWithVecExternal {
+        _f: Vec<crate::test_lib::TestStructNested>,
+    }
+    #[test]
+    fn test_reflect_struct_with_vec_external_input() {
+        insta::assert_snapshot!(TestStructWithVecExternal::reflect_input());
+    }
+    #[test]
+    fn test_reflect_struct_with_vec_external_output() {
+        insta::assert_snapshot!(TestStructWithVecExternal::reflect_output());
+    }
 }
