@@ -1,0 +1,47 @@
+---
+source: reflect-demo/src/test.rs
+expression: "TestStructWithFixedSizeArray::reflect_input()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::test::TestStructWithFixedSizeArray",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::array::Array",
+            "parameters": [
+              {
+                "name": "u8"
+              },
+              {
+                "name": "3"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::array::Array",
+      "description": "Fixed-size Array",
+      "parameters": [
+        {
+          "name": "T"
+        },
+        {
+          "name": "N"
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

@@ -141,7 +141,7 @@ impl<K: Output, V: Output> Output for std::collections::HashMap<K, V> {
 fn reflect_type_tuple(schema: &mut crate::Schema, count: usize) -> String {
     let type_name = format!("std::tuple::Tuple{}", count);
     if schema.reserve_type(&type_name) {
-        let parameters = (1..(count+1)).map(|i| format!("T{}", i).into()).collect();
+        let parameters = (1..(count + 1)).map(|i| format!("T{}", i).into()).collect();
         let type_def = crate::Primitive::new(
             type_name.clone(),
             format!("Tuple holding {} elements", count),
@@ -193,3 +193,32 @@ impl_reflect_tuple! { A B C D E F G H I }
 impl_reflect_tuple! { A B C D E F G H I J }
 impl_reflect_tuple! { A B C D E F G H I J K }
 impl_reflect_tuple! { A B C D E F G H I J K L }
+
+fn reflect_type_array(schema: &mut crate::Schema) -> String {
+    let type_name = "std::array::Array";
+    if schema.reserve_type(&type_name) {
+        let type_def = crate::Primitive::new(
+            type_name.into(),
+            format!("Fixed-size Array"),
+            vec!["T".into(), "N".to_string().into()],
+        );
+        schema.insert_type(type_def.into());
+    }
+    type_name.into()
+}
+impl<T: Input, const N: usize> Input for [T; N] {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_array(schema),
+            vec![T::reflect_input_type(schema), N.to_string().into()],
+        )
+    }
+}
+impl<T: Output, const N: usize> Output for [T; N] {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_array(schema),
+            vec![T::reflect_output_type(schema), N.to_string().into()],
+        )
+    }
+}

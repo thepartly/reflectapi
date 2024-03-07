@@ -189,10 +189,10 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
             // result._debug(Some(tr));
         }
         syn::Type::Array(_) => {
-            cx.impl_error(
-                ty,
-                format_args!("reflect::Input/reflect::Output does not support array field type"),
-            );
+            // cx.impl_error(
+            //     ty,
+            //     format_args!("reflect::Input/reflect::Output does not support array field type"),
+            // );
         }
         syn::Type::BareFn(_path) => {
             cx.impl_error(

@@ -275,3 +275,16 @@ fn test_reflect_struct_with_tuple12_input() {
 fn test_reflect_struct_with_tuple12_output() {
     insta::assert_json_snapshot!(TestStructWithTuple12::reflect_output());
 }
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithFixedSizeArray {
+    _f: [u8; 3],
+}
+#[test]
+fn test_reflect_struct_with_fixed_size_array_input() {
+    insta::assert_json_snapshot!(TestStructWithFixedSizeArray::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_fixed_size_array_output() {
+    insta::assert_json_snapshot!(TestStructWithFixedSizeArray::reflect_output());
+}
