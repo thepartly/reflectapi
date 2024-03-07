@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[test]
 fn compiler_error_cases() {
     let t = trybuild::TestCases::new();
@@ -48,11 +50,15 @@ struct TestStructOneBasicFieldStringReflectBothDifferently {
 }
 #[test]
 fn test_reflect_struct_one_basic_field_string_reflect_both_with_attributes_input() {
-    insta::assert_json_snapshot!(TestStructOneBasicFieldStringReflectBothDifferently::reflect_input());
+    insta::assert_json_snapshot!(
+        TestStructOneBasicFieldStringReflectBothDifferently::reflect_input()
+    );
 }
 #[test]
 fn test_reflect_struct_one_basic_field_string_reflect_both_with_attributes_output() {
-    insta::assert_json_snapshot!(TestStructOneBasicFieldStringReflectBothDifferently::reflect_output());
+    insta::assert_json_snapshot!(
+        TestStructOneBasicFieldStringReflectBothDifferently::reflect_output()
+    );
 }
 
 #[derive(reflect::Input, reflect::Output)]
@@ -84,7 +90,9 @@ fn test_reflect_struct_one_basic_field_string_reflect_both_equally2_input() {
 }
 #[test]
 fn test_reflect_struct_one_basic_field_string_reflect_both_equally2_output() {
-    insta::assert_json_snapshot!(TestStructOneBasicFieldStringReflectBothEqually2::reflect_output());
+    insta::assert_json_snapshot!(
+        TestStructOneBasicFieldStringReflectBothEqually2::reflect_output()
+    );
 }
 
 #[derive(reflect::Input, reflect::Output)]
@@ -155,4 +163,54 @@ fn test_reflect_struct_with_vec_external_input() {
 #[test]
 fn test_reflect_struct_with_vec_external_output() {
     insta::assert_json_snapshot!(TestStructWithVecExternal::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithVecNested {
+    _f: Vec<Vec<crate::test_lib::TestStructNested>>,
+}
+#[test]
+fn test_reflect_struct_with_vec_nested_input() {
+    insta::assert_json_snapshot!(TestStructWithVecNested::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_vec_nested_output() {
+    insta::assert_json_snapshot!(TestStructWithVecNested::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithHashMap {
+    _f: HashMap<u8, String>,
+}
+#[test]
+fn test_reflect_struct_with_hashmap_input() {
+    insta::assert_json_snapshot!(TestStructWithHashMap::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_hashmap_output() {
+    insta::assert_json_snapshot!(TestStructWithHashMap::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructEmpty {}
+#[test]
+fn test_reflect_struct_empty_input() {
+    insta::assert_json_snapshot!(TestStructEmpty::reflect_input());
+}
+#[test]
+fn test_reflect_struct_empty_output() {
+    insta::assert_json_snapshot!(TestStructEmpty::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructOption {
+    _f: Option<u8>,
+}
+#[test]
+fn test_reflect_struct_option_input() {
+    insta::assert_json_snapshot!(TestStructOption::reflect_input());
+}
+#[test]
+fn test_reflect_struct_option_output() {
+    insta::assert_json_snapshot!(TestStructOption::reflect_output());
 }

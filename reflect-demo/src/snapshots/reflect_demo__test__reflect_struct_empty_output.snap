@@ -1,0 +1,13 @@
+---
+source: reflect-demo/src/test.rs
+expression: "TestStructEmpty::reflect_output()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::test::TestStructEmpty"
+    }
+  ]
+}
