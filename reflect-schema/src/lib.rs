@@ -14,13 +14,7 @@ pub struct Schema {
     pub types: Vec<Type>,
 
     #[serde(skip_serializing, default)]
-    types_map: HashMap<String, usize>,
-}
-
-impl Display for Schema {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.to_json().as_str())
-    }
+    types_map: std::cell::RefCell<HashMap<String, usize>>,
 }
 
 impl Schema {
@@ -30,7 +24,7 @@ impl Schema {
             description: String::new(),
             functions: Vec::new(),
             types: Vec::new(),
-            types_map: HashMap::new(),
+            types_map: std::cell::RefCell::new(HashMap::new()),
         }
     }
 
@@ -40,32 +34,24 @@ impl Schema {
 
     pub fn reserve_type(&mut self, name: &str) -> bool {
         self.ensure_types_map();
-        if self.types_map.contains_key(name) {
+        if self.types_map.borrow().contains_key(name) {
             return false;
         }
-        self.types_map.insert(name.into(), usize::MAX);
+        self.types_map.borrow_mut().insert(name.into(), usize::MAX);
         true
     }
 
     pub fn insert_type(&mut self, ty: Type) {
         self.ensure_types_map();
-        if let Some(index) = self.types_map.get(ty.name()) {
+        if let Some(index) = self.types_map.borrow().get(ty.name()) {
             if index != &usize::MAX {
                 return;
             }
         }
-        self.types_map.insert(ty.name().into(), self.types.len());
+        self.types_map
+            .borrow_mut()
+            .insert(ty.name().into(), self.types.len());
         self.types.push(ty);
-    }
-
-    pub fn from_json(json: &str) -> Self {
-        let mut result: Self = serde_json::from_str(json).unwrap();
-        result.build_types_map();
-        result
-    }
-
-    pub fn to_json(&self) -> String {
-        serde_json::to_string_pretty(self).unwrap()
     }
 
     pub fn sort_types(&mut self) {
@@ -73,18 +59,18 @@ impl Schema {
         self.build_types_map();
     }
 
-    fn ensure_types_map(&mut self) {
-        if self.types_map.is_empty() && !self.types.is_empty() {
+    fn ensure_types_map(&self) {
+        if self.types_map.borrow().is_empty() && !self.types.is_empty() {
             self.build_types_map();
         }
     }
 
-    fn build_types_map(&mut self) {
+    fn build_types_map(&self) {
         let mut types_map = HashMap::new();
         for (i, ty) in self.types().enumerate() {
             types_map.insert(ty.name().into(), i);
         }
-        self.types_map = types_map;
+        *(self.types_map.borrow_mut()) = types_map;
     }
 }
 
@@ -246,14 +232,6 @@ impl Type {
         }
     }
 
-    pub fn from_json(json: &str) -> Self {
-        serde_json::from_str(json).unwrap()
-    }
-
-    pub fn to_json(&self) -> String {
-        serde_json::to_string_pretty(self).unwrap()
-    }
-
     pub fn replace_type_references(
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
@@ -286,6 +264,10 @@ impl Primitive {
             parameters,
         }
     }
+
+    pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
+        self.parameters.iter()
+    }
 }
 
 impl Into<Type> for Primitive {
@@ -316,6 +298,10 @@ impl Struct {
             parameters: Vec::new(),
             fields: Vec::new(),
         }
+    }
+
+    pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
+        self.parameters.iter()
     }
 
     pub fn fields(&self) -> std::slice::Iter<Field> {
@@ -424,6 +410,10 @@ impl Enum {
             representation: Representation::String,
             variants: Vec::new(),
         }
+    }
+
+    pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
+        self.parameters.iter()
     }
 
     pub fn variants(&self) -> std::slice::Iter<Variant> {
@@ -546,6 +536,10 @@ impl Alias {
             parameters: Vec::new(),
             type_ref: ty,
         }
+    }
+
+    pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
+        self.parameters.iter()
     }
 
     pub fn replace_type_references(

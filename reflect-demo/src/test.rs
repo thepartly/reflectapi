@@ -16,7 +16,7 @@ struct TestStructOneBasicFieldU32 {
 }
 #[test]
 fn test_reflect_struct_one_basic_field_u32() {
-    insta::assert_snapshot!(TestStructOneBasicFieldU32::reflect_input());
+    insta::assert_json_snapshot!(TestStructOneBasicFieldU32::reflect_input());
 }
 
 #[derive(reflect::Input)]
@@ -25,7 +25,7 @@ struct TestStructOneBasicFieldString {
 }
 #[test]
 fn test_reflect_struct_one_basic_field_string() {
-    insta::assert_snapshot!(TestStructOneBasicFieldString::reflect_input());
+    insta::assert_json_snapshot!(TestStructOneBasicFieldString::reflect_input());
 }
 
 #[derive(reflect::Input, reflect::Output)]
@@ -34,11 +34,11 @@ struct TestStructOneBasicFieldStringReflectBoth {
 }
 #[test]
 fn test_reflect_struct_one_basic_field_string_reflect_both_input() {
-    insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_input());
+    insta::assert_json_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_input());
 }
 #[test]
 fn test_reflect_struct_one_basic_field_string_reflect_both_output() {
-    insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_output());
+    insta::assert_json_snapshot!(TestStructOneBasicFieldStringReflectBoth::reflect_output());
 }
 
 #[derive(reflect::Input, reflect::Output)]
@@ -48,11 +48,11 @@ struct TestStructOneBasicFieldStringReflectBothDifferently {
 }
 #[test]
 fn test_reflect_struct_one_basic_field_string_reflect_both_with_attributes_input() {
-    insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBothDifferently::reflect_input());
+    insta::assert_json_snapshot!(TestStructOneBasicFieldStringReflectBothDifferently::reflect_input());
 }
 #[test]
 fn test_reflect_struct_one_basic_field_string_reflect_both_with_attributes_output() {
-    insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBothDifferently::reflect_output());
+    insta::assert_json_snapshot!(TestStructOneBasicFieldStringReflectBothDifferently::reflect_output());
 }
 
 #[derive(reflect::Input, reflect::Output)]
@@ -63,13 +63,13 @@ struct TestStructOneBasicFieldStringReflectBothEqually {
 #[test]
 fn test_reflect_struct_one_basic_field_string_reflect_both_equally_input() {
     insta::allow_duplicates! {
-        insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_input());
+        insta::assert_json_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_input());
     }
 }
 #[test]
 fn test_reflect_struct_one_basic_field_string_reflect_both_equally_output() {
     insta::allow_duplicates! {
-        insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_output());
+        insta::assert_json_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_output());
     }
 }
 
@@ -80,11 +80,11 @@ struct TestStructOneBasicFieldStringReflectBothEqually2 {
 }
 #[test]
 fn test_reflect_struct_one_basic_field_string_reflect_both_equally2_input() {
-    insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_input());
+    insta::assert_json_snapshot!(TestStructOneBasicFieldStringReflectBothEqually::reflect_input());
 }
 #[test]
 fn test_reflect_struct_one_basic_field_string_reflect_both_equally2_output() {
-    insta::assert_snapshot!(TestStructOneBasicFieldStringReflectBothEqually2::reflect_output());
+    insta::assert_json_snapshot!(TestStructOneBasicFieldStringReflectBothEqually2::reflect_output());
 }
 
 #[derive(reflect::Input, reflect::Output)]
@@ -97,11 +97,11 @@ struct TestStructNested {
 }
 #[test]
 fn test_reflect_struct_with_nested_input() {
-    insta::assert_snapshot!(TestStructWithNested::reflect_input());
+    insta::assert_json_snapshot!(TestStructWithNested::reflect_input());
 }
 #[test]
 fn test_reflect_struct_with_nested_output() {
-    insta::assert_snapshot!(TestStructWithNested::reflect_output());
+    insta::assert_json_snapshot!(TestStructWithNested::reflect_output());
 }
 
 #[derive(reflect::Input, reflect::Output)]
@@ -110,11 +110,11 @@ struct TestStructWithNestedExternal {
 }
 #[test]
 fn test_reflect_struct_with_nested_external_input() {
-    insta::assert_snapshot!(TestStructWithNestedExternal::reflect_input());
+    insta::assert_json_snapshot!(TestStructWithNestedExternal::reflect_input());
 }
 #[test]
 fn test_reflect_struct_with_nested_external_output() {
-    insta::assert_snapshot!(TestStructWithNestedExternal::reflect_output());
+    insta::assert_json_snapshot!(TestStructWithNestedExternal::reflect_output());
 }
 
 #[derive(reflect::Input, reflect::Output)]
@@ -123,11 +123,11 @@ struct TestStructWithVec {
 }
 #[test]
 fn test_reflect_struct_with_vec_input() {
-    insta::assert_snapshot!(TestStructWithVec::reflect_input());
+    insta::assert_json_snapshot!(TestStructWithVec::reflect_input());
 }
 #[test]
 fn test_reflect_struct_with_vec_output() {
-    insta::assert_snapshot!(TestStructWithVec::reflect_output());
+    insta::assert_json_snapshot!(TestStructWithVec::reflect_output());
 }
 
 #[derive(reflect::Input, reflect::Output)]
@@ -137,11 +137,11 @@ struct TestStructWithVecTwo {
 }
 #[test]
 fn test_reflect_struct_with_vec_two_input() {
-    insta::assert_snapshot!(TestStructWithVecTwo::reflect_input());
+    insta::assert_json_snapshot!(TestStructWithVecTwo::reflect_input());
 }
 #[test]
 fn test_reflect_struct_with_vec_two_output() {
-    insta::assert_snapshot!(TestStructWithVecTwo::reflect_output());
+    insta::assert_json_snapshot!(TestStructWithVecTwo::reflect_output());
 }
 
 #[derive(reflect::Input, reflect::Output)]
@@ -150,9 +150,9 @@ struct TestStructWithVecExternal {
 }
 #[test]
 fn test_reflect_struct_with_vec_external_input() {
-    insta::assert_snapshot!(TestStructWithVecExternal::reflect_input());
+    insta::assert_json_snapshot!(TestStructWithVecExternal::reflect_input());
 }
 #[test]
 fn test_reflect_struct_with_vec_external_output() {
-    insta::assert_snapshot!(TestStructWithVecExternal::reflect_output());
+    insta::assert_json_snapshot!(TestStructWithVecExternal::reflect_output());
 }

@@ -44,6 +44,7 @@ dependencies = [
  "console",
  "lazy_static",
  "linked-hash-map",
+ "serde",
  "similar",
  "yaml-rust",
 ]
@@ -155,7 +156,6 @@ name = "reflect-schema"
 version = "0.1.0"
 dependencies = [
  "serde",
- "serde_json",
 ]
 
 [[package]]
