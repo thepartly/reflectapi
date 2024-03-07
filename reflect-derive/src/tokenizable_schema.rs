@@ -1,5 +1,5 @@
 use quote::ToTokens;
-use reflect_schema::Type;
+use reflect_schema::{Type, TypeReference};
 
 // pub(crate) struct TokenizableSchema {
 //     pub inner: Schema,
@@ -35,6 +35,26 @@ impl<'a> ToTokens for TokenizableType<'a> {
         let schema = self.inner.to_json();
         tokens.extend(quote::quote! {
             reflect::Type::from_json(#schema)
+        });
+    }
+}
+
+pub(crate) struct TokenizableTypeReference<'a> {
+    pub inner: &'a TypeReference,
+}
+
+impl<'a> TokenizableTypeReference<'a> {
+    pub fn new(inner: &'a TypeReference) -> Self {
+        TokenizableTypeReference { inner }
+    }
+}
+
+impl<'a> ToTokens for TokenizableTypeReference<'a> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = self.inner.name.as_str();
+        let parameters = self.inner.parameters().map(|p| TokenizableTypeReference::new(p));
+        tokens.extend(quote::quote! {
+            reflect::TypeReference::new(#name.into(), vec![#(#parameters),*])
         });
     }
 }

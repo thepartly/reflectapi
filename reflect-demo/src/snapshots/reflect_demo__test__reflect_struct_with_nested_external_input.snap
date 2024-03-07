@@ -31,7 +31,8 @@ expression: "TestStructWithNestedExternal::reflect_input()"
     },
     {
       "kind": "primitive",
-      "name": "std::string::String"
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
     }
   ]
 }

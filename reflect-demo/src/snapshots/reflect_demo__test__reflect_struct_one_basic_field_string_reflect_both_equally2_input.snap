@@ -19,7 +19,8 @@ expression: "TestStructOneBasicFieldStringReflectBothEqually::reflect_input()"
     },
     {
       "kind": "primitive",
-      "name": "u32"
+      "name": "u32",
+      "description": "32-bit unsigned integer"
     }
   ]
 }

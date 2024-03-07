@@ -31,7 +31,8 @@ expression: "TestStructWithNested::reflect_output()"
     },
     {
       "kind": "primitive",
-      "name": "std::string::String"
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
     }
   ]
 }

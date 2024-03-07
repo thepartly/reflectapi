@@ -42,10 +42,13 @@ impl Schema {
         self.types.iter()
     }
 
-    pub fn reserve_type(&mut self, name: String) -> bool {
+    pub fn reserve_type(&mut self, name: &str) -> bool {
         self.ensure_types_map();
-        let r = self.types_map.insert(name, usize::MAX);
-        r.is_none()
+        if self.types_map.contains_key(name) {
+            return false;
+        }
+        self.types_map.insert(name.into(), usize::MAX);
+        true
     }
 
     pub fn insert_type(&mut self, ty: Type) {
@@ -184,12 +187,16 @@ pub struct TypeReference {
 }
 
 impl TypeReference {
-    pub fn new(reference: String) -> Self {
+    pub fn new(name: String, parameters: Vec<TypeReference>) -> Self {
         TypeReference {
-            name: reference,
-            parameters: Vec::new(),
+            name,
+            parameters,
             _debug: String::new(),
         }
+    }
+
+    pub fn parameters(&self) -> std::slice::Iter<TypeReference> {
+        self.parameters.iter()
     }
 
     pub fn _debug(&mut self, debug: Option<String>) -> String {
@@ -197,6 +204,42 @@ impl TypeReference {
             std::mem::replace(&mut self._debug, debug)
         } else {
             self._debug.clone()
+        }
+    }
+}
+
+impl From<&str> for TypeReference {
+    fn from(name: &str) -> Self {
+        TypeReference {
+            name: name.into(),
+            parameters: Vec::new(),
+            _debug: String::new(),
+        }
+    }
+}
+
+impl From<String> for TypeReference {
+    fn from(name: String) -> Self {
+        TypeReference {
+            name,
+            parameters: Vec::new(),
+            _debug: String::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TypeParameter {
+    pub name: String,
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub description: String,
+}
+
+impl TypeParameter {
+    pub fn new(name: String) -> Self {
+        TypeParameter {
+            name,
+            description: String::new(),
         }
     }
 }
@@ -237,21 +280,15 @@ impl Type {
         serde_json::to_string_pretty(self).unwrap()
     }
 
-    pub fn type_refs(&self) -> Vec<&TypeReference> {
-        match self {
-            Type::Primitive(_) => Vec::new(),
-            Type::Struct(s) => s.type_refs(),
-            Type::Enum(e) => e.type_refs(),
-            Type::Alias(a) => a.type_refs(),
-        }
-    }
-
-    pub fn remap_type_refs(&mut self, remap: &std::collections::HashMap<String, String>) {
+    pub fn replace_type_references(
+        &mut self,
+        remap: &std::collections::HashMap<TypeReference, TypeReference>,
+    ) {
         match self {
             Type::Primitive(_) => {}
-            Type::Struct(s) => s.remap_type_refs(remap),
-            Type::Enum(e) => e.remap_type_refs(remap),
-            Type::Alias(a) => a.remap_type_refs(remap),
+            Type::Struct(s) => s.replace_type_references(remap),
+            Type::Enum(e) => e.replace_type_references(remap),
+            Type::Alias(a) => a.replace_type_references(remap),
         }
     }
 }
@@ -264,18 +301,18 @@ pub struct Primitive {
 
     /// Generic type parameters, if any
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub parameters: Vec<String>,
+    pub parameters: Vec<TypeParameter>,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
     _debug: String,
 }
 
 impl Primitive {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String, description: String, parameters: Vec<TypeParameter>) -> Self {
         Primitive {
             name,
-            description: String::new(),
-            parameters: Vec::new(),
+            description,
+            parameters,
             _debug: String::new(),
         }
     }
@@ -303,7 +340,7 @@ pub struct Struct {
 
     /// Generic type parameters, if any
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub parameters: Vec<String>,
+    pub parameters: Vec<TypeParameter>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub fields: Vec<Field>,
@@ -327,16 +364,12 @@ impl Struct {
         self.fields.iter()
     }
 
-    pub fn type_refs(&self) -> Vec<&TypeReference> {
-        let mut result = self.fields.iter().map(|f| f.type_ref()).collect::<Vec<_>>();
-        result.sort(); // need to sort to use dedup
-        result.dedup(); // this removes consecutive duplicates
-        result
-    }
-
-    pub fn remap_type_refs(&mut self, remap: &std::collections::HashMap<String, String>) {
+    pub fn replace_type_references(
+        &mut self,
+        remap: &std::collections::HashMap<TypeReference, TypeReference>,
+    ) {
         for field in self.fields.iter_mut() {
-            field.remap_type_ref(remap);
+            field.replace_type_reference(remap);
         }
     }
 
@@ -405,13 +438,12 @@ impl Field {
         }
     }
 
-    pub fn type_ref(&self) -> &TypeReference {
-        &self.type_ref
-    }
-
-    pub fn remap_type_ref(&mut self, remap: &std::collections::HashMap<String, String>) {
-        if let Some(new_path) = remap.get(&self.type_ref.name) {
-            self.type_ref.name = new_path.clone();
+    pub fn replace_type_reference(
+        &mut self,
+        remap: &std::collections::HashMap<TypeReference, TypeReference>,
+    ) {
+        if let Some(new_type_ref) = remap.get(&self.type_ref) {
+            self.type_ref = new_type_ref.clone();
         }
     }
 
@@ -436,7 +468,7 @@ pub struct Enum {
 
     /// Generic type parameters, if any
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub parameters: Vec<String>,
+    pub parameters: Vec<TypeParameter>,
 
     #[serde(skip_serializing_if = "Representation::is_string", default)]
     pub representation: Representation,
@@ -464,20 +496,12 @@ impl Enum {
         self.variants.iter()
     }
 
-    pub fn type_refs(&self) -> Vec<&TypeReference> {
-        let mut result = self
-            .variants
-            .iter()
-            .flat_map(|v| v.type_refs())
-            .collect::<Vec<_>>();
-        result.sort(); // need to sort to use dedup
-        result.dedup(); // this removes consecutive duplicates
-        result
-    }
-
-    pub fn remap_type_refs(&mut self, remap: &std::collections::HashMap<String, String>) {
+    pub fn replace_type_references(
+        &mut self,
+        remap: &std::collections::HashMap<TypeReference, TypeReference>,
+    ) {
         for variant in self.variants.iter_mut() {
-            variant.remap_type_refs(remap);
+            variant.replace_type_references(remap);
         }
     }
 
@@ -526,16 +550,12 @@ impl Variant {
         self.fields.iter()
     }
 
-    pub fn type_refs(&self) -> Vec<&TypeReference> {
-        let mut result = self.fields.iter().map(|f| f.type_ref()).collect::<Vec<_>>();
-        result.sort(); // need to sort to use dedup
-        result.dedup(); // this removes consecutive duplicates
-        result
-    }
-
-    pub fn remap_type_refs(&mut self, remap: &std::collections::HashMap<String, String>) {
+    pub fn replace_type_references(
+        &mut self,
+        remap: &std::collections::HashMap<TypeReference, TypeReference>,
+    ) {
         for field in self.fields.iter_mut() {
-            field.remap_type_ref(remap);
+            field.replace_type_reference(remap);
         }
     }
 
@@ -597,7 +617,7 @@ pub struct Alias {
 
     /// Generic type parameters, if any
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub parameters: Vec<String>,
+    pub parameters: Vec<TypeParameter>,
 
     /// Aliased type
     #[serde(rename = "type")]
@@ -618,13 +638,12 @@ impl Alias {
         }
     }
 
-    pub fn type_refs(&self) -> Vec<&TypeReference> {
-        vec![&self.type_ref]
-    }
-
-    pub fn remap_type_refs(&mut self, remap: &std::collections::HashMap<String, String>) {
-        if let Some(new_path) = remap.get(&self.type_ref.name) {
-            self.type_ref.name = new_path.clone();
+    pub fn replace_type_references(
+        &mut self,
+        remap: &std::collections::HashMap<TypeReference, TypeReference>,
+    ) {
+        if let Some(new_type_reference) = remap.get(&self.type_ref) {
+            self.type_ref = new_type_reference.clone();
         }
     }
 

@@ -25,7 +25,8 @@ pub(crate) struct Context {
     /// Purpose of a reflection: for input or output type
     reflect_type: ReflectType,
 
-    pub encountered_type_refs: RefCell<std::collections::HashMap<String, syn::Type>>,
+    pub encountered_type_refs:
+        RefCell<std::collections::HashMap<reflect_schema::TypeReference, syn::Type>>,
 
     // The contents will be set to `None` during checking. This is so that checking can be
     // enforced.
@@ -66,7 +67,9 @@ impl Context {
     }
 
     /// Consume this object, producing a formatted error string if there are errors.
-    pub fn check(self) -> syn::Result<std::collections::HashMap<String, syn::Type>> {
+    pub fn check(
+        self,
+    ) -> syn::Result<std::collections::HashMap<reflect_schema::TypeReference, syn::Type>> {
         let mut errors = self.errors.borrow_mut().take().unwrap().into_iter();
 
         let mut combined = match errors.next() {
@@ -86,7 +89,7 @@ impl Context {
     }
 
     /// Add a type reference actual type definition.
-    pub fn encountered_type_ref(&self, name: String, ty: syn::Type) {
+    pub fn encountered_type_ref(&self, name: reflect_schema::TypeReference, ty: syn::Type) {
         self.encountered_type_refs.borrow_mut().insert(name, ty);
     }
 }

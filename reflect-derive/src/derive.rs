@@ -11,36 +11,35 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
     let name = input.ident.clone();
 
-    let ctxt = serde_derive_internals::Ctxt::new();
-    let serde_input = serde_derive_internals::ast::Container::from_ast(
-        &ctxt,
+    let serde_context = serde_derive_internals::Ctxt::new();
+    let serde_type_def = serde_derive_internals::ast::Container::from_ast(
+        &serde_context,
         &input,
         serde_derive_internals::Derive::Deserialize,
     );
-    if ctxt.check().is_err() {
+    if serde_context.check().is_err() {
         proc_macro_error::abort!(
             input.ident,
             "failure to derive reflect::Input/reflect::Output while serde compilation fails"
         );
     }
-    let Some(serde_input) = serde_input else {
+    let Some(serde_input) = serde_type_def else {
         proc_macro_error::abort!(
             input.ident,
             "failure to derive reflect::Input/reflect::Output while serde compilation fails"
         );
     };
 
-    let ctxt = Context::new(reflect_type);
-    let type_schema = visit_type(&ctxt, &serde_input);
-    let encountered_type_refs = match ctxt.check() {
+    let reflected_context = Context::new(reflect_type);
+    let reflected_type_def = visit_type(&reflected_context, &serde_input);
+    let unresolved_type_refs_to_syn_types = match reflected_context.check() {
         Err(err) => {
             proc_macro_error::abort!(err.span(), err.to_string());
         }
-        Ok(encountered_type_refs) => encountered_type_refs,
+        Ok(unresolved_type_refs_to_syn_types) => unresolved_type_refs_to_syn_types,
     };
 
-    let reflect_type_name = type_schema.name();
-    let reflect_type_refs = type_schema.type_refs();
+    let reflected_type_name = reflected_type_def.name();
     let (fn_reflect_ident, fn_reflect_type_ident, trait_ident) = match reflect_type {
         ReflectType::Input => (
             quote::quote!(reflect_input),
@@ -54,32 +53,33 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         ),
     };
 
-    let mut reflect_type_refs_processing = quote::quote! {};
-    for type_ref in reflect_type_refs.into_iter() {
-        let type_ref_name = type_ref.name.as_str();
-        let type_ref_ident = encountered_type_refs.get(type_ref_name).unwrap();
-        reflect_type_refs_processing.extend(quote::quote! {
+    let mut type_references_resolution_code = quote::quote! {};
+    for (unresolved_type_ref, syn_type) in unresolved_type_refs_to_syn_types.into_iter() {
+        let unresolved_type_ref =
+            crate::tokenizable_schema::TokenizableTypeReference::new(&unresolved_type_ref);
+        type_references_resolution_code.extend(quote::quote! {
             {
-                let reflectable_type_name = <#type_ref_ident as #trait_ident>::#fn_reflect_type_ident(schema);
-                type_refs_map.insert(String::from(#type_ref_name), reflectable_type_name);
+                let resolved_type_ref = <#syn_type as #trait_ident>::#fn_reflect_type_ident(schema);
+                unresolved_to_resolved_type_refs_map.insert(#unresolved_type_ref, resolved_type_ref);
             }
         });
     }
-    let tokenizable_type_schema = crate::tokenizable_schema::TokenizableType::new(&type_schema);
+    let reflected_type_def = crate::tokenizable_schema::TokenizableType::new(&reflected_type_def);
     TokenStream::from(quote::quote! {
         impl #trait_ident for #name {
-            fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> String {
-                let full_type_name = format!("{}::{}", std::module_path!(), #reflect_type_name);
-                if !schema.reserve_type(full_type_name.clone()) {
-                    return full_type_name;
+            fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> reflect::TypeReference {
+                let resolved_type_name = format!("{}::{}", std::module_path!(), #reflected_type_name);
+                if schema.reserve_type(resolved_type_name.as_ref()) {
+                    let mut reflected_type_def = #reflected_type_def;
+                    reflected_type_def.rename(resolved_type_name.clone());
+
+                    let mut unresolved_to_resolved_type_refs_map = std::collections::HashMap::new();
+                    #type_references_resolution_code;
+                    reflected_type_def.replace_type_references(&unresolved_to_resolved_type_refs_map);
+
+                    schema.insert_type(reflected_type_def);
                 }
-                let mut result = #tokenizable_type_schema;
-                result.rename(full_type_name.clone());
-                let mut type_refs_map = std::collections::HashMap::new();
-                #reflect_type_refs_processing;
-                result.remap_type_refs(&type_refs_map);
-                schema.insert_type(result);
-                full_type_name
+                resolved_type_name.into()
             }
         }
 
@@ -148,9 +148,9 @@ fn visit_field<'a>(
 }
 
 fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeReference {
-    let result =
-        reflect_schema::TypeReference::new(ty.to_token_stream().to_string().replace(' ', ""));
-    cx.encountered_type_ref(result.name.clone(), ty.clone());
+    let result: reflect_schema::TypeReference =
+        ty.to_token_stream().to_string().replace(' ', "").into();
+    cx.encountered_type_ref(result.clone(), ty.clone());
     match ty {
         syn::Type::Path(path) => {
             if path.qself.is_some() {
@@ -326,26 +326,30 @@ fn parse_field_attributes(cx: &Context, field: &syn::Field) -> ParsedFieldAttrib
             if meta.path == OUTPUT_TYPE {
                 // #[reflect(output_type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, OUTPUT_TYPE, &meta)? {
-                    let referred_type = visit_field_type(
-                        cx,
-                        &syn::Type::Path(syn::TypePath {
-                            qself: path.qself,
-                            path: path.path,
-                        }),
-                    );
-                    result.output_type = Some(referred_type);
+                    if cx.reflect_type() == ReflectType::Output {
+                        let referred_type = visit_field_type(
+                            cx,
+                            &syn::Type::Path(syn::TypePath {
+                                qself: path.qself,
+                                path: path.path,
+                            }),
+                        );
+                        result.output_type = Some(referred_type);
+                    }
                 }
             } else if meta.path == INPUT_TYPE {
                 // #[reflect(input_type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, INPUT_TYPE, &meta)? {
-                    let referred_type = visit_field_type(
-                        cx,
-                        &syn::Type::Path(syn::TypePath {
-                            qself: path.qself,
-                            path: path.path,
-                        }),
-                    );
-                    result.input_type = Some(referred_type);
+                    if cx.reflect_type() == ReflectType::Input {
+                        let referred_type = visit_field_type(
+                            cx,
+                            &syn::Type::Path(syn::TypePath {
+                                qself: path.qself,
+                                path: path.path,
+                            }),
+                        );
+                        result.input_type = Some(referred_type);
+                    }
                 }
             } else if meta.path == TYPE {
                 // #[reflect(type = "...")]
