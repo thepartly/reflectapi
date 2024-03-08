@@ -7,12 +7,12 @@ error[E0277]: the trait bound `NotReflectable: Input` is not satisfied
   = help: the following other types implement trait `Input`:
             bool
             char
+            isize
             i8
             i16
             i32
             i64
             i128
-            u8
           and $N others
   = note: required for `Vec<NotReflectable>` to implement `Input`
 
@@ -25,11 +25,11 @@ error[E0277]: the trait bound `NotReflectable: reflect::Output` is not satisfied
   = help: the following other types implement trait `reflect::Output`:
             bool
             char
+            isize
             i8
             i16
             i32
             i64
             i128
-            u8
           and $N others
   = note: required for `Vec<NotReflectable>` to implement `reflect::Output`

@@ -7,12 +7,12 @@ error[E0277]: the trait bound `TestStructNested: Input` is not satisfied
   = help: the following other types implement trait `Input`:
             bool
             char
+            isize
             i8
             i16
             i32
             i64
             i128
-            u8
           and $N others
 
 error[E0277]: the trait bound `TestStructNested: reflect::Output` is not satisfied
@@ -24,10 +24,10 @@ error[E0277]: the trait bound `TestStructNested: reflect::Output` is not satisfi
   = help: the following other types implement trait `reflect::Output`:
             bool
             char
+            isize
             i8
             i16
             i32
             i64
             i128
-            u8
           and $N others

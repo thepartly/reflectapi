@@ -20,7 +20,7 @@ expression: "TestStructWithTransformOutput::reflect_output()"
     {
       "kind": "primitive",
       "name": "std::sync::Arc",
-      "description": "Pointer type",
+      "description": "std::sync::Arc pointer type",
       "parameters": [
         {
           "name": "T"

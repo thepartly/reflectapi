@@ -10,10 +10,12 @@ fn reflect_type_simple(
     schema: &mut crate::Schema,
     type_name: &str,
     description: &str,
+    fallback: Option<crate::TypeReference>,
 ) -> crate::TypeReference {
     if schema.reserve_type(type_name) {
-        let type_def =
+        let mut type_def =
             crate::Primitive::new(type_name.into(), description.into(), Vec::new(), None);
+        type_def.fallback = fallback;
         schema.insert_type(type_def.into());
     }
     crate::TypeReference::new(type_name.into(), Vec::new())
@@ -22,17 +24,16 @@ macro_rules! impl_reflect_simple {
     ($type:ty, $description:tt) => {
         impl Input for $type {
             fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
-                reflect_type_simple(schema, stringify!($type), $description)
+                reflect_type_simple(schema, stringify!($type), $description, None)
             }
         }
         impl Output for $type {
             fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
-                reflect_type_simple(schema, stringify!($type), $description)
+                reflect_type_simple(schema, stringify!($type), $description, None)
             }
         }
     };
 }
-
 impl_reflect_simple!(i8, "8-bit signed integer");
 impl_reflect_simple!(i16, "16-bit signed integer");
 impl_reflect_simple!(i32, "32-bit signed integer");
@@ -48,6 +49,29 @@ impl_reflect_simple!(f64, "64-bit floating point number");
 impl_reflect_simple!(bool, "Boolean value");
 impl_reflect_simple!(char, "Unicode character");
 impl_reflect_simple!(std::string::String, "UTF-8 encoded string");
+
+impl Input for isize {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        let fallback = Some(i64::reflect_input_type(schema));
+        reflect_type_simple(
+            schema,
+            "isize",
+            "Machine-specific-bit signed integer",
+            fallback,
+        )
+    }
+}
+impl Output for isize {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        let fallback = Some(i64::reflect_output_type(schema));
+        reflect_type_simple(
+            schema,
+            "isize",
+            "Machine-specific-bit signed integer",
+            fallback,
+        )
+    }
+}
 
 fn reflect_type_vector(schema: &mut crate::Schema) -> String {
     let type_name = "std::vec::Vec";
@@ -232,30 +256,121 @@ impl<T: Output, const N: usize> Output for [T; N] {
     }
 }
 
-fn reflect_type_pointer(schema: &mut crate::Schema, type_name: &str) -> String {
+fn reflect_type_pointer(schema: &mut crate::Schema, type_name: &str, with_lifetime: bool) -> String {
     if schema.reserve_type(&type_name) {
-        let type_def = crate::Primitive::new(
+        let mut type_def = crate::Primitive::new(
             type_name.into(),
-            "Pointer type".into(),
+            format!("{type_name} pointer type"),
             vec!["T".into()],
             Some("T".into()),
         );
+        if with_lifetime {
+            type_def.parameters.push("'a".into());
+        }
         schema.insert_type(type_def.into());
     }
     type_name.into()
 }
-impl<T: Input> Input for std::sync::Arc<T> {
+macro_rules! impl_reflect_pointer {
+    ($type:path) => {
+        impl<T: Input> Input for $type {
+            fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+                crate::TypeReference::new(
+                    reflect_type_pointer(schema, &stringify!($type).replace("<T>", ""), false),
+                    vec![T::reflect_input_type(schema)],
+                )
+            }
+        }
+        impl<T: Output> Output for $type {
+            fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+                crate::TypeReference::new(
+                    reflect_type_pointer(schema, &stringify!($type).replace("<T>", ""), false),
+                    vec![T::reflect_output_type(schema)],
+                )
+            }
+        }
+    };
+}
+
+impl_reflect_pointer!(std::boxed::Box<T>);
+impl_reflect_pointer!(std::rc::Rc<T>);
+impl_reflect_pointer!(std::sync::Arc<T>);
+impl_reflect_pointer!(std::cell::Cell<T>);
+impl_reflect_pointer!(std::cell::RefCell<T>);
+impl_reflect_pointer!(std::sync::Mutex<T>);
+impl_reflect_pointer!(std::sync::RwLock<T>);
+impl_reflect_pointer!(std::sync::Weak<T>);
+
+macro_rules! impl_reflect_pointer_with_lifetime {
+    ($type:path) => {
+        impl<'a, T: Input> Input for $type {
+            fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+                crate::TypeReference::new(
+                    reflect_type_pointer(schema, &stringify!($type).replace("<'a, T>", ""), true),
+                    vec![T::reflect_input_type(schema)],
+                )
+            }
+        }
+        impl<'a, T: Output> Output for $type {
+            fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+                crate::TypeReference::new(
+                    reflect_type_pointer(schema, &stringify!($type).replace("<'a, T>", ""), true),
+                    vec![T::reflect_output_type(schema)],
+                )
+            }
+        }
+    };
+}
+impl_reflect_pointer_with_lifetime!(std::cell::Ref<'a, T>);
+impl_reflect_pointer_with_lifetime!(std::cell::RefMut<'a, T>);
+impl_reflect_pointer_with_lifetime!(std::sync::MutexGuard<'a, T>);
+impl_reflect_pointer_with_lifetime!(std::sync::RwLockReadGuard<'a, T>);
+impl_reflect_pointer_with_lifetime!(std::sync::RwLockWriteGuard<'a, T>);
+
+impl<T: Input> Input for *const T {
     fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
         crate::TypeReference::new(
-            reflect_type_pointer(schema, "std::sync::Arc"),
+            reflect_type_pointer(schema, "*const", false),
             vec![T::reflect_input_type(schema)],
         )
     }
 }
-impl<T: Output> Output for std::sync::Arc<T> {
+impl<T: Output> Output for *const T {
     fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
         crate::TypeReference::new(
-            reflect_type_pointer(schema, "std::sync::Arc"),
+            reflect_type_pointer(schema, "*const", false),
+            vec![T::reflect_output_type(schema)],
+        )
+    }
+}
+impl<T: Input> Input for *mut T {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_pointer(schema, "*mut", false),
+            vec![T::reflect_input_type(schema)],
+        )
+    }
+}
+impl<T: Output> Output for *mut T {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_pointer(schema, "*mut", false),
+            vec![T::reflect_output_type(schema)],
+        )
+    }
+}
+impl<'a, T: Input + Clone> Input for std::borrow::Cow<'a, T> {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_pointer(schema, "std::borrow::Cow", true),
+            vec![T::reflect_input_type(schema)],
+        )
+    }
+}
+impl<'a, T: Output + Clone> Output for std::borrow::Cow<'a, T> {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_pointer(schema, "std::borrow::Cow", true),
             vec![T::reflect_output_type(schema)],
         )
     }
