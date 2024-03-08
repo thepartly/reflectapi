@@ -166,7 +166,7 @@ impl TypeReference {
         TypeReference { name, parameters }
     }
 
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         self.name.as_str()
     }
 
@@ -268,6 +268,15 @@ impl Type {
             Type::Struct(s) => s.name = new_name,
             Type::Enum(e) => e.name = new_name,
             Type::Alias(a) => a.name = new_name,
+        }
+    }
+
+    pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
+        match self {
+            Type::Primitive(p) => p.parameters(),
+            Type::Struct(s) => s.parameters(),
+            Type::Enum(e) => e.parameters(),
+            Type::Alias(a) => a.parameters(),
         }
     }
 

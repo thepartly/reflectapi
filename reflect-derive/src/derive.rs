@@ -9,7 +9,9 @@ use crate::{
 
 pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> TokenStream {
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
-    let name = input.ident.clone();
+    let type_ident = input.ident.clone();
+    let type_generics = input.generics.clone();
+    let type_generics_where = input.generics.where_clause.clone();
 
     let serde_context = serde_derive_internals::Ctxt::new();
     let serde_type_def = serde_derive_internals::ast::Container::from_ast(
@@ -55,12 +57,23 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
     let mut type_references_resolution_code = quote::quote! {};
     for (unresolved_type_ref, syn_type) in unresolved_type_refs_to_syn_types.into_iter() {
+        // let unresolved_type_ref_generics = unresolved_type_ref.name.replace('>', "").split('<').skip(1).
+        //     .parameters()
+        //     .map(|i| i.name().to_string())
+        //     .collect::<Vec<_>>()
+        //     .join(",");
+        let unresolved_type_ref_generics = "ssss";
         let unresolved_type_ref =
             crate::tokenizable_schema::TokenizableTypeReference::new(&unresolved_type_ref);
+        let reflected_type_generics = reflected_type_def
+            .parameters()
+            .map(|i| i.name().to_string())
+            .collect::<Vec<_>>()
+            .join(",");
         type_references_resolution_code.extend(quote::quote! {
             {
                 let mut resolved_type_ref = <#syn_type as #trait_ident>::#fn_reflect_type_ident(schema);
-                // resolved_type_ref.fallback_recursively(schema);
+                // resolved_type_ref.name = format!("{}/{}/{}/{}/{}", resolved_type_ref.name, #unresolved_type_ref.name, stringify!(#type_generics), #reflected_type_generics, #unresolved_type_ref_generics);
                 unresolved_to_resolved_type_refs_map.insert(#unresolved_type_ref, resolved_type_ref);
             }
         });
@@ -68,7 +81,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
     let reflected_type_def = crate::tokenizable_schema::TokenizableType::new(&reflected_type_def);
     TokenStream::from(quote::quote! {
-        impl #trait_ident for #name {
+        impl #type_generics #trait_ident for #type_ident #type_generics #type_generics_where {
             fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> reflect::TypeReference {
                 let resolved_type_name = format!("{}::{}", std::module_path!(), #reflected_type_name);
                 if schema.reserve_type(resolved_type_name.as_ref()) {
@@ -85,7 +98,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
             }
         }
 
-        impl #name {
+        impl #type_generics #type_ident #type_generics #type_generics_where {
             fn #fn_reflect_ident() -> reflect::Schema {
                 let mut result = reflect::Schema::new();
                 <Self as #trait_ident>::#fn_reflect_type_ident(&mut result);
@@ -100,7 +113,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
     let ident_name = container.ident.to_token_stream().to_string();
 
     // let mut result = String::new();
-    match &container.data {
+    let type_def = match &container.data {
         serde_derive_internals::ast::Data::Enum(_variants) => {
             // for variant in variants {
             //     result += &visit_variant(cx, variant, schema);
@@ -112,9 +125,18 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
             for field in fields {
                 result.fields.push(visit_field(cx, field));
             }
+            container.generics.params.iter().for_each(|param| {
+                if let syn::GenericParam::Type(type_param) = param {
+                    // TODO here we discard a lot of info about generic type parameter
+                    // should probably extend it in the future
+                    result.parameters.push(type_param.ident.to_string().into());
+                }
+            });
             result.into()
         }
-    }
+    };
+
+    type_def
 }
 
 // fn visit_variant<'a>(
@@ -152,7 +174,7 @@ fn visit_field<'a>(
 }
 
 fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeReference {
-    let result: reflect_schema::TypeReference =
+    let mut result: reflect_schema::TypeReference =
         ty.to_token_stream().to_string().replace(' ', "").into();
     cx.encountered_type_ref(result.clone(), ty.clone());
     match ty {
@@ -163,9 +185,56 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
                     format_args!("reflect::Input/reflect::Output does not support qualified Self type reference"),
                 );
             }
-            path.path.segments.iter().for_each(|i| match i.arguments {
+            path.path.segments.iter().for_each(|i| match &i.arguments {
                 syn::PathArguments::None => {}
-                syn::PathArguments::AngleBracketed(_) => {
+                syn::PathArguments::AngleBracketed(args) => {
+                    let a = args.args.iter().map(|i| match i {
+                        syn::GenericArgument::Type(ty) => {
+                            result.parameters.push(ty.to_token_stream().to_string().into());
+                            // visit_field_type(cx, ty);
+                        }
+                        // syn::GenericArgument::Binding(binding) => {
+                        //     cx.impl_error(
+                        //         ty,
+                        //         format_args!(
+                        //             "reflect::Input/reflect::Output does not support generic field type"
+                        //         ),
+                        //     );
+                        // }
+                        // syn::GenericArgument::Constraint(constraint) => {
+                        //     cx.impl_error(
+                        //         ty,
+                        //         format_args!(
+                        //             "reflect::Input/reflect::Output does not support generic field type"
+                        //         ),
+                        //     );
+                        // }
+                        // syn::GenericArgument::Const(constant) => {
+                        //     cx.impl_error(
+                        //         ty,
+                        //         format_args!(
+                        //             "reflect::Input/reflect::Output does not support generic field type"
+                        //         ),
+                        //     );
+                        // }
+                        // syn::GenericArgument::Lifetime(lifetime) => {
+                        //     cx.impl_error(
+                        //         ty,
+                        //         format_args!(
+                        //             "reflect::Input/reflect::Output does not support generic field type"
+                        //         ),
+                        //     );
+                        // }
+                        // syn::GenericArgument::Verbatim(_) => {
+                        //     cx.impl_error(
+                        //         ty,
+                        //         format_args!(
+                        //             "reflect::Input/reflect::Output does not support generic field type"
+                        //         ),
+                        //     );
+                        // }
+                        _ => {}
+                    });
                     // cx.impl_error(
                     //     ty,
                     //     format_args!("reflect::Input/reflect::Output does not support generic field type"),
