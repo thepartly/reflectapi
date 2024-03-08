@@ -1,24 +1,21 @@
 ---
 source: reflect-demo/src/test.rs
-expression: "TestStructWithFixedSizeArray::reflect_input()"
+expression: "TestStructWithTransformArray::reflect_output()"
 ---
 {
   "name": "",
   "types": [
     {
       "kind": "struct",
-      "name": "reflect_demo::test::TestStructWithFixedSizeArray",
+      "name": "reflect_demo::test::TestStructWithTransformArray",
       "fields": [
         {
           "name": "_f",
           "type": {
-            "name": "std::array::Array",
+            "name": "std::vec::Vec",
             "parameters": [
               {
                 "name": "u8"
-              },
-              {
-                "name": "3"
               }
             ]
           }

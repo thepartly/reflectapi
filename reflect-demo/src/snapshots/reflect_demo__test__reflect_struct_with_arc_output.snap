@@ -30,7 +30,10 @@ expression: "TestStructWithArc::reflect_output()"
         {
           "name": "T"
         }
-      ]
+      ],
+      "fallback": {
+        "name": "T"
+      }
     },
     {
       "kind": "primitive",

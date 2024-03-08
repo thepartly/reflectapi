@@ -36,6 +36,24 @@ expression: "TestStructWithFixedSizeArray::reflect_output()"
         {
           "name": "N"
         }
+      ],
+      "fallback": {
+        "name": "std::vec::Vec",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive",
+      "name": "std::vec::Vec",
+      "description": "Expandable array type",
+      "parameters": [
+        {
+          "name": "T"
+        }
       ]
     },
     {

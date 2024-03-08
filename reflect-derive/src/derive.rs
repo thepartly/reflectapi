@@ -59,11 +59,13 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
             crate::tokenizable_schema::TokenizableTypeReference::new(&unresolved_type_ref);
         type_references_resolution_code.extend(quote::quote! {
             {
-                let resolved_type_ref = <#syn_type as #trait_ident>::#fn_reflect_type_ident(schema);
+                let mut resolved_type_ref = <#syn_type as #trait_ident>::#fn_reflect_type_ident(schema);
+                // resolved_type_ref.fallback_recursively(schema);
                 unresolved_to_resolved_type_refs_map.insert(#unresolved_type_ref, resolved_type_ref);
             }
         });
     }
+
     let reflected_type_def = crate::tokenizable_schema::TokenizableType::new(&reflected_type_def);
     TokenStream::from(quote::quote! {
         impl #trait_ident for #name {
@@ -75,7 +77,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
                     let mut unresolved_to_resolved_type_refs_map = std::collections::HashMap::new();
                     #type_references_resolution_code;
-                    reflected_type_def.replace_type_references(&unresolved_to_resolved_type_refs_map);
+                    reflected_type_def.replace_type_references(&unresolved_to_resolved_type_refs_map, schema);
 
                     schema.insert_type(reflected_type_def);
                 }
@@ -132,19 +134,21 @@ fn visit_field<'a>(
     field: &serde_derive_internals::ast::Field<'a>,
 ) -> reflect_schema::Field {
     let attrs = parse_field_attributes(cx, field.original);
-    let field_type = match cx.reflect_type() {
-        ReflectType::Input => attrs.input_type,
-        ReflectType::Output => attrs.output_type,
+    let (field_type, field_transform) = match cx.reflect_type() {
+        ReflectType::Input => (attrs.input_type, attrs.input_transform),
+        ReflectType::Output => (attrs.output_type, attrs.output_transform),
     };
 
     let field_type = match field_type {
         Some(field_type) => field_type,
         None => visit_field_type(cx, &field.original.ty),
     };
-    match field.member {
+    let mut field_def = match field.member {
         syn::Member::Named(ref ident) => Field::new(ident.to_string(), field_type),
         syn::Member::Unnamed(ref index) => Field::new(index.index.to_string(), field_type),
-    }
+    };
+    field_def.transform_callback = field_transform;
+    field_def
 }
 
 fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeReference {
@@ -296,6 +300,8 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
 struct ParsedFieldAttributes {
     pub input_type: Option<reflect_schema::TypeReference>,
     pub output_type: Option<reflect_schema::TypeReference>,
+    pub input_transform: String,
+    pub output_transform: String,
 }
 
 impl Default for ParsedFieldAttributes {
@@ -303,6 +309,8 @@ impl Default for ParsedFieldAttributes {
         ParsedFieldAttributes {
             input_type: None,
             output_type: None,
+            input_transform: String::new(),
+            output_transform: String::new(),
         }
     }
 }
@@ -363,6 +371,26 @@ fn parse_field_attributes(cx: &Context, field: &syn::Field) -> ParsedFieldAttrib
                     );
                     result.output_type = Some(referred_type.clone());
                     result.input_type = Some(referred_type);
+                }
+            } else if meta.path == OUTPUT_TRANSFORM {
+                // #[reflect(output_type = "...")]
+                if let Some(path) = parse_lit_into_expr_path(cx, OUTPUT_TYPE, &meta)? {
+                    if cx.reflect_type() == ReflectType::Output {
+                        result.output_transform = path.to_token_stream().to_string();
+                    }
+                }
+            } else if meta.path == INPUT_TRANSFORM {
+                // #[reflect(input_type = "...")]
+                if let Some(path) = parse_lit_into_expr_path(cx, INPUT_TYPE, &meta)? {
+                    if cx.reflect_type() == ReflectType::Input {
+                        result.input_transform = path.to_token_stream().to_string();
+                    }
+                }
+            } else if meta.path == TRANSFORM {
+                // #[reflect(type = "...")]
+                if let Some(path) = parse_lit_into_expr_path(cx, TYPE, &meta)? {
+                    result.output_transform = path.to_token_stream().to_string();
+                    result.input_transform = path.to_token_stream().to_string();
                 }
             } else {
                 let path = meta.path.to_token_stream().to_string().replace(' ', "");

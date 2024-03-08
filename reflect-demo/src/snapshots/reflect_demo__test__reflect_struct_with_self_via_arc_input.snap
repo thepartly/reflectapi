@@ -30,7 +30,10 @@ expression: "TestStructWithSelfViaArc::reflect_input()"
         {
           "name": "T"
         }
-      ]
+      ],
+      "fallback": {
+        "name": "T"
+      }
     }
   ]
 }

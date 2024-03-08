@@ -32,6 +32,18 @@ impl Schema {
         self.types.iter()
     }
 
+    pub fn get_type(&self, name: &str) -> Option<&Type> {
+        self.ensure_types_map();
+        let index = {
+            let b = self.types_map.borrow();
+            b.get(name).map(|i| i.clone()).unwrap_or(usize::MAX)
+        };
+        if index == usize::MAX {
+            return None;
+        }
+        self.types.get(index)
+    }
+
     pub fn reserve_type(&mut self, name: &str) -> bool {
         self.ensure_types_map();
         if self.types_map.borrow().contains_key(name) {
@@ -124,6 +136,10 @@ impl Function {
             serialization: Vec::new(),
         }
     }
+
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -150,8 +166,27 @@ impl TypeReference {
         TypeReference { name, parameters }
     }
 
+    fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
     pub fn parameters(&self) -> std::slice::Iter<TypeReference> {
         self.parameters.iter()
+    }
+
+    pub fn fallback(&self) -> Option<&TypeReference> {
+        None
+    }
+
+    pub fn fallback_recursively(&mut self, schema: &Schema) {
+        loop {
+            let Some(type_def) = schema.get_type(self.name()) else {
+                return;
+            };
+            if !type_def.fallback(self) {
+                return;
+            }
+        }
     }
 }
 
@@ -183,6 +218,10 @@ pub struct TypeParameter {
 impl TypeParameter {
     pub fn new(name: String, description: String) -> Self {
         TypeParameter { name, description }
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_str()
     }
 }
 
@@ -235,12 +274,22 @@ impl Type {
     pub fn replace_type_references(
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
+        schema: &Schema,
     ) {
         match self {
             Type::Primitive(_) => {}
-            Type::Struct(s) => s.replace_type_references(remap),
-            Type::Enum(e) => e.replace_type_references(remap),
-            Type::Alias(a) => a.replace_type_references(remap),
+            Type::Struct(s) => s.replace_type_references(remap, schema),
+            Type::Enum(e) => e.replace_type_references(remap, schema),
+            Type::Alias(a) => a.replace_type_references(remap, schema),
+        }
+    }
+
+    fn fallback(&self, origin: &mut TypeReference) -> bool {
+        match self {
+            Type::Primitive(p) => p.fallback(origin),
+            Type::Struct(_) => false,
+            Type::Enum(_) => false,
+            Type::Alias(_) => false,
         }
     }
 }
@@ -254,19 +303,95 @@ pub struct Primitive {
     /// Generic type parameters, if any
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub parameters: Vec<TypeParameter>,
+
+    /// Fallback type to use when the type is not supported by the target language
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub fallback: Option<TypeReference>,
 }
 
 impl Primitive {
-    pub fn new(name: String, description: String, parameters: Vec<TypeParameter>) -> Self {
+    pub fn new(
+        name: String,
+        description: String,
+        parameters: Vec<TypeParameter>,
+        fallback: Option<TypeReference>,
+    ) -> Self {
         Primitive {
             name,
             description,
             parameters,
+            fallback,
         }
     }
 
     pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
         self.parameters.iter()
+    }
+
+    fn fallback(&self, origin: &mut TypeReference) -> bool {
+        // example:
+        // Self is DashMap<K, V>
+        // fallback is HashSet<V> (stupid example, but it demos generic param discard)
+        // origin is DashMap<String, u8>
+        // It should transform origin to HashSet<u8>
+        let Some(fallback) = &self.fallback else {
+            return false;
+        };
+
+        if let Some((type_def_param_index, _)) = self
+            .parameters()
+            .enumerate()
+            .find(|(_, type_def_param)| type_def_param.name() == fallback.name())
+        {
+            // this is the case when fallback is to one of the generic parameters
+            // for example, Arc<T> to T
+            let Some(origin_type_ref_param) = origin.parameters.get(type_def_param_index) else {
+                // It means the origin type reference does no provide correct number of generic parameters
+                // required by the type definition
+                // It is invalid schema
+                return false;
+            };
+            origin.name = origin_type_ref_param.name.clone();
+            origin.parameters = origin_type_ref_param.parameters.clone();
+            return true;
+        }
+
+        let mut new_parameters_for_origin = Vec::new();
+        let mut needs_parameters_rebuild = fallback.parameters().len() != origin.parameters.len();
+        for (fallback_type_ref_param_index, fallback_type_ref_param) in
+            fallback.parameters().enumerate()
+        {
+            let Some((type_def_param_index, _)) =
+                self.parameters().enumerate().find(|(_, type_def_param)| {
+                    type_def_param.name() == fallback_type_ref_param.name()
+                })
+            else {
+                // It means fallback type does not have
+                // as much generic parameters as this type definition
+                // in our example, it would be index 0
+                continue;
+            };
+            // in our example type_def_param_index would be index 1 for V
+            let Some(origin_type_ref_param) = origin.parameters.get(type_def_param_index) else {
+                // It means the origin type reference does no provide correct number of generic parameters
+                // required by the type definition
+                // It is invalid schema
+                return false;
+            };
+            if type_def_param_index != fallback_type_ref_param_index {
+                needs_parameters_rebuild = true;
+            }
+            new_parameters_for_origin.push(origin_type_ref_param);
+        }
+
+        origin.name = fallback.name.clone();
+        if needs_parameters_rebuild {
+            origin.parameters = new_parameters_for_origin
+                .iter()
+                .map(|i| std::ops::Deref::deref(i).clone())
+                .collect();
+        }
+        true
     }
 }
 
@@ -300,6 +425,10 @@ impl Struct {
         }
     }
 
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
     pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
         self.parameters.iter()
     }
@@ -311,9 +440,10 @@ impl Struct {
     pub fn replace_type_references(
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
+        schema: &Schema,
     ) {
         for field in self.fields.iter_mut() {
-            field.replace_type_reference(remap);
+            field.replace_type_reference(remap, schema);
         }
     }
 }
@@ -357,6 +487,11 @@ pub struct Field {
     /// Default is false
     #[serde(skip_serializing_if = "is_false", default)]
     pub flattened: bool,
+
+    #[serde(skip, default)]
+    pub transform_callback: String,
+    #[serde(skip, default)]
+    pub transform_callback_fn: Option<fn(&mut TypeReference, &Schema) -> ()>,
 }
 
 impl Field {
@@ -367,15 +502,25 @@ impl Field {
             type_ref: ty,
             required: false,
             flattened: false,
+            transform_callback: String::new(),
+            transform_callback_fn: None,
         }
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_str()
     }
 
     pub fn replace_type_reference(
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
+        schema: &Schema,
     ) {
         if let Some(new_type_ref) = remap.get(&self.type_ref) {
             self.type_ref = new_type_ref.clone();
+        }
+        if let Some(transform_callback_fn) = self.transform_callback_fn {
+            transform_callback_fn(&mut self.type_ref, schema);
         }
     }
 }
@@ -412,6 +557,10 @@ impl Enum {
         }
     }
 
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
     pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
         self.parameters.iter()
     }
@@ -423,9 +572,10 @@ impl Enum {
     pub fn replace_type_references(
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
+        schema: &Schema,
     ) {
         for variant in self.variants.iter_mut() {
-            variant.replace_type_references(remap);
+            variant.replace_type_references(remap, schema);
         }
     }
 }
@@ -458,6 +608,10 @@ impl Variant {
         }
     }
 
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
     pub fn fields(&self) -> std::slice::Iter<Field> {
         self.fields.iter()
     }
@@ -465,9 +619,10 @@ impl Variant {
     pub fn replace_type_references(
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
+        schema: &Schema,
     ) {
         for field in self.fields.iter_mut() {
-            field.replace_type_reference(remap);
+            field.replace_type_reference(remap, schema);
         }
     }
 }
@@ -538,6 +693,10 @@ impl Alias {
         }
     }
 
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
     pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
         self.parameters.iter()
     }
@@ -545,6 +704,7 @@ impl Alias {
     pub fn replace_type_references(
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
+        _schema: &Schema,
     ) {
         if let Some(new_type_reference) = remap.get(&self.type_ref) {
             self.type_ref = new_type_reference.clone();

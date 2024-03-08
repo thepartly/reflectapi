@@ -12,7 +12,8 @@ fn reflect_type_simple(
     description: &str,
 ) -> crate::TypeReference {
     if schema.reserve_type(type_name) {
-        let type_def = crate::Primitive::new(type_name.into(), description.into(), Vec::new());
+        let type_def =
+            crate::Primitive::new(type_name.into(), description.into(), Vec::new(), None);
         schema.insert_type(type_def.into());
     }
     crate::TypeReference::new(type_name.into(), Vec::new())
@@ -55,6 +56,7 @@ fn reflect_type_vector(schema: &mut crate::Schema) -> String {
             type_name.into(),
             "Expandable array type".into(),
             vec!["T".into()],
+            None,
         );
         schema.insert_type(type_def.into());
     }
@@ -84,6 +86,7 @@ fn reflect_type_option(schema: &mut crate::Schema) -> String {
             type_name.into(),
             "Optional / Nullable value type".into(),
             vec!["T".into()],
+            None,
         );
         schema.insert_type(type_def.into());
     }
@@ -113,6 +116,7 @@ fn reflect_type_hashmap(schema: &mut crate::Schema) -> String {
             type_name.into(),
             "Key-value map type".into(),
             vec!["K".into(), "V".into()],
+            None,
         );
         schema.insert_type(type_def.into());
     }
@@ -146,6 +150,7 @@ fn reflect_type_tuple(schema: &mut crate::Schema, count: usize) -> String {
             type_name.clone(),
             format!("Tuple holding {} elements", count),
             parameters,
+            None,
         );
         schema.insert_type(type_def.into());
     }
@@ -201,6 +206,10 @@ fn reflect_type_array(schema: &mut crate::Schema) -> String {
             type_name.into(),
             format!("Fixed-size Array"),
             vec!["T".into(), "N".to_string().into()],
+            Some(crate::TypeReference::new(
+                reflect_type_vector(schema),
+                vec!["T".into()],
+            )),
         );
         schema.insert_type(type_def.into());
     }
@@ -229,6 +238,7 @@ fn reflect_type_pointer(schema: &mut crate::Schema, type_name: &str) -> String {
             type_name.into(),
             "Pointer type".into(),
             vec!["T".into()],
+            Some("T".into()),
         );
         schema.insert_type(type_def.into());
     }

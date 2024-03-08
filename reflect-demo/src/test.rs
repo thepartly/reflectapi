@@ -314,3 +314,93 @@ fn test_reflect_struct_with_self_via_arc_input() {
 fn test_reflect_struct_with_self_via_arc_output() {
     insta::assert_json_snapshot!(TestStructWithSelfViaArc::reflect_output());
 }
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithTransformFallback {
+    #[reflect(
+        input_transform = "reflect::TypeReference::fallback_recursively",
+        output_transform = "reflect::TypeReference::fallback_recursively"
+    )]
+    _f: std::sync::Arc<u8>,
+}
+#[test]
+fn test_reflect_struct_with_transform_fallback_input() {
+    insta::assert_json_snapshot!(TestStructWithTransformFallback::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_transform_fallback_output() {
+    insta::assert_json_snapshot!(TestStructWithTransformFallback::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithTransformBoth {
+    #[reflect(transform = "reflect::TypeReference::fallback_recursively")]
+    _f: std::sync::Arc<u8>,
+}
+#[test]
+fn test_reflect_struct_with_transform_both_input() {
+    insta::assert_json_snapshot!(TestStructWithTransformBoth::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_transform_both_output() {
+    insta::assert_json_snapshot!(TestStructWithTransformBoth::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithTransformInput {
+    #[reflect(input_transform = "reflect::TypeReference::fallback_recursively")]
+    _f: std::sync::Arc<u8>,
+}
+#[test]
+fn test_reflect_struct_with_transform_input_input() {
+    insta::assert_json_snapshot!(TestStructWithTransformInput::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_transform_input_output() {
+    insta::assert_json_snapshot!(TestStructWithTransformInput::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithTransformOutput {
+    #[reflect(output_transform = "reflect::TypeReference::fallback_recursively")]
+    _f: std::sync::Arc<u8>,
+}
+#[test]
+fn test_reflect_struct_with_transform_output_input() {
+    insta::assert_json_snapshot!(TestStructWithTransformOutput::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_transform_output_output() {
+    insta::assert_json_snapshot!(TestStructWithTransformOutput::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithTransformFallbackNested {
+    #[reflect(
+        input_transform = "reflect::TypeReference::fallback_recursively",
+        output_transform = "reflect::TypeReference::fallback_recursively"
+    )]
+    _f: std::sync::Arc<std::sync::Arc<u8>>,
+}
+#[test]
+fn test_reflect_struct_with_transform_fallback_nested_input() {
+    insta::assert_json_snapshot!(TestStructWithTransformFallbackNested::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_transform_fallback_nested_output() {
+    insta::assert_json_snapshot!(TestStructWithTransformFallbackNested::reflect_output());
+}
+
+#[derive(reflect::Input, reflect::Output)]
+struct TestStructWithTransformArray {
+    #[reflect(transform = "reflect::TypeReference::fallback_recursively")]
+    _f: [u8; 8],
+}
+#[test]
+fn test_reflect_struct_with_transform_array_input() {
+    insta::assert_json_snapshot!(TestStructWithTransformArray::reflect_input());
+}
+#[test]
+fn test_reflect_struct_with_transform_array_output() {
+    insta::assert_json_snapshot!(TestStructWithTransformArray::reflect_output());
+}

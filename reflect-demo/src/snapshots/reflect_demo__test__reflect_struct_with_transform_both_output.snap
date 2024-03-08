@@ -1,23 +1,18 @@
 ---
 source: reflect-demo/src/test.rs
-expression: "TestStructWithSelfViaArc::reflect_output()"
+expression: "TestStructWithTransformBoth::reflect_output()"
 ---
 {
   "name": "",
   "types": [
     {
       "kind": "struct",
-      "name": "reflect_demo::test::TestStructWithSelfViaArc",
+      "name": "reflect_demo::test::TestStructWithTransformBoth",
       "fields": [
         {
           "name": "_f",
           "type": {
-            "name": "std::sync::Arc",
-            "parameters": [
-              {
-                "name": "reflect_demo::test::TestStructWithSelfViaArc"
-              }
-            ]
+            "name": "u8"
           }
         }
       ]
@@ -34,6 +29,11 @@ expression: "TestStructWithSelfViaArc::reflect_output()"
       "fallback": {
         "name": "T"
       }
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
     }
   ]
 }

@@ -5,9 +5,14 @@ use syn::{Ident, Path};
 pub struct Symbol(&'static str);
 
 pub const REFLECT: Symbol = Symbol("reflect");
+
 pub const TYPE: Symbol = Symbol("type");
 pub const INPUT_TYPE: Symbol = Symbol("input_type");
 pub const OUTPUT_TYPE: Symbol = Symbol("output_type");
+
+pub const TRANSFORM: Symbol = Symbol("transform");
+pub const INPUT_TRANSFORM: Symbol = Symbol("input_transform");
+pub const OUTPUT_TRANSFORM: Symbol = Symbol("output_transform");
 
 impl PartialEq<Symbol> for Ident {
     fn eq(&self, word: &Symbol) -> bool {

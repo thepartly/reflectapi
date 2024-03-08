@@ -108,6 +108,17 @@ impl<'a> ToTokens for TokenizableField<'a> {
         let type_ref = TokenizableTypeReference::new(&self.inner.type_ref);
         let required = self.inner.required;
         let flattened = self.inner.flattened;
+        let transform_callback = self.inner.transform_callback.as_str();
+        let mut transform_callback_fn = quote::quote! {
+            None
+        };
+        if !transform_callback.is_empty() {
+            let transformation_fn_path =
+                syn::parse_str::<proc_macro2::TokenStream>(transform_callback).unwrap();
+            transform_callback_fn = quote::quote! {
+                Some(#transformation_fn_path)
+            };
+        }
         tokens.extend(quote::quote! {
             reflect::Field {
                 name: #name.into(),
@@ -115,6 +126,8 @@ impl<'a> ToTokens for TokenizableField<'a> {
                 type_ref: #type_ref,
                 required: #required,
                 flattened: #flattened,
+                transform_callback: String::new(),
+                transform_callback_fn: #transform_callback_fn,
             }
         });
     }
@@ -328,11 +341,17 @@ impl<'a> ToTokens for TokenizablePrimitive<'a> {
             .inner
             .parameters()
             .map(|p| TokenizableTypeParameter::new(p));
+        let fallback = self
+            .inner
+            .fallback
+            .as_ref()
+            .map(|f| TokenizableTypeReference::new(f));
         tokens.extend(quote::quote! {
             reflect::Primitive {
                 name: #name.into(),
                 description: #description.into(),
                 parameters: vec![#(#parameters),*],
+                fallback: #fallback,
             }
         });
     }
