@@ -1,0 +1,39 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "TestStructWithSelfViaArc::reflect_output()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::basic::TestStructWithSelfViaArc",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::sync::Arc",
+            "parameters": [
+              {
+                "name": "reflect_demo::tests::basic::TestStructWithSelfViaArc"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::sync::Arc",
+      "description": "std::sync::Arc pointer type",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ],
+      "fallback": {
+        "name": "T"
+      }
+    }
+  ]
+}

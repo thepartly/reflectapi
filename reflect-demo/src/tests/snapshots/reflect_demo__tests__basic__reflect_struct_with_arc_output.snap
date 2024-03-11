@@ -1,0 +1,44 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "TestStructWithArc::reflect_output()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::basic::TestStructWithArc",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::sync::Arc",
+            "parameters": [
+              {
+                "name": "u8"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::sync::Arc",
+      "description": "std::sync::Arc pointer type",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ],
+      "fallback": {
+        "name": "T"
+      }
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "TestStructWithVecExternal::reflect_input()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::basic::TestStructWithVecExternal",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::vec::Vec",
+            "parameters": [
+              {
+                "name": "reflect_demo::tests::test_lib::TestStructNested"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::test_lib::TestStructNested",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::string::String"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
+    },
+    {
+      "kind": "primitive",
+      "name": "std::vec::Vec",
+      "description": "Expandable array type",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "TestStructWithNestedExternal::reflect_output()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::basic::TestStructWithNestedExternal",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "reflect_demo::tests::test_lib::TestStructNested"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::test_lib::TestStructNested",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::string::String"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
+    }
+  ]
+}

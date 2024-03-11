@@ -1,0 +1,52 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "TestStructWithTuple::reflect_output()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::basic::TestStructWithTuple",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::tuple::Tuple2",
+            "parameters": [
+              {
+                "name": "u8"
+              },
+              {
+                "name": "std::string::String"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
+    },
+    {
+      "kind": "primitive",
+      "name": "std::tuple::Tuple2",
+      "description": "Tuple holding 2 elements",
+      "parameters": [
+        {
+          "name": "T1"
+        },
+        {
+          "name": "T2"
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

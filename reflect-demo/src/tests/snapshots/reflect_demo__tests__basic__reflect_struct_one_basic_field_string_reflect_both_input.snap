@@ -1,0 +1,26 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "TestStructOneBasicFieldStringReflectBoth::reflect_input()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::basic::TestStructOneBasicFieldStringReflectBoth",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::string::String"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
+    }
+  ]
+}

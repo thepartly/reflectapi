@@ -1,20 +1,27 @@
 #[cfg(test)]
-mod test;
-#[cfg(test)]
-mod test_lib;
+mod tests;
 
 #[derive(reflect::Input)]
 struct TestStructWithVec<T>
 where
     T: reflect::Input,
 {
-    _f: Vec<Vec<T>>,
+    _f: T,
 }
 
 #[derive(reflect::Input)]
-struct TestStructParent {
+struct TestStructParent
+// where
+//     T: reflect::Input,
+{
     _f: TestStructWithVec<u8>,
+    // _f2: TestStructWithVec<T>,
 }
+
+// #[derive(serde::Deserialize)]
+// struct Test<'a> {
+//     _a: std::slice::Iter<'a, u8>,
+// }
 
 trait MyTrait {}
 
