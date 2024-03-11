@@ -188,6 +188,193 @@ impl TypeReference {
             }
         }
     }
+
+    pub fn replace_type_references(
+        &mut self,
+        resolved_type_ref: &TypeReference,
+        declaring_type_parameters: &Vec<TypeParameter>,
+    ) -> std::collections::HashMap<String, String> {
+        if declaring_type_parameters.is_empty() {
+            // This code needs to replace unresolved type reference to resolved type reference
+            // For example, 'Vec<u8>' without parameters to std::vec::Vec with parameters [u8].
+            self.name = resolved_type_ref.name.clone();
+            self.parameters = resolved_type_ref.parameters.clone();
+            std::collections::HashMap::new()
+        } else {
+            // Simple name replace would be enough, but we have to process parameters in a special way.
+            // This unresolved type reference may hold type ref with name Vec<Vec<T>>.
+            // Resolved type reference will come as std::vec::Vec with parameters [std::vec with parameters [u8]].
+            // where u8 is an example of the actual most nested resolved type.
+            // The result should be std::vec::Vec with parameters [std::vec::Vec with parameters [T]],
+            // where T a potential type parameters on the declaring type.
+
+            let unresolved_parsed = Self::naive_parse(&self.name);
+            self.name = resolved_type_ref.name.clone();
+            self.parameters = resolved_type_ref.parameters.clone();
+
+            Self::replace_specific_type_ref_by_generic(
+                self,
+                &unresolved_parsed,
+                declaring_type_parameters,
+            )
+        }
+    }
+
+    fn naive_parse(s: &str) -> TypeReference {
+        // split generics by comma excluding commas inside of nested < >
+        let mut name = s;
+        let mut parameters = Vec::new();
+
+        let mut depth = 0;
+        let mut start = 0;
+        for (i, c) in s.chars().enumerate() {
+            match c {
+                '<' => {
+                    if depth == 0 {
+                        name = &s[start..i];
+                        start = i + 1;
+                    }
+                    depth += 1;
+                }
+                '>' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        parameters.push(TypeReference::naive_parse(&s[start..i]));
+                        start = i + 1;
+                    }
+                }
+                ',' if depth == 1 => {
+                    parameters.push(TypeReference::naive_parse(&s[start..i]));
+                    start = i + 1;
+                }
+                _ => {}
+            }
+        }
+
+        TypeReference::new(name.trim().into(), parameters)
+    }
+
+    fn replace_specific_type_ref_by_generic(
+        resolved_with_specifics: &mut TypeReference,
+        unresolved_with_generics: &TypeReference,
+        declaring_type_parameters: &Vec<TypeParameter>,
+    ) -> std::collections::HashMap<String, String> {
+        let mut generic_to_specific_map = std::collections::HashMap::new();
+        if declaring_type_parameters
+            .iter()
+            .find(|i| i.name() == unresolved_with_generics.name())
+            .is_some()
+        {
+            generic_to_specific_map.insert(
+                unresolved_with_generics.name.clone(),
+                resolved_with_specifics.name.clone(),
+            );
+            *resolved_with_specifics = unresolved_with_generics.clone();
+        }
+
+        for t in resolved_with_specifics
+            .parameters
+            .iter_mut()
+            .zip(unresolved_with_generics.parameters.iter())
+        {
+            generic_to_specific_map.extend(Self::replace_specific_type_ref_by_generic(
+                t.0,
+                t.1,
+                declaring_type_parameters,
+            ));
+        }
+        generic_to_specific_map
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_naive_parse() {
+        let t = TypeReference::naive_parse("Vec<T>");
+        assert_eq!(t, TypeReference::new("Vec".into(), vec!["T".into()]));
+    }
+
+    #[test]
+    fn test_naive_parse_2() {
+        let t = TypeReference::naive_parse("Vec<Vec<T>>");
+        assert_eq!(
+            t,
+            TypeReference::new(
+                "Vec".into(),
+                vec![TypeReference::new("Vec".into(), vec!["T".into()])]
+            )
+        );
+    }
+
+    #[test]
+    fn test_naive_parse_3() {
+        let t = TypeReference::naive_parse("Vec<Vec<T>, Vec<T>>");
+        assert_eq!(
+            t,
+            TypeReference::new(
+                "Vec".into(),
+                vec![
+                    TypeReference::new("Vec".into(), vec!["T".into()]),
+                    TypeReference::new("Vec".into(), vec!["T".into()])
+                ]
+            )
+        );
+    }
+
+    #[test]
+    fn test_naive_parse_4() {
+        let t = TypeReference::naive_parse("Vec<Vec<T>, Vec<T, U>>");
+        assert_eq!(
+            t,
+            TypeReference::new(
+                "Vec".into(),
+                vec![
+                    TypeReference::new("Vec".into(), vec!["T".into()]),
+                    TypeReference::new("Vec".into(), vec!["T".into(), "U".into()])
+                ]
+            )
+        );
+    }
+
+    #[test]
+    fn test_naive_parse_5() {
+        let t = TypeReference::naive_parse("Vec<Vec<T, U>, Vec<T, U>>");
+        assert_eq!(
+            t,
+            TypeReference::new(
+                "Vec".into(),
+                vec![
+                    TypeReference::new("Vec".into(), vec!["T".into(), "U".into()]),
+                    TypeReference::new("Vec".into(), vec!["T".into(), "U".into()])
+                ]
+            )
+        );
+    }
+
+    #[test]
+    fn test_replace_specific_with_generic() {
+        let mut resolved = TypeReference::naive_parse("Vec2<Vec<u8>, Vec<u16, u8>>");
+        let unresolved = TypeReference::naive_parse("Vec<Vec<T>, Vec<U, T>>");
+        let declaring_type_parameters = vec![TypeParameter::from("T"), TypeParameter::from("U")];
+        TypeReference::replace_specific_type_ref_by_generic(
+            &mut resolved,
+            &unresolved,
+            &declaring_type_parameters,
+        );
+        assert_eq!(
+            resolved,
+            TypeReference::new(
+                "Vec2".into(),
+                vec![
+                    TypeReference::new("Vec".into(), vec!["T".into()]),
+                    TypeReference::new("Vec".into(), vec!["U".into(), "T".into()])
+                ]
+            )
+        );
+    }
 }
 
 impl From<&str> for TypeReference {
@@ -243,6 +430,20 @@ impl From<String> for TypeParameter {
     }
 }
 
+impl PartialEq for TypeParameter {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for TypeParameter {}
+
+impl std::hash::Hash for TypeParameter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum Type {
@@ -259,6 +460,32 @@ impl Type {
             Type::Struct(s) => &s.name,
             Type::Enum(e) => &e.name,
             Type::Alias(a) => &a.name,
+        }
+    }
+
+    pub fn debug_parameters(&self) -> String {
+        match self {
+            Type::Primitive(p) => p
+                .parameters()
+                .fold(String::new(), |acc, i| acc + i.name() + ", "),
+            Type::Struct(s) => s
+                .parameters()
+                .fold(String::new(), |acc, i| acc + i.name() + ", "),
+            Type::Enum(e) => e
+                .parameters()
+                .fold(String::new(), |acc, i| acc + i.name() + ", "),
+            Type::Alias(a) => a
+                .parameters()
+                .fold(String::new(), |acc, i| acc + i.name() + ", "),
+        }
+    }
+
+    pub fn set_description(&mut self, description: String) {
+        match self {
+            Type::Primitive(p) => p.description = description,
+            Type::Struct(s) => s.description = description,
+            Type::Enum(e) => e.description = description,
+            Type::Alias(a) => a.description = description,
         }
     }
 
@@ -284,9 +511,9 @@ impl Type {
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Schema,
-    ) {
+    ) -> std::collections::HashMap<String, String> {
         match self {
-            Type::Primitive(_) => {}
+            Type::Primitive(_) => std::collections::HashMap::new(),
             Type::Struct(s) => s.replace_type_references(remap, schema),
             Type::Enum(e) => e.replace_type_references(remap, schema),
             Type::Alias(a) => a.replace_type_references(remap, schema),
@@ -450,10 +677,12 @@ impl Struct {
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Schema,
-    ) {
+    ) -> std::collections::HashMap<String, String> {
+        let mut result = std::collections::HashMap::new();
         for field in self.fields.iter_mut() {
-            field.replace_type_reference(remap, schema);
+            result.extend(field.replace_type_references(remap, schema, &self.parameters));
         }
+        result
     }
 }
 
@@ -520,17 +749,22 @@ impl Field {
         self.name.as_str()
     }
 
-    pub fn replace_type_reference(
+    pub fn replace_type_references(
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Schema,
-    ) {
+        declaring_type_parameters: &Vec<TypeParameter>,
+    ) -> std::collections::HashMap<String, String> {
+        let mut result = std::collections::HashMap::new();
         if let Some(new_type_ref) = remap.get(&self.type_ref) {
-            self.type_ref = new_type_ref.clone();
+            result = self
+                .type_ref
+                .replace_type_references(new_type_ref, declaring_type_parameters);
         }
         if let Some(transform_callback_fn) = self.transform_callback_fn {
             transform_callback_fn(&mut self.type_ref, schema);
         }
+        result
     }
 }
 
@@ -582,10 +816,12 @@ impl Enum {
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Schema,
-    ) {
+    ) -> std::collections::HashMap<String, String> {
+        let mut result = std::collections::HashMap::new();
         for variant in self.variants.iter_mut() {
-            variant.replace_type_references(remap, schema);
+            result.extend(variant.replace_type_references(remap, schema, &self.parameters));
         }
+        result
     }
 }
 
@@ -629,10 +865,13 @@ impl Variant {
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Schema,
-    ) {
+        declaring_type_parameters: &Vec<TypeParameter>,
+    ) -> std::collections::HashMap<String, String> {
+        let mut result = std::collections::HashMap::new();
         for field in self.fields.iter_mut() {
-            field.replace_type_reference(remap, schema);
+            result.extend(field.replace_type_references(remap, schema, declaring_type_parameters));
         }
+        result
     }
 }
 
@@ -714,9 +953,12 @@ impl Alias {
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         _schema: &Schema,
-    ) {
+    ) -> std::collections::HashMap<String, String> {
         if let Some(new_type_reference) = remap.get(&self.type_ref) {
-            self.type_ref = new_type_reference.clone();
+            self.type_ref
+                .replace_type_references(new_type_reference, &self.parameters)
+        } else {
+            std::collections::HashMap::new()
         }
     }
 }

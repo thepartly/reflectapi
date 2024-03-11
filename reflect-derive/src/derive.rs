@@ -62,14 +62,14 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         //     .map(|i| i.name().to_string())
         //     .collect::<Vec<_>>()
         //     .join(",");
-        let unresolved_type_ref_generics = "ssss";
+        // let unresolved_type_ref_generics = "ssss";
         let unresolved_type_ref =
             crate::tokenizable_schema::TokenizableTypeReference::new(&unresolved_type_ref);
-        let reflected_type_generics = reflected_type_def
-            .parameters()
-            .map(|i| i.name().to_string())
-            .collect::<Vec<_>>()
-            .join(",");
+        // let reflected_type_generics = reflected_type_def
+        //     .parameters()
+        //     .map(|i| i.name().to_string())
+        //     .collect::<Vec<_>>()
+        //     .join(",");
         type_references_resolution_code.extend(quote::quote! {
             {
                 let mut resolved_type_ref = <#syn_type as #trait_ident>::#fn_reflect_type_ident(schema);
@@ -84,17 +84,28 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         impl #type_generics #trait_ident for #type_ident #type_generics #type_generics_where {
             fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> reflect::TypeReference {
                 let resolved_type_name = format!("{}::{}", std::module_path!(), #reflected_type_name);
+                let mut parameters = Vec::new();
                 if schema.reserve_type(resolved_type_name.as_ref()) {
                     let mut reflected_type_def = #reflected_type_def;
                     reflected_type_def.rename(resolved_type_name.clone());
 
                     let mut unresolved_to_resolved_type_refs_map = std::collections::HashMap::new();
                     #type_references_resolution_code;
-                    reflected_type_def.replace_type_references(&unresolved_to_resolved_type_refs_map, schema);
+                    // reflected_type_def.set_description(format!("{:#?}", unresolved_to_resolved_type_refs_map));
+                    let mut generic_to_specific_map = reflected_type_def.replace_type_references(&unresolved_to_resolved_type_refs_map, schema);
+                    for p in reflected_type_def.parameters() {
+                        parameters.push(
+                            reflect::TypeReference::from(
+                                generic_to_specific_map
+                                    .remove(p.name())
+                                    .unwrap_or_else(|| p.name().into())
+                            )
+                        )
+                    }
 
                     schema.insert_type(reflected_type_def);
                 }
-                resolved_type_name.into()
+                reflect::TypeReference::new(resolved_type_name, parameters)
             }
         }
 
@@ -176,7 +187,6 @@ fn visit_field<'a>(
 fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeReference {
     let mut result: reflect_schema::TypeReference =
         ty.to_token_stream().to_string().replace(' ', "").into();
-    cx.encountered_type_ref(result.clone(), ty.clone());
     match ty {
         syn::Type::Path(path) => {
             if path.qself.is_some() {
@@ -188,53 +198,55 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
             path.path.segments.iter().for_each(|i| match &i.arguments {
                 syn::PathArguments::None => {}
                 syn::PathArguments::AngleBracketed(args) => {
-                    let a = args.args.iter().map(|i| match i {
-                        syn::GenericArgument::Type(ty) => {
-                            result.parameters.push(ty.to_token_stream().to_string().into());
-                            // visit_field_type(cx, ty);
+                    for i in args.args.iter() {
+                        match i {
+                            syn::GenericArgument::Type(ty) => {
+                                result.parameters.push(ty.to_token_stream().to_string().into());
+                                visit_field_type(cx, ty);
+                            }
+                            // syn::GenericArgument::Binding(binding) => {
+                            //     cx.impl_error(
+                            //         ty,
+                            //         format_args!(
+                            //             "reflect::Input/reflect::Output does not support generic field type"
+                            //         ),
+                            //     );
+                            // }
+                            // syn::GenericArgument::Constraint(constraint) => {
+                            //     cx.impl_error(
+                            //         ty,
+                            //         format_args!(
+                            //             "reflect::Input/reflect::Output does not support generic field type"
+                            //         ),
+                            //     );
+                            // }
+                            // syn::GenericArgument::Const(constant) => {
+                            //     cx.impl_error(
+                            //         ty,
+                            //         format_args!(
+                            //             "reflect::Input/reflect::Output does not support generic field type"
+                            //         ),
+                            //     );
+                            // }
+                            // syn::GenericArgument::Lifetime(lifetime) => {
+                            //     cx.impl_error(
+                            //         ty,
+                            //         format_args!(
+                            //             "reflect::Input/reflect::Output does not support generic field type"
+                            //         ),
+                            //     );
+                            // }
+                            // syn::GenericArgument::Verbatim(_) => {
+                            //     cx.impl_error(
+                            //         ty,
+                            //         format_args!(
+                            //             "reflect::Input/reflect::Output does not support generic field type"
+                            //         ),
+                            //     );
+                            // }
+                            _ => {}
                         }
-                        // syn::GenericArgument::Binding(binding) => {
-                        //     cx.impl_error(
-                        //         ty,
-                        //         format_args!(
-                        //             "reflect::Input/reflect::Output does not support generic field type"
-                        //         ),
-                        //     );
-                        // }
-                        // syn::GenericArgument::Constraint(constraint) => {
-                        //     cx.impl_error(
-                        //         ty,
-                        //         format_args!(
-                        //             "reflect::Input/reflect::Output does not support generic field type"
-                        //         ),
-                        //     );
-                        // }
-                        // syn::GenericArgument::Const(constant) => {
-                        //     cx.impl_error(
-                        //         ty,
-                        //         format_args!(
-                        //             "reflect::Input/reflect::Output does not support generic field type"
-                        //         ),
-                        //     );
-                        // }
-                        // syn::GenericArgument::Lifetime(lifetime) => {
-                        //     cx.impl_error(
-                        //         ty,
-                        //         format_args!(
-                        //             "reflect::Input/reflect::Output does not support generic field type"
-                        //         ),
-                        //     );
-                        // }
-                        // syn::GenericArgument::Verbatim(_) => {
-                        //     cx.impl_error(
-                        //         ty,
-                        //         format_args!(
-                        //             "reflect::Input/reflect::Output does not support generic field type"
-                        //         ),
-                        //     );
-                        // }
-                        _ => {}
-                    });
+                    }
                     // cx.impl_error(
                     //     ty,
                     //     format_args!("reflect::Input/reflect::Output does not support generic field type"),
@@ -363,6 +375,7 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
             );
         }
     }
+    cx.encountered_type_ref(result.clone(), ty.clone());
     result
 }
 
