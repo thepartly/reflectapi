@@ -148,7 +148,12 @@ impl<'a> ToTokens for TokenizableVariant<'a> {
         let name = self.inner.name.as_str();
         let description = self.inner.description.as_str();
         let fields = self.inner.fields().map(|f| TokenizableField::new(f));
-        let discriminant = self.inner.discriminant;
+        let discriminant = self
+            .inner
+            .discriminant
+            .as_ref()
+            .map(|d| quote::quote! { Some(#d) })
+            .unwrap_or_else(|| quote::quote! { None });
         tokens.extend(quote::quote! {
             reflect::Variant {
                 name: #name.into(),

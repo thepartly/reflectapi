@@ -1,0 +1,63 @@
+---
+source: reflect-demo/src/tests/enums.rs
+expression: "TestEnumWithGenericsAndFields::<u8>::reflect_input()"
+---
+[
+  {
+    "name": "reflect_demo::tests::enums::TestEnumWithGenericsAndFields",
+    "parameters": [
+      {
+        "name": "u8"
+      }
+    ]
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::enums::TestEnumWithGenericsAndFields",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "variants": [
+          {
+            "name": "Variant1",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "u8"
+                }
+              }
+            ]
+          },
+          {
+            "name": "Variant2",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "T"
+                }
+              },
+              {
+                "name": "1",
+                "type": {
+                  "name": "T"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+]

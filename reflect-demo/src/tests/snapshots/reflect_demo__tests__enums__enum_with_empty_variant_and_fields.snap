@@ -1,0 +1,39 @@
+---
+source: reflect-demo/src/tests/enums.rs
+expression: "TestEnumWithEmptyVariantAndFields::reflect_input()"
+---
+[
+  {
+    "name": "reflect_demo::tests::enums::TestEnumWithEmptyVariantAndFields"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::enums::TestEnumWithEmptyVariantAndFields",
+        "variants": [
+          {
+            "name": "Variant1"
+          },
+          {
+            "name": "Variant2",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "u8"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+]

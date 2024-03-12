@@ -35,26 +35,27 @@ mod tests;
 
 // trait MyTrait {}
 
-#[derive(reflect::Input)]
-struct ParentStruct {
-    _f: GenericStruct<GenericStruct<u8>>,
-}
-
-#[derive(reflect::Input)]
-struct GenericStruct<A>
-where
-    A: reflect::Input,
-{
-    _f1: A,
-}
-
-// #[derive(reflect::Input, reflect::Output)]
-// struct MyStruct<T: Clone> {
-//     // field: std::borrow::Cow<'a, T>,
+// #[derive(reflect::Input)]
+// struct ParentStruct {
+//     _f: GenericStruct<GenericStruct<u8>>,
 // }
 
+// #[derive(reflect::Input)]
+// struct GenericStruct<A>
+// where
+//     A: reflect::Input,
+// {
+//     _f1: A,
+// }
+
+#[derive(reflect::Input)]
+enum MyEnum {
+    Variant1,
+    // field: std::borrow::Cow<'a, T>,
+}
+
 fn main() {
-    // println!("{:#?}", MyStruct::reflect_input());
+    println!("{:#?}", MyEnum::reflect_input());
     // //println!(
     //     "{:#?}",
     //     GenericStruct::<GenericStruct::<u8>>::reflect_input()

@@ -1,0 +1,26 @@
+---
+source: reflect-demo/src/tests/enums.rs
+expression: "TestEnum::reflect_input()"
+---
+[
+  {
+    "name": "reflect_demo::tests::enums::TestEnum"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::enums::TestEnum",
+        "variants": [
+          {
+            "name": "Variant1"
+          },
+          {
+            "name": "Variant2"
+          }
+        ]
+      }
+    ]
+  }
+]

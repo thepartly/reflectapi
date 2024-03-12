@@ -1,0 +1,63 @@
+---
+source: reflect-demo/src/tests/enums.rs
+expression: "TestEnumWithFields::reflect_input()"
+---
+[
+  {
+    "name": "reflect_demo::tests::enums::TestEnumWithFields"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "f64",
+        "description": "64-bit floating point number"
+      },
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::enums::TestEnumWithFields",
+        "variants": [
+          {
+            "name": "Variant1",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "u8"
+                }
+              }
+            ]
+          },
+          {
+            "name": "Variant2",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "std::string::String"
+                }
+              },
+              {
+                "name": "1",
+                "type": {
+                  "name": "f64"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+]

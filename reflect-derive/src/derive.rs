@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use reflect_schema::{Field, Struct, Type};
+use reflect_schema::{Enum, Field, Struct, Type};
 
 use crate::{
     context::{Context, ReflectType},
@@ -117,44 +117,20 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
 
     // let mut result = String::new();
     let type_def = match &container.data {
-        serde_derive_internals::ast::Data::Enum(_variants) => {
-            // for variant in variants {
-            //     result += &visit_variant(cx, variant, schema);
-            // }
-            unimplemented!("enum")
+        serde_derive_internals::ast::Data::Enum(variants) => {
+            let mut result = Enum::new(ident_name);
+            for variant in variants {
+                result.variants.push(visit_variant(cx, variant));
+            }
+            visit_generic_parameters(cx, &container.generics, &mut result.parameters);
+            result.into()
         }
         serde_derive_internals::ast::Data::Struct(_style, fields) => {
             let mut result = Struct::new(ident_name);
             for field in fields {
                 result.fields.push(visit_field(cx, field));
             }
-            for param in container.generics.params.iter() {
-                match param {
-                    syn::GenericParam::Type(type_param) => {
-                        result.parameters.push(type_param.ident.to_string().into());
-                    }
-                    syn::GenericParam::Lifetime(lifetime_param) => {
-                        cx.impl_error(
-                            lifetime_param,
-                            format_args!(
-                                "reflect::Input/reflect::Output does not support generic lifetime parameters"
-                            ),
-                        );
-                    }
-                    syn::GenericParam::Const(const_param) => {
-                        cx.impl_error(
-                            const_param,
-                            format_args!(
-                                "reflect::Input/reflect::Output does not support generic const parameters"
-                            ),
-                        );
-                    }
-                }
-                cx.encountered_generic_type(
-                    param.to_token_stream().to_string().into(),
-                    param.clone(),
-                );
-            }
+            visit_generic_parameters(cx, &container.generics, &mut result.parameters);
             result.into()
         }
     };
@@ -162,17 +138,47 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
     type_def
 }
 
-// fn visit_variant<'a>(
-//     cx: &crate::context::Ctxt,
-//     variant: &serde_derive_internals::ast::Variant<'a>,
-//     schema: &mut Schema,
-// ) -> String {
-//     let mut result = String::new();
-//     for field in &variant.fields {
-//         result += &visit_field(cx, field, schema);
-//     }
-//     result
-// }
+fn visit_generic_parameters<'a>(
+    cx: &Context,
+    generics: &syn::Generics,
+    parameters: &mut Vec<reflect_schema::TypeParameter>,
+) {
+    for param in generics.params.iter() {
+        match param {
+            syn::GenericParam::Type(type_param) => {
+                parameters.push(type_param.ident.to_string().into());
+            }
+            syn::GenericParam::Lifetime(lifetime_param) => {
+                cx.impl_error(
+                    lifetime_param,
+                    format_args!(
+                        "reflect::Input/reflect::Output does not support generic lifetime parameters"
+                    ),
+                );
+            }
+            syn::GenericParam::Const(const_param) => {
+                cx.impl_error(
+                    const_param,
+                    format_args!(
+                        "reflect::Input/reflect::Output does not support generic const parameters"
+                    ),
+                );
+            }
+        }
+        cx.encountered_generic_type(param.to_token_stream().to_string().into(), param.clone());
+    }
+}
+
+fn visit_variant<'a>(
+    cx: &Context,
+    variant: &serde_derive_internals::ast::Variant<'a>,
+) -> reflect_schema::Variant {
+    let mut result = reflect_schema::Variant::new(variant.ident.to_string());
+    for field in &variant.fields {
+        result.fields.push(visit_field(cx, field));
+    }
+    result
+}
 
 fn visit_field<'a>(
     cx: &Context,
@@ -368,26 +374,3 @@ fn parse_lit_str(
         Ok(None)
     }
 }
-
-// fn type_ref_to_syn_path(str: &str) -> syn::TypePath {
-//     let (leading_colon, path_parts) = if str.starts_with("::") {
-//         (
-//             Some(syn::Token![::](proc_macro2::Span::call_site())),
-//             str.split("::").skip(1).collect::<Vec<_>>(),
-//         )
-//     } else {
-//         (None, str.split("::").collect::<Vec<_>>())
-//     };
-//     let segments = path_parts
-//         .iter()
-//         .map(|s| syn::PathSegment {
-//             ident: syn::Ident::new(s, proc_macro2::Span::call_site()),
-//             arguments: syn::PathArguments::None,
-//         })
-//         .collect();
-//     let path = syn::Path {
-//         leading_colon,
-//         segments,
-//     };
-//     syn::TypePath { qself: None, path }
-// }

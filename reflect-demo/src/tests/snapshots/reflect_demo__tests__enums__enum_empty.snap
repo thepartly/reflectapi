@@ -1,0 +1,18 @@
+---
+source: reflect-demo/src/tests/enums.rs
+expression: "TestEnumEmpty::reflect_input()"
+---
+[
+  {
+    "name": "reflect_demo::tests::enums::TestEnumEmpty"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::enums::TestEnumEmpty"
+      }
+    ]
+  }
+]
