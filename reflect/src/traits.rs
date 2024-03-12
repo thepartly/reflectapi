@@ -375,3 +375,33 @@ impl<'a, T: Output + Clone> Output for std::borrow::Cow<'a, T> {
         )
     }
 }
+
+fn reflect_type_phantom_data(schema: &mut crate::Schema) -> String {
+    let type_name = "std::marker::PhantomData";
+    if schema.reserve_type(&type_name) {
+        let type_def = crate::Primitive::new(
+            type_name.into(),
+            format!("Zero-sized phantom data"),
+            vec!["T".into()],
+            None,
+        );
+        schema.insert_type(type_def.into());
+    }
+    type_name.into()
+}
+impl<T: Input> Input for std::marker::PhantomData<T> {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_phantom_data(schema),
+            vec![T::reflect_input_type(schema)],
+        )
+    }
+}
+impl<T: Output> Output for std::marker::PhantomData<T> {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_phantom_data(schema),
+            vec![T::reflect_output_type(schema)],
+        )
+    }
+}

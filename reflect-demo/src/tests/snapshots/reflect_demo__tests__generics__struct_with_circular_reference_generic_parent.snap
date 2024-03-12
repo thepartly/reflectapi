@@ -1,0 +1,113 @@
+---
+source: reflect-demo/src/tests/generics.rs
+expression: "TestStructWithCircularReferenceGenericParent::<u8>::reflect_input()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGeneric",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ],
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::boxed::Box",
+            "parameters": [
+              {
+                "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGeneric",
+                "parameters": [
+                  {
+                    "name": "T"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "_f2",
+          "type": {
+            "name": "T"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericParent",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ],
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::boxed::Box",
+            "parameters": [
+              {
+                "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGeneric",
+                "parameters": [
+                  {
+                    "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericParent",
+                    "parameters": [
+                      {
+                        "name": "T"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "_f2",
+          "type": {
+            "name": "std::marker::PhantomData",
+            "parameters": [
+              {
+                "name": "T"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::boxed::Box",
+      "description": "std::boxed::Box pointer type",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ],
+      "fallback": {
+        "name": "T"
+      }
+    },
+    {
+      "kind": "primitive",
+      "name": "std::marker::PhantomData",
+      "description": "Zero-sized phantom data",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

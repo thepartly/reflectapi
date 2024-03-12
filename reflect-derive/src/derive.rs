@@ -34,7 +34,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
     let reflected_context = Context::new(reflect_type);
     let reflected_type_def = visit_type(&reflected_context, &serde_input);
-    let unresolved_type_refs_to_syn_types = match reflected_context.check() {
+    let context_encounters = match reflected_context.check() {
         Err(err) => {
             proc_macro_error::abort!(err.span(), err.to_string());
         }
@@ -55,26 +55,52 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         ),
     };
 
-    let mut type_references_resolution_code = quote::quote! {};
-    for (unresolved_type_ref, syn_type) in unresolved_type_refs_to_syn_types.into_iter() {
+    let reflected_type_generics = reflected_type_def
+        .parameters()
+        .map(|i| i.name().to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+
+    let mut fields_type_references_resolution_code = quote::quote! {};
+    for (unresolved_field_type_ref, origin_field_syn_type) in
+        context_encounters.fields_type_refs.into_iter()
+    {
         // let unresolved_type_ref_generics = unresolved_type_ref.name.replace('>', "").split('<').skip(1).
         //     .parameters()
         //     .map(|i| i.name().to_string())
         //     .collect::<Vec<_>>()
         //     .join(",");
         // let unresolved_type_ref_generics = "ssss";
-        let unresolved_type_ref =
-            crate::tokenizable_schema::TokenizableTypeReference::new(&unresolved_type_ref);
+        let unresolved_field_type_ref =
+            crate::tokenizable_schema::TokenizableTypeReference::new(&unresolved_field_type_ref);
         // let reflected_type_generics = reflected_type_def
         //     .parameters()
         //     .map(|i| i.name().to_string())
         //     .collect::<Vec<_>>()
         //     .join(",");
-        type_references_resolution_code.extend(quote::quote! {
+        fields_type_references_resolution_code.extend(quote::quote! {
             {
-                let mut resolved_type_ref = <#syn_type as #trait_ident>::#fn_reflect_type_ident(schema);
+                let mut resolved_type_ref = <#origin_field_syn_type as #trait_ident>::#fn_reflect_type_ident(schema);
                 // resolved_type_ref.name = format!("{}/{}/{}/{}/{}", resolved_type_ref.name, #unresolved_type_ref.name, stringify!(#type_generics), #reflected_type_generics, #unresolved_type_ref_generics);
-                unresolved_to_resolved_type_refs_map.insert(#unresolved_type_ref, resolved_type_ref);
+                let unresolved_field_type_ref = #unresolved_field_type_ref;
+                unresolved_field_type_ref.verify(&resolved_type_ref);
+                println!("{}:  field resolved {:?} => {:?}", #reflected_type_name, unresolved_field_type_ref, resolved_type_ref);
+                unresolved_to_resolved_fields_type_refs.insert(#unresolved_field_type_ref, resolved_type_ref);
+            }
+        });
+    }
+
+    let mut generics_type_references_resolution_code = quote::quote!();
+    for p in reflected_type_def.parameters() {
+        let p = syn::Ident::new(p.name(), proc_macro2::Span::call_site());
+        generics_type_references_resolution_code.extend(quote::quote! {
+            {
+                let mut resolved_type_ref = <#p as #trait_ident>::#fn_reflect_type_ident(schema);
+                // resolved_type_ref.name = format!("{}/{}/{}/{}/{}", resolved_type_ref.name, #unresolved_type_ref.name, stringify!(#type_generics), #reflected_type_generics, #unresolved_type_ref_generics);
+                // let unresolved_field_type_ref = #unresolved_field_type_ref;
+                // unresolved_field_type_ref.verify(&resolved_type_ref);
+                println!("{}:  generic type resolved {:?}", #reflected_type_name, resolved_type_ref);
+                parameters.push(resolved_type_ref);
             }
         });
     }
@@ -85,34 +111,69 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
             fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> reflect::TypeReference {
                 let resolved_type_name = format!("{}::{}", std::module_path!(), #reflected_type_name);
                 let mut parameters = Vec::new();
-                if schema.reserve_type(resolved_type_name.as_ref()) {
-                    let mut reflected_type_def = #reflected_type_def;
+                let mut reflected_type_def = #reflected_type_def;
+                println!("{} resolving {}", resolved_type_name, reflected_type_def.name());
+                // let reserve_name = format!("{}/{}", resolved_type_name, reflected_type_def.name());
+                let reserve_name = format!("{}", resolved_type_name);
+                if schema.reserve_type(reserve_name.as_ref()) {
                     reflected_type_def.rename(resolved_type_name.clone());
 
-                    let mut unresolved_to_resolved_type_refs_map = std::collections::HashMap::new();
-                    #type_references_resolution_code;
-                    // reflected_type_def.set_description(format!("{:#?}", unresolved_to_resolved_type_refs_map));
-                    let mut generic_to_specific_map = reflected_type_def.replace_type_references(&unresolved_to_resolved_type_refs_map, schema);
+                    let mut unresolved_to_resolved_fields_type_refs = std::collections::HashMap::new();
+                    #fields_type_references_resolution_code;
+                    // reflected_type_def.set_description(format!("{:#?}", unresolved_to_resolved_fields_type_refs));
+                    println!("{}: unresolved_to_resolved_fields_type_refs {:?}", resolved_type_name, unresolved_to_resolved_fields_type_refs);
+                    let mut generic_to_specific_map = reflected_type_def.replace_type_references(&unresolved_to_resolved_fields_type_refs, schema);
+
+                    println!("{}: generic_to_specific_map {:?}", resolved_type_name, generic_to_specific_map);
                     for p in reflected_type_def.parameters() {
                         parameters.push(
-                            reflect::TypeReference::from(
-                                generic_to_specific_map
-                                    .remove(p.name())
-                                    .unwrap_or_else(|| p.name().into())
-                            )
+                            generic_to_specific_map
+                                .remove(p.name())
+                                .unwrap_or_else(|| p.name().into())
                         )
                     }
 
+                    println!("finished resolving {:#?}", reflected_type_def);
                     schema.insert_type(reflected_type_def);
+                } else {
+                    println!("resolve conflict {}", resolved_type_name);
+                    if let Some(reflected_type_def) = schema.get_type(resolved_type_name.as_ref()) {
+                        println!("resolve conflict already defined {}", resolved_type_name);
+                        // panic!("here 1");
+                        for p in reflected_type_def.parameters() {
+                            parameters.push(
+                                reflect::TypeReference::from("TODO???")
+                            )
+                        }
+                    } else {
+                        println!("{}: resolve conflict already defined but not inserted, parameters: {:?}", resolved_type_name, reflected_type_def.parameters());
+                        #generics_type_references_resolution_code
+                        // // panic!("here 2 {:?}", reflected_type_def.parameters());
+                        // // the case when the type is being built and there are circular references between types
+                        // for p in reflected_type_def.parameters() {
+                        //     parameters.push(
+                        //         // reflect::TypeReference::new("reflect_demo::GenericStruct".into(), vec!["u8".into()])
+                        //         // "u8".into()
+                        //         p.name.clone().into()
+                        //         // reflect::TypeReference::from("TODO 222???")
+                        //     )
+                        // }
+                    }
                 }
-                reflect::TypeReference::new(resolved_type_name, parameters)
+                let result = reflect::TypeReference::new(resolved_type_name.clone(), parameters);
+                println!("{} returning resolved type refence {:?}", resolved_type_name, result);
+                result
             }
         }
 
         impl #type_generics #type_ident #type_generics #type_generics_where {
             fn #fn_reflect_ident() -> reflect::Schema {
                 let mut result = reflect::Schema::new();
-                <Self as #trait_ident>::#fn_reflect_type_ident(&mut result);
+                let resolved_type_ref = <Self as #trait_ident>::#fn_reflect_type_ident(&mut result);
+                let resolved_type_def = result.get_type(resolved_type_ref.name.as_ref()).unwrap();
+                if resolved_type_ref.parameters.len() != resolved_type_def.parameters().len() {
+                    panic!("{} vs {} resolved_type_ref.parameters.len() != resolved_type_def.parameters().len()", resolved_type_ref.parameters.len(), resolved_type_def.parameters().len());
+                }
                 result.sort_types();
                 result
             }
@@ -166,6 +227,10 @@ fn visit_field<'a>(
     cx: &Context,
     field: &serde_derive_internals::ast::Field<'a>,
 ) -> reflect_schema::Field {
+    let field_name = match field.member {
+        syn::Member::Named(ref ident) => ident.to_string(),
+        syn::Member::Unnamed(ref index) => index.index.to_string(),
+    };
     let attrs = parse_field_attributes(cx, field.original);
     let (field_type, field_transform) = match cx.reflect_type() {
         ReflectType::Input => (attrs.input_type, attrs.input_transform),
@@ -176,10 +241,8 @@ fn visit_field<'a>(
         Some(field_type) => field_type,
         None => visit_field_type(cx, &field.original.ty),
     };
-    let mut field_def = match field.member {
-        syn::Member::Named(ref ident) => Field::new(ident.to_string(), field_type),
-        syn::Member::Unnamed(ref index) => Field::new(index.index.to_string(), field_type),
-    };
+
+    let mut field_def = Field::new(field_name, field_type);
     field_def.transform_callback = field_transform;
     field_def
 }
@@ -202,7 +265,8 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
                         match i {
                             syn::GenericArgument::Type(ty) => {
                                 result.parameters.push(ty.to_token_stream().to_string().into());
-                                visit_field_type(cx, ty);
+                                // TODO what to do here?
+                                // visit_field_type(cx, ty);
                             }
                             // syn::GenericArgument::Binding(binding) => {
                             //     cx.impl_error(

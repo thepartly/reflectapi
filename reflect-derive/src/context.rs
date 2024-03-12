@@ -15,6 +15,10 @@ impl Default for ReflectType {
     }
 }
 
+pub(crate) struct ContextEncounters {
+    pub fields_type_refs: Vec<(reflect_schema::TypeReference, syn::Type)>,
+}
+
 /// A type to collect errors together and format them.
 ///
 /// Dropping this object will cause a panic. It must be consumed using `check`.
@@ -25,8 +29,7 @@ pub(crate) struct Context {
     /// Purpose of a reflection: for input or output type
     reflect_type: ReflectType,
 
-    pub encountered_type_refs:
-        RefCell<std::collections::HashMap<reflect_schema::TypeReference, syn::Type>>,
+    pub encountered_type_refs: RefCell<Vec<(reflect_schema::TypeReference, syn::Type)>>,
 
     // The contents will be set to `None` during checking. This is so that checking can be
     // enforced.
@@ -40,7 +43,7 @@ impl Context {
     pub fn new(reflect_type: ReflectType) -> Self {
         Context {
             reflect_type,
-            encountered_type_refs: RefCell::new(std::collections::HashMap::new()),
+            encountered_type_refs: RefCell::new(Vec::new()),
             errors: RefCell::new(Some(Vec::new())),
         }
     }
@@ -67,17 +70,15 @@ impl Context {
     }
 
     /// Consume this object, producing a formatted error string if there are errors.
-    pub fn check(
-        self,
-    ) -> syn::Result<std::collections::HashMap<reflect_schema::TypeReference, syn::Type>> {
+    pub fn check(self) -> syn::Result<ContextEncounters> {
         let mut errors = self.errors.borrow_mut().take().unwrap().into_iter();
 
         let mut combined = match errors.next() {
             Some(first) => first,
             None => {
-                return Ok(self
-                    .encountered_type_refs
-                    .replace(std::collections::HashMap::new()))
+                return Ok(ContextEncounters {
+                    fields_type_refs: self.encountered_type_refs.replace(Vec::new()),
+                })
             }
         };
 
@@ -89,8 +90,8 @@ impl Context {
     }
 
     /// Add a type reference actual type definition.
-    pub fn encountered_type_ref(&self, name: reflect_schema::TypeReference, ty: syn::Type) {
-        self.encountered_type_refs.borrow_mut().insert(name, ty);
+    pub fn encountered_type_ref(&self, type_ref: reflect_schema::TypeReference, ty: syn::Type) {
+        self.encountered_type_refs.borrow_mut().push((type_ref, ty));
     }
 }
 

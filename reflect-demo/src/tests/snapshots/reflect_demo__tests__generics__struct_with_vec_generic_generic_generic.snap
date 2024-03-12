@@ -1,0 +1,73 @@
+---
+source: reflect-demo/src/tests/generics.rs
+expression: "TestStructWithVecGenericGenericGeneric::<Vec<u8>>::reflect_input()"
+---
+{
+  "name": "",
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::generics::TestStructWithVecGeneric",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ],
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::vec::Vec",
+            "parameters": [
+              {
+                "name": "T"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::generics::TestStructWithVecGenericGenericGeneric",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ],
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::vec::Vec",
+            "parameters": [
+              {
+                "name": "reflect_demo::tests::generics::TestStructWithVecGeneric",
+                "parameters": [
+                  {
+                    "name": "T"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::vec::Vec",
+      "description": "Expandable array type",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}
