@@ -1,5 +1,5 @@
-error: reflect::Input/reflect::Output does not support bare function field type
+error[E0277]: the trait bound `for<'a> fn(&'a str) -> i32: Input` is not satisfied
  --> tests/errors/invalid_reflect_field_type_function.rs:3:12
   |
 3 |     field: fn(&str) -> i32,
-  |            ^^
+  |            ^^^^^^^^^^^^^^^ the trait `Input` is not implemented for `for<'a> fn(&'a str) -> i32`

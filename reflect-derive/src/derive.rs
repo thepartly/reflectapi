@@ -55,35 +55,15 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         ),
     };
 
-    let reflected_type_generics = reflected_type_def
-        .parameters()
-        .map(|i| i.name().to_string())
-        .collect::<Vec<_>>()
-        .join(",");
-
     let mut fields_type_references_resolution_code = quote::quote! {};
     for (unresolved_field_type_ref, origin_field_syn_type) in context_encounters.fields.into_iter()
     {
-        // let unresolved_type_ref_generics = unresolved_type_ref.name.replace('>', "").split('<').skip(1).
-        //     .parameters()
-        //     .map(|i| i.name().to_string())
-        //     .collect::<Vec<_>>()
-        //     .join(",");
-        // let unresolved_type_ref_generics = "ssss";
         let unresolved_field_type_ref =
             crate::tokenizable_schema::TokenizableTypeReference::new(&unresolved_field_type_ref);
-        // let reflected_type_generics = reflected_type_def
-        //     .parameters()
-        //     .map(|i| i.name().to_string())
-        //     .collect::<Vec<_>>()
-        //     .join(",");
         fields_type_references_resolution_code.extend(quote::quote! {
             {
                 let mut resolved_type_ref = <#origin_field_syn_type as #trait_ident>::#fn_reflect_type_ident(schema);
-                // resolved_type_ref.name = format!("{}/{}/{}/{}/{}", resolved_type_ref.name, #unresolved_type_ref.name, stringify!(#type_generics), #reflected_type_generics, #unresolved_type_ref_generics);
                 let unresolved_field_type_ref = #unresolved_field_type_ref;
-                unresolved_field_type_ref.verify(&resolved_type_ref);
-                //println!("{}:  field resolved {:?} => {:?}", #reflected_type_name, unresolved_field_type_ref, resolved_type_ref);
                 unresolved_to_resolved_fields_type_refs.insert(#unresolved_field_type_ref, resolved_type_ref);
             }
         });
@@ -104,58 +84,20 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
             fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> reflect::TypeReference {
                 let resolved_type_name = format!("{}::{}", std::module_path!(), #reflected_type_name);
                 let mut parameters = Vec::new();
-                let mut reflected_type_def = #reflected_type_def;
-                //println!("{} resolving {}", resolved_type_name, reflected_type_def.name());
-                // let reserve_name = format!("{}/{}", resolved_type_name, reflected_type_def.name());
-                let reserve_name = format!("{}", resolved_type_name);
-                if schema.reserve_type(reserve_name.as_ref()) {
+                #generics_type_references_resolution_code;
+
+                if schema.reserve_type(resolved_type_name.as_ref()) {
+                    let mut reflected_type_def = #reflected_type_def;
                     reflected_type_def.rename(resolved_type_name.clone());
 
                     let mut unresolved_to_resolved_fields_type_refs = std::collections::HashMap::new();
                     #fields_type_references_resolution_code;
-                    // reflected_type_def.set_description(format!("{:#?}", unresolved_to_resolved_fields_type_refs));
-                    //println!("{}: unresolved_to_resolved_fields_type_refs {:?}", resolved_type_name, unresolved_to_resolved_fields_type_refs);
-                    let mut generic_to_specific_map = reflected_type_def.replace_type_references(&unresolved_to_resolved_fields_type_refs, schema);
+                    reflected_type_def.replace_type_references(&unresolved_to_resolved_fields_type_refs, schema);
 
-                    //println!("{}: generic_to_specific_map {:?}", resolved_type_name, generic_to_specific_map);
-                    for p in reflected_type_def.parameters() {
-                        parameters.push(
-                            generic_to_specific_map
-                                .remove(p.name())
-                                .unwrap_or_else(|| p.name().into())
-                        )
-                    }
-
-                    //println!("finished resolving {:#?}", reflected_type_def);
                     schema.insert_type(reflected_type_def);
-                } else {
-                    //println!("resolve conflict {}", resolved_type_name);
-                    if let Some(reflected_type_def) = schema.get_type(resolved_type_name.as_ref()) {
-                        //println!("resolve conflict already defined {}", resolved_type_name);
-                        // panic!("here 1");
-                        for p in reflected_type_def.parameters() {
-                            parameters.push(
-                                reflect::TypeReference::from("TODO???")
-                            )
-                        }
-                    } else {
-                        //println!("{}: resolve conflict already defined but not inserted, parameters: {:?}", resolved_type_name, reflected_type_def.parameters());
-                        #generics_type_references_resolution_code
-                        // // panic!("here 2 {:?}", reflected_type_def.parameters());
-                        // // the case when the type is being built and there are circular references between types
-                        // for p in reflected_type_def.parameters() {
-                        //     parameters.push(
-                        //         // reflect::TypeReference::new("reflect_demo::GenericStruct".into(), vec!["u8".into()])
-                        //         // "u8".into()
-                        //         p.name.clone().into()
-                        //         // reflect::TypeReference::from("TODO 222???")
-                        //     )
-                        // }
-                    }
                 }
-                let result = reflect::TypeReference::new(resolved_type_name.clone(), parameters);
-                //println!("{} returning resolved type refence {:?}", resolved_type_name, result);
-                result
+
+                reflect::TypeReference::new(resolved_type_name, parameters)
             }
         }
 
@@ -187,13 +129,31 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                 result.fields.push(visit_field(cx, field));
             }
             for param in container.generics.params.iter() {
-                if let syn::GenericParam::Type(type_param) = param {
-                    cx.encountered_generic_type(
-                        type_param.ident.to_string().into(),
-                        type_param.clone(),
-                    );
-                    result.parameters.push(type_param.ident.to_string().into());
+                match param {
+                    syn::GenericParam::Type(type_param) => {
+                        result.parameters.push(type_param.ident.to_string().into());
+                    }
+                    syn::GenericParam::Lifetime(lifetime_param) => {
+                        cx.impl_error(
+                            lifetime_param,
+                            format_args!(
+                                "reflect::Input/reflect::Output does not support generic lifetime parameters"
+                            ),
+                        );
+                    }
+                    syn::GenericParam::Const(const_param) => {
+                        cx.impl_error(
+                            const_param,
+                            format_args!(
+                                "reflect::Input/reflect::Output does not support generic const parameters"
+                            ),
+                        );
+                    }
                 }
+                cx.encountered_generic_type(
+                    param.to_token_stream().to_string().into(),
+                    param.clone(),
+                );
             }
             result.into()
         }
@@ -239,197 +199,7 @@ fn visit_field<'a>(
 }
 
 fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeReference {
-    let mut result: reflect_schema::TypeReference =
-        ty.to_token_stream().to_string().replace(' ', "").into();
-    match ty {
-        syn::Type::Path(path) => {
-            if path.qself.is_some() {
-                cx.impl_error(
-                    ty,
-                    format_args!("reflect::Input/reflect::Output does not support qualified Self type reference"),
-                );
-            }
-            path.path.segments.iter().for_each(|i| match &i.arguments {
-                syn::PathArguments::None => {}
-                syn::PathArguments::AngleBracketed(args) => {
-                    for i in args.args.iter() {
-                        match i {
-                            syn::GenericArgument::Type(ty) => {
-                                result.parameters.push(ty.to_token_stream().to_string().into());
-                                // TODO what to do here?
-                                // visit_field_type(cx, ty);
-                            }
-                            // syn::GenericArgument::Binding(binding) => {
-                            //     cx.impl_error(
-                            //         ty,
-                            //         format_args!(
-                            //             "reflect::Input/reflect::Output does not support generic field type"
-                            //         ),
-                            //     );
-                            // }
-                            // syn::GenericArgument::Constraint(constraint) => {
-                            //     cx.impl_error(
-                            //         ty,
-                            //         format_args!(
-                            //             "reflect::Input/reflect::Output does not support generic field type"
-                            //         ),
-                            //     );
-                            // }
-                            // syn::GenericArgument::Const(constant) => {
-                            //     cx.impl_error(
-                            //         ty,
-                            //         format_args!(
-                            //             "reflect::Input/reflect::Output does not support generic field type"
-                            //         ),
-                            //     );
-                            // }
-                            // syn::GenericArgument::Lifetime(lifetime) => {
-                            //     cx.impl_error(
-                            //         ty,
-                            //         format_args!(
-                            //             "reflect::Input/reflect::Output does not support generic field type"
-                            //         ),
-                            //     );
-                            // }
-                            // syn::GenericArgument::Verbatim(_) => {
-                            //     cx.impl_error(
-                            //         ty,
-                            //         format_args!(
-                            //             "reflect::Input/reflect::Output does not support generic field type"
-                            //         ),
-                            //     );
-                            // }
-                            _ => {}
-                        }
-                    }
-                    // cx.impl_error(
-                    //     ty,
-                    //     format_args!("reflect::Input/reflect::Output does not support generic field type"),
-                    // );
-                }
-                syn::PathArguments::Parenthesized(_) => {
-                    cx.impl_error(
-                        ty,
-                        format_args!(
-                            "reflect::Input/reflect::Output does not support parenthesized field type path arguments"
-                        ),
-                    );
-                }
-            });
-            // let tr = path
-            //     .path
-            //     .segments
-            //     .iter()
-            //     .map(|i| i.ident.to_string())
-            //     .collect::<Vec<_>>()
-            //     .join("::");
-            // let mut r = reflect_schema::TypeReference::new(tr);
-            // r._debug(Some(format!("{}/{}", result.name, r.name.clone())));
-            // return r;
-            // result._debug(Some(tr));
-        }
-        syn::Type::Array(_) => {
-            // cx.impl_error(
-            //     ty,
-            //     format_args!("reflect::Input/reflect::Output does not support array field type"),
-            // );
-        }
-        syn::Type::BareFn(_path) => {
-            cx.impl_error(
-                ty,
-                format_args!(
-                    "reflect::Input/reflect::Output does not support bare function field type"
-                ),
-            );
-        }
-        syn::Type::Group(_) => {
-            cx.impl_error(
-                ty,
-                format_args!("reflect::Input/reflect::Output does not support group field type"),
-            );
-        }
-        syn::Type::ImplTrait(_) => {
-            cx.impl_error(
-                ty,
-                format_args!(
-                    "reflect::Input/reflect::Output does not support impl trait field type"
-                ),
-            );
-        }
-        syn::Type::Infer(_) => {
-            cx.impl_error(
-                ty,
-                format_args!("reflect::Input/reflect::Output does not support infer field type"),
-            );
-        }
-        syn::Type::Macro(_) => {
-            cx.impl_error(
-                ty,
-                format_args!("reflect::Input/reflect::Output does not support macro field type"),
-            );
-        }
-        syn::Type::Never(_) => {
-            cx.impl_error(
-                ty,
-                format_args!("reflect::Input/reflect::Output does not support never field type"),
-            );
-        }
-        syn::Type::Paren(_) => {
-            cx.impl_error(
-                ty,
-                format_args!("reflect::Input/reflect::Output does not support paren field type"),
-            );
-        }
-        syn::Type::Ptr(_) => {
-            cx.impl_error(
-                ty,
-                format_args!("reflect::Input/reflect::Output does not support pointer field type"),
-            );
-        }
-        syn::Type::Reference(_) => {
-            cx.impl_error(
-                ty,
-                format_args!(
-                    "reflect::Input/reflect::Output does not support reference field type"
-                ),
-            );
-        }
-        syn::Type::Slice(_) => {
-            cx.impl_error(
-                ty,
-                format_args!("reflect::Input/reflect::Output does not support slice field type"),
-            );
-        }
-        syn::Type::TraitObject(_) => {
-            cx.impl_error(
-                ty,
-                format_args!(
-                    "reflect::Input/reflect::Output does not support trait object field type"
-                ),
-            );
-        }
-        syn::Type::Tuple(_) => {
-            // cx.impl_error(
-            //     ty,
-            //     format_args!("reflect::Input/reflect::Output does not support tuple field type"),
-            // );
-        }
-        syn::Type::Verbatim(_) => {
-            cx.impl_error(
-                ty,
-                format_args!("reflect::Input/reflect::Output does not support verbatim field type"),
-            );
-        }
-        _ => {
-            cx.impl_error(
-                ty,
-                format_args!(
-                    "reflect::Input/reflect::Output does not support `{}` field type definition variant",
-                    ty.to_token_stream().to_string()
-                ),
-            );
-        }
-    }
+    let result: reflect_schema::TypeReference = ty.to_token_stream().to_string().into();
     cx.encountered_field_type(result.clone(), ty.clone());
     result
 }
@@ -530,7 +300,7 @@ fn parse_field_attributes(cx: &Context, field: &syn::Field) -> ParsedFieldAttrib
                     result.input_transform = path.to_token_stream().to_string();
                 }
             } else {
-                let path = meta.path.to_token_stream().to_string().replace(' ', "");
+                let path = meta.path.to_token_stream().to_string();
                 return Err(meta.error(format_args!("unknown reflect field attribute `{}`", path)));
             }
             Ok(())

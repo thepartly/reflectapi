@@ -1,0 +1,5 @@
+error: reflect::Input/reflect::Output does not support generic lifetime parameters
+ --> tests/errors/invalid_reflect_type_lifetime_generic2.rs:2:17
+  |
+2 | struct MyStruct<'a> {
+  |                 ^^

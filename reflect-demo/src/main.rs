@@ -48,8 +48,13 @@ where
     _f1: A,
 }
 
+// #[derive(reflect::Input, reflect::Output)]
+// struct MyStruct<T: Clone> {
+//     // field: std::borrow::Cow<'a, T>,
+// }
+
 fn main() {
-    // //println!("{}", MyStruct::reflect_input());
+    // println!("{:#?}", MyStruct::reflect_input());
     // //println!(
     //     "{:#?}",
     //     GenericStruct::<GenericStruct::<u8>>::reflect_input()

@@ -1,5 +1,5 @@
-error: reflect::Input/reflect::Output does not support trait object field type
+error[E0277]: the trait bound `dyn for<'a> Fn(&'a str) -> i32: Input` is not satisfied
  --> tests/errors/invalid_reflect_field_type_function_generic.rs:3:12
   |
 3 |     field: dyn Fn(&str) -> i32,
-  |            ^^^
+  |            ^^^^^^^^^^^^^^^^^^^ the trait `Input` is not implemented for `dyn for<'a> Fn(&'a str) -> i32`

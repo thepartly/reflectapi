@@ -256,7 +256,11 @@ impl<T: Output, const N: usize> Output for [T; N] {
     }
 }
 
-fn reflect_type_pointer(schema: &mut crate::Schema, type_name: &str, with_lifetime: bool) -> String {
+fn reflect_type_pointer(
+    schema: &mut crate::Schema,
+    type_name: &str,
+    with_lifetime: bool,
+) -> String {
     if schema.reserve_type(&type_name) {
         let mut type_def = crate::Primitive::new(
             type_name.into(),
@@ -265,7 +269,7 @@ fn reflect_type_pointer(schema: &mut crate::Schema, type_name: &str, with_lifeti
             Some("T".into()),
         );
         if with_lifetime {
-            type_def.parameters.push("'a".into());
+            type_def.parameters.insert(0, "'a".into());
         }
         schema.insert_type(type_def.into());
     }

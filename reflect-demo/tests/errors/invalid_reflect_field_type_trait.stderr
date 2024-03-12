@@ -1,5 +1,16 @@
-error: reflect::Input/reflect::Output does not support trait object field type
+error[E0277]: the trait bound `dyn MyTrait: Input` is not satisfied
  --> tests/errors/invalid_reflect_field_type_trait.rs:7:12
   |
 7 |     field: dyn MyTrait,
-  |            ^^^
+  |            ^^^^^^^^^^^ the trait `Input` is not implemented for `dyn MyTrait`
+  |
+  = help: the following other types implement trait `Input`:
+            bool
+            char
+            isize
+            i8
+            i16
+            i32
+            i64
+            i128
+          and $N others

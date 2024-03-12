@@ -47,12 +47,7 @@ impl Schema {
     pub fn reserve_type(&mut self, name: &str) -> bool {
         self.ensure_types_map();
         if self.types_map.borrow().contains_key(name) {
-            if let Some(index) = self.types_map.borrow().get(name) {
-                if index == &usize::MAX {
-                    return false;
-                }
-            }
-            return true;
+            return false;
         }
         self.types_map.borrow_mut().insert(name.into(), usize::MAX);
         true
@@ -169,7 +164,7 @@ pub struct TypeReference {
 impl TypeReference {
     pub fn new(name: String, parameters: Vec<TypeReference>) -> Self {
         TypeReference {
-            name: name.replace(' ', "").into(),
+            name: name,
             parameters,
         }
     }
@@ -201,14 +196,12 @@ impl TypeReference {
         &mut self,
         resolved_type_ref: &TypeReference,
         declaring_type_parameters: &Vec<TypeParameter>,
-    ) -> std::collections::HashMap<String, TypeReference> {
+    ) -> () {
         if declaring_type_parameters.is_empty() {
             // This code needs to replace unresolved type reference to resolved type reference
             // For example, 'Vec<u8>' without parameters to std::vec::Vec with parameters [u8].
             self.name = resolved_type_ref.name.clone();
-            self.name = self.name.replace(' ', "").into();
             self.parameters = resolved_type_ref.parameters.clone();
-            std::collections::HashMap::new()
         } else {
             // Simple name replace would be enough, but we have to process parameters in a special way.
             // This unresolved type reference may hold type ref with name Vec<Vec<T>>.
@@ -219,7 +212,6 @@ impl TypeReference {
 
             let unresolved_parsed = Self::naive_parse(&self.name);
             self.name = resolved_type_ref.name.clone();
-            self.name = self.name.replace(' ', "").into();
             self.parameters = resolved_type_ref.parameters.clone();
 
             Self::replace_specific_type_ref_by_generic(
@@ -227,30 +219,6 @@ impl TypeReference {
                 &unresolved_parsed,
                 declaring_type_parameters,
             )
-        }
-    }
-
-    pub fn verify(&self, resolved_type_ref: &TypeReference) -> () {
-        let this_parsed = Self::naive_parse(&self.name);
-        if this_parsed.parameters.len() != resolved_type_ref.parameters.len() {
-            if resolved_type_ref.name.contains("tuple") || resolved_type_ref.name.contains("Array")
-            {
-                return;
-            }
-            // panic!(
-            //     "Type reference parameters count mismatch: {} vs {} ({} vs {})",
-            //     this_parsed.parameters.len(),
-            //     resolved_type_ref.parameters.len(),
-            //     this_parsed.name,
-            //     resolved_type_ref.name
-            // );
-        }
-        for (a, b) in self
-            .parameters
-            .iter()
-            .zip(resolved_type_ref.parameters.iter())
-        {
-            // a.verify(b);
         }
     }
 
@@ -273,7 +241,7 @@ impl TypeReference {
                 '>' => {
                     depth -= 1;
                     if depth == 0 {
-                        if s[start..i].replace(' ', "").is_empty() {
+                        if s[start..i].chars().all(|i| i.is_whitespace()) {
                             start = i + 1;
                             continue;
                         }
@@ -282,7 +250,7 @@ impl TypeReference {
                     }
                 }
                 ',' if depth == 1 => {
-                    if s[start..i].replace(' ', "").is_empty() {
+                    if s[start..i].chars().all(|i| i.is_whitespace()) {
                         start = i + 1;
                         continue;
                     }
@@ -300,17 +268,12 @@ impl TypeReference {
         resolved_with_specifics: &mut TypeReference,
         unresolved_with_generics: &TypeReference,
         declaring_type_parameters: &Vec<TypeParameter>,
-    ) -> std::collections::HashMap<String, TypeReference> {
-        let mut generic_to_specific_map = std::collections::HashMap::<String, TypeReference>::new();
+    ) -> () {
         if declaring_type_parameters
             .iter()
             .find(|i| i.name() == unresolved_with_generics.name())
             .is_some()
         {
-            generic_to_specific_map.insert(
-                unresolved_with_generics.name.clone(),
-                resolved_with_specifics.clone(),
-            );
             *resolved_with_specifics = unresolved_with_generics.clone();
         }
 
@@ -319,13 +282,8 @@ impl TypeReference {
             .iter_mut()
             .zip(unresolved_with_generics.parameters.iter())
         {
-            generic_to_specific_map.extend(Self::replace_specific_type_ref_by_generic(
-                t.0,
-                t.1,
-                declaring_type_parameters,
-            ));
+            Self::replace_specific_type_ref_by_generic(t.0, t.1, declaring_type_parameters);
         }
-        generic_to_specific_map
     }
 }
 
@@ -563,9 +521,9 @@ impl Type {
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Schema,
-    ) -> std::collections::HashMap<String, TypeReference> {
+    ) -> () {
         match self {
-            Type::Primitive(_) => std::collections::HashMap::new(),
+            Type::Primitive(_) => {}
             Type::Struct(s) => s.replace_type_references(remap, schema),
             Type::Enum(e) => e.replace_type_references(remap, schema),
             Type::Alias(a) => a.replace_type_references(remap, schema),
@@ -729,12 +687,10 @@ impl Struct {
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Schema,
-    ) -> std::collections::HashMap<String, TypeReference> {
-        let mut result = std::collections::HashMap::new();
+    ) -> () {
         for field in self.fields.iter_mut() {
-            result.extend(field.replace_type_references(remap, schema, &self.parameters));
+            field.replace_type_references(remap, schema, &self.parameters);
         }
-        result
     }
 }
 
@@ -806,17 +762,14 @@ impl Field {
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Schema,
         declaring_type_parameters: &Vec<TypeParameter>,
-    ) -> std::collections::HashMap<String, TypeReference> {
-        let mut result = std::collections::HashMap::new();
+    ) -> () {
         if let Some(new_type_ref) = remap.get(&self.type_ref) {
-            result = self
-                .type_ref
+            self.type_ref
                 .replace_type_references(new_type_ref, declaring_type_parameters);
         }
         if let Some(transform_callback_fn) = self.transform_callback_fn {
             transform_callback_fn(&mut self.type_ref, schema);
         }
-        result
     }
 }
 
@@ -868,12 +821,10 @@ impl Enum {
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Schema,
-    ) -> std::collections::HashMap<String, TypeReference> {
-        let mut result = std::collections::HashMap::new();
+    ) -> () {
         for variant in self.variants.iter_mut() {
-            result.extend(variant.replace_type_references(remap, schema, &self.parameters));
+            variant.replace_type_references(remap, schema, &self.parameters);
         }
-        result
     }
 }
 
@@ -918,12 +869,10 @@ impl Variant {
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Schema,
         declaring_type_parameters: &Vec<TypeParameter>,
-    ) -> std::collections::HashMap<String, TypeReference> {
-        let mut result = std::collections::HashMap::new();
+    ) -> () {
         for field in self.fields.iter_mut() {
-            result.extend(field.replace_type_references(remap, schema, declaring_type_parameters));
+            field.replace_type_references(remap, schema, declaring_type_parameters);
         }
-        result
     }
 }
 
@@ -1005,12 +954,10 @@ impl Alias {
         &mut self,
         remap: &std::collections::HashMap<TypeReference, TypeReference>,
         _schema: &Schema,
-    ) -> std::collections::HashMap<String, TypeReference> {
+    ) -> () {
         if let Some(new_type_reference) = remap.get(&self.type_ref) {
             self.type_ref
                 .replace_type_references(new_type_reference, &self.parameters)
-        } else {
-            std::collections::HashMap::new()
         }
     }
 }

@@ -17,7 +17,7 @@ impl Default for ReflectType {
 
 pub(crate) struct ContextEncounters {
     pub fields: Vec<(reflect_schema::TypeReference, syn::Type)>,
-    pub generics: Vec<(reflect_schema::TypeParameter, syn::TypeParam)>,
+    pub generics: Vec<(reflect_schema::TypeParameter, syn::GenericParam)>,
 }
 
 /// A type to collect errors together and format them.
@@ -31,7 +31,7 @@ pub(crate) struct Context {
     reflect_type: ReflectType,
 
     encountered_type_fields: RefCell<Vec<(reflect_schema::TypeReference, syn::Type)>>,
-    encountered_type_generics: RefCell<Vec<(reflect_schema::TypeParameter, syn::TypeParam)>>,
+    encountered_type_generics: RefCell<Vec<(reflect_schema::TypeParameter, syn::GenericParam)>>,
 
     // The contents will be set to `None` during checking. This is so that checking can be
     // enforced.
@@ -101,7 +101,7 @@ impl Context {
     }
     
     /// Add a type parameter to actual type definition.
-    pub fn encountered_generic_type(&self, type_param: reflect_schema::TypeParameter, ty: syn::TypeParam) {
+    pub fn encountered_generic_type(&self, type_param: reflect_schema::TypeParameter, ty: syn::GenericParam) {
         self.encountered_type_generics
             .borrow_mut()
             .push((type_param, ty));
