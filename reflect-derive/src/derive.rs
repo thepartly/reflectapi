@@ -3,8 +3,7 @@ use quote::ToTokens;
 use reflect_schema::{Enum, Field, Struct, Type};
 
 use crate::{
-    context::{Context, ReflectType},
-    symbol::*,
+    context::{Context, ReflectType}, parser::{naive_parse_as_type_reference, parse_field_attributes}
 };
 
 pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> TokenStream {
@@ -92,7 +91,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
                     let mut unresolved_to_resolved_fields_type_refs = std::collections::HashMap::new();
                     #fields_type_references_resolution_code;
-                    reflected_type_def.replace_type_references(&unresolved_to_resolved_fields_type_refs, schema);
+                    reflected_type_def.__internal_rebind_generic_parameters(&unresolved_to_resolved_fields_type_refs, schema);
 
                     schema.insert_type(reflected_type_def);
                 }
@@ -205,7 +204,7 @@ fn visit_field<'a>(
     };
 
     let field_type = match field_type {
-        Some(field_type) => field_type,
+        Some(field_type) => visit_field_type(cx, &field_type),
         None => visit_field_type(cx, &field.original.ty),
     };
 
@@ -215,172 +214,8 @@ fn visit_field<'a>(
 }
 
 fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeReference {
-    let result: reflect_schema::TypeReference = ty.to_token_stream().to_string().into();
+    let result: reflect_schema::TypeReference =
+        naive_parse_as_type_reference(ty.to_token_stream().to_string().as_str());
     cx.encountered_field_type(result.clone(), ty.clone());
     result
-}
-
-struct ParsedFieldAttributes {
-    pub input_type: Option<reflect_schema::TypeReference>,
-    pub output_type: Option<reflect_schema::TypeReference>,
-    pub input_transform: String,
-    pub output_transform: String,
-}
-
-impl Default for ParsedFieldAttributes {
-    fn default() -> Self {
-        ParsedFieldAttributes {
-            input_type: None,
-            output_type: None,
-            input_transform: String::new(),
-            output_transform: String::new(),
-        }
-    }
-}
-
-/// Extract out the `#[reflect(...)]` attributes from a struct field.
-fn parse_field_attributes(cx: &Context, field: &syn::Field) -> ParsedFieldAttributes {
-    let mut result = ParsedFieldAttributes::default();
-
-    for attr in &field.attrs {
-        if attr.path() != REFLECT {
-            continue;
-        }
-
-        if let syn::Meta::List(meta) = &attr.meta {
-            if meta.tokens.is_empty() {
-                continue;
-            }
-        }
-
-        if let Err(err) = attr.parse_nested_meta(|meta| {
-            if meta.path == OUTPUT_TYPE {
-                // #[reflect(output_type = "...")]
-                if let Some(path) = parse_lit_into_expr_path(cx, OUTPUT_TYPE, &meta)? {
-                    if cx.reflect_type() == ReflectType::Output {
-                        let referred_type = visit_field_type(
-                            cx,
-                            &syn::Type::Path(syn::TypePath {
-                                qself: path.qself,
-                                path: path.path,
-                            }),
-                        );
-                        result.output_type = Some(referred_type);
-                    }
-                }
-            } else if meta.path == INPUT_TYPE {
-                // #[reflect(input_type = "...")]
-                if let Some(path) = parse_lit_into_expr_path(cx, INPUT_TYPE, &meta)? {
-                    if cx.reflect_type() == ReflectType::Input {
-                        let referred_type = visit_field_type(
-                            cx,
-                            &syn::Type::Path(syn::TypePath {
-                                qself: path.qself,
-                                path: path.path,
-                            }),
-                        );
-                        result.input_type = Some(referred_type);
-                    }
-                }
-            } else if meta.path == TYPE {
-                // #[reflect(type = "...")]
-                if let Some(path) = parse_lit_into_expr_path(cx, TYPE, &meta)? {
-                    let referred_type = visit_field_type(
-                        cx,
-                        &syn::Type::Path(syn::TypePath {
-                            qself: path.qself,
-                            path: path.path,
-                        }),
-                    );
-                    result.output_type = Some(referred_type.clone());
-                    result.input_type = Some(referred_type);
-                }
-            } else if meta.path == OUTPUT_TRANSFORM {
-                // #[reflect(output_type = "...")]
-                if let Some(path) = parse_lit_into_expr_path(cx, OUTPUT_TYPE, &meta)? {
-                    if cx.reflect_type() == ReflectType::Output {
-                        result.output_transform = path.to_token_stream().to_string();
-                    }
-                }
-            } else if meta.path == INPUT_TRANSFORM {
-                // #[reflect(input_type = "...")]
-                if let Some(path) = parse_lit_into_expr_path(cx, INPUT_TYPE, &meta)? {
-                    if cx.reflect_type() == ReflectType::Input {
-                        result.input_transform = path.to_token_stream().to_string();
-                    }
-                }
-            } else if meta.path == TRANSFORM {
-                // #[reflect(type = "...")]
-                if let Some(path) = parse_lit_into_expr_path(cx, TYPE, &meta)? {
-                    result.output_transform = path.to_token_stream().to_string();
-                    result.input_transform = path.to_token_stream().to_string();
-                }
-            } else {
-                let path = meta.path.to_token_stream().to_string();
-                return Err(meta.error(format_args!("unknown reflect field attribute `{}`", path)));
-            }
-            Ok(())
-        }) {
-            cx.syn_error(err);
-        }
-    }
-    result
-}
-
-fn parse_lit_into_expr_path(
-    cx: &Context,
-    attr_name: Symbol,
-    meta: &syn::meta::ParseNestedMeta,
-) -> syn::Result<Option<syn::ExprPath>> {
-    let string = match parse_lit_str(cx, attr_name, attr_name, meta)? {
-        Some(string) => string,
-        None => return Ok(None),
-    };
-
-    Ok(match string.parse() {
-        Ok(expr) => Some(expr),
-        Err(_) => {
-            cx.impl_error(
-                &string,
-                format!("failed to parse type reference path: {:?}", string.value()),
-            );
-            None
-        }
-    })
-}
-
-fn parse_lit_str(
-    cx: &Context,
-    attr_name: Symbol,
-    meta_item_name: Symbol,
-    meta: &syn::meta::ParseNestedMeta,
-) -> syn::Result<Option<syn::LitStr>> {
-    let expr: syn::Expr = meta.value()?.parse()?;
-    let mut value = &expr;
-    while let syn::Expr::Group(e) = value {
-        value = &e.expr;
-    }
-    if let syn::Expr::Lit(syn::ExprLit {
-        lit: syn::Lit::Str(lit),
-        ..
-    }) = value
-    {
-        let suffix = lit.suffix();
-        if !suffix.is_empty() {
-            cx.impl_error(
-                lit,
-                format!("unexpected suffix `{}` on string literal", suffix),
-            );
-        }
-        Ok(Some(lit.clone()))
-    } else {
-        cx.impl_error(
-            expr,
-            format!(
-                "expected serde {} attribute to be a string: `{} = \"...\"`",
-                attr_name, meta_item_name
-            ),
-        );
-        Ok(None)
-    }
 }

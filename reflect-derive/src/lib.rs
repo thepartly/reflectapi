@@ -1,5 +1,6 @@
 mod context;
 mod derive;
+mod parser;
 mod symbol;
 mod tokenizable_schema;
 
