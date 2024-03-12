@@ -2,63 +2,68 @@
 source: reflect-demo/src/tests/generics.rs
 expression: "TestStructWithNestedGenericStructTwice::reflect_input()"
 ---
-{
-  "name": "",
-  "types": [
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::generics::TestStructWithNestedGenericStructTwice",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
-            "parameters": [
-              {
-                "name": "u8"
-              }
-            ]
+[
+  {
+    "name": "reflect_demo::tests::generics::TestStructWithNestedGenericStructTwice"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::generics::TestStructWithNestedGenericStructTwice",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
+              "parameters": [
+                {
+                  "name": "u8"
+                }
+              ]
+            }
+          },
+          {
+            "name": "_f2",
+            "type": {
+              "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
+              "parameters": [
+                {
+                  "name": "std::string::String"
+                }
+              ]
+            }
           }
-        },
-        {
-          "name": "_f2",
-          "type": {
-            "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
-            "parameters": [
-              {
-                "name": "std::string::String"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
-      "parameters": [
-        {
-          "name": "A"
-        }
-      ],
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
+        "parameters": [
+          {
             "name": "A"
           }
-        }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "std::string::String",
-      "description": "UTF-8 encoded string"
-    },
-    {
-      "kind": "primitive",
-      "name": "u8",
-      "description": "8-bit unsigned integer"
-    }
-  ]
-}
+        ],
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "A"
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+]

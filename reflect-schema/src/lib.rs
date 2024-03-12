@@ -732,11 +732,6 @@ impl Struct {
     ) -> std::collections::HashMap<String, TypeReference> {
         let mut result = std::collections::HashMap::new();
         for field in self.fields.iter_mut() {
-            println!(
-                "Replacing type references for field: {} / {:?}",
-                field.name(),
-                self.parameters
-            );
             result.extend(field.replace_type_references(remap, schema, &self.parameters));
         }
         result

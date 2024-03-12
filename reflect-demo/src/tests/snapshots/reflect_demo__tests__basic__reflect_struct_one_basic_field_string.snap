@@ -2,25 +2,30 @@
 source: reflect-demo/src/tests/basic.rs
 expression: "TestStructOneBasicFieldString::reflect_input()"
 ---
-{
-  "name": "",
-  "types": [
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::basic::TestStructOneBasicFieldString",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "std::string::String"
+[
+  {
+    "name": "reflect_demo::tests::basic::TestStructOneBasicFieldString"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructOneBasicFieldString",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::string::String"
+            }
           }
-        }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "std::string::String",
-      "description": "UTF-8 encoded string"
-    }
-  ]
-}
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  }
+]

@@ -16,7 +16,8 @@ impl Default for ReflectType {
 }
 
 pub(crate) struct ContextEncounters {
-    pub fields_type_refs: Vec<(reflect_schema::TypeReference, syn::Type)>,
+    pub fields: Vec<(reflect_schema::TypeReference, syn::Type)>,
+    pub generics: Vec<(reflect_schema::TypeParameter, syn::TypeParam)>,
 }
 
 /// A type to collect errors together and format them.
@@ -29,7 +30,8 @@ pub(crate) struct Context {
     /// Purpose of a reflection: for input or output type
     reflect_type: ReflectType,
 
-    pub encountered_type_refs: RefCell<Vec<(reflect_schema::TypeReference, syn::Type)>>,
+    encountered_type_fields: RefCell<Vec<(reflect_schema::TypeReference, syn::Type)>>,
+    encountered_type_generics: RefCell<Vec<(reflect_schema::TypeParameter, syn::TypeParam)>>,
 
     // The contents will be set to `None` during checking. This is so that checking can be
     // enforced.
@@ -43,7 +45,8 @@ impl Context {
     pub fn new(reflect_type: ReflectType) -> Self {
         Context {
             reflect_type,
-            encountered_type_refs: RefCell::new(Vec::new()),
+            encountered_type_fields: RefCell::new(Vec::new()),
+            encountered_type_generics: RefCell::new(Vec::new()),
             errors: RefCell::new(Some(Vec::new())),
         }
     }
@@ -77,7 +80,8 @@ impl Context {
             Some(first) => first,
             None => {
                 return Ok(ContextEncounters {
-                    fields_type_refs: self.encountered_type_refs.replace(Vec::new()),
+                    fields: self.encountered_type_fields.replace(Vec::new()),
+                    generics: self.encountered_type_generics.replace(Vec::new()),
                 })
             }
         };
@@ -89,9 +93,18 @@ impl Context {
         Err(combined)
     }
 
-    /// Add a type reference actual type definition.
-    pub fn encountered_type_ref(&self, type_ref: reflect_schema::TypeReference, ty: syn::Type) {
-        self.encountered_type_refs.borrow_mut().push((type_ref, ty));
+    /// Add a type reference to actual type definition.
+    pub fn encountered_field_type(&self, type_ref: reflect_schema::TypeReference, ty: syn::Type) {
+        self.encountered_type_fields
+            .borrow_mut()
+            .push((type_ref, ty));
+    }
+    
+    /// Add a type parameter to actual type definition.
+    pub fn encountered_generic_type(&self, type_param: reflect_schema::TypeParameter, ty: syn::TypeParam) {
+        self.encountered_type_generics
+            .borrow_mut()
+            .push((type_param, ty));
     }
 }
 

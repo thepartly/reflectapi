@@ -2,25 +2,30 @@
 source: reflect-demo/src/tests/basic.rs
 expression: "TestStructOneBasicFieldStringReflectBothEqually2::reflect_output()"
 ---
-{
-  "name": "",
-  "types": [
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::basic::TestStructOneBasicFieldStringReflectBothEqually2",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "u32"
+[
+  {
+    "name": "reflect_demo::tests::basic::TestStructOneBasicFieldStringReflectBothEqually2"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructOneBasicFieldStringReflectBothEqually2",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "u32"
+            }
           }
-        }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "u32",
-      "description": "32-bit unsigned integer"
-    }
-  ]
-}
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  }
+]

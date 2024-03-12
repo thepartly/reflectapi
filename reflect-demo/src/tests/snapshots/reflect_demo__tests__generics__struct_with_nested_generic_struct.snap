@@ -2,52 +2,57 @@
 source: reflect-demo/src/tests/generics.rs
 expression: "TestStructWithNestedGenericStruct::reflect_input()"
 ---
-{
-  "name": "",
-  "types": [
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::generics::TestStructWithNestedGenericStruct",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
-            "parameters": [
-              {
-                "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
-                "parameters": [
-                  {
-                    "name": "u8"
-                  }
-                ]
-              }
-            ]
+[
+  {
+    "name": "reflect_demo::tests::generics::TestStructWithNestedGenericStruct"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::generics::TestStructWithNestedGenericStruct",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
+              "parameters": [
+                {
+                  "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
+                  "parameters": [
+                    {
+                      "name": "u8"
+                    }
+                  ]
+                }
+              ]
+            }
           }
-        }
-      ]
-    },
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
-      "parameters": [
-        {
-          "name": "A"
-        }
-      ],
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
+        "parameters": [
+          {
             "name": "A"
           }
-        }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "u8",
-      "description": "8-bit unsigned integer"
-    }
-  ]
-}
+        ],
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "A"
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+]

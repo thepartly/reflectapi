@@ -2,40 +2,45 @@
 source: reflect-demo/src/tests/basic.rs
 expression: "TestStructOption::reflect_input()"
 ---
-{
-  "name": "",
-  "types": [
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::basic::TestStructOption",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "std::option::Option",
-            "parameters": [
-              {
-                "name": "u8"
-              }
-            ]
+[
+  {
+    "name": "reflect_demo::tests::basic::TestStructOption"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructOption",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::option::Option",
+              "parameters": [
+                {
+                  "name": "u8"
+                }
+              ]
+            }
           }
-        }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "std::option::Option",
-      "description": "Optional / Nullable value type",
-      "parameters": [
-        {
-          "name": "T"
-        }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "u8",
-      "description": "8-bit unsigned integer"
-    }
-  ]
-}
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::option::Option",
+        "description": "Optional / Nullable value type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+]

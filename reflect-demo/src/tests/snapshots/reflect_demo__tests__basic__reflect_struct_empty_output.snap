@@ -2,12 +2,17 @@
 source: reflect-demo/src/tests/basic.rs
 expression: "TestStructEmpty::reflect_output()"
 ---
-{
-  "name": "",
-  "types": [
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::basic::TestStructEmpty"
-    }
-  ]
-}
+[
+  {
+    "name": "reflect_demo::tests::basic::TestStructEmpty"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructEmpty"
+      }
+    ]
+  }
+]

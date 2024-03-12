@@ -2,56 +2,61 @@
 source: reflect-demo/src/tests/basic.rs
 expression: "TestStructWithVecTwo::reflect_input()"
 ---
-{
-  "name": "",
-  "types": [
-    {
-      "kind": "primitive",
-      "name": "i8",
-      "description": "8-bit signed integer"
-    },
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::basic::TestStructWithVecTwo",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "std::vec::Vec",
-            "parameters": [
-              {
-                "name": "u8"
-              }
-            ]
+[
+  {
+    "name": "reflect_demo::tests::basic::TestStructWithVecTwo"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "i8",
+        "description": "8-bit signed integer"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructWithVecTwo",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::vec::Vec",
+              "parameters": [
+                {
+                  "name": "u8"
+                }
+              ]
+            }
+          },
+          {
+            "name": "_f2",
+            "type": {
+              "name": "std::vec::Vec",
+              "parameters": [
+                {
+                  "name": "i8"
+                }
+              ]
+            }
           }
-        },
-        {
-          "name": "_f2",
-          "type": {
-            "name": "std::vec::Vec",
-            "parameters": [
-              {
-                "name": "i8"
-              }
-            ]
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
           }
-        }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "std::vec::Vec",
-      "description": "Expandable array type",
-      "parameters": [
-        {
-          "name": "T"
-        }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "u8",
-      "description": "8-bit unsigned integer"
-    }
-  ]
-}
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+]

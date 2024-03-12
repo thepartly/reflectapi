@@ -2,38 +2,43 @@
 source: reflect-demo/src/tests/generics.rs
 expression: "TestStructWithCircularReference::reflect_input()"
 ---
-{
-  "name": "",
-  "types": [
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::generics::TestStructWithCircularReference",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "std::boxed::Box",
-            "parameters": [
-              {
-                "name": "reflect_demo::tests::generics::TestStructWithCircularReference"
-              }
-            ]
+[
+  {
+    "name": "reflect_demo::tests::generics::TestStructWithCircularReference"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::generics::TestStructWithCircularReference",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::boxed::Box",
+              "parameters": [
+                {
+                  "name": "reflect_demo::tests::generics::TestStructWithCircularReference"
+                }
+              ]
+            }
           }
-        }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "std::boxed::Box",
-      "description": "std::boxed::Box pointer type",
-      "parameters": [
-        {
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::boxed::Box",
+        "description": "std::boxed::Box pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
           "name": "T"
         }
-      ],
-      "fallback": {
-        "name": "T"
       }
-    }
-  ]
-}
+    ]
+  }
+]

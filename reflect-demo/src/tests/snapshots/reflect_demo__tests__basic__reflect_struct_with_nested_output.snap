@@ -2,37 +2,42 @@
 source: reflect-demo/src/tests/basic.rs
 expression: "TestStructWithNested::reflect_output()"
 ---
-{
-  "name": "",
-  "types": [
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::basic::TestStructNested",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "std::string::String"
+[
+  {
+    "name": "reflect_demo::tests::basic::TestStructWithNested"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructNested",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::string::String"
+            }
           }
-        }
-      ]
-    },
-    {
-      "kind": "struct",
-      "name": "reflect_demo::tests::basic::TestStructWithNested",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "reflect_demo::tests::basic::TestStructNested"
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructWithNested",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "reflect_demo::tests::basic::TestStructNested"
+            }
           }
-        }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "std::string::String",
-      "description": "UTF-8 encoded string"
-    }
-  ]
-}
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  }
+]
