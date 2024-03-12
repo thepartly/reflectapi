@@ -260,7 +260,6 @@ pub enum Type {
     Primitive(Primitive),
     Struct(Struct),
     Enum(Enum),
-    Alias(Alias),
 }
 
 impl Type {
@@ -269,7 +268,6 @@ impl Type {
             Type::Primitive(p) => &p.name,
             Type::Struct(s) => &s.name,
             Type::Enum(e) => &e.name,
-            Type::Alias(a) => &a.name,
         }
     }
 
@@ -278,7 +276,6 @@ impl Type {
             Type::Primitive(p) => p.description = description,
             Type::Struct(s) => s.description = description,
             Type::Enum(e) => e.description = description,
-            Type::Alias(a) => a.description = description,
         }
     }
 
@@ -287,7 +284,6 @@ impl Type {
             Type::Primitive(p) => p.name = new_name,
             Type::Struct(s) => s.name = new_name,
             Type::Enum(e) => e.name = new_name,
-            Type::Alias(a) => a.name = new_name,
         }
     }
 
@@ -296,7 +292,6 @@ impl Type {
             Type::Primitive(p) => p.parameters(),
             Type::Struct(s) => s.parameters(),
             Type::Enum(e) => e.parameters(),
-            Type::Alias(a) => a.parameters(),
         }
     }
 
@@ -305,7 +300,6 @@ impl Type {
             Type::Primitive(p) => p.fallback(origin),
             Type::Struct(_) => false,
             Type::Enum(_) => false,
-            Type::Alias(_) => false,
         }
     }
 
@@ -646,46 +640,6 @@ impl Representation {
 impl Default for Representation {
     fn default() -> Self {
         Representation::String
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Alias {
-    pub name: String,
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub description: String,
-
-    /// Generic type parameters, if any
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub parameters: Vec<TypeParameter>,
-
-    /// Aliased type
-    #[serde(rename = "type")]
-    pub type_ref: TypeReference,
-}
-
-impl Alias {
-    pub fn new(name: String, ty: TypeReference) -> Self {
-        Alias {
-            name,
-            description: String::new(),
-            parameters: Vec::new(),
-            type_ref: ty,
-        }
-    }
-
-    pub fn name(&self) -> &str {
-        self.name.as_str()
-    }
-
-    pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
-        self.parameters.iter()
-    }
-}
-
-impl Into<Type> for Alias {
-    fn into(self) -> Type {
-        Type::Alias(self)
     }
 }
 

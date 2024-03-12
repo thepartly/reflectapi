@@ -32,12 +32,6 @@ impl<'a> ToTokens for TokenizableType<'a> {
                     reflect::Type::Primitive(#tks)
                 });
             }
-            Type::Alias(a) => {
-                let tks = TokenizableAlias::new(a);
-                tokens.extend(quote::quote! {
-                    reflect::Type::Alias(#tks)
-                });
-            }
         }
     }
 }
@@ -357,36 +351,6 @@ impl<'a> ToTokens for TokenizablePrimitive<'a> {
                 description: #description.into(),
                 parameters: vec![#(#parameters),*],
                 fallback: #fallback,
-            }
-        });
-    }
-}
-
-pub(crate) struct TokenizableAlias<'a> {
-    pub inner: &'a Alias,
-}
-
-impl<'a> TokenizableAlias<'a> {
-    pub fn new(inner: &'a Alias) -> Self {
-        TokenizableAlias { inner }
-    }
-}
-
-impl<'a> ToTokens for TokenizableAlias<'a> {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = self.inner.name.as_str();
-        let description = self.inner.description.as_str();
-        let parameters = self
-            .inner
-            .parameters()
-            .map(|p| TokenizableTypeParameter::new(p));
-        let type_ref = TokenizableTypeReference::new(&self.inner.type_ref);
-        tokens.extend(quote::quote! {
-            reflect::Alias {
-                name: #name.into(),
-                description: #description.into(),
-                parameters: vec![#(#parameters),*],
-                type_ref: #type_ref,
             }
         });
     }

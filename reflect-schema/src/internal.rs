@@ -155,7 +155,6 @@ pub(crate) fn replace_type_references_for_type(
         Type::Primitive(_) => {}
         Type::Struct(s) => replace_type_references_for_struct(s, remap, schema),
         Type::Enum(e) => replace_type_references_for_enum(e, remap, schema),
-        Type::Alias(a) => replace_type_references_for_alias(a, remap, schema),
     }
 }
 
@@ -208,16 +207,3 @@ fn replace_type_references_for_variant(
     }
 }
 
-fn replace_type_references_for_alias(
-    this: &mut Alias,
-    remap: &std::collections::HashMap<TypeReference, TypeReference>,
-    _schema: &Schema,
-) -> () {
-    if let Some(new_type_reference) = remap.get(&this.type_ref) {
-        replace_type_references_for_type_ref(
-            &mut this.type_ref,
-            new_type_reference,
-            &this.parameters,
-        )
-    }
-}
