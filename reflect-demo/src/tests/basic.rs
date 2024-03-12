@@ -404,3 +404,48 @@ fn test_reflect_struct_with_transform_array_input() {
 fn test_reflect_struct_with_transform_array_output() {
     insta::assert_json_snapshot!(TestStructWithTransformArray::reflect_output());
 }
+
+/// Some Struct docs
+/// more
+/// more
+#[allow(unused_doc_comments, dead_code)]
+#[derive(reflect::Input)]
+struct TestStructDocumented {
+    /// field docs
+    /// multiline
+    f: u8,
+}
+#[test]
+fn test_reflect_struct_documented_input() {
+    insta::assert_json_snapshot!(TestStructDocumented::reflect_input());
+}
+
+/// Some Enum docs
+/// more
+#[allow(unused_doc_comments, dead_code)]
+#[derive(reflect::Input)]
+enum TestEnumDocumented<
+    /// some generic param docs
+    /// multiline
+    T,
+> where
+    T: reflect::Input,
+{
+    /// Variant1 docs
+    Variant1(
+        /// variant1 field docs
+        T,
+    ),
+    /// Variant2 docs
+    /// multiline
+    /// more
+    /// more
+    Variant2 {
+        /// named field variant2 field docs
+        named_field: T,
+    },
+}
+#[test]
+fn test_reflect_enum_documented_input() {
+    insta::assert_json_snapshot!(TestEnumDocumented::<u8>::reflect_input());
+}

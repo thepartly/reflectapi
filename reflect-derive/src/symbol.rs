@@ -5,6 +5,7 @@ use syn::{Ident, Path};
 pub struct Symbol(&'static str);
 
 pub const REFLECT: Symbol = Symbol("reflect");
+pub const DOC: Symbol = Symbol("doc");
 
 pub const TYPE: Symbol = Symbol("type");
 pub const INPUT_TYPE: Symbol = Symbol("input_type");

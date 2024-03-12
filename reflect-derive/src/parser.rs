@@ -134,6 +134,27 @@ impl Default for ParsedFieldAttributes {
     }
 }
 
+pub(crate) fn parse_doc_attributes(attrs: &Vec<syn::Attribute>) -> String {
+    let mut result = Vec::new();
+    for attr in attrs {
+        if attr.path() != DOC {
+            continue;
+        }
+
+        if let syn::Meta::NameValue(meta) = &attr.meta {
+            result.push(
+                meta.value
+                    .to_token_stream()
+                    .to_string()
+                    .as_str()
+                    .trim_matches('"')
+                    .to_string(),
+            );
+        }
+    }
+    result.join("\n")
+}
+
 /// Extract out the `#[reflect(...)]` attributes from a struct field.
 pub(crate) fn parse_field_attributes(cx: &Context, field: &syn::Field) -> ParsedFieldAttributes {
     let mut result = ParsedFieldAttributes::default();
@@ -262,7 +283,7 @@ fn parse_lit_str(
         cx.impl_error(
             expr,
             format!(
-                "expected serde {} attribute to be a string: `{} = \"...\"`",
+                "expected reflect {} attribute to be a string: `{} = \"...\"`",
                 attr_name, meta_item_name
             ),
         );

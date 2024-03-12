@@ -1,9 +1,10 @@
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use reflect_schema::{Enum, Field, Struct, Type};
+use reflect_schema::{Enum, Field, Struct, Type, TypeParameter};
 
 use crate::{
-    context::{Context, ReflectType}, parser::{naive_parse_as_type_reference, parse_field_attributes}
+    context::{Context, ReflectType},
+    parser::{naive_parse_as_type_reference, parse_doc_attributes, parse_field_attributes},
 };
 
 pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> TokenStream {
@@ -54,6 +55,19 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         ),
     };
 
+    let type_generics_idents = context_encounters
+        .generics
+        .iter()
+        .map(|(_, ident)| ident)
+        .collect::<Vec<_>>();
+    let type_genercis_idents_code = if type_generics_idents.is_empty() {
+        quote::quote!()
+    } else {
+        quote::quote! {
+            <#(#type_generics_idents),*>
+        }
+    };
+
     let mut fields_type_references_resolution_code = quote::quote! {};
     for (unresolved_field_type_ref, origin_field_syn_type) in context_encounters.fields.into_iter()
     {
@@ -79,7 +93,8 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
     let reflected_type_def = crate::tokenizable_schema::TokenizableType::new(&reflected_type_def);
     TokenStream::from(quote::quote! {
-        impl #type_generics #trait_ident for #type_ident #type_generics #type_generics_where {
+        #[allow(unused_doc_comments)]
+        impl #type_generics #trait_ident for #type_ident #type_genercis_idents_code #type_generics_where {
             fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> reflect::TypeReference {
                 let resolved_type_name = format!("{}::{}", std::module_path!(), #reflected_type_name);
                 let mut parameters = Vec::new();
@@ -100,7 +115,8 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
             }
         }
 
-        impl #type_generics #type_ident #type_generics #type_generics_where {
+        #[allow(unused_doc_comments)]
+        impl #type_generics #type_ident #type_genercis_idents_code #type_generics_where {
             fn #fn_reflect_ident() -> (reflect::TypeReference, reflect::Schema) {
                 let mut schema = reflect::Schema::new();
                 let resolved_type_ref = <Self as #trait_ident>::#fn_reflect_type_ident(&mut schema);
@@ -113,9 +129,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
 fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Container<'a>) -> Type {
     let ident_name = container.ident.to_token_stream().to_string();
-
-    // let mut result = String::new();
-    let type_def = match &container.data {
+    let mut type_def: Type = match &container.data {
         serde_derive_internals::ast::Data::Enum(variants) => {
             let mut result = Enum::new(ident_name);
             for variant in variants {
@@ -134,6 +148,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
         }
     };
 
+    type_def.set_description(parse_doc_attributes(&container.original.attrs));
     type_def
 }
 
@@ -145,7 +160,13 @@ fn visit_generic_parameters<'a>(
     for param in generics.params.iter() {
         match param {
             syn::GenericParam::Type(type_param) => {
-                parameters.push(type_param.ident.to_string().into());
+                let mut tp: TypeParameter = type_param.ident.to_string().into();
+                tp.description = parse_doc_attributes(&type_param.attrs);
+                parameters.push(tp);
+                cx.encountered_generic_type(
+                    type_param.ident.to_token_stream().to_string().into(),
+                    type_param.ident.clone(),
+                );
             }
             syn::GenericParam::Lifetime(lifetime_param) => {
                 cx.impl_error(
@@ -164,7 +185,6 @@ fn visit_generic_parameters<'a>(
                 );
             }
         }
-        cx.encountered_generic_type(param.to_token_stream().to_string().into(), param.clone());
     }
 }
 
@@ -173,6 +193,7 @@ fn visit_variant<'a>(
     variant: &serde_derive_internals::ast::Variant<'a>,
 ) -> reflect_schema::Variant {
     let mut result = reflect_schema::Variant::new(variant.ident.to_string());
+    result.description = parse_doc_attributes(&variant.original.attrs);
     if let Some(discriminant) = variant.original.discriminant.as_ref() {
         result.discriminant = Some(
             discriminant
@@ -210,6 +231,7 @@ fn visit_field<'a>(
 
     let mut field_def = Field::new(field_name, field_type);
     field_def.transform_callback = field_transform;
+    field_def.description = parse_doc_attributes(&field.original.attrs);
     field_def
 }
 

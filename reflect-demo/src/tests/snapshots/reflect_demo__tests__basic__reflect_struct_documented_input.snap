@@ -1,0 +1,33 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "TestStructDocumented::reflect_input()"
+---
+[
+  {
+    "name": "reflect_demo::tests::basic::TestStructDocumented"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructDocumented",
+        "description": " Some Struct docs\n more\n more",
+        "fields": [
+          {
+            "name": "f",
+            "description": " field docs\n multiline",
+            "type": {
+              "name": "u8"
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+]
