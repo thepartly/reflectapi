@@ -1,0 +1,28 @@
+---
+source: reflect-demo/src/tests/enums.rs
+expression: "TestEnumWithDiscriminant::reflect_input()"
+---
+[
+  {
+    "name": "reflect_demo::tests::enums::TestEnumWithDiscriminant"
+  },
+  {
+    "name": "",
+    "types": [
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::enums::TestEnumWithDiscriminant",
+        "variants": [
+          {
+            "name": "Variant1",
+            "discriminant": 1
+          },
+          {
+            "name": "Variant2",
+            "discriminant": 2
+          }
+        ]
+      }
+    ]
+  }
+]

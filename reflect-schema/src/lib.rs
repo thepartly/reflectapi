@@ -843,7 +843,7 @@ pub struct Variant {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub fields: Vec<Field>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub discriminant: Option<i32>,
+    pub discriminant: Option<i64>,
 }
 
 impl Variant {

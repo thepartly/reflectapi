@@ -99,3 +99,14 @@ fn test_enum_with_generics_and_fields_and_named_fields() {
     insta::assert_json_snapshot!(TestEnumWithGenericsAndFieldsAndNamedFields::<u8>::reflect_input());
 }
 
+#[allow(dead_code)]
+#[derive(reflect::Input)]
+enum TestEnumWithDiscriminant {
+    Variant1 = 1,
+    Variant2 = 2,
+}
+#[test]
+fn test_enum_with_discriminant() {
+    insta::assert_json_snapshot!(TestEnumWithDiscriminant::reflect_input());
+}
+

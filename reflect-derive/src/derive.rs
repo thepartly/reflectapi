@@ -174,6 +174,16 @@ fn visit_variant<'a>(
     variant: &serde_derive_internals::ast::Variant<'a>,
 ) -> reflect_schema::Variant {
     let mut result = reflect_schema::Variant::new(variant.ident.to_string());
+    if let Some(discriminant) = variant.original.discriminant.as_ref() {
+        result.discriminant = Some(
+            discriminant
+                .1
+                .to_token_stream()
+                .to_string()
+                .parse()
+                .unwrap_or_default(), // will be checked by compiler anyway
+        );
+    }
     for field in &variant.fields {
         result.fields.push(visit_field(cx, field));
     }
