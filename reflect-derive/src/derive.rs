@@ -152,7 +152,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
             }
             for variant in variants {
                 if !match cx.reflect_type() {
-                    ReflectType::Input => variant.attrs.skip_deserializing(),
+                    ReflectType::Input => variant.attrs.skip_deserializing() || variant.attrs.other(),
                     ReflectType::Output => variant.attrs.skip_serializing(),
                 } {
                     result.variants.push(visit_variant(cx, variant));
@@ -242,6 +242,7 @@ fn visit_variant<'a>(
             result.fields.push(visit_field(cx, field));
         }
     }
+    result.untagged = variant.attrs.untagged();
     result
 }
 

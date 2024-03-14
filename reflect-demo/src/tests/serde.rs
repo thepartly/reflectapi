@@ -318,3 +318,31 @@ fn test_struct_with_serde_transparent() {
         TestStructWithSerdeTransparent::reflect_output()
     ));
 }
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+enum TestEnumWithVariantUntagged {
+    #[serde(untagged)]
+    Variant1(u8),
+}
+#[test]
+fn test_enum_with_variant_untagged() {
+    insta::assert_json_snapshot!((
+        TestEnumWithVariantUntagged::reflect_input(),
+        TestEnumWithVariantUntagged::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "type")]
+enum TestEnumWithVariantOther {
+    V0,
+    #[serde(other)]
+    Variant1,
+}
+#[test]
+fn test_enum_with_variant_other() {
+    insta::assert_json_snapshot!((
+        TestEnumWithVariantOther::reflect_input(),
+        TestEnumWithVariantOther::reflect_output()
+    ));
+}

@@ -1,0 +1,75 @@
+---
+source: reflect-demo/src/tests/serde.rs
+assertion_line: 329
+expression: "(TestEnumWithVariantUntagged::reflect_input(),\n    TestEnumWithVariantUntagged::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumWithVariantUntagged"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumWithVariantUntagged",
+          "variants": [
+            {
+              "name": "Variant1",
+              "fields": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ],
+              "untagged": true
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumWithVariantUntagged"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumWithVariantUntagged",
+          "variants": [
+            {
+              "name": "Variant1",
+              "fields": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ],
+              "untagged": true
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ]
+]

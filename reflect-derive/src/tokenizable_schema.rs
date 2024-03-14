@@ -148,12 +148,14 @@ impl<'a> ToTokens for TokenizableVariant<'a> {
             .as_ref()
             .map(|d| quote::quote! { Some(#d) })
             .unwrap_or_else(|| quote::quote! { None });
+        let untagged = self.inner.untagged;
         tokens.extend(quote::quote! {
             reflect::Variant {
                 name: #name.into(),
                 description: #description.into(),
                 fields: vec![#(#fields),*],
                 discriminant: #discriminant,
+                untagged: #untagged,
             }
         });
     }

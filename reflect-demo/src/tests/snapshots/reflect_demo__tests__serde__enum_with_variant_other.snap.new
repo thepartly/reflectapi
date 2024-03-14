@@ -1,0 +1,58 @@
+---
+source: reflect-demo/src/tests/serde.rs
+assertion_line: 344
+expression: "(TestEnumWithVariantOther::reflect_input(),\n    TestEnumWithVariantOther::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumWithVariantOther"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumWithVariantOther",
+          "representation": {
+            "Internal": {
+              "tag": "type"
+            }
+          },
+          "variants": [
+            {
+              "name": "V0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumWithVariantOther"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumWithVariantOther",
+          "representation": {
+            "Internal": {
+              "tag": "type"
+            }
+          },
+          "variants": [
+            {
+              "name": "V0"
+            },
+            {
+              "name": "Variant1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+]

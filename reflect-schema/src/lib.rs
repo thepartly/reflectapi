@@ -586,6 +586,10 @@ pub struct Variant {
     pub fields: Vec<Field>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub discriminant: Option<isize>,
+
+    /// If serde `untagged` attribute is set on a variant
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub untagged: bool,
 }
 
 impl Variant {
@@ -595,6 +599,7 @@ impl Variant {
             description: String::new(),
             fields: Vec::new(),
             discriminant: None,
+            untagged: false,
         }
     }
 
