@@ -1,0 +1,60 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestStructRenameAllDifferently::reflect_input(),\n    TestStructRenameAllDifferently::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructRenameAllDifferently"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructRenameAllDifferently",
+          "fields": [
+            {
+              "name": "field_name",
+              "type": {
+                "name": "u8"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructRenameAllDifferently"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructRenameAllDifferently",
+          "fields": [
+            {
+              "name": "fieldName",
+              "type": {
+                "name": "u8"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ]
+]

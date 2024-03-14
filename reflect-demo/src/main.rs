@@ -49,36 +49,37 @@ mod tests;
 // }
 
 /// Some Enum docs
-/// more
-#[allow(unused_doc_comments, dead_code)]
-#[derive(reflect::Input)]
-enum MyEnum<
-    /// some generic param docs
-    /// multiline
-    T,
-> where
-    T: reflect::Input,
-{
-    /// Variant1 docs
-    Variant1(
-        /// variant1 field docs
-        T,
-    ),
-    /// Variant2 docs
-    /// multiline
-    /// more
-    /// more
-    Variant2 {
-        /// named field variant2 field docs
-        named_field: T,
-    },
-}
+// /// more
+// #[allow(unused_doc_comments, dead_code)]
+// #[derive(reflect::Input)]
+// enum MyEnum<
+//     /// some generic param docs
+//     /// multiline
+//     T,
+// > where
+//     T: reflect::Input,
+// {
+//     /// Variant1 docs
+//     Variant1(
+//         /// variant1 field docs
+//         T,
+//     ),
+//     /// Variant2 docs
+//     /// multiline
+//     /// more
+//     /// more
+//     Variant2 {
+//         /// named field variant2 field docs
+//         named_field: T,
+//     },
+// }
 
 /// Some Struct docs
 /// more
 /// more
 #[allow(unused_doc_comments, dead_code)]
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Serialize)]
+#[serde(rename = "MyStruct")]
 struct TestStructDocumented {
     /// field docs
     /// multiline
@@ -96,7 +97,7 @@ fn main() {
     //     "{:#?}",
     //     GenericStruct::<GenericStruct::<u8>>::reflect_input()
     // );
-    //println!("{:#?}", ParentStruct::reflect_input());
+    println!("{:#?}", TestStructDocumented::reflect_input());
 
     // //println!(
     //     "{:#?}",

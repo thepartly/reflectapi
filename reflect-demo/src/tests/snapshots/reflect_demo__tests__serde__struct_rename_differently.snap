@@ -1,0 +1,34 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestStructRenameDifferently::reflect_input(),\n    TestStructRenameDifferently::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::MyStructInput"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::MyStructInput"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::MyStructOutput"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::MyStructOutput"
+        }
+      ]
+    }
+  ]
+]

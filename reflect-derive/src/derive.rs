@@ -128,10 +128,10 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 }
 
 fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Container<'a>) -> Type {
-    let ident_name = container.ident.to_token_stream().to_string();
+    let type_def_name = visit_name(cx, container.attrs.name()).into();
     let mut type_def: Type = match &container.data {
         serde_derive_internals::ast::Data::Enum(variants) => {
-            let mut result = Enum::new(ident_name);
+            let mut result = Enum::new(type_def_name);
             for variant in variants {
                 result.variants.push(visit_variant(cx, variant));
             }
@@ -139,7 +139,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
             result.into()
         }
         serde_derive_internals::ast::Data::Struct(_style, fields) => {
-            let mut result = Struct::new(ident_name);
+            let mut result = Struct::new(type_def_name);
             for field in fields {
                 result.fields.push(visit_field(cx, field));
             }
@@ -192,7 +192,8 @@ fn visit_variant<'a>(
     cx: &Context,
     variant: &serde_derive_internals::ast::Variant<'a>,
 ) -> reflect_schema::Variant {
-    let mut result = reflect_schema::Variant::new(variant.ident.to_string());
+    let variant_def_name = visit_name(cx, variant.attrs.name()).into();
+    let mut result = reflect_schema::Variant::new(variant_def_name);
     result.description = parse_doc_attributes(&variant.original.attrs);
     if let Some(discriminant) = variant.original.discriminant.as_ref() {
         result.discriminant = Some(
@@ -214,10 +215,7 @@ fn visit_field<'a>(
     cx: &Context,
     field: &serde_derive_internals::ast::Field<'a>,
 ) -> reflect_schema::Field {
-    let field_name = match field.member {
-        syn::Member::Named(ref ident) => ident.to_string(),
-        syn::Member::Unnamed(ref index) => index.index.to_string(),
-    };
+    let field_name = visit_name(cx, field.attrs.name()).into();
     let attrs = parse_field_attributes(cx, field.original);
     let (field_type, field_transform) = match cx.reflect_type() {
         ReflectType::Input => (attrs.input_type, attrs.input_transform),
@@ -240,4 +238,11 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
         naive_parse_as_type_reference(ty.to_token_stream().to_string().as_str());
     cx.encountered_field_type(result.clone(), ty.clone());
     result
+}
+
+fn visit_name<'a>(cx: &'a Context, name: &'a serde_derive_internals::attr::Name) -> &'a str {
+    match cx.reflect_type() {
+        ReflectType::Input => name.deserialize_name(),
+        ReflectType::Output => name.serialize_name(),
+    }
 }

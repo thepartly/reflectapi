@@ -1,0 +1,60 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestStructRenameAllPascalCase::reflect_input(),\n    TestStructRenameAllPascalCase::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase",
+          "fields": [
+            {
+              "name": "FieldName",
+              "type": {
+                "name": "u8"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase",
+          "fields": [
+            {
+              "name": "FieldName",
+              "type": {
+                "name": "u8"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ]
+]
