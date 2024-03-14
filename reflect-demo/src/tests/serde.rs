@@ -117,3 +117,56 @@ fn test_enum_rename_variant_field() {
         TestEnumRenameVariantField::reflect_output()
     ));
 }
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[serde(untagged)]
+enum TestEnumUntagged {
+    Variant1(u8),
+    Variant2 { field_name: u8 },
+}
+#[test]
+fn test_enum_untagged() {
+    insta::assert_json_snapshot!((
+        TestEnumUntagged::reflect_input(),
+        TestEnumUntagged::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "type")]
+enum TestEnumTag {
+    Variant1 { field_name: u8 },
+    Variant2(u8),
+}
+#[test]
+fn test_enum_tag() {
+    insta::assert_json_snapshot!((TestEnumTag::reflect_input(), TestEnumTag::reflect_output()));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "type", content = "content")]
+enum TestEnumTagContent {
+    Variant1 { field_name: u8 },
+    Variant2(u8),
+}
+#[test]
+fn test_enum_tag_content() {
+    insta::assert_json_snapshot!((
+        TestEnumTagContent::reflect_input(),
+        TestEnumTagContent::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "type", content = "content", rename_all = "camelCase")]
+enum TestEnumTagContentRenameAll {
+    Variant1 { field_name: u8 },
+    Variant2(u8),
+}
+#[test]
+fn test_enum_tag_content_rename_all() {
+    insta::assert_json_snapshot!((
+        TestEnumTagContentRenameAll::reflect_input(),
+        TestEnumTagContentRenameAll::reflect_output()
+    ));
+}

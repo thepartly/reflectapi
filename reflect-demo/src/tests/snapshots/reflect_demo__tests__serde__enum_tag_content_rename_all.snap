@@ -1,0 +1,104 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestEnumTagContentRenameAll::reflect_input(),\n    TestEnumTagContentRenameAll::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumTagContentRenameAll"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumTagContentRenameAll",
+          "representation": {
+            "Adjacent": {
+              "tag": "type",
+              "content": "content"
+            }
+          },
+          "variants": [
+            {
+              "name": "variant1",
+              "fields": [
+                {
+                  "name": "field_name",
+                  "type": {
+                    "name": "u8"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "variant2",
+              "fields": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumTagContentRenameAll"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumTagContentRenameAll",
+          "representation": {
+            "Adjacent": {
+              "tag": "type",
+              "content": "content"
+            }
+          },
+          "variants": [
+            {
+              "name": "variant1",
+              "fields": [
+                {
+                  "name": "field_name",
+                  "type": {
+                    "name": "u8"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "variant2",
+              "fields": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ]
+]

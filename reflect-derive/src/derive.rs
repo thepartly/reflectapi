@@ -132,6 +132,24 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
     let mut type_def: Type = match &container.data {
         serde_derive_internals::ast::Data::Enum(variants) => {
             let mut result = Enum::new(type_def_name);
+            match container.attrs.tag() {
+                serde_derive_internals::attr::TagType::External => {
+                    result.representation = reflect_schema::Representation::External;
+                }
+                serde_derive_internals::attr::TagType::Internal { tag } => {
+                    result.representation =
+                        reflect_schema::Representation::Internal { tag: tag.clone() };
+                }
+                serde_derive_internals::attr::TagType::Adjacent { tag, content } => {
+                    result.representation = reflect_schema::Representation::Adjacent {
+                        tag: tag.clone(),
+                        content: content.clone(),
+                    };
+                }
+                serde_derive_internals::attr::TagType::None => {
+                    result.representation = reflect_schema::Representation::None;
+                }
+            }
             for variant in variants {
                 result.variants.push(visit_variant(cx, variant));
             }

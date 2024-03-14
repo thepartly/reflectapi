@@ -534,7 +534,7 @@ pub struct Enum {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub parameters: Vec<TypeParameter>,
 
-    #[serde(skip_serializing_if = "Representation::is_string", default)]
+    #[serde(skip_serializing_if = "Representation::is_default", default)]
     pub representation: Representation,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -547,7 +547,7 @@ impl Enum {
             name,
             description: String::new(),
             parameters: Vec::new(),
-            representation: Representation::String,
+            representation: Default::default(),
             variants: Vec::new(),
         }
     }
@@ -604,42 +604,44 @@ impl Variant {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Representation {
-    /// Corresponds to untagged string only based representation
-    String,
+    /// The default.
+    ///
+    /// ```json
+    /// {"variant1": {"key1": "value1", "key2": "value2"}}
+    /// ```
+    External,
 
-    U8,
-    U16,
-    U32,
-    U64,
-    U128,
-    Usize,
-    I8,
-    I16,
-    I32,
-    I64,
-    I128,
-    Isize,
+    /// `#[serde(tag = "type")]`
+    ///
+    /// ```json
+    /// {"type": "variant1", "key1": "value1", "key2": "value2"}
+    /// ```
+    Internal { tag: String },
 
-    /// Corresponsds to serde(untagged) attribute
-    Untagged,
-    /// Corresponsds to serde(tag = "...") attribute
-    InnerTagged(String),
-    /// Corresponsds to serde(tag = "...", content = "...") attribute
-    OuterTagged {
-        tag: String,
-        content: String,
-    },
+    /// `#[serde(tag = "t", content = "c")]`
+    ///
+    /// ```json
+    /// {"t": "variant1", "c": {"key1": "value1", "key2": "value2"}}
+    /// ```
+    Adjacent { tag: String, content: String },
+
+    /// `#[serde(untagged)]`
+    ///
+    /// ```json
+    /// {"key1": "value1", "key2": "value2"}
+    /// ```
+    None,
 }
 
 impl Representation {
-    fn is_string(&self) -> bool {
-        matches!(self, Representation::String)
+    fn is_default(&self) -> bool {
+        matches!(self, Representation::External)
     }
 }
 
 impl Default for Representation {
     fn default() -> Self {
-        Representation::String
+        Representation::External
     }
 }
 

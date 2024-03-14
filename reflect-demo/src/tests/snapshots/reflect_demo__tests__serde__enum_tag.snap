@@ -1,0 +1,102 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestEnumTag::reflect_input(), TestEnumTag::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumTag"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumTag",
+          "representation": {
+            "Internal": {
+              "tag": "type"
+            }
+          },
+          "variants": [
+            {
+              "name": "Variant1",
+              "fields": [
+                {
+                  "name": "field_name",
+                  "type": {
+                    "name": "u8"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Variant2",
+              "fields": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumTag"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumTag",
+          "representation": {
+            "Internal": {
+              "tag": "type"
+            }
+          },
+          "variants": [
+            {
+              "name": "Variant1",
+              "fields": [
+                {
+                  "name": "field_name",
+                  "type": {
+                    "name": "u8"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Variant2",
+              "fields": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ]
+]

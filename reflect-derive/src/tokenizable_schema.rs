@@ -172,87 +172,24 @@ impl<'a> TokenizableRepresentation<'a> {
 impl<'a> ToTokens for TokenizableRepresentation<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let tks = match self.inner {
-            Representation::String => {
+            Representation::External => {
                 quote::quote! {
-                    reflect::Representation::String
+                    reflect::Representation::External
                 }
             }
-            Representation::I8 => {
+            Representation::Internal { tag } => {
                 quote::quote! {
-                    reflect::Representation::I8
+                    reflect::Representation::Internal { tag: #tag.into() }
                 }
             }
-            Representation::U8 => {
+            Representation::Adjacent { tag, content } => {
                 quote::quote! {
-                    reflect::Representation::U8
+                    reflect::Representation::Adjacent { tag: #tag.into(), content: #content.into() }
                 }
             }
-            Representation::U16 => {
+            Representation::None => {
                 quote::quote! {
-                    reflect::Representation::U16
-                }
-            }
-            Representation::U32 => {
-                quote::quote! {
-                    reflect::Representation::U32
-                }
-            }
-            Representation::U64 => {
-                quote::quote! {
-                    reflect::Representation::U64
-                }
-            }
-            Representation::U128 => {
-                quote::quote! {
-                    reflect::Representation::U128
-                }
-            }
-            Representation::Usize => {
-                quote::quote! {
-                    reflect::Representation::Usize
-                }
-            }
-            Representation::I16 => {
-                quote::quote! {
-                    reflect::Representation::I16
-                }
-            }
-            Representation::I32 => {
-                quote::quote! {
-                    reflect::Representation::I32
-                }
-            }
-            Representation::I64 => {
-                quote::quote! {
-                    reflect::Representation::I64
-                }
-            }
-            Representation::I128 => {
-                quote::quote! {
-                    reflect::Representation::I128
-                }
-            }
-            Representation::Isize => {
-                quote::quote! {
-                    reflect::Representation::Isize
-                }
-            }
-            Representation::Untagged => {
-                quote::quote! {
-                    reflect::Representation::Untagged
-                }
-            }
-            Representation::InnerTagged(tag) => {
-                quote::quote! {
-                    reflect::Representation::InnerTagged(#tag)
-                }
-            }
-            Representation::OuterTagged { tag, content } => {
-                quote::quote! {
-                    reflect::Representation::OuterTagged {
-                        tag: #tag,
-                        content: #content,
-                    }
+                    reflect::Representation::None
                 }
             }
         };
