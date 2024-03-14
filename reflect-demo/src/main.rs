@@ -85,8 +85,13 @@ struct TestStructDocumented {
     f: u8,
 }
 
+// #[derive(reflect::Input)]
+// union MyUnion {
+//     f: u8,
+// }
+
 fn main() {
-    println!("{:#?}", MyEnum::<u8>::reflect_input());
+    // println!("{:#?}", TypeAlias::reflect_input());
     // //println!(
     //     "{:#?}",
     //     GenericStruct::<GenericStruct::<u8>>::reflect_input()
