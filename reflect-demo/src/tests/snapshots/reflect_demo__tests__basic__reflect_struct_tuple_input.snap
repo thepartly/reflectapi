@@ -17,13 +17,15 @@ expression: "TestStructTuple::reflect_input()"
             "name": "0",
             "type": {
               "name": "u8"
-            }
+            },
+            "required": true
           },
           {
             "name": "1",
             "type": {
               "name": "std::string::String"
-            }
+            },
+            "required": true
           }
         ]
       },

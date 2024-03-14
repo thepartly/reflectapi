@@ -22,7 +22,8 @@ expression: "TestStructWithCircularReference::reflect_input()"
                   "name": "reflect_demo::tests::generics::TestStructWithCircularReference"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

@@ -248,6 +248,10 @@ fn visit_field<'a>(
     let mut field_def = Field::new(field_name, field_type);
     field_def.transform_callback = field_transform;
     field_def.description = parse_doc_attributes(&field.original.attrs);
+    field_def.required = match cx.reflect_type() {
+        ReflectType::Input => field.attrs.default().is_none(),
+        ReflectType::Output => field.attrs.skip_serializing_if().is_none(),
+    };
     field_def
 }
 

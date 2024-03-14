@@ -22,7 +22,8 @@ expression: "TestStructOneBasicFieldStringReflectBothDifferently::reflect_input(
             "name": "_f",
             "type": {
               "name": "i32"
-            }
+            },
+            "required": true
           }
         ]
       }

@@ -27,7 +27,8 @@ expression: "TestStructWithVecGenericGeneric::<u8>::reflect_input()"
             "name": "_f",
             "type": {
               "name": "A"
-            }
+            },
+            "required": true
           }
         ]
       },
@@ -54,7 +55,8 @@ expression: "TestStructWithVecGenericGeneric::<u8>::reflect_input()"
                   ]
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

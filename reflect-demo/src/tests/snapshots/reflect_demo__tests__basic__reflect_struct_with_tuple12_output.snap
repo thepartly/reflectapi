@@ -55,7 +55,8 @@ expression: "TestStructWithTuple12::reflect_output()"
                   "name": "std::string::String"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

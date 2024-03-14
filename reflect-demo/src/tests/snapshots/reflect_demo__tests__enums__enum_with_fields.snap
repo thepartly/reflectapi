@@ -25,7 +25,8 @@ expression: "TestEnumWithFields::reflect_input()"
                 "name": "0",
                 "type": {
                   "name": "u8"
-                }
+                },
+                "required": true
               }
             ]
           },
@@ -36,13 +37,15 @@ expression: "TestEnumWithFields::reflect_input()"
                 "name": "0",
                 "type": {
                   "name": "std::string::String"
-                }
+                },
+                "required": true
               },
               {
                 "name": "1",
                 "type": {
                   "name": "f64"
-                }
+                },
+                "required": true
               }
             ]
           }

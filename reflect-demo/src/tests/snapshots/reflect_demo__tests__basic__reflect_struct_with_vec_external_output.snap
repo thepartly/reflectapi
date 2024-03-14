@@ -22,7 +22,8 @@ expression: "TestStructWithVecExternal::reflect_output()"
                   "name": "reflect_demo::tests::test_lib::TestStructNested"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },
@@ -34,7 +35,8 @@ expression: "TestStructWithVecExternal::reflect_output()"
             "name": "_f",
             "type": {
               "name": "std::string::String"
-            }
+            },
+            "required": true
           }
         ]
       },

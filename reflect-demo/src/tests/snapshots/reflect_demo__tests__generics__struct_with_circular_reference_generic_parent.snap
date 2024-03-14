@@ -37,13 +37,15 @@ expression: "TestStructWithCircularReferenceGenericParent::<u8>::reflect_input()
                   ]
                 }
               ]
-            }
+            },
+            "required": true
           },
           {
             "name": "_f2",
             "type": {
               "name": "T"
-            }
+            },
+            "required": true
           }
         ]
       },
@@ -75,7 +77,8 @@ expression: "TestStructWithCircularReferenceGenericParent::<u8>::reflect_input()
                   ]
                 }
               ]
-            }
+            },
+            "required": true
           },
           {
             "name": "_f2",
@@ -86,7 +89,8 @@ expression: "TestStructWithCircularReferenceGenericParent::<u8>::reflect_input()
                   "name": "T"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

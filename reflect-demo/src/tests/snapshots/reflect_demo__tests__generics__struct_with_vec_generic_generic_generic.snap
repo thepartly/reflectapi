@@ -37,7 +37,8 @@ expression: "TestStructWithVecGenericGenericGeneric::<Vec<u8>>::reflect_input()"
                   "name": "T"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },
@@ -64,7 +65,8 @@ expression: "TestStructWithVecGenericGenericGeneric::<Vec<u8>>::reflect_input()"
                   ]
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

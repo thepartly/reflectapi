@@ -37,13 +37,15 @@ expression: "TestStructWithCircularReferenceGeneric::<u8>::reflect_input()"
                   ]
                 }
               ]
-            }
+            },
+            "required": true
           },
           {
             "name": "_f2",
             "type": {
               "name": "T"
-            }
+            },
+            "required": true
           }
         ]
       },

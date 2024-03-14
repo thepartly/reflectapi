@@ -23,7 +23,8 @@ expression: "TestEnumWithEmptyVariantAndFields::reflect_input()"
                 "name": "0",
                 "type": {
                   "name": "u8"
-                }
+                },
+                "required": true
               }
             ]
           }

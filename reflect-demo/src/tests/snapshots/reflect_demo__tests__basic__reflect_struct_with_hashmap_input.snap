@@ -25,7 +25,8 @@ expression: "TestStructWithHashMap::reflect_input()"
                   "name": "std::string::String"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

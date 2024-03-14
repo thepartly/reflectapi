@@ -30,7 +30,8 @@ expression: "TestEnumWithGenericsAndFieldsAndNamedFields::<u8>::reflect_input()"
                 "name": "0",
                 "type": {
                   "name": "u8"
-                }
+                },
+                "required": true
               }
             ]
           },
@@ -41,13 +42,15 @@ expression: "TestEnumWithGenericsAndFieldsAndNamedFields::<u8>::reflect_input()"
                 "name": "0",
                 "type": {
                   "name": "T"
-                }
+                },
+                "required": true
               },
               {
                 "name": "1",
                 "type": {
                   "name": "T"
-                }
+                },
+                "required": true
               }
             ]
           },
@@ -58,13 +61,15 @@ expression: "TestEnumWithGenericsAndFieldsAndNamedFields::<u8>::reflect_input()"
                 "name": "field1",
                 "type": {
                   "name": "u8"
-                }
+                },
+                "required": true
               },
               {
                 "name": "field2",
                 "type": {
                   "name": "T"
-                }
+                },
+                "required": true
               }
             ]
           }

@@ -19,7 +19,8 @@ expression: "TestStructDocumented::reflect_input()"
             "description": " field docs\n multiline",
             "type": {
               "name": "u8"
-            }
+            },
+            "required": true
           }
         ]
       },

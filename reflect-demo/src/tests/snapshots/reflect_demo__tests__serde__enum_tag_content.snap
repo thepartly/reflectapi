@@ -27,7 +27,8 @@ expression: "(TestEnumTagContent::reflect_input(), TestEnumTagContent::reflect_o
                   "name": "field_name",
                   "type": {
                     "name": "u8"
-                  }
+                  },
+                  "required": true
                 }
               ]
             },
@@ -38,7 +39,8 @@ expression: "(TestEnumTagContent::reflect_input(), TestEnumTagContent::reflect_o
                   "name": "0",
                   "type": {
                     "name": "u8"
-                  }
+                  },
+                  "required": true
                 }
               ]
             }
@@ -76,7 +78,8 @@ expression: "(TestEnumTagContent::reflect_input(), TestEnumTagContent::reflect_o
                   "name": "field_name",
                   "type": {
                     "name": "u8"
-                  }
+                  },
+                  "required": true
                 }
               ]
             },
@@ -87,7 +90,8 @@ expression: "(TestEnumTagContent::reflect_input(), TestEnumTagContent::reflect_o
                   "name": "0",
                   "type": {
                     "name": "u8"
-                  }
+                  },
+                  "required": true
                 }
               ]
             }

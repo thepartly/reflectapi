@@ -22,7 +22,8 @@ expression: "TestStructWithNestedGenericStructTwice::reflect_input()"
                   "name": "u8"
                 }
               ]
-            }
+            },
+            "required": true
           },
           {
             "name": "_f2",
@@ -33,7 +34,8 @@ expression: "TestStructWithNestedGenericStructTwice::reflect_input()"
                   "name": "std::string::String"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },
@@ -50,7 +52,8 @@ expression: "TestStructWithNestedGenericStructTwice::reflect_input()"
             "name": "_f",
             "type": {
               "name": "A"
-            }
+            },
+            "required": true
           }
         ]
       },

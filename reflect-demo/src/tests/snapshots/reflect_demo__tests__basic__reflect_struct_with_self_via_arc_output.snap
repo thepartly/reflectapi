@@ -22,7 +22,8 @@ expression: "TestStructWithSelfViaArc::reflect_output()"
                   "name": "reflect_demo::tests::basic::TestStructWithSelfViaArc"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

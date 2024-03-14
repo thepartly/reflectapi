@@ -27,7 +27,8 @@ expression: "TestStructWithVecTwo::reflect_output()"
                   "name": "u8"
                 }
               ]
-            }
+            },
+            "required": true
           },
           {
             "name": "_f2",
@@ -38,7 +39,8 @@ expression: "TestStructWithVecTwo::reflect_output()"
                   "name": "i8"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

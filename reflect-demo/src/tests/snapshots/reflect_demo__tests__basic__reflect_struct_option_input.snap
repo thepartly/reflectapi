@@ -22,7 +22,8 @@ expression: "TestStructOption::reflect_input()"
                   "name": "u8"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

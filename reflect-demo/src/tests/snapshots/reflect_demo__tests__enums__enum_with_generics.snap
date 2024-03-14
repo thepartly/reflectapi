@@ -30,7 +30,8 @@ expression: "TestEnumWithGenerics::<u8>::reflect_input()"
                 "name": "0",
                 "type": {
                   "name": "T"
-                }
+                },
+                "required": true
               }
             ]
           },
@@ -41,13 +42,15 @@ expression: "TestEnumWithGenerics::<u8>::reflect_input()"
                 "name": "0",
                 "type": {
                   "name": "T"
-                }
+                },
+                "required": true
               },
               {
                 "name": "1",
                 "type": {
                   "name": "T"
-                }
+                },
+                "required": true
               }
             ]
           }

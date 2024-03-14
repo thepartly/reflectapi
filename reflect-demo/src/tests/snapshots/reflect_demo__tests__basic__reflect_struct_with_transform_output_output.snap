@@ -17,7 +17,8 @@ expression: "TestStructWithTransformOutput::reflect_output()"
             "name": "_f",
             "type": {
               "name": "u8"
-            }
+            },
+            "required": true
           }
         ]
       },

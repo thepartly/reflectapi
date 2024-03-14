@@ -22,7 +22,8 @@ expression: "(TestEnumUntagged::reflect_input(), TestEnumUntagged::reflect_outpu
                   "name": "0",
                   "type": {
                     "name": "u8"
-                  }
+                  },
+                  "required": true
                 }
               ]
             },
@@ -33,7 +34,8 @@ expression: "(TestEnumUntagged::reflect_input(), TestEnumUntagged::reflect_outpu
                   "name": "field_name",
                   "type": {
                     "name": "u8"
-                  }
+                  },
+                  "required": true
                 }
               ]
             }
@@ -66,7 +68,8 @@ expression: "(TestEnumUntagged::reflect_input(), TestEnumUntagged::reflect_outpu
                   "name": "0",
                   "type": {
                     "name": "u8"
-                  }
+                  },
+                  "required": true
                 }
               ]
             },
@@ -77,7 +80,8 @@ expression: "(TestEnumUntagged::reflect_input(), TestEnumUntagged::reflect_outpu
                   "name": "field_name",
                   "type": {
                     "name": "u8"
-                  }
+                  },
+                  "required": true
                 }
               ]
             }

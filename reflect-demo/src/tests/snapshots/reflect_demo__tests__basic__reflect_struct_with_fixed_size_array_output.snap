@@ -25,7 +25,8 @@ expression: "TestStructWithFixedSizeArray::reflect_output()"
                   "name": "3"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

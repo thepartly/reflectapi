@@ -25,7 +25,8 @@ expression: "TestStructWithTuple::reflect_output()"
                   "name": "std::string::String"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

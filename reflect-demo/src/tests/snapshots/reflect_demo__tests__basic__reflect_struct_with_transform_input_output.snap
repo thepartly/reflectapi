@@ -22,7 +22,8 @@ expression: "TestStructWithTransformInput::reflect_output()"
                   "name": "u8"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

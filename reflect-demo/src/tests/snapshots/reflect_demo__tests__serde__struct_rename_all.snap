@@ -18,7 +18,8 @@ expression: "(TestStructRenameAll::reflect_input(), TestStructRenameAll::reflect
               "name": "fieldName",
               "type": {
                 "name": "u8"
-              }
+              },
+              "required": true
             }
           ]
         },
@@ -45,7 +46,8 @@ expression: "(TestStructRenameAll::reflect_input(), TestStructRenameAll::reflect
               "name": "fieldName",
               "type": {
                 "name": "u8"
-              }
+              },
+              "required": true
             }
           ]
         },

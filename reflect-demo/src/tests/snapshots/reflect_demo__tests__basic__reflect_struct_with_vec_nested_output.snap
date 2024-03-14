@@ -27,7 +27,8 @@ expression: "TestStructWithVecNested::reflect_output()"
                   ]
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },
@@ -39,7 +40,8 @@ expression: "TestStructWithVecNested::reflect_output()"
             "name": "_f",
             "type": {
               "name": "std::string::String"
-            }
+            },
+            "required": true
           }
         ]
       },

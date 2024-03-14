@@ -34,7 +34,8 @@ expression: "TestEnumDocumented::<u8>::reflect_input()"
                 "description": " variant1 field docs",
                 "type": {
                   "name": "T"
-                }
+                },
+                "required": true
               }
             ]
           },
@@ -47,7 +48,8 @@ expression: "TestEnumDocumented::<u8>::reflect_input()"
                 "description": " named field variant2 field docs",
                 "type": {
                   "name": "T"
-                }
+                },
+                "required": true
               }
             ]
           }

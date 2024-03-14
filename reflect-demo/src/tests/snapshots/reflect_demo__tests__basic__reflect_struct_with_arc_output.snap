@@ -22,7 +22,8 @@ expression: "TestStructWithArc::reflect_output()"
                   "name": "u8"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },

@@ -17,7 +17,8 @@ expression: "TestStructOneBasicFieldU32::reflect_input()"
             "name": "_f",
             "type": {
               "name": "u32"
-            }
+            },
+            "required": true
           }
         ]
       },

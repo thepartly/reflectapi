@@ -49,13 +49,15 @@ expression: "TestStructWithCircularReferenceGenericWithoutBox::<TestStructWithCi
             "name": "_f1",
             "type": {
               "name": "A"
-            }
+            },
+            "required": true
           },
           {
             "name": "_f2",
             "type": {
               "name": "B"
-            }
+            },
+            "required": true
           }
         ]
       },

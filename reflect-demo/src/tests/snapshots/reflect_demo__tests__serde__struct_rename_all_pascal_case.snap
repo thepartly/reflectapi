@@ -18,7 +18,8 @@ expression: "(TestStructRenameAllPascalCase::reflect_input(),\n    TestStructRen
               "name": "FieldName",
               "type": {
                 "name": "u8"
-              }
+              },
+              "required": true
             }
           ]
         },
@@ -45,7 +46,8 @@ expression: "(TestStructRenameAllPascalCase::reflect_input(),\n    TestStructRen
               "name": "FieldName",
               "type": {
                 "name": "u8"
-              }
+              },
+              "required": true
             }
           ]
         },

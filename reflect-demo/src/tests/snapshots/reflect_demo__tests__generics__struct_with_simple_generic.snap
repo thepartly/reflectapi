@@ -27,7 +27,8 @@ expression: "TestStructWithSimpleGeneric::<u8>::reflect_input()"
             "name": "_f",
             "type": {
               "name": "A"
-            }
+            },
+            "required": true
           }
         ]
       },

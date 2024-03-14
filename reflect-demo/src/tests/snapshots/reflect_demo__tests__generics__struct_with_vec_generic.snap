@@ -32,7 +32,8 @@ expression: "TestStructWithVecGeneric::<u8>::reflect_input()"
                   "name": "T"
                 }
               ]
-            }
+            },
+            "required": true
           }
         ]
       },
