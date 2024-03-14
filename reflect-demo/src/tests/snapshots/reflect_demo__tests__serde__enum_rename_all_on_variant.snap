@@ -1,0 +1,96 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestEnumRenameAllOnVariant::reflect_input(),\n    TestEnumRenameAllOnVariant::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumRenameAllOnVariant"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumRenameAllOnVariant",
+          "variants": [
+            {
+              "name": "Variant1",
+              "fields": [
+                {
+                  "name": "fieldName",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            },
+            {
+              "name": "Variant2",
+              "fields": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumRenameAllOnVariant"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumRenameAllOnVariant",
+          "variants": [
+            {
+              "name": "Variant1",
+              "fields": [
+                {
+                  "name": "fieldName",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            },
+            {
+              "name": "Variant2",
+              "fields": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ]
+]

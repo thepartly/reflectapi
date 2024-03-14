@@ -151,7 +151,12 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                 }
             }
             for variant in variants {
-                result.variants.push(visit_variant(cx, variant));
+                if !match cx.reflect_type() {
+                    ReflectType::Input => variant.attrs.skip_deserializing(),
+                    ReflectType::Output => variant.attrs.skip_serializing(),
+                } {
+                    result.variants.push(visit_variant(cx, variant));
+                }
             }
             visit_generic_parameters(cx, &container.generics, &mut result.parameters);
             result.into()

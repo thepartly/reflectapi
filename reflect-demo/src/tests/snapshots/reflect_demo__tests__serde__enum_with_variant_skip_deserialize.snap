@@ -1,0 +1,39 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestEnumWithVariantSkipDeserialize::reflect_input(),\n    TestEnumWithVariantSkipDeserialize::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize",
+          "variants": [
+            {
+              "name": "_Variant1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+]

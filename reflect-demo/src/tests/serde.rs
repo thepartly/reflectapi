@@ -172,6 +172,22 @@ fn test_enum_tag_content_rename_all() {
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+enum TestEnumRenameAllOnVariant {
+    #[serde(rename_all = "camelCase")]
+    Variant1 {
+        field_name: u8,
+    },
+    Variant2(u8),
+}
+#[test]
+fn test_enum_rename_all_on_variant() {
+    insta::assert_json_snapshot!((
+        TestEnumRenameAllOnVariant::reflect_input(),
+        TestEnumRenameAllOnVariant::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSerdeSkipSerializeIf {
     #[serde(skip_serializing_if = "Option::is_none")]
     f: Option<u8>,
@@ -248,6 +264,45 @@ fn test_enum_with_field_skip() {
     insta::assert_json_snapshot!((
         TestEnumWithFieldSkip::reflect_input(),
         TestEnumWithFieldSkip::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+enum TestEnumWithVariantSkip {
+    #[serde(skip)]
+    _Variant1,
+}
+#[test]
+fn test_enum_with_variant_skip() {
+    insta::assert_json_snapshot!((
+        TestEnumWithVariantSkip::reflect_input(),
+        TestEnumWithVariantSkip::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+enum TestEnumWithVariantSkipSerialize {
+    #[serde(skip_serializing)]
+    Variant1,
+}
+#[test]
+fn test_enum_with_variant_skip_serialize() {
+    insta::assert_json_snapshot!((
+        TestEnumWithVariantSkipSerialize::reflect_input(),
+        TestEnumWithVariantSkipSerialize::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+enum TestEnumWithVariantSkipDeserialize {
+    #[serde(skip_deserializing)]
+    _Variant1,
+}
+#[test]
+fn test_enum_with_variant_skip_deserialize() {
+    insta::assert_json_snapshot!((
+        TestEnumWithVariantSkipDeserialize::reflect_input(),
+        TestEnumWithVariantSkipDeserialize::reflect_output()
     ));
 }
 
