@@ -1,0 +1,90 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestStructWithFlatten::reflect_input(),\n    TestStructWithFlatten::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructWithFlatten"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithFlatten",
+          "fields": [
+            {
+              "name": "g",
+              "type": {
+                "name": "reflect_demo::tests::serde::TestStructWithFlattenNested"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        },
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithFlattenNested",
+          "fields": [
+            {
+              "name": "f",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructWithFlatten"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithFlatten",
+          "fields": [
+            {
+              "name": "g",
+              "type": {
+                "name": "reflect_demo::tests::serde::TestStructWithFlattenNested"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        },
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithFlattenNested",
+          "fields": [
+            {
+              "name": "f",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ]
+]

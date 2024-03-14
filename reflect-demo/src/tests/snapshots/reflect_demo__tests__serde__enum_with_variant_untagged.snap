@@ -1,6 +1,5 @@
 ---
 source: reflect-demo/src/tests/serde.rs
-assertion_line: 329
 expression: "(TestEnumWithVariantUntagged::reflect_input(),\n    TestEnumWithVariantUntagged::reflect_output())"
 ---
 [

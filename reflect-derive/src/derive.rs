@@ -269,6 +269,7 @@ fn visit_field<'a>(
         ReflectType::Input => field.attrs.default().is_none(),
         ReflectType::Output => field.attrs.skip_serializing_if().is_none(),
     };
+    field_def.flattened = field.attrs.flatten();
     field_def
 }
 

@@ -346,3 +346,20 @@ fn test_enum_with_variant_other() {
         TestEnumWithVariantOther::reflect_output()
     ));
 }
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithFlattenNested {
+    f: u8
+}
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithFlatten {
+    #[serde(flatten)]
+    g: TestStructWithFlattenNested
+}
+#[test]
+fn test_struct_with_flatten() {
+    insta::assert_json_snapshot!((
+        TestStructWithFlatten::reflect_input(),
+        TestStructWithFlatten::reflect_output()
+    ));
+}
