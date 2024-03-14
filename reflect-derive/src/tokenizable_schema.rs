@@ -248,12 +248,14 @@ impl<'a> ToTokens for TokenizableStruct<'a> {
             .parameters()
             .map(|p| TokenizableTypeParameter::new(p));
         let fields = self.inner.fields().map(|f| TokenizableField::new(f));
+        let transparent = self.inner.transparent;
         tokens.extend(quote::quote! {
             reflect::Struct {
                 name: #name.into(),
                 description: #description.into(),
                 parameters: vec![#(#parameters),*],
                 fields: vec![#(#fields),*],
+                transparent: #transparent,
             }
         });
     }

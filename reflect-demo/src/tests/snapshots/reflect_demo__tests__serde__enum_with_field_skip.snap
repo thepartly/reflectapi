@@ -1,0 +1,44 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestEnumWithFieldSkip::reflect_input(),\n    TestEnumWithFieldSkip::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumWithFieldSkip"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumWithFieldSkip",
+          "variants": [
+            {
+              "name": "Variant1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestEnumWithFieldSkip"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "enum",
+          "name": "reflect_demo::tests::serde::TestEnumWithFieldSkip",
+          "variants": [
+            {
+              "name": "Variant1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+]

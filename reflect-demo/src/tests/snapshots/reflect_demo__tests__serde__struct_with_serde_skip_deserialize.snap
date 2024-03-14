@@ -1,0 +1,48 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestStructWithSerdeSkipDeserialize::reflect_input(),\n    TestStructWithSerdeSkipDeserialize::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipDeserialize"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipDeserialize"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipDeserialize"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipDeserialize",
+          "fields": [
+            {
+              "name": "f",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ]
+]

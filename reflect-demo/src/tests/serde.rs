@@ -170,3 +170,96 @@ fn test_enum_tag_content_rename_all() {
         TestEnumTagContentRenameAll::reflect_output()
     ));
 }
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithSerdeSkipSerializeIf {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    f: Option<u8>,
+}
+#[test]
+fn test_struct_with_serde_skip_serialize_if() {
+    insta::assert_json_snapshot!((
+        TestStructWithSerdeSkipSerializeIf::reflect_input(),
+        TestStructWithSerdeSkipSerializeIf::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithSerdeDefault {
+    #[serde(default)]
+    f: u8,
+}
+#[test]
+fn test_struct_with_serde_default() {
+    insta::assert_json_snapshot!((
+        TestStructWithSerdeDefault::reflect_input(),
+        TestStructWithSerdeDefault::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithSerdeSkip {
+    #[serde(skip)]
+    _f: u8,
+}
+#[test]
+fn test_struct_with_serde_skip() {
+    insta::assert_json_snapshot!((
+        TestStructWithSerdeSkip::reflect_input(),
+        TestStructWithSerdeSkip::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithSerdeSkipSerialize {
+    #[serde(skip_serializing)]
+    _f: u8,
+}
+#[test]
+fn test_struct_with_serde_skip_serialize() {
+    insta::assert_json_snapshot!((
+        TestStructWithSerdeSkipSerialize::reflect_input(),
+        TestStructWithSerdeSkipSerialize::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithSerdeSkipDeserialize {
+    #[serde(skip_deserializing)]
+    f: u8,
+}
+#[test]
+fn test_struct_with_serde_skip_deserialize() {
+    insta::assert_json_snapshot!((
+        TestStructWithSerdeSkipDeserialize::reflect_input(),
+        TestStructWithSerdeSkipDeserialize::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+enum TestEnumWithFieldSkip {
+    Variant1 {
+        #[serde(skip)]
+        _f: u8,
+    },
+}
+#[test]
+fn test_enum_with_field_skip() {
+    insta::assert_json_snapshot!((
+        TestEnumWithFieldSkip::reflect_input(),
+        TestEnumWithFieldSkip::reflect_output()
+    ));
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[serde(transparent)]
+struct TestStructWithSerdeTransparent {
+    _f: u8,
+}
+#[test]
+fn test_struct_with_serde_transparent() {
+    insta::assert_json_snapshot!((
+        TestStructWithSerdeTransparent::reflect_input(),
+        TestStructWithSerdeTransparent::reflect_output()
+    ));
+}

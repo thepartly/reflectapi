@@ -1,0 +1,64 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestStructWithSerdeTransparent::reflect_input(),\n    TestStructWithSerdeTransparent::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent",
+          "fields": [
+            {
+              "name": "_f",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ],
+          "transparent": true
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent",
+          "fields": [
+            {
+              "name": "_f",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ],
+          "transparent": true
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ]
+]

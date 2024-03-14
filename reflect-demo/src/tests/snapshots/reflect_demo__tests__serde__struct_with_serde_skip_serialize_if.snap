@@ -1,0 +1,91 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestStructWithSerdeSkipSerializeIf::reflect_input(),\n    TestStructWithSerdeSkipSerializeIf::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerializeIf"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerializeIf",
+          "fields": [
+            {
+              "name": "f",
+              "type": {
+                "name": "std::option::Option",
+                "parameters": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "std::option::Option",
+          "description": "Optional / Nullable value type",
+          "parameters": [
+            {
+              "name": "T"
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerializeIf"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerializeIf",
+          "fields": [
+            {
+              "name": "f",
+              "type": {
+                "name": "std::option::Option",
+                "parameters": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "std::option::Option",
+          "description": "Optional / Nullable value type",
+          "parameters": [
+            {
+              "name": "T"
+            }
+          ]
+        },
+        {
+          "kind": "primitive",
+          "name": "u8",
+          "description": "8-bit unsigned integer"
+        }
+      ]
+    }
+  ]
+]

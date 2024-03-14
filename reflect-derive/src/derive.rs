@@ -159,9 +159,15 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
         serde_derive_internals::ast::Data::Struct(_style, fields) => {
             let mut result = Struct::new(type_def_name);
             for field in fields {
-                result.fields.push(visit_field(cx, field));
+                if !match cx.reflect_type() {
+                    ReflectType::Input => field.attrs.skip_deserializing(),
+                    ReflectType::Output => field.attrs.skip_serializing(),
+                } {
+                    result.fields.push(visit_field(cx, field));
+                }
             }
             visit_generic_parameters(cx, &container.generics, &mut result.parameters);
+            result.transparent = container.attrs.transparent();
             result.into()
         }
     };
@@ -224,7 +230,12 @@ fn visit_variant<'a>(
         );
     }
     for field in &variant.fields {
-        result.fields.push(visit_field(cx, field));
+        if !match cx.reflect_type() {
+            ReflectType::Input => field.attrs.skip_deserializing(),
+            ReflectType::Output => field.attrs.skip_serializing(),
+        } {
+            result.fields.push(visit_field(cx, field));
+        }
     }
     result
 }

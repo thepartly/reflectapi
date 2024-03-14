@@ -1,0 +1,34 @@
+---
+source: reflect-demo/src/tests/serde.rs
+expression: "(TestStructWithSerdeSkip::reflect_input(),\n    TestStructWithSerdeSkip::reflect_output())"
+---
+[
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructWithSerdeSkip"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithSerdeSkip"
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "name": "reflect_demo::tests::serde::TestStructWithSerdeSkip"
+    },
+    {
+      "name": "",
+      "types": [
+        {
+          "kind": "struct",
+          "name": "reflect_demo::tests::serde::TestStructWithSerdeSkip"
+        }
+      ]
+    }
+  ]
+]

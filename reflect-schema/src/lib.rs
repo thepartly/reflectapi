@@ -431,6 +431,10 @@ pub struct Struct {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub fields: Vec<Field>,
+
+    /// If serde transparent attribute is set on a struct
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub transparent: bool,
 }
 
 impl Struct {
@@ -440,6 +444,7 @@ impl Struct {
             description: String::new(),
             parameters: Vec::new(),
             fields: Vec::new(),
+            transparent: false,
         }
     }
 
