@@ -78,12 +78,11 @@ mod tests;
 /// more
 /// more
 #[allow(unused_doc_comments, dead_code)]
-#[derive(reflect::Input, serde::Serialize)]
-#[serde(rename = "MyStruct")]
+#[derive(reflect::Input)]
 struct TestStructDocumented {
     /// field docs
     /// multiline
-    f: u8,
+    f: uuid::Uuid,
 }
 
 // #[derive(reflect::Input)]

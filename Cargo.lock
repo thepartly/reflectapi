@@ -127,6 +127,7 @@ version = "0.1.0"
 dependencies = [
  "reflect-derive",
  "reflect-schema",
+ "uuid",
 ]
 
 [[package]]
@@ -137,6 +138,7 @@ dependencies = [
  "reflect",
  "serde",
  "trybuild",
+ "uuid",
 ]
 
 [[package]]
@@ -262,6 +264,12 @@ name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+
+[[package]]
+name = "uuid"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f00cc9702ca12d3c81455259621e676d0f7251cec66a21e98fe2e9a37db93b2a"
 
 [[package]]
 name = "version_check"
