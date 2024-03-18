@@ -96,18 +96,18 @@ pub struct Function {
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub input_type: Option<TypeReference>,
-    #[serde(skip_serializing_if = "std::collections::HashMap::is_empty", default)]
-    pub input_headers: std::collections::HashMap<HeaderName, TypeReference>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub input_headers: Option<TypeReference>,
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub output_type: Option<TypeReference>,
-    #[serde(skip_serializing_if = "std::collections::HashMap::is_empty", default)]
-    pub output_headers: std::collections::HashMap<HeaderName, TypeReference>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub output_headers: Option<TypeReference>,
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub error_type: Option<TypeReference>,
-    #[serde(skip_serializing_if = "std::collections::HashMap::is_empty", default)]
-    pub error_headers: std::collections::HashMap<HeaderName, TypeReference>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub error_headers: Option<TypeReference>,
 
     ///
     /// Supported content types for request and response bodies.
@@ -128,11 +128,11 @@ impl Function {
             name,
             description: String::new(),
             input_type: None,
-            input_headers: std::collections::HashMap::new(),
+            input_headers: None,
             output_type: None,
-            output_headers: std::collections::HashMap::new(),
+            output_headers: None,
             error_type: None,
-            error_headers: std::collections::HashMap::new(),
+            error_headers: None,
             serialization: Vec::new(),
         }
     }
