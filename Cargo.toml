@@ -1,7 +1,14 @@
 edition = "2021"
 
 [workspace]
-members = ["reflect", "reflect-demo", "reflect-derive", "reflect-schema", "reflect-endpoint"]
+members = [
+    "reflect",
+    "reflect-demo",
+    "reflect-derive",
+    "reflect-schema",
+    "reflect-endpoint",
+    "reflect-axum",
+]
 resolver = "2"
 
 [workspace.dependencies]
@@ -9,3 +16,4 @@ reflect = { path = "reflect" }
 reflect-derive = { path = "reflect-derive" }
 reflect-schema = { path = "reflect-schema" }
 reflect-endpoint = { path = "reflect-endpoint" }
+reflect-axum = { path = "reflect-axum" }

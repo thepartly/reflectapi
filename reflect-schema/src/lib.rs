@@ -120,6 +120,10 @@ pub struct Function {
     ///
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub serialization: Vec<SerializationMode>,
+
+    /// If a function is readonly, it means it does not modify the state of an application
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub readonly: bool,
 }
 
 impl Function {
@@ -134,6 +138,7 @@ impl Function {
             error_type: None,
             error_headers: None,
             serialization: Vec::new(),
+            readonly: false,
         }
     }
 
@@ -652,51 +657,5 @@ impl Representation {
 impl Default for Representation {
     fn default() -> Self {
         Representation::External
-    }
-}
-
-//
-// Header name utility
-//
-
-/// Same as string but low case for content
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct HeaderName(String);
-
-impl HeaderName {
-    pub fn new(value: &str) -> Self {
-        HeaderName(value.to_lowercase())
-    }
-}
-
-impl std::fmt::Display for HeaderName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-impl std::str::FromStr for HeaderName {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(HeaderName::new(s))
-    }
-}
-
-impl serde::Serialize for HeaderName {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.0.serialize(serializer)
-    }
-}
-
-impl<'a> serde::de::Deserialize<'a> for HeaderName {
-    fn deserialize<D>(deserializer: D) -> Result<HeaderName, D::Error>
-    where
-        D: serde::de::Deserializer<'a>,
-    {
-        let s = String::deserialize(deserializer)?;
-        Ok(HeaderName::new(&s))
     }
 }

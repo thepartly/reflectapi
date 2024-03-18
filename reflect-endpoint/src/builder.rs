@@ -1,204 +1,144 @@
-use std::{borrow::Borrow, sync::Arc};
+use std::{fmt::Display, sync::Arc};
 
 use reflect::{Function, Schema};
 
-use futures::future::BoxFuture;
-use serde::de;
-
-pub struct HandlerRequest {
+pub struct HandlerInput {
     pub body: bytes::Bytes,
     pub headers: std::collections::HashMap<String, String>,
 }
 
-pub struct HandlerResponse {
-    pub body: Vec<u8>,
+pub struct HandlerOutput {
+    pub body: bytes::Bytes,
     pub headers: std::collections::HashMap<String, String>,
 }
 
 pub struct HandlerError {
-    pub status: http::StatusCode,
-    pub body: Vec<u8>,
+    pub code: u16,
+    pub body: bytes::Bytes,
     pub headers: std::collections::HashMap<String, String>,
 }
 
+pub type HandlerFuture = std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<HandlerOutput, HandlerError>> + Send + 'static>,
+>;
+
+pub type HandlerCallback<S> = dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync;
+
 #[derive(Clone)]
-pub struct HandlerWrapper<S>
+pub struct Handler<S>
 where
     S: Send,
 {
-    inner: Arc<
-        dyn Fn(S, HandlerRequest) -> BoxFuture<'static, Result<HandlerResponse, HandlerError>>
-            + Send
-            + Sync,
-    >,
-    marker: std::marker::PhantomData<S>,
+    pub name: String,
+    pub readonly: bool,
+    pub callback: Arc<HandlerCallback<S>>,
 }
 
-impl<S> HandlerWrapper<S>
+impl<S> Handler<S>
 where
     S: Send + 'static,
 {
-    pub fn new<Fut, I, O, E>(f: fn(S, I) -> Fut) -> Self
+    pub fn new<F, Fut, I, O, E>(name: String, readonly: bool, f: F) -> Self
     where
         I: reflect::Input + serde::de::DeserializeOwned + Send + 'static,
         O: reflect::Output + serde::ser::Serialize + Send + 'static,
-        E: reflect::Output + serde::ser::Serialize + Send + 'static,
+        E: reflect::Output + ToStatusCode + Display + serde::ser::Serialize + Send + 'static,
+        F: Fn(S, I) -> Fut + Send + Sync + Copy + 'static,
         Fut: std::future::Future<Output = Result<O, E>> + Send + 'static,
     {
-        // let exposed_handler = Box::new(async |state: S, input: HandlerRequest| async move {
-        //     Ok(HandlerResponse {
-        //         body: vec![],
-        //         headers: std::collections::HashMap::new(),
-        //     })
-        // });
-
-        let a = Arc::new(move |state: S, input: HandlerRequest| {
-            Box::pin(handler_impl(state, input, f)) as _
-        });
-
         Self {
-            inner: a,
-            marker: std::marker::PhantomData,
+            name,
+            readonly,
+            callback: Arc::new(move |state: S, input: HandlerInput| {
+                Box::pin(handler_impl(state, input, f)) as _
+            }),
         }
     }
 
-    pub fn handler(
-        &self,
-    ) -> Arc<
-        dyn Fn(S, HandlerRequest) -> BoxFuture<'static, Result<HandlerResponse, HandlerError>>
-            + Send
-            + Sync,
-    > {
-        self.inner.clone()
-    }
-
-    pub fn call(
-        &self,
-        state: S,
-        req: HandlerRequest,
-    ) -> BoxFuture<'static, Result<HandlerResponse, HandlerError>> {
-        (self.inner)(state, req)
+    pub fn call(&self, state: S, req: HandlerInput) -> HandlerFuture {
+        (self.callback)(state, req)
     }
 }
 
-// impl<F, S, Fut, I, O, E> Handler<S> for F
-// where
-//     F: FnOnce(S, I) -> Fut + Clone + Send + 'static,
-//     Fut: std::future::Future<Output = Result<O, E>> + Send,
-//     I: reflect::Input + serde::de::DeserializeOwned + Send + Sized,
-//     O: reflect::Output + serde::ser::Serialize + Send + Sized,
-//     E: reflect::Output + serde::ser::Serialize + Send + Sized,
-// {
-//     type Future = std::pin::Pin<
-//         Box<dyn std::future::Future<Output = Result<HandlerResponse, HandlerError>> + Send>,
-//     >;
+pub trait ToStatusCode {
+    fn to_status_code(&self) -> u16;
+}
 
-//     fn call(self, req: HandlerRequest, state: S) -> Self::Future {
-//         Box::pin(async move {
-//             Ok(HandlerResponse {
-//                 body: vec![],
-//                 headers: std::collections::HashMap::new(),
-//             })
-//         })
-//     }
-// }
-
-pub struct SchemaWithHandlers<S>
+pub struct SchemaBuilder<S>
 where
     S: Send,
 {
     schema: Schema,
-    handlers: std::collections::HashMap<String, HandlerWrapper<S>>,
+    handlers: Vec<Handler<S>>,
 }
 
-impl<S> SchemaWithHandlers<S>
+impl<S> SchemaBuilder<S>
 where
     S: Send + 'static,
 {
     pub fn new() -> Self {
         Self {
             schema: Schema::new(),
-            handlers: std::collections::HashMap::new(),
+            handlers: Vec::new(),
         }
     }
 
-    pub fn build(self) -> (Schema, std::collections::HashMap<String, HandlerWrapper<S>>) {
-        (self.schema, self.handlers)
-    }
-
-    pub fn with_function<Fut, I, O, E>(
+    pub fn with_function<Fut, I, O, E, F>(
         &mut self,
         name: &str,
         description: &str,
-        handler: fn(S, I) -> Fut,
+        handler: F,
+        readonly: bool,
     ) -> &mut Self
     where
-        // F: FnOnce(S, I) -> Fut + Send + 'static,
+        F: Fn(S, I) -> Fut + Send + Sync + Copy + 'static,
         Fut: std::future::Future<Output = Result<O, E>> + Send + 'static,
         I: reflect::Input + serde::de::DeserializeOwned + Send + 'static,
         O: reflect::Output + serde::ser::Serialize + Send + 'static,
-        E: reflect::Output + serde::ser::Serialize + Send + 'static,
+        E: reflect::Output + ToStatusCode + Display + serde::ser::Serialize + Send + 'static,
     {
+        let input_type = Some(I::reflect_input_type(&mut self.schema));
+        let output_type = Some(O::reflect_output_type(&mut self.schema));
+        let error_type = Some(E::reflect_output_type(&mut self.schema));
+
         self.handlers
-            .insert(name.into(), HandlerWrapper::new(handler));
+            .push(Handler::new(name.into(), readonly, handler));
+        self.schema.functions.push(Function {
+            name: name.into(),
+            description: description.into(),
+            input_type,
+            output_type,
+            error_type,
+            input_headers: None,
+            output_headers: None,
+            error_headers: None,
+            serialization: vec![reflect::SerializationMode::Json],
+            readonly,
+        });
         self
     }
 
-    fn call(
-        &self,
-        name: &str,
-        state: S,
-        req: HandlerRequest,
-    ) -> BoxFuture<'static, Result<HandlerResponse, HandlerError>> {
-        self.handlers.get(name).unwrap().call(state, req)
+    pub fn build(self) -> (Schema, Vec<Handler<S>>) {
+        (self.schema, self.handlers)
     }
-
-    // pub fn build(self) -> Schema {
-    //     self.inner
-    // }
 }
 
-// struct HandleImpl {
-
-// }
-
-// impl HandleImpl {
-//     pub fn new() -> Self {
-//         handler_impl(state, input, handler)
-//         Self {}
-//     }
-// }
-
-struct MyAppState {}
-
-async fn example_handler(state: Arc<MyAppState>, request: u8) -> Result<u8, u8> {
-    println!("hello world");
-    Ok(0)
-}
-
-#[test]
-fn test() {
-    let mut b = SchemaWithHandlers::new();
-    b.with_function("example", "example function", example_handler);
-    b.call(
-        "example",
-        Arc::new(MyAppState {}),
-        HandlerRequest {
-            body: bytes::Bytes::new(),
-            headers: std::collections::HashMap::new(),
-        },
-    );
+#[derive(serde::Serialize)]
+struct WrappedError<E> {
+    code: u16,
+    message: String,
+    details: E,
 }
 
 async fn handler_impl<F, Fut, S, I, O, E>(
     state: S,
-    input: HandlerRequest,
+    input: HandlerInput,
     handler: F,
-) -> Result<HandlerResponse, HandlerError>
+) -> Result<HandlerOutput, HandlerError>
 where
     I: reflect::Input + serde::de::DeserializeOwned,
     O: reflect::Output + serde::ser::Serialize,
-    E: reflect::Output + serde::ser::Serialize,
+    E: reflect::Output + ToStatusCode + Display + serde::ser::Serialize,
     F: Fn(S, I) -> Fut,
     Fut: std::future::Future<Output = Result<O, E>> + Send + 'static,
 {
@@ -207,8 +147,10 @@ where
         Ok(r) => r,
         Err(err) => {
             return Err(HandlerError {
-                status: http::StatusCode::BAD_REQUEST,
-                body: format!("Failed to parse request body: {}", err).into_bytes(),
+                code: 400,
+                body: bytes::Bytes::from(
+                    format!("Failed to parse request body: {}", err).into_bytes(),
+                ),
                 headers: std::collections::HashMap::new(),
             });
         }
@@ -222,20 +164,24 @@ where
                 Ok(r) => r,
                 Err(err) => {
                     return Err(HandlerError {
-                        status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                        body: format!("Failed to serialize response body: {}", err).into_bytes(),
+                        code: 500,
+                        body: bytes::Bytes::from(
+                            format!("Failed to serialize response body: {}", err).into_bytes(),
+                        ),
                         headers: std::collections::HashMap::new(),
                     });
                 }
             };
-            Ok(HandlerResponse {
-                body: output,
+            Ok(HandlerOutput {
+                body: bytes::Bytes::from(output),
                 headers: std::collections::HashMap::new(),
             })
         }
         Err(err) => {
+            let status_code = err.to_status_code();
             let err = WrappedError {
-                status: http::StatusCode::UNPROCESSABLE_ENTITY.as_u16(),
+                code: status_code,
+                message: err.to_string(),
                 details: err,
             };
             let output = serde_json::to_vec(&err);
@@ -243,25 +189,21 @@ where
                 Ok(r) => r,
                 Err(err) => {
                     return Err(HandlerError {
-                        status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                        body: format!("Failed to serialize response error: {}", err).into_bytes(),
+                        code: 500,
+                        body: bytes::Bytes::from(
+                            format!("Failed to serialize response error: {}", err).into_bytes(),
+                        ),
                         headers: std::collections::HashMap::new(),
                     });
                 }
             };
             Err(HandlerError {
-                status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                body: output,
+                code: status_code,
+                body: bytes::Bytes::from(output),
                 headers: std::collections::HashMap::new(),
             })
         }
     };
 
     result
-}
-
-#[derive(serde::Serialize)]
-struct WrappedError<E> {
-    status: u16,
-    details: E,
 }

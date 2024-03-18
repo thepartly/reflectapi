@@ -11,6 +11,3 @@ reflect = { workspace = true }
 bytes = "1.5.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = { version = "1.0.114" }
-http = "1.1.0"
-
-futures = "0.3.30"
