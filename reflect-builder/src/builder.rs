@@ -64,7 +64,7 @@ pub trait ToStatusCode {
     fn to_status_code(&self) -> u16;
 }
 
-pub struct SchemaBuilder<S>
+pub struct Builder<S>
 where
     S: Send,
 {
@@ -72,7 +72,7 @@ where
     handlers: Vec<Handler<S>>,
 }
 
-impl<S> SchemaBuilder<S>
+impl<S> Builder<S>
 where
     S: Send + 'static,
 {

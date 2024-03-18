@@ -7,7 +7,7 @@ use axum::{
     Router,
 };
 
-use reflect_endpoint::{Handler, HandlerInput};
+use reflect_builder::{Handler, HandlerInput};
 
 pub fn into_axum_app<S>(app_state: S, handlers: Vec<Handler<S>>) -> Router
 where
@@ -43,7 +43,7 @@ where
     app
 }
 
-struct HandlerResultWrap(Result<reflect_endpoint::HandlerOutput, reflect_endpoint::HandlerError>);
+struct HandlerResultWrap(Result<reflect_builder::HandlerOutput, reflect_builder::HandlerError>);
 
 impl IntoResponse for HandlerResultWrap {
     fn into_response(self) -> axum::http::Response<axum::body::Body> {

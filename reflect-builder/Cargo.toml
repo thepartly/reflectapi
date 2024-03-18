@@ -1,5 +1,5 @@
 [package]
-name = "reflect-endpoint"
+name = "reflect-builder"
 version = "0.1.0"
 edition = "2021"
 

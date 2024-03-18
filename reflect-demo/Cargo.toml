@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 reflect = { workspace = true, features = ["uuid"] }
-reflect-endpoint = { workspace = true }
+reflect-builder = { workspace = true }
 reflect-axum = { workspace = true }
 
 tokio = { version = "1.5.0", features = ["full"] }

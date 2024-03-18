@@ -594,7 +594,17 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "reflect",
- "reflect-endpoint",
+ "reflect-builder",
+]
+
+[[package]]
+name = "reflect-builder"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "reflect",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -606,7 +616,7 @@ dependencies = [
  "insta",
  "reflect",
  "reflect-axum",
- "reflect-endpoint",
+ "reflect-builder",
  "serde",
  "serde_json",
  "tokio",
@@ -624,16 +634,6 @@ dependencies = [
  "reflect-schema",
  "serde_derive_internals",
  "syn 2.0.52",
-]
-
-[[package]]
-name = "reflect-endpoint"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "reflect",
- "serde",
- "serde_json",
 ]
 
 [[package]]

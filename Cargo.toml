@@ -6,7 +6,7 @@ members = [
     "reflect-demo",
     "reflect-derive",
     "reflect-schema",
-    "reflect-endpoint",
+    "reflect-builder",
     "reflect-axum",
 ]
 resolver = "2"
@@ -15,5 +15,5 @@ resolver = "2"
 reflect = { path = "reflect" }
 reflect-derive = { path = "reflect-derive" }
 reflect-schema = { path = "reflect-schema" }
-reflect-endpoint = { path = "reflect-endpoint" }
+reflect-builder = { path = "reflect-builder" }
 reflect-axum = { path = "reflect-axum" }

@@ -7,7 +7,7 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
-    let mut schema = reflect_endpoint::SchemaBuilder::new();
+    let mut schema = reflect_builder::Builder::new();
     schema.with_function("example", "example function", handler_example, true);
     let (schema, handlers) = schema.build();
 
@@ -42,7 +42,7 @@ impl std::fmt::Display for ExampleError {
         write!(f, "error1")
     }
 }
-impl reflect_endpoint::ToStatusCode for ExampleError {
+impl reflect_builder::ToStatusCode for ExampleError {
     fn to_status_code(&self) -> u16 {
         500
     }
