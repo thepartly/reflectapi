@@ -8,7 +8,10 @@ struct AppState {
 #[tokio::main]
 async fn main() {
     let mut schema = reflect_builder::Builder::new();
-    schema.with_function("example", "example function", handler_example, true);
+    // let a = Handler::new("".into(), false, handler_example);
+    schema.with_handler("example", "example function", true, handler_example);
+    schema.with_handler_infallible("example2", "example function2", true, handler_example_2);
+    schema.with_handler_infallible("example3", "example function2", true, handler_example_3);
     let (schema, handlers) = schema.build();
 
     tokio::fs::write(
@@ -26,7 +29,12 @@ async fn main() {
 }
 
 #[derive(reflect::Input, serde::Deserialize)]
-struct ExampleRequest {}
+struct ExampleRequest {
+    #[serde(rename = "inputData")]
+    input_data: String,
+}
+
+#[derive(reflect::Input, serde::Deserialize)]
 struct ExampleRequestHeaders {}
 #[derive(reflect::Output, serde::Serialize)]
 struct ExampleResponse {
@@ -36,11 +44,6 @@ struct ExampleResponseHeaders {}
 #[derive(reflect::Output, serde::Serialize)]
 enum ExampleError {
     Error1,
-}
-impl std::fmt::Display for ExampleError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "error1")
-    }
 }
 impl reflect_builder::ToStatusCode for ExampleError {
     fn to_status_code(&self) -> u16 {
@@ -53,10 +56,38 @@ enum ExampleErrorHeaders {}
 async fn handler_example(
     state: std::sync::Arc<AppState>,
     request: ExampleRequest,
+    headers: ExampleRequestHeaders,
 ) -> Result<ExampleResponse, ExampleError> {
     println!("called");
+    Ok(ExampleResponse {
+        message: format!("hello {}", request.input_data),
+    })
+    // Err(ExampleError::Error1)
+}
+
+async fn handler_example_3(
+    state: std::sync::Arc<AppState>,
+    request: reflect_empty::Empty,
+    headers: reflect_empty::Empty,
+) -> reflect_empty::Empty {
+    println!("called");
     // Ok(ExampleResponse {
-    //     message: "hello world".to_string(),
+    //     message: format!("hello {}", request.input_data),
     // })
-    Err(ExampleError::Error1)
+    // Err(ExampleError::Error1)
+
+    // Default::default()
+    ().into()
+}
+
+async fn handler_example_2(
+    state: std::sync::Arc<AppState>,
+    request: ExampleRequest,
+    headers: ExampleRequestHeaders,
+) -> ExampleResponse {
+    println!("called");
+    ExampleResponse {
+        message: format!("hello {}", request.input_data),
+    }
+    // Err(ExampleError::Error1)
 }

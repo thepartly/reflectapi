@@ -8,6 +8,7 @@ members = [
     "reflect-schema",
     "reflect-builder",
     "reflect-axum",
+    "reflect-empty",
 ]
 resolver = "2"
 
@@ -17,3 +18,4 @@ reflect-derive = { path = "reflect-derive" }
 reflect-schema = { path = "reflect-schema" }
 reflect-builder = { path = "reflect-builder" }
 reflect-axum = { path = "reflect-axum" }
+reflect-empty = { path = "reflect-empty" }

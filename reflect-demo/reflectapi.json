@@ -17,17 +17,60 @@
         "Json"
       ],
       "readonly": true
+    },
+    {
+      "name": "example2",
+      "description": "example function2",
+      "input_type": {
+        "name": "reflect_demo::ExampleRequest"
+      },
+      "output_type": {
+        "name": "reflect_demo::ExampleResponse"
+      },
+      "error_type": {
+        "name": "reflect_builder::infallible::Infallible"
+      },
+      "serialization": [
+        "Json"
+      ],
+      "readonly": true
+    },
+    {
+      "name": "example3",
+      "description": "example function2",
+      "input_type": {
+        "name": "reflect_empty::Empty"
+      },
+      "output_type": {
+        "name": "reflect_empty::Empty"
+      },
+      "error_type": {
+        "name": "reflect_builder::infallible::Infallible"
+      },
+      "serialization": [
+        "Json"
+      ],
+      "readonly": true
     }
   ],
   "types": [
     {
-      "kind": "struct",
-      "name": "reflect_demo::ExampleRequest"
-    },
-    {
       "kind": "primitive",
       "name": "std::string::String",
       "description": "UTF-8 encoded string"
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::ExampleRequest",
+      "fields": [
+        {
+          "name": "inputData",
+          "type": {
+            "name": "std::string::String"
+          },
+          "required": true
+        }
+      ]
     },
     {
       "kind": "struct",
@@ -50,6 +93,18 @@
           "name": "Error1"
         }
       ]
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::ExampleRequestHeaders"
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_builder::infallible::Infallible"
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_empty::Empty"
     }
   ]
 }

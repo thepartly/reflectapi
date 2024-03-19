@@ -7,7 +7,7 @@ use axum::{
     Router,
 };
 
-use reflect_builder::{Handler, HandlerInput};
+use reflect_builder::{Handler, HandlerInput, HandlerOutput};
 
 pub fn into_axum_app<S>(app_state: S, handlers: Vec<Handler<S>>) -> Router
 where
@@ -18,27 +18,27 @@ where
         let Handler {
             name,
             readonly,
+            required_input_headers: input_headers,
             callback,
         } = handler;
-        let axum_handler = {
+        let axum_handler2 = {
             let shared_state = app_state.clone();
-            move |body: axum::body::Bytes| async move {
-                let result = callback(
-                    shared_state,
-                    HandlerInput {
-                        body: body,
-                        headers: HashMap::new(),
-                    },
-                )
-                .await;
+            move |axum_headers: axum::http::HeaderMap, body: axum::body::Bytes| async move {
+                let mut headers = std::collections::HashMap::new();
+                for h in input_headers {
+                    if let Some(value) = axum_headers.get(&h) {
+                        headers.insert(h, value.to_str().unwrap_or_default().to_string());
+                    }
+                }
+                let result = callback(shared_state, HandlerInput { body, headers }).await;
                 HandlerResultWrap(result).into_response()
             }
         };
         if readonly {
             // Partly API over HTTP standard requires to expose readonly methods on GET and POST
-            app = app.route(format!("/{}", name).as_str(), get(axum_handler.clone()));
+            app = app.route(format!("/{}", name).as_str(), get(axum_handler2.clone()));
         }
-        app = app.route(format!("/{}", name).as_str(), post(axum_handler));
+        app = app.route(format!("/{}", name).as_str(), post(axum_handler2));
     }
     app
 }

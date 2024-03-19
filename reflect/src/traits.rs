@@ -409,3 +409,36 @@ impl<T: Output> Output for std::marker::PhantomData<T> {
         )
     }
 }
+
+impl Input for std::convert::Infallible {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        reflect_type_simple(
+            schema,
+            "std::convert::Infallible",
+            "Never type",
+            None,
+        )
+    }
+}
+impl Output for std::convert::Infallible {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        reflect_type_simple(
+            schema,
+            "std::convert::Infallible",
+            "Never type",
+            None,
+        )
+    }
+}
+
+impl Input for () {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        reflect_type_simple(schema, "()", "Unit type", None)
+    }
+}
+
+impl Output for () {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        reflect_type_simple(schema, "()", "Unit type", None)
+    }
+}

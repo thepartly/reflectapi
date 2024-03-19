@@ -101,13 +101,9 @@ pub struct Function {
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub output_type: Option<TypeReference>,
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub output_headers: Option<TypeReference>,
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub error_type: Option<TypeReference>,
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub error_headers: Option<TypeReference>,
 
     ///
     /// Supported content types for request and response bodies.
@@ -134,9 +130,7 @@ impl Function {
             input_type: None,
             input_headers: None,
             output_type: None,
-            output_headers: None,
             error_type: None,
-            error_headers: None,
             serialization: Vec::new(),
             readonly: false,
         }

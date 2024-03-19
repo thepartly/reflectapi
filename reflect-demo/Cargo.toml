@@ -9,6 +9,7 @@ edition = "2021"
 reflect = { workspace = true, features = ["uuid"] }
 reflect-builder = { workspace = true }
 reflect-axum = { workspace = true }
+reflect-empty = { workspace = true }
 
 tokio = { version = "1.5.0", features = ["full"] }
 axum = "0.7.4"

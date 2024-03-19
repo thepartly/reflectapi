@@ -1,5 +1,4 @@
-GET http://localhost:3000/example
+GET http://localhost:3000/example3
+Content-Type:   application/json
+traceparent:    blah
 
-{
-    
-}

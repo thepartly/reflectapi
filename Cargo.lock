@@ -617,6 +617,7 @@ dependencies = [
  "reflect",
  "reflect-axum",
  "reflect-builder",
+ "reflect-empty",
  "serde",
  "serde_json",
  "tokio",
@@ -634,6 +635,14 @@ dependencies = [
  "reflect-schema",
  "serde_derive_internals",
  "syn 2.0.52",
+]
+
+[[package]]
+name = "reflect-empty"
+version = "0.1.0"
+dependencies = [
+ "reflect",
+ "serde",
 ]
 
 [[package]]
