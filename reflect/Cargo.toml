@@ -19,7 +19,6 @@ axum = { version = "0.7.4", optional = true }
 
 [features]
 uuid = ["dep:uuid"]
-empty = ["dep:serde"]
-infallible = ["dep:serde"]
+serde = ["dep:serde"]
 builder = ["dep:serde", "dep:serde_json", "dep:bytes"]
 axum = ["dep:axum"]

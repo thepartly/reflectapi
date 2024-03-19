@@ -16,10 +16,10 @@ where
         let Handler {
             name,
             readonly,
-            required_input_headers: input_headers,
+            input_headers,
             callback,
         } = handler;
-        let axum_handler2 = {
+        let axum_handler = {
             let shared_state = app_state.clone();
             move |axum_headers: axum::http::HeaderMap, body: axum::body::Bytes| async move {
                 let mut headers = std::collections::HashMap::new();
@@ -34,9 +34,9 @@ where
         };
         if readonly {
             // Partly API over HTTP standard requires to expose readonly methods on GET and POST
-            app = app.route(format!("/{}", name).as_str(), get(axum_handler2.clone()));
+            app = app.route(format!("/{}", name).as_str(), get(axum_handler.clone()));
         }
-        app = app.route(format!("/{}", name).as_str(), post(axum_handler2));
+        app = app.route(format!("/{}", name).as_str(), post(axum_handler));
     }
     app
 }

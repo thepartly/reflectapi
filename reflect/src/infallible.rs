@@ -1,6 +1,9 @@
 use crate::StatusCode;
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[cfg_attr(
+    any(feature = "serde", feature = "builder"),
+    derive(serde::Deserialize, serde::Serialize)
+)]
 pub struct Infallible {}
 
 #[cfg(feature = "builder")]

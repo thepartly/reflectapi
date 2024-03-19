@@ -133,6 +133,24 @@ impl<T: Output> Output for Option<T> {
     }
 }
 
+impl<T: crate::Input> crate::Input for crate::Option<T> {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_option(schema),
+            vec![T::reflect_input_type(schema)],
+        )
+    }
+}
+impl<T: Output> Output for crate::Option<T> {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_option(schema),
+            vec![T::reflect_output_type(schema)],
+        )
+    }
+}
+
+
 fn reflect_type_hashmap(schema: &mut crate::Schema) -> String {
     let type_name = "std::collections::HashMap";
     if schema.reserve_type(type_name) {

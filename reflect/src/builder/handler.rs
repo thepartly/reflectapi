@@ -18,14 +18,13 @@ pub type HandlerFuture =
 
 pub type HandlerCallback<S> = dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync;
 
-#[derive(Clone)]
 pub struct Handler<S>
 where
-    S: Send,
+    S: Send + 'static,
 {
     pub name: String,
     pub readonly: bool,
-    pub required_input_headers: Vec<String>,
+    pub input_headers: Vec<String>,
     pub callback: Arc<HandlerCallback<S>>,
 }
 
@@ -33,46 +32,21 @@ impl<S> Handler<S>
 where
     S: Send + 'static,
 {
-    pub fn call(&self, state: S, req: HandlerInput) -> HandlerFuture {
-        (self.callback)(state, req)
-    }
-}
-
-#[derive(Clone)]
-pub struct HandlerTyped<S, I, O, E, H>
-where
-    S: Send,
-    I: crate::Input + serde::de::DeserializeOwned + Send,
-    H: crate::Input + serde::de::DeserializeOwned + Send,
-    O: crate::Output + serde::ser::Serialize + Send,
-    E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send,
-{
-    pub callback: Arc<HandlerCallback<S>>,
-    marker_i: std::marker::PhantomData<I>,
-    marker_o: std::marker::PhantomData<O>,
-    marker_e: std::marker::PhantomData<E>,
-    marker_ih: std::marker::PhantomData<H>,
-}
-
-impl<S, I, O, E, H> HandlerTyped<S, I, O, E, H>
-where
-    S: Send + 'static,
-    I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-    H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-    O: crate::Output + serde::ser::Serialize + Send + 'static,
-    E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
-{
-    pub fn new<F, Fut, R>(
+    pub fn new<F, Fut, R, I, O, E, H>(
         name: &str,
         description: &str,
         readonly: bool,
-        f: F,
+        handler: F,
         schema: &mut Schema,
     ) -> Handler<S>
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
         Fut: std::future::Future<Output = R> + Send + 'static,
         R: Into<crate::Result<O, E>> + 'static,
+        I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+        H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+        O: crate::Output + serde::ser::Serialize + Send + 'static,
+        E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
         let input_type = I::reflect_input_type(schema);
         let output_type = O::reflect_output_type(schema);
@@ -124,14 +98,22 @@ where
         Handler {
             name: name.into(),
             readonly,
-            required_input_headers: input_headers_names.clone(),
+            input_headers: input_headers_names.clone(),
             callback: Arc::new(move |state: S, input: HandlerInput| {
-                Box::pin(Self::handler_wrap(state, input, f)) as _
+                Box::pin(Self::handler_wrap(state, input, handler)) as _
             }),
         }
     }
 
-    async fn handler_wrap<F, Fut, R>(state: S, input: HandlerInput, handler: F) -> HandlerOutput
+    pub fn call(&self, state: S, req: HandlerInput) -> HandlerFuture {
+        (self.callback)(state, req)
+    }
+
+    async fn handler_wrap<F, Fut, R, I, H, O, E>(
+        state: S,
+        input: HandlerInput,
+        handler: F,
+    ) -> HandlerOutput
     where
         I: crate::Input + serde::de::DeserializeOwned,
         H: crate::Input + serde::de::DeserializeOwned,

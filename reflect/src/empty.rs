@@ -1,4 +1,8 @@
-#[derive(Debug, Default, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Default, Clone)]
+#[cfg_attr(
+    any(feature = "serde", feature = "builder"),
+    derive(serde::Deserialize, serde::Serialize)
+)]
 pub struct Empty {}
 
 impl Empty {
@@ -34,10 +38,3 @@ impl crate::Output for Empty {
         )
     }
 }
-
-// #[cfg(feature = "builder")]
-// impl crate::builder::ToStatusCode for Empty {
-//     fn to_status_code(&self) -> u16 {
-//         422 // unprocessable entity, but details are empty
-//     }
-// }

@@ -9,9 +9,9 @@ struct AppState {
 async fn main() {
     let mut schema = reflect::Builder::new();
     // let a = Handler::new("".into(), false, handler_example);
-    schema.with_handler("example", "example function", true, handler_example);
-    schema.with_handler("example2", "example function2", true, handler_example_2);
-    schema.with_handler("example3", "example function2", true, handler_example_3);
+    schema.route("example", "example function", true, handler_example);
+    schema.route("example2", "example function2", true, handler_example_2);
+    schema.route("example3", "example function2", true, handler_example_3);
     let (schema, handlers) = schema.build();
 
     tokio::fs::write(
@@ -42,7 +42,6 @@ struct ExampleRequestHeaders {
 struct ExampleResponse {
     message: String,
 }
-struct ExampleResponseHeaders {}
 #[derive(reflect::Output, serde::Serialize)]
 enum ExampleError {
     Error1,
@@ -50,11 +49,9 @@ enum ExampleError {
 
 impl reflect::StatusCode for ExampleError {
     fn status_code(&self) -> u16 {
-        500
+        axum::http::StatusCode::UNPROCESSABLE_ENTITY.as_u16()
     }
 }
-
-enum ExampleErrorHeaders {}
 
 async fn handler_example(
     state: std::sync::Arc<AppState>,

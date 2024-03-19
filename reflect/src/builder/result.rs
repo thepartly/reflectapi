@@ -1,4 +1,3 @@
-
 pub trait StatusCode {
     fn status_code(&self) -> u16;
 }
