@@ -5,7 +5,7 @@ use axum::{
     Router,
 };
 
-use crate::{Handler, HandlerError, HandlerInput, HandlerOutput};
+use crate::{Handler, HandlerInput, HandlerOutput};
 
 pub fn into_axum_app<S>(app_state: S, handlers: Vec<Handler<S>>) -> Router
 where
@@ -29,7 +29,7 @@ where
                     }
                 }
                 let result = callback(shared_state, HandlerInput { body, headers }).await;
-                HandlerResultWrap(result).into_response()
+                result.into_response()
             }
         };
         if readonly {
@@ -41,25 +41,12 @@ where
     app
 }
 
-struct HandlerResultWrap(Result<HandlerOutput, HandlerError>);
-
-impl IntoResponse for HandlerResultWrap {
+impl IntoResponse for HandlerOutput {
     fn into_response(self) -> axum::http::Response<axum::body::Body> {
-        match self.0 {
-            Ok(response) => {
-                let mut builder = Builder::new().status(200);
-                for (key, value) in response.headers {
-                    builder = builder.header(key, value);
-                }
-                builder.body(response.body.into()).unwrap()
-            }
-            Err(error) => {
-                let mut builder = Builder::new().status(error.code);
-                for (key, value) in error.headers {
-                    builder = builder.header(key, value);
-                }
-                builder.body(error.body.into()).unwrap()
-            }
+        let mut builder = Builder::new().status(self.code);
+        for (key, value) in self.headers {
+            builder = builder.header(key, value);
         }
+        builder.body(self.body.into()).unwrap()
     }
 }

@@ -10,8 +10,8 @@ async fn main() {
     let mut schema = reflect::Builder::new();
     // let a = Handler::new("".into(), false, handler_example);
     schema.with_handler("example", "example function", true, handler_example);
-    schema.with_handler_infallible("example2", "example function2", true, handler_example_2);
-    schema.with_handler_infallible("example3", "example function2", true, handler_example_3);
+    schema.with_handler("example2", "example function2", true, handler_example_2);
+    schema.with_handler("example3", "example function2", true, handler_example_3);
     let (schema, handlers) = schema.build();
 
     tokio::fs::write(
@@ -36,7 +36,7 @@ struct ExampleRequest {
 
 #[derive(reflect::Input, serde::Deserialize)]
 struct ExampleRequestHeaders {
-    name: String
+    name: String,
 }
 #[derive(reflect::Output, serde::Serialize)]
 struct ExampleResponse {
@@ -47,8 +47,9 @@ struct ExampleResponseHeaders {}
 enum ExampleError {
     Error1,
 }
-impl reflect::ToStatusCode for ExampleError {
-    fn to_status_code(&self) -> u16 {
+
+impl reflect::StatusCode for ExampleError {
+    fn status_code(&self) -> u16 {
         500
     }
 }
@@ -61,10 +62,10 @@ async fn handler_example(
     headers: ExampleRequestHeaders,
 ) -> Result<ExampleResponse, ExampleError> {
     println!("called");
-    Ok(ExampleResponse {
-        message: format!("hello {}", request.input_data),
-    })
-    // Err(ExampleError::Error1)
+    // Ok(ExampleResponse {
+    //     message: format!("hello {}", request.input_data),
+    // })
+    Err(ExampleError::Error1)
 }
 
 async fn handler_example_3(

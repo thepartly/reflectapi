@@ -35,9 +35,9 @@ impl crate::Output for Empty {
     }
 }
 
-#[cfg(feature = "builder")]
-impl crate::builder::ToStatusCode for Empty {
-    fn to_status_code(&self) -> u16 {
-        422 // unprocessable entity, but details are empty
-    }
-}
+// #[cfg(feature = "builder")]
+// impl crate::builder::ToStatusCode for Empty {
+//     fn to_status_code(&self) -> u16 {
+//         422 // unprocessable entity, but details are empty
+//     }
+// }

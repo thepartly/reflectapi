@@ -1,9 +1,8 @@
 mod builder;
 mod handler;
+mod result;
 
 pub use builder::*;
 pub use handler::*;
+pub use result::*;
 
-pub trait ToStatusCode {
-    fn to_status_code(&self) -> u16;
-}

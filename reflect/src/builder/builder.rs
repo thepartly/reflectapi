@@ -1,6 +1,6 @@
 use crate::Schema;
 
-use crate::{Handler, HandlerTyped, ToStatusCode};
+use crate::{Handler, HandlerTyped, StatusCode};
 
 pub struct Builder<S>
 where
@@ -21,7 +21,7 @@ where
         }
     }
 
-    pub fn with_handler<F, Fut, I, O, E, H>(
+    pub fn with_handler<F, Fut, R, I, O, E, H>(
         &mut self,
         name: &str,
         description: &str,
@@ -30,35 +30,16 @@ where
     ) -> &mut Self
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
-        Fut: std::future::Future<Output = Result<O, E>> + Send + 'static,
+        Fut: std::future::Future<Output = R> + Send + 'static,
+        R: Into<crate::Result<O, E>> + 'static,
         I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         O: crate::Output + serde::ser::Serialize + Send + 'static,
-        E: crate::Output + serde::ser::Serialize + ToStatusCode + Send + 'static,
+        E: crate::Output + serde::ser::Serialize + StatusCode + Send + 'static,
     {
         let route = HandlerTyped::new(name, description, readonly, handler, &mut self.schema);
         self.handlers.push(route);
         self
-    }
-
-    pub fn with_handler_infallible<F, Fut, I, O, H>(
-        &mut self,
-        name: &str,
-        description: &str,
-        readonly: bool,
-        handler: F,
-    ) -> &mut Self
-    where
-        F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
-        Fut: std::future::Future<Output = O> + Send + 'static,
-        I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        O: crate::Output + serde::ser::Serialize + Send + 'static,
-    {
-        self.with_handler(name, description, readonly, move |s, i, ih| async move {
-            let r = handler(s, i, ih).await;
-            Ok::<O, crate::Infallible>(r)
-        })
     }
 
     pub fn build(self) -> (Schema, Vec<Handler<S>>) {

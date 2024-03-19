@@ -2,27 +2,19 @@ use std::sync::Arc;
 
 use crate::{Function, Schema, Struct};
 
-use crate::ToStatusCode;
-
 pub struct HandlerInput {
     pub body: bytes::Bytes,
     pub headers: std::collections::HashMap<String, String>,
 }
 
 pub struct HandlerOutput {
-    pub body: bytes::Bytes,
-    pub headers: std::collections::HashMap<String, String>,
-}
-
-pub struct HandlerError {
     pub code: u16,
     pub body: bytes::Bytes,
     pub headers: std::collections::HashMap<String, String>,
 }
 
-pub type HandlerFuture = std::pin::Pin<
-    Box<dyn std::future::Future<Output = Result<HandlerOutput, HandlerError>> + Send + 'static>,
->;
+pub type HandlerFuture =
+    std::pin::Pin<Box<dyn std::future::Future<Output = HandlerOutput> + Send + 'static>>;
 
 pub type HandlerCallback<S> = dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync;
 
@@ -53,7 +45,7 @@ where
     I: crate::Input + serde::de::DeserializeOwned + Send,
     H: crate::Input + serde::de::DeserializeOwned + Send,
     O: crate::Output + serde::ser::Serialize + Send,
-    E: crate::Output + serde::ser::Serialize + ToStatusCode + Send,
+    E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send,
 {
     pub callback: Arc<HandlerCallback<S>>,
     marker_i: std::marker::PhantomData<I>,
@@ -68,9 +60,9 @@ where
     I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
     H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
     O: crate::Output + serde::ser::Serialize + Send + 'static,
-    E: crate::Output + serde::ser::Serialize + ToStatusCode + Send + 'static,
+    E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
 {
-    pub fn new<F, Fut>(
+    pub fn new<F, Fut, R>(
         name: &str,
         description: &str,
         readonly: bool,
@@ -79,7 +71,8 @@ where
     ) -> Handler<S>
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
-        Fut: std::future::Future<Output = Result<O, E>> + Send + 'static,
+        Fut: std::future::Future<Output = R> + Send + 'static,
+        R: Into<crate::Result<O, E>> + 'static,
     {
         let input_type = I::reflect_input_type(schema);
         let output_type = O::reflect_output_type(schema);
@@ -138,18 +131,15 @@ where
         }
     }
 
-    async fn handler_wrap<F, Fut>(
-        state: S,
-        input: HandlerInput,
-        handler: F,
-    ) -> Result<HandlerOutput, HandlerError>
+    async fn handler_wrap<F, Fut, R>(state: S, input: HandlerInput, handler: F) -> HandlerOutput
     where
         I: crate::Input + serde::de::DeserializeOwned,
         H: crate::Input + serde::de::DeserializeOwned,
         O: crate::Output + serde::ser::Serialize,
-        E: crate::Output + serde::ser::Serialize + ToStatusCode,
+        E: crate::Output + serde::ser::Serialize + crate::StatusCode,
         F: Fn(S, I, H) -> Fut,
-        Fut: std::future::Future<Output = Result<O, E>> + Send + 'static,
+        Fut: std::future::Future<Output = R> + Send + 'static,
+        R: Into<crate::Result<O, E>>,
     {
         let mut input_headers = input.headers;
         let input = if input.body.len() != 0 {
@@ -160,13 +150,13 @@ where
         let input = match input {
             Ok(r) => r,
             Err(err) => {
-                return Err(HandlerError {
+                return HandlerOutput {
                     code: 400,
                     body: bytes::Bytes::from(
                         format!("Failed to parse request body: {}", err).into_bytes(),
                     ),
                     headers: std::collections::HashMap::new(),
-                });
+                };
             }
         };
 
@@ -191,65 +181,38 @@ where
         let input_headers = match input_headers {
             Ok(r) => r,
             Err(err) => {
-                return Err(HandlerError {
+                return HandlerOutput {
                     code: 400,
                     body: bytes::Bytes::from(
                         format!("Failed to parse request headers: {}", err).into_bytes(),
                     ),
                     headers: std::collections::HashMap::new(),
-                });
+                };
             }
         };
 
         let output = handler(state, input, input_headers).await;
-        let result = match output {
-            Ok(output) => {
-                let output = serde_json::to_vec(&output);
-                let output = match output {
-                    Ok(r) => r,
-                    Err(err) => {
-                        response_headers
-                            .insert("content-type".to_string(), "text/plain".to_string());
-                        return Err(HandlerError {
-                            code: 500,
-                            body: bytes::Bytes::from(
-                                format!("Failed to serialize response body: {}", err).into_bytes(),
-                            ),
-                            headers: response_headers,
-                        });
-                    }
-                };
+        let output: crate::Result<O, E> = output.into();
 
-                Ok(HandlerOutput {
-                    body: bytes::Bytes::from(output),
-                    headers: response_headers,
-                })
-            }
+        let output_serialized = serde_json::to_vec(&output);
+        let output_serialized = match output_serialized {
+            Ok(r) => r,
             Err(err) => {
-                let status_code = err.to_status_code();
-                let output = serde_json::to_vec(&err);
-                let output = match output {
-                    Ok(r) => r,
-                    Err(err) => {
-                        response_headers
-                            .insert("content-type".to_string(), "text/plain".to_string());
-                        return Err(HandlerError {
-                            code: 500,
-                            body: bytes::Bytes::from(
-                                format!("Failed to serialize response error: {}", err).into_bytes(),
-                            ),
-                            headers: response_headers,
-                        });
-                    }
-                };
-                Err(HandlerError {
-                    code: status_code,
-                    body: bytes::Bytes::from(output),
+                response_headers.insert("content-type".to_string(), "text/plain".to_string());
+                return HandlerOutput {
+                    code: 500,
+                    body: bytes::Bytes::from(
+                        format!("Failed to serialize response body: {}", err).into_bytes(),
+                    ),
                     headers: response_headers,
-                })
+                };
             }
         };
 
-        result
+        HandlerOutput {
+            code: output.status_code(),
+            body: bytes::Bytes::from(output_serialized),
+            headers: response_headers,
+        }
     }
 }

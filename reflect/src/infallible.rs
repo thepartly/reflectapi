@@ -1,11 +1,11 @@
-use crate::ToStatusCode;
+use crate::StatusCode;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct Infallible {}
 
 #[cfg(feature = "builder")]
-impl ToStatusCode for Infallible {
-    fn to_status_code(&self) -> u16 {
+impl StatusCode for Infallible {
+    fn status_code(&self) -> u16 {
         500
     }
 }

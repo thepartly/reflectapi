@@ -1,8 +1,8 @@
-GET http://localhost:3000/example2
+GET http://localhost:3000/example
 Content-Type:   application/json
 traceparent:    blah
 name: 1
 
 {
-    "inputData": "asadas"
+    "inputData": "1"
 }
