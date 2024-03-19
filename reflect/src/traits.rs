@@ -6,7 +6,7 @@ pub trait Output {
     fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference;
 }
 
-fn reflect_type_simple(
+pub(crate) fn reflect_type_simple(
     schema: &mut crate::Schema,
     type_name: &str,
     description: &str,

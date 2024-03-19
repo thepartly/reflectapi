@@ -1,4 +1,4 @@
-use reflect::Schema;
+use crate::Schema;
 
 use crate::{Handler, HandlerTyped, ToStatusCode};
 
@@ -31,10 +31,10 @@ where
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
         Fut: std::future::Future<Output = Result<O, E>> + Send + 'static,
-        I: reflect::Input + serde::de::DeserializeOwned + Send + 'static,
-        H: reflect::Input + serde::de::DeserializeOwned + Send + 'static,
-        O: reflect::Output + serde::ser::Serialize + Send + 'static,
-        E: reflect::Output + serde::ser::Serialize + ToStatusCode + Send + 'static,
+        I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+        H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+        O: crate::Output + serde::ser::Serialize + Send + 'static,
+        E: crate::Output + serde::ser::Serialize + ToStatusCode + Send + 'static,
     {
         let route = HandlerTyped::new(name, description, readonly, handler, &mut self.schema);
         self.handlers.push(route);
@@ -51,13 +51,13 @@ where
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
         Fut: std::future::Future<Output = O> + Send + 'static,
-        I: reflect::Input + serde::de::DeserializeOwned + Send + 'static,
-        H: reflect::Input + serde::de::DeserializeOwned + Send + 'static,
-        O: reflect::Output + serde::ser::Serialize + Send + 'static,
+        I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+        H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+        O: crate::Output + serde::ser::Serialize + Send + 'static,
     {
         self.with_handler(name, description, readonly, move |s, i, ih| async move {
             let r = handler(s, i, ih).await;
-            Ok::<O, crate::infallible::Infallible>(r)
+            Ok::<O, crate::Infallible>(r)
         })
     }
 

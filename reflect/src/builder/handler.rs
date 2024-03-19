@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use reflect::{Function, Schema, Struct};
+use crate::{Function, Schema, Struct};
 
 use crate::ToStatusCode;
 
@@ -50,10 +50,10 @@ where
 pub struct HandlerTyped<S, I, O, E, H>
 where
     S: Send,
-    I: reflect::Input + serde::de::DeserializeOwned + Send,
-    H: reflect::Input + serde::de::DeserializeOwned + Send,
-    O: reflect::Output + serde::ser::Serialize + Send,
-    E: reflect::Output + serde::ser::Serialize + ToStatusCode + Send,
+    I: crate::Input + serde::de::DeserializeOwned + Send,
+    H: crate::Input + serde::de::DeserializeOwned + Send,
+    O: crate::Output + serde::ser::Serialize + Send,
+    E: crate::Output + serde::ser::Serialize + ToStatusCode + Send,
 {
     pub callback: Arc<HandlerCallback<S>>,
     marker_i: std::marker::PhantomData<I>,
@@ -65,10 +65,10 @@ where
 impl<S, I, O, E, H> HandlerTyped<S, I, O, E, H>
 where
     S: Send + 'static,
-    I: reflect::Input + serde::de::DeserializeOwned + Send + 'static,
-    H: reflect::Input + serde::de::DeserializeOwned + Send + 'static,
-    O: reflect::Output + serde::ser::Serialize + Send + 'static,
-    E: reflect::Output + serde::ser::Serialize + ToStatusCode + Send + 'static,
+    I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+    H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+    O: crate::Output + serde::ser::Serialize + Send + 'static,
+    E: crate::Output + serde::ser::Serialize + ToStatusCode + Send + 'static,
 {
     pub fn new<F, Fut>(
         name: &str,
@@ -89,7 +89,7 @@ where
         let mut input_headers_names = schema
             .get_type(&input_headers.name.as_str())
             .map(|type_def| match type_def {
-                reflect::Type::Struct(Struct { fields, .. }) => {
+                crate::Type::Struct(Struct { fields, .. }) => {
                     fields.iter().map(|field| field.name.clone()).collect()
                 }
                 _ => vec![],
@@ -119,7 +119,7 @@ where
             } else {
                 Some(input_headers)
             },
-            serialization: vec![reflect::SerializationMode::Json],
+            serialization: vec![crate::SerializationMode::Json],
             readonly,
         };
         schema.functions.push(function_def);
@@ -144,19 +144,19 @@ where
         handler: F,
     ) -> Result<HandlerOutput, HandlerError>
     where
-        I: reflect::Input + serde::de::DeserializeOwned,
-        H: reflect::Input + serde::de::DeserializeOwned,
-        O: reflect::Output + serde::ser::Serialize,
-        E: reflect::Output + serde::ser::Serialize + ToStatusCode,
+        I: crate::Input + serde::de::DeserializeOwned,
+        H: crate::Input + serde::de::DeserializeOwned,
+        O: crate::Output + serde::ser::Serialize,
+        E: crate::Output + serde::ser::Serialize + ToStatusCode,
         F: Fn(S, I, H) -> Fut,
         Fut: std::future::Future<Output = Result<O, E>> + Send + 'static,
     {
         let mut input_headers = input.headers;
-        let input = serde_json::from_slice::<I>(if input.body.len() == 0 {
-            "{}".as_bytes()
+        let input = if input.body.len() != 0 {
+            serde_json::from_slice::<I>(input.body.as_ref())
         } else {
-            input.body.as_ref()
-        });
+            serde_json::from_value::<I>(serde_json::Value::Object(serde_json::Map::new()))
+        };
         let input = match input {
             Ok(r) => r,
             Err(err) => {

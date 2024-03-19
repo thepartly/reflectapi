@@ -7,6 +7,9 @@
       "input_type": {
         "name": "reflect_demo::ExampleRequest"
       },
+      "input_headers": {
+        "name": "reflect_demo::ExampleRequestHeaders"
+      },
       "output_type": {
         "name": "reflect_demo::ExampleResponse"
       },
@@ -24,11 +27,14 @@
       "input_type": {
         "name": "reflect_demo::ExampleRequest"
       },
+      "input_headers": {
+        "name": "reflect_demo::ExampleRequestHeaders"
+      },
       "output_type": {
         "name": "reflect_demo::ExampleResponse"
       },
       "error_type": {
-        "name": "reflect_builder::infallible::Infallible"
+        "name": "reflect::infallible::Infallible"
       },
       "serialization": [
         "Json"
@@ -39,13 +45,13 @@
       "name": "example3",
       "description": "example function2",
       "input_type": {
-        "name": "reflect_empty::Empty"
+        "name": "reflect::empty::Empty"
       },
       "output_type": {
-        "name": "reflect_empty::Empty"
+        "name": "reflect::empty::Empty"
       },
       "error_type": {
-        "name": "reflect_builder::infallible::Infallible"
+        "name": "reflect::infallible::Infallible"
       },
       "serialization": [
         "Json"
@@ -96,15 +102,26 @@
     },
     {
       "kind": "struct",
-      "name": "reflect_demo::ExampleRequestHeaders"
+      "name": "reflect_demo::ExampleRequestHeaders",
+      "fields": [
+        {
+          "name": "name",
+          "type": {
+            "name": "std::string::String"
+          },
+          "required": true
+        }
+      ]
     },
     {
-      "kind": "struct",
-      "name": "reflect_builder::infallible::Infallible"
+      "kind": "primitive",
+      "name": "reflect::infallible::Infallible",
+      "description": "Error object which is expected to be never returned"
     },
     {
-      "kind": "struct",
-      "name": "reflect_empty::Empty"
+      "kind": "primitive",
+      "name": "reflect::empty::Empty",
+      "description": "Struct object with no fields"
     }
   ]
 }

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use axum::{
     http::response::Builder,
     response::IntoResponse,
@@ -7,7 +5,7 @@ use axum::{
     Router,
 };
 
-use reflect_builder::{Handler, HandlerInput, HandlerOutput};
+use crate::{Handler, HandlerError, HandlerInput, HandlerOutput};
 
 pub fn into_axum_app<S>(app_state: S, handlers: Vec<Handler<S>>) -> Router
 where
@@ -43,7 +41,7 @@ where
     app
 }
 
-struct HandlerResultWrap(Result<reflect_builder::HandlerOutput, reflect_builder::HandlerError>);
+struct HandlerResultWrap(Result<HandlerOutput, HandlerError>);
 
 impl IntoResponse for HandlerResultWrap {
     fn into_response(self) -> axum::http::Response<axum::body::Body> {
