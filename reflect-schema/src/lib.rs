@@ -18,10 +18,10 @@ pub struct Schema {
 }
 
 impl Schema {
-    pub fn new() -> Self {
+    pub fn new(name: String, description: String) -> Self {
         Schema {
-            name: String::new(),
-            description: String::new(),
+            name,
+            description,
             functions: Vec::new(),
             types: Vec::new(),
             types_map: std::cell::RefCell::new(HashMap::new()),
@@ -142,6 +142,7 @@ impl Function {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum SerializationMode {
     Json,
     Msgpack,

@@ -4,5 +4,6 @@ traceparent:    blah
 name: 1
 
 {
-    "inputData": "1"
+    "inputData": "1",
+    "input_optional": "asdsa"
 }

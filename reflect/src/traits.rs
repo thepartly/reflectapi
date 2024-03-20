@@ -150,7 +150,6 @@ impl<T: Output> Output for crate::Option<T> {
     }
 }
 
-
 fn reflect_type_hashmap(schema: &mut crate::Schema) -> String {
     let type_name = "std::collections::HashMap";
     if schema.reserve_type(type_name) {
@@ -450,46 +449,3 @@ impl Output for () {
         reflect_type_simple(schema, "()", "Unit type", None)
     }
 }
-
-fn reflect_type_result(schema: &mut crate::Schema) -> String {
-    let type_name = "std::result::Result";
-    if schema.reserve_type(type_name) {
-        let mut type_def = crate::Enum::new(type_name.into());
-        type_def.description = "Result type".into();
-        type_def.parameters = vec!["T".into(), "E".into()];
-        type_def.representation = crate::Representation::External;
-
-        let mut field = crate::Field::new("0".into(), "T".into());
-        field.required = true;
-        let mut variant = crate::Variant::new("Ok".into());
-        variant.description = "Success variant".into();
-        variant.fields.push(field);
-        type_def.variants.push(variant);
-
-        let mut field = crate::Field::new("0".into(), "E".into());
-        field.required = true;
-        let mut variant = crate::Variant::new("Err".into());
-        variant.description = "Error variant".into();
-        variant.fields.push(field);
-        type_def.variants.push(variant);
-
-        schema.insert_type(type_def.into());
-    }
-    type_name.into()
-}
-
-// impl<T: Input, E: Input> Input for std::result::Result<T, E> {
-//     fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
-//         let ok_type = T::reflect_input_type(schema);
-//         let err_type = E::reflect_input_type(schema);
-//         crate::TypeReference::new(reflect_type_result(schema), vec![ok_type, err_type])
-//     }
-// }
-
-// impl<T: Output, E: Output> Output for std::result::Result<T, E> {
-//     fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
-//         let ok_type = T::reflect_output_type(schema);
-//         let err_type = E::reflect_output_type(schema);
-//         crate::TypeReference::new(reflect_type_result(schema), vec![ok_type, err_type])
-//     }
-// }

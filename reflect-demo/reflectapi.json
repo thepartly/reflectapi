@@ -1,5 +1,6 @@
 {
-  "name": "",
+  "name": "demo schema",
+  "description": "demo schema description",
   "functions": [
     {
       "name": "example",
@@ -17,7 +18,7 @@
         "name": "reflect_demo::ExampleError"
       },
       "serialization": [
-        "Json"
+        "json"
       ],
       "readonly": true
     },
@@ -33,28 +34,16 @@
       "output_type": {
         "name": "reflect_demo::ExampleResponse"
       },
-      "error_type": {
-        "name": "reflect::infallible::Infallible"
-      },
       "serialization": [
-        "Json"
+        "json"
       ],
       "readonly": true
     },
     {
       "name": "example3",
       "description": "example function2",
-      "input_type": {
-        "name": "reflect::empty::Empty"
-      },
-      "output_type": {
-        "name": "reflect::empty::Empty"
-      },
-      "error_type": {
-        "name": "reflect::infallible::Infallible"
-      },
       "serialization": [
-        "Json"
+        "json"
       ],
       "readonly": true
     }
@@ -66,13 +55,36 @@
       "description": "UTF-8 encoded string"
     },
     {
+      "kind": "primitive",
+      "name": "std::option::Option",
+      "description": "Optional / Nullable value type",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ]
+    },
+    {
       "kind": "struct",
       "name": "reflect_demo::ExampleRequest",
+      "description": " Some example doc\n test",
       "fields": [
         {
           "name": "inputData",
           "type": {
             "name": "std::string::String"
+          },
+          "required": true
+        },
+        {
+          "name": "input_optional",
+          "type": {
+            "name": "std::option::Option",
+            "parameters": [
+              {
+                "name": "std::string::String"
+              }
+            ]
           },
           "required": true
         }
@@ -84,6 +96,7 @@
       "fields": [
         {
           "name": "message",
+          "description": " some doc",
           "type": {
             "name": "std::string::String"
           },

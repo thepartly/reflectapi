@@ -118,7 +118,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         #[allow(unused_doc_comments)]
         impl #type_generics #type_ident #type_genercis_idents_code #type_generics_where {
             fn #fn_reflect_ident() -> (reflect::TypeReference, reflect::Schema) {
-                let mut schema = reflect::Schema::new();
+                let mut schema = reflect::Schema::new("".into(), "".into());
                 let resolved_type_ref = <Self as #trait_ident>::#fn_reflect_type_ident(&mut schema);
                 schema.sort_types();
                 (resolved_type_ref, schema)

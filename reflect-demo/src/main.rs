@@ -7,7 +7,7 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
-    let mut schema = reflect::Builder::new();
+    let mut schema = reflect::Builder::new("demo schema".into(), "demo schema description".into());
     // let a = Handler::new("".into(), false, handler_example);
     schema.route("example", "example function", true, handler_example);
     schema.route("example2", "example function2", true, handler_example_2);
@@ -28,18 +28,24 @@ async fn main() {
     axum::serve(listener, axum_app).await.unwrap();
 }
 
+/// Some example doc
+/// test
 #[derive(reflect::Input, serde::Deserialize)]
 struct ExampleRequest {
     #[serde(rename = "inputData")]
     input_data: String,
+
+    input_optional: Option<String>,
 }
 
 #[derive(reflect::Input, serde::Deserialize)]
 struct ExampleRequestHeaders {
     name: String,
 }
+
 #[derive(reflect::Output, serde::Serialize)]
 struct ExampleResponse {
+    /// some doc
     message: String,
 }
 #[derive(reflect::Output, serde::Serialize)]
@@ -87,7 +93,12 @@ async fn handler_example_2(
 ) -> ExampleResponse {
     println!("called");
     ExampleResponse {
-        message: format!("hello {} -> {}", request.input_data, headers.name),
+        message: format!(
+            "hello {} -> {} / {}",
+            request.input_data,
+            headers.name,
+            request.input_optional.unwrap_or_default()
+        ),
     }
     // Err(ExampleError::Error1)
 }

@@ -1,4 +1,3 @@
-
 pub struct Builder<S>
 where
     S: Send + 'static,
@@ -11,9 +10,9 @@ impl<S> Builder<S>
 where
     S: Send + 'static,
 {
-    pub fn new() -> Self {
+    pub fn new(name: String, description: String) -> Self {
         Self {
-            schema: crate::Schema::new(),
+            schema: crate::Schema::new(name, description),
             handlers: Vec::new(),
         }
     }

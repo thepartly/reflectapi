@@ -1,7 +1,11 @@
-edition = "2021"
-
 [workspace]
-members = ["reflect", "reflect-demo", "reflect-derive", "reflect-schema"]
+members = [
+    "reflect",
+    "reflect-cli",
+    "reflect-demo",
+    "reflect-derive",
+    "reflect-schema",
+]
 resolver = "2"
 
 [workspace.dependencies]

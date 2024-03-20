@@ -32,7 +32,7 @@ impl<S> Handler<S>
 where
     S: Send + 'static,
 {
-    pub fn new<F, Fut, R, I, O, E, H>(
+    pub(crate) fn new<F, Fut, R, I, O, E, H>(
         name: &str,
         description: &str,
         readonly: bool,
@@ -66,17 +66,17 @@ where
         let function_def = Function {
             name: name.into(),
             description: description.into(),
-            input_type: if input_type.name == "()" {
+            input_type: if input_type.name == "reflect::empty::Empty" {
                 None
             } else {
                 Some(input_type)
             },
-            output_type: if output_type.name == "()" {
+            output_type: if output_type.name == "reflect::empty::Empty" {
                 None
             } else {
                 Some(output_type)
             },
-            error_type: if error_type.name == "reflect_builder::Infallible" {
+            error_type: if error_type.name == "reflect::infallible::Infallible" {
                 None
             } else {
                 Some(error_type)
@@ -91,7 +91,7 @@ where
         };
         schema.functions.push(function_def);
 
-        // inject system header rquirements used by the handler wrapper
+        // inject system header requirements used by the handler wrapper
         input_headers_names.push("content-type".into());
         input_headers_names.push("traceparent".into());
 
@@ -103,10 +103,6 @@ where
                 Box::pin(Self::handler_wrap(state, input, handler)) as _
             }),
         }
-    }
-
-    pub fn call(&self, state: S, req: HandlerInput) -> HandlerFuture {
-        (self.callback)(state, req)
     }
 
     async fn handler_wrap<F, Fut, R, I, H, O, E>(
