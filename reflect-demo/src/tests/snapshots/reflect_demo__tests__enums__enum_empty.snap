@@ -1,17 +1,17 @@
 ---
 source: reflect-demo/src/tests/enums.rs
-expression: "TestEnumEmpty::reflect_input()"
+expression: "super::into_input_schema::<TestEnumEmpty>().input_types"
 ---
-[
-  {
-    "name": "reflect_demo::tests::enums::TestEnumEmpty"
-  },
-  {
-    "types": [
-      {
-        "kind": "enum",
-        "name": "reflect_demo::tests::enums::TestEnumEmpty"
-      }
-    ]
-  }
-]
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "enum",
+      "name": "reflect_demo::tests::enums::TestEnumEmpty"
+    }
+  ]
+}

@@ -63,6 +63,9 @@ where
         for (from, to) in renaming {
             self.schema.rename_type(from, to);
         }
+        self.schema.input_types.sort_types();
+        self.schema.output_types.sort_types();
+
         let mut errors = Vec::new();
         for validator in validation {
             errors.extend(validator(&self.schema));

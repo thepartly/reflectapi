@@ -1,6 +1,10 @@
+#[macro_use]
+mod assert;
 mod basic;
-mod generics;
 mod enums;
+mod generics;
 mod serde;
 
 mod test_lib;
+
+pub(crate) use assert::*;

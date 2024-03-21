@@ -3,10 +3,7 @@
 struct TestStructRename {}
 #[test]
 fn test_struct_rename() {
-    insta::assert_json_snapshot!((
-        TestStructRename::reflect_input(),
-        TestStructRename::reflect_output()
-    ));
+    assert_snapshot!(TestStructRename);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -14,10 +11,7 @@ fn test_struct_rename() {
 struct TestStructRenameDifferently {}
 #[test]
 fn test_struct_rename_differently() {
-    insta::assert_json_snapshot!((
-        TestStructRenameDifferently::reflect_input(),
-        TestStructRenameDifferently::reflect_output()
-    ));
+    assert_snapshot!(TestStructRenameDifferently);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -27,10 +21,7 @@ struct TestStructRenameAll {
 }
 #[test]
 fn test_struct_rename_all() {
-    insta::assert_json_snapshot!((
-        TestStructRenameAll::reflect_input(),
-        TestStructRenameAll::reflect_output()
-    ));
+    assert_snapshot!(TestStructRenameAll);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -40,10 +31,7 @@ struct TestStructRenameAllDifferently {
 }
 #[test]
 fn test_struct_rename_all_differently() {
-    insta::assert_json_snapshot!((
-        TestStructRenameAllDifferently::reflect_input(),
-        TestStructRenameAllDifferently::reflect_output()
-    ));
+    assert_snapshot!(TestStructRenameAllDifferently);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -53,10 +41,7 @@ struct TestStructRenameAllPascalCase {
 }
 #[test]
 fn test_struct_rename_all_pascal_case() {
-    insta::assert_json_snapshot!((
-        TestStructRenameAllPascalCase::reflect_input(),
-        TestStructRenameAllPascalCase::reflect_output()
-    ));
+    assert_snapshot!(TestStructRenameAllPascalCase);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -66,10 +51,7 @@ struct TestStructRenameField {
 }
 #[test]
 fn test_struct_rename_field() {
-    insta::assert_json_snapshot!((
-        TestStructRenameField::reflect_input(),
-        TestStructRenameField::reflect_output()
-    ));
+    assert_snapshot!(TestStructRenameField);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -82,10 +64,7 @@ enum TestEnumRename {
 }
 #[test]
 fn test_enum_rename() {
-    insta::assert_json_snapshot!((
-        TestEnumRename::reflect_input(),
-        TestEnumRename::reflect_output()
-    ));
+    assert_snapshot!(TestEnumRename);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -95,10 +74,7 @@ enum TestEnumRenameAll {
 }
 #[test]
 fn test_enum_rename_all() {
-    insta::assert_json_snapshot!((
-        TestEnumRenameAll::reflect_input(),
-        TestEnumRenameAll::reflect_output()
-    ));
+    assert_snapshot!(TestEnumRenameAll);
 }
 
 // test enume rename variant named and unnamed field
@@ -112,10 +88,7 @@ enum TestEnumRenameVariantField {
 }
 #[test]
 fn test_enum_rename_variant_field() {
-    insta::assert_json_snapshot!((
-        TestEnumRenameVariantField::reflect_input(),
-        TestEnumRenameVariantField::reflect_output()
-    ));
+    assert_snapshot!(TestEnumRenameVariantField);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -126,10 +99,7 @@ enum TestEnumUntagged {
 }
 #[test]
 fn test_enum_untagged() {
-    insta::assert_json_snapshot!((
-        TestEnumUntagged::reflect_input(),
-        TestEnumUntagged::reflect_output()
-    ));
+    assert_snapshot!(TestEnumUntagged);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -140,7 +110,7 @@ enum TestEnumTag {
 }
 #[test]
 fn test_enum_tag() {
-    insta::assert_json_snapshot!((TestEnumTag::reflect_input(), TestEnumTag::reflect_output()));
+    assert_snapshot!(TestEnumTag);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -151,10 +121,7 @@ enum TestEnumTagContent {
 }
 #[test]
 fn test_enum_tag_content() {
-    insta::assert_json_snapshot!((
-        TestEnumTagContent::reflect_input(),
-        TestEnumTagContent::reflect_output()
-    ));
+    assert_snapshot!(TestEnumTagContent);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -165,10 +132,7 @@ enum TestEnumTagContentRenameAll {
 }
 #[test]
 fn test_enum_tag_content_rename_all() {
-    insta::assert_json_snapshot!((
-        TestEnumTagContentRenameAll::reflect_input(),
-        TestEnumTagContentRenameAll::reflect_output()
-    ));
+    assert_snapshot!(TestEnumTagContentRenameAll);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -181,10 +145,7 @@ enum TestEnumRenameAllOnVariant {
 }
 #[test]
 fn test_enum_rename_all_on_variant() {
-    insta::assert_json_snapshot!((
-        TestEnumRenameAllOnVariant::reflect_input(),
-        TestEnumRenameAllOnVariant::reflect_output()
-    ));
+    assert_snapshot!(TestEnumRenameAllOnVariant);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -194,10 +155,7 @@ struct TestStructWithSerdeSkipSerializeIf {
 }
 #[test]
 fn test_struct_with_serde_skip_serialize_if() {
-    insta::assert_json_snapshot!((
-        TestStructWithSerdeSkipSerializeIf::reflect_input(),
-        TestStructWithSerdeSkipSerializeIf::reflect_output()
-    ));
+    assert_snapshot!(TestStructWithSerdeSkipSerializeIf);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -207,10 +165,7 @@ struct TestStructWithSerdeDefault {
 }
 #[test]
 fn test_struct_with_serde_default() {
-    insta::assert_json_snapshot!((
-        TestStructWithSerdeDefault::reflect_input(),
-        TestStructWithSerdeDefault::reflect_output()
-    ));
+    assert_snapshot!(TestStructWithSerdeDefault);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -220,10 +175,7 @@ struct TestStructWithSerdeSkip {
 }
 #[test]
 fn test_struct_with_serde_skip() {
-    insta::assert_json_snapshot!((
-        TestStructWithSerdeSkip::reflect_input(),
-        TestStructWithSerdeSkip::reflect_output()
-    ));
+    assert_snapshot!(TestStructWithSerdeSkip);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -233,10 +185,7 @@ struct TestStructWithSerdeSkipSerialize {
 }
 #[test]
 fn test_struct_with_serde_skip_serialize() {
-    insta::assert_json_snapshot!((
-        TestStructWithSerdeSkipSerialize::reflect_input(),
-        TestStructWithSerdeSkipSerialize::reflect_output()
-    ));
+    assert_snapshot!(TestStructWithSerdeSkipSerialize);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -246,10 +195,7 @@ struct TestStructWithSerdeSkipDeserialize {
 }
 #[test]
 fn test_struct_with_serde_skip_deserialize() {
-    insta::assert_json_snapshot!((
-        TestStructWithSerdeSkipDeserialize::reflect_input(),
-        TestStructWithSerdeSkipDeserialize::reflect_output()
-    ));
+    assert_snapshot!(TestStructWithSerdeSkipDeserialize);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -261,10 +207,7 @@ enum TestEnumWithFieldSkip {
 }
 #[test]
 fn test_enum_with_field_skip() {
-    insta::assert_json_snapshot!((
-        TestEnumWithFieldSkip::reflect_input(),
-        TestEnumWithFieldSkip::reflect_output()
-    ));
+    assert_snapshot!(TestEnumWithFieldSkip);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -274,10 +217,7 @@ enum TestEnumWithVariantSkip {
 }
 #[test]
 fn test_enum_with_variant_skip() {
-    insta::assert_json_snapshot!((
-        TestEnumWithVariantSkip::reflect_input(),
-        TestEnumWithVariantSkip::reflect_output()
-    ));
+    assert_snapshot!(TestEnumWithVariantSkip);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -287,10 +227,7 @@ enum TestEnumWithVariantSkipSerialize {
 }
 #[test]
 fn test_enum_with_variant_skip_serialize() {
-    insta::assert_json_snapshot!((
-        TestEnumWithVariantSkipSerialize::reflect_input(),
-        TestEnumWithVariantSkipSerialize::reflect_output()
-    ));
+    assert_snapshot!(TestEnumWithVariantSkipSerialize);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -300,10 +237,7 @@ enum TestEnumWithVariantSkipDeserialize {
 }
 #[test]
 fn test_enum_with_variant_skip_deserialize() {
-    insta::assert_json_snapshot!((
-        TestEnumWithVariantSkipDeserialize::reflect_input(),
-        TestEnumWithVariantSkipDeserialize::reflect_output()
-    ));
+    assert_snapshot!(TestEnumWithVariantSkipDeserialize);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -313,10 +247,7 @@ struct TestStructWithSerdeTransparent {
 }
 #[test]
 fn test_struct_with_serde_transparent() {
-    insta::assert_json_snapshot!((
-        TestStructWithSerdeTransparent::reflect_input(),
-        TestStructWithSerdeTransparent::reflect_output()
-    ));
+    assert_snapshot!(TestStructWithSerdeTransparent);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -326,10 +257,7 @@ enum TestEnumWithVariantUntagged {
 }
 #[test]
 fn test_enum_with_variant_untagged() {
-    insta::assert_json_snapshot!((
-        TestEnumWithVariantUntagged::reflect_input(),
-        TestEnumWithVariantUntagged::reflect_output()
-    ));
+    assert_snapshot!(TestEnumWithVariantUntagged);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
@@ -341,25 +269,19 @@ enum TestEnumWithVariantOther {
 }
 #[test]
 fn test_enum_with_variant_other() {
-    insta::assert_json_snapshot!((
-        TestEnumWithVariantOther::reflect_input(),
-        TestEnumWithVariantOther::reflect_output()
-    ));
+    assert_snapshot!(TestEnumWithVariantOther);
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithFlattenNested {
-    f: u8
+    f: u8,
 }
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithFlatten {
     #[serde(flatten)]
-    g: TestStructWithFlattenNested
+    g: TestStructWithFlattenNested,
 }
 #[test]
 fn test_struct_with_flatten() {
-    insta::assert_json_snapshot!((
-        TestStructWithFlatten::reflect_input(),
-        TestStructWithFlatten::reflect_output()
-    ));
+    assert_snapshot!(TestStructWithFlatten);
 }

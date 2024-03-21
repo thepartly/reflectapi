@@ -1,44 +1,44 @@
 ---
 source: reflect-demo/src/tests/generics.rs
-expression: "TestStructWithCircularReference::reflect_input()"
+expression: "super::into_input_schema::<TestStructWithCircularReference>().input_types"
 ---
-[
-  {
-    "name": "reflect_demo::tests::generics::TestStructWithCircularReference"
-  },
-  {
-    "types": [
-      {
-        "kind": "struct",
-        "name": "reflect_demo::tests::generics::TestStructWithCircularReference",
-        "fields": [
-          {
-            "name": "_f",
-            "type": {
-              "name": "std::boxed::Box",
-              "parameters": [
-                {
-                  "name": "reflect_demo::tests::generics::TestStructWithCircularReference"
-                }
-              ]
-            },
-            "required": true
-          }
-        ]
-      },
-      {
-        "kind": "primitive",
-        "name": "std::boxed::Box",
-        "description": "std::boxed::Box pointer type",
-        "parameters": [
-          {
-            "name": "T"
-          }
-        ],
-        "fallback": {
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::generics::TestStructWithCircularReference",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::boxed::Box",
+            "parameters": [
+              {
+                "name": "reflect_demo::tests::generics::TestStructWithCircularReference"
+              }
+            ]
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::boxed::Box",
+      "description": "std::boxed::Box pointer type",
+      "parameters": [
+        {
           "name": "T"
         }
+      ],
+      "fallback": {
+        "name": "T"
       }
-    ]
-  }
-]
+    }
+  ]
+}

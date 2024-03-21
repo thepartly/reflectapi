@@ -1,48 +1,49 @@
 ---
 source: reflect-demo/src/tests/serde.rs
-expression: "(TestEnumRename::reflect_input(), TestEnumRename::reflect_output())"
+expression: "super::into_schema::<TestEnumRename>()"
 ---
-[
-  [
-    {
-      "name": "reflect_demo::tests::serde::MyEnum"
-    },
-    {
-      "types": [
-        {
-          "kind": "enum",
-          "name": "reflect_demo::tests::serde::MyEnum",
-          "variants": [
-            {
-              "name": "V1"
-            },
-            {
-              "name": "V2"
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  [
-    {
-      "name": "reflect_demo::tests::serde::MyEnum"
-    },
-    {
-      "types": [
-        {
-          "kind": "enum",
-          "name": "reflect_demo::tests::serde::MyEnum",
-          "variants": [
-            {
-              "name": "V1"
-            },
-            {
-              "name": "V2"
-            }
-          ]
-        }
-      ]
-    }
-  ]
-]
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::serde::MyEnum",
+        "variants": [
+          {
+            "name": "V1"
+          },
+          {
+            "name": "V2"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::serde::MyEnum",
+        "variants": [
+          {
+            "name": "V1"
+          },
+          {
+            "name": "V2"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,31 +1,31 @@
 ---
 source: reflect-demo/src/tests/basic.rs
-expression: "TestStructOneBasicFieldU32::reflect_input()"
+expression: "super::into_input_schema::<TestStructOneBasicFieldU32>().input_types"
 ---
-[
-  {
-    "name": "reflect_demo::tests::basic::TestStructOneBasicFieldU32"
-  },
-  {
-    "types": [
-      {
-        "kind": "struct",
-        "name": "reflect_demo::tests::basic::TestStructOneBasicFieldU32",
-        "fields": [
-          {
-            "name": "_f",
-            "type": {
-              "name": "u32"
-            },
-            "required": true
-          }
-        ]
-      },
-      {
-        "kind": "primitive",
-        "name": "u32",
-        "description": "32-bit unsigned integer"
-      }
-    ]
-  }
-]
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::basic::TestStructOneBasicFieldU32",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "u32"
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u32",
+      "description": "32-bit unsigned integer"
+    }
+  ]
+}

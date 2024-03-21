@@ -1,84 +1,79 @@
 ---
 source: reflect-demo/src/tests/enums.rs
-expression: "TestEnumWithGenericsAndFieldsAndNamedFields::<u8>::reflect_input()"
+expression: "super::into_input_schema::<TestEnumWithGenericsAndFieldsAndNamedFields<u8>>().input_types"
 ---
-[
-  {
-    "name": "reflect_demo::tests::enums::TestEnumWithGenericsAndFieldsAndNamedFields",
-    "parameters": [
-      {
-        "name": "u8"
-      }
-    ]
-  },
-  {
-    "types": [
-      {
-        "kind": "enum",
-        "name": "reflect_demo::tests::enums::TestEnumWithGenericsAndFieldsAndNamedFields",
-        "parameters": [
-          {
-            "name": "T"
-          }
-        ],
-        "variants": [
-          {
-            "name": "Variant1",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "u8"
-                },
-                "required": true
-              }
-            ]
-          },
-          {
-            "name": "Variant2",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
-                },
-                "required": true
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "enum",
+      "name": "reflect_demo::tests::enums::TestEnumWithGenericsAndFieldsAndNamedFields",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ],
+      "variants": [
+        {
+          "name": "Variant1",
+          "fields": [
+            {
+              "name": "0",
+              "type": {
+                "name": "u8"
               },
-              {
-                "name": "1",
-                "type": {
-                  "name": "T"
-                },
-                "required": true
-              }
-            ]
-          },
-          {
-            "name": "Variant3",
-            "fields": [
-              {
-                "name": "field1",
-                "type": {
-                  "name": "u8"
-                },
-                "required": true
+              "required": true
+            }
+          ]
+        },
+        {
+          "name": "Variant2",
+          "fields": [
+            {
+              "name": "0",
+              "type": {
+                "name": "T"
               },
-              {
-                "name": "field2",
-                "type": {
-                  "name": "T"
-                },
-                "required": true
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "kind": "primitive",
-        "name": "u8",
-        "description": "8-bit unsigned integer"
-      }
-    ]
-  }
-]
+              "required": true
+            },
+            {
+              "name": "1",
+              "type": {
+                "name": "T"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "name": "Variant3",
+          "fields": [
+            {
+              "name": "field1",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "field2",
+              "type": {
+                "name": "T"
+              },
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

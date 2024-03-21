@@ -1,60 +1,61 @@
 ---
 source: reflect-demo/src/tests/serde.rs
-expression: "(TestStructRenameAllPascalCase::reflect_input(),\n    TestStructRenameAllPascalCase::reflect_output())"
+expression: "super::into_schema::<TestStructRenameAllPascalCase>()"
 ---
-[
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase"
-    },
-    {
-      "types": [
-        {
-          "kind": "struct",
-          "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase",
-          "fields": [
-            {
-              "name": "FieldName",
-              "type": {
-                "name": "u8"
-              },
-              "required": true
-            }
-          ]
-        },
-        {
-          "kind": "primitive",
-          "name": "u8",
-          "description": "8-bit unsigned integer"
-        }
-      ]
-    }
-  ],
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase"
-    },
-    {
-      "types": [
-        {
-          "kind": "struct",
-          "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase",
-          "fields": [
-            {
-              "name": "FieldName",
-              "type": {
-                "name": "u8"
-              },
-              "required": true
-            }
-          ]
-        },
-        {
-          "kind": "primitive",
-          "name": "u8",
-          "description": "8-bit unsigned integer"
-        }
-      ]
-    }
-  ]
-]
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase",
+        "fields": [
+          {
+            "name": "FieldName",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase",
+        "fields": [
+          {
+            "name": "FieldName",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

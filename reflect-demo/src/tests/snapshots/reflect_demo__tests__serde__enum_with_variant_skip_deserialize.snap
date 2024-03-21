@@ -1,37 +1,38 @@
 ---
 source: reflect-demo/src/tests/serde.rs
-expression: "(TestEnumWithVariantSkipDeserialize::reflect_input(),\n    TestEnumWithVariantSkipDeserialize::reflect_output())"
+expression: "super::into_schema::<TestEnumWithVariantSkipDeserialize>()"
 ---
-[
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize"
-    },
-    {
-      "types": [
-        {
-          "kind": "enum",
-          "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize"
-        }
-      ]
-    }
-  ],
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize"
-    },
-    {
-      "types": [
-        {
-          "kind": "enum",
-          "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize",
-          "variants": [
-            {
-              "name": "_Variant1"
-            }
-          ]
-        }
-      ]
-    }
-  ]
-]
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize",
+        "variants": [
+          {
+            "name": "_Variant1"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,114 +1,90 @@
 ---
 source: reflect-demo/src/tests/generics.rs
-expression: "TestStructWithCircularReferenceGenericWithoutBoxParent::<TestStructWithCircularReferenceGenericWithoutBoxParent<u8,\n        u16>,\n        TestStructWithCircularReferenceGenericWithoutBoxParent<String,\n        u32>>::reflect_input()"
+expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericWithoutBoxParent<TestStructWithCircularReferenceGenericWithoutBoxParent<u8,\n            u16>,\n            TestStructWithCircularReferenceGenericWithoutBoxParent<String,\n            u32>>>().input_types"
 ---
-[
-  {
-    "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBoxParent",
-    "parameters": [
-      {
-        "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBoxParent",
-        "parameters": [
-          {
-            "name": "u8"
-          },
-          {
-            "name": "u16"
-          }
-        ]
-      },
-      {
-        "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBoxParent",
-        "parameters": [
-          {
-            "name": "std::string::String"
-          },
-          {
-            "name": "u32"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "types": [
-      {
-        "kind": "struct",
-        "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
-        "parameters": [
-          {
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
+      "parameters": [
+        {
+          "name": "A"
+        },
+        {
+          "name": "B"
+        }
+      ],
+      "fields": [
+        {
+          "name": "_f1",
+          "type": {
             "name": "A"
           },
-          {
+          "required": true
+        },
+        {
+          "name": "_f2",
+          "type": {
             "name": "B"
-          }
-        ],
-        "fields": [
-          {
-            "name": "_f1",
-            "type": {
-              "name": "A"
-            },
-            "required": true
           },
-          {
-            "name": "_f2",
-            "type": {
-              "name": "B"
-            },
-            "required": true
-          }
-        ]
-      },
-      {
-        "kind": "struct",
-        "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBoxParent",
-        "parameters": [
-          {
-            "name": "C"
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBoxParent",
+      "parameters": [
+        {
+          "name": "C"
+        },
+        {
+          "name": "D"
+        }
+      ],
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
+            "parameters": [
+              {
+                "name": "D"
+              },
+              {
+                "name": "C"
+              }
+            ]
           },
-          {
-            "name": "D"
-          }
-        ],
-        "fields": [
-          {
-            "name": "_f",
-            "type": {
-              "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
-              "parameters": [
-                {
-                  "name": "D"
-                },
-                {
-                  "name": "C"
-                }
-              ]
-            },
-            "required": true
-          }
-        ]
-      },
-      {
-        "kind": "primitive",
-        "name": "std::string::String",
-        "description": "UTF-8 encoded string"
-      },
-      {
-        "kind": "primitive",
-        "name": "u16",
-        "description": "16-bit unsigned integer"
-      },
-      {
-        "kind": "primitive",
-        "name": "u32",
-        "description": "32-bit unsigned integer"
-      },
-      {
-        "kind": "primitive",
-        "name": "u8",
-        "description": "8-bit unsigned integer"
-      }
-    ]
-  }
-]
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
+    },
+    {
+      "kind": "primitive",
+      "name": "u16",
+      "description": "16-bit unsigned integer"
+    },
+    {
+      "kind": "primitive",
+      "name": "u32",
+      "description": "32-bit unsigned integer"
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

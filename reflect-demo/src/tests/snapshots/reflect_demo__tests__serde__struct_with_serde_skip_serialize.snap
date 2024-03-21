@@ -1,46 +1,47 @@
 ---
 source: reflect-demo/src/tests/serde.rs
-expression: "(TestStructWithSerdeSkipSerialize::reflect_input(),\n    TestStructWithSerdeSkipSerialize::reflect_output())"
+expression: "super::into_schema::<TestStructWithSerdeSkipSerialize>()"
 ---
-[
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerialize"
-    },
-    {
-      "types": [
-        {
-          "kind": "struct",
-          "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerialize",
-          "fields": [
-            {
-              "name": "_f",
-              "type": {
-                "name": "u8"
-              },
-              "required": true
-            }
-          ]
-        },
-        {
-          "kind": "primitive",
-          "name": "u8",
-          "description": "8-bit unsigned integer"
-        }
-      ]
-    }
-  ],
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerialize"
-    },
-    {
-      "types": [
-        {
-          "kind": "struct",
-          "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerialize"
-        }
-      ]
-    }
-  ]
-]
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerialize",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerialize"
+      }
+    ]
+  }
+}

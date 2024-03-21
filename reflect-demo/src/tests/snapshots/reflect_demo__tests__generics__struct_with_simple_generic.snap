@@ -1,41 +1,36 @@
 ---
 source: reflect-demo/src/tests/generics.rs
-expression: "TestStructWithSimpleGeneric::<u8>::reflect_input()"
+expression: "super::into_input_schema::<TestStructWithSimpleGeneric<u8>>().input_types"
 ---
-[
-  {
-    "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
-    "parameters": [
-      {
-        "name": "u8"
-      }
-    ]
-  },
-  {
-    "types": [
-      {
-        "kind": "struct",
-        "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
-        "parameters": [
-          {
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "struct",
+      "name": "reflect_demo::tests::generics::TestStructWithSimpleGeneric",
+      "parameters": [
+        {
+          "name": "A"
+        }
+      ],
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
             "name": "A"
-          }
-        ],
-        "fields": [
-          {
-            "name": "_f",
-            "type": {
-              "name": "A"
-            },
-            "required": true
-          }
-        ]
-      },
-      {
-        "kind": "primitive",
-        "name": "u8",
-        "description": "8-bit unsigned integer"
-      }
-    ]
-  }
-]
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

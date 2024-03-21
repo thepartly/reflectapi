@@ -1,4 +1,4 @@
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithSimpleGeneric<A>
 where
     A: reflect::Input,
@@ -7,10 +7,10 @@ where
 }
 #[test]
 fn test_struct_with_simple_generic() {
-    insta::assert_json_snapshot!(TestStructWithSimpleGeneric::<u8>::reflect_input());
+    assert_input_snapshot!(TestStructWithSimpleGeneric::<u8>);
 }
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithVecGeneric<T>
 where
     T: reflect::Input,
@@ -19,10 +19,10 @@ where
 }
 #[test]
 fn test_struct_with_vec_generic() {
-    insta::assert_json_snapshot!(TestStructWithVecGeneric::<u8>::reflect_input());
+    assert_input_snapshot!(TestStructWithVecGeneric::<u8>);
 }
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithVecGenericGeneric<T>
 where
     T: reflect::Input,
@@ -31,10 +31,10 @@ where
 }
 #[test]
 fn test_struct_with_vec_generic_generic() {
-    insta::assert_json_snapshot!(TestStructWithVecGenericGeneric::<u8>::reflect_input());
+    assert_input_snapshot!(TestStructWithVecGenericGeneric::<u8>);
 }
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithVecGenericGenericGeneric<T>
 where
     T: reflect::Input,
@@ -43,40 +43,38 @@ where
 }
 #[test]
 fn test_struct_with_vec_generic_generic_generic() {
-    insta::assert_json_snapshot!(
-        TestStructWithVecGenericGenericGeneric::<Vec<u8>>::reflect_input()
-    );
+    assert_input_snapshot!(TestStructWithVecGenericGenericGeneric::<Vec<u8>>);
 }
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithNestedGenericStruct {
     _f: TestStructWithSimpleGeneric<TestStructWithSimpleGeneric<u8>>,
 }
 #[test]
 fn test_struct_with_nested_generic_struct() {
-    insta::assert_json_snapshot!(TestStructWithNestedGenericStruct::reflect_input());
+    assert_input_snapshot!(TestStructWithNestedGenericStruct);
 }
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithNestedGenericStructTwice {
     _f: TestStructWithSimpleGeneric<u8>,
     _f2: TestStructWithSimpleGeneric<String>,
 }
 #[test]
 fn test_struct_with_nested_generic_struct_twice() {
-    insta::assert_json_snapshot!(TestStructWithNestedGenericStructTwice::reflect_input());
+    assert_input_snapshot!(TestStructWithNestedGenericStructTwice);
 }
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithCircularReference {
     _f: Box<TestStructWithCircularReference>,
 }
 #[test]
 fn test_struct_with_circular_reference() {
-    insta::assert_json_snapshot!(TestStructWithCircularReference::reflect_input());
+    assert_input_snapshot!(TestStructWithCircularReference);
 }
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithCircularReferenceGeneric<T>
 where
     T: reflect::Input,
@@ -86,10 +84,10 @@ where
 }
 #[test]
 fn test_struct_with_circular_reference_generic() {
-    insta::assert_json_snapshot!(TestStructWithCircularReferenceGeneric::<u8>::reflect_input());
+    assert_input_snapshot!(TestStructWithCircularReferenceGeneric::<u8>);
 }
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithCircularReferenceGenericParent<T>
 where
     T: reflect::Input,
@@ -101,12 +99,10 @@ where
 }
 #[test]
 fn test_struct_with_circular_reference_generic_parent() {
-    insta::assert_json_snapshot!(
-        TestStructWithCircularReferenceGenericParent::<u8>::reflect_input()
-    );
+    assert_input_snapshot!(TestStructWithCircularReferenceGenericParent::<u8>);
 }
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithCircularReferenceGenericWithoutBox<A, B>
 where
     A: reflect::Input,
@@ -117,13 +113,13 @@ where
 }
 #[test]
 fn test_struct_with_circular_reference_generic_without_box() {
-    insta::assert_json_snapshot!(TestStructWithCircularReferenceGenericWithoutBox::<
+    assert_input_snapshot!(TestStructWithCircularReferenceGenericWithoutBox::<
         TestStructWithCircularReferenceGenericWithoutBox<u8, u16>,
         TestStructWithCircularReferenceGenericWithoutBox<String, u32>,
-    >::reflect_input());
+    >);
 }
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithCircularReferenceGenericWithoutBoxParent<C, D>
 where
     C: reflect::Input,
@@ -133,13 +129,13 @@ where
 }
 #[test]
 fn test_struct_with_circular_reference_generic_without_box_parent() {
-    insta::assert_json_snapshot!(TestStructWithCircularReferenceGenericWithoutBoxParent::<
+    assert_input_snapshot!(TestStructWithCircularReferenceGenericWithoutBoxParent::<
         TestStructWithCircularReferenceGenericWithoutBoxParent<u8, u16>,
         TestStructWithCircularReferenceGenericWithoutBoxParent<String, u32>,
-    >::reflect_input());
+    >);
 }
 
-#[derive(reflect::Input)]
+#[derive(reflect::Input, serde::Deserialize)]
 struct TestStructWithCircularReferenceGenericWithoutBoxParentSpecific {
     _f: TestStructWithCircularReferenceGenericWithoutBox<
         TestStructWithCircularReferenceGenericWithoutBox<u8, u16>,
@@ -148,8 +144,7 @@ struct TestStructWithCircularReferenceGenericWithoutBoxParentSpecific {
 }
 #[test]
 fn test_struct_with_circular_reference_generic_without_box_parent_specific() {
-    insta::assert_json_snapshot!(
-        TestStructWithCircularReferenceGenericWithoutBoxParentSpecific::reflect_input()
+    assert_input_snapshot!(
+        TestStructWithCircularReferenceGenericWithoutBoxParentSpecific
     );
 }
-

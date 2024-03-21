@@ -1,42 +1,43 @@
 ---
 source: reflect-demo/src/tests/serde.rs
-expression: "(TestEnumWithFieldSkip::reflect_input(),\n    TestEnumWithFieldSkip::reflect_output())"
+expression: "super::into_schema::<TestEnumWithFieldSkip>()"
 ---
-[
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestEnumWithFieldSkip"
-    },
-    {
-      "types": [
-        {
-          "kind": "enum",
-          "name": "reflect_demo::tests::serde::TestEnumWithFieldSkip",
-          "variants": [
-            {
-              "name": "Variant1"
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestEnumWithFieldSkip"
-    },
-    {
-      "types": [
-        {
-          "kind": "enum",
-          "name": "reflect_demo::tests::serde::TestEnumWithFieldSkip",
-          "variants": [
-            {
-              "name": "Variant1"
-            }
-          ]
-        }
-      ]
-    }
-  ]
-]
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::serde::TestEnumWithFieldSkip",
+        "variants": [
+          {
+            "name": "Variant1"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::serde::TestEnumWithFieldSkip",
+        "variants": [
+          {
+            "name": "Variant1"
+          }
+        ]
+      }
+    ]
+  }
+}

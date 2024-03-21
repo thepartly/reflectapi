@@ -1,62 +1,63 @@
 ---
 source: reflect-demo/src/tests/serde.rs
-expression: "(TestStructWithSerdeTransparent::reflect_input(),\n    TestStructWithSerdeTransparent::reflect_output())"
+expression: "super::into_schema::<TestStructWithSerdeTransparent>()"
 ---
-[
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent"
-    },
-    {
-      "types": [
-        {
-          "kind": "struct",
-          "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent",
-          "fields": [
-            {
-              "name": "_f",
-              "type": {
-                "name": "u8"
-              },
-              "required": true
-            }
-          ],
-          "transparent": true
-        },
-        {
-          "kind": "primitive",
-          "name": "u8",
-          "description": "8-bit unsigned integer"
-        }
-      ]
-    }
-  ],
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent"
-    },
-    {
-      "types": [
-        {
-          "kind": "struct",
-          "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent",
-          "fields": [
-            {
-              "name": "_f",
-              "type": {
-                "name": "u8"
-              },
-              "required": true
-            }
-          ],
-          "transparent": true
-        },
-        {
-          "kind": "primitive",
-          "name": "u8",
-          "description": "8-bit unsigned integer"
-        }
-      ]
-    }
-  ]
-]
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ],
+        "transparent": true
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ],
+        "transparent": true
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

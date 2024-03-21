@@ -1,0 +1,127 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "super::into_schema::<TestStructWithVecNested>()"
+---
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructWithVecNested",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::vec::Vec",
+              "parameters": [
+                {
+                  "name": "std::vec::Vec",
+                  "parameters": [
+                    {
+                      "name": "reflect_demo::tests::test_lib::TestStructNested"
+                    }
+                  ]
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::test_lib::TestStructNested",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructWithVecNested",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::vec::Vec",
+              "parameters": [
+                {
+                  "name": "std::vec::Vec",
+                  "parameters": [
+                    {
+                      "name": "reflect_demo::tests::test_lib::TestStructNested"
+                    }
+                  ]
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::test_lib::TestStructNested",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,85 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "super::into_schema::<TestStructTuple>()"
+---
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructTuple",
+        "fields": [
+          {
+            "name": "0",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          },
+          {
+            "name": "1",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructTuple",
+        "fields": [
+          {
+            "name": "0",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          },
+          {
+            "name": "1",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

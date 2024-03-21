@@ -1,32 +1,33 @@
 ---
 source: reflect-demo/src/tests/serde.rs
-expression: "(TestStructRename::reflect_input(), TestStructRename::reflect_output())"
+expression: "super::into_schema::<TestStructRename>()"
 ---
-[
-  [
-    {
-      "name": "reflect_demo::tests::serde::MyStruct"
-    },
-    {
-      "types": [
-        {
-          "kind": "struct",
-          "name": "reflect_demo::tests::serde::MyStruct"
-        }
-      ]
-    }
-  ],
-  [
-    {
-      "name": "reflect_demo::tests::serde::MyStruct"
-    },
-    {
-      "types": [
-        {
-          "kind": "struct",
-          "name": "reflect_demo::tests::serde::MyStruct"
-        }
-      ]
-    }
-  ]
-]
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::serde::MyStruct"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::serde::MyStruct"
+      }
+    ]
+  }
+}

@@ -1,96 +1,97 @@
 ---
 source: reflect-demo/src/tests/serde.rs
-expression: "(TestEnumUntagged::reflect_input(), TestEnumUntagged::reflect_output())"
+expression: "super::into_schema::<TestEnumUntagged>()"
 ---
-[
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestEnumUntagged"
-    },
-    {
-      "types": [
-        {
-          "kind": "enum",
-          "name": "reflect_demo::tests::serde::TestEnumUntagged",
-          "representation": "None",
-          "variants": [
-            {
-              "name": "Variant1",
-              "fields": [
-                {
-                  "name": "0",
-                  "type": {
-                    "name": "u8"
-                  },
-                  "required": true
-                }
-              ]
-            },
-            {
-              "name": "Variant2",
-              "fields": [
-                {
-                  "name": "field_name",
-                  "type": {
-                    "name": "u8"
-                  },
-                  "required": true
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "kind": "primitive",
-          "name": "u8",
-          "description": "8-bit unsigned integer"
-        }
-      ]
-    }
-  ],
-  [
-    {
-      "name": "reflect_demo::tests::serde::TestEnumUntagged"
-    },
-    {
-      "types": [
-        {
-          "kind": "enum",
-          "name": "reflect_demo::tests::serde::TestEnumUntagged",
-          "representation": "None",
-          "variants": [
-            {
-              "name": "Variant1",
-              "fields": [
-                {
-                  "name": "0",
-                  "type": {
-                    "name": "u8"
-                  },
-                  "required": true
-                }
-              ]
-            },
-            {
-              "name": "Variant2",
-              "fields": [
-                {
-                  "name": "field_name",
-                  "type": {
-                    "name": "u8"
-                  },
-                  "required": true
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "kind": "primitive",
-          "name": "u8",
-          "description": "8-bit unsigned integer"
-        }
-      ]
-    }
-  ]
-]
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::serde::TestEnumUntagged",
+        "representation": "None",
+        "variants": [
+          {
+            "name": "Variant1",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "u8"
+                },
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "Variant2",
+            "fields": [
+              {
+                "name": "field_name",
+                "type": {
+                  "name": "u8"
+                },
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "enum",
+        "name": "reflect_demo::tests::serde::TestEnumUntagged",
+        "representation": "None",
+        "variants": [
+          {
+            "name": "Variant1",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "u8"
+                },
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "Variant2",
+            "fields": [
+              {
+                "name": "field_name",
+                "type": {
+                  "name": "u8"
+                },
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

@@ -1,39 +1,39 @@
 ---
 source: reflect-demo/src/tests/enums.rs
-expression: "TestEnumWithEmptyVariantAndFields::reflect_input()"
+expression: "super::into_input_schema::<TestEnumWithEmptyVariantAndFields>().input_types"
 ---
-[
-  {
-    "name": "reflect_demo::tests::enums::TestEnumWithEmptyVariantAndFields"
-  },
-  {
-    "types": [
-      {
-        "kind": "enum",
-        "name": "reflect_demo::tests::enums::TestEnumWithEmptyVariantAndFields",
-        "variants": [
-          {
-            "name": "Variant1"
-          },
-          {
-            "name": "Variant2",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "u8"
-                },
-                "required": true
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "kind": "primitive",
-        "name": "u8",
-        "description": "8-bit unsigned integer"
-      }
-    ]
-  }
-]
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "enum",
+      "name": "reflect_demo::tests::enums::TestEnumWithEmptyVariantAndFields",
+      "variants": [
+        {
+          "name": "Variant1"
+        },
+        {
+          "name": "Variant2",
+          "fields": [
+            {
+              "name": "0",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

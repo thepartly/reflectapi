@@ -1,0 +1,87 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "super::into_schema::<TestStructWithTransformBoth>()"
+---
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructWithTransformBoth",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::sync::Arc",
+        "description": "std::sync::Arc pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructWithTransformBoth",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::sync::Arc",
+        "description": "std::sync::Arc pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}
