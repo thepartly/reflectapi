@@ -7,7 +7,7 @@ use axum::{
 
 use crate::{Handler, HandlerInput, HandlerOutput};
 
-pub fn into_axum_app<S>(app_state: S, handlers: Vec<Handler<S>>) -> Router
+pub fn into_router<S>(app_state: S, handlers: Vec<Handler<S>>) -> Router
 where
     S: Send + Clone + 'static,
 {

@@ -35,7 +35,7 @@ async fn main() {
     .unwrap();
 
     let app_state = std::sync::Arc::new(AppState { /* ... */ });
-    let axum_app = reflect::into_axum_app(app_state, handlers);
+    let axum_app = reflect::axum::into_router(app_state, handlers);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, axum_app).await.unwrap();

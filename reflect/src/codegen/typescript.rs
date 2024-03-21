@@ -106,7 +106,7 @@ struct EnumTemplate {
 struct VariantTemplate {
     name: String,
     description: String,
-    representation: reflect::Representation,
+    representation: crate::Representation,
     fields: Vec<VariantFieldTemplate>,
 }
 
@@ -130,11 +130,11 @@ impl VariantTemplate {
             return Ok(format!("\"{}\"", self.name));
         }
         let r = match &self.representation {
-            reflect::Representation::External => {
+            crate::Representation::External => {
                 format!("{{ {}: {} }}", self.name, self.render_fields(None)?)
             }
-            reflect::Representation::Internal { tag } => self.render_fields(Some(tag))?,
-            reflect::Representation::Adjacent { tag, content } => {
+            crate::Representation::Internal { tag } => self.render_fields(Some(tag))?,
+            crate::Representation::Adjacent { tag, content } => {
                 format!(
                     "{{ {}: {}, {}: {} }}",
                     tag,
@@ -143,7 +143,7 @@ impl VariantTemplate {
                     self.render_fields(None)?
                 )
             }
-            reflect::Representation::None => self.render_fields(None)?,
+            crate::Representation::None => self.render_fields(None)?,
         };
         Ok(r)
     }
@@ -195,7 +195,7 @@ struct PrimitiveTemplate {
     type_: String,
 }
 
-pub fn generate(mut schema: reflect::EndpointSchema) -> anyhow::Result<String> {
+pub fn generate(mut schema: crate::EndpointSchema) -> anyhow::Result<String> {
     let file_template = FileTemplate {
         name: schema.name.clone(),
         description: schema.description.clone(),
@@ -229,8 +229,8 @@ pub fn generate(mut schema: reflect::EndpointSchema) -> anyhow::Result<String> {
 }
 
 fn render_type(
-    type_def: &reflect::Type,
-    schema: &reflect::EndpointSchema,
+    type_def: &crate::Type,
+    schema: &crate::EndpointSchema,
     implemented_types: &HashMap<String, String>,
 ) -> Result<String, anyhow::Error> {
     let type_name = type_to_ts_name(&type_def);
@@ -249,7 +249,7 @@ fn render_type(
     }
 
     Ok(match type_def {
-        reflect::Type::Struct(struct_def) => {
+        crate::Type::Struct(struct_def) => {
             let struct_template = StructTemplate {
                 name: type_name,
                 description: doc_to_ts_comments(&struct_def.description, 0),
@@ -267,7 +267,7 @@ fn render_type(
                 .render()
                 .context("Failed to render template")?
         }
-        reflect::Type::Enum(enum_def) => {
+        crate::Type::Enum(enum_def) => {
             let enum_template = EnumTemplate {
                 name: type_name,
                 description: doc_to_ts_comments(&enum_def.description, 0),
@@ -294,7 +294,7 @@ fn render_type(
                 .render()
                 .context("Failed to render template")?
         }
-        reflect::Type::Primitive(type_def) => {
+        crate::Type::Primitive(type_def) => {
             let primitive_template = PrimitiveTemplate {
                 name: type_name,
                 description: doc_to_ts_comments(&type_def.description, 0),
@@ -307,7 +307,7 @@ fn render_type(
     })
 }
 
-fn type_ref_to_ts_ref(type_ref: &reflect::TypeReference) -> String {
+fn type_ref_to_ts_ref(type_ref: &crate::TypeReference) -> String {
     let type_name_parts = type_ref.name.split("::").collect::<Vec<_>>();
     let n = if type_name_parts.len() > 2 && type_name_parts[0] == "std" {
         format!("std.{}", type_name_parts[type_name_parts.len() - 1])
@@ -318,7 +318,7 @@ fn type_ref_to_ts_ref(type_ref: &reflect::TypeReference) -> String {
     format!("{}{}", n, p)
 }
 
-fn type_ref_params_to_ts_ref(type_params: &Vec<reflect::TypeReference>) -> String {
+fn type_ref_params_to_ts_ref(type_params: &Vec<crate::TypeReference>) -> String {
     let p = type_params
         .iter()
         .map(|type_ref| type_ref_to_ts_ref(type_ref))
@@ -331,7 +331,7 @@ fn type_ref_params_to_ts_ref(type_params: &Vec<reflect::TypeReference>) -> Strin
     }
 }
 
-fn type_to_ts_name(type_: &reflect::Type) -> String {
+fn type_to_ts_name(type_: &crate::Type) -> String {
     let n = type_
         .name()
         .split("::")
@@ -342,7 +342,7 @@ fn type_to_ts_name(type_: &reflect::Type) -> String {
     format!("{}{}", n, p)
 }
 
-fn type_params_to_ts_name(type_params: std::slice::Iter<'_, reflect::TypeParameter>) -> String {
+fn type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParameter>) -> String {
     let p = type_params
         .map(|type_param| type_param.name.clone())
         .collect::<Vec<_>>()
@@ -418,14 +418,14 @@ fn implemented_types() -> HashMap<String, String> {
 
 fn get_type_implementation(
     type_name: &str,
-    schema: &reflect::EndpointSchema,
+    schema: &crate::EndpointSchema,
     implemented_types: &HashMap<String, String>,
 ) -> Option<String> {
     if let Some(implementation) = implemented_types.get(type_name) {
         return Some(implementation.clone());
     }
     if let Some(type_def) = schema.get_type(type_name) {
-        let mut type_ref_to_self = reflect::TypeReference::new(
+        let mut type_ref_to_self = crate::TypeReference::new(
             type_name.into(),
             type_def
                 .parameters()

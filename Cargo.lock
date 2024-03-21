@@ -783,6 +783,8 @@ dependencies = [
 name = "reflect"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "askama",
  "axum",
  "bytes",
  "reflect-derive",
@@ -802,15 +804,6 @@ dependencies = [
  "clap_derive",
  "reflect",
  "serde_json",
-]
-
-[[package]]
-name = "reflect-codegen"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "askama",
- "reflect",
 ]
 
 [[package]]

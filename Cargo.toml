@@ -2,7 +2,6 @@
 members = [
     "reflect",
     "reflect-cli",
-    "reflect-codegen",
     "reflect-demo",
     "reflect-derive",
     "reflect-schema",
@@ -13,4 +12,3 @@ resolver = "2"
 reflect = { path = "reflect" }
 reflect-derive = { path = "reflect-derive" }
 reflect-schema = { path = "reflect-schema" }
-reflect-codegen = { path = "reflect-codegen" }

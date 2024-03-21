@@ -9,7 +9,10 @@ mod validation;
 mod builder;
 
 #[cfg(feature = "axum")]
-mod axum;
+pub mod axum;
+
+#[cfg(feature = "codegen")]
+pub mod codegen;
 
 pub use empty::*;
 #[allow(unused_imports)]
@@ -18,9 +21,6 @@ pub use infallible::*;
 
 #[cfg(any(feature = "builder", feature = "axum"))]
 pub use builder::*;
-
-#[cfg(feature = "axum")]
-pub use axum::*;
 
 pub use option::*;
 pub use reflect_derive::*;
