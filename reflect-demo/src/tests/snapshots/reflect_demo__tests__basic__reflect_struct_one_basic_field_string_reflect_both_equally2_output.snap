@@ -7,7 +7,6 @@ expression: "TestStructOneBasicFieldStringReflectBothEqually2::reflect_output()"
     "name": "reflect_demo::tests::basic::TestStructOneBasicFieldStringReflectBothEqually2"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

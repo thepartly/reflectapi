@@ -7,7 +7,6 @@ expression: "TestEnum::reflect_input()"
     "name": "reflect_demo::tests::enums::TestEnum"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "enum",

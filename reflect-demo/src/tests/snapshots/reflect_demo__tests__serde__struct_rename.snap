@@ -8,7 +8,6 @@ expression: "(TestStructRename::reflect_input(), TestStructRename::reflect_outpu
       "name": "reflect_demo::tests::serde::MyStruct"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",
@@ -22,7 +21,6 @@ expression: "(TestStructRename::reflect_input(), TestStructRename::reflect_outpu
       "name": "reflect_demo::tests::serde::MyStruct"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",

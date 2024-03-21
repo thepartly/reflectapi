@@ -7,7 +7,6 @@ expression: "TestStructOneBasicFieldU32::reflect_input()"
     "name": "reflect_demo::tests::basic::TestStructOneBasicFieldU32"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

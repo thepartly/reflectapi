@@ -7,7 +7,6 @@ expression: "TestStructWithTuple::reflect_output()"
     "name": "reflect_demo::tests::basic::TestStructWithTuple"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

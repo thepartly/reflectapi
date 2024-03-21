@@ -8,7 +8,6 @@ expression: "(TestStructWithSerdeTransparent::reflect_input(),\n    TestStructWi
       "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",
@@ -37,7 +36,6 @@ expression: "(TestStructWithSerdeTransparent::reflect_input(),\n    TestStructWi
       "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",

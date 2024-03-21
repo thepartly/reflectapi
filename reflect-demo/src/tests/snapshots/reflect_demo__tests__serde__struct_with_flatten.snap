@@ -8,7 +8,6 @@ expression: "(TestStructWithFlatten::reflect_input(),\n    TestStructWithFlatten
       "name": "reflect_demo::tests::serde::TestStructWithFlatten"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",
@@ -50,7 +49,6 @@ expression: "(TestStructWithFlatten::reflect_input(),\n    TestStructWithFlatten
       "name": "reflect_demo::tests::serde::TestStructWithFlatten"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",

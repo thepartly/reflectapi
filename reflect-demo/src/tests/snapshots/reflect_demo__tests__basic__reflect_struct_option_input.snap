@@ -7,7 +7,6 @@ expression: "TestStructOption::reflect_input()"
     "name": "reflect_demo::tests::basic::TestStructOption"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",
@@ -28,12 +27,31 @@ expression: "TestStructOption::reflect_input()"
         ]
       },
       {
-        "kind": "primitive",
+        "kind": "enum",
         "name": "std::option::Option",
-        "description": "Optional / Nullable value type",
+        "description": "Optional nullable type",
         "parameters": [
           {
             "name": "T"
+          }
+        ],
+        "representation": "None",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "T"
+                }
+              }
+            ]
           }
         ]
       },

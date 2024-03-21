@@ -8,7 +8,6 @@ expression: "(TestStructWithSerdeDefault::reflect_input(),\n    TestStructWithSe
       "name": "reflect_demo::tests::serde::TestStructWithSerdeDefault"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",
@@ -35,7 +34,6 @@ expression: "(TestStructWithSerdeDefault::reflect_input(),\n    TestStructWithSe
       "name": "reflect_demo::tests::serde::TestStructWithSerdeDefault"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",

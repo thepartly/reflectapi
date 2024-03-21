@@ -7,7 +7,6 @@ expression: "TestStructWithNestedGenericStructTwice::reflect_input()"
     "name": "reflect_demo::tests::generics::TestStructWithNestedGenericStructTwice"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

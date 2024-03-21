@@ -805,6 +805,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "reflect-codegen"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "askama",
+ "reflect",
+]
+
+[[package]]
 name = "reflect-demo"
 version = "0.1.0"
 dependencies = [

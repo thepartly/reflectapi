@@ -7,7 +7,6 @@ expression: "TestStructWithVec::reflect_input()"
     "name": "reflect_demo::tests::basic::TestStructWithVec"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

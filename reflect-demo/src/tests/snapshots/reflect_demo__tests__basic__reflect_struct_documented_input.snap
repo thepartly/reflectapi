@@ -7,7 +7,6 @@ expression: "TestStructDocumented::reflect_input()"
     "name": "reflect_demo::tests::basic::TestStructDocumented"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

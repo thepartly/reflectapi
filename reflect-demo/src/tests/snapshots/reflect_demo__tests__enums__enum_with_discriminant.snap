@@ -7,7 +7,6 @@ expression: "TestEnumWithDiscriminant::reflect_input()"
     "name": "reflect_demo::tests::enums::TestEnumWithDiscriminant"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "enum",

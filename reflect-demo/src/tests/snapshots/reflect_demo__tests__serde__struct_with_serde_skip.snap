@@ -8,7 +8,6 @@ expression: "(TestStructWithSerdeSkip::reflect_input(),\n    TestStructWithSerde
       "name": "reflect_demo::tests::serde::TestStructWithSerdeSkip"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",
@@ -22,7 +21,6 @@ expression: "(TestStructWithSerdeSkip::reflect_input(),\n    TestStructWithSerde
       "name": "reflect_demo::tests::serde::TestStructWithSerdeSkip"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",

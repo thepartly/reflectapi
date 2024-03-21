@@ -7,7 +7,6 @@ expression: "TestStructWithNested::reflect_input()"
     "name": "reflect_demo::tests::basic::TestStructWithNested"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

@@ -8,7 +8,6 @@ expression: "(TestStructRenameField::reflect_input(),\n    TestStructRenameField
       "name": "reflect_demo::tests::serde::TestStructRenameField"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",
@@ -36,7 +35,6 @@ expression: "(TestStructRenameField::reflect_input(),\n    TestStructRenameField
       "name": "reflect_demo::tests::serde::TestStructRenameField"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",

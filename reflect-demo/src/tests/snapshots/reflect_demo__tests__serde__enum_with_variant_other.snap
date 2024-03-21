@@ -8,7 +8,6 @@ expression: "(TestEnumWithVariantOther::reflect_input(),\n    TestEnumWithVarian
       "name": "reflect_demo::tests::serde::TestEnumWithVariantOther"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "enum",
@@ -32,7 +31,6 @@ expression: "(TestEnumWithVariantOther::reflect_input(),\n    TestEnumWithVarian
       "name": "reflect_demo::tests::serde::TestEnumWithVariantOther"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "enum",

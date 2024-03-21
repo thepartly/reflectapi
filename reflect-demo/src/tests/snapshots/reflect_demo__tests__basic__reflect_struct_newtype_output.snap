@@ -7,7 +7,6 @@ expression: "TestStructNewtype::reflect_output()"
     "name": "reflect_demo::tests::basic::TestStructNewtype"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

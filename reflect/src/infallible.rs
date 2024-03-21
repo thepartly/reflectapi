@@ -1,10 +1,9 @@
 use crate::StatusCode;
 
-#[cfg_attr(
-    any(feature = "serde", feature = "builder"),
-    derive(serde::Deserialize, serde::Serialize)
-)]
-pub struct Infallible {}
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct Infallible {
+    marker: std::marker::PhantomData<()>,
+}
 
 #[cfg(feature = "builder")]
 impl StatusCode for Infallible {
@@ -16,18 +15,6 @@ impl StatusCode for Infallible {
 impl std::fmt::Display for Infallible {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "internal error: not expected to fail")
-    }
-}
-
-impl Default for Infallible {
-    fn default() -> Self {
-        Self {}
-    }
-}
-
-impl From<()> for Infallible {
-    fn from(_: ()) -> Self {
-        Self::default()
     }
 }
 

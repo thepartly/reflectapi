@@ -7,7 +7,6 @@ expression: "TestStructWithCircularReferenceGenericWithoutBoxParentSpecific::ref
     "name": "reflect_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBoxParentSpecific"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

@@ -7,7 +7,6 @@ expression: "TestStructEmpty::reflect_output()"
     "name": "reflect_demo::tests::basic::TestStructEmpty"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

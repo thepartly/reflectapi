@@ -7,7 +7,6 @@ expression: "TestStructWithFixedSizeArray::reflect_input()"
     "name": "reflect_demo::tests::basic::TestStructWithFixedSizeArray"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

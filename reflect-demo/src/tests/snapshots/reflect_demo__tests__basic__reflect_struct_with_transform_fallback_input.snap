@@ -7,7 +7,6 @@ expression: "TestStructWithTransformFallback::reflect_input()"
     "name": "reflect_demo::tests::basic::TestStructWithTransformFallback"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

@@ -8,7 +8,6 @@ expression: "(TestEnumWithVariantSkipDeserialize::reflect_input(),\n    TestEnum
       "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "enum",
@@ -22,7 +21,6 @@ expression: "(TestEnumWithVariantSkipDeserialize::reflect_input(),\n    TestEnum
       "name": "reflect_demo::tests::serde::TestEnumWithVariantSkipDeserialize"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "enum",

@@ -31,7 +31,6 @@ expression: "TestStructWithCircularReferenceGenericWithoutBoxParent::<TestStruct
     ]
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

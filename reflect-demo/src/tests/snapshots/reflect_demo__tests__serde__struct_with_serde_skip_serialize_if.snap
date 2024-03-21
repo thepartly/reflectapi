@@ -8,7 +8,6 @@ expression: "(TestStructWithSerdeSkipSerializeIf::reflect_input(),\n    TestStru
       "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerializeIf"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",
@@ -29,12 +28,31 @@ expression: "(TestStructWithSerdeSkipSerializeIf::reflect_input(),\n    TestStru
           ]
         },
         {
-          "kind": "primitive",
+          "kind": "enum",
           "name": "std::option::Option",
-          "description": "Optional / Nullable value type",
+          "description": "Optional nullable type",
           "parameters": [
             {
               "name": "T"
+            }
+          ],
+          "representation": "None",
+          "variants": [
+            {
+              "name": "None",
+              "description": "The value is not provided, i.e. null"
+            },
+            {
+              "name": "Some",
+              "description": "The value is provided and set to some value",
+              "fields": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
             }
           ]
         },
@@ -51,7 +69,6 @@ expression: "(TestStructWithSerdeSkipSerializeIf::reflect_input(),\n    TestStru
       "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipSerializeIf"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",
@@ -71,12 +88,31 @@ expression: "(TestStructWithSerdeSkipSerializeIf::reflect_input(),\n    TestStru
           ]
         },
         {
-          "kind": "primitive",
+          "kind": "enum",
           "name": "std::option::Option",
-          "description": "Optional / Nullable value type",
+          "description": "Optional nullable type",
           "parameters": [
             {
               "name": "T"
+            }
+          ],
+          "representation": "None",
+          "variants": [
+            {
+              "name": "None",
+              "description": "The value is not provided, i.e. null"
+            },
+            {
+              "name": "Some",
+              "description": "The value is provided and set to some value",
+              "fields": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
             }
           ]
         },

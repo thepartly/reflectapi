@@ -8,7 +8,6 @@ expression: "(TestEnumUntagged::reflect_input(), TestEnumUntagged::reflect_outpu
       "name": "reflect_demo::tests::serde::TestEnumUntagged"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "enum",
@@ -54,7 +53,6 @@ expression: "(TestEnumUntagged::reflect_input(), TestEnumUntagged::reflect_outpu
       "name": "reflect_demo::tests::serde::TestEnumUntagged"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "enum",

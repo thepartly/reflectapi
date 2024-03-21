@@ -17,7 +17,6 @@ expression: "TestStructWithVecGenericGenericGeneric::<Vec<u8>>::reflect_input()"
     ]
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

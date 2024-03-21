@@ -7,7 +7,6 @@ expression: "TestStructWithArc::reflect_input()"
     "name": "reflect_demo::tests::basic::TestStructWithArc"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

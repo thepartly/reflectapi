@@ -1,8 +1,4 @@
-#[derive(Debug, Default, Clone)]
-#[cfg_attr(
-    any(feature = "serde", feature = "builder"),
-    derive(serde::Deserialize, serde::Serialize)
-)]
+#[derive(Debug, Default, Clone, serde::Deserialize, serde::Serialize)]
 pub struct Empty {}
 
 impl Empty {

@@ -8,7 +8,6 @@ expression: "(TestStructRenameAllPascalCase::reflect_input(),\n    TestStructRen
       "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",
@@ -36,7 +35,6 @@ expression: "(TestStructRenameAllPascalCase::reflect_input(),\n    TestStructRen
       "name": "reflect_demo::tests::serde::TestStructRenameAllPascalCase"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",

@@ -7,7 +7,6 @@ expression: "TestStructWithTransformInput::reflect_output()"
     "name": "reflect_demo::tests::basic::TestStructWithTransformInput"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

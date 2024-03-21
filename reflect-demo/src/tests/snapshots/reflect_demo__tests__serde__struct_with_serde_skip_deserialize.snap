@@ -8,7 +8,6 @@ expression: "(TestStructWithSerdeSkipDeserialize::reflect_input(),\n    TestStru
       "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipDeserialize"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",
@@ -22,7 +21,6 @@ expression: "(TestStructWithSerdeSkipDeserialize::reflect_input(),\n    TestStru
       "name": "reflect_demo::tests::serde::TestStructWithSerdeSkipDeserialize"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",

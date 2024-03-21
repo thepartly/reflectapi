@@ -7,7 +7,6 @@ expression: "TestStructWithHashMap::reflect_input()"
     "name": "reflect_demo::tests::basic::TestStructWithHashMap"
   },
   {
-    "name": "",
     "types": [
       {
         "kind": "struct",

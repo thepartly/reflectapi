@@ -8,7 +8,6 @@ expression: "(TestEnumRename::reflect_input(), TestEnumRename::reflect_output())
       "name": "reflect_demo::tests::serde::MyEnum"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "enum",
@@ -30,7 +29,6 @@ expression: "(TestEnumRename::reflect_input(), TestEnumRename::reflect_output())
       "name": "reflect_demo::tests::serde::MyEnum"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "enum",

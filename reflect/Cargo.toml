@@ -6,19 +6,29 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# workspace dependencies
 reflect-derive.workspace = true
 reflect-schema.workspace = true
 
-serde = { version = "1.0.197", features = ["derive"], optional = true }
-serde_json = { version = "1.0.114", optional = true }
+# mandatory 3rd party dependencies
+serde = { version = "1.0.197", features = ["derive"] }
 
+# optional 3rd party dependencies for implementing schema builder
+serde_json = { version = "1.0.114", optional = true }
 bytes = { version = "1.5.0", optional = true }
+
+# optional 3rd party dependencies for implementing reflects traits for foreigh types
 uuid = { version = "1.7.0", optional = true }
 
+# optional 3rd party dependencies for transforming reflect schema
+# to runnable servers based on dififerent web server frameworks
 axum = { version = "0.7.4", optional = true }
 
 [features]
+# feature for implementing schema builder
+builder = ["dep:serde_json", "dep:bytes"]
+# features for implementing reflect traits for foreigh types
 uuid = ["dep:uuid"]
-serde = ["dep:serde"]
-builder = ["dep:serde", "dep:serde_json", "dep:bytes"]
+# features for transforming reflect schema to runnable servers
+# based on dififerent web server frameworks
 axum = ["dep:axum"]

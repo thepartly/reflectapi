@@ -8,7 +8,6 @@ expression: "(TestStructRenameAllDifferently::reflect_input(),\n    TestStructRe
       "name": "reflect_demo::tests::serde::TestStructRenameAllDifferently"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",
@@ -36,7 +35,6 @@ expression: "(TestStructRenameAllDifferently::reflect_input(),\n    TestStructRe
       "name": "reflect_demo::tests::serde::TestStructRenameAllDifferently"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "struct",

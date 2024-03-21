@@ -8,7 +8,6 @@ expression: "(TestEnumRenameAllOnVariant::reflect_input(),\n    TestEnumRenameAl
       "name": "reflect_demo::tests::serde::TestEnumRenameAllOnVariant"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "enum",
@@ -53,7 +52,6 @@ expression: "(TestEnumRenameAllOnVariant::reflect_input(),\n    TestEnumRenameAl
       "name": "reflect_demo::tests::serde::TestEnumRenameAllOnVariant"
     },
     {
-      "name": "",
       "types": [
         {
           "kind": "enum",
