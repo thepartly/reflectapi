@@ -19,22 +19,12 @@ impl From<()> for Empty {
 
 impl crate::Input for Empty {
     fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
-        crate::reflect_type_simple(
-            schema,
-            format!("{}::Empty", std::module_path!()).as_str(),
-            "Struct object with no fields",
-            None,
-        )
+        crate::reflect_type_empty(schema, "reflect::Empty", "Struct object with no fields")
     }
 }
 
 impl crate::Output for Empty {
     fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
-        crate::reflect_type_simple(
-            schema,
-            format!("{}::Empty", std::module_path!()).as_str(),
-            "Struct object with no fields",
-            None,
-        )
+        crate::reflect_type_empty(schema, "reflect::Empty", "Struct object with no fields")
     }
 }

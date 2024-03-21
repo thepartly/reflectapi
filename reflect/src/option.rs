@@ -107,6 +107,54 @@ impl<'de, T: serde::de::Deserialize<'de>> serde::Deserialize<'de> for Option<T> 
     }
 }
 
+fn reflect_type_option(schema: &mut crate::Schema) -> String {
+    let type_name = "reflect::Option";
+    if schema.reserve_type(type_name) {
+        let mut type_def = crate::Enum::new(type_name.into());
+        type_def.parameters.push("T".into());
+        type_def.description = "Undefinable Option type".into();
+        type_def.representation = crate::Representation::None;
+
+        let mut variant = crate::Variant::new("Undefined".into());
+        variant.description =
+            "The value is missing, i.e. undefined in Javascript".into();
+        type_def.variants.push(variant);
+
+        let mut variant = crate::Variant::new("None".into());
+        variant.description =
+            "The value is provided but set to none, i.e. null in JS"
+                .into();
+        type_def.variants.push(variant);
+
+        let mut variant = crate::Variant::new("Some".into());
+        variant.description =
+            "The value is provided and set to some value".into();
+        variant
+            .fields
+            .push(crate::Field::new("0".into(), "T".into()));
+        type_def.variants.push(variant);
+
+        schema.insert_type(type_def.into());
+    }
+    type_name.into()
+}
+impl<T: crate::Input> crate::Input for crate::Option<T> {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_option(schema),
+            vec![T::reflect_input_type(schema)],
+        )
+    }
+}
+impl<T: crate::Output> crate::Output for crate::Option<T> {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_option(schema),
+            vec![T::reflect_output_type(schema)],
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
 

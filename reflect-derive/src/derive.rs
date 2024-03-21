@@ -102,7 +102,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
                 if schema.reserve_type(resolved_type_name.as_ref()) {
                     let mut reflected_type_def = #reflected_type_def;
-                    reflected_type_def.rename(resolved_type_name.clone());
+                    reflected_type_def.__internal_rename_current(resolved_type_name.clone());
 
                     let mut unresolved_to_resolved_fields_type_refs = std::collections::HashMap::new();
                     #fields_type_references_resolution_code;
@@ -118,7 +118,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
         #[allow(unused_doc_comments)]
         impl #type_generics #type_ident #type_genercis_idents_code #type_generics_where {
             fn #fn_reflect_ident() -> (reflect::TypeReference, reflect::Schema) {
-                let mut schema = reflect::Schema::new("".into(), "".into());
+                let mut schema = reflect::Schema::new();
                 let resolved_type_ref = <Self as #trait_ident>::#fn_reflect_type_ident(&mut schema);
                 schema.sort_types();
                 (resolved_type_ref, schema)

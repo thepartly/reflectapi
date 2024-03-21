@@ -6,6 +6,19 @@ pub trait Output {
     fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference;
 }
 
+pub(crate) fn reflect_type_empty(
+    schema: &mut crate::Schema,
+    type_name: &str,
+    description: &str,
+) -> crate::TypeReference {
+    if schema.reserve_type(type_name) {
+        let mut type_def = crate::Struct::new(type_name.into());
+        type_def.description = description.into();
+        schema.insert_type(type_def.into());
+    }
+    crate::TypeReference::new(type_name.into(), Vec::new())
+}
+
 pub(crate) fn reflect_type_simple(
     schema: &mut crate::Schema,
     type_name: &str,
@@ -106,12 +119,22 @@ impl<T: Output> Output for Vec<T> {
 fn reflect_type_option(schema: &mut crate::Schema) -> String {
     let type_name = "std::option::Option";
     if schema.reserve_type(type_name) {
-        let type_def = crate::Primitive::new(
-            type_name.into(),
-            "Optional / Nullable value type".into(),
-            vec!["T".into()],
-            None,
-        );
+        let mut type_def = crate::Enum::new(type_name.into());
+        type_def.parameters.push("T".into());
+        type_def.description = "Optional nullable type".into();
+        type_def.representation = crate::Representation::None;
+
+        let mut variant = crate::Variant::new("None".into());
+        variant.description = "The value is not provided, i.e. null".into();
+        type_def.variants.push(variant);
+
+        let mut variant = crate::Variant::new("Some".into());
+        variant.description = "The value is provided and set to some value".into();
+        variant
+            .fields
+            .push(crate::Field::new("0".into(), "T".into()));
+        type_def.variants.push(variant);
+
         schema.insert_type(type_def.into());
     }
     type_name.into()
@@ -125,23 +148,6 @@ impl<T: Input> Input for Option<T> {
     }
 }
 impl<T: Output> Output for Option<T> {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
-        crate::TypeReference::new(
-            reflect_type_option(schema),
-            vec![T::reflect_output_type(schema)],
-        )
-    }
-}
-
-impl<T: crate::Input> crate::Input for crate::Option<T> {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
-        crate::TypeReference::new(
-            reflect_type_option(schema),
-            vec![T::reflect_input_type(schema)],
-        )
-    }
-}
-impl<T: Output> Output for crate::Option<T> {
     fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_option(schema),

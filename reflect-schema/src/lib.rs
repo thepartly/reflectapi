@@ -3,13 +3,127 @@ mod internal;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Schema {
+pub struct EndpointSchema {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub functions: Vec<Function>,
+
+    #[serde(skip_serializing_if = "Schema::is_empty", default)]
+    pub input_types: Schema,
+
+    #[serde(skip_serializing_if = "Schema::is_empty", default)]
+    pub output_types: Schema,
+}
+
+impl EndpointSchema {
+    pub fn new(name: String, description: String) -> Self {
+        EndpointSchema {
+            name,
+            description: description,
+            functions: Vec::new(),
+            input_types: Schema::new(),
+            output_types: Schema::new(),
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn functions(&self) -> &Vec<Function> {
+        self.functions.as_ref()
+    }
+
+    pub fn input_types(&self) -> &Schema {
+        &self.input_types
+    }
+
+    pub fn output_types(&self) -> &Schema {
+        &self.output_types
+    }
+
+    pub fn consolidate_types(&mut self) -> Vec<String> {
+        // this is probably very inefficient approach to deduplicate types
+        // but is simple enough and will work for foreseeable future
+        loop {
+            let mut all_types = std::collections::HashSet::new();
+            let mut colliding_types = std::collections::HashSet::new();
+            let mut colliging_non_equal_types = std::collections::HashSet::new();
+
+            for input_type in self.input_types.types() {
+                all_types.insert(input_type.name().to_string());
+                if let Some(output_type) = self.output_types.get_type(input_type.name()) {
+                    colliding_types.insert(input_type.name().to_string());
+                    if input_type != output_type {
+                        colliging_non_equal_types.insert(input_type.name().to_string());
+                    }
+                }
+            }
+            for output_type in self.output_types.types() {
+                all_types.insert(output_type.name().to_string());
+                if let Some(input_type) = self.input_types.get_type(output_type.name()) {
+                    colliding_types.insert(output_type.name().to_string());
+                    if input_type != output_type {
+                        colliging_non_equal_types.insert(output_type.name().to_string());
+                    }
+                }
+            }
+
+            if colliging_non_equal_types.is_empty() {
+                let mut r: Vec<_> = all_types.into_iter().collect();
+                r.sort();
+                return r;
+            }
+
+            for type_name in colliging_non_equal_types.iter() {
+                // we assume for now that there is not collision with input / output submodule
+
+                let mut type_name_parts = type_name.split("::").collect::<Vec<_>>();
+                type_name_parts.insert(type_name_parts.len() - 1, "input");
+                self.rename_input_type(&type_name, &type_name_parts.join("::"));
+
+                let mut type_name_parts = type_name.split("::").collect::<Vec<_>>();
+                type_name_parts.insert(type_name_parts.len() - 1, "output");
+                self.rename_output_type(&type_name, &type_name_parts.join("::"));
+            }
+        }
+    }
+
+    pub fn get_type(&self, name: &str) -> Option<&Type> {
+        if let Some(t) = self.input_types.get_type(name) {
+            return Some(t);
+        }
+        if let Some(t) = self.output_types.get_type(name) {
+            return Some(t);
+        }
+        None
+    }
+
+    pub fn rename_type(&mut self, search_string: &str, replacer: &str) {
+        self.rename_input_type(search_string, replacer);
+        self.rename_output_type(search_string, replacer);
+    }
+
+    pub fn rename_input_type(&mut self, search_string: &str, replacer: &str) {
+        self.input_types.rename_type(search_string, replacer);
+        for function in self.functions.iter_mut() {
+            function.rename_input_type(search_string, replacer);
+        }
+    }
+
+    pub fn rename_output_type(&mut self, search_string: &str, replacer: &str) {
+        self.output_types.rename_type(search_string, replacer);
+        for function in self.functions.iter_mut() {
+            function.rename_output_type(search_string, replacer);
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Schema {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub types: Vec<Type>,
 
@@ -18,14 +132,15 @@ pub struct Schema {
 }
 
 impl Schema {
-    pub fn new(name: String, description: String) -> Self {
+    pub fn new() -> Self {
         Schema {
-            name,
-            description,
-            functions: Vec::new(),
             types: Vec::new(),
             types_map: std::cell::RefCell::new(HashMap::new()),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.types.is_empty()
     }
 
     pub fn types(&self) -> std::slice::Iter<Type> {
@@ -66,9 +181,36 @@ impl Schema {
         self.types.push(ty);
     }
 
+    pub fn remove_type(&mut self, ty: &str) -> Option<Type> {
+        self.ensure_types_map();
+        let index = self
+            .types_map
+            .borrow()
+            .get(ty)
+            .map(|i| *i)
+            .unwrap_or(usize::MAX);
+        if index == usize::MAX {
+            return None;
+        }
+
+        self.types_map.borrow_mut().remove(ty);
+        Some(self.types.remove(index))
+    }
+
+    fn rename_type(&mut self, search_string: &str, replacer: &str) {
+        for ty in self.types.iter_mut() {
+            ty.rename_type(search_string, replacer);
+        }
+        self.invalidate_types_map();
+    }
+
     pub fn sort_types(&mut self) {
         self.types.sort_by(|a, b| a.name().cmp(&b.name()));
         self.build_types_map();
+    }
+
+    fn invalidate_types_map(&self) {
+        *(self.types_map.borrow_mut()) = HashMap::new();
     }
 
     fn ensure_types_map(&self) {
@@ -139,6 +281,24 @@ impl Function {
     pub fn name(&self) -> &str {
         self.name.as_str()
     }
+
+    fn rename_input_type(&mut self, search_string: &str, replacer: &str) {
+        if let Some(input_type) = &mut self.input_type {
+            input_type.rename_type(search_string, replacer);
+        }
+        if let Some(input_headers) = &mut self.input_headers {
+            input_headers.rename_type(search_string, replacer);
+        }
+    }
+
+    fn rename_output_type(&mut self, search_string: &str, replacer: &str) {
+        if let Some(output_type) = &mut self.output_type {
+            output_type.rename_type(search_string, replacer);
+        }
+        if let Some(error_type) = &mut self.error_type {
+            error_type.rename_type(search_string, replacer);
+        }
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -177,18 +337,35 @@ impl TypeReference {
         self.parameters.iter()
     }
 
-    pub fn fallback(&self) -> Option<&TypeReference> {
-        None
-    }
-
     pub fn fallback_recursively(&mut self, schema: &Schema) {
         loop {
             let Some(type_def) = schema.get_type(self.name()) else {
                 return;
             };
-            if !type_def.fallback(self) {
+            if !type_def.fallback_internal(self) {
                 return;
             }
+        }
+    }
+
+    pub fn fallback_until<F>(&mut self, schema: &EndpointSchema, cond: F)
+    where
+        F: Fn(&TypeReference) -> bool,
+    {
+        loop {
+            let Some(type_def) = schema.get_type(self.name()) else {
+                return;
+            };
+            if !type_def.fallback_internal(self) || cond(self) {
+                return;
+            }
+        }
+    }
+
+    fn rename_type(&mut self, search_string: &str, replacer: &str) {
+        self.name = rename_ident(&self.name, search_string, replacer);
+        for param in self.parameters.iter_mut() {
+            param.rename_type(search_string, replacer);
         }
     }
 }
@@ -254,7 +431,7 @@ impl std::hash::Hash for TypeParameter {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum Type {
     Primitive(Primitive),
@@ -271,19 +448,19 @@ impl Type {
         }
     }
 
+    pub fn description(&self) -> &str {
+        match self {
+            Type::Primitive(p) => &p.description,
+            Type::Struct(s) => &s.description,
+            Type::Enum(e) => &e.description,
+        }
+    }
+
     pub fn set_description(&mut self, description: String) {
         match self {
             Type::Primitive(p) => p.description = description,
             Type::Struct(s) => s.description = description,
             Type::Enum(e) => e.description = description,
-        }
-    }
-
-    pub fn rename(&mut self, new_name: String) {
-        match self {
-            Type::Primitive(p) => p.name = new_name,
-            Type::Struct(s) => s.name = new_name,
-            Type::Enum(e) => e.name = new_name,
         }
     }
 
@@ -295,11 +472,35 @@ impl Type {
         }
     }
 
-    fn fallback(&self, origin: &mut TypeReference) -> bool {
+    pub fn fallback(&self) -> Option<&TypeReference> {
         match self {
-            Type::Primitive(p) => p.fallback(origin),
+            Type::Primitive(p) => p.fallback.as_ref(),
+            Type::Struct(_) => None,
+            Type::Enum(_) => None,
+        }
+    }
+
+    fn fallback_internal(&self, origin: &mut TypeReference) -> bool {
+        match self {
+            Type::Primitive(p) => p.fallback_internal(origin),
             Type::Struct(_) => false,
             Type::Enum(_) => false,
+        }
+    }
+
+    fn rename_type(&mut self, search_string: &str, replacer: &str) {
+        match self {
+            Type::Primitive(p) => p.rename_type(search_string, replacer),
+            Type::Struct(s) => s.rename_type(search_string, replacer),
+            Type::Enum(e) => e.rename_type(search_string, replacer),
+        }
+    }
+
+    pub fn __internal_rename_current(&mut self, new_name: String) {
+        match self {
+            Type::Primitive(p) => p.name = new_name,
+            Type::Struct(s) => s.name = new_name,
+            Type::Enum(e) => e.name = new_name,
         }
     }
 
@@ -312,7 +513,7 @@ impl Type {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Primitive {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -346,7 +547,7 @@ impl Primitive {
         self.parameters.iter()
     }
 
-    fn fallback(&self, origin: &mut TypeReference) -> bool {
+    fn fallback_internal(&self, origin: &mut TypeReference) -> bool {
         // example:
         // Self is DashMap<K, V>
         // fallback is HashSet<V> (stupid example, but it demos generic param discard)
@@ -411,6 +612,10 @@ impl Primitive {
         }
         true
     }
+
+    fn rename_type(&mut self, search_string: &str, replacer: &str) {
+        self.name = rename_ident(&self.name, search_string, replacer);
+    }
 }
 
 impl Into<Type> for Primitive {
@@ -419,7 +624,7 @@ impl Into<Type> for Primitive {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Struct {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -459,6 +664,13 @@ impl Struct {
     pub fn fields(&self) -> std::slice::Iter<Field> {
         self.fields.iter()
     }
+
+    fn rename_type(&mut self, search_string: &str, replacer: &str) {
+        self.name = rename_ident(&self.name, search_string, replacer);
+        for field in self.fields.iter_mut() {
+            field.rename_type(search_string, replacer);
+        }
+    }
 }
 
 impl Into<Type> for Struct {
@@ -467,7 +679,7 @@ impl Into<Type> for Struct {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Field {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -523,13 +735,17 @@ impl Field {
     pub fn name(&self) -> &str {
         self.name.as_str()
     }
+
+    fn rename_type(&mut self, search_string: &str, replacer: &str) {
+        self.type_ref.rename_type(search_string, replacer);
+    }
 }
 
 fn is_false(b: &bool) -> bool {
     !*b
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Enum {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -568,6 +784,13 @@ impl Enum {
     pub fn variants(&self) -> std::slice::Iter<Variant> {
         self.variants.iter()
     }
+
+    fn rename_type(&mut self, search_string: &str, replacer: &str) {
+        self.name = rename_ident(&self.name, search_string, replacer);
+        for variant in self.variants.iter_mut() {
+            variant.rename_type(search_string, replacer);
+        }
+    }
 }
 
 impl Into<Type> for Enum {
@@ -576,7 +799,7 @@ impl Into<Type> for Enum {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Variant {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -610,9 +833,15 @@ impl Variant {
     pub fn fields(&self) -> std::slice::Iter<Field> {
         self.fields.iter()
     }
+
+    fn rename_type(&mut self, search_string: &str, replacer: &str) {
+        for field in self.fields.iter_mut() {
+            field.rename_type(search_string, replacer);
+        }
+    }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub enum Representation {
     /// The default.
     ///
@@ -652,5 +881,23 @@ impl Representation {
 impl Default for Representation {
     fn default() -> Self {
         Representation::External
+    }
+}
+
+fn rename_ident(name: &str, search_string: &str, replacer: &str) -> String {
+    if search_string.ends_with("::") {
+        // replacing module name
+        if name.starts_with(search_string) {
+            format!("{}{}", replacer, &name[search_string.len()..])
+        } else {
+            name.into()
+        }
+    } else {
+        // replacing type name
+        if name == search_string {
+            replacer.into()
+        } else {
+            name.into()
+        }
     }
 }

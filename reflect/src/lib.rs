@@ -1,8 +1,9 @@
 mod empty;
 mod impls;
 mod infallible;
-mod traits;
 mod option;
+mod traits;
+mod validation;
 
 #[cfg(any(feature = "builder", feature = "axum"))]
 mod builder;
@@ -21,7 +22,8 @@ pub use builder::*;
 #[cfg(feature = "axum")]
 pub use axum::*;
 
+pub use option::*;
 pub use reflect_derive::*;
 pub use reflect_schema::*;
 pub use traits::*;
-pub use option::*;
+pub use validation::*;

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{Function, Schema, Struct};
+use crate::{EndpointSchema, Function, Struct};
 
 pub struct HandlerInput {
     pub body: bytes::Bytes,
@@ -33,11 +33,11 @@ where
     S: Send + 'static,
 {
     pub(crate) fn new<F, Fut, R, I, O, E, H>(
-        name: &str,
-        description: &str,
+        name: String,
+        description: String,
         readonly: bool,
         handler: F,
-        schema: &mut Schema,
+        schema: &mut EndpointSchema,
     ) -> Handler<S>
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
@@ -48,12 +48,13 @@ where
         O: crate::Output + serde::ser::Serialize + Send + 'static,
         E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
-        let input_type = I::reflect_input_type(schema);
-        let output_type = O::reflect_output_type(schema);
-        let error_type = E::reflect_output_type(schema);
-        let input_headers = H::reflect_input_type(schema);
+        let input_type = I::reflect_input_type(&mut schema.input_types);
+        let input_headers = H::reflect_input_type(&mut schema.input_types);
+        let output_type = O::reflect_output_type(&mut schema.output_types);
+        let error_type = E::reflect_output_type(&mut schema.output_types);
 
         let mut input_headers_names = schema
+            .input_types
             .get_type(&input_headers.name.as_str())
             .map(|type_def| match type_def {
                 crate::Type::Struct(Struct { fields, .. }) => {
@@ -64,8 +65,8 @@ where
             .unwrap_or_default();
 
         let function_def = Function {
-            name: name.into(),
-            description: description.into(),
+            name: name.clone(),
+            description: description,
             input_type: if input_type.name == "reflect::empty::Empty" {
                 None
             } else {
@@ -96,7 +97,7 @@ where
         input_headers_names.push("traceparent".into());
 
         Handler {
-            name: name.into(),
+            name: name,
             readonly,
             input_headers: input_headers_names.clone(),
             callback: Arc::new(move |state: S, input: HandlerInput| {

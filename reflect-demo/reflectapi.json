@@ -1,21 +1,21 @@
 {
-  "name": "demo schema",
-  "description": "demo schema description",
+  "name": "Demo application",
+  "description": "This is a demo application",
   "functions": [
     {
       "name": "example",
-      "description": "example function",
+      "description": "example description",
       "input_type": {
-        "name": "reflect_demo::ExampleRequest"
+        "name": "myapi::ExampleRequest"
       },
       "input_headers": {
-        "name": "reflect_demo::ExampleRequestHeaders"
+        "name": "myapi::ExampleRequestHeaders"
       },
       "output_type": {
-        "name": "reflect_demo::ExampleResponse"
+        "name": "myapi::ExampleRequest"
       },
       "error_type": {
-        "name": "reflect_demo::ExampleError"
+        "name": "myapi::ExampleError"
       },
       "serialization": [
         "json"
@@ -24,117 +24,174 @@
     },
     {
       "name": "example2",
-      "description": "example function2",
       "input_type": {
-        "name": "reflect_demo::ExampleRequest"
+        "name": "myapi::ExampleRequest"
       },
       "input_headers": {
-        "name": "reflect_demo::ExampleRequestHeaders"
+        "name": "myapi::ExampleRequestHeaders"
       },
       "output_type": {
-        "name": "reflect_demo::ExampleResponse"
+        "name": "myapi::ExampleResponse"
+      },
+      "error_type": {
+        "name": "reflect::Infallible"
       },
       "serialization": [
         "json"
-      ],
-      "readonly": true
+      ]
     },
     {
       "name": "example3",
-      "description": "example function2",
+      "input_type": {
+        "name": "reflect::Empty"
+      },
+      "output_type": {
+        "name": "reflect::Empty"
+      },
+      "error_type": {
+        "name": "reflect::Infallible"
+      },
       "serialization": [
         "json"
-      ],
-      "readonly": true
+      ]
     }
   ],
-  "types": [
-    {
-      "kind": "primitive",
-      "name": "std::string::String",
-      "description": "UTF-8 encoded string"
-    },
-    {
-      "kind": "primitive",
-      "name": "std::option::Option",
-      "description": "Optional / Nullable value type",
-      "parameters": [
-        {
-          "name": "T"
-        }
-      ]
-    },
-    {
-      "kind": "struct",
-      "name": "reflect_demo::ExampleRequest",
-      "description": " Some example doc\n test",
-      "fields": [
-        {
-          "name": "inputData",
-          "type": {
-            "name": "std::string::String"
+  "input_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "None",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null"
           },
-          "required": true
-        },
-        {
-          "name": "input_optional",
-          "type": {
-            "name": "std::option::Option",
-            "parameters": [
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": [
               {
-                "name": "std::string::String"
+                "name": "0",
+                "type": {
+                  "name": "T"
+                }
               }
             ]
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::ExampleRequest",
+        "description": " Some example doc\n test",
+        "fields": [
+          {
+            "name": "inputData",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
           },
-          "required": true
-        }
-      ]
-    },
-    {
-      "kind": "struct",
-      "name": "reflect_demo::ExampleResponse",
-      "fields": [
-        {
-          "name": "message",
-          "description": " some doc",
-          "type": {
-            "name": "std::string::String"
-          },
-          "required": true
-        }
-      ]
-    },
-    {
-      "kind": "enum",
-      "name": "reflect_demo::ExampleError",
-      "variants": [
-        {
-          "name": "Error1"
-        }
-      ]
-    },
-    {
-      "kind": "struct",
-      "name": "reflect_demo::ExampleRequestHeaders",
-      "fields": [
-        {
-          "name": "name",
-          "type": {
-            "name": "std::string::String"
-          },
-          "required": true
-        }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "reflect::infallible::Infallible",
-      "description": "Error object which is expected to be never returned"
-    },
-    {
-      "kind": "primitive",
-      "name": "reflect::empty::Empty",
-      "description": "Struct object with no fields"
-    }
-  ]
+          {
+            "name": "input_optional",
+            "type": {
+              "name": "std::option::Option",
+              "parameters": [
+                {
+                  "name": "std::string::String"
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::ExampleRequestHeaders",
+        "fields": [
+          {
+            "name": "name",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::ExampleRequest",
+        "description": " Some example doc\n test",
+        "fields": [
+          {
+            "name": "inputData",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "myapi::ExampleError",
+        "variants": [
+          {
+            "name": "Error1"
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::ExampleResponse",
+        "fields": [
+          {
+            "name": "message",
+            "description": " some doc",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      }
+    ]
+  }
 }

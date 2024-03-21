@@ -33,22 +33,20 @@ impl From<()> for Infallible {
 
 impl crate::Input for Infallible {
     fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
-        crate::reflect_type_simple(
+        crate::reflect_type_empty(
             schema,
-            format!("{}::Infallible", std::module_path!()).as_str(),
+            "reflect::Infallible",
             "Error object which is expected to be never returned",
-            None,
         )
     }
 }
 
 impl crate::Output for Infallible {
     fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
-        crate::reflect_type_simple(
+        crate::reflect_type_empty(
             schema,
-            format!("{}::Infallible", std::module_path!()).as_str(),
+            "reflect::Infallible",
             "Error object which is expected to be never returned",
-            None,
         )
     }
 }
