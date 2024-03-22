@@ -33,7 +33,7 @@ export namespace basic {
 export namespace input {
 
 export interface TestStructWithTransformOutput {
-    _f: std.Arc<number /* u8 */>;
+    _f: number /* u8 */;
     }
 
 }

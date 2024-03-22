@@ -375,17 +375,18 @@ impl TypeReference {
             let Some(type_def) = schema.get_type(self.name()) else {
                 return;
             };
-            if !type_def.fallback_internal(self) {
+            let Some(fallback_type_ref) = type_def.fallback_internal(self) else {
                 return;
-            }
+            };
+            *self = fallback_type_ref;
         }
     }
 
-    pub fn fallback_once(&mut self, schema: &Typespace) -> bool {
+    pub fn fallback_once(&self, schema: &Typespace) -> Option<TypeReference> {
         let Some(type_def) = schema.get_type(self.name()) else {
-            return false;
+            return None;
         };
-        type_def.fallback_internal(self)
+        type_def.fallback_internal(&self)
     }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
@@ -515,11 +516,11 @@ impl Type {
         }
     }
 
-    fn fallback_internal(&self, origin: &mut TypeReference) -> bool {
+    fn fallback_internal(&self, origin: &TypeReference) -> Option<TypeReference> {
         match self {
             Type::Primitive(p) => p.fallback_internal(origin),
-            Type::Struct(_) => false,
-            Type::Enum(_) => false,
+            Type::Struct(_) => None,
+            Type::Enum(_) => None,
         }
     }
 
@@ -594,14 +595,14 @@ impl Primitive {
         self.fallback.as_ref()
     }
 
-    fn fallback_internal(&self, origin: &mut TypeReference) -> bool {
+    fn fallback_internal(&self, origin: &TypeReference) -> Option<TypeReference> {
         // example:
         // Self is DashMap<K, V>
         // fallback is HashSet<V> (stupid example, but it demos generic param discard)
         // origin is DashMap<String, u8>
         // It should transform origin to HashSet<u8>
         let Some(fallback) = &self.fallback else {
-            return false;
+            return None;
         };
 
         if let Some((type_def_param_index, _)) = self
@@ -615,18 +616,16 @@ impl Primitive {
                 // It means the origin type reference does no provide correct number of generic parameters
                 // required by the type definition
                 // It is invalid schema
-                return false;
+                return None;
             };
-            origin.name = origin_type_ref_param.name.clone();
-            origin.parameters = origin_type_ref_param.parameters.clone();
-            return true;
+            return Some(TypeReference {
+                name: origin_type_ref_param.name.clone(),
+                parameters: origin_type_ref_param.parameters.clone(),
+            });
         }
 
         let mut new_parameters_for_origin = Vec::new();
-        let mut needs_parameters_rebuild = fallback.parameters().len() != origin.parameters.len();
-        for (fallback_type_ref_param_index, fallback_type_ref_param) in
-            fallback.parameters().enumerate()
-        {
+        for fallback_type_ref_param in fallback.parameters() {
             let Some((type_def_param_index, _)) =
                 self.parameters().enumerate().find(|(_, type_def_param)| {
                     type_def_param.name() == fallback_type_ref_param.name()
@@ -637,27 +636,21 @@ impl Primitive {
                 // in our example, it would be index 0
                 continue;
             };
+
             // in our example type_def_param_index would be index 1 for V
             let Some(origin_type_ref_param) = origin.parameters.get(type_def_param_index) else {
                 // It means the origin type reference does no provide correct number of generic parameters
                 // required by the type definition
                 // It is invalid schema
-                return false;
+                return None;
             };
-            if type_def_param_index != fallback_type_ref_param_index {
-                needs_parameters_rebuild = true;
-            }
-            new_parameters_for_origin.push(origin_type_ref_param);
+            new_parameters_for_origin.push(origin_type_ref_param.clone());
         }
 
-        origin.name = fallback.name.clone();
-        if needs_parameters_rebuild {
-            origin.parameters = new_parameters_for_origin
-                .iter()
-                .map(|i| std::ops::Deref::deref(i).clone())
-                .collect();
-        }
-        true
+        Some(TypeReference {
+            name: fallback.name.clone(),
+            parameters: new_parameters_for_origin,
+        })
     }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {

@@ -41,7 +41,7 @@ export interface TestStructWithTransformInput {
 export namespace output {
 
 export interface TestStructWithTransformInput {
-    _f: std.Arc<number /* u8 */>;
+    _f: number /* u8 */;
     }
 
 }

@@ -36,13 +36,13 @@ export interface TestStructWithAllPrimitiveTypeFields {
     _f_u32: number /* u32 */;
     _f_u64: number /* u64 */;
     _f_u128: number /* u128 */;
-    _f_usize: usize;
+    _f_usize: number /* u64 */;
     _f_i8: number /* i8 */;
     _f_i16: number /* i16 */;
     _f_i32: number /* i32 */;
     _f_i64: number /* i64 */;
     _f_i128: number /* i128 */;
-    _f_isize: isize;
+    _f_isize: number /* i64 */;
     _f_f32: number /* f32 */;
     _f_f64: number /* f64 */;
     _f_bool: boolean;
@@ -52,7 +52,7 @@ export interface TestStructWithAllPrimitiveTypeFields {
     _f_option: number /* u8 */ | null;
     _f_vec: Array<number /* u8 */>;
     _f_hashmap: Record<number /* u8 */, string>;
-    _f_hashset: std.HashSet<number /* u8 */>;
+    _f_hashset: Array<number /* u8 */>;
     _f_tuple: [number /* u8 */, string];
     _f_tuple3: [number /* u8 */, string, number /* u8 */];
     _f_tuple4: [number /* u8 */, string, number /* u8 */, string];
@@ -64,14 +64,14 @@ export interface TestStructWithAllPrimitiveTypeFields {
     _f_tuple10: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0];
     _f_tuple11: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0, number /* u8 */1];
     _f_tuple12: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0, number /* u8 */1, number /* u8 */2];
-    _f_array: std.Array<number /* u8 */, 3>;
-    _f_pointer_box: std.Box<number /* u8 */>;
-    _f_pointer_arc: std.Arc<number /* u8 */>;
-    _f_pointer_cell: std.Cell<number /* u8 */>;
-    _f_pointer_refcell: std.RefCell<number /* u8 */>;
-    _f_pointer_mutex: std.Mutex<number /* u8 */>;
-    _f_pointer_rwlock: std.RwLock<number /* u8 */>;
-    _f_pointer_weak: std.Weak<number /* u8 */>;
+    _f_array: Array<number /* u8 */>;
+    _f_pointer_box: number /* u8 */;
+    _f_pointer_arc: number /* u8 */;
+    _f_pointer_cell: number /* u8 */;
+    _f_pointer_refcell: number /* u8 */;
+    _f_pointer_mutex: number /* u8 */;
+    _f_pointer_rwlock: number /* u8 */;
+    _f_pointer_weak: number /* u8 */;
     _f_phantomdata: undefined | number /* u8 */ /* phantom data */;
     _f_infallible: reflect.Infallible;
     }

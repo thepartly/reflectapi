@@ -31,7 +31,7 @@ export namespace tests {
 export namespace generics {
 
 export interface TestStructWithCircularReferenceGeneric<T> {
-    _f: std.Box<reflect_demo.tests.generics.TestStructWithCircularReferenceGeneric<T>>;
+    _f: reflect_demo.tests.generics.TestStructWithCircularReferenceGeneric<T>;
     _f2: T;
     }
 

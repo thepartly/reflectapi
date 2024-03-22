@@ -325,11 +325,7 @@ fn type_ref_to_ts_ref(
     }
 
     let type_name_parts = type_ref.name.split("::").collect::<Vec<_>>();
-    let n = if type_name_parts.len() > 2 && type_name_parts[0] == "std" {
-        format!("std.{}", type_name_parts[type_name_parts.len() - 1])
-    } else {
-        type_name_parts.join(".")
-    };
+    let n = type_name_parts.join(".");
     let p = type_ref_params_to_ts_ref(&type_ref.parameters, schema, implemented_types);
     format!("{}{}", n, p)
 }
@@ -504,9 +500,23 @@ fn resolve_type_ref(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> Option<String> {
+    println!("type_ref: {:?}", type_ref);
     let Some(mut implementation) = implemented_types.get(type_ref.name.as_str()).cloned() else {
-        // TODO here we need to fallback one level if it exists
-        return None;
+        let Some(fallback_type_ref) = type_ref.fallback_once(schema.input_types()) else {
+            let Some(fallback_type_ref) = type_ref.fallback_once(schema.output_types()) else {
+                return None;
+            };
+            return Some(type_ref_to_ts_ref(
+                &fallback_type_ref,
+                schema,
+                implemented_types,
+            ));
+        };
+        return Some(type_ref_to_ts_ref(
+            &fallback_type_ref,
+            schema,
+            implemented_types,
+        ));
     };
 
     let Some(type_def) = schema.get_type(type_ref.name()) else {

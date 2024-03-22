@@ -414,10 +414,28 @@ fn test_reflect_struct_with_all_primitive_type_fields() {
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
-struct TestStructWithArcPointerOnly {    
+struct TestStructWithArcPointerOnly {
     _f_pointer_arc: std::sync::Arc<u8>,
 }
 #[test]
 fn test_reflect_struct_with_arc_pointer_only() {
     assert_snapshot!(TestStructWithArcPointerOnly);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithHashSetField {
+    _f_hashset: std::collections::HashSet<u8>,
+}
+#[test]
+fn test_reflect_struct_with_hashset_field() {
+    assert_snapshot!(TestStructWithHashSetField);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithHashSetFieldGeneric<G> where G: std::hash::Hash + Eq + reflect::Input + reflect::Output {
+    _f_hashset: std::collections::HashSet<G>,
+}
+#[test]
+fn test_reflect_struct_with_hashset_field_generic() {
+    assert_snapshot!(TestStructWithHashSetFieldGeneric::<String>);
 }

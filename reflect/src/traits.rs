@@ -220,7 +220,7 @@ fn reflect_type_hashset(schema: &mut crate::Typespace) -> String {
             "Value set type".into(),
             vec!["V".into()],
             Some(crate::TypeReference::new(
-                reflect_type_array(schema),
+                reflect_type_vector(schema),
                 vec!["V".into()],
             )),
         );
