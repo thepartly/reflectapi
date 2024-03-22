@@ -11,10 +11,6 @@ expression: "super::into_typescript_code::<TestEnumUntagged>()"
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -35,8 +31,8 @@ export namespace tests {
 export namespace serde {
 
 export type TestEnumUntagged =
-    | u8
-    | {field_name: u8}
+    | number /* u8 */
+    | {field_name: number /* u8 */}
     ;
 
 }

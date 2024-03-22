@@ -31,7 +31,7 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithVecExternal {
-    _f: std.Vec<reflect_demo.tests.test_lib.TestStructNested>;
+    _f: Array<reflect_demo.tests.test_lib.TestStructNested>;
     }
 
 }
@@ -39,20 +39,9 @@ export interface TestStructWithVecExternal {
 export namespace test_lib {
 
 export interface TestStructNested {
-    _f: std.String;
+    _f: string;
     }
 
 }
 }
-}
-
-export namespace std {
-
-/// UTF-8 encoded string
-export type String = string;
-
-
-/// Expandable array type
-export type Vec<T> = Array<T>;
-
 }

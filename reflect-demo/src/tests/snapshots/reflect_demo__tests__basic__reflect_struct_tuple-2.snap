@@ -11,10 +11,6 @@ expression: "super::into_typescript_code::<TestStructTuple>()"
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -35,17 +31,10 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructTuple {
-    0: u8;
-    1: std.String;
+    0: number /* u8 */;
+    1: string;
     }
 
 }
 }
-}
-
-export namespace std {
-
-/// UTF-8 encoded string
-export type String = string;
-
 }

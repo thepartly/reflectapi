@@ -11,10 +11,6 @@ expression: "super::into_typescript_code::<TestStructWithTuple12>()"
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -35,20 +31,9 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithTuple12 {
-    _f: std.Tuple12<u8, std.String, u8, std.String, u8, std.String, u8, std.String, u8, std.String, u8, std.String>;
+    _f: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0, number /* u8 */1, number /* u8 */2];
     }
 
 }
 }
-}
-
-export namespace std {
-
-/// UTF-8 encoded string
-export type String = string;
-
-
-/// Tuple holding 12 elements
-export type Tuple12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> = TODO;
-
 }

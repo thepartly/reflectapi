@@ -31,16 +31,9 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructOneBasicFieldStringReflectBoth {
-    _f: std.String;
+    _f: string;
     }
 
 }
 }
-}
-
-export namespace std {
-
-/// UTF-8 encoded string
-export type String = string;
-
 }

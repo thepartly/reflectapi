@@ -11,18 +11,6 @@ expression: "super::into_input_typescript_code::<TestStructWithCircularReference
 
 
 
-/// 16-bit unsigned integer
-export type u16 = TODO;
-
-
-/// 32-bit unsigned integer
-export type u32 = TODO;
-
-
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -54,11 +42,4 @@ export interface TestStructWithCircularReferenceGenericWithoutBoxParent<C, D> {
 
 }
 }
-}
-
-export namespace std {
-
-/// UTF-8 encoded string
-export type String = string;
-
 }

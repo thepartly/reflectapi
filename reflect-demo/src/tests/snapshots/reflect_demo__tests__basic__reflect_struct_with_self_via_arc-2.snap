@@ -37,10 +37,3 @@ export interface TestStructWithSelfViaArc {
 }
 }
 }
-
-export namespace std {
-
-/// std::sync::Arc pointer type
-export type Arc<T> = TODO;
-
-}

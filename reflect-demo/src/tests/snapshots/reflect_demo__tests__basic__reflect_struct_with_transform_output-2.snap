@@ -11,10 +11,6 @@ expression: "super::into_typescript_code::<TestStructWithTransformOutput>()"
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -37,7 +33,7 @@ export namespace basic {
 export namespace input {
 
 export interface TestStructWithTransformOutput {
-    _f: std.Arc<u8>;
+    _f: std.Arc<number /* u8 */>;
     }
 
 }
@@ -45,17 +41,10 @@ export interface TestStructWithTransformOutput {
 export namespace output {
 
 export interface TestStructWithTransformOutput {
-    _f: u8;
+    _f: number /* u8 */;
     }
 
 }
 }
 }
-}
-
-export namespace std {
-
-/// std::sync::Arc pointer type
-export type Arc<T> = TODO;
-
 }

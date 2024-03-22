@@ -11,10 +11,6 @@ expression: "super::into_input_typescript_code::<TestEnumWithGenericsAndFieldsAn
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -35,10 +31,10 @@ export namespace tests {
 export namespace enums {
 
 export type TestEnumWithGenericsAndFieldsAndNamedFields<T> =
-    | { Variant1: u8 }
+    | { Variant1: number /* u8 */ }
     | { Variant2: [T,
 T] }
-    | { Variant3: {field1: u8,
+    | { Variant3: {field1: number /* u8 */,
 field2: T} }
     ;
 

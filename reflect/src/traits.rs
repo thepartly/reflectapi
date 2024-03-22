@@ -86,6 +86,29 @@ impl Output for isize {
     }
 }
 
+impl Input for usize {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        let fallback = Some(u64::reflect_input_type(schema));
+        reflect_type_simple(
+            schema,
+            "usize",
+            "Machine-specific-bit unsigned integer",
+            fallback,
+        )
+    }
+}
+impl Output for usize {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        let fallback = Some(u64::reflect_output_type(schema));
+        reflect_type_simple(
+            schema,
+            "usize",
+            "Machine-specific-bit unsigned integer",
+            fallback,
+        )
+    }
+}
+
 fn reflect_type_vector(schema: &mut crate::Schema) -> String {
     let type_name = "std::vec::Vec";
     if schema.reserve_type(type_name) {
@@ -185,6 +208,39 @@ impl<K: Output, V: Output> Output for std::collections::HashMap<K, V> {
                 K::reflect_output_type(schema),
                 V::reflect_output_type(schema),
             ],
+        )
+    }
+}
+
+fn reflect_type_hashset(schema: &mut crate::Schema) -> String {
+    let type_name = "std::collections::HashSet";
+    if schema.reserve_type(type_name) {
+        let type_def = crate::Primitive::new(
+            type_name.into(),
+            "Value set type".into(),
+            vec!["V".into()],
+            Some(crate::TypeReference::new(
+                reflect_type_array(schema),
+                vec!["V".into()],
+            )),
+        );
+        schema.insert_type(type_def.into());
+    }
+    type_name.into()
+}
+impl<V: Input> Input for std::collections::HashSet<V> {
+    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_hashset(schema),
+            vec![V::reflect_input_type(schema)],
+        )
+    }
+}
+impl<V: Output> Output for std::collections::HashSet<V> {
+    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflect_type_hashset(schema),
+            vec![V::reflect_output_type(schema)],
         )
     }
 }
@@ -435,12 +491,14 @@ impl<T: Output> Output for std::marker::PhantomData<T> {
 
 impl Input for std::convert::Infallible {
     fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
-        reflect_type_simple(schema, "std::convert::Infallible", "Never type", None)
+        // schema builder handles Infallible in a special way
+        crate::infallible::Infallible::reflect_input_type(schema)
     }
 }
 impl Output for std::convert::Infallible {
     fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
-        reflect_type_simple(schema, "std::convert::Infallible", "Never type", None)
+        // schema builder handles Infallible in a special way
+        crate::infallible::Infallible::reflect_output_type(schema)
     }
 }
 

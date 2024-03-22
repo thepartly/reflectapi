@@ -11,10 +11,6 @@ expression: "super::into_input_typescript_code::<TestStructWithVecGenericGeneric
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -35,21 +31,14 @@ export namespace tests {
 export namespace generics {
 
 export interface TestStructWithVecGeneric<T> {
-    _f: std.Vec<T>;
+    _f: Array<T>;
     }
 
 
 export interface TestStructWithVecGenericGenericGeneric<T> {
-    _f: std.Vec<reflect_demo.tests.generics.TestStructWithVecGeneric<T>>;
+    _f: Array<reflect_demo.tests.generics.TestStructWithVecGeneric<T>>;
     }
 
 }
 }
-}
-
-export namespace std {
-
-/// Expandable array type
-export type Vec<T> = Array<T>;
-
 }

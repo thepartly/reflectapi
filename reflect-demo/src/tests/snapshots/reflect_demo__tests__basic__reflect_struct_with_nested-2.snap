@@ -31,7 +31,7 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructNested {
-    _f: std.String;
+    _f: string;
     }
 
 
@@ -41,11 +41,4 @@ export interface TestStructWithNested {
 
 }
 }
-}
-
-export namespace std {
-
-/// UTF-8 encoded string
-export type String = string;
-
 }

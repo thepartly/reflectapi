@@ -37,10 +37,3 @@ export interface TestStructWithCircularReference {
 }
 }
 }
-
-export namespace std {
-
-/// std::boxed::Box pointer type
-export type Box<T> = TODO;
-
-}

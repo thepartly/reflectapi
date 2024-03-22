@@ -11,10 +11,6 @@ expression: "super::into_typescript_code::<TestEnumRenameAllOnVariant>()"
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -35,8 +31,8 @@ export namespace tests {
 export namespace serde {
 
 export type TestEnumRenameAllOnVariant =
-    | { Variant1: {fieldName: u8} }
-    | { Variant2: u8 }
+    | { Variant1: {fieldName: number /* u8 */} }
+    | { Variant2: number /* u8 */ }
     ;
 
 }

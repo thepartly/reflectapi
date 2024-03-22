@@ -39,16 +39,9 @@ export interface TestStructWithNestedExternal {
 export namespace test_lib {
 
 export interface TestStructNested {
-    _f: std.String;
+    _f: string;
     }
 
 }
 }
-}
-
-export namespace std {
-
-/// UTF-8 encoded string
-export type String = string;
-
 }

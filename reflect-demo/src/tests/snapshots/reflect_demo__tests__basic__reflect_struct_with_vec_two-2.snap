@@ -11,14 +11,6 @@ expression: "super::into_typescript_code::<TestStructWithVecTwo>()"
 
 
 
-/// 8-bit signed integer
-export type i8 = TODO;
-
-
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -39,17 +31,10 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithVecTwo {
-    _f: std.Vec<u8>;
-    _f2: std.Vec<i8>;
+    _f: Array<number /* u8 */>;
+    _f2: Array<number /* i8 */>;
     }
 
 }
 }
-}
-
-export namespace std {
-
-/// Expandable array type
-export type Vec<T> = Array<T>;
-
 }

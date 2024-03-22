@@ -335,3 +335,89 @@ enum TestEnumDocumented<
 fn test_reflect_enum_documented() {
     assert_input_snapshot!(TestEnumDocumented::<u8>);
 }
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithAllPrimitiveTypeFields {
+    _f_u8: u8,
+    _f_u16: u16,
+    _f_u32: u32,
+    _f_u64: u64,
+    _f_u128: u128,
+    _f_usize: usize,
+    _f_i8: i8,
+    _f_i16: i16,
+    _f_i32: i32,
+    _f_i64: i64,
+    _f_i128: i128,
+    _f_isize: isize,
+    _f_f32: f32,
+    _f_f64: f64,
+    _f_bool: bool,
+    _f_char: char,
+    _f_str: String,
+    _f_unit: (),
+    _f_option: Option<u8>,
+    _f_vec: Vec<u8>,
+    _f_hashmap: HashMap<u8, String>,
+    _f_hashset: std::collections::HashSet<u8>,
+    _f_tuple: (u8, String),
+    _f_tuple3: (u8, String, u8),
+    _f_tuple4: (u8, String, u8, String),
+    _f_tuple5: (u8, String, u8, String, u8),
+    _f_tuple6: (u8, String, u8, String, u8, String),
+    _f_tuple7: (u8, String, u8, String, u8, String, u8),
+    _f_tuple8: (u8, String, u8, String, u8, String, u8, String),
+    _f_tuple9: (u8, String, u8, String, u8, String, u8, String, u8),
+    _f_tuple10: (u8, String, u8, String, u8, String, u8, String, u8, String),
+    _f_tuple11: (
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+    ),
+    _f_tuple12: (
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+        String,
+        u8,
+        String,
+    ),
+    _f_array: [u8; 3],
+    _f_pointer_box: Box<u8>,
+    // _f_pointer_rc: std::rc::Rc<u8>, // this does not implement Sync / Send
+    _f_pointer_arc: std::sync::Arc<u8>,
+    _f_pointer_cell: std::cell::Cell<u8>,
+    _f_pointer_refcell: std::cell::RefCell<u8>,
+    _f_pointer_mutex: std::sync::Mutex<u8>,
+    _f_pointer_rwlock: std::sync::RwLock<u8>,
+    _f_pointer_weak: std::sync::Weak<u8>,
+    _f_phantomdata: std::marker::PhantomData<u8>,
+    _f_infallible: reflect::Infallible,
+}
+#[test]
+fn test_reflect_struct_with_all_primitive_type_fields() {
+    assert_snapshot!(TestStructWithAllPrimitiveTypeFields);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithArcPointerOnly {    
+    _f_pointer_arc: std::sync::Arc<u8>,
+}
+#[test]
+fn test_reflect_struct_with_arc_pointer_only() {
+    assert_snapshot!(TestStructWithArcPointerOnly);
+}

@@ -11,10 +11,6 @@ expression: "super::into_input_typescript_code::<TestStructWithNestedGenericStru
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -35,7 +31,7 @@ export namespace tests {
 export namespace generics {
 
 export interface TestStructWithNestedGenericStruct {
-    _f: reflect_demo.tests.generics.TestStructWithSimpleGeneric<reflect_demo.tests.generics.TestStructWithSimpleGeneric<u8>>;
+    _f: reflect_demo.tests.generics.TestStructWithSimpleGeneric<reflect_demo.tests.generics.TestStructWithSimpleGeneric<number /* u8 */>>;
     }
 
 

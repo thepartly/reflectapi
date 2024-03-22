@@ -15,13 +15,13 @@ export type ExampleError =
 
 
 export interface ExampleRequestHeaders {
-    name: std.String;
+    name: string;
     }
 
 
 export interface ExampleResponse {
     /// some doc
-    message: std.String;
+    message: string;
     }
 
 
@@ -30,8 +30,8 @@ export namespace input {
 /// Some example doc
 /// test
 export interface ExampleRequest {
-    inputData: std.String;
-    input_optional: std.Option<std.String>;
+    inputData: string;
+    input_optional: string | null;
     }
 
 }
@@ -41,7 +41,7 @@ export namespace output {
 /// Some example doc
 /// test
 export interface ExampleRequest {
-    inputData: std.String;
+    inputData: string;
     }
 
 }
@@ -60,13 +60,5 @@ export interface Infallible {
 
 }
 
-export namespace std {
-
-/// Optional nullable type
-export type Option<T> = T | null;
 
 
-/// UTF-8 encoded string
-export type String = string;
-
-}

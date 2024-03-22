@@ -11,10 +11,6 @@ expression: "super::into_typescript_code::<TestStructWithHashMap>()"
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -35,20 +31,9 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithHashMap {
-    _f: std.HashMap<u8, std.String>;
+    _f: Record<number /* u8 */, string>;
     }
 
 }
 }
-}
-
-export namespace std {
-
-/// Key-value map type
-export type HashMap<K, V> = Record<K, V>;
-
-
-/// UTF-8 encoded string
-export type String = string;
-
 }

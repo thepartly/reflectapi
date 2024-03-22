@@ -11,10 +11,6 @@ expression: "super::into_typescript_code::<TestStructWithSerdeSkipDeserialize>()
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -44,7 +40,7 @@ export interface TestStructWithSerdeSkipDeserialize {
 export namespace output {
 
 export interface TestStructWithSerdeSkipDeserialize {
-    f: u8;
+    f: number /* u8 */;
     }
 
 }

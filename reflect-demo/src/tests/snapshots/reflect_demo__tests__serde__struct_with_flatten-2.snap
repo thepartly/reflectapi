@@ -11,10 +11,6 @@ expression: "super::into_typescript_code::<TestStructWithFlatten>()"
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -40,7 +36,7 @@ export interface TestStructWithFlatten {
 
 
 export interface TestStructWithFlattenNested {
-    f: u8;
+    f: number /* u8 */;
     }
 
 }

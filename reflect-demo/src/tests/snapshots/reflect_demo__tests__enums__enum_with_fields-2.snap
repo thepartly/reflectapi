@@ -11,14 +11,6 @@ expression: "super::into_input_typescript_code::<TestEnumWithFields>()"
 
 
 
-/// 64-bit floating point number
-export type f64 = TODO;
-
-
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -39,18 +31,11 @@ export namespace tests {
 export namespace enums {
 
 export type TestEnumWithFields =
-    | { Variant1: u8 }
-    | { Variant2: [std.String,
-f64] }
+    | { Variant1: number /* u8 */ }
+    | { Variant2: [string,
+number /* f64 */] }
     ;
 
 }
 }
-}
-
-export namespace std {
-
-/// UTF-8 encoded string
-export type String = string;
-
 }

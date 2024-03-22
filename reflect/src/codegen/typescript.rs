@@ -45,8 +45,12 @@ impl Module {
         submodules
     }
 
+    fn is_empty(&self) -> bool {
+        self.types.is_empty() && self.submodules.iter().all(|(_, m)| m.is_empty())
+    }
+
     fn render_start(&self) -> String {
-        if self.name.is_empty() {
+        if self.name.is_empty() || self.is_empty() {
             "".into()
         } else {
             format!("export namespace {} {{", self.name)
@@ -54,7 +58,7 @@ impl Module {
     }
 
     fn render_end(&self) -> String {
-        if self.name.is_empty() {
+        if self.name.is_empty() || self.is_empty() {
             "".into()
         } else {
             "}".into()
@@ -215,6 +219,12 @@ pub fn generate(mut schema: crate::EndpointSchema) -> anyhow::Result<String> {
             "internal error: failed to get consolidated type definition for type: {}",
             original_type_name
         ))?;
+        if implemented_types.contains_key(&original_type_name) {
+            continue;
+        }
+        if type_def.fallback().is_some() {
+            continue;
+        }
         rendered_types.insert(
             original_type_name,
             render_type(type_def, &schema, &implemented_types)?,
@@ -235,19 +245,6 @@ fn render_type(
 ) -> Result<String, anyhow::Error> {
     let type_name = type_to_ts_name(&type_def);
 
-    if let Some(type_implementation) =
-        get_type_implementation(&type_def.name(), &schema, &implemented_types)
-    {
-        let primitive_template = PrimitiveTemplate {
-            name: type_name,
-            description: doc_to_ts_comments(type_def.description(), 0),
-            type_: type_implementation,
-        };
-        return primitive_template
-            .render()
-            .context("Failed to render template");
-    }
-
     Ok(match type_def {
         crate::Type::Struct(struct_def) => {
             let struct_template = StructTemplate {
@@ -259,7 +256,7 @@ fn render_type(
                     .map(|field| FieldTemplate {
                         name: field.name.clone(),
                         description: doc_to_ts_comments(&field.description, 4),
-                        type_: type_ref_to_ts_ref(&field.type_ref),
+                        type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
                     })
                     .collect::<Vec<_>>(),
             };
@@ -284,7 +281,11 @@ fn render_type(
                             .map(|field| VariantFieldTemplate {
                                 name: field.name.clone(),
                                 description: doc_to_ts_comments(&field.description, 8),
-                                type_: type_ref_to_ts_ref(&field.type_ref),
+                                type_: type_ref_to_ts_ref(
+                                    &field.type_ref,
+                                    schema,
+                                    implemented_types,
+                                ),
                             })
                             .collect::<Vec<_>>(),
                     })
@@ -295,10 +296,17 @@ fn render_type(
                 .context("Failed to render template")?
         }
         crate::Type::Primitive(type_def) => {
+            eprintln!(
+                "warning: {} type is not implemented for Typescript",
+                type_def.name
+            );
             let primitive_template = PrimitiveTemplate {
                 name: type_name,
                 description: doc_to_ts_comments(&type_def.description, 0),
-                type_: "TODO".into(),
+                type_: format!(
+                    "any /* fallback to any for unimplemented type: {} */",
+                    type_def.name
+                ),
             };
             primitive_template
                 .render()
@@ -307,21 +315,33 @@ fn render_type(
     })
 }
 
-fn type_ref_to_ts_ref(type_ref: &crate::TypeReference) -> String {
+fn type_ref_to_ts_ref(
+    type_ref: &crate::TypeReference,
+    schema: &crate::EndpointSchema,
+    implemented_types: &HashMap<String, String>,
+) -> String {
+    if let Some(resolved_type) = resolve_type_ref(type_ref, schema, implemented_types) {
+        return resolved_type;
+    }
+
     let type_name_parts = type_ref.name.split("::").collect::<Vec<_>>();
     let n = if type_name_parts.len() > 2 && type_name_parts[0] == "std" {
         format!("std.{}", type_name_parts[type_name_parts.len() - 1])
     } else {
         type_name_parts.join(".")
     };
-    let p = type_ref_params_to_ts_ref(&type_ref.parameters);
+    let p = type_ref_params_to_ts_ref(&type_ref.parameters, schema, implemented_types);
     format!("{}{}", n, p)
 }
 
-fn type_ref_params_to_ts_ref(type_params: &Vec<crate::TypeReference>) -> String {
+fn type_ref_params_to_ts_ref(
+    type_params: &Vec<crate::TypeReference>,
+    schema: &crate::EndpointSchema,
+    implemented_types: &HashMap<String, String>,
+) -> String {
     let p = type_params
         .iter()
-        .map(|type_ref| type_ref_to_ts_ref(type_ref))
+        .map(|type_ref| type_ref_to_ts_ref(type_ref, schema, implemented_types))
         .collect::<Vec<_>>()
         .join(", ");
     if p.is_empty() {
@@ -398,9 +418,9 @@ fn modules_from_types(types: Vec<String>, mut rendered_types: HashMap<String, St
                 submodules: HashMap::new(),
             });
         }
-        module
-            .types
-            .push(rendered_types.remove(&original_type_name).unwrap());
+        if let Some(rendered_type) = rendered_types.remove(&original_type_name) {
+            module.types.push(rendered_type);
+        }
     }
 
     root_module
@@ -408,36 +428,99 @@ fn modules_from_types(types: Vec<String>, mut rendered_types: HashMap<String, St
 
 fn implemented_types() -> HashMap<String, String> {
     let mut implemented_types = HashMap::new();
-    implemented_types.insert("std::option::Option".into(), "T | null".into());
+    implemented_types.insert("u8".into(), "number /* u8 */".into());
+    implemented_types.insert("u16".into(), "number /* u16 */".into());
+    implemented_types.insert("u32".into(), "number /* u32 */".into());
+    implemented_types.insert("u64".into(), "number /* u64 */".into());
+    implemented_types.insert("u128".into(), "number /* u128 */".into());
+    implemented_types.insert("i8".into(), "number /* i8 */".into());
+    implemented_types.insert("i16".into(), "number /* i16 */".into());
+    implemented_types.insert("i32".into(), "number /* i32 */".into());
+    implemented_types.insert("i64".into(), "number /* i64 */".into());
+    implemented_types.insert("i128".into(), "number /* i128 */".into());
+
+    implemented_types.insert("f32".into(), "number /* f32 */".into());
+    implemented_types.insert("f64".into(), "number /* f64 */".into());
+
+    implemented_types.insert("bool".into(), "boolean".into());
+    implemented_types.insert("char".into(), "string".into());
     implemented_types.insert("std::string::String".into(), "string".into());
+    implemented_types.insert("()".into(), "void".into());
+
+    // warning: all generic type parameter names should match reflect defnition coming from
+    // the implementation of reflect for standard types
+
+    implemented_types.insert("std::option::Option".into(), "T | null".into());
+    implemented_types.insert("reflect::Option".into(), "T | null | undefined".into());
+
     implemented_types.insert("std::vec::Vec".into(), "Array<T>".into());
     implemented_types.insert("std::collections::HashMap".into(), "Record<K, V>".into());
+
+    implemented_types.insert("std::tuple::Tuple1".into(), "[T1]".into());
+    implemented_types.insert("std::tuple::Tuple2".into(), "[T1, T2]".into());
+    implemented_types.insert("std::tuple::Tuple3".into(), "[T1, T2, T3]".into());
+    implemented_types.insert("std::tuple::Tuple4".into(), "[T1, T2, T3, T4]".into());
+    implemented_types.insert("std::tuple::Tuple5".into(), "[T1, T2, T3, T4, T5]".into());
+    implemented_types.insert(
+        "std::tuple::Tuple6".into(),
+        "[T1, T2, T3, T4, T5, T6]".into(),
+    );
+    implemented_types.insert(
+        "std::tuple::Tuple7".into(),
+        "[T1, T2, T3, T4, T5, T6, T7]".into(),
+    );
+    implemented_types.insert(
+        "std::tuple::Tuple8".into(),
+        "[T1, T2, T3, T4, T5, T6, T7, T8]".into(),
+    );
+    implemented_types.insert(
+        "std::tuple::Tuple9".into(),
+        "[T1, T2, T3, T4, T5, T6, T7, T8, T9]".into(),
+    );
+    implemented_types.insert(
+        "std::tuple::Tuple10".into(),
+        "[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]".into(),
+    );
+    implemented_types.insert(
+        "std::tuple::Tuple11".into(),
+        "[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]".into(),
+    );
+    implemented_types.insert(
+        "std::tuple::Tuple12".into(),
+        "[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]".into(),
+    );
+
+    // we preserve it in case the generated code might have references to unused generic parameters
+    implemented_types.insert(
+        "std::marker::PhantomData".into(),
+        "undefined | T /* phantom data */".into(),
+    );
 
     implemented_types
 }
 
-fn get_type_implementation(
-    type_name: &str,
+fn resolve_type_ref(
+    type_ref: &crate::TypeReference,
     schema: &crate::EndpointSchema,
     implemented_types: &HashMap<String, String>,
 ) -> Option<String> {
-    if let Some(implementation) = implemented_types.get(type_name) {
-        return Some(implementation.clone());
-    }
-    if let Some(type_def) = schema.get_type(type_name) {
-        let mut type_ref_to_self = crate::TypeReference::new(
-            type_name.into(),
-            type_def
-                .parameters()
-                .map(|i| i.clone().name.into())
-                .collect::<Vec<_>>(),
-        );
-        type_ref_to_self.fallback_until(&schema, |type_ref| {
-            implemented_types.get(&type_ref.name).is_some()
-        });
-        if let Some(implementation) = implemented_types.get(type_ref_to_self.name.as_str()) {
-            return Some(implementation.clone());
+    let Some(mut implementation) = implemented_types.get(type_ref.name.as_str()).cloned() else {
+        // TODO here we need to fallback one level if it exists
+        return None;
+    };
+
+    let Some(type_def) = schema.get_type(type_ref.name()) else {
+        return None;
+    };
+
+    for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.parameters.iter()) {
+        if implementation.contains(type_def_param.name.as_str()) {
+            implementation = implementation.replace(
+                type_def_param.name.as_str(),
+                type_ref_to_ts_ref(type_ref_param, schema, implemented_types).as_str(),
+            );
         }
     }
-    None
+
+    Some(implementation)
 }

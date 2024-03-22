@@ -348,6 +348,13 @@ impl TypeReference {
         }
     }
 
+    pub fn fallback_once(&mut self, schema: &Schema) -> bool {
+        let Some(type_def) = schema.get_type(self.name()) else {
+            return false;
+        };
+        type_def.fallback_internal(self)
+    }
+
     pub fn fallback_until<F>(&mut self, schema: &EndpointSchema, cond: F)
     where
         F: Fn(&TypeReference) -> bool,

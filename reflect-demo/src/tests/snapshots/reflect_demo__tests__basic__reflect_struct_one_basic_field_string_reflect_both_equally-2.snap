@@ -11,10 +11,6 @@ expression: "super::into_typescript_code::<TestStructOneBasicFieldStringReflectB
 
 
 
-/// 32-bit unsigned integer
-export type u32 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -35,7 +31,7 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructOneBasicFieldStringReflectBothEqually {
-    _f: u32;
+    _f: number /* u32 */;
     }
 
 }

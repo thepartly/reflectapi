@@ -11,10 +11,6 @@ expression: "super::into_typescript_code::<TestStructOption>()"
 
 
 
-/// 8-bit unsigned integer
-export type u8 = TODO;
-
-
 export namespace reflect {
 
 /// Struct object with no fields
@@ -35,16 +31,9 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructOption {
-    _f: std.Option<u8>;
+    _f: number /* u8 */ | null;
     }
 
 }
 }
-}
-
-export namespace std {
-
-/// Optional nullable type
-export type Option<T> = T | null;
-
 }
