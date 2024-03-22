@@ -19,10 +19,10 @@ pub struct Schema {
 }
 
 impl Schema {
-    pub fn new(name: String, description: String) -> Self {
+    pub fn new() -> Self {
         Schema {
-            name,
-            description: description,
+            name: String::new(),
+            description: String::new(),
             functions: Vec::new(),
             input_types: Typespace::new(),
             output_types: Typespace::new(),
@@ -33,8 +33,12 @@ impl Schema {
         self.name.as_str()
     }
 
-    pub fn functions(&self) -> &Vec<Function> {
-        self.functions.as_ref()
+    pub fn description(&self) -> &str {
+        self.description.as_str()
+    }
+
+    pub fn functions(&self) -> std::slice::Iter<Function> {
+        self.functions.iter()
     }
 
     pub fn input_types(&self) -> &Typespace {
@@ -122,10 +126,10 @@ impl Schema {
     }
 }
 
-#[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
 pub struct Typespace {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub types: Vec<Type>,
+    types: Vec<Type>,
 
     #[serde(skip_serializing, default)]
     types_map: std::cell::RefCell<HashMap<String, usize>>,
@@ -221,7 +225,7 @@ impl Typespace {
 
     fn build_types_map(&self) {
         let mut types_map = HashMap::new();
-        for (i, ty) in self.types().enumerate() {
+        for (i, ty) in self.types.iter().enumerate() {
             types_map.insert(ty.name().into(), i);
         }
         *(self.types_map.borrow_mut()) = types_map;
@@ -282,6 +286,34 @@ impl Function {
         self.name.as_str()
     }
 
+    pub fn description(&self) -> &str {
+        self.description.as_str()
+    }
+
+    pub fn input_type(&self) -> Option<&TypeReference> {
+        self.input_type.as_ref()
+    }
+
+    pub fn input_headers(&self) -> Option<&TypeReference> {
+        self.input_headers.as_ref()
+    }
+
+    pub fn output_type(&self) -> Option<&TypeReference> {
+        self.output_type.as_ref()
+    }
+
+    pub fn error_type(&self) -> Option<&TypeReference> {
+        self.error_type.as_ref()
+    }
+
+    pub fn serialization(&self) -> std::slice::Iter<SerializationMode> {
+        self.serialization.iter()
+    }
+
+    pub fn readonly(&self) -> bool {
+        self.readonly
+    }
+
     fn rename_input_type(&mut self, search_string: &str, replacer: &str) {
         if let Some(input_type) = &mut self.input_type {
             input_type.rename_type(search_string, replacer);
@@ -301,9 +333,10 @@ impl Function {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SerializationMode {
+    #[default]
     Json,
     Msgpack,
 }
@@ -355,20 +388,6 @@ impl TypeReference {
         type_def.fallback_internal(self)
     }
 
-    pub fn fallback_until<F>(&mut self, schema: &Schema, cond: F)
-    where
-        F: Fn(&TypeReference) -> bool,
-    {
-        loop {
-            let Some(type_def) = schema.get_type(self.name()) else {
-                return;
-            };
-            if !type_def.fallback_internal(self) || cond(self) {
-                return;
-            }
-        }
-    }
-
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
         self.name = rename_ident(&self.name, search_string, replacer);
         for param in self.parameters.iter_mut() {
@@ -403,6 +422,10 @@ impl TypeParameter {
 
     pub fn name(&self) -> &str {
         self.name.as_str()
+    }
+
+    pub fn description(&self) -> &str {
+        self.description.as_str()
     }
 }
 
@@ -463,14 +486,6 @@ impl Type {
         }
     }
 
-    pub fn set_description(&mut self, description: String) {
-        match self {
-            Type::Primitive(p) => p.description = description,
-            Type::Struct(s) => s.description = description,
-            Type::Enum(e) => e.description = description,
-        }
-    }
-
     pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
         match self {
             Type::Primitive(p) => p.parameters(),
@@ -479,11 +494,24 @@ impl Type {
         }
     }
 
-    pub fn fallback(&self) -> Option<&TypeReference> {
+    pub fn as_struct(&self) -> Option<&Struct> {
         match self {
-            Type::Primitive(p) => p.fallback.as_ref(),
-            Type::Struct(_) => None,
-            Type::Enum(_) => None,
+            Type::Struct(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    pub fn as_enum(&self) -> Option<&Enum> {
+        match self {
+            Type::Enum(e) => Some(e),
+            _ => None,
+        }
+    }
+
+    pub fn as_primitive(&self) -> Option<&Primitive> {
+        match self {
+            Type::Primitive(p) => Some(p),
+            _ => None,
         }
     }
 
@@ -550,8 +578,20 @@ impl Primitive {
         }
     }
 
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn description(&self) -> &str {
+        self.description.as_str()
+    }
+
     pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
         self.parameters.iter()
+    }
+
+    pub fn fallback(&self) -> Option<&TypeReference> {
+        self.fallback.as_ref()
     }
 
     fn fallback_internal(&self, origin: &mut TypeReference) -> bool {
@@ -664,12 +704,20 @@ impl Struct {
         self.name.as_str()
     }
 
+    pub fn description(&self) -> &str {
+        self.description.as_str()
+    }
+
     pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
         self.parameters.iter()
     }
 
     pub fn fields(&self) -> std::slice::Iter<Field> {
         self.fields.iter()
+    }
+
+    pub fn transparent(&self) -> bool {
+        self.transparent
     }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
@@ -743,6 +791,30 @@ impl Field {
         self.name.as_str()
     }
 
+    pub fn description(&self) -> &str {
+        self.description.as_str()
+    }
+
+    pub fn type_ref(&self) -> &TypeReference {
+        &self.type_ref
+    }
+
+    pub fn required(&self) -> bool {
+        self.required
+    }
+
+    pub fn flattened(&self) -> bool {
+        self.flattened
+    }
+
+    pub fn transform_callback(&self) -> &str {
+        self.transform_callback.as_str()
+    }
+
+    pub fn transform_callback_fn(&self) -> Option<fn(&mut TypeReference, &Typespace)> {
+        self.transform_callback_fn
+    }
+
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
         self.type_ref.rename_type(search_string, replacer);
     }
@@ -784,8 +856,16 @@ impl Enum {
         self.name.as_str()
     }
 
+    pub fn description(&self) -> &str {
+        self.description.as_str()
+    }
+
     pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
         self.parameters.iter()
+    }
+
+    pub fn representation(&self) -> &Representation {
+        &self.representation
     }
 
     pub fn variants(&self) -> std::slice::Iter<Variant> {
@@ -837,8 +917,20 @@ impl Variant {
         self.name.as_str()
     }
 
+    pub fn description(&self) -> &str {
+        self.description.as_str()
+    }
+
     pub fn fields(&self) -> std::slice::Iter<Field> {
         self.fields.iter()
+    }
+
+    pub fn discriminant(&self) -> Option<isize> {
+        self.discriminant
+    }
+
+    pub fn untagged(&self) -> bool {
+        self.untagged
     }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
@@ -880,8 +972,28 @@ pub enum Representation {
 }
 
 impl Representation {
-    fn is_default(&self) -> bool {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn is_default(&self) -> bool {
         matches!(self, Representation::External)
+    }
+
+    pub fn is_external(&self) -> bool {
+        matches!(self, Representation::External)
+    }
+
+    pub fn is_internal(&self) -> bool {
+        matches!(self, Representation::Internal { .. })
+    }
+
+    pub fn is_adjacent(&self) -> bool {
+        matches!(self, Representation::Adjacent { .. })
+    }
+
+    pub fn is_none(&self) -> bool {
+        matches!(self, Representation::None)
     }
 }
 

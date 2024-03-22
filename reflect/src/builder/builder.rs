@@ -14,7 +14,7 @@ where
 {
     pub fn new() -> Self {
         Self {
-            schema: crate::Schema::new(String::new(), String::new()),
+            schema: crate::Schema::new(),
             handlers: Vec::new(),
         }
     }

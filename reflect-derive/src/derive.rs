@@ -129,9 +129,10 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
 fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Container<'a>) -> Type {
     let type_def_name = visit_name(cx, container.attrs.name()).into();
-    let mut type_def: Type = match &container.data {
+    let type_def: Type = match &container.data {
         serde_derive_internals::ast::Data::Enum(variants) => {
             let mut result = Enum::new(type_def_name);
+            result.description = parse_doc_attributes(&container.original.attrs);
             match container.attrs.tag() {
                 serde_derive_internals::attr::TagType::External => {
                     result.representation = reflect_schema::Representation::External;
@@ -152,7 +153,9 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
             }
             for variant in variants {
                 if !match cx.reflect_type() {
-                    ReflectType::Input => variant.attrs.skip_deserializing() || variant.attrs.other(),
+                    ReflectType::Input => {
+                        variant.attrs.skip_deserializing() || variant.attrs.other()
+                    }
                     ReflectType::Output => variant.attrs.skip_serializing(),
                 } {
                     result.variants.push(visit_variant(cx, variant));
@@ -163,6 +166,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
         }
         serde_derive_internals::ast::Data::Struct(_style, fields) => {
             let mut result = Struct::new(type_def_name);
+            result.description = parse_doc_attributes(&container.original.attrs);
             for field in fields {
                 if !match cx.reflect_type() {
                     ReflectType::Input => field.attrs.skip_deserializing(),
@@ -176,8 +180,6 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
             result.into()
         }
     };
-
-    type_def.set_description(parse_doc_attributes(&container.original.attrs));
     type_def
 }
 

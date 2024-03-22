@@ -222,7 +222,7 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
         if implemented_types.contains_key(&original_type_name) {
             continue;
         }
-        if type_def.fallback().is_some() {
+        if type_def.as_primitive().map(|i| &i.fallback).is_some() {
             continue;
         }
         rendered_types.insert(
