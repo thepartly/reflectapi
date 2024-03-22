@@ -60,6 +60,51 @@ async fn health_check(
     ().into()
 }
 
+struct AppState {
+    pets: std::sync::Mutex<Vec<model::Pet>>,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            pets: std::sync::Mutex::new(Vec::new()),
+        }
+    }
+}
+
+mod model {
+    #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
+    pub struct Pet {
+        /// identity
+        pub name: String,
+        /// kind of pet
+        pub kind: Kind,
+        /// age of the pet
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub age: Option<u8>,
+        /// behaviors of the pet
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub behaviors: Vec<Behavior>,
+    }
+
+    #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
+    #[serde(rename_all = "snake_case", untagged)]
+    pub enum Kind {
+        Dog,
+        Cat,
+    }
+
+    #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
+    pub enum Behavior {
+        Calm,
+        Aggressive(/** aggressiveness level */ f64),
+        Other {
+            /// Custom provided description of a behavior
+            description: String,
+        },
+    }
+}
+
 pub struct UnauthorizedError;
 
 fn authorize<E: From<UnauthorizedError>>(headers: proto::Headers) -> Result<(), E> {
@@ -168,17 +213,6 @@ async fn pets_remove(
     Ok(().into())
 }
 
-struct AppState {
-    pets: std::sync::Mutex<Vec<model::Pet>>,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            pets: std::sync::Mutex::new(Vec::new()),
-        }
-    }
-}
 mod proto {
     #[derive(serde::Deserialize, reflect::Input)]
     pub struct Headers {
@@ -313,37 +347,5 @@ mod proto {
         fn from(_: super::UnauthorizedError) -> Self {
             PetsRemoveError::NotAuthorized
         }
-    }
-}
-mod model {
-    #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
-    pub struct Pet {
-        /// identity
-        pub name: String,
-        /// kind of pet
-        pub kind: Kind,
-        /// age of the pet
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub age: Option<u8>,
-        /// behaviors of the pet
-        #[serde(default, skip_serializing_if = "Vec::is_empty")]
-        pub behaviors: Vec<Behavior>,
-    }
-
-    #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
-    #[serde(rename_all = "snake_case", untagged)]
-    pub enum Kind {
-        Dog,
-        Cat,
-    }
-
-    #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
-    pub enum Behavior {
-        Calm,
-        Aggressive(/** aggressiveness level */ f64),
-        Other {
-            /// Custom provided description of a behavior
-            description: String,
-        },
     }
 }
