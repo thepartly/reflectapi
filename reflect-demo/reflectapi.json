@@ -3,19 +3,24 @@
   "description": "This is a demo application",
   "functions": [
     {
-      "name": "example",
-      "description": "example description",
+      "name": "pets.list",
+      "description": "List available pets",
       "input_type": {
-        "name": "myapi::ExampleRequest"
+        "name": "myapi::proto::PetsListRequest"
       },
       "input_headers": {
-        "name": "myapi::ExampleRequestHeaders"
+        "name": "myapi::proto::Headers"
       },
       "output_type": {
-        "name": "myapi::ExampleRequest"
+        "name": "myapi::proto::Paginated",
+        "parameters": [
+          {
+            "name": "myapi::model::Pet"
+          }
+        ]
       },
       "error_type": {
-        "name": "myapi::ExampleError"
+        "name": "myapi::proto::PetsListError"
       },
       "serialization": [
         "json"
@@ -23,33 +28,57 @@
       "readonly": true
     },
     {
-      "name": "example2",
+      "name": "pets.create",
+      "description": "Create a new pet",
       "input_type": {
-        "name": "myapi::ExampleRequest"
+        "name": "myapi::proto::PetsCreateRequest"
       },
       "input_headers": {
-        "name": "myapi::ExampleRequestHeaders"
+        "name": "myapi::proto::Headers"
       },
       "output_type": {
-        "name": "myapi::ExampleResponse"
+        "name": "reflect::Empty"
       },
       "error_type": {
-        "name": "reflect::Infallible"
+        "name": "myapi::proto::PetsCreateError"
       },
       "serialization": [
         "json"
       ]
     },
     {
-      "name": "example3",
+      "name": "pets.update",
+      "description": "Update an existing pet",
       "input_type": {
-        "name": "reflect::Empty"
+        "name": "myapi::proto::PetsUpdateRequest"
+      },
+      "input_headers": {
+        "name": "myapi::proto::Headers"
       },
       "output_type": {
         "name": "reflect::Empty"
       },
       "error_type": {
-        "name": "reflect::Infallible"
+        "name": "myapi::proto::PetsUpdateError"
+      },
+      "serialization": [
+        "json"
+      ]
+    },
+    {
+      "name": "pets.remove",
+      "description": "Remove an existing pet",
+      "input_type": {
+        "name": "myapi::proto::PetsRemoveRequest"
+      },
+      "input_headers": {
+        "name": "myapi::proto::Headers"
+      },
+      "output_type": {
+        "name": "reflect::Empty"
+      },
+      "error_type": {
+        "name": "myapi::proto::PetsRemoveError"
       },
       "serialization": [
         "json"
@@ -59,19 +88,143 @@
   "input_types": {
     "types": [
       {
+        "kind": "primitive",
+        "name": "f64",
+        "description": "64-bit floating point number"
+      },
+      {
+        "kind": "enum",
+        "name": "myapi::model::Behavior",
+        "variants": [
+          {
+            "name": "Calm"
+          },
+          {
+            "name": "Aggressive",
+            "fields": [
+              {
+                "name": "0",
+                "description": " aggressiveness level ",
+                "type": {
+                  "name": "f64"
+                },
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "Other",
+            "fields": [
+              {
+                "name": "description",
+                "description": " Custom provided description of a behavior",
+                "type": {
+                  "name": "std::string::String"
+                },
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "myapi::model::Kind",
+        "representation": "None",
+        "variants": [
+          {
+            "name": "dog"
+          },
+          {
+            "name": "cat"
+          }
+        ]
+      },
+      {
         "kind": "struct",
-        "name": "myapi::ExampleRequest",
-        "description": " Some example doc\n test",
+        "name": "myapi::model::Pet",
         "fields": [
           {
-            "name": "inputData",
+            "name": "name",
+            "description": " identity",
             "type": {
               "name": "std::string::String"
             },
             "required": true
           },
           {
-            "name": "input_optional",
+            "name": "kind",
+            "description": " kind of pet",
+            "type": {
+              "name": "myapi::model::Kind"
+            },
+            "required": true
+          },
+          {
+            "name": "age",
+            "description": " age of the pet",
+            "type": {
+              "name": "std::option::Option",
+              "parameters": [
+                {
+                  "name": "u8"
+                }
+              ]
+            }
+          },
+          {
+            "name": "behaviors",
+            "description": " behaviors of the pet",
+            "type": {
+              "name": "std::vec::Vec",
+              "parameters": [
+                {
+                  "name": "myapi::model::Behavior"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::proto::Headers",
+        "fields": [
+          {
+            "name": "authorization",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::proto::PetsCreateRequest",
+        "fields": [
+          {
+            "name": "0",
+            "type": {
+              "name": "myapi::model::Pet"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::proto::PetsListRequest",
+        "fields": [
+          {
+            "name": "limit",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          },
+          {
+            "name": "cursor",
             "type": {
               "name": "std::option::Option",
               "parameters": [
@@ -86,14 +239,363 @@
       },
       {
         "kind": "struct",
-        "name": "myapi::ExampleRequestHeaders",
+        "name": "myapi::proto::PetsRemoveRequest",
         "fields": [
           {
             "name": "name",
+            "description": " identity",
             "type": {
               "name": "std::string::String"
             },
             "required": true
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::proto::PetsUpdateRequest",
+        "fields": [
+          {
+            "name": "name",
+            "description": " identity",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          },
+          {
+            "name": "kind",
+            "description": " kind of pet, non nullable in the model",
+            "type": {
+              "name": "std::option::Option",
+              "parameters": [
+                {
+                  "name": "myapi::model::Kind"
+                }
+              ]
+            }
+          },
+          {
+            "name": "age",
+            "description": " age of the pet, nullable in the model",
+            "type": {
+              "name": "reflect::Option",
+              "parameters": [
+                {
+                  "name": "u8"
+                }
+              ]
+            }
+          },
+          {
+            "name": "behaviors",
+            "description": " behaviors of the pet, nullable in the model",
+            "type": {
+              "name": "reflect::Option",
+              "parameters": [
+                {
+                  "name": "std::vec::Vec",
+                  "parameters": [
+                    {
+                      "name": "myapi::model::Behavior"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "reflect::Option",
+        "description": "Undefinable Option type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "None",
+        "variants": [
+          {
+            "name": "Undefined",
+            "description": "The value is missing, i.e. undefined in Javascript"
+          },
+          {
+            "name": "None",
+            "description": "The value is provided but set to none, i.e. null in JS"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "T"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "None",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "T"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "f64",
+        "description": "64-bit floating point number"
+      },
+      {
+        "kind": "enum",
+        "name": "myapi::model::Behavior",
+        "variants": [
+          {
+            "name": "Calm"
+          },
+          {
+            "name": "Aggressive",
+            "fields": [
+              {
+                "name": "0",
+                "description": " aggressiveness level ",
+                "type": {
+                  "name": "f64"
+                },
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "Other",
+            "fields": [
+              {
+                "name": "description",
+                "description": " Custom provided description of a behavior",
+                "type": {
+                  "name": "std::string::String"
+                },
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "myapi::model::Kind",
+        "representation": "None",
+        "variants": [
+          {
+            "name": "dog"
+          },
+          {
+            "name": "cat"
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::model::Pet",
+        "fields": [
+          {
+            "name": "name",
+            "description": " identity",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          },
+          {
+            "name": "kind",
+            "description": " kind of pet",
+            "type": {
+              "name": "myapi::model::Kind"
+            },
+            "required": true
+          },
+          {
+            "name": "age",
+            "description": " age of the pet",
+            "type": {
+              "name": "std::option::Option",
+              "parameters": [
+                {
+                  "name": "u8"
+                }
+              ]
+            }
+          },
+          {
+            "name": "behaviors",
+            "description": " behaviors of the pet",
+            "type": {
+              "name": "std::vec::Vec",
+              "parameters": [
+                {
+                  "name": "myapi::model::Behavior"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::proto::Paginated",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fields": [
+          {
+            "name": "items",
+            "description": " slice of a collection",
+            "type": {
+              "name": "std::vec::Vec",
+              "parameters": [
+                {
+                  "name": "T"
+                }
+              ]
+            },
+            "required": true
+          },
+          {
+            "name": "cursor",
+            "description": " cursor for getting next page",
+            "type": {
+              "name": "std::option::Option",
+              "parameters": [
+                {
+                  "name": "std::string::String"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "myapi::proto::PetsCreateError",
+        "variants": [
+          {
+            "name": "Conflict"
+          },
+          {
+            "name": "NotAuthorized"
+          },
+          {
+            "name": "InvalidIdentity",
+            "fields": [
+              {
+                "name": "message",
+                "type": {
+                  "name": "std::string::String"
+                },
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "myapi::proto::PetsListError",
+        "variants": [
+          {
+            "name": "InvalidCustor"
+          },
+          {
+            "name": "Unauthorized"
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "myapi::proto::PetsRemoveError",
+        "variants": [
+          {
+            "name": "NotFound"
+          },
+          {
+            "name": "NotAuthorized"
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "myapi::proto::PetsUpdateError",
+        "variants": [
+          {
+            "name": "NotFound"
+          },
+          {
+            "name": "NotAuthorized"
+          },
+          {
+            "name": "InvalidIdentity",
+            "fields": [
+              {
+                "name": "message",
+                "type": {
+                  "name": "std::string::String"
+                },
+                "required": true
+              }
+            ]
           }
         ]
       },
@@ -135,62 +637,21 @@
         "kind": "primitive",
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
-      }
-    ]
-  },
-  "output_types": {
-    "types": [
-      {
-        "kind": "enum",
-        "name": "myapi::ExampleError",
-        "variants": [
-          {
-            "name": "Error1"
-          }
-        ]
-      },
-      {
-        "kind": "struct",
-        "name": "myapi::ExampleRequest",
-        "description": " Some example doc\n test",
-        "fields": [
-          {
-            "name": "inputData",
-            "type": {
-              "name": "std::string::String"
-            },
-            "required": true
-          }
-        ]
-      },
-      {
-        "kind": "struct",
-        "name": "myapi::ExampleResponse",
-        "fields": [
-          {
-            "name": "message",
-            "description": " some doc",
-            "type": {
-              "name": "std::string::String"
-            },
-            "required": true
-          }
-        ]
-      },
-      {
-        "kind": "struct",
-        "name": "reflect::Empty",
-        "description": "Struct object with no fields"
-      },
-      {
-        "kind": "struct",
-        "name": "reflect::Infallible",
-        "description": "Error object which is expected to be never returned"
       },
       {
         "kind": "primitive",
-        "name": "std::string::String",
-        "description": "UTF-8 encoded string"
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
       }
     ]
   }

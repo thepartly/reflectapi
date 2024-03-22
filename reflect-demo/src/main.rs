@@ -1,22 +1,30 @@
+use proto::PetsListError;
+
 #[cfg(test)]
 mod tests;
-
-struct AppState {
-    // ...
-}
 
 #[tokio::main]
 async fn main() {
     let builder = reflect::Builder::new()
         .name("Demo application".to_string())
         .description("This is a demo application".to_string())
-        .route(handler_example, |b| {
-            b.name("example".into())
+        .route(pets_list, |b| {
+            b.name("pets.list".into())
                 .readonly(true)
-                .description("example description".into())
+                .description("List available pets".into())
         })
-        .route(handler_example_2, |b| b.name("example2".into()))
-        .route(handler_example_3, |b| b.name("example3".into()));
+        .route(pets_create, |b| {
+            b.name("pets.create".into())
+                .description("Create a new pet".into())
+        })
+        .route(pets_update, |b| {
+            b.name("pets.update".into())
+                .description("Update an existing pet".into())
+        })
+        .route(pets_remove, |b| {
+            b.name("pets.remove".into())
+                .description("Remove an existing pet".into())
+        });
     let (schema, handlers) = match builder.build(vec![("reflect_demo::", "myapi::")], Vec::new()) {
         Ok((schema, handlers)) => (schema, handlers),
         Err(errors) => {
@@ -34,86 +42,295 @@ async fn main() {
     .await
     .unwrap();
 
-    let app_state = std::sync::Arc::new(AppState { /* ... */ });
+    let app_state = Default::default();
     let axum_app = reflect::axum::into_router(app_state, handlers);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, axum_app).await.unwrap();
 }
 
-/// Some example doc
-/// test
-#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
-struct ExampleRequest {
-    #[serde(rename = "inputData")]
-    input_data: String,
+pub struct UnauthorizedError;
 
-    #[serde(skip_serializing)]
-    input_optional: Option<String>,
+fn authorize<E: From<UnauthorizedError>>(headers: proto::Headers) -> Result<(), E> {
+    if headers.authorization.is_empty() {
+        return Err(E::from(UnauthorizedError));
+    }
+    Ok(())
 }
 
-#[derive(reflect::Input, serde::Deserialize)]
-struct ExampleRequestHeaders {
-    name: String,
+async fn pets_list(
+    state: std::sync::Arc<AppState>,
+    request: proto::PetsListRequest,
+    headers: proto::Headers,
+) -> Result<proto::Paginated<model::Pet>, proto::PetsListError> {
+    authorize::<PetsListError>(headers)?;
+
+    let pets = state.pets.lock().unwrap();
+    let cursor = request
+        .cursor
+        .unwrap_or_default()
+        .parse()
+        .map_err(|_| proto::PetsListError::InvalidCustor)?;
+    let limit = request.limit as usize;
+    let result_items = pets
+        .iter()
+        .skip(cursor)
+        .take(limit)
+        .map(|i| i.clone())
+        .collect::<Vec<_>>();
+    let result_cursor = if result_items.is_empty() {
+        None
+    } else {
+        Some((cursor + limit).to_string())
+    };
+    Ok(proto::Paginated {
+        items: result_items,
+        cursor: result_cursor,
+    })
 }
 
-#[derive(reflect::Output, serde::Serialize)]
-struct ExampleResponse {
-    /// some doc
-    message: String,
+async fn pets_create(
+    state: std::sync::Arc<AppState>,
+    request: proto::PetsCreateRequest,
+    headers: proto::Headers,
+) -> Result<reflect::Empty, proto::PetsCreateError> {
+    authorize::<proto::PetsCreateError>(headers)?;
+
+    let mut pets = state.pets.lock().unwrap();
+
+    if pets.iter().any(|pet| pet.name == request.0.name) {
+        return Err(proto::PetsCreateError::Conflict);
+    }
+
+    pets.push(request.0);
+
+    Ok(().into())
 }
 
-#[derive(reflect::Output, serde::Serialize)]
-enum ExampleError {
-    Error1,
+async fn pets_update(
+    state: std::sync::Arc<AppState>,
+    request: proto::PetsUpdateRequest,
+    headers: proto::Headers,
+) -> Result<reflect::Empty, proto::PetsUpdateError> {
+    authorize::<proto::PetsUpdateError>(headers)?;
+
+    let mut pets = state.pets.lock().unwrap();
+
+    let Some(possition) = pets.iter().position(|pet| pet.name == request.name) else {
+        return Err(proto::PetsUpdateError::NotFound);
+    };
+    let pet = &mut pets[possition];
+
+    if let Some(kind) = request.kind {
+        pet.kind = kind;
+    }
+    if let Some(age) = request.age.unfold() {
+        pet.age = age.cloned();
+    }
+    if let Some(behaviors) = request.behaviors.unfold() {
+        pet.behaviors = behaviors.cloned().unwrap_or_default();
+    }
+
+    Ok(().into())
 }
 
-impl reflect::StatusCode for ExampleError {
-    fn status_code(&self) -> u16 {
-        axum::http::StatusCode::UNPROCESSABLE_ENTITY.as_u16()
+async fn pets_remove(
+    state: std::sync::Arc<AppState>,
+    request: proto::PetsRemoveRequest,
+    headers: proto::Headers,
+) -> Result<reflect::Empty, proto::PetsRemoveError> {
+    authorize::<proto::PetsRemoveError>(headers)?;
+
+    let mut pets = state.pets.lock().unwrap();
+
+    let Some(possition) = pets.iter().position(|pet| pet.name == request.name) else {
+        return Err(proto::PetsRemoveError::NotFound);
+    };
+    pets.remove(possition);
+
+    Ok(().into())
+}
+
+struct AppState {
+    pets: std::sync::Mutex<Vec<model::Pet>>,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            pets: std::sync::Mutex::new(Vec::new()),
+        }
     }
 }
-
-async fn handler_example(
-    state: std::sync::Arc<AppState>,
-    request: ExampleRequest,
-    headers: ExampleRequestHeaders,
-) -> Result<ExampleRequest, ExampleError> {
-    println!("called");
-    // Ok(ExampleResponse {
-    //     message: format!("hello {}", request.input_data),
-    // })
-    Err(ExampleError::Error1)
-}
-
-async fn handler_example_3(
-    state: std::sync::Arc<AppState>,
-    request: reflect::Empty,
-    headers: reflect::Empty,
-) -> reflect::Empty {
-    println!("called");
-    // Ok(ExampleResponse {
-    //     message: format!("hello {}", request.input_data),
-    // })
-    // Err(ExampleError::Error1)
-
-    // Default::default()
-    ().into()
-}
-
-async fn handler_example_2(
-    state: std::sync::Arc<AppState>,
-    request: ExampleRequest,
-    headers: ExampleRequestHeaders,
-) -> ExampleResponse {
-    println!("called");
-    ExampleResponse {
-        message: format!(
-            "hello {} -> {} / {}",
-            request.input_data,
-            headers.name,
-            request.input_optional.unwrap_or_default()
-        ),
+mod proto {
+    #[derive(serde::Deserialize, reflect::Input)]
+    pub struct Headers {
+        pub authorization: String,
     }
-    // Err(ExampleError::Error1)
+
+    #[derive(serde::Serialize, reflect::Output)]
+    pub struct Paginated<T>
+    where
+        T: reflect::Output,
+    {
+        /// slice of a collection
+        pub items: Vec<T>,
+        /// cursor for getting next page
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub cursor: Option<String>,
+    }
+
+    #[derive(serde::Deserialize, reflect::Input)]
+    pub struct PetsListRequest {
+        pub limit: u8,
+        pub cursor: Option<String>,
+    }
+
+    #[derive(serde::Serialize, reflect::Output)]
+    pub enum PetsListError {
+        InvalidCustor,
+        Unauthorized,
+    }
+
+    impl reflect::StatusCode for PetsListError {
+        fn status_code(&self) -> u16 {
+            match self {
+                PetsListError::InvalidCustor => axum::http::StatusCode::BAD_REQUEST.as_u16(),
+                PetsListError::Unauthorized => axum::http::StatusCode::UNAUTHORIZED.as_u16(),
+            }
+        }
+    }
+
+    impl From<super::UnauthorizedError> for PetsListError {
+        fn from(_: super::UnauthorizedError) -> Self {
+            PetsListError::Unauthorized
+        }
+    }
+
+    #[derive(serde::Deserialize, reflect::Input)]
+    pub struct PetsCreateRequest(pub crate::model::Pet);
+
+    #[derive(serde::Serialize, reflect::Output)]
+    pub enum PetsCreateError {
+        Conflict,
+        NotAuthorized,
+        InvalidIdentity { message: String },
+    }
+
+    impl reflect::StatusCode for PetsCreateError {
+        fn status_code(&self) -> u16 {
+            match self {
+                PetsCreateError::Conflict => axum::http::StatusCode::CONFLICT.as_u16(),
+                PetsCreateError::NotAuthorized => axum::http::StatusCode::UNAUTHORIZED.as_u16(),
+                PetsCreateError::InvalidIdentity { .. } => {
+                    axum::http::StatusCode::UNPROCESSABLE_ENTITY.as_u16()
+                }
+            }
+        }
+    }
+
+    impl From<super::UnauthorizedError> for PetsCreateError {
+        fn from(_: super::UnauthorizedError) -> Self {
+            PetsCreateError::NotAuthorized
+        }
+    }
+
+    #[derive(serde::Deserialize, reflect::Input)]
+    pub struct PetsUpdateRequest {
+        /// identity
+        pub name: String,
+        /// kind of pet, non nullable in the model
+        #[serde(default, skip_serializing_if = "Option::is_undefined")]
+        pub kind: Option<crate::model::Kind>,
+        /// age of the pet, nullable in the model
+        #[serde(default, skip_serializing_if = "reflect::Option::is_undefined")]
+        pub age: reflect::Option<u8>,
+        /// behaviors of the pet, nullable in the model
+        #[serde(default, skip_serializing_if = "reflect::Option::is_undefined")]
+        pub behaviors: reflect::Option<Vec<crate::model::Behavior>>,
+    }
+
+    #[derive(serde::Serialize, reflect::Output)]
+    pub enum PetsUpdateError {
+        NotFound,
+        NotAuthorized,
+        InvalidIdentity { message: String },
+    }
+
+    impl reflect::StatusCode for PetsUpdateError {
+        fn status_code(&self) -> u16 {
+            match self {
+                PetsUpdateError::NotFound => axum::http::StatusCode::NOT_FOUND.as_u16(),
+                PetsUpdateError::NotAuthorized => axum::http::StatusCode::UNAUTHORIZED.as_u16(),
+                PetsUpdateError::InvalidIdentity { .. } => {
+                    axum::http::StatusCode::UNPROCESSABLE_ENTITY.as_u16()
+                }
+            }
+        }
+    }
+
+    impl From<super::UnauthorizedError> for PetsUpdateError {
+        fn from(_: super::UnauthorizedError) -> Self {
+            PetsUpdateError::NotAuthorized
+        }
+    }
+
+    #[derive(serde::Deserialize, reflect::Input)]
+    pub struct PetsRemoveRequest {
+        /// identity
+        pub name: String,
+    }
+
+    #[derive(serde::Serialize, reflect::Output)]
+    pub enum PetsRemoveError {
+        NotFound,
+        NotAuthorized,
+    }
+
+    impl reflect::StatusCode for PetsRemoveError {
+        fn status_code(&self) -> u16 {
+            match self {
+                PetsRemoveError::NotFound => axum::http::StatusCode::NOT_FOUND.as_u16(),
+                PetsRemoveError::NotAuthorized => axum::http::StatusCode::UNAUTHORIZED.as_u16(),
+            }
+        }
+    }
+
+    impl From<super::UnauthorizedError> for PetsRemoveError {
+        fn from(_: super::UnauthorizedError) -> Self {
+            PetsRemoveError::NotAuthorized
+        }
+    }
+}
+mod model {
+    #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
+    pub struct Pet {
+        /// identity
+        pub name: String,
+        /// kind of pet
+        pub kind: Kind,
+        /// age of the pet
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub age: Option<u8>,
+        /// behaviors of the pet
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub behaviors: Vec<Behavior>,
+    }
+
+    #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
+    #[serde(rename_all = "snake_case", untagged)]
+    pub enum Kind {
+        Dog,
+        Cat,
+    }
+
+    #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
+    pub enum Behavior {
+        Calm,
+        Aggressive(/** aggressiveness level */ f64),
+        Other {
+            /// Custom provided description of a behavior
+            description: String,
+        },
+    }
 }

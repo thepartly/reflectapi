@@ -9,39 +9,101 @@
 
 export namespace myapi {
 
-export type ExampleError =
-    | "Error1"
+export namespace model {
+
+export type Behavior =
+    | "Calm"
+    | { Aggressive: /// aggressiveness level 
+        number /* f64 */ }
+    | { Other: {/// Custom provided description of a behavior
+        description: string} }
     ;
 
 
-export interface ExampleRequestHeaders {
-    name: string;
-    }
+export type Kind =
+    | "dog"
+    | "cat"
+    ;
 
 
-export interface ExampleResponse {
-    /// some doc
-    message: string;
-    }
-
-
-export namespace input {
-
-/// Some example doc
-/// test
-export interface ExampleRequest {
-    inputData: string;
-    input_optional: string | null;
+export interface Pet {
+    /// identity
+    name: string,
+    /// kind of pet
+    kind: myapi.model.Kind,
+    /// age of the pet
+    age: number /* u8 */ | null,
+    /// behaviors of the pet
+    behaviors: Array<myapi.model.Behavior>,
     }
 
 }
 
-export namespace output {
+export namespace proto {
 
-/// Some example doc
-/// test
-export interface ExampleRequest {
-    inputData: string;
+export interface Headers {
+    authorization: string,
+    }
+
+
+export interface Paginated<T> {
+    /// slice of a collection
+    items: Array<T>,
+    /// cursor for getting next page
+    cursor: string | null,
+    }
+
+
+export type PetsCreateError =
+    | "Conflict"
+    | "NotAuthorized"
+    | { InvalidIdentity: {message: string} }
+    ;
+
+
+export type PetsCreateRequest = myapi.model.Pet;
+
+
+export type PetsListError =
+    | "InvalidCustor"
+    | "Unauthorized"
+    ;
+
+
+export interface PetsListRequest {
+    limit: number /* u8 */,
+    cursor: string | null,
+    }
+
+
+export type PetsRemoveError =
+    | "NotFound"
+    | "NotAuthorized"
+    ;
+
+
+export interface PetsRemoveRequest {
+    /// identity
+    name: string,
+    }
+
+
+export type PetsUpdateError =
+    | "NotFound"
+    | "NotAuthorized"
+    | { InvalidIdentity: {message: string} }
+    ;
+
+
+export interface PetsUpdateRequest {
+    /// identity
+    name: string,
+    /// kind of pet, non nullable in the model
+    kind: myapi.model.Kind | null,
+    /// age of the pet, nullable in the model
+    age: number /* u8 */ | null | undefined,
+    /// behaviors of the pet, nullable in the model
+    behaviors: Array<myapi.model.Behavior> | null | undefined,
     }
 
 }
@@ -51,11 +113,6 @@ export namespace reflect {
 
 /// Struct object with no fields
 export interface Empty {
-    }
-
-
-/// Error object which is expected to be never returned
-export interface Infallible {
     }
 
 }

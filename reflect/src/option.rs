@@ -38,6 +38,22 @@ impl<T> Option<T> {
             Option::Some(value) => Some(value),
         }
     }
+
+    pub fn unfold(&self) -> std::option::Option<std::option::Option<&T>> {
+        match self {
+            Option::Undefined => None,
+            Option::None => Some(std::option::Option::None),
+            Option::Some(value) => Some(std::option::Option::Some(value)),
+        }
+    }
+
+    pub fn fold(source: std::option::Option<std::option::Option<T>>) -> Self {
+        match source {
+            None => Option::Undefined,
+            Some(None) => Option::None,
+            Some(Some(value)) => Option::Some(value),
+        }
+    }
 }
 
 impl<T> From<std::option::Option<T>> for Option<T> {

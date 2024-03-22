@@ -547,8 +547,6 @@ fn resolve_type_ref(
         ));
     };
 
-    println!("herere2");
-
     let Some(type_def) = schema.get_type(type_ref.name()) else {
         return None;
     };
