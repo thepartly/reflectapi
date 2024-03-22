@@ -67,17 +67,17 @@ where
         let function_def = Function {
             name: name.clone(),
             description: description,
-            input_type: if input_type.name == "reflect::empty::Empty" {
+            input_type: if input_type.name == "reflect::Empty" {
                 None
             } else {
                 Some(input_type)
             },
-            output_type: if output_type.name == "reflect::empty::Empty" {
+            output_type: if output_type.name == "reflect::Empty" {
                 None
             } else {
                 Some(output_type)
             },
-            error_type: if error_type.name == "reflect::infallible::Infallible" {
+            error_type: if error_type.name == "reflect::Infallible" {
                 None
             } else {
                 Some(error_type)

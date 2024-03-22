@@ -91,7 +91,6 @@ export interface PetsRemoveRequest {
 export type PetsUpdateError =
     | "NotFound"
     | "NotAuthorized"
-    | { InvalidIdentity: {message: string} }
     ;
 
 
@@ -113,6 +112,11 @@ export namespace reflect {
 
 /// Struct object with no fields
 export interface Empty {
+    }
+
+
+/// Error object which is expected to be never returned
+export interface Infallible {
     }
 
 }

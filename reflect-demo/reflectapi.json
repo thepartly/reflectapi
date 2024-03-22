@@ -3,6 +3,14 @@
   "description": "This is a demo application",
   "functions": [
     {
+      "name": "health.check",
+      "description": "Check the health of the service",
+      "serialization": [
+        "json"
+      ],
+      "readonly": true
+    },
+    {
       "name": "pets.list",
       "description": "List available pets",
       "input_type": {
@@ -36,9 +44,6 @@
       "input_headers": {
         "name": "myapi::proto::Headers"
       },
-      "output_type": {
-        "name": "reflect::Empty"
-      },
       "error_type": {
         "name": "myapi::proto::PetsCreateError"
       },
@@ -55,9 +60,6 @@
       "input_headers": {
         "name": "myapi::proto::Headers"
       },
-      "output_type": {
-        "name": "reflect::Empty"
-      },
       "error_type": {
         "name": "myapi::proto::PetsUpdateError"
       },
@@ -73,9 +75,6 @@
       },
       "input_headers": {
         "name": "myapi::proto::Headers"
-      },
-      "output_type": {
-        "name": "reflect::Empty"
       },
       "error_type": {
         "name": "myapi::proto::PetsRemoveError"
@@ -305,6 +304,11 @@
             }
           }
         ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
       },
       {
         "kind": "enum",
@@ -584,18 +588,6 @@
           },
           {
             "name": "NotAuthorized"
-          },
-          {
-            "name": "InvalidIdentity",
-            "fields": [
-              {
-                "name": "message",
-                "type": {
-                  "name": "std::string::String"
-                },
-                "required": true
-              }
-            ]
           }
         ]
       },
@@ -603,6 +595,11 @@
         "kind": "struct",
         "name": "reflect::Empty",
         "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
       },
       {
         "kind": "enum",

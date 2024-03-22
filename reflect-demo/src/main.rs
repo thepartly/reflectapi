@@ -1,5 +1,3 @@
-use proto::PetsListError;
-
 #[cfg(test)]
 mod tests;
 
@@ -8,6 +6,11 @@ async fn main() {
     let builder = reflect::Builder::new()
         .name("Demo application".to_string())
         .description("This is a demo application".to_string())
+        .route(health_check, |b| {
+            b.name("health.check".into())
+                .readonly(true)
+                .description("Check the health of the service".into())
+        })
         .route(pets_list, |b| {
             b.name("pets.list".into())
                 .readonly(true)
@@ -49,6 +52,14 @@ async fn main() {
     axum::serve(listener, axum_app).await.unwrap();
 }
 
+async fn health_check(
+    _: std::sync::Arc<AppState>,
+    _request: reflect::Empty,
+    _headers: reflect::Empty,
+) -> reflect::Empty {
+    ().into()
+}
+
 pub struct UnauthorizedError;
 
 fn authorize<E: From<UnauthorizedError>>(headers: proto::Headers) -> Result<(), E> {
@@ -63,7 +74,7 @@ async fn pets_list(
     request: proto::PetsListRequest,
     headers: proto::Headers,
 ) -> Result<proto::Paginated<model::Pet>, proto::PetsListError> {
-    authorize::<PetsListError>(headers)?;
+    authorize::<proto::PetsListError>(headers)?;
 
     let pets = state.pets.lock().unwrap();
     let cursor = request
@@ -97,6 +108,12 @@ async fn pets_create(
     authorize::<proto::PetsCreateError>(headers)?;
 
     let mut pets = state.pets.lock().unwrap();
+
+    if request.0.name.is_empty() {
+        return Err(proto::PetsCreateError::InvalidIdentity {
+            message: "Name is required".into(),
+        });
+    }
 
     if pets.iter().any(|pet| pet.name == request.0.name) {
         return Err(proto::PetsCreateError::Conflict);
@@ -254,7 +271,6 @@ mod proto {
     pub enum PetsUpdateError {
         NotFound,
         NotAuthorized,
-        InvalidIdentity { message: String },
     }
 
     impl reflect::StatusCode for PetsUpdateError {
@@ -262,9 +278,6 @@ mod proto {
             match self {
                 PetsUpdateError::NotFound => axum::http::StatusCode::NOT_FOUND.as_u16(),
                 PetsUpdateError::NotAuthorized => axum::http::StatusCode::UNAUTHORIZED.as_u16(),
-                PetsUpdateError::InvalidIdentity { .. } => {
-                    axum::http::StatusCode::UNPROCESSABLE_ENTITY.as_u16()
-                }
             }
         }
     }
