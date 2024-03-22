@@ -33,7 +33,7 @@ export namespace serde {
 export namespace input {
 
 export interface TestStructWithSerdeSkipSerializeIf {
-    f: number /* u8 */ | null;
+    f: number /* u8 */ | null,
     }
 
 }
@@ -41,7 +41,7 @@ export interface TestStructWithSerdeSkipSerializeIf {
 export namespace output {
 
 export interface TestStructWithSerdeSkipSerializeIf {
-    f: number /* u8 */ | null;
+    f: number /* u8 */ | null,
     }
 
 }

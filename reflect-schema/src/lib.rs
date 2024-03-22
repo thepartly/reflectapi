@@ -713,6 +713,18 @@ impl Struct {
         self.transparent
     }
 
+    pub fn is_alias(&self) -> bool {
+        self.fields.len() == 1 && self.fields[0].name() == "0"
+    }
+
+    pub fn is_tuple(&self) -> bool {
+        self.fields.len() != 0
+            && self
+                .fields
+                .iter()
+                .all(|f| f.name().parse::<usize>().is_ok())
+    }
+
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
         self.name = rename_ident(&self.name, search_string, replacer);
         for field in self.fields.iter_mut() {

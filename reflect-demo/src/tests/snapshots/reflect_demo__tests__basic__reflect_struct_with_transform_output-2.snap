@@ -33,7 +33,7 @@ export namespace basic {
 export namespace input {
 
 export interface TestStructWithTransformOutput {
-    _f: number /* u8 */;
+    _f: number /* u8 */,
     }
 
 }
@@ -41,7 +41,7 @@ export interface TestStructWithTransformOutput {
 export namespace output {
 
 export interface TestStructWithTransformOutput {
-    _f: number /* u8 */;
+    _f: number /* u8 */,
     }
 
 }

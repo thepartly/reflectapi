@@ -78,7 +78,6 @@ fn generate(
             let output = output.join("index.ts");
             let mut file = std::fs::File::create(output.clone())
                 .context(format!("Failed to create file: {:?}", output))?;
-            println!("{}", generated_code);
             file.write(generated_code.as_bytes())
                 .context(format!("Failed to write to file: {:?}", output))?;
         }

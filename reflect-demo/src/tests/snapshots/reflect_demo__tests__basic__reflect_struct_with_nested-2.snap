@@ -31,12 +31,12 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructNested {
-    _f: string;
+    _f: string,
     }
 
 
 export interface TestStructWithNested {
-    _f: reflect_demo.tests.basic.TestStructNested;
+    _f: reflect_demo.tests.basic.TestStructNested,
     }
 
 }

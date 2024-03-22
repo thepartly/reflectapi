@@ -31,12 +31,12 @@ export namespace tests {
 export namespace serde {
 
 export interface TestStructWithFlatten {
-    g: reflect_demo.tests.serde.TestStructWithFlattenNested;
+    g: reflect_demo.tests.serde.TestStructWithFlattenNested,
     }
 
 
 export interface TestStructWithFlattenNested {
-    f: number /* u8 */;
+    f: number /* u8 */,
     }
 
 }

@@ -33,7 +33,7 @@ export namespace serde {
 export namespace input {
 
 export interface TestStructRenameAllDifferently {
-    field_name: number /* u8 */;
+    field_name: number /* u8 */,
     }
 
 }
@@ -41,7 +41,7 @@ export interface TestStructRenameAllDifferently {
 export namespace output {
 
 export interface TestStructRenameAllDifferently {
-    fieldName: number /* u8 */;
+    fieldName: number /* u8 */,
     }
 
 }

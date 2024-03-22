@@ -32,14 +32,14 @@ struct FileTemplate {
 {{ self.render_end() }}",
     ext = "txt"
 )]
-struct Module {
+struct ModuleTemplate {
     name: String,
     types: Vec<String>,
-    submodules: HashMap<String, Module>,
+    submodules: HashMap<String, ModuleTemplate>,
 }
 
-impl Module {
-    fn submodules_sorted(&self) -> Vec<&Module> {
+impl ModuleTemplate {
+    fn submodules_sorted(&self) -> Vec<&ModuleTemplate> {
         let mut submodules = self.submodules.values().collect::<Vec<_>>();
         submodules.sort_by(|a, b| a.name.cmp(&b.name));
         submodules
@@ -68,26 +68,36 @@ impl Module {
 
 #[derive(Template)]
 #[template(
-    source = "{{ description }}export interface {{ name }} {
+    source = "{{ description }}export {{ self.render_keyword() }} {{ name }} {{ self.render_brackets().0 }}
     {% for field in fields.iter() -%}
-    {{ field }};
+    {{ field }},
     {% endfor -%}
-}
-",
+{{ self.render_brackets().1 }}",
     ext = "txt"
 )]
-struct StructTemplate {
+struct InterfaceTemplate {
     name: String,
     description: String,
     fields: Vec<FieldTemplate>,
+    is_tuple: bool,
 }
 
-#[derive(Template)]
-#[template(source = "{{ description }}{{ name }}: {{ type_ }}", ext = "txt")]
-struct FieldTemplate {
-    name: String,
-    description: String,
-    type_: String,
+impl InterfaceTemplate {
+    fn render_keyword(&self) -> String {
+        if self.is_tuple {
+            "type".into()
+        } else {
+            "interface".into()
+        }
+    }
+
+    fn render_brackets(&self) -> (&'static str, &'static str) {
+        if self.is_tuple {
+            ("= [", "]\n")
+        } else {
+            ("{", "}\n")
+        }
+    }
 }
 
 #[derive(Template)]
@@ -111,7 +121,7 @@ struct VariantTemplate {
     name: String,
     description: String,
     representation: crate::Representation,
-    fields: Vec<VariantFieldTemplate>,
+    fields: Vec<FieldTemplate>,
 }
 
 impl VariantTemplate {
@@ -175,13 +185,13 @@ impl VariantTemplate {
     source = "{{ description }}{% if !self.is_unnamed() %}{{ name }}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
     ext = "txt"
 )]
-struct VariantFieldTemplate {
+struct FieldTemplate {
     name: String,
     description: String,
     type_: String,
 }
 
-impl VariantFieldTemplate {
+impl FieldTemplate {
     fn is_unnamed(&self) -> bool {
         self.name.parse::<u64>().is_ok()
     }
@@ -193,7 +203,7 @@ impl VariantFieldTemplate {
 ",
     ext = "txt"
 )]
-struct PrimitiveTemplate {
+struct AliasTemplate {
     name: String,
     description: String,
     type_: String,
@@ -247,22 +257,35 @@ fn render_type(
 
     Ok(match type_def {
         crate::Type::Struct(struct_def) => {
-            let struct_template = StructTemplate {
-                name: type_name,
-                description: doc_to_ts_comments(&struct_def.description, 0),
-                fields: struct_def
-                    .fields
-                    .iter()
-                    .map(|field| FieldTemplate {
-                        name: field.name.clone(),
-                        description: doc_to_ts_comments(&field.description, 4),
-                        type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
-                    })
-                    .collect::<Vec<_>>(),
-            };
-            struct_template
-                .render()
-                .context("Failed to render template")?
+            if struct_def.is_alias() {
+                let field_type_ref = struct_def.fields.first().unwrap().type_ref.clone();
+                let alias_template = AliasTemplate {
+                    name: type_name,
+                    description: doc_to_ts_comments(&struct_def.description, 0),
+                    type_: type_ref_to_ts_ref(&field_type_ref, schema, implemented_types),
+                };
+                alias_template
+                    .render()
+                    .context("Failed to render template")?
+            } else {
+                let interface_template = InterfaceTemplate {
+                    name: type_name,
+                    description: doc_to_ts_comments(&struct_def.description, 0),
+                    is_tuple: struct_def.is_tuple(),
+                    fields: struct_def
+                        .fields
+                        .iter()
+                        .map(|field| FieldTemplate {
+                            name: field.name.clone(),
+                            description: doc_to_ts_comments(&field.description, 4),
+                            type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
+                        })
+                        .collect::<Vec<_>>(),
+                };
+                interface_template
+                    .render()
+                    .context("Failed to render template")?
+            }
         }
         crate::Type::Enum(enum_def) => {
             let enum_template = EnumTemplate {
@@ -278,7 +301,7 @@ fn render_type(
                         fields: variant
                             .fields
                             .iter()
-                            .map(|field| VariantFieldTemplate {
+                            .map(|field| FieldTemplate {
                                 name: field.name.clone(),
                                 description: doc_to_ts_comments(&field.description, 8),
                                 type_: type_ref_to_ts_ref(
@@ -300,7 +323,7 @@ fn render_type(
                 "warning: {} type is not implemented for Typescript",
                 type_def.name
             );
-            let primitive_template = PrimitiveTemplate {
+            let alias_template = AliasTemplate {
                 name: type_name,
                 description: doc_to_ts_comments(&type_def.description, 0),
                 type_: format!(
@@ -308,7 +331,7 @@ fn render_type(
                     type_def.name
                 ),
             };
-            primitive_template
+            alias_template
                 .render()
                 .context("Failed to render template")?
         }
@@ -390,8 +413,11 @@ fn doc_to_ts_comments(doc: &str, offset: u8) -> String {
     format!("{}\n{}", doc, offset)
 }
 
-fn modules_from_types(types: Vec<String>, mut rendered_types: HashMap<String, String>) -> Module {
-    let mut root_module = Module {
+fn modules_from_types(
+    types: Vec<String>,
+    mut rendered_types: HashMap<String, String>,
+) -> ModuleTemplate {
+    let mut root_module = ModuleTemplate {
         name: "".into(),
         types: vec![],
         submodules: HashMap::new(),
@@ -408,11 +434,14 @@ fn modules_from_types(types: Vec<String>, mut rendered_types: HashMap<String, St
         let mut parts = type_name.split("::").collect::<Vec<_>>();
         parts.pop().unwrap();
         for part in parts {
-            module = module.submodules.entry(part.into()).or_insert(Module {
-                name: part.into(),
-                types: vec![],
-                submodules: HashMap::new(),
-            });
+            module = module
+                .submodules
+                .entry(part.into())
+                .or_insert(ModuleTemplate {
+                    name: part.into(),
+                    types: vec![],
+                    submodules: HashMap::new(),
+                });
         }
         if let Some(rendered_type) = rendered_types.remove(&original_type_name) {
             module.types.push(rendered_type);
@@ -441,7 +470,7 @@ fn implemented_types() -> HashMap<String, String> {
     implemented_types.insert("bool".into(), "boolean".into());
     implemented_types.insert("char".into(), "string".into());
     implemented_types.insert("std::string::String".into(), "string".into());
-    implemented_types.insert("()".into(), "void".into());
+    implemented_types.insert("()".into(), "null".into());
 
     // warning: all generic type parameter names should match reflect defnition coming from
     // the implementation of reflect for standard types
@@ -500,7 +529,6 @@ fn resolve_type_ref(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> Option<String> {
-    println!("type_ref: {:?}", type_ref);
     let Some(mut implementation) = implemented_types.get(type_ref.name.as_str()).cloned() else {
         let Some(fallback_type_ref) = type_ref.fallback_once(schema.input_types()) else {
             let Some(fallback_type_ref) = type_ref.fallback_once(schema.output_types()) else {
@@ -518,6 +546,8 @@ fn resolve_type_ref(
             implemented_types,
         ));
     };
+
+    println!("herere2");
 
     let Some(type_def) = schema.get_type(type_ref.name()) else {
         return None;

@@ -33,7 +33,7 @@ export namespace serde {
 export namespace input {
 
 export interface TestStructWithSerdeSkipSerialize {
-    _f: number /* u8 */;
+    _f: number /* u8 */,
     }
 
 }

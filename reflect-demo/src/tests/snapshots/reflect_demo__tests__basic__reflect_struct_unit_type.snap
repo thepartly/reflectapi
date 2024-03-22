@@ -1,0 +1,61 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "super::into_schema::<TestStructUnitType>()"
+---
+{
+  "name": "",
+  "input_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "()",
+        "description": "Unit type"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructUnitType",
+        "fields": [
+          {
+            "name": "0",
+            "type": {
+              "name": "()"
+            }
+          }
+        ],
+        "transparent": true
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "()",
+        "description": "Unit type"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructUnitType",
+        "fields": [
+          {
+            "name": "0",
+            "type": {
+              "name": "()"
+            }
+          }
+        ],
+        "transparent": true
+      }
+    ]
+  }
+}

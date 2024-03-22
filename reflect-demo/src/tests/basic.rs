@@ -439,3 +439,10 @@ struct TestStructWithHashSetFieldGeneric<G> where G: std::hash::Hash + Eq + refl
 fn test_reflect_struct_with_hashset_field_generic() {
     assert_snapshot!(TestStructWithHashSetFieldGeneric::<String>);
 }
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructUnitType;
+#[test]
+fn test_reflect_struct_unit_type() {
+    assert_snapshot!(TestStructUnitType);
+}

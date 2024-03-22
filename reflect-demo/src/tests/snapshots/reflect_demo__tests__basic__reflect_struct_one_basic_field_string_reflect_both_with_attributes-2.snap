@@ -33,7 +33,7 @@ export namespace basic {
 export namespace input {
 
 export interface TestStructOneBasicFieldStringReflectBothDifferently {
-    _f: number /* i32 */;
+    _f: number /* i32 */,
     }
 
 }
@@ -41,7 +41,7 @@ export interface TestStructOneBasicFieldStringReflectBothDifferently {
 export namespace output {
 
 export interface TestStructOneBasicFieldStringReflectBothDifferently {
-    _f: number /* u32 */;
+    _f: number /* u32 */,
     }
 
 }

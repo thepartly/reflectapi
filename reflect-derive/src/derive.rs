@@ -1,6 +1,7 @@
 use proc_macro::TokenStream;
 use quote::ToTokens;
 use reflect_schema::{Enum, Field, Struct, Type, TypeParameter};
+use syn::parse_quote;
 
 use crate::{
     context::{Context, ReflectType},
@@ -164,20 +165,32 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
             visit_generic_parameters(cx, &container.generics, &mut result.parameters);
             result.into()
         }
-        serde_derive_internals::ast::Data::Struct(_style, fields) => {
-            let mut result = Struct::new(type_def_name);
-            result.description = parse_doc_attributes(&container.original.attrs);
-            for field in fields {
-                if !match cx.reflect_type() {
-                    ReflectType::Input => field.attrs.skip_deserializing(),
-                    ReflectType::Output => field.attrs.skip_serializing(),
-                } {
-                    result.fields.push(visit_field(cx, field));
+        serde_derive_internals::ast::Data::Struct(style, fields) => {
+            if matches!(style, serde_derive_internals::ast::Style::Unit) {
+                let mut result = Struct::new(type_def_name);
+                result.description = parse_doc_attributes(&container.original.attrs);
+                // there should be no fields on unit structs
+                // but we expose it as a newtype struct with a single Unit type field
+                result.fields.push(Field::new("0".into(), "()".into()));
+                result.transparent = true;
+                let unit_type: syn::Type = parse_quote! { () };
+                visit_field_type(cx, &unit_type);
+                result.into()
+            } else {
+                let mut result = Struct::new(type_def_name);
+                result.description = parse_doc_attributes(&container.original.attrs);
+                for field in fields {
+                    if !match cx.reflect_type() {
+                        ReflectType::Input => field.attrs.skip_deserializing(),
+                        ReflectType::Output => field.attrs.skip_serializing(),
+                    } {
+                        result.fields.push(visit_field(cx, field));
+                    }
                 }
+                visit_generic_parameters(cx, &container.generics, &mut result.parameters);
+                result.transparent = container.attrs.transparent();
+                result.into()
             }
-            visit_generic_parameters(cx, &container.generics, &mut result.parameters);
-            result.transparent = container.attrs.transparent();
-            result.into()
         }
     };
     type_def

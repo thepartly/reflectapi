@@ -31,8 +31,8 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithVecTwo {
-    _f: Array<number /* u8 */>;
-    _f2: Array<number /* i8 */>;
+    _f: Array<number /* u8 */>,
+    _f2: Array<number /* i8 */>,
     }
 
 }

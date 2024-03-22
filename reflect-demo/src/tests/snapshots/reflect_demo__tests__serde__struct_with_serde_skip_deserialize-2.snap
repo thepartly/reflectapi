@@ -40,7 +40,7 @@ export interface TestStructWithSerdeSkipDeserialize {
 export namespace output {
 
 export interface TestStructWithSerdeSkipDeserialize {
-    f: number /* u8 */;
+    f: number /* u8 */,
     }
 
 }

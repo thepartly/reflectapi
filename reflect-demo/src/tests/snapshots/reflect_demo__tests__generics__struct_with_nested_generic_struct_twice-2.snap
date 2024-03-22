@@ -31,13 +31,13 @@ export namespace tests {
 export namespace generics {
 
 export interface TestStructWithNestedGenericStructTwice {
-    _f: reflect_demo.tests.generics.TestStructWithSimpleGeneric<number /* u8 */>;
-    _f2: reflect_demo.tests.generics.TestStructWithSimpleGeneric<string>;
+    _f: reflect_demo.tests.generics.TestStructWithSimpleGeneric<number /* u8 */>,
+    _f2: reflect_demo.tests.generics.TestStructWithSimpleGeneric<string>,
     }
 
 
 export interface TestStructWithSimpleGeneric<A> {
-    _f: A;
+    _f: A,
     }
 
 }

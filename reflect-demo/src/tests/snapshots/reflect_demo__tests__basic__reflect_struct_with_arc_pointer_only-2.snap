@@ -31,7 +31,7 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithArcPointerOnly {
-    _f_pointer_arc: number /* u8 */;
+    _f_pointer_arc: number /* u8 */,
     }
 
 }

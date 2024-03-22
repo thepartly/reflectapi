@@ -31,8 +31,8 @@ export namespace tests {
 export namespace generics {
 
 export interface TestStructWithCircularReferenceGenericWithoutBox<A, B> {
-    _f1: A;
-    _f2: B;
+    _f1: A,
+    _f2: B,
     }
 
 }

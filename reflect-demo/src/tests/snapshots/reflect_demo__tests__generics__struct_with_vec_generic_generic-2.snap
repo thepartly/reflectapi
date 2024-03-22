@@ -31,12 +31,12 @@ export namespace tests {
 export namespace generics {
 
 export interface TestStructWithSimpleGeneric<A> {
-    _f: A;
+    _f: A,
     }
 
 
 export interface TestStructWithVecGenericGeneric<T> {
-    _f: Array<reflect_demo.tests.generics.TestStructWithSimpleGeneric<T>>;
+    _f: Array<reflect_demo.tests.generics.TestStructWithSimpleGeneric<T>>,
     }
 
 }

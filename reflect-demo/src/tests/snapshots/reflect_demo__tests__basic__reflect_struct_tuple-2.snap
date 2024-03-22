@@ -30,10 +30,10 @@ export namespace tests {
 
 export namespace basic {
 
-export interface TestStructTuple {
-    0: number /* u8 */;
-    1: string;
-    }
+export type TestStructTuple = [
+    number /* u8 */,
+    string,
+    ]
 
 }
 }

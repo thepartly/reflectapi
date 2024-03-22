@@ -31,7 +31,7 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithHashSetFieldGeneric<G> {
-    _f_hashset: Array<G>;
+    _f_hashset: Array<G>,
     }
 
 }

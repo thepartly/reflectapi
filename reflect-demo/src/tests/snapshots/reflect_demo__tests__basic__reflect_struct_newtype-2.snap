@@ -30,9 +30,7 @@ export namespace tests {
 
 export namespace basic {
 
-export interface TestStructNewtype {
-    0: string;
-    }
+export type TestStructNewtype = string;
 
 }
 }

@@ -31,13 +31,13 @@ export namespace tests {
 export namespace generics {
 
 export interface TestStructWithCircularReferenceGenericWithoutBox<A, B> {
-    _f1: A;
-    _f2: B;
+    _f1: A,
+    _f2: B,
     }
 
 
 export interface TestStructWithCircularReferenceGenericWithoutBoxParentSpecific {
-    _f: reflect_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox<reflect_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox<number /* u8 */, number /* u16 */>, reflect_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox<string, number /* u32 */>>;
+    _f: reflect_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox<reflect_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox<number /* u8 */, number /* u16 */>, reflect_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox<string, number /* u32 */>>,
     }
 
 }

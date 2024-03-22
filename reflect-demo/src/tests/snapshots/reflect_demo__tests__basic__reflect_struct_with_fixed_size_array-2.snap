@@ -31,7 +31,7 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithFixedSizeArray {
-    _f: Array<number /* u8 */>;
+    _f: Array<number /* u8 */>,
     }
 
 }

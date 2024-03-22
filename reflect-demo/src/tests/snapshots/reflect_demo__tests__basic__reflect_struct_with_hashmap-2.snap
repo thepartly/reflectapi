@@ -31,7 +31,7 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithHashMap {
-    _f: Record<number /* u8 */, string>;
+    _f: Record<number /* u8 */, string>,
     }
 
 }

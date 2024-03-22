@@ -33,7 +33,7 @@ export namespace serde {
 export namespace input {
 
 export interface TestStructWithSerdeDefault {
-    f: number /* u8 */;
+    f: number /* u8 */,
     }
 
 }
@@ -41,7 +41,7 @@ export interface TestStructWithSerdeDefault {
 export namespace output {
 
 export interface TestStructWithSerdeDefault {
-    f: number /* u8 */;
+    f: number /* u8 */,
     }
 
 }

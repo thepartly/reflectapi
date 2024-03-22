@@ -31,49 +31,49 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithAllPrimitiveTypeFields {
-    _f_u8: number /* u8 */;
-    _f_u16: number /* u16 */;
-    _f_u32: number /* u32 */;
-    _f_u64: number /* u64 */;
-    _f_u128: number /* u128 */;
-    _f_usize: number /* u64 */;
-    _f_i8: number /* i8 */;
-    _f_i16: number /* i16 */;
-    _f_i32: number /* i32 */;
-    _f_i64: number /* i64 */;
-    _f_i128: number /* i128 */;
-    _f_isize: number /* i64 */;
-    _f_f32: number /* f32 */;
-    _f_f64: number /* f64 */;
-    _f_bool: boolean;
-    _f_char: string;
-    _f_str: string;
-    _f_unit: void;
-    _f_option: number /* u8 */ | null;
-    _f_vec: Array<number /* u8 */>;
-    _f_hashmap: Record<number /* u8 */, string>;
-    _f_hashset: Array<number /* u8 */>;
-    _f_tuple: [number /* u8 */, string];
-    _f_tuple3: [number /* u8 */, string, number /* u8 */];
-    _f_tuple4: [number /* u8 */, string, number /* u8 */, string];
-    _f_tuple5: [number /* u8 */, string, number /* u8 */, string, number /* u8 */];
-    _f_tuple6: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string];
-    _f_tuple7: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */];
-    _f_tuple8: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string];
-    _f_tuple9: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */];
-    _f_tuple10: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0];
-    _f_tuple11: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0, number /* u8 */1];
-    _f_tuple12: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0, number /* u8 */1, number /* u8 */2];
-    _f_array: Array<number /* u8 */>;
-    _f_pointer_box: number /* u8 */;
-    _f_pointer_arc: number /* u8 */;
-    _f_pointer_cell: number /* u8 */;
-    _f_pointer_refcell: number /* u8 */;
-    _f_pointer_mutex: number /* u8 */;
-    _f_pointer_rwlock: number /* u8 */;
-    _f_pointer_weak: number /* u8 */;
-    _f_phantomdata: undefined | number /* u8 */ /* phantom data */;
-    _f_infallible: reflect.Infallible;
+    _f_u8: number /* u8 */,
+    _f_u16: number /* u16 */,
+    _f_u32: number /* u32 */,
+    _f_u64: number /* u64 */,
+    _f_u128: number /* u128 */,
+    _f_usize: number /* u64 */,
+    _f_i8: number /* i8 */,
+    _f_i16: number /* i16 */,
+    _f_i32: number /* i32 */,
+    _f_i64: number /* i64 */,
+    _f_i128: number /* i128 */,
+    _f_isize: number /* i64 */,
+    _f_f32: number /* f32 */,
+    _f_f64: number /* f64 */,
+    _f_bool: boolean,
+    _f_char: string,
+    _f_str: string,
+    _f_unit: null,
+    _f_option: number /* u8 */ | null,
+    _f_vec: Array<number /* u8 */>,
+    _f_hashmap: Record<number /* u8 */, string>,
+    _f_hashset: Array<number /* u8 */>,
+    _f_tuple: [number /* u8 */, string],
+    _f_tuple3: [number /* u8 */, string, number /* u8 */],
+    _f_tuple4: [number /* u8 */, string, number /* u8 */, string],
+    _f_tuple5: [number /* u8 */, string, number /* u8 */, string, number /* u8 */],
+    _f_tuple6: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string],
+    _f_tuple7: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */],
+    _f_tuple8: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string],
+    _f_tuple9: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */],
+    _f_tuple10: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0],
+    _f_tuple11: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0, number /* u8 */1],
+    _f_tuple12: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0, number /* u8 */1, number /* u8 */2],
+    _f_array: Array<number /* u8 */>,
+    _f_pointer_box: number /* u8 */,
+    _f_pointer_arc: number /* u8 */,
+    _f_pointer_cell: number /* u8 */,
+    _f_pointer_refcell: number /* u8 */,
+    _f_pointer_mutex: number /* u8 */,
+    _f_pointer_rwlock: number /* u8 */,
+    _f_pointer_weak: number /* u8 */,
+    _f_phantomdata: undefined | number /* u8 */ /* phantom data */,
+    _f_infallible: reflect.Infallible,
     }
 
 }

@@ -31,7 +31,7 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithTuple12 {
-    _f: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0, number /* u8 */1, number /* u8 */2];
+    _f: [number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, string, number /* u8 */, number /* u8 */0, number /* u8 */1, number /* u8 */2],
     }
 
 }

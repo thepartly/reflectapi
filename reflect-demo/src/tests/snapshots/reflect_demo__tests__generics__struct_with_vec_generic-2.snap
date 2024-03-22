@@ -31,7 +31,7 @@ export namespace tests {
 export namespace generics {
 
 export interface TestStructWithVecGeneric<T> {
-    _f: Array<T>;
+    _f: Array<T>,
     }
 
 }

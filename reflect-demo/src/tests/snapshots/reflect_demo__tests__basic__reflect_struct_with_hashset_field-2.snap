@@ -31,7 +31,7 @@ export namespace tests {
 export namespace basic {
 
 export interface TestStructWithHashSetField {
-    _f_hashset: Array<number /* u8 */>;
+    _f_hashset: Array<number /* u8 */>,
     }
 
 }
