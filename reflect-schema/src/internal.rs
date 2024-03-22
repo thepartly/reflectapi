@@ -149,7 +149,7 @@ mod tests {
 pub(crate) fn replace_type_references_for_type(
     this: &mut Type,
     remap: &std::collections::HashMap<TypeReference, TypeReference>,
-    schema: &Schema,
+    schema: &Typespace,
 ) -> () {
     match this {
         Type::Primitive(_) => {}
@@ -161,7 +161,7 @@ pub(crate) fn replace_type_references_for_type(
 fn replace_type_references_for_struct(
     this: &mut Struct,
     remap: &std::collections::HashMap<TypeReference, TypeReference>,
-    schema: &Schema,
+    schema: &Typespace,
 ) -> () {
     for field in this.fields.iter_mut() {
         replace_type_references_for_field(field, remap, schema, &this.parameters);
@@ -171,7 +171,7 @@ fn replace_type_references_for_struct(
 fn replace_type_references_for_field(
     this: &mut Field,
     remap: &std::collections::HashMap<TypeReference, TypeReference>,
-    schema: &Schema,
+    schema: &Typespace,
     declaring_type_parameters: &Vec<TypeParameter>,
 ) -> () {
     if let Some(new_type_ref) = remap.get(&this.type_ref) {
@@ -189,7 +189,7 @@ fn replace_type_references_for_field(
 fn replace_type_references_for_enum(
     this: &mut Enum,
     remap: &std::collections::HashMap<TypeReference, TypeReference>,
-    schema: &Schema,
+    schema: &Typespace,
 ) -> () {
     for variant in this.variants.iter_mut() {
         replace_type_references_for_variant(variant, remap, schema, &this.parameters);
@@ -199,11 +199,10 @@ fn replace_type_references_for_enum(
 fn replace_type_references_for_variant(
     this: &mut Variant,
     remap: &std::collections::HashMap<TypeReference, TypeReference>,
-    schema: &Schema,
+    schema: &Typespace,
     declaring_type_parameters: &Vec<TypeParameter>,
 ) -> () {
     for field in this.fields.iter_mut() {
         replace_type_references_for_field(field, remap, schema, declaring_type_parameters);
     }
 }
-

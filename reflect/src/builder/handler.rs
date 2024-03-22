@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{EndpointSchema, Function, Struct};
+use crate::{Function, Schema, Struct};
 
 pub struct HandlerInput {
     pub body: bytes::Bytes,
@@ -37,7 +37,7 @@ where
         description: String,
         readonly: bool,
         handler: F,
-        schema: &mut EndpointSchema,
+        schema: &mut Schema,
     ) -> Handler<S>
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,

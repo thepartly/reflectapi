@@ -1,4 +1,4 @@
-fn reflect_uuid(schema: &mut crate::Schema) -> String {
+fn reflect_uuid(schema: &mut crate::Typespace) -> String {
     let type_name = "uuid::Uuid";
     if schema.reserve_type(&type_name) {
         let type_def =
@@ -8,12 +8,12 @@ fn reflect_uuid(schema: &mut crate::Schema) -> String {
     type_name.into()
 }
 impl crate::Input for uuid::Uuid {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         reflect_uuid(schema).into()
     }
 }
 impl crate::Output for uuid::Uuid {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         reflect_uuid(schema).into()
     }
 }

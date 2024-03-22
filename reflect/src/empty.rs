@@ -14,13 +14,13 @@ impl From<()> for Empty {
 }
 
 impl crate::Input for Empty {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::reflect_type_empty(schema, "reflect::Empty", "Struct object with no fields")
     }
 }
 
 impl crate::Output for Empty {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::reflect_type_empty(schema, "reflect::Empty", "Struct object with no fields")
     }
 }

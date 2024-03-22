@@ -1,13 +1,13 @@
 pub trait Input {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference;
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference;
 }
 
 pub trait Output {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference;
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference;
 }
 
 pub(crate) fn reflect_type_empty(
-    schema: &mut crate::Schema,
+    schema: &mut crate::Typespace,
     type_name: &str,
     description: &str,
 ) -> crate::TypeReference {
@@ -20,7 +20,7 @@ pub(crate) fn reflect_type_empty(
 }
 
 pub(crate) fn reflect_type_simple(
-    schema: &mut crate::Schema,
+    schema: &mut crate::Typespace,
     type_name: &str,
     description: &str,
     fallback: Option<crate::TypeReference>,
@@ -36,12 +36,12 @@ pub(crate) fn reflect_type_simple(
 macro_rules! impl_reflect_simple {
     ($type:ty, $description:tt) => {
         impl Input for $type {
-            fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+            fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
                 reflect_type_simple(schema, stringify!($type), $description, None)
             }
         }
         impl Output for $type {
-            fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+            fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
                 reflect_type_simple(schema, stringify!($type), $description, None)
             }
         }
@@ -64,7 +64,7 @@ impl_reflect_simple!(char, "Unicode character");
 impl_reflect_simple!(std::string::String, "UTF-8 encoded string");
 
 impl Input for isize {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         let fallback = Some(i64::reflect_input_type(schema));
         reflect_type_simple(
             schema,
@@ -75,7 +75,7 @@ impl Input for isize {
     }
 }
 impl Output for isize {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         let fallback = Some(i64::reflect_output_type(schema));
         reflect_type_simple(
             schema,
@@ -87,7 +87,7 @@ impl Output for isize {
 }
 
 impl Input for usize {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         let fallback = Some(u64::reflect_input_type(schema));
         reflect_type_simple(
             schema,
@@ -98,7 +98,7 @@ impl Input for usize {
     }
 }
 impl Output for usize {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         let fallback = Some(u64::reflect_output_type(schema));
         reflect_type_simple(
             schema,
@@ -109,7 +109,7 @@ impl Output for usize {
     }
 }
 
-fn reflect_type_vector(schema: &mut crate::Schema) -> String {
+fn reflect_type_vector(schema: &mut crate::Typespace) -> String {
     let type_name = "std::vec::Vec";
     if schema.reserve_type(type_name) {
         let type_def = crate::Primitive::new(
@@ -123,7 +123,7 @@ fn reflect_type_vector(schema: &mut crate::Schema) -> String {
     type_name.into()
 }
 impl<T: Input> Input for Vec<T> {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_vector(schema),
             vec![T::reflect_input_type(schema)],
@@ -131,7 +131,7 @@ impl<T: Input> Input for Vec<T> {
     }
 }
 impl<T: Output> Output for Vec<T> {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_vector(schema),
             vec![T::reflect_output_type(schema)],
@@ -139,7 +139,7 @@ impl<T: Output> Output for Vec<T> {
     }
 }
 
-fn reflect_type_option(schema: &mut crate::Schema) -> String {
+fn reflect_type_option(schema: &mut crate::Typespace) -> String {
     let type_name = "std::option::Option";
     if schema.reserve_type(type_name) {
         let mut type_def = crate::Enum::new(type_name.into());
@@ -163,7 +163,7 @@ fn reflect_type_option(schema: &mut crate::Schema) -> String {
     type_name.into()
 }
 impl<T: Input> Input for Option<T> {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_option(schema),
             vec![T::reflect_input_type(schema)],
@@ -171,7 +171,7 @@ impl<T: Input> Input for Option<T> {
     }
 }
 impl<T: Output> Output for Option<T> {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_option(schema),
             vec![T::reflect_output_type(schema)],
@@ -179,7 +179,7 @@ impl<T: Output> Output for Option<T> {
     }
 }
 
-fn reflect_type_hashmap(schema: &mut crate::Schema) -> String {
+fn reflect_type_hashmap(schema: &mut crate::Typespace) -> String {
     let type_name = "std::collections::HashMap";
     if schema.reserve_type(type_name) {
         let type_def = crate::Primitive::new(
@@ -193,7 +193,7 @@ fn reflect_type_hashmap(schema: &mut crate::Schema) -> String {
     type_name.into()
 }
 impl<K: Input, V: Input> Input for std::collections::HashMap<K, V> {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_hashmap(schema),
             vec![K::reflect_input_type(schema), V::reflect_input_type(schema)],
@@ -201,7 +201,7 @@ impl<K: Input, V: Input> Input for std::collections::HashMap<K, V> {
     }
 }
 impl<K: Output, V: Output> Output for std::collections::HashMap<K, V> {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_hashmap(schema),
             vec![
@@ -212,7 +212,7 @@ impl<K: Output, V: Output> Output for std::collections::HashMap<K, V> {
     }
 }
 
-fn reflect_type_hashset(schema: &mut crate::Schema) -> String {
+fn reflect_type_hashset(schema: &mut crate::Typespace) -> String {
     let type_name = "std::collections::HashSet";
     if schema.reserve_type(type_name) {
         let type_def = crate::Primitive::new(
@@ -229,7 +229,7 @@ fn reflect_type_hashset(schema: &mut crate::Schema) -> String {
     type_name.into()
 }
 impl<V: Input> Input for std::collections::HashSet<V> {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_hashset(schema),
             vec![V::reflect_input_type(schema)],
@@ -237,7 +237,7 @@ impl<V: Input> Input for std::collections::HashSet<V> {
     }
 }
 impl<V: Output> Output for std::collections::HashSet<V> {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_hashset(schema),
             vec![V::reflect_output_type(schema)],
@@ -245,7 +245,7 @@ impl<V: Output> Output for std::collections::HashSet<V> {
     }
 }
 
-fn reflect_type_tuple(schema: &mut crate::Schema, count: usize) -> String {
+fn reflect_type_tuple(schema: &mut crate::Typespace, count: usize) -> String {
     let type_name = format!("std::tuple::Tuple{}", count);
     if schema.reserve_type(&type_name) {
         let parameters = (1..(count + 1)).map(|i| format!("T{}", i).into()).collect();
@@ -267,7 +267,7 @@ macro_rules! impl_reflect_tuple {
     ( $( $name:ident )+)  => {
         impl<$($name: Input),+> Input for ($($name,)+)
         {
-            fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+            fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
                 let type_name = reflect_type_tuple(schema, count!($($name)*));
                 crate::TypeReference::new(
                     type_name,
@@ -278,7 +278,7 @@ macro_rules! impl_reflect_tuple {
 
         impl<$($name: Output),+> Output for ($($name,)+)
         {
-            fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+            fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
                 let type_name = reflect_type_tuple(schema, count!($($name)*));
                 crate::TypeReference::new(
                     type_name,
@@ -302,7 +302,7 @@ impl_reflect_tuple! { A B C D E F G H I J }
 impl_reflect_tuple! { A B C D E F G H I J K }
 impl_reflect_tuple! { A B C D E F G H I J K L }
 
-fn reflect_type_array(schema: &mut crate::Schema) -> String {
+fn reflect_type_array(schema: &mut crate::Typespace) -> String {
     let type_name = "std::array::Array";
     if schema.reserve_type(&type_name) {
         let type_def = crate::Primitive::new(
@@ -319,7 +319,7 @@ fn reflect_type_array(schema: &mut crate::Schema) -> String {
     type_name.into()
 }
 impl<T: Input, const N: usize> Input for [T; N] {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_array(schema),
             vec![T::reflect_input_type(schema), N.to_string().into()],
@@ -327,7 +327,7 @@ impl<T: Input, const N: usize> Input for [T; N] {
     }
 }
 impl<T: Output, const N: usize> Output for [T; N] {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_array(schema),
             vec![T::reflect_output_type(schema), N.to_string().into()],
@@ -336,7 +336,7 @@ impl<T: Output, const N: usize> Output for [T; N] {
 }
 
 fn reflect_type_pointer(
-    schema: &mut crate::Schema,
+    schema: &mut crate::Typespace,
     type_name: &str,
     with_lifetime: bool,
 ) -> String {
@@ -357,7 +357,7 @@ fn reflect_type_pointer(
 macro_rules! impl_reflect_pointer {
     ($type:path) => {
         impl<T: Input> Input for $type {
-            fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+            fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
                 crate::TypeReference::new(
                     reflect_type_pointer(schema, &stringify!($type).replace("<T>", ""), false),
                     vec![T::reflect_input_type(schema)],
@@ -365,7 +365,7 @@ macro_rules! impl_reflect_pointer {
             }
         }
         impl<T: Output> Output for $type {
-            fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+            fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
                 crate::TypeReference::new(
                     reflect_type_pointer(schema, &stringify!($type).replace("<T>", ""), false),
                     vec![T::reflect_output_type(schema)],
@@ -387,7 +387,7 @@ impl_reflect_pointer!(std::sync::Weak<T>);
 macro_rules! impl_reflect_pointer_with_lifetime {
     ($type:path) => {
         impl<'a, T: Input> Input for $type {
-            fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+            fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
                 crate::TypeReference::new(
                     reflect_type_pointer(schema, &stringify!($type).replace("<'a, T>", ""), true),
                     vec![T::reflect_input_type(schema)],
@@ -395,7 +395,7 @@ macro_rules! impl_reflect_pointer_with_lifetime {
             }
         }
         impl<'a, T: Output> Output for $type {
-            fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+            fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
                 crate::TypeReference::new(
                     reflect_type_pointer(schema, &stringify!($type).replace("<'a, T>", ""), true),
                     vec![T::reflect_output_type(schema)],
@@ -411,7 +411,7 @@ impl_reflect_pointer_with_lifetime!(std::sync::RwLockReadGuard<'a, T>);
 impl_reflect_pointer_with_lifetime!(std::sync::RwLockWriteGuard<'a, T>);
 
 impl<T: Input> Input for *const T {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_pointer(schema, "*const", false),
             vec![T::reflect_input_type(schema)],
@@ -419,7 +419,7 @@ impl<T: Input> Input for *const T {
     }
 }
 impl<T: Output> Output for *const T {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_pointer(schema, "*const", false),
             vec![T::reflect_output_type(schema)],
@@ -427,7 +427,7 @@ impl<T: Output> Output for *const T {
     }
 }
 impl<T: Input> Input for *mut T {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_pointer(schema, "*mut", false),
             vec![T::reflect_input_type(schema)],
@@ -435,7 +435,7 @@ impl<T: Input> Input for *mut T {
     }
 }
 impl<T: Output> Output for *mut T {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_pointer(schema, "*mut", false),
             vec![T::reflect_output_type(schema)],
@@ -443,7 +443,7 @@ impl<T: Output> Output for *mut T {
     }
 }
 impl<'a, T: Input + Clone> Input for std::borrow::Cow<'a, T> {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_pointer(schema, "std::borrow::Cow", true),
             vec![T::reflect_input_type(schema)],
@@ -451,7 +451,7 @@ impl<'a, T: Input + Clone> Input for std::borrow::Cow<'a, T> {
     }
 }
 impl<'a, T: Output + Clone> Output for std::borrow::Cow<'a, T> {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_pointer(schema, "std::borrow::Cow", true),
             vec![T::reflect_output_type(schema)],
@@ -459,7 +459,7 @@ impl<'a, T: Output + Clone> Output for std::borrow::Cow<'a, T> {
     }
 }
 
-fn reflect_type_phantom_data(schema: &mut crate::Schema) -> String {
+fn reflect_type_phantom_data(schema: &mut crate::Typespace) -> String {
     let type_name = "std::marker::PhantomData";
     if schema.reserve_type(&type_name) {
         let type_def = crate::Primitive::new(
@@ -473,7 +473,7 @@ fn reflect_type_phantom_data(schema: &mut crate::Schema) -> String {
     type_name.into()
 }
 impl<T: Input> Input for std::marker::PhantomData<T> {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_phantom_data(schema),
             vec![T::reflect_input_type(schema)],
@@ -481,7 +481,7 @@ impl<T: Input> Input for std::marker::PhantomData<T> {
     }
 }
 impl<T: Output> Output for std::marker::PhantomData<T> {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflect_type_phantom_data(schema),
             vec![T::reflect_output_type(schema)],
@@ -490,26 +490,26 @@ impl<T: Output> Output for std::marker::PhantomData<T> {
 }
 
 impl Input for std::convert::Infallible {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         // schema builder handles Infallible in a special way
         crate::infallible::Infallible::reflect_input_type(schema)
     }
 }
 impl Output for std::convert::Infallible {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         // schema builder handles Infallible in a special way
         crate::infallible::Infallible::reflect_output_type(schema)
     }
 }
 
 impl Input for () {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         reflect_type_simple(schema, "()", "Unit type", None)
     }
 }
 
 impl Output for () {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         reflect_type_simple(schema, "()", "Unit type", None)
     }
 }

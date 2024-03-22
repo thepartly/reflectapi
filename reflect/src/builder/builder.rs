@@ -1,10 +1,10 @@
-use reflect_schema::EndpointSchema;
+use reflect_schema::Schema;
 
 pub struct Builder<S>
 where
     S: Send + 'static,
 {
-    schema: crate::EndpointSchema,
+    schema: crate::Schema,
     handlers: Vec<crate::Handler<S>>,
 }
 
@@ -14,7 +14,7 @@ where
 {
     pub fn new() -> Self {
         Self {
-            schema: crate::EndpointSchema::new(String::new(), String::new()),
+            schema: crate::Schema::new(String::new(), String::new()),
             handlers: Vec::new(),
         }
     }
@@ -58,8 +58,8 @@ where
     pub fn build(
         mut self,
         renaming: Vec<(&str, &str)>,
-        validation: Vec<fn(&EndpointSchema) -> Vec<crate::ValidationError>>,
-    ) -> Result<(crate::EndpointSchema, Vec<crate::Handler<S>>), Vec<crate::ValidationError>> {
+        validation: Vec<fn(&Schema) -> Vec<crate::ValidationError>>,
+    ) -> Result<(crate::Schema, Vec<crate::Handler<S>>), Vec<crate::ValidationError>> {
         for (from, to) in renaming {
             self.schema.rename_type(from, to);
         }

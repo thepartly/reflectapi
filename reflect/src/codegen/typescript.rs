@@ -199,7 +199,7 @@ struct PrimitiveTemplate {
     type_: String,
 }
 
-pub fn generate(mut schema: crate::EndpointSchema) -> anyhow::Result<String> {
+pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     let file_template = FileTemplate {
         name: schema.name.clone(),
         description: schema.description.clone(),
@@ -240,7 +240,7 @@ pub fn generate(mut schema: crate::EndpointSchema) -> anyhow::Result<String> {
 
 fn render_type(
     type_def: &crate::Type,
-    schema: &crate::EndpointSchema,
+    schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> Result<String, anyhow::Error> {
     let type_name = type_to_ts_name(&type_def);
@@ -317,7 +317,7 @@ fn render_type(
 
 fn type_ref_to_ts_ref(
     type_ref: &crate::TypeReference,
-    schema: &crate::EndpointSchema,
+    schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> String {
     if let Some(resolved_type) = resolve_type_ref(type_ref, schema, implemented_types) {
@@ -336,7 +336,7 @@ fn type_ref_to_ts_ref(
 
 fn type_ref_params_to_ts_ref(
     type_params: &Vec<crate::TypeReference>,
-    schema: &crate::EndpointSchema,
+    schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> String {
     let p = type_params
@@ -501,7 +501,7 @@ fn implemented_types() -> HashMap<String, String> {
 
 fn resolve_type_ref(
     type_ref: &crate::TypeReference,
-    schema: &crate::EndpointSchema,
+    schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> Option<String> {
     let Some(mut implementation) = implemented_types.get(type_ref.name.as_str()).cloned() else {

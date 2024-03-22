@@ -3,7 +3,7 @@ mod internal;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct EndpointSchema {
+pub struct Schema {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
@@ -11,21 +11,21 @@ pub struct EndpointSchema {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub functions: Vec<Function>,
 
-    #[serde(skip_serializing_if = "Schema::is_empty", default)]
-    pub input_types: Schema,
+    #[serde(skip_serializing_if = "Typespace::is_empty", default)]
+    pub input_types: Typespace,
 
-    #[serde(skip_serializing_if = "Schema::is_empty", default)]
-    pub output_types: Schema,
+    #[serde(skip_serializing_if = "Typespace::is_empty", default)]
+    pub output_types: Typespace,
 }
 
-impl EndpointSchema {
+impl Schema {
     pub fn new(name: String, description: String) -> Self {
-        EndpointSchema {
+        Schema {
             name,
             description: description,
             functions: Vec::new(),
-            input_types: Schema::new(),
-            output_types: Schema::new(),
+            input_types: Typespace::new(),
+            output_types: Typespace::new(),
         }
     }
 
@@ -37,11 +37,11 @@ impl EndpointSchema {
         self.functions.as_ref()
     }
 
-    pub fn input_types(&self) -> &Schema {
+    pub fn input_types(&self) -> &Typespace {
         &self.input_types
     }
 
-    pub fn output_types(&self) -> &Schema {
+    pub fn output_types(&self) -> &Typespace {
         &self.output_types
     }
 
@@ -123,7 +123,7 @@ impl EndpointSchema {
 }
 
 #[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Schema {
+pub struct Typespace {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub types: Vec<Type>,
 
@@ -131,9 +131,9 @@ pub struct Schema {
     types_map: std::cell::RefCell<HashMap<String, usize>>,
 }
 
-impl Schema {
+impl Typespace {
     pub fn new() -> Self {
-        Schema {
+        Typespace {
             types: Vec::new(),
             types_map: std::cell::RefCell::new(HashMap::new()),
         }
@@ -337,7 +337,7 @@ impl TypeReference {
         self.parameters.iter()
     }
 
-    pub fn fallback_recursively(&mut self, schema: &Schema) {
+    pub fn fallback_recursively(&mut self, schema: &Typespace) {
         loop {
             let Some(type_def) = schema.get_type(self.name()) else {
                 return;
@@ -348,14 +348,14 @@ impl TypeReference {
         }
     }
 
-    pub fn fallback_once(&mut self, schema: &Schema) -> bool {
+    pub fn fallback_once(&mut self, schema: &Typespace) -> bool {
         let Some(type_def) = schema.get_type(self.name()) else {
             return false;
         };
         type_def.fallback_internal(self)
     }
 
-    pub fn fallback_until<F>(&mut self, schema: &EndpointSchema, cond: F)
+    pub fn fallback_until<F>(&mut self, schema: &Schema, cond: F)
     where
         F: Fn(&TypeReference) -> bool,
     {
@@ -514,7 +514,7 @@ impl Type {
     pub fn __internal_rebind_generic_parameters(
         &mut self,
         unresolved_to_resolved_map: &std::collections::HashMap<TypeReference, TypeReference>,
-        schema: &Schema,
+        schema: &Typespace,
     ) {
         internal::replace_type_references_for_type(self, unresolved_to_resolved_map, schema)
     }
@@ -723,7 +723,7 @@ pub struct Field {
     #[serde(skip, default)]
     pub transform_callback: String,
     #[serde(skip, default)]
-    pub transform_callback_fn: Option<fn(&mut TypeReference, &Schema) -> ()>,
+    pub transform_callback_fn: Option<fn(&mut TypeReference, &Typespace) -> ()>,
 }
 
 impl Field {

@@ -95,7 +95,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
     TokenStream::from(quote::quote! {
         #[allow(unused_doc_comments)]
         impl #type_generics #trait_ident for #type_ident #type_genercis_idents_code #type_generics_where {
-            fn #fn_reflect_type_ident(schema: &mut reflect::Schema) -> reflect::TypeReference {
+            fn #fn_reflect_type_ident(schema: &mut reflect::Typespace) -> reflect::TypeReference {
                 let resolved_type_name = format!("{}::{}", std::module_path!(), #reflected_type_name);
                 let mut parameters = Vec::new();
                 #generics_type_references_resolution_code;
@@ -117,8 +117,8 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
         #[allow(unused_doc_comments)]
         impl #type_generics #type_ident #type_genercis_idents_code #type_generics_where {
-            fn #fn_reflect_ident() -> (reflect::TypeReference, reflect::Schema) {
-                let mut schema = reflect::Schema::new();
+            fn #fn_reflect_ident() -> (reflect::TypeReference, reflect::Typespace) {
+                let mut schema = reflect::Typespace::new();
                 let resolved_type_ref = <Self as #trait_ident>::#fn_reflect_type_ident(&mut schema);
                 schema.sort_types();
                 (resolved_type_ref, schema)

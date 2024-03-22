@@ -19,7 +19,7 @@ impl std::fmt::Display for Infallible {
 }
 
 impl crate::Input for Infallible {
-    fn reflect_input_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::reflect_type_empty(
             schema,
             "reflect::Infallible",
@@ -29,7 +29,7 @@ impl crate::Input for Infallible {
 }
 
 impl crate::Output for Infallible {
-    fn reflect_output_type(schema: &mut crate::Schema) -> crate::TypeReference {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::reflect_type_empty(
             schema,
             "reflect::Infallible",

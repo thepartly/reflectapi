@@ -6,7 +6,7 @@ where
     unimplemented!() // should be never called
 }
 
-pub fn into_input_schema<I>() -> reflect::EndpointSchema
+pub fn into_input_schema<I>() -> reflect::Schema
 where
     I: reflect::Input + serde::de::DeserializeOwned + Send + 'static,
 {
@@ -19,7 +19,7 @@ where
     eps.0
 }
 
-pub fn into_output_schema<O>() -> reflect::EndpointSchema
+pub fn into_output_schema<O>() -> reflect::Schema
 where
     O: reflect::Output + serde::ser::Serialize + Send + 'static,
 {
@@ -32,7 +32,7 @@ where
     eps.0
 }
 
-pub fn into_schema<T>() -> reflect::EndpointSchema
+pub fn into_schema<T>() -> reflect::Schema
 where
     T: reflect::Input
         + serde::de::DeserializeOwned
