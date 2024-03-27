@@ -34,11 +34,13 @@ export class Result<T, E> {
         if ('ok' in this.value) {
             return this.value.ok;
         }
+        return undefined;
     }
     public err(): E | undefined {
         if ('err' in this.value) {
             return this.value.err;
         }
+        return undefined;
     }
 
     public is_ok(): boolean {
@@ -67,7 +69,7 @@ export class Result<T, E> {
         if ('ok' in this.value) {
             return this.value.ok;
         }
-        throw new Error('called `unwrap_ok` on an `err` value: ' + this.value.toString());
+        throw new Error('called `unwrap_ok` on an `err` value: ' + this.value.err?.toString());
     }
     public unwrap_err(): E {
         if ('err' in this.value) {
@@ -89,17 +91,17 @@ export class Result<T, E> {
         return default_;
     }
 
-    public unwrap_ok_or_else(f: () => T): T {
+    public unwrap_ok_or_else(f: (e: E) => T): T {
         if ('ok' in this.value) {
             return this.value.ok;
         }
-        return f();
+        return f(this.value.err);
     }
-    public unwrap_err_or_else(f: () => E): E {
+    public unwrap_err_or_else(f: (v: T) => E): E {
         if ('err' in this.value) {
             return this.value.err;
         }
-        return f();
+        return f(this.value.ok);
     }
 
     public toString(): string {
@@ -112,58 +114,60 @@ export class Result<T, E> {
 }
 
 export class Err<E> {
-    constructor(private value: { server_err: E } | { network_err: any }) { }
+    constructor(private value: { application_err: E } | { other_err: any }) { }
 
     public err(): E | undefined {
-        if ('server_err' in this.value) {
-            return this.value.server_err;
+        if ('application_err' in this.value) {
+            return this.value.application_err;
         }
+        return undefined;
     }
-    public network_err(): any | undefined {
-        if ('network_err' in this.value) {
-            return this.value.network_err;
+    public other_err(): any | undefined {
+        if ('other_err' in this.value) {
+            return this.value.other_err;
         }
+        return undefined;
     }
 
     public is_err(): boolean {
-        return 'server_err' in this.value;
+        return 'application_err' in this.value;
     }
-    public is_network_err(): boolean {
-        return 'network_err' in this.value;
+    public is_other_err(): boolean {
+        return 'other_err' in this.value;
     }
 
     public map<U>(f: (r: E) => U): Err<U> {
-        if ('server_err' in this.value) {
-            return new Err({ server_err: f(this.value.server_err) });
+        if ('application_err' in this.value) {
+            return new Err({ application_err: f(this.value.application_err) });
         } else {
-            return new Err({ network_err: this.value.network_err });
+            return new Err({ other_err: this.value.other_err });
         }
     }
     public unwrap(): E {
-        if ('server_err' in this.value) {
-            return this.value.server_err;
+        if ('application_err' in this.value) {
+            return this.value.application_err;
         } else {
-            throw this.value;
+            throw this.value.other_err;
         }
     }
     public unwrap_or_default(default_: E): E {
-        if ('server_err' in this.value) {
-            return this.value.server_err;
+        if ('application_err' in this.value) {
+            return this.value.application_err;
         }
         return default_;
     }
     public unwrap_or_else(f: () => E): E {
-        if ('server_err' in this.value) {
-            return this.value.server_err;
+        if ('application_err' in this.value) {
+            return this.value.application_err;
         }
         return f();
     }
 
     public toString(): string {
-        if ('server_err' in this.value) {
-            return `Err { server_err: ${this.value.server_err} }`;
+        if ('application_err' in this.value) {
+            return `Application Error: ${this.value.application_err}`;
         } else {
-            return `Err { network_err: ${this.value.network_err} }`;
+            return `Other Error: ${this.value.other_err}`;
         }
     }
 }
@@ -217,25 +221,43 @@ export function __client(base: string | Client): __definition.Interface {
     }, }.impl
 }
 
-export async function __request<I, H, O, E>(client: Client, path: string, input: I | undefined, headers: H | undefined): AsyncResult<O, E> {
+export function __request<I, H, O, E>(client: Client, path: string, input: I | undefined, headers: H | undefined): AsyncResult<O, E> {
     let hdrs: Record<string, string> = {
         'content-type': 'application/json',
     };
     if (headers) {
-        let hdrs: Record<string, string> = {};
         for (const [k, v] of Object.entries(headers)) {
             hdrs[k?.toString()] = v?.toString() || '';
         }
     }
-    try {
-        let [status, response_body] = await client.request(path, JSON.stringify(input), hdrs);
-        if (status < 200 || status >= 300) {
-            return new Result({ err: new Err({ server_err: JSON.parse(response_body) as E }) });
+    return client.request(path, JSON.stringify(input), hdrs)
+        .then(([status, response_body]) => {
+            if (status < 200 || status >= 300) {
+                let parsed_response_body;
+                try {
+                    parsed_response_body = JSON.parse(response_body)
+                } catch (e) {
+                    return new Result<O, Err<E>>({ err: new Err({ other_err: response_body }) });
+                }
+                return new Result<O, Err<E>>({ err: new Err({ application_err: parsed_response_body as E }) });
+            }
+
+            let parsed_response_body;
+            try {
+                 parsed_response_body = JSON.parse(response_body)
+            } catch (e) {
+                return new Result<O, Err<E>>({
+                    err: new Err({
+                        other_err:
+                            'internal error: failure to parse response body as json on successful status code: ' + response_body
+                    })
+                });
+            }
+            return new Result<O, Err<E>>({ ok: JSON.parse(response_body) as O });
         }
-        return new Result({ ok: JSON.parse(response_body) as O });
-    } catch (e) {
-        return new Result({ err: new Err({ network_err: e }) });
-    }
+        ).catch((e) => {
+            return new Result<O, Err<E>>({ err: new Err({ other_err: e }) });
+        });
 }
 
 class ClientInstance {
@@ -246,8 +268,10 @@ class ClientInstance {
             method: 'POST',
             headers: headers,
             body: body,
-        }).then(async (response) => {
-            return [response.status, await response.text()];
+        }).then((response) => {
+            return response.text().then((text) => {
+                return [response.status, text];
+            });
         });
     }
 }
