@@ -90,17 +90,23 @@ mod model {
     #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
     #[serde(rename_all = "snake_case", untagged)]
     pub enum Kind {
+        /// A dog
         Dog,
+        /// A cat
         Cat,
     }
 
     #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
     pub enum Behavior {
         Calm,
-        Aggressive(/** aggressiveness level */ f64),
+        Aggressive(/** aggressiveness level */ f64, /** some notes */ String),
         Other {
             /// Custom provided description of a behavior
             description: String,
+            /// Additional notes
+            /// Up to a user to put free text here
+            #[serde(default, skip_serializing_if = "String::is_empty")]
+            notes: String,
         },
     }
 }

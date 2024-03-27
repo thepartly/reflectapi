@@ -108,6 +108,14 @@
                   "name": "f64"
                 },
                 "required": true
+              },
+              {
+                "name": "1",
+                "description": " some notes ",
+                "type": {
+                  "name": "std::string::String"
+                },
+                "required": true
               }
             ]
           },
@@ -121,6 +129,13 @@
                   "name": "std::string::String"
                 },
                 "required": true
+              },
+              {
+                "name": "notes",
+                "description": " Additional notes\n Up to a user to put free text here",
+                "type": {
+                  "name": "std::string::String"
+                }
               }
             ]
           }
@@ -132,10 +147,12 @@
         "representation": "None",
         "variants": [
           {
-            "name": "dog"
+            "name": "dog",
+            "description": " A dog"
           },
           {
-            "name": "cat"
+            "name": "cat",
+            "description": " A cat"
           }
         ]
       },
@@ -418,6 +435,14 @@
                   "name": "f64"
                 },
                 "required": true
+              },
+              {
+                "name": "1",
+                "description": " some notes ",
+                "type": {
+                  "name": "std::string::String"
+                },
+                "required": true
               }
             ]
           },
@@ -431,6 +456,13 @@
                   "name": "std::string::String"
                 },
                 "required": true
+              },
+              {
+                "name": "notes",
+                "description": " Additional notes\n Up to a user to put free text here",
+                "type": {
+                  "name": "std::string::String"
+                }
               }
             ]
           }
@@ -442,10 +474,12 @@
         "representation": "None",
         "variants": [
           {
-            "name": "dog"
+            "name": "dog",
+            "description": " A dog"
           },
           {
-            "name": "cat"
+            "name": "cat",
+            "description": " A cat"
           }
         ]
       },
