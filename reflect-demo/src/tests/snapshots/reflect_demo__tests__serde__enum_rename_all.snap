@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestEnumRenameAll>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::serde::TestEnumRenameAll"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::serde::TestEnumRenameAll"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

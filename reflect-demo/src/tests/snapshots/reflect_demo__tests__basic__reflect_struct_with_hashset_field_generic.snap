@@ -4,6 +4,30 @@ expression: "super::into_schema::<TestStructWithHashSetFieldGeneric<String>>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithHashSetFieldGeneric",
+        "parameters": [
+          {
+            "name": "std::string::String"
+          }
+        ]
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithHashSetFieldGeneric",
+        "parameters": [
+          {
+            "name": "std::string::String"
+          }
+        ]
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructUnitType>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructUnitType"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructUnitType"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

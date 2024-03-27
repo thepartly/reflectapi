@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructOneBasicFieldStringReflectBothDiffer
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructOneBasicFieldStringReflectBothDifferently"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructOneBasicFieldStringReflectBothDifferently"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

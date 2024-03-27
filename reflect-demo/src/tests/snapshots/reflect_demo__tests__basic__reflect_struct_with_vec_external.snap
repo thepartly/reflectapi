@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructWithVecExternal>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithVecExternal"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithVecExternal"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

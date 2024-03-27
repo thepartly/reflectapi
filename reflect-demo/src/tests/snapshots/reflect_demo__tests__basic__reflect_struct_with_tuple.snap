@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructWithTuple>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithTuple"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithTuple"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

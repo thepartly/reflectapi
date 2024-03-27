@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructWithTransformFallbackNested>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithTransformFallbackNested"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithTransformFallbackNested"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

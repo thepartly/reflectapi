@@ -41,11 +41,10 @@ where
         + Send
         + 'static,
 {
-    let mut eps = reflect::Builder::new()
+    let eps = reflect::Builder::new()
         .route(handler::<T, T>, |b| b)
         .build(Default::default(), Default::default())
         .unwrap();
-    eps.0.functions.clear(); // remove the function signature from snapshots
     eps.0
 }
 

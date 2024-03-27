@@ -36,14 +36,12 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
             .collect::<Vec<_>>(),
     );
 
-    let generated_impl_client = client_impl_from_function_group(8, &function_groups).render();
+    let mut generated_code = vec![];
 
-    let file_template = templates::File {
+    let file_template = templates::FileHeader {
         name: schema.name.clone(),
         description: schema.description.clone(),
-        client_impl: generated_impl_client,
     };
-    let mut generated_code = vec![];
     generated_code.push(
         file_template
             .render()
@@ -51,7 +49,7 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     );
 
     let module = modules_from_function_group(
-        "__client".into(),
+        "__definition".into(),
         &function_groups,
         &schema,
         &implemented_types,
@@ -59,8 +57,37 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     );
     generated_code.push(module.render().context("Failed to render template")?);
 
+    let file_template = templates::FileMiddle {};
+    generated_code.push(
+        file_template
+            .render()
+            .context("Failed to render template")?,
+    );
+
     let module = modules_from_rendered_types(schema.consolidate_types(), rendered_types);
-    generated_code.push(module.render().context("Failed to render template")?);
+    generated_code.push(
+        module
+            .render()
+            .context("Failed to render template")?
+            .trim()
+            .to_string(),
+    );
+
+    let mut rendered_functions = Vec::new();
+    for function in schema.functions.iter() {
+        rendered_functions.push(render_function(function, &schema, &implemented_types)?);
+    }
+
+    let generated_impl_client = client_impl_from_function_group(8, &function_groups).render();
+    let file_template = templates::FileFootter {
+        client_impl: generated_impl_client,
+        implemented_functions: rendered_functions.join("\n"),
+    };
+    generated_code.push(
+        file_template
+            .render()
+            .context("Failed to render template")?,
+    );
 
     let generated_code = generated_code.join("\n");
     Ok(generated_code)
@@ -80,9 +107,24 @@ mod templates {
 // Schema name: {{ name }}
 // {{ description }}
 
-export function client(base_url: string): __client.Interface {
-    return __client_impl(base_url)
+export function client(base: string | Client): __definition.Interface {
+    return __implementation.__client(base)
+}",
+        ext = "txt"
+    )]
+    pub(super) struct FileHeader {
+        pub name: String,
+        pub description: String,
+    }
+
+    #[derive(Template)]
+    #[template(
+        source = "
+export interface Client {
+    request(path: string, body: string, headers: Record<string, string>): Promise<[number, string]>;
 }
+
+export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
 
 export class Result<T, E> {
     constructor(private value: { ok: T } | { err: E }) {}
@@ -224,29 +266,78 @@ export class Err<E> {
         }
     }
 }
-
-function __client_impl(base_url: string): __client.Interface {
-    return { impl: {{ client_impl }} }.impl
-}
-
 ",
         ext = "txt"
     )]
-    pub(super) struct File {
-        pub name: String,
-        pub description: String,
+    pub(super) struct FileMiddle {}
+
+    #[derive(Template)]
+    #[template(
+        source = "
+namespace __implementation {
+
+export function __client(base: string | Client): __definition.Interface {
+    const client_instance = typeof base === 'string' ? new ClientInstance(base) : base;
+    return { impl: {{ client_impl }} }.impl
+}
+
+export async function __request<I, H, O, E>(client: Client, path: string, input: I | undefined, headers: H | undefined): AsyncResult<O, E> {
+    let hdrs: Record<string, string> = {
+        'content-type': 'application/json',
+    };
+    if (headers) {
+        let hdrs: Record<string, string> = {};
+        for (const [k, v] of Object.entries(headers)) {
+            hdrs[k?.toString()] = v?.toString() || '';
+        }
+    }
+    try {
+        let [status, response_body] = await client.request(path, JSON.stringify(input), hdrs);
+        if (status < 200 || status >= 300) {
+            return new Result({ err: new Err({ server_err: JSON.parse(response_body) as E }) });
+        }
+        return new Result({ ok: JSON.parse(response_body) as O });
+    } catch (e) {
+        return new Result({ err: new Err({ network_err: e }) });
+    }
+}
+
+class ClientInstance {
+    constructor(private base: string) {}
+
+    public request(path: string, body: string, headers: Record<string, string>): Promise<[number, string]> {
+        return fetch(`${this.base}/${path}`, {
+            method: 'POST',
+            headers: headers,
+            body: body,
+        }).then(async (response) => {
+            return [response.status, await response.text()];
+        });
+    }
+}
+
+{{ implemented_functions }}
+
+}
+",
+        ext = "txt"
+    )]
+    pub(super) struct FileFootter {
         pub client_impl: String,
+        pub implemented_functions: String,
     }
 
     #[derive(Template)]
     #[template(
-        source = "{{ self.render_start() }}
-{% for type in types.iter() %}
+        source = "
+{{ self.render_start() }}
+{%- for type in types.iter() %}
 {{ type }}
-{% endfor -%}
-{% for module in self.submodules_sorted() %}
+{%- endfor %}
+{%- for module in self.submodules_sorted() %}
 {{ module }}
-{% endfor -%}
+{%- endfor %}
+
 {{ self.render_end() }}",
         ext = "txt"
     )]
@@ -286,10 +377,11 @@ function __client_impl(base_url: string): __client.Interface {
 
     #[derive(Template)]
     #[template(
-        source = "{{ description }}export {{ self.render_keyword() }} {{ name }} {{ self.render_brackets().0 }}
-    {% for field in fields.iter() -%}
+        source = "
+{{ description }}export {{ self.render_keyword() }} {{ name }} {{ self.render_brackets().0 }}
+    {%- for field in fields.iter() %}
     {{ field }},
-    {% endfor -%}
+    {%- endfor %}
 {{ self.render_brackets().1 }}",
         ext = "txt"
     )]
@@ -313,18 +405,18 @@ function __client_impl(base_url: string): __client.Interface {
             if self.is_tuple {
                 ("= [", "]\n")
             } else {
-                ("{", "}\n")
+                ("{", "}")
             }
         }
     }
 
     #[derive(Template)]
     #[template(
-        source = "{{ description }}export type {{ name }} =
-    {% for variant in variants.iter() -%}
+        source = "
+{{ description }}export type {{ name }} =
+    {%- for variant in variants.iter() %}
     {{ variant }}
-    {% endfor %};
-",
+    {%- endfor %};",
         ext = "txt"
     )]
     pub(super) struct Enum {
@@ -421,14 +513,32 @@ function __client_impl(base_url: string): __client.Interface {
 
     #[derive(Template)]
     #[template(
-        source = "{{ description }}export type {{ name }} = {{ type_ }};
-",
+        source = "
+{{ description }}export type {{ name }} = {{ type_ }};",
         ext = "txt"
     )]
     pub(super) struct Alias {
         pub name: String,
         pub description: String,
         pub type_: String,
+    }
+
+    #[derive(Template)]
+    #[template(
+        source = "function {{ name }}(client: Client) {
+    return (input: {{ input_type }}, headers: {{ input_headers }}) => __request<
+        {{ input_type }}, {{ input_headers }}, {{ output_type }}, {{ error_type }}
+    >(client, '{{ path }}', input, headers);
+}",
+        ext = "txt"
+    )]
+    pub(super) struct FunctionImplementationTemplate {
+        pub name: String,
+        pub path: String,
+        pub input_type: String,
+        pub input_headers: String,
+        pub output_type: String,
+        pub error_type: String,
     }
 
     pub(super) struct ClientImplementationGroup {
@@ -445,7 +555,12 @@ function __client_impl(base_url: string): __client.Interface {
             let mut result = vec![];
             result.push(format!("{{"));
             for (name, function) in self.functions.iter() {
-                result.push(format!("{}{}: {},", self.offset(), name, function));
+                result.push(format!(
+                    "{}{}: {}(client_instance),",
+                    self.offset(),
+                    name,
+                    function
+                ));
             }
             for (name, group) in self.subgroups.iter() {
                 result.push(format!("{}{}: {}", self.offset(), name, group.render()));
@@ -505,6 +620,34 @@ fn client_impl_from_function_group(
     }
 }
 
+fn function_signature(
+    function: &Function,
+    schema: &crate::Schema,
+    implemented_types: &HashMap<String, String>,
+) -> (String, String, String, String) {
+    let input_type = if let Some(input_type) = function.input_type.as_ref() {
+        type_ref_to_ts_ref(input_type, schema, implemented_types)
+    } else {
+        "{}".into()
+    };
+    let input_headers = if let Some(input_headers) = function.input_headers.as_ref() {
+        type_ref_to_ts_ref(input_headers, schema, implemented_types)
+    } else {
+        "{}".into()
+    };
+    let output_type = if let Some(output_type) = function.output_type.as_ref() {
+        type_ref_to_ts_ref(output_type, schema, implemented_types)
+    } else {
+        "{}".into()
+    };
+    let error_type = if let Some(error_type) = function.error_type.as_ref() {
+        type_ref_to_ts_ref(error_type, schema, implemented_types)
+    } else {
+        "{}".into()
+    };
+    (input_type, input_headers, output_type, error_type)
+}
+
 fn modules_from_function_group(
     name: String,
     group: &FunctionGroup,
@@ -526,37 +669,14 @@ fn modules_from_function_group(
 
     for function_name in group.functions.iter() {
         let function = functions_by_name.get(function_name).unwrap();
-        let mut parameters = Vec::new();
-        if let Some(input_type) = function.input_type.as_ref() {
-            parameters.push(format!(
-                "input: {}",
-                type_ref_to_ts_ref(input_type, schema, implemented_types)
-            ));
-        }
-        if let Some(header_type) = function.input_headers.as_ref() {
-            parameters.push(format!(
-                "headers: {}",
-                type_ref_to_ts_ref(header_type, schema, implemented_types)
-            ));
-        }
-        let return_type = if let Some(output_type) = function.output_type.as_ref() {
-            type_ref_to_ts_ref(output_type, schema, implemented_types)
-        } else {
-            "void".into()
-        };
-        let error_type = if let Some(error_type) = function.error_type.as_ref() {
-            type_ref_to_ts_ref(error_type, schema, implemented_types)
-        } else {
-            "void".into()
-        };
+        let (input_type, input_headers, output_type, error_type) =
+            function_signature(function, schema, implemented_types);
         type_template.fields.push(templates::Field {
             name: function_name.split('.').last().unwrap().replace("-", "_"),
             description: doc_to_ts_comments(function.description.as_str(), 4),
             type_: format!(
-                "({}) => Promise<Result<{}, Err<{}>>>",
-                parameters.join(", "),
-                return_type,
-                error_type
+                "(input: {}, headers: {})\n        => AsyncResult<{}, {}>",
+                input_type, input_headers, output_type, error_type
             ),
         });
     }
@@ -616,6 +736,26 @@ fn modules_from_rendered_types(
     }
 
     root_module
+}
+
+fn render_function(
+    function: &Function,
+    schema: &crate::Schema,
+    implemented_types: &HashMap<String, String>,
+) -> Result<String, anyhow::Error> {
+    let (input_type, input_headers, output_type, error_type) =
+        function_signature(function, schema, implemented_types);
+    let function_template = templates::FunctionImplementationTemplate {
+        name: function.name.replace("-", "_").replace('.', "__"),
+        path: function.name.clone(),
+        input_type,
+        input_headers,
+        output_type,
+        error_type,
+    };
+    function_template
+        .render()
+        .context("Failed to render template")
 }
 
 fn render_type(

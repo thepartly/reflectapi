@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestEnumWithVariantSkip>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::serde::TestEnumWithVariantSkip"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::serde::TestEnumWithVariantSkip"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructWithFixedSizeArray>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithFixedSizeArray"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithFixedSizeArray"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

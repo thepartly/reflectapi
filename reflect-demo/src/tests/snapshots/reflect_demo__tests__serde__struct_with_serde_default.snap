@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructWithSerdeDefault>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::serde::TestStructWithSerdeDefault"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::serde::TestStructWithSerdeDefault"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

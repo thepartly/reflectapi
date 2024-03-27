@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructWithTransformOutput>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithTransformOutput"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithTransformOutput"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

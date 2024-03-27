@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestEnumRenameVariantField>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::serde::TestEnumRenameVariantField"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::serde::TestEnumRenameVariantField"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

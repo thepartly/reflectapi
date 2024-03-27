@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructNewtype>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructNewtype"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructNewtype"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

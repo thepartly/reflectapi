@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructWithSerdeTransparent>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::serde::TestStructWithSerdeTransparent"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructRenameAll>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::serde::TestStructRenameAll"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::serde::TestStructRenameAll"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

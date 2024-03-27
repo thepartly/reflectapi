@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestEnumWithVariantUntagged>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::serde::TestEnumWithVariantUntagged"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::serde::TestEnumWithVariantUntagged"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

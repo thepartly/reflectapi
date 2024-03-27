@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructWithVecTwo>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithVecTwo"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithVecTwo"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

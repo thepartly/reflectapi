@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructWithArc>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithArc"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithArc"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

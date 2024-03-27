@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructWithFlatten>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::serde::TestStructWithFlatten"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::serde::TestStructWithFlatten"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {

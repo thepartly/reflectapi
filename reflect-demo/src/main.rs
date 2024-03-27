@@ -30,7 +30,7 @@ async fn main() {
         })
         .route(pets_get_first, |b| {
             b.name("pets.get-first".into())
-                .description("Remove an existing pet".into())
+                .description("Fetch first pet, if any exists".into())
         });
     let (schema, handlers) = match builder.build(vec![("reflect_demo::", "myapi::")], Vec::new()) {
         Ok((schema, handlers)) => (schema, handlers),

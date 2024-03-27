@@ -4,6 +4,20 @@ expression: "super::into_schema::<TestStructWithNested>()"
 ---
 {
   "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithNested"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithNested"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
   "input_types": {
     "types": [
       {
