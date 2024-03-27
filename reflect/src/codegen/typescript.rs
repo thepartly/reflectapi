@@ -490,7 +490,12 @@ fn client_impl_from_function_group(
         functions: group
             .functions
             .iter()
-            .map(|f| (f.split('.').last().unwrap().into(), f.replace('.', "__")))
+            .map(|f| {
+                (
+                    f.split('.').last().unwrap().replace("-", "_"),
+                    f.replace('.', "__").replace("-", "_"),
+                )
+            })
             .collect(),
         subgroups: group
             .subgroups
@@ -545,7 +550,7 @@ fn modules_from_function_group(
             "void".into()
         };
         type_template.fields.push(templates::Field {
-            name: function_name.split('.').last().unwrap().into(),
+            name: function_name.split('.').last().unwrap().replace("-", "_"),
             description: doc_to_ts_comments(function.description.as_str(), 4),
             type_: format!(
                 "({}) => Promise<Result<{}, Err<{}>>>",

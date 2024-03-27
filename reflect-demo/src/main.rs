@@ -27,6 +27,10 @@ async fn main() {
         .route(pets_remove, |b| {
             b.name("pets.remove".into())
                 .description("Remove an existing pet".into())
+        })
+        .route(pets_get_first, |b| {
+            b.name("pets.get-first".into())
+                .description("Remove an existing pet".into())
         });
     let (schema, handlers) = match builder.build(vec![("reflect_demo::", "myapi::")], Vec::new()) {
         Ok((schema, handlers)) => (schema, handlers),
@@ -111,11 +115,9 @@ mod model {
     }
 }
 
-pub struct UnauthorizedError;
-
-fn authorize<E: From<UnauthorizedError>>(headers: proto::Headers) -> Result<(), E> {
+fn authorize<E: From<proto::UnauthorizedError>>(headers: proto::Headers) -> Result<(), E> {
     if headers.authorization.is_empty() {
-        return Err(E::from(UnauthorizedError));
+        return Err(E::from(proto::UnauthorizedError));
     }
     Ok(())
 }
@@ -219,7 +221,29 @@ async fn pets_remove(
     Ok(().into())
 }
 
+async fn pets_get_first(
+    state: std::sync::Arc<AppState>,
+    _: reflect::Empty,
+    headers: proto::Headers,
+) -> Result<Option<model::Pet>, proto::UnauthorizedError> {
+    authorize::<proto::UnauthorizedError>(headers)?;
+
+    let pets = state.pets.lock().unwrap();
+    let random_pet = pets.first().cloned();
+
+    Ok(random_pet)
+}
+
 mod proto {
+    #[derive(serde::Serialize, reflect::Output)]
+    pub struct UnauthorizedError;
+
+    impl reflect::StatusCode for UnauthorizedError {
+        fn status_code(&self) -> u16 {
+            axum::http::StatusCode::UNAUTHORIZED.as_u16()
+        }
+    }
+
     #[derive(serde::Deserialize, reflect::Input)]
     pub struct Headers {
         pub authorization: String,
@@ -258,8 +282,8 @@ mod proto {
         }
     }
 
-    impl From<super::UnauthorizedError> for PetsListError {
-        fn from(_: super::UnauthorizedError) -> Self {
+    impl From<UnauthorizedError> for PetsListError {
+        fn from(_: UnauthorizedError) -> Self {
             PetsListError::Unauthorized
         }
     }
@@ -286,8 +310,8 @@ mod proto {
         }
     }
 
-    impl From<super::UnauthorizedError> for PetsCreateError {
-        fn from(_: super::UnauthorizedError) -> Self {
+    impl From<UnauthorizedError> for PetsCreateError {
+        fn from(_: UnauthorizedError) -> Self {
             PetsCreateError::NotAuthorized
         }
     }
@@ -322,8 +346,8 @@ mod proto {
         }
     }
 
-    impl From<super::UnauthorizedError> for PetsUpdateError {
-        fn from(_: super::UnauthorizedError) -> Self {
+    impl From<UnauthorizedError> for PetsUpdateError {
+        fn from(_: UnauthorizedError) -> Self {
             PetsUpdateError::NotAuthorized
         }
     }
@@ -349,8 +373,8 @@ mod proto {
         }
     }
 
-    impl From<super::UnauthorizedError> for PetsRemoveError {
-        fn from(_: super::UnauthorizedError) -> Self {
+    impl From<UnauthorizedError> for PetsRemoveError {
+        fn from(_: UnauthorizedError) -> Self {
             PetsRemoveError::NotAuthorized
         }
     }

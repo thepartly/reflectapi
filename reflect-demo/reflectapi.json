@@ -82,6 +82,27 @@
       "serialization": [
         "json"
       ]
+    },
+    {
+      "name": "pets.get-first",
+      "description": "Remove an existing pet",
+      "input_headers": {
+        "name": "myapi::proto::Headers"
+      },
+      "output_type": {
+        "name": "std::option::Option",
+        "parameters": [
+          {
+            "name": "myapi::model::Pet"
+          }
+        ]
+      },
+      "error_type": {
+        "name": "myapi::proto::UnauthorizedError"
+      },
+      "serialization": [
+        "json"
+      ]
     }
   ],
   "input_types": {
@@ -415,6 +436,11 @@
     "types": [
       {
         "kind": "primitive",
+        "name": "()",
+        "description": "Unit type"
+      },
+      {
+        "kind": "primitive",
         "name": "f64",
         "description": "64-bit floating point number"
       },
@@ -624,6 +650,19 @@
             "name": "NotAuthorized"
           }
         ]
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::proto::UnauthorizedError",
+        "fields": [
+          {
+            "name": "0",
+            "type": {
+              "name": "()"
+            }
+          }
+        ],
+        "transparent": true
       },
       {
         "kind": "struct",

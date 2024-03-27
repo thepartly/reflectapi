@@ -151,14 +151,15 @@ export class Err<E> {
 
 function __client_impl(base_url: string): __client.Interface {
     return { impl: {
-        pets: {
-            list: pets__list,
-            create: pets__create,
-            update: pets__update,
-            remove: pets__remove,
-        },
         health: {
             check: health__check,
+        },
+        pets: {
+            create: pets__create,
+            list: pets__list,
+            get_first: pets__get_first,
+            update: pets__update,
+            remove: pets__remove,
         },
     }, }.impl
 }
@@ -192,6 +193,8 @@ export interface Interface {
     update: (input: myapi.proto.PetsUpdateRequest, headers: myapi.proto.Headers) => Promise<Result<void, Err<myapi.proto.PetsUpdateError>>>,
     /// Remove an existing pet
     remove: (input: myapi.proto.PetsRemoveRequest, headers: myapi.proto.Headers) => Promise<Result<void, Err<myapi.proto.PetsRemoveError>>>,
+    /// Remove an existing pet
+    get_first: (headers: myapi.proto.Headers) => Promise<Result<myapi.model.Pet | null, Err<myapi.proto.UnauthorizedError>>>,
     }
 
 }
@@ -314,6 +317,9 @@ export interface PetsUpdateRequest {
     /// behaviors of the pet, nullable in the model
     behaviors: Array<myapi.model.Behavior> | null | undefined,
     }
+
+
+export type UnauthorizedError = null;
 
 }
 }
