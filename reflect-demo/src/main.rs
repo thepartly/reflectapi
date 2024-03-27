@@ -92,7 +92,7 @@ mod model {
     }
 
     #[derive(Clone, serde::Serialize, serde::Deserialize, reflect::Input, reflect::Output)]
-    #[serde(rename_all = "snake_case", untagged)]
+    #[serde(rename_all = "snake_case")]
     pub enum Kind {
         /// A dog
         Dog,
@@ -132,10 +132,10 @@ async fn pets_list(
     let pets = state.pets.lock().unwrap();
     let cursor = request
         .cursor
-        .unwrap_or_default()
+        .unwrap_or("0".into())
         .parse()
         .map_err(|_| proto::PetsListError::InvalidCustor)?;
-    let limit = request.limit as usize;
+    let limit = request.limit.unwrap_or(u8::MAX) as usize;
     let result_items = pets
         .iter()
         .skip(cursor)
@@ -263,7 +263,9 @@ mod proto {
 
     #[derive(serde::Deserialize, reflect::Input)]
     pub struct PetsListRequest {
-        pub limit: u8,
+        #[serde(default)]
+        pub limit: Option<u8>,
+        #[serde(default)]
         pub cursor: Option<String>,
     }
 

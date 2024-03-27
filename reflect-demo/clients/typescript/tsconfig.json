@@ -1,0 +1,25 @@
+{
+	"compilerOptions": {
+		"module": "CommonJS",
+		"forceConsistentCasingInFileNames": true,
+		"strict": true,
+		"noImplicitOverride": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+
+		"baseUrl": ".",
+		"rootDir": ".",
+		"outDir": "build",
+		"sourceMap": true,
+		"declaration": true,
+		"declarationMap": true,
+		"types": ["node"],
+
+		"target": "es2015",
+		"lib": ["es2017"],
+
+		"moduleResolution": "node",
+	},
+	"include": ["*.ts"]
+}

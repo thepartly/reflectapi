@@ -1,9 +1,7 @@
-GET http://localhost:3000/example2
+POST http://localhost:3000/pets.create
 Content-Type:   application/json
+Authorization: password
 traceparent:    blah
 name: 1
 
-{
-    "inputData": "1",
-    "input_optional": "asdsa"
-}
+{"name":"Bobby","kind":"dog","age":1,"behaviors":[]}

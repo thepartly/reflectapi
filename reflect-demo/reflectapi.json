@@ -85,7 +85,7 @@
     },
     {
       "name": "pets.get-first",
-      "description": "Remove an existing pet",
+      "description": "Fetch first pet, if any exists",
       "input_headers": {
         "name": "myapi::proto::Headers"
       },
@@ -165,7 +165,6 @@
       {
         "kind": "enum",
         "name": "myapi::model::Kind",
-        "representation": "None",
         "variants": [
           {
             "name": "dog",
@@ -256,9 +255,13 @@
           {
             "name": "limit",
             "type": {
-              "name": "u8"
-            },
-            "required": true
+              "name": "std::option::Option",
+              "parameters": [
+                {
+                  "name": "u8"
+                }
+              ]
+            }
           },
           {
             "name": "cursor",
@@ -269,8 +272,7 @@
                   "name": "std::string::String"
                 }
               ]
-            },
-            "required": true
+            }
           }
         ]
       },
@@ -497,7 +499,6 @@
       {
         "kind": "enum",
         "name": "myapi::model::Kind",
-        "representation": "None",
         "variants": [
           {
             "name": "dog",

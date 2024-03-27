@@ -75,7 +75,7 @@ fn generate(
         crate::Language::Typescript => {
             let generated_code = reflect::codegen::typescript::generate(schema)?;
             let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
-            let output = output.join("index.ts");
+            let output = output.join("generated.ts");
             let mut file = std::fs::File::create(output.clone())
                 .context(format!("Failed to create file: {:?}", output))?;
             file.write(generated_code.as_bytes())

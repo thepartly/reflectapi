@@ -121,18 +121,18 @@ where
         R: Into<crate::Result<O, E>>,
     {
         let mut input_headers = input.headers;
-        let input = if input.body.len() != 0 {
+        let input_parsed = if input.body.len() != 0 {
             serde_json::from_slice::<I>(input.body.as_ref())
         } else {
             serde_json::from_value::<I>(serde_json::Value::Object(serde_json::Map::new()))
         };
-        let input = match input {
+        let input = match input_parsed {
             Ok(r) => r,
             Err(err) => {
                 return HandlerOutput {
                     code: 400,
                     body: bytes::Bytes::from(
-                        format!("Failed to parse request body: {}", err).into_bytes(),
+                        format!("Failed to parse request body: {}, received: {:?}", err, input.body).into_bytes(),
                     ),
                     headers: std::collections::HashMap::new(),
                 };
