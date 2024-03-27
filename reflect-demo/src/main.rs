@@ -3,6 +3,8 @@ mod tests;
 
 #[tokio::main]
 async fn main() {
+    // build an application, by providing pointers to handlers
+    // and assigning those to named routes
     let builder = reflect::Builder::new()
         .name("Demo application".to_string())
         .description("This is a demo application".to_string())
@@ -42,6 +44,7 @@ async fn main() {
         }
     };
 
+    // write reflect schema to a file
     tokio::fs::write(
         format!("{}/{}", env!("CARGO_MANIFEST_DIR"), "reflectapi.json"),
         serde_json::to_string_pretty(&schema).unwrap(),
@@ -49,9 +52,9 @@ async fn main() {
     .await
     .unwrap();
 
+    // start the server based on axum web framework
     let app_state = Default::default();
     let axum_app = reflect::axum::into_router(app_state, handlers);
-
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, axum_app).await.unwrap();
 }
