@@ -844,7 +844,8 @@ fn render_type(
                         .iter()
                         .filter(|f| f.flattened)
                         .map(|field| {
-                            let type_ref = type_ref_to_ts_ref(&field.type_ref, schema, implemented_types);
+                            let type_ref =
+                                type_ref_to_ts_ref(&field.type_ref, schema, implemented_types);
                             if field.required {
                                 type_ref
                             } else {
@@ -1089,6 +1090,16 @@ fn build_implemented_types() -> HashMap<String, String> {
         "std::tuple::Tuple12".into(),
         "[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]".into(),
     );
+
+    implemented_types.insert(
+        "serde_json::Value".into(),
+        "any /* serde_json::Value */".into(),
+    );
+
+    // it is only string in json format,
+    // message pack delivers it as bytes
+    // but we ignore it as this client encodes as only json
+    implemented_types.insert("uuid::Uuid".into(), "string /* uuid::Uuid */".into());
 
     // we preserve it in case the generated code might have references to unused generic parameters
     implemented_types.insert(

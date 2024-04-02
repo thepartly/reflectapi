@@ -513,3 +513,68 @@ impl Output for () {
         reflect_type_simple(schema, "()", "Unit type", None)
     }
 }
+
+fn reflect_duration(schema: &mut crate::Typespace, type_name: &str) -> crate::TypeReference {
+    if schema.reserve_type(type_name) {
+        let type_def = crate::Primitive::new(
+            type_name.into(),
+            "Time duration type".into(),
+            vec!["secs".into(), "nanos".into()],
+            None,
+        );
+        schema.insert_type(type_def.into());
+    }
+    type_name.into()
+}
+impl Input for std::time::Duration {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+        reflect_duration(schema, "std::time::Duration")
+    }
+}
+impl Output for std::time::Duration {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+        reflect_duration(schema, "std::time::Duration")
+    }
+}
+
+impl Input for std::path::PathBuf {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+        reflect_type_simple(
+            schema,
+            "std::path::PathBuf",
+            "File path type",
+            Some("std::string::String".into()),
+        )
+    }
+}
+impl Output for std::path::PathBuf {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+        reflect_type_simple(
+            schema,
+            "std::path::PathBuf",
+            "File path type",
+            Some("std::string::String".into()),
+        )
+    }
+}
+
+impl Input for std::path::Path {
+    fn reflect_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+        reflect_type_simple(
+            schema,
+            "std::path::Path",
+            "File path type",
+            Some("std::path::PathBuf".into()),
+        )
+    }
+}
+impl Output for std::path::Path {
+    fn reflect_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+        reflect_type_simple(
+            schema,
+            "std::path::Path",
+            "File path type",
+            Some("std::path::PathBuf".into()),
+        )
+    }
+}
