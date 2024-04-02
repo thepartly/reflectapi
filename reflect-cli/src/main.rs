@@ -35,6 +35,7 @@ enum Commands {
 #[derive(ValueEnum, Clone)]
 enum Language {
     Typescript,
+    Rust,
 }
 
 fn main() {
@@ -76,6 +77,15 @@ fn generate(
             let generated_code = reflect::codegen::typescript::generate(schema)?;
             let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
             let output = output.join("generated.ts");
+            let mut file = std::fs::File::create(output.clone())
+                .context(format!("Failed to create file: {:?}", output))?;
+            file.write(generated_code.as_bytes())
+                .context(format!("Failed to write to file: {:?}", output))?;
+        }
+        crate::Language::Rust => {
+            let generated_code = reflect::codegen::rust::generate(schema)?;
+            let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
+            let output = output.join("generated.rs");
             let mut file = std::fs::File::create(output.clone())
                 .context(format!("Failed to create file: {:?}", output))?;
             file.write(generated_code.as_bytes())
