@@ -15,6 +15,8 @@ pub const TRANSFORM: Symbol = Symbol("transform");
 pub const INPUT_TRANSFORM: Symbol = Symbol("input_transform");
 pub const OUTPUT_TRANSFORM: Symbol = Symbol("output_transform");
 
+pub const DISCRIMINANT: Symbol = Symbol("discriminant");
+
 impl PartialEq<Symbol> for Ident {
     fn eq(&self, word: &Symbol) -> bool {
         self == word.0

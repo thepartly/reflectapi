@@ -95,6 +95,7 @@ fn test_enum_with_generics_and_fields_and_named_fields() {
 
 #[allow(dead_code)]
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[reflect(discriminant)]
 enum TestEnumWithDiscriminant {
     Variant1 = 1,
     Variant2 = 2,
@@ -106,4 +107,19 @@ fn test_enum_with_discriminant_input() {
 #[test]
 fn test_enum_with_discriminant_output() {
     assert_output_snapshot!(TestEnumWithDiscriminant);
+}
+
+#[allow(dead_code)]
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+enum TestEnumWithDiscriminantIgnored {
+    Variant1 = 1,
+    Variant2 = 2,
+}
+#[test]
+fn test_enum_with_discriminant_ignored_input() {
+    assert_input_snapshot!(TestEnumWithDiscriminantIgnored);
+}
+#[test]
+fn test_enum_with_discriminant_ignored_output() {
+    assert_output_snapshot!(TestEnumWithDiscriminantIgnored);
 }

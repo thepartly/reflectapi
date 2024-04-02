@@ -226,6 +226,46 @@ fn test_reflect_struct_with_self_via_arc() {
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[reflect(input_type = "u8", output_type = "u8")]
+struct TestStructWithAttributes {
+    _f: String,
+}
+#[test]
+fn test_reflect_struct_with_attributes() {
+    assert_snapshot!(TestStructWithAttributes);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[reflect(input_type = "String")]
+struct TestStructWithAttributesInputOnly {
+    _f: String,
+}
+#[test]
+fn test_reflect_struct_with_attributes_input_only() {
+    assert_snapshot!(TestStructWithAttributesInputOnly);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[reflect(output_type = "String")]
+struct TestStructWithAttributesOutputOnly {
+    _f: String,
+}
+#[test]
+fn test_reflect_struct_with_attributes_output_only() {
+    assert_snapshot!(TestStructWithAttributesOutputOnly);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[reflect(type = "String")]
+struct TestStructWithAttributesTypeOnly {
+    _f: String,
+}
+#[test]
+fn test_reflect_struct_with_attributes_type_only() {
+    assert_snapshot!(TestStructWithAttributesTypeOnly);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformFallback {
     #[reflect(
         input_transform = "reflect::TypeReference::fallback_recursively",
@@ -432,7 +472,10 @@ fn test_reflect_struct_with_hashset_field() {
 }
 
 #[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
-struct TestStructWithHashSetFieldGeneric<G> where G: std::hash::Hash + Eq + reflect::Input + reflect::Output {
+struct TestStructWithHashSetFieldGeneric<G>
+where
+    G: std::hash::Hash + Eq + reflect::Input + reflect::Output,
+{
     _f_hashset: std::collections::HashSet<G>,
 }
 #[test]

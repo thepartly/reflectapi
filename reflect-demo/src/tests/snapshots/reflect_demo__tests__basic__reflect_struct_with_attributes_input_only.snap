@@ -1,0 +1,75 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "super::into_schema::<TestStructWithAttributesInputOnly>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithAttributesInputOnly"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithAttributesInputOnly"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructWithAttributesInputOnly",
+        "fields": [
+          {
+            "name": "0",
+            "type": {
+              "name": "std::string::String"
+            }
+          }
+        ],
+        "transparent": true
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructWithAttributesInputOnly",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  }
+}

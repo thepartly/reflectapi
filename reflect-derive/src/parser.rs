@@ -116,6 +116,22 @@ mod tests {
     }
 }
 
+pub(crate) struct ParsedTypeAttributes {
+    pub input_type: Option<syn::Type>,
+    pub output_type: Option<syn::Type>,
+    pub discriminant: bool,
+}
+
+impl Default for ParsedTypeAttributes {
+    fn default() -> Self {
+        ParsedTypeAttributes {
+            input_type: None,
+            output_type: None,
+            discriminant: false,
+        }
+    }
+}
+
 pub(crate) struct ParsedFieldAttributes {
     pub input_type: Option<syn::Type>,
     pub output_type: Option<syn::Type>,
@@ -155,11 +171,71 @@ pub(crate) fn parse_doc_attributes(attrs: &Vec<syn::Attribute>) -> String {
     result.join("\n")
 }
 
-/// Extract out the `#[reflect(...)]` attributes from a struct field.
-pub(crate) fn parse_field_attributes(cx: &Context, field: &syn::Field) -> ParsedFieldAttributes {
+/// Extract out the `#[reflect(...)]` attributes from a type definition.
+pub(crate) fn parse_type_attributes(cx: &Context, attributes: &Vec<syn::Attribute>) -> ParsedTypeAttributes {
+    let mut result = ParsedTypeAttributes::default();
+
+    for attr in attributes.iter() {
+        if attr.path() != REFLECT {
+            continue;
+        }
+
+        if let syn::Meta::List(meta) = &attr.meta {
+            if meta.tokens.is_empty() {
+                continue;
+            }
+        }
+
+        if let Err(err) = attr.parse_nested_meta(|meta| {
+            if meta.path == OUTPUT_TYPE {
+                // #[reflect(output_type = "...")]
+                if let Some(path) = parse_lit_into_expr_path(cx, OUTPUT_TYPE, &meta)? {
+                    if cx.reflect_type() == ReflectType::Output {
+                        result.output_type = Some(syn::Type::Path(syn::TypePath {
+                            qself: path.qself,
+                            path: path.path,
+                        }));
+                    }
+                }
+            } else if meta.path == INPUT_TYPE {
+                // #[reflect(input_type = "...")]
+                if let Some(path) = parse_lit_into_expr_path(cx, INPUT_TYPE, &meta)? {
+                    if cx.reflect_type() == ReflectType::Input {
+                        result.input_type = Some(syn::Type::Path(syn::TypePath {
+                            qself: path.qself,
+                            path: path.path,
+                        }));
+                    }
+                }
+            } else if meta.path == TYPE {
+                // #[reflect(type = "...")]
+                if let Some(path) = parse_lit_into_expr_path(cx, TYPE, &meta)? {
+                    let referred_type = syn::Type::Path(syn::TypePath {
+                        qself: path.qself,
+                        path: path.path,
+                    });
+                    result.output_type = Some(referred_type.clone());
+                    result.input_type = Some(referred_type);
+                }
+            } else if meta.path == DISCRIMINANT {
+                // #[reflect(discriminant)]
+                result.discriminant = true;
+            } else {
+                let path = meta.path.to_token_stream().to_string();
+                return Err(meta.error(format_args!("unknown reflect field attribute `{}`", path)));
+            }
+            Ok(())
+        }) {
+            cx.syn_error(err);
+        }
+    }
+    result
+}
+
+pub(crate) fn parse_field_attributes(cx: &Context, attributes: &Vec<syn::Attribute>) -> ParsedFieldAttributes {
     let mut result = ParsedFieldAttributes::default();
 
-    for attr in &field.attrs {
+    for attr in attributes.iter() {
         if attr.path() != REFLECT {
             continue;
         }

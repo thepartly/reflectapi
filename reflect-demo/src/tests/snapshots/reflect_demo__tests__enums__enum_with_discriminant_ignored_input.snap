@@ -1,0 +1,25 @@
+---
+source: reflect-demo/src/tests/enums.rs
+expression: "super::into_input_schema::<TestEnumWithDiscriminantIgnored>().input_types"
+---
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflect::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "enum",
+      "name": "reflect_demo::tests::enums::TestEnumWithDiscriminantIgnored",
+      "variants": [
+        {
+          "name": "Variant1"
+        },
+        {
+          "name": "Variant2"
+        }
+      ]
+    }
+  ]
+}

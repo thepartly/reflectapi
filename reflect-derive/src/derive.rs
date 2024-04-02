@@ -5,7 +5,10 @@ use syn::parse_quote;
 
 use crate::{
     context::{Context, ReflectType},
-    parser::{naive_parse_as_type_reference, parse_doc_attributes, parse_field_attributes},
+    parser::{
+        naive_parse_as_type_reference, parse_doc_attributes, parse_field_attributes,
+        parse_type_attributes,
+    },
 };
 
 pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> TokenStream {
@@ -130,10 +133,40 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 
 fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Container<'a>) -> Type {
     let type_def_name = visit_name(cx, container.attrs.name()).into();
+    let type_def_description = parse_doc_attributes(&container.original.attrs);
+
+    let attrs = parse_type_attributes(cx, &container.original.attrs);
+    match cx.reflect_type() {
+        ReflectType::Input => {
+            if let Some(input_type_attribute) = attrs.input_type {
+                let mut result = Struct::new(type_def_name);
+                result.description = type_def_description;
+                result.transparent = true; // making it as type alias
+                result.fields.push(Field::new(
+                    "0".into(),
+                    visit_field_type(cx, &input_type_attribute),
+                ));
+                return result.into();
+            }
+        }
+        ReflectType::Output => {
+            if let Some(output_type_attribute) = attrs.output_type {
+                let mut result = Struct::new(type_def_name);
+                result.description = type_def_description;
+                result.transparent = true; // making it as type alias
+                result.fields.push(Field::new(
+                    "0".into(),
+                    visit_field_type(cx, &output_type_attribute),
+                ));
+                return result.into();
+            }
+        }
+    }
+
     let type_def: Type = match &container.data {
         serde_derive_internals::ast::Data::Enum(variants) => {
             let mut result = Enum::new(type_def_name);
-            result.description = parse_doc_attributes(&container.original.attrs);
+            result.description = type_def_description;
             match container.attrs.tag() {
                 serde_derive_internals::attr::TagType::External => {
                     result.representation = reflect_schema::Representation::External;
@@ -159,7 +192,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                     }
                     ReflectType::Output => variant.attrs.skip_serializing(),
                 } {
-                    result.variants.push(visit_variant(cx, variant));
+                    result.variants.push(visit_variant(cx, variant, attrs.discriminant));
                 }
             }
             visit_generic_parameters(cx, &container.generics, &mut result.parameters);
@@ -168,7 +201,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
         serde_derive_internals::ast::Data::Struct(style, fields) => {
             if matches!(style, serde_derive_internals::ast::Style::Unit) {
                 let mut result = Struct::new(type_def_name);
-                result.description = parse_doc_attributes(&container.original.attrs);
+                result.description = type_def_description;
                 // there should be no fields on unit structs
                 // but we expose it as a newtype struct with a single Unit type field
                 result.fields.push(Field::new("0".into(), "()".into()));
@@ -179,7 +212,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                 result.into()
             } else {
                 let mut result = Struct::new(type_def_name);
-                result.description = parse_doc_attributes(&container.original.attrs);
+                result.description = type_def_description;
                 for field in fields {
                     if !match cx.reflect_type() {
                         ReflectType::Input => field.attrs.skip_deserializing(),
@@ -236,19 +269,22 @@ fn visit_generic_parameters<'a>(
 fn visit_variant<'a>(
     cx: &Context,
     variant: &serde_derive_internals::ast::Variant<'a>,
+    use_discriminant: bool,
 ) -> reflect_schema::Variant {
     let variant_def_name = visit_name(cx, variant.attrs.name()).into();
     let mut result = reflect_schema::Variant::new(variant_def_name);
     result.description = parse_doc_attributes(&variant.original.attrs);
-    if let Some(discriminant) = variant.original.discriminant.as_ref() {
-        result.discriminant = Some(
-            discriminant
-                .1
-                .to_token_stream()
-                .to_string()
-                .parse()
-                .unwrap_or_default(), // will be checked by compiler anyway
-        );
+    if use_discriminant {
+        if let Some(discriminant) = variant.original.discriminant.as_ref() {
+            result.discriminant = Some(
+                discriminant
+                    .1
+                    .to_token_stream()
+                    .to_string()
+                    .parse()
+                    .unwrap_or_default(), // will be checked by compiler anyway
+            );
+        }
     }
     for field in &variant.fields {
         if !match cx.reflect_type() {
@@ -267,7 +303,7 @@ fn visit_field<'a>(
     field: &serde_derive_internals::ast::Field<'a>,
 ) -> reflect_schema::Field {
     let field_name = visit_name(cx, field.attrs.name()).into();
-    let attrs = parse_field_attributes(cx, field.original);
+    let attrs = parse_field_attributes(cx, &field.original.attrs);
     let (field_type, field_transform) = match cx.reflect_type() {
         ReflectType::Input => (attrs.input_type, attrs.input_transform),
         ReflectType::Output => (attrs.output_type, attrs.output_transform),
