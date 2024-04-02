@@ -455,6 +455,7 @@ class ClientInstance {
         pub description: String,
         pub representation: crate::Representation,
         pub fields: Vec<Field>,
+        pub discriminant: Option<isize>,
     }
 
     impl Variant {
@@ -474,6 +475,9 @@ class ClientInstance {
 
         fn render_self(&self) -> anyhow::Result<String> {
             if self.fields.is_empty() {
+                if let Some(discriminant) = self.discriminant {
+                    return Ok(format!("{} /* {} */", discriminant, self.name));
+                }
                 return Ok(format!("\"{}\"", self.name));
             }
             let r = match &self.representation {
@@ -849,6 +853,7 @@ fn render_type(
                                 optional: !field.required,
                             })
                             .collect::<Vec<_>>(),
+                        discriminant: variant.discriminant,
                     })
                     .collect::<Vec<_>>(),
             };

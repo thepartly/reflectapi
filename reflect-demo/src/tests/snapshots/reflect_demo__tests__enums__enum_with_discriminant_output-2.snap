@@ -191,8 +191,8 @@ export namespace tests {
 export namespace enums {
 
 export type TestEnumWithDiscriminant =
-    | "Variant1"
-    | "Variant2";
+    | 1 /* Variant1 */
+    | 2 /* Variant2 */;
 
 }
 
