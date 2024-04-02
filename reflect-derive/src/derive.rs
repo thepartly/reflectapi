@@ -132,7 +132,8 @@ pub(crate) fn derive_reflect(input: TokenStream, reflect_type: ReflectType) -> T
 }
 
 fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Container<'a>) -> Type {
-    let type_def_name = visit_name(cx, container.attrs.name()).into();
+    let (type_def_name, serde_name) =
+        visit_name(cx, container.attrs.name(), Some(&container.original.ident));
     let type_def_description = parse_doc_attributes(&container.original.attrs);
 
     let attrs = parse_type_attributes(cx, &container.original.attrs);
@@ -142,6 +143,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                 let mut result = Struct::new(type_def_name);
                 result.description = type_def_description;
                 result.transparent = true; // making it as type alias
+                result.serde_name = serde_name;
                 result.fields.push(Field::new(
                     "0".into(),
                     visit_field_type(cx, &input_type_attribute),
@@ -154,6 +156,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                 let mut result = Struct::new(type_def_name);
                 result.description = type_def_description;
                 result.transparent = true; // making it as type alias
+                result.serde_name = serde_name;
                 result.fields.push(Field::new(
                     "0".into(),
                     visit_field_type(cx, &output_type_attribute),
@@ -167,6 +170,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
         serde_derive_internals::ast::Data::Enum(variants) => {
             let mut result = Enum::new(type_def_name);
             result.description = type_def_description;
+            result.serde_name = serde_name;
             match container.attrs.tag() {
                 serde_derive_internals::attr::TagType::External => {
                     result.representation = reflect_schema::Representation::External;
@@ -192,7 +196,9 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                     }
                     ReflectType::Output => variant.attrs.skip_serializing(),
                 } {
-                    result.variants.push(visit_variant(cx, variant, attrs.discriminant));
+                    result
+                        .variants
+                        .push(visit_variant(cx, variant, attrs.discriminant));
                 }
             }
             visit_generic_parameters(cx, &container.generics, &mut result.parameters);
@@ -202,6 +208,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
             if matches!(style, serde_derive_internals::ast::Style::Unit) {
                 let mut result = Struct::new(type_def_name);
                 result.description = type_def_description;
+                result.serde_name = serde_name;
                 // there should be no fields on unit structs
                 // but we expose it as a newtype struct with a single Unit type field
                 result.fields.push(Field::new("0".into(), "()".into()));
@@ -271,9 +278,11 @@ fn visit_variant<'a>(
     variant: &serde_derive_internals::ast::Variant<'a>,
     use_discriminant: bool,
 ) -> reflect_schema::Variant {
-    let variant_def_name = visit_name(cx, variant.attrs.name()).into();
+    let (variant_def_name, serde_name) =
+        visit_name(cx, variant.attrs.name(), Some(&variant.original.ident));
     let mut result = reflect_schema::Variant::new(variant_def_name);
     result.description = parse_doc_attributes(&variant.original.attrs);
+    result.serde_name = serde_name;
     if use_discriminant {
         if let Some(discriminant) = variant.original.discriminant.as_ref() {
             result.discriminant = Some(
@@ -302,7 +311,9 @@ fn visit_field<'a>(
     cx: &Context,
     field: &serde_derive_internals::ast::Field<'a>,
 ) -> reflect_schema::Field {
-    let field_name = visit_name(cx, field.attrs.name()).into();
+    let (field_name, serde_name) =
+        visit_name(cx, field.attrs.name(), field.original.ident.as_ref());
+    let field_name = field_name.into();
     let attrs = parse_field_attributes(cx, &field.original.attrs);
     let (field_type, field_transform) = match cx.reflect_type() {
         ReflectType::Input => (attrs.input_type, attrs.input_transform),
@@ -317,6 +328,7 @@ fn visit_field<'a>(
     let mut field_def = Field::new(field_name, field_type);
     field_def.transform_callback = field_transform;
     field_def.description = parse_doc_attributes(&field.original.attrs);
+    field_def.serde_name = serde_name;
     field_def.required = match cx.reflect_type() {
         ReflectType::Input => field.attrs.default().is_none(),
         ReflectType::Output => field.attrs.skip_serializing_if().is_none(),
@@ -332,9 +344,35 @@ fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeRef
     result
 }
 
-fn visit_name<'a>(cx: &'a Context, name: &'a serde_derive_internals::attr::Name) -> &'a str {
-    match cx.reflect_type() {
+fn visit_name<'a>(
+    cx: &'a Context,
+    name: &'a serde_derive_internals::attr::Name,
+    ident: Option<&syn::Ident>,
+) -> (String, String) {
+    let result = match cx.reflect_type() {
         ReflectType::Input => name.deserialize_name(),
         ReflectType::Output => name.serialize_name(),
+    };
+
+    // check if normalized name contains invalid characters
+    // and then use original ident name instead
+    for (ind, c) in result.chars().enumerate() {
+        // codegen tools should be able to handle camel case, kebab case and snake case names
+        // for variants and fields
+        if ident.is_some() && ind == 0 && !c.is_ascii_alphabetic() && c != '_'
+            || !c.is_ascii_alphanumeric() && c != '_' && c != '-'
+        {
+            return (
+                ident.map(|ident| ident.to_string()).unwrap_or("0".into()),
+                result.into(),
+            );
+        }
     }
+
+    // name is valid but it can be kebab case, handle this case automatically
+    let normalized_result = result.replace('-', "_");
+    if normalized_result != result {
+        return (normalized_result, result.into());
+    }
+    (result.into(), String::new())
 }

@@ -351,6 +351,7 @@ fn test_reflect_struct_documented() {
 #[allow(unused_doc_comments, dead_code)]
 #[derive(reflect::Input, serde::Deserialize)]
 enum TestEnumDocumented<
+    #[allow(unused_doc_comments, dead_code)]
     /// some generic param docs
     /// multiline
     T,

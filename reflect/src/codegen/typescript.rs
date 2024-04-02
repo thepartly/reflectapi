@@ -490,7 +490,7 @@ class ClientInstance {
                 if let Some(discriminant) = self.discriminant {
                     return Ok(format!("{} /* {} */", discriminant, self.name));
                 }
-                return Ok(format!("\"{}\"", self.name));
+                return Ok(format!("\"{}\"", self.normalized_name()));
             }
             if self.untagged {
                 return self.render_fields(None);
@@ -499,7 +499,7 @@ class ClientInstance {
                 crate::Representation::External => {
                     format!(
                         "{{\n        {}: {}\n    }}",
-                        self.name,
+                        self.normalized_name(),
                         self.render_fields(None)?
                     )
                 }
@@ -508,7 +508,7 @@ class ClientInstance {
                     format!(
                         "{{ {}: {}, {}: {} }}",
                         tag,
-                        self.name,
+                        self.normalized_name(),
                         content,
                         self.render_fields(None)?
                     )
@@ -516,6 +516,16 @@ class ClientInstance {
                 crate::Representation::None => self.render_fields(None)?,
             };
             Ok(r)
+        }
+
+        fn normalized_name(&self) -> String {
+            if self.name.chars().enumerate().any(|(ind, c)| {
+                ind == 0 && !c.is_alphabetic() && c != '_' || !c.is_alphanumeric() && c != '_'
+            }) {
+                format!("\"{}\"", self.name)
+            } else {
+                self.name.clone()
+            }
         }
 
         fn render_fields(&self, inner_tag: Option<&str>) -> anyhow::Result<String> {
@@ -538,7 +548,7 @@ class ClientInstance {
 
     #[derive(Template)]
     #[template(
-        source = "{{ description }}{% if !self.is_unnamed() %}{{ name }}{% if optional %}{{ \"?\" }}{% endif %}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
+        source = "{{ description }}{% if !self.is_unnamed() %}{{ self.normalized_name() }}{% if optional %}{{ \"?\" }}{% endif %}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
         ext = "txt"
     )]
     pub(super) struct Field {
@@ -551,6 +561,16 @@ class ClientInstance {
     impl Field {
         fn is_unnamed(&self) -> bool {
             self.name.parse::<u64>().is_ok()
+        }
+
+        fn normalized_name(&self) -> String {
+            if self.name.chars().enumerate().any(|(ind, c)| {
+                ind == 0 && !c.is_alphabetic() && c != '_' || !c.is_alphanumeric() && c != '_'
+            }) {
+                format!("\"{}\"", self.name)
+            } else {
+                self.name.clone()
+            }
         }
     }
 
@@ -833,7 +853,7 @@ fn render_type(
                         .iter()
                         .filter(|f| !f.flattened)
                         .map(|field| templates::Field {
-                            name: field.name.clone(),
+                            name: field.serde_name().into(),
                             description: doc_to_ts_comments(&field.description, 4),
                             type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
                             optional: !field.required,
@@ -867,14 +887,14 @@ fn render_type(
                     .variants
                     .iter()
                     .map(|variant| templates::Variant {
-                        name: variant.name.clone(),
+                        name: variant.serde_name().into(),
                         description: doc_to_ts_comments(&variant.description, 4),
                         representation: enum_def.representation.clone(),
                         fields: variant
                             .fields
                             .iter()
                             .map(|field| templates::Field {
-                                name: field.name.clone(),
+                                name: field.serde_name().into(),
                                 description: doc_to_ts_comments(&field.description, 12),
                                 type_: type_ref_to_ts_ref(
                                     &field.type_ref,

@@ -301,9 +301,45 @@ struct TestStructWithFlattenOptionalAndRequired {
     #[serde(flatten, skip_serializing_if = "Option::is_none", default)]
     g: Option<TestStructWithFlattenNested>,
     #[serde(flatten)]
-    k: TestStructRenameAll
+    k: TestStructRenameAll,
 }
 #[test]
 fn test_struct_with_flatten_optional_and_required() {
     assert_snapshot!(TestStructWithFlattenOptionalAndRequired);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[serde(rename = "struct-name&&")]
+struct TestStructWithRenameToInvalidChars {
+    #[serde(rename = "field-name&&")]
+    f: u8,
+}
+#[test]
+fn test_struct_with_rename_to_invalid_chars() {
+    assert_snapshot!(TestStructWithRenameToInvalidChars);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[serde(rename = "enum-name&&")]
+enum TestEnumWithRenameToInvalidChars {
+    #[serde(rename = "variant-name&&")]
+    Variant1 {
+        #[serde(rename = "field-name&&")]
+        f: u8,
+    },
+}
+#[test]
+fn test_enum_with_rename_to_invalid_chars() {
+    assert_snapshot!(TestEnumWithRenameToInvalidChars);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[serde(rename = "struct-name")]
+struct TestStructWithRenameToKebabCase {
+    #[serde(rename = "field-name")]
+    f: u8,
+}
+#[test]
+fn test_struct_with_rename_to_kebab_case() {
+    assert_snapshot!(TestStructWithRenameToKebabCase);
 }

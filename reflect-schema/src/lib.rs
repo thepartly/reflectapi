@@ -420,7 +420,7 @@ impl TypeReference {
     }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        self.name = rename_ident(&self.name, search_string, replacer);
+        self.name = rename_type_or_module(&self.name, search_string, replacer);
         for param in self.parameters.iter_mut() {
             param.rename_type(search_string, replacer);
         }
@@ -506,6 +506,14 @@ impl Type {
             Type::Primitive(p) => &p.name,
             Type::Struct(s) => &s.name,
             Type::Enum(e) => &e.name,
+        }
+    }
+
+    pub fn serde_name(&self) -> &str {
+        match self {
+            Type::Primitive(_) => self.name(),
+            Type::Struct(s) => s.serde_name(),
+            Type::Enum(e) => e.serde_name(),
         }
     }
 
@@ -684,7 +692,7 @@ impl Primitive {
     }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        self.name = rename_ident(&self.name, search_string, replacer);
+        self.name = rename_type_or_module(&self.name, search_string, replacer);
     }
 }
 
@@ -697,6 +705,8 @@ impl Into<Type> for Primitive {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Struct {
     pub name: String,
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub serde_name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
@@ -716,6 +726,7 @@ impl Struct {
     pub fn new(name: String) -> Self {
         Struct {
             name,
+            serde_name: String::new(),
             description: String::new(),
             parameters: Vec::new(),
             fields: Vec::new(),
@@ -725,6 +736,14 @@ impl Struct {
 
     pub fn name(&self) -> &str {
         self.name.as_str()
+    }
+
+    pub fn serde_name(&self) -> &str {
+        if self.serde_name.is_empty() {
+            self.name.as_str()
+        } else {
+            self.serde_name.as_str()
+        }
     }
 
     pub fn description(&self) -> &str {
@@ -756,7 +775,7 @@ impl Struct {
     }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        self.name = rename_ident(&self.name, search_string, replacer);
+        self.name = rename_type_or_module(&self.name, search_string, replacer);
         for field in self.fields.iter_mut() {
             field.rename_type(search_string, replacer);
         }
@@ -772,6 +791,8 @@ impl Into<Type> for Struct {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Field {
     pub name: String,
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub serde_name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
@@ -813,6 +834,7 @@ impl Field {
     pub fn new(name: String, ty: TypeReference) -> Self {
         Field {
             name,
+            serde_name: String::new(),
             description: String::new(),
             type_ref: ty,
             required: false,
@@ -824,6 +846,14 @@ impl Field {
 
     pub fn name(&self) -> &str {
         self.name.as_str()
+    }
+
+    pub fn serde_name(&self) -> &str {
+        if self.serde_name.is_empty() {
+            self.name.as_str()
+        } else {
+            self.serde_name.as_str()
+        }
     }
 
     pub fn description(&self) -> &str {
@@ -863,6 +893,8 @@ fn is_false(b: &bool) -> bool {
 pub struct Enum {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub serde_name: String,
+    #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
     /// Generic type parameters, if any
@@ -880,6 +912,7 @@ impl Enum {
     pub fn new(name: String) -> Self {
         Enum {
             name,
+            serde_name: String::new(),
             description: String::new(),
             parameters: Vec::new(),
             representation: Default::default(),
@@ -889,6 +922,14 @@ impl Enum {
 
     pub fn name(&self) -> &str {
         self.name.as_str()
+    }
+
+    pub fn serde_name(&self) -> &str {
+        if self.serde_name.is_empty() {
+            self.name.as_str()
+        } else {
+            self.serde_name.as_str()
+        }
     }
 
     pub fn description(&self) -> &str {
@@ -908,7 +949,7 @@ impl Enum {
     }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        self.name = rename_ident(&self.name, search_string, replacer);
+        self.name = rename_type_or_module(&self.name, search_string, replacer);
         for variant in self.variants.iter_mut() {
             variant.rename_type(search_string, replacer);
         }
@@ -924,6 +965,8 @@ impl Into<Type> for Enum {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Variant {
     pub name: String,
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub serde_name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
@@ -941,6 +984,7 @@ impl Variant {
     pub fn new(name: String) -> Self {
         Variant {
             name,
+            serde_name: String::new(),
             description: String::new(),
             fields: Vec::new(),
             discriminant: None,
@@ -950,6 +994,14 @@ impl Variant {
 
     pub fn name(&self) -> &str {
         self.name.as_str()
+    }
+
+    pub fn serde_name(&self) -> &str {
+        if self.serde_name.is_empty() {
+            self.name.as_str()
+        } else {
+            self.serde_name.as_str()
+        }
     }
 
     pub fn description(&self) -> &str {
@@ -1038,7 +1090,7 @@ impl Default for Representation {
     }
 }
 
-fn rename_ident(name: &str, search_string: &str, replacer: &str) -> String {
+fn rename_type_or_module(name: &str, search_string: &str, replacer: &str) -> String {
     if search_string.ends_with("::") {
         // replacing module name
         if name.starts_with(search_string) {

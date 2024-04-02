@@ -98,6 +98,7 @@ impl<'a> TokenizableField<'a> {
 impl<'a> ToTokens for TokenizableField<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
+        let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
         let type_ref = TokenizableTypeReference::new(&self.inner.type_ref);
         let required = self.inner.required;
@@ -116,6 +117,7 @@ impl<'a> ToTokens for TokenizableField<'a> {
         tokens.extend(quote::quote! {
             reflect::Field {
                 name: #name.into(),
+                serde_name: #serde_name.into(),
                 description: #description.into(),
                 type_ref: #type_ref,
                 required: #required,
@@ -140,6 +142,7 @@ impl<'a> TokenizableVariant<'a> {
 impl<'a> ToTokens for TokenizableVariant<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
+        let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
         let fields = self.inner.fields().map(|f| TokenizableField::new(f));
         let discriminant = self
@@ -152,6 +155,7 @@ impl<'a> ToTokens for TokenizableVariant<'a> {
         tokens.extend(quote::quote! {
             reflect::Variant {
                 name: #name.into(),
+                serde_name: #serde_name.into(),
                 description: #description.into(),
                 fields: vec![#(#fields),*],
                 discriminant: #discriminant,
@@ -212,6 +216,7 @@ impl<'a> TokenizableEnum<'a> {
 impl<'a> ToTokens for TokenizableEnum<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
+        let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
         let parameters = self
             .inner
@@ -222,6 +227,7 @@ impl<'a> ToTokens for TokenizableEnum<'a> {
         tokens.extend(quote::quote! {
             reflect::Enum {
                 name: #name.into(),
+                serde_name: #serde_name.into(),
                 description: #description.into(),
                 parameters: vec![#(#parameters),*],
                 representation: #representation,
@@ -244,6 +250,7 @@ impl<'a> TokenizableStruct<'a> {
 impl<'a> ToTokens for TokenizableStruct<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
+        let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
         let parameters = self
             .inner
@@ -254,6 +261,7 @@ impl<'a> ToTokens for TokenizableStruct<'a> {
         tokens.extend(quote::quote! {
             reflect::Struct {
                 name: #name.into(),
+                serde_name: #serde_name.into(),
                 description: #description.into(),
                 parameters: vec![#(#parameters),*],
                 fields: vec![#(#fields),*],
