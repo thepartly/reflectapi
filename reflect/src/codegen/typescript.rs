@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Context;
 use askama::Template;
+use indexmap::IndexMap;
 use reflect_schema::Function;
 
 pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
@@ -28,7 +29,7 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     let functions_by_name = schema
         .functions()
         .map(|f| (f.name.clone(), f))
-        .collect::<HashMap<_, _>>();
+        .collect::<IndexMap<_, _>>();
     let function_groups = function_groups_from_function_names(
         schema
             .functions()
@@ -94,10 +95,8 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
 }
 
 mod templates {
-
-    use std::collections::HashMap;
-
-    use askama::Template; // bring trait in scope
+    use askama::Template;
+    use indexmap::IndexMap; // bring trait in scope
 
     #[derive(Template)]
     #[template(
@@ -368,7 +367,7 @@ class ClientInstance {
     pub(super) struct Module {
         pub name: String,
         pub types: Vec<String>,
-        pub submodules: HashMap<String, Module>,
+        pub submodules: IndexMap<String, Module>,
     }
 
     impl Module {
@@ -568,8 +567,8 @@ class ClientInstance {
 
     pub(super) struct ClientImplementationGroup {
         pub offset: usize,
-        pub functions: HashMap<String, String>,
-        pub subgroups: HashMap<String, ClientImplementationGroup>,
+        pub functions: IndexMap<String, String>,
+        pub subgroups: IndexMap<String, ClientImplementationGroup>,
     }
 
     impl ClientImplementationGroup {
@@ -598,13 +597,13 @@ class ClientInstance {
 
 struct FunctionGroup {
     functions: Vec<String>,
-    subgroups: HashMap<String, FunctionGroup>,
+    subgroups: IndexMap<String, FunctionGroup>,
 }
 
 fn function_groups_from_function_names(function_names: Vec<String>) -> FunctionGroup {
     let mut root_group = FunctionGroup {
         functions: vec![],
-        subgroups: HashMap::new(),
+        subgroups: IndexMap::new(),
     };
     for function_name in function_names {
         let mut group = &mut root_group;
@@ -613,7 +612,7 @@ fn function_groups_from_function_names(function_names: Vec<String>) -> FunctionG
         for part in parts {
             group = group.subgroups.entry(part.into()).or_insert(FunctionGroup {
                 functions: vec![],
-                subgroups: HashMap::new(),
+                subgroups: IndexMap::new(),
             });
         }
         group.functions.push(function_name);
@@ -678,12 +677,12 @@ fn modules_from_function_group(
     group: &FunctionGroup,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
-    functions_by_name: &HashMap<String, &Function>,
+    functions_by_name: &IndexMap<String, &Function>,
 ) -> templates::Module {
     let mut module = templates::Module {
         name: name,
         types: vec![],
-        submodules: HashMap::new(),
+        submodules: IndexMap::new(),
     };
     let mut type_template = templates::Interface {
         name: "Interface".into(),
@@ -740,7 +739,7 @@ fn modules_from_rendered_types(
     let mut root_module = templates::Module {
         name: "".into(),
         types: vec![],
-        submodules: HashMap::new(),
+        submodules: IndexMap::new(),
     };
 
     for original_type_name in original_type_names {
@@ -754,7 +753,7 @@ fn modules_from_rendered_types(
                 .or_insert(templates::Module {
                     name: part.into(),
                     types: vec![],
-                    submodules: HashMap::new(),
+                    submodules: IndexMap::new(),
                 });
         }
         if let Some(rendered_type) = rendered_types.remove(&original_type_name) {
@@ -816,7 +815,7 @@ fn render_type(
                             name: field.name.clone(),
                             description: doc_to_ts_comments(&field.description, 4),
                             type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
-                            optional: !field.required
+                            optional: !field.required,
                         })
                         .collect::<Vec<_>>(),
                 };
@@ -847,7 +846,7 @@ fn render_type(
                                     schema,
                                     implemented_types,
                                 ),
-                                optional: !field.required
+                                optional: !field.required,
                             })
                             .collect::<Vec<_>>(),
                     })

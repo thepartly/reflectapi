@@ -40,8 +40,7 @@ expression: "super::into_schema::<TestStructUnitType>()"
               "name": "()"
             }
           }
-        ],
-        "transparent": true
+        ]
       }
     ]
   },
@@ -67,8 +66,7 @@ expression: "super::into_schema::<TestStructUnitType>()"
               "name": "()"
             }
           }
-        ],
-        "transparent": true
+        ]
       }
     ]
   }

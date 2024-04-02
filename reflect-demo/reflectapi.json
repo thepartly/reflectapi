@@ -662,8 +662,7 @@
               "name": "()"
             }
           }
-        ],
-        "transparent": true
+        ]
       },
       {
         "kind": "struct",

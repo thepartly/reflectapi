@@ -172,7 +172,8 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                 // there should be no fields on unit structs
                 // but we expose it as a newtype struct with a single Unit type field
                 result.fields.push(Field::new("0".into(), "()".into()));
-                result.transparent = true;
+                visit_generic_parameters(cx, &container.generics, &mut result.parameters);
+                result.transparent = container.attrs.transparent();
                 let unit_type: syn::Type = parse_quote! { () };
                 visit_field_type(cx, &unit_type);
                 result.into()

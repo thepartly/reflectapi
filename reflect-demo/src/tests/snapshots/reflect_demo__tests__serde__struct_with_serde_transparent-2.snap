@@ -190,9 +190,7 @@ export namespace tests {
 
 export namespace serde {
 
-export interface TestStructWithSerdeTransparent {
-    _f: number /* u8 */,
-}
+export type TestStructWithSerdeTransparent = number /* u8 */;
 
 }
 

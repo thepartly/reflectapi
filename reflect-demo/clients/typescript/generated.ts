@@ -11,8 +11,8 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
 
 export interface Interface {
-    pets: pets.Interface,
     health: health.Interface,
+    pets: pets.Interface,
 }
 
 export namespace health {
@@ -327,11 +327,11 @@ export function __client(base: string | Client): __definition.Interface {
             check: health__check(client_instance),
         },
         pets: {
-            remove: pets__remove(client_instance),
-            create: pets__create(client_instance),
             list: pets__list(client_instance),
-            get_first: pets__get_first(client_instance),
+            create: pets__create(client_instance),
             update: pets__update(client_instance),
+            remove: pets__remove(client_instance),
+            get_first: pets__get_first(client_instance),
         },
     }, }.impl
 }

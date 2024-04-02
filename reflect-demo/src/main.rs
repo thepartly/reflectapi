@@ -33,8 +33,24 @@ async fn main() {
         .route(pets_get_first, |b| {
             b.name("pets.get-first".into())
                 .description("Fetch first pet, if any exists".into())
+        })
+        // some optional tuning
+        .fold_transparent_types()
+        .rename_type("reflect_demo::", "myapi::")
+        // and some optional linting rules
+        .validate(|schema| {
+            let mut errors = Vec::new();
+            for f in schema.functions() {
+                if f.name().chars().any(|c| !c.is_ascii_alphanumeric() && c != '.' && c != '-') {
+                    errors.push(reflect::ValidationError::new(
+                        reflect::ValidationPointer::Function(f.name().to_string()),
+                        "Function names must contain only alphanumeric characters, dots and dashes only".into(),
+                    ));
+                }
+            }
+            errors
         });
-    let (schema, handlers) = match builder.build(vec![("reflect_demo::", "myapi::")], Vec::new()) {
+    let (schema, handlers) = match builder.build() {
         Ok((schema, handlers)) => (schema, handlers),
         Err(errors) => {
             for error in errors {

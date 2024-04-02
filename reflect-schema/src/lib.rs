@@ -124,6 +124,36 @@ impl Schema {
             function.rename_output_type(search_string, replacer);
         }
     }
+
+    pub fn fold_transparent_types(&mut self) {
+        let transparent_types = self
+            .input_types()
+            .types()
+            .filter_map(|t| {
+                t.as_struct()
+                    .filter(|i| i.transparent && i.fields.len() == 1)
+                    .map(|s| (s.name.clone(), s.fields[0].type_ref.name.clone()))
+            })
+            .collect::<Vec<_>>();
+        for (from, to) in transparent_types {
+            self.input_types.remove_type(&from);
+            self.rename_input_type(&from, &to);
+        }
+
+        let transparent_types = self
+            .output_types()
+            .types()
+            .filter_map(|t| {
+                t.as_struct()
+                    .filter(|i| i.transparent && i.fields.len() == 1)
+                    .map(|s| (s.name.clone(), s.fields[0].type_ref.name.clone()))
+            })
+            .collect::<Vec<_>>();
+        for (from, to) in transparent_types {
+            self.output_types.remove_type(&from);
+            self.rename_output_type(&from, &to);
+        }
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
@@ -714,7 +744,7 @@ impl Struct {
     }
 
     pub fn is_alias(&self) -> bool {
-        self.fields.len() == 1 && self.fields[0].name() == "0"
+        self.fields.len() == 1 && (self.fields[0].name() == "0" || self.transparent)
     }
 
     pub fn is_tuple(&self) -> bool {

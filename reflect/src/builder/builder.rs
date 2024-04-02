@@ -1,11 +1,10 @@
-use reflect_schema::Schema;
-
 pub struct Builder<S>
 where
     S: Send + 'static,
 {
     schema: crate::Schema,
     handlers: Vec<crate::Handler<S>>,
+    validators: Vec<fn(&crate::Schema) -> Vec<crate::ValidationError>>,
 }
 
 impl<S> Builder<S>
@@ -16,6 +15,7 @@ where
         Self {
             schema: crate::Schema::new(),
             handlers: Vec::new(),
+            validators: Vec::new(),
         }
     }
 
@@ -55,19 +55,37 @@ where
         self
     }
 
+    pub fn rename_type(mut self, from: &str, to: &str) -> Self {
+        self.schema.rename_type(from, to);
+        self
+    }
+
+    pub fn fold_transparent_types(mut self) -> Self {
+        self.schema.fold_transparent_types();
+        self
+    }
+
+    pub fn consolidate_types(mut self) -> Self {
+        self.schema.consolidate_types();
+        self
+    }
+
+    pub fn validate(
+        mut self,
+        validation: fn(&crate::Schema) -> Vec<crate::ValidationError>,
+    ) -> Self {
+        self.validators.push(validation);
+        self
+    }
+
     pub fn build(
         mut self,
-        renaming: Vec<(&str, &str)>,
-        validation: Vec<fn(&Schema) -> Vec<crate::ValidationError>>,
     ) -> Result<(crate::Schema, Vec<crate::Handler<S>>), Vec<crate::ValidationError>> {
-        for (from, to) in renaming {
-            self.schema.rename_type(from, to);
-        }
         self.schema.input_types.sort_types();
         self.schema.output_types.sort_types();
 
         let mut errors = Vec::new();
-        for validator in validation {
+        for validator in self.validators.iter() {
             errors.extend(validator(&self.schema));
         }
         if !errors.is_empty() {

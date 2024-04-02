@@ -14,7 +14,7 @@ where
         .route(handler::<I, reflect::Empty>, |b| {
             b.name("input_test".into())
         })
-        .build(Default::default(), Default::default())
+        .build()
         .unwrap();
     eps.0
 }
@@ -27,7 +27,7 @@ where
         .route(handler::<reflect::Empty, O>, |b| {
             b.name("output_test".into())
         })
-        .build(Default::default(), Default::default())
+        .build()
         .unwrap();
     eps.0
 }
@@ -43,7 +43,7 @@ where
 {
     let eps = reflect::Builder::new()
         .route(handler::<T, T>, |b| b)
-        .build(Default::default(), Default::default())
+        .build()
         .unwrap();
     eps.0
 }
