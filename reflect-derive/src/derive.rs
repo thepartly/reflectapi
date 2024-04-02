@@ -136,37 +136,69 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
         visit_name(cx, container.attrs.name(), Some(&container.original.ident));
     let type_def_description = parse_doc_attributes(&container.original.attrs);
 
+    fn make_alias_type(
+        type_def_name: String,
+        type_def_description: String,
+        serde_name: String,
+        type_ref: reflect_schema::TypeReference,
+    ) -> Struct {
+        let mut result = Struct::new(type_def_name);
+        result.description = type_def_description;
+        result.transparent = true; // making it as type alias
+        result.serde_name = serde_name;
+        result.fields.push(Field::new("0".into(), type_ref));
+        result
+    }
+
     let attrs = parse_type_attributes(cx, &container.original.attrs);
     match cx.reflect_type() {
         ReflectType::Input => {
             if let Some(input_type_attribute) = attrs.input_type {
-                let mut result = Struct::new(type_def_name);
-                result.description = type_def_description;
-                result.transparent = true; // making it as type alias
-                result.serde_name = serde_name;
-                result.fields.push(Field::new(
-                    "0".into(),
+                return make_alias_type(
+                    type_def_name,
+                    type_def_description,
+                    serde_name,
                     visit_field_type(cx, &input_type_attribute),
-                ));
-                return result.into();
+                ).into();
+            }
+            if let Some(a) = container.attrs.type_from() {
+                return make_alias_type(
+                    type_def_name,
+                    type_def_description,
+                    serde_name,
+                    visit_field_type(cx, &a),
+                ).into();
+            }
+            if let Some(a) = container.attrs.type_try_from() {
+                return make_alias_type(
+                    type_def_name,
+                    type_def_description,
+                    serde_name,
+                    visit_field_type(cx, &a),
+                ).into();
             }
         }
         ReflectType::Output => {
             if let Some(output_type_attribute) = attrs.output_type {
-                let mut result = Struct::new(type_def_name);
-                result.description = type_def_description;
-                result.transparent = true; // making it as type alias
-                result.serde_name = serde_name;
-                result.fields.push(Field::new(
-                    "0".into(),
+                return make_alias_type(
+                    type_def_name,
+                    type_def_description,
+                    serde_name,
                     visit_field_type(cx, &output_type_attribute),
-                ));
-                return result.into();
+                ).into();
+            }
+            if let Some(a) = container.attrs.type_into() {
+                return make_alias_type(
+                    type_def_name,
+                    type_def_description,
+                    serde_name,
+                    visit_field_type(cx, &a),
+                ).into();
             }
         }
     }
 
-    let type_def: Type = match &container.data {
+    match &container.data {
         serde_derive_internals::ast::Data::Enum(variants) => {
             let mut result = Enum::new(type_def_name);
             result.description = type_def_description;
@@ -202,21 +234,19 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                 }
             }
             visit_generic_parameters(cx, &container.generics, &mut result.parameters);
-            result.into()
+            return result.into();
         }
         serde_derive_internals::ast::Data::Struct(style, fields) => {
             if matches!(style, serde_derive_internals::ast::Style::Unit) {
-                let mut result = Struct::new(type_def_name);
-                result.description = type_def_description;
-                result.serde_name = serde_name;
-                // there should be no fields on unit structs
-                // but we expose it as a newtype struct with a single Unit type field
-                result.fields.push(Field::new("0".into(), "()".into()));
-                visit_generic_parameters(cx, &container.generics, &mut result.parameters);
-                result.transparent = container.attrs.transparent();
                 let unit_type: syn::Type = parse_quote! { () };
-                visit_field_type(cx, &unit_type);
-                result.into()
+                let mut result = make_alias_type(
+                    type_def_name,
+                    type_def_description,
+                    serde_name,
+                    visit_field_type(cx, &unit_type),
+                );
+                result.transparent = container.attrs.transparent();
+                return result.into();
             } else {
                 let mut result = Struct::new(type_def_name);
                 result.description = type_def_description;
@@ -230,11 +260,10 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                 }
                 visit_generic_parameters(cx, &container.generics, &mut result.parameters);
                 result.transparent = container.attrs.transparent();
-                result.into()
+                return result.into();
             }
         }
-    };
-    type_def
+    }
 }
 
 fn visit_generic_parameters<'a>(

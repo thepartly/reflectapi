@@ -343,3 +343,63 @@ struct TestStructWithRenameToKebabCase {
 fn test_struct_with_rename_to_kebab_case() {
     assert_snapshot!(TestStructWithRenameToKebabCase);
 }
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[serde(try_from = "TestStructTryFrom")]
+struct TestStructTryFormProxy {
+    f: u8,
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructTryFrom {
+    f: u8,
+}
+impl TryFrom<TestStructTryFrom> for TestStructTryFormProxy {
+    type Error = String;
+    fn try_from(value: TestStructTryFrom) -> Result<Self, Self::Error> {
+        Ok(TestStructTryFormProxy { f: value.f })
+    }
+}
+#[test]
+fn test_struct_try_from() {
+    assert_snapshot!(TestStructTryFormProxy);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+#[serde(from = "TestStructFrom")]
+struct TestStructFromProxy {
+    f: u8,
+}
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructFrom {
+    f: u8,
+}
+impl From<TestStructFrom> for TestStructFromProxy {
+    fn from(value: TestStructFrom) -> Self {
+        TestStructFromProxy { f: value.f }
+    }
+}
+#[test]
+fn test_struct_from() {
+    assert_snapshot!(TestStructFromProxy);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize, Clone)]
+#[serde(into = "TestStructInto")]
+struct TestStructIntoProxy {
+    f: u8,
+}
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructInto {
+    f: u8,
+}
+impl Into<TestStructInto> for TestStructIntoProxy {
+    fn into(self) -> TestStructInto {
+        TestStructInto { f: self.f }
+    }
+}
+#[test]
+fn test_struct_into() {
+    assert_snapshot!(TestStructIntoProxy);
+}
+
