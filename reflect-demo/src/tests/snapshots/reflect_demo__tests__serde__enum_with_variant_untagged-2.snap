@@ -191,11 +191,9 @@ export namespace tests {
 export namespace serde {
 
 export type TestEnumWithVariantUntagged =
-    | {
-        Variant1: 
+    | 
             number /* u8 */
-        
-    };
+        ;
 
 }
 

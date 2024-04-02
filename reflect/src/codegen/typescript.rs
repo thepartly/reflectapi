@@ -456,6 +456,7 @@ class ClientInstance {
         pub representation: crate::Representation,
         pub fields: Vec<Field>,
         pub discriminant: Option<isize>,
+        pub untagged: bool,
     }
 
     impl Variant {
@@ -479,6 +480,9 @@ class ClientInstance {
                     return Ok(format!("{} /* {} */", discriminant, self.name));
                 }
                 return Ok(format!("\"{}\"", self.name));
+            }
+            if self.untagged {
+                return self.render_fields(None);
             }
             let r = match &self.representation {
                 crate::Representation::External => {
@@ -854,6 +858,7 @@ fn render_type(
                             })
                             .collect::<Vec<_>>(),
                         discriminant: variant.discriminant,
+                        untagged: variant.untagged,
                     })
                     .collect::<Vec<_>>(),
             };
