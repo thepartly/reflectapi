@@ -190,9 +190,8 @@ export namespace tests {
 
 export namespace serde {
 
-export interface TestStructWithFlatten {
-    g: reflect_demo.tests.serde.TestStructWithFlattenNested,
-}
+export type TestStructWithFlatten = {
+} & reflect_demo.tests.serde.TestStructWithFlattenNested
 
 export interface TestStructWithFlattenNested {
     f: number /* u8 */,
@@ -245,7 +244,7 @@ export function __request<I, H, O, E>(client: Client, path: string, input: I | u
                     })
                 });
             }
-            return new Result<O, Err<E>>({ ok: JSON.parse(response_body) as O });
+            return new Result<O, Err<E>>({ ok: parsed_response_body as O });
         }
         ).catch((e) => {
             return new Result<O, Err<E>>({ err: new Err({ other_err: e }) });

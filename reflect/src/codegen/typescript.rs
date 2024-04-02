@@ -316,7 +316,7 @@ export function __request<I, H, O, E>(client: Client, path: string, input: I | u
                     })
                 });
             }
-            return new Result<O, Err<E>>({ ok: JSON.parse(response_body) as O });
+            return new Result<O, Err<E>>({ ok: parsed_response_body as O });
         }
         ).catch((e) => {
             return new Result<O, Err<E>>({ err: new Err({ other_err: e }) });
@@ -405,7 +405,7 @@ class ClientInstance {
     {%- for field in fields.iter() %}
     {{ field }},
     {%- endfor %}
-{{ self.render_brackets().1 }}",
+{{ self.render_brackets().1 }}{{ self.render_flattened_types() }}",
         ext = "txt"
     )]
     pub(super) struct Interface {
@@ -413,11 +413,12 @@ class ClientInstance {
         pub description: String,
         pub fields: Vec<Field>,
         pub is_tuple: bool,
+        pub flattened_types: Vec<String>,
     }
 
     impl Interface {
         fn render_keyword(&self) -> String {
-            if self.is_tuple {
+            if self.is_tuple || !self.flattened_types.is_empty() {
                 "type".into()
             } else {
                 "interface".into()
@@ -425,10 +426,20 @@ class ClientInstance {
         }
 
         fn render_brackets(&self) -> (&'static str, &'static str) {
-            if self.is_tuple {
+            if !self.flattened_types.is_empty() {
+                ("= {", "}")
+            } else if self.is_tuple {
                 ("= [", "]\n")
             } else {
                 ("{", "}")
+            }
+        }
+
+        fn render_flattened_types(&self) -> String {
+            if self.flattened_types.is_empty() {
+                "".into()
+            } else {
+                return format!(" & {}", self.flattened_types.join(" &\n    "));
             }
         }
     }
@@ -697,6 +708,7 @@ fn modules_from_function_group(
         description: "".into(),
         fields: Default::default(),
         is_tuple: false,
+        flattened_types: vec![],
     };
 
     for function_name in group.functions.iter() {
@@ -819,11 +831,25 @@ fn render_type(
                     fields: struct_def
                         .fields
                         .iter()
+                        .filter(|f| !f.flattened)
                         .map(|field| templates::Field {
                             name: field.name.clone(),
                             description: doc_to_ts_comments(&field.description, 4),
                             type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
                             optional: !field.required,
+                        })
+                        .collect::<Vec<_>>(),
+                    flattened_types: struct_def
+                        .fields
+                        .iter()
+                        .filter(|f| f.flattened)
+                        .map(|field| {
+                            let type_ref = type_ref_to_ts_ref(&field.type_ref, schema, implemented_types);
+                            if field.required {
+                                type_ref
+                            } else {
+                                format!("Partial<{}>", type_ref.replace(" | null", ""))
+                            }
                         })
                         .collect::<Vec<_>>(),
                 };

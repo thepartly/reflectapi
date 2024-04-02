@@ -285,3 +285,25 @@ struct TestStructWithFlatten {
 fn test_struct_with_flatten() {
     assert_snapshot!(TestStructWithFlatten);
 }
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithFlattenOptional {
+    #[serde(flatten, skip_serializing_if = "Option::is_none", default)]
+    g: Option<TestStructWithFlattenNested>,
+}
+#[test]
+fn test_struct_with_flatten_optional() {
+    assert_snapshot!(TestStructWithFlattenOptional);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithFlattenOptionalAndRequired {
+    #[serde(flatten, skip_serializing_if = "Option::is_none", default)]
+    g: Option<TestStructWithFlattenNested>,
+    #[serde(flatten)]
+    k: TestStructRenameAll
+}
+#[test]
+fn test_struct_with_flatten_optional_and_required() {
+    assert_snapshot!(TestStructWithFlattenOptionalAndRequired);
+}
