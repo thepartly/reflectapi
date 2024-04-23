@@ -490,3 +490,33 @@ struct TestStructUnitType;
 fn test_reflect_struct_unit_type() {
     assert_snapshot!(TestStructUnitType);
 }
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithSkipField {
+    #[reflect(skip)]
+    _f: u8,
+}
+#[test]
+fn test_reflect_struct_with_skip_field() {
+    assert_snapshot!(TestStructWithSkipField);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithSkipFieldInput {
+    #[reflect(input_skip)]
+    _f: u8,
+}
+#[test]
+fn test_reflect_struct_with_skip_field_input() {
+    assert_snapshot!(TestStructWithSkipFieldInput);
+}
+
+#[derive(reflect::Input, reflect::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithSkipFieldOutput {
+    #[reflect(output_skip)]
+    _f: u8,
+}
+#[test]
+fn test_reflect_struct_with_skip_field_output() {
+    assert_snapshot!(TestStructWithSkipFieldOutput);
+}

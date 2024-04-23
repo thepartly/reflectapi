@@ -1,0 +1,47 @@
+---
+source: reflect-demo/src/tests/basic.rs
+expression: "super::into_schema::<TestStructWithSkipField>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithSkipField"
+      },
+      "output_type": {
+        "name": "reflect_demo::tests::basic::TestStructWithSkipField"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructWithSkipField"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflect::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflect_demo::tests::basic::TestStructWithSkipField"
+      }
+    ]
+  }
+}
