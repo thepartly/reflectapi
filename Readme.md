@@ -1,6 +1,6 @@
 # ReflectAPI
 
-ReflectAPI is a library for Rust code-first web service API declaration and corresponding code generation tools.
+ReflectAPI is a library for Rust code-first web service API declaration and corresponding clients code generation tools.
 
 More documentation will follow later.
 

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 license = "MIT"
-description = "ReflectAPI is a library for code-first web service API declaration and corresponding code generation tools."
+description = "ReflectAPI is a library for Rust code-first web service API declaration and corresponding clients code generation tools."
 homepage = "https://github.com/thepartly/reflectapi"
 documentation = "https://docs.rs/reflectapi"
 repository = "https://github.com/thepartly/reflectapi"
