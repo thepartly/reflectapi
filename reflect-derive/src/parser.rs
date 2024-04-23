@@ -137,6 +137,8 @@ pub(crate) struct ParsedFieldAttributes {
     pub output_type: Option<syn::Type>,
     pub input_transform: String,
     pub output_transform: String,
+    pub input_skip: bool,
+    pub output_skip: bool,
 }
 
 impl Default for ParsedFieldAttributes {
@@ -146,6 +148,8 @@ impl Default for ParsedFieldAttributes {
             output_type: None,
             input_transform: String::new(),
             output_transform: String::new(),
+            input_skip: false,
+            output_skip: false,
         }
     }
 }
@@ -172,7 +176,10 @@ pub(crate) fn parse_doc_attributes(attrs: &Vec<syn::Attribute>) -> String {
 }
 
 /// Extract out the `#[reflect(...)]` attributes from a type definition.
-pub(crate) fn parse_type_attributes(cx: &Context, attributes: &Vec<syn::Attribute>) -> ParsedTypeAttributes {
+pub(crate) fn parse_type_attributes(
+    cx: &Context,
+    attributes: &Vec<syn::Attribute>,
+) -> ParsedTypeAttributes {
     let mut result = ParsedTypeAttributes::default();
 
     for attr in attributes.iter() {
@@ -232,7 +239,10 @@ pub(crate) fn parse_type_attributes(cx: &Context, attributes: &Vec<syn::Attribut
     result
 }
 
-pub(crate) fn parse_field_attributes(cx: &Context, attributes: &Vec<syn::Attribute>) -> ParsedFieldAttributes {
+pub(crate) fn parse_field_attributes(
+    cx: &Context,
+    attributes: &Vec<syn::Attribute>,
+) -> ParsedFieldAttributes {
     let mut result = ParsedFieldAttributes::default();
 
     for attr in attributes.iter() {
@@ -297,6 +307,16 @@ pub(crate) fn parse_field_attributes(cx: &Context, attributes: &Vec<syn::Attribu
                     result.output_transform = path.to_token_stream().to_string();
                     result.input_transform = path.to_token_stream().to_string();
                 }
+            } else if meta.path == INPUT_SKIP {
+                // #[reflect(input_skip)]
+                result.input_skip = true;
+            } else if meta.path == OUTPUT_SKIP {
+                // #[reflect(output_skip)]
+                result.output_skip = true;
+            } else if meta.path == SKIP {
+                // #[reflect(skip)]
+                result.input_skip = true;
+                result.output_skip = true;
             } else {
                 let path = meta.path.to_token_stream().to_string();
                 return Err(meta.error(format_args!("unknown reflect field attribute `{}`", path)));

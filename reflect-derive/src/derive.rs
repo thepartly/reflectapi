@@ -251,12 +251,10 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                 let mut result = Struct::new(type_def_name);
                 result.description = type_def_description;
                 for field in fields {
-                    if !match cx.reflect_type() {
-                        ReflectType::Input => field.attrs.skip_deserializing(),
-                        ReflectType::Output => field.attrs.skip_serializing(),
-                    } {
-                        result.fields.push(visit_field(cx, field));
-                    }
+                    let Some(f) = visit_field(cx, field) else {
+                        continue;
+                    };
+                    result.fields.push(f);
                 }
                 visit_generic_parameters(cx, &container.generics, &mut result.parameters);
                 result.transparent = container.attrs.transparent();
@@ -325,12 +323,10 @@ fn visit_variant<'a>(
         }
     }
     for field in &variant.fields {
-        if !match cx.reflect_type() {
-            ReflectType::Input => field.attrs.skip_deserializing(),
-            ReflectType::Output => field.attrs.skip_serializing(),
-        } {
-            result.fields.push(visit_field(cx, field));
-        }
+        let Some(f) = visit_field(cx, field) else {
+            continue;
+        };
+        result.fields.push(f);
     }
     result.untagged = variant.attrs.untagged();
     result
@@ -339,11 +335,17 @@ fn visit_variant<'a>(
 fn visit_field<'a>(
     cx: &Context,
     field: &serde_derive_internals::ast::Field<'a>,
-) -> reflect_schema::Field {
+) -> Option<reflect_schema::Field> {
     let (field_name, serde_name) =
         visit_name(cx, field.attrs.name(), field.original.ident.as_ref());
     let field_name = field_name.into();
     let attrs = parse_field_attributes(cx, &field.original.attrs);
+    if match cx.reflect_type() {
+        ReflectType::Input => attrs.input_skip || field.attrs.skip_deserializing(),
+        ReflectType::Output => attrs.output_skip || field.attrs.skip_serializing(),
+    } {
+        return None;
+    }
     let (field_type, field_transform) = match cx.reflect_type() {
         ReflectType::Input => (attrs.input_type, attrs.input_transform),
         ReflectType::Output => (attrs.output_type, attrs.output_transform),
@@ -363,7 +365,7 @@ fn visit_field<'a>(
         ReflectType::Output => field.attrs.skip_serializing_if().is_none(),
     };
     field_def.flattened = field.attrs.flatten();
-    field_def
+    Some(field_def)
 }
 
 fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflect_schema::TypeReference {

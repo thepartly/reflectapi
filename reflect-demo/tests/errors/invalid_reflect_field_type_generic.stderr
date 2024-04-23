@@ -2,7 +2,7 @@ error[E0277]: the trait bound `NotReflectable: Input` is not satisfied
  --> tests/errors/invalid_reflect_field_type_generic.rs:3:12
   |
 3 |     field: Vec<NotReflectable>,
-  |            ^^^^^^^^^^^^^^^^^^^ the trait `Input` is not implemented for `NotReflectable`
+  |            ^^^^^^^^^^^^^^^^^^^ the trait `Input` is not implemented for `NotReflectable`, which is required by `Vec<NotReflectable>: Input`
   |
   = help: the following other types implement trait `Input`:
             bool
@@ -20,7 +20,7 @@ error[E0277]: the trait bound `NotReflectable: reflect::Output` is not satisfied
  --> tests/errors/invalid_reflect_field_type_generic.rs:3:12
   |
 3 |     field: Vec<NotReflectable>,
-  |            ^^^^^^^^^^^^^^^^^^^ the trait `reflect::Output` is not implemented for `NotReflectable`
+  |            ^^^^^^^^^^^^^^^^^^^ the trait `reflect::Output` is not implemented for `NotReflectable`, which is required by `Vec<NotReflectable>: reflect::Output`
   |
   = help: the following other types implement trait `reflect::Output`:
             bool

@@ -3,6 +3,7 @@ members = [
     "reflect",
     "reflect-cli",
     "reflect-demo",
+    "reflect-demo/clients/rust",
     "reflect-derive",
     "reflect-schema",
 ]

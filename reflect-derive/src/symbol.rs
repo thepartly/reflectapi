@@ -15,6 +15,10 @@ pub const TRANSFORM: Symbol = Symbol("transform");
 pub const INPUT_TRANSFORM: Symbol = Symbol("input_transform");
 pub const OUTPUT_TRANSFORM: Symbol = Symbol("output_transform");
 
+pub const SKIP: Symbol = Symbol("skip");
+pub const INPUT_SKIP: Symbol = Symbol("input_skip");
+pub const OUTPUT_SKIP: Symbol = Symbol("output_skip");
+
 pub const DISCRIMINANT: Symbol = Symbol("discriminant");
 
 impl PartialEq<Symbol> for Ident {
