@@ -3,6 +3,22 @@ name = "reflectapi-schema"
 version = "0.1.0"
 edition = "2021"
 
+license = "MIT"
+description = "A library for defining and serializing/deserializing ReflectAPI schemas"
+homepage = "https://github.com/thepartly/reflectapi"
+documentation = "https://docs.rs/reflectapi-schema"
+repository = "https://github.com/thepartly/reflectapi"
+readme = "README.md"
+
+keywords = [
+    "reflectapi",
+    "reflection",
+    "schema",
+    "serialization",
+    "deserialization",
+]
+categories = ["web-programming", "development-tools", "api-bindings"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

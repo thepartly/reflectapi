@@ -3,16 +3,26 @@ name = "reflectapi-derive"
 version = "0.1.0"
 edition = "2021"
 
+license = "MIT"
+description = "Derive macros for reflectapi"
+repository = "https://github.com/thepartly/reflectapi"
+homepage = "https://github.com/thepartly/reflectapi"
+documentation = "https://docs.rs/reflectapi-derive"
+readme = "README.md"
+
+keywords = ["derive", "macro", "reflectapi", "reflection"]
+categories = ["web-programming", "development-tools", "api-bindings"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 proc-macro = true
 
 [dependencies]
+reflectapi-schema = "0.1.0"
+
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "2.0.52", features = ["extra-traits"] }
 serde_derive_internals = "0.29.0"
 proc-macro-error = "1.0.0"
-
-reflectapi-schema = { workspace = true }

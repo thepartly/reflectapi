@@ -1,3 +1,4 @@
+#[cfg(any(feature = "builder", feature = "axum"))]
 use crate::StatusCode;
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -5,7 +6,7 @@ pub struct Infallible {
     marker: std::marker::PhantomData<()>,
 }
 
-#[cfg(feature = "builder")]
+#[cfg(any(feature = "builder", feature = "axum"))]
 impl StatusCode for Infallible {
     fn status_code(&self) -> u16 {
         500

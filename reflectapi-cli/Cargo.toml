@@ -3,10 +3,20 @@ name = "reflectapi-cli"
 version = "0.1.0"
 edition = "2021"
 
+license = "MIT"
+description = "CLI for reflectapi"
+homepage = "https://github.com/thepartly/reflectapi"
+documentation = "https://docs.rs/reflectapi-cli"
+repository = "https://github.com/thepartly/reflectapi"
+readme = "README.md"
+
+keywords = ["reflectapi", "reflection", "cli", "codegen", "restapi-client"]
+categories = ["web-programming", "development-tools", "api-bindings"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reflectapi = { workspace = true, features = ["codegen"] }
+reflectapi = { version = "0.1.0", features = ["codegen"] }
 
 clap = { version = "4.5.3", features = ["derive"] }
 clap_derive = "4.5.3"

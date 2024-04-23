@@ -3,12 +3,28 @@ name = "reflectapi"
 version = "0.1.0"
 edition = "2021"
 
+license = "MIT"
+description = "ReflectAPI is a library for code-first web service API declaration and corresponding code generation tools."
+homepage = "https://github.com/thepartly/reflectapi"
+documentation = "https://docs.rs/reflectapi"
+repository = "https://github.com/thepartly/reflectapi"
+readme = "README.md"
+
+keywords = [
+    "reflectapi",
+    "codegen",
+    "reflection",
+    "restapi",
+    "openapi",
+]
+categories = ["web-programming", "development-tools", "api-bindings"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 # workspace dependencies
-reflectapi-derive.workspace = true
-reflectapi-schema.workspace = true
+reflectapi-derive = "0.1.0"
+reflectapi-schema = "0.1.0"
 
 # mandatory 3rd party dependencies
 serde = { version = "1.0.197", features = ["derive"] }
