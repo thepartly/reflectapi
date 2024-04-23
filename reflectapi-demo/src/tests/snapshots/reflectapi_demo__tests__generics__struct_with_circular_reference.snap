@@ -1,0 +1,44 @@
+---
+source: reflectapi-demo/src/tests/generics.rs
+expression: "super::into_input_schema::<TestStructWithCircularReference>().input_types"
+---
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflectapi::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "struct",
+      "name": "reflectapi_demo::tests::generics::TestStructWithCircularReference",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::boxed::Box",
+            "parameters": [
+              {
+                "name": "reflectapi_demo::tests::generics::TestStructWithCircularReference"
+              }
+            ]
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::boxed::Box",
+      "description": "std::boxed::Box pointer type",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ],
+      "fallback": {
+        "name": "T"
+      }
+    }
+  ]
+}

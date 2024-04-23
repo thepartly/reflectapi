@@ -1,0 +1,61 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+assertion_line: 41
+expression: "super::into_input_schema::<TestEnumWithGenerics<u8>>().input_types"
+---
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflectapi::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "enum",
+      "name": "reflectapi_demo::tests::enums::TestEnumWithGenerics",
+      "parameters": [
+        {
+          "name": "T"
+        }
+      ],
+      "variants": [
+        {
+          "name": "Variant1",
+          "fields": [
+            {
+              "name": "0",
+              "type": {
+                "name": "T"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "name": "Variant2",
+          "fields": [
+            {
+              "name": "0",
+              "type": {
+                "name": "T"
+              },
+              "required": true
+            },
+            {
+              "name": "1",
+              "type": {
+                "name": "T"
+              },
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

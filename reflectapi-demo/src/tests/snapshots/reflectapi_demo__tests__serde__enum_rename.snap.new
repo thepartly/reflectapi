@@ -1,0 +1,64 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+assertion_line: 67
+expression: "super::into_schema::<TestEnumRename>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::MyEnum"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::MyEnum"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::MyEnum",
+        "variants": [
+          {
+            "name": "V1"
+          },
+          {
+            "name": "V2"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::MyEnum",
+        "variants": [
+          {
+            "name": "V1"
+          },
+          {
+            "name": "V2"
+          }
+        ]
+      }
+    ]
+  }
+}

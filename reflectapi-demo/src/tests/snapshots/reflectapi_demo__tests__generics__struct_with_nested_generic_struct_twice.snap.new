@@ -1,0 +1,72 @@
+---
+source: reflectapi-demo/src/tests/generics.rs
+assertion_line: 65
+expression: "super::into_input_schema::<TestStructWithNestedGenericStructTwice>().input_types"
+---
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflectapi::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "struct",
+      "name": "reflectapi_demo::tests::generics::TestStructWithNestedGenericStructTwice",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
+            "parameters": [
+              {
+                "name": "u8"
+              }
+            ]
+          },
+          "required": true
+        },
+        {
+          "name": "_f2",
+          "type": {
+            "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
+            "parameters": [
+              {
+                "name": "std::string::String"
+              }
+            ]
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
+      "parameters": [
+        {
+          "name": "A"
+        }
+      ],
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "A"
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "super::into_schema::<TestEnumWithVariantOther>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::TestEnumWithVariantOther"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::TestEnumWithVariantOther"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::TestEnumWithVariantOther",
+        "representation": {
+          "Internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "V0"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::TestEnumWithVariantOther",
+        "representation": {
+          "Internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "V0"
+          },
+          {
+            "name": "Variant1"
+          }
+        ]
+      }
+    ]
+  }
+}

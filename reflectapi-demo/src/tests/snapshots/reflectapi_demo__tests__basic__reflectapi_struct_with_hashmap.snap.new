@@ -1,0 +1,128 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+assertion_line: 137
+expression: "super::into_schema::<TestStructWithHashMap>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructWithHashMap"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructWithHashMap"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructWithHashMap",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::collections::HashMap",
+              "parameters": [
+                {
+                  "name": "u8"
+                },
+                {
+                  "name": "std::string::String"
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashMap",
+        "description": "Key-value map type",
+        "parameters": [
+          {
+            "name": "K"
+          },
+          {
+            "name": "V"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructWithHashMap",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::collections::HashMap",
+              "parameters": [
+                {
+                  "name": "u8"
+                },
+                {
+                  "name": "std::string::String"
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashMap",
+        "description": "Key-value map type",
+        "parameters": [
+          {
+            "name": "K"
+          },
+          {
+            "name": "V"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

@@ -1,0 +1,73 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: "super::into_schema::<TestStructUnitType>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructUnitType"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructUnitType"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "()",
+        "description": "Unit type"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructUnitType",
+        "fields": [
+          {
+            "name": "0",
+            "type": {
+              "name": "()"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "()",
+        "description": "Unit type"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructUnitType",
+        "fields": [
+          {
+            "name": "0",
+            "type": {
+              "name": "()"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

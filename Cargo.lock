@@ -1027,7 +1027,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "reflect"
+name = "reflectapi"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1036,34 +1036,34 @@ dependencies = [
  "bytes",
  "chrono",
  "indexmap",
- "reflect-derive",
- "reflect-schema",
+ "reflectapi-derive",
+ "reflectapi-schema",
  "serde",
  "serde_json",
  "uuid",
 ]
 
 [[package]]
-name = "reflect-cli"
+name = "reflectapi-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "askama",
  "clap",
  "clap_derive",
- "reflect",
+ "reflectapi",
  "serde_json",
 ]
 
 [[package]]
-name = "reflect-demo"
+name = "reflectapi-demo"
 version = "0.1.0"
 dependencies = [
  "axum",
  "bytes",
  "chrono",
  "insta",
- "reflect",
+ "reflectapi",
  "serde",
  "serde_json",
  "tokio",
@@ -1072,29 +1072,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "reflect-demo-client"
+name = "reflectapi-demo-client"
 version = "0.1.0"
 dependencies = [
  "bytes",
- "reflect",
+ "reflectapi",
  "reqwest",
  "serde",
 ]
 
 [[package]]
-name = "reflect-derive"
+name = "reflectapi-derive"
 version = "0.1.0"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "reflect-schema",
+ "reflectapi-schema",
  "serde_derive_internals",
  "syn 2.0.52",
 ]
 
 [[package]]
-name = "reflect-schema"
+name = "reflectapi-schema"
 version = "0.1.0"
 dependencies = [
  "serde",

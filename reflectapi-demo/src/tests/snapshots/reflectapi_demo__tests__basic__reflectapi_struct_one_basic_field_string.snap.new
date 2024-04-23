@@ -1,0 +1,32 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+assertion_line: 30
+expression: "super::into_input_schema::<TestStructOneBasicFieldString>().input_types"
+---
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflectapi::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "struct",
+      "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldString",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "std::string::String"
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
+    }
+  ]
+}

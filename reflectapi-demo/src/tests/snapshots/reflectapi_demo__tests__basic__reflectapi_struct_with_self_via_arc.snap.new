@@ -1,0 +1,102 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+assertion_line: 225
+expression: "super::into_schema::<TestStructWithSelfViaArc>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructWithSelfViaArc"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructWithSelfViaArc"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructWithSelfViaArc",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::sync::Arc",
+              "parameters": [
+                {
+                  "name": "reflectapi_demo::tests::basic::TestStructWithSelfViaArc"
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::sync::Arc",
+        "description": "std::sync::Arc pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructWithSelfViaArc",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::sync::Arc",
+              "parameters": [
+                {
+                  "name": "reflectapi_demo::tests::basic::TestStructWithSelfViaArc"
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::sync::Arc",
+        "description": "std::sync::Arc pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      }
+    ]
+  }
+}

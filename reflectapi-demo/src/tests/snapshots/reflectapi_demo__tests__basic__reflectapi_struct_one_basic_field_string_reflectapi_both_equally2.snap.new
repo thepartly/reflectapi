@@ -1,0 +1,32 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+assertion_line: 69
+expression: "super::into_input_schema::<TestStructOneBasicFieldStringReflectBothEqually>().input_types"
+---
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflectapi::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "struct",
+      "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothEqually",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "u32"
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u32",
+      "description": "32-bit unsigned integer"
+    }
+  ]
+}

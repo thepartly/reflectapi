@@ -1,0 +1,48 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+assertion_line: 6
+expression: "super::into_schema::<TestStructRename>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::MyStruct"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::MyStruct"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::MyStruct"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::MyStruct"
+      }
+    ]
+  }
+}

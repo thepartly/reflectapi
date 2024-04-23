@@ -1,0 +1,59 @@
+---
+source: reflectapi-demo/src/tests/generics.rs
+expression: "super::into_input_schema::<TestStructWithNestedGenericStruct>().input_types"
+---
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflectapi::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "struct",
+      "name": "reflectapi_demo::tests::generics::TestStructWithNestedGenericStruct",
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
+            "parameters": [
+              {
+                "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
+                "parameters": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            ]
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
+      "parameters": [
+        {
+          "name": "A"
+        }
+      ],
+      "fields": [
+        {
+          "name": "_f",
+          "type": {
+            "name": "A"
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

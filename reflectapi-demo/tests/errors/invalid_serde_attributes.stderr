@@ -1,0 +1,11 @@
+error: unknown serde field attribute `unknown_attributes`
+ --> tests/errors/invalid_serde_attributes.rs:3:13
+  |
+3 |     #[serde(unknown_attributes)]
+  |             ^^^^^^^^^^^^^^^^^^
+
+error: failure to derive reflectapi::Input/reflectapi::Output while serde compilation fails
+ --> tests/errors/invalid_serde_attributes.rs:2:8
+  |
+2 | struct MyStruct {
+  |        ^^^^^^^^

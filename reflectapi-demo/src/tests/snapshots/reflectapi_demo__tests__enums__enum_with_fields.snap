@@ -1,0 +1,65 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: "super::into_input_schema::<TestEnumWithFields>().input_types"
+---
+{
+  "types": [
+    {
+      "kind": "primitive",
+      "name": "f64",
+      "description": "64-bit floating point number"
+    },
+    {
+      "kind": "struct",
+      "name": "reflectapi::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "enum",
+      "name": "reflectapi_demo::tests::enums::TestEnumWithFields",
+      "variants": [
+        {
+          "name": "Variant1",
+          "fields": [
+            {
+              "name": "0",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "name": "Variant2",
+          "fields": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "1",
+              "type": {
+                "name": "f64"
+              },
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+assertion_line: 346
+expression: "super::into_input_schema::<TestStructDocumented>().input_types"
+---
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflectapi::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "struct",
+      "name": "reflectapi_demo::tests::basic::TestStructDocumented",
+      "description": " Some Struct docs\n more\n more",
+      "fields": [
+        {
+          "name": "f",
+          "description": " field docs\n multiline",
+          "type": {
+            "name": "u8"
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "kind": "primitive",
+      "name": "u8",
+      "description": "8-bit unsigned integer"
+    }
+  ]
+}

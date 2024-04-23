@@ -1,0 +1,33 @@
+error[E0277]: the trait bound `TestStructNested: Input` is not satisfied
+ --> tests/errors/invalid_reflect_on_nested_struct.rs:3:9
+  |
+3 |     _f: TestStructNested,
+  |         ^^^^^^^^^^^^^^^^ the trait `Input` is not implemented for `TestStructNested`
+  |
+  = help: the following other types implement trait `Input`:
+            bool
+            char
+            isize
+            i8
+            i16
+            i32
+            i64
+            i128
+          and $N others
+
+error[E0277]: the trait bound `TestStructNested: reflectapi::Output` is not satisfied
+ --> tests/errors/invalid_reflect_on_nested_struct.rs:3:9
+  |
+3 |     _f: TestStructNested,
+  |         ^^^^^^^^^^^^^^^^ the trait `reflectapi::Output` is not implemented for `TestStructNested`
+  |
+  = help: the following other types implement trait `reflectapi::Output`:
+            bool
+            char
+            isize
+            i8
+            i16
+            i32
+            i64
+            i128
+          and $N others

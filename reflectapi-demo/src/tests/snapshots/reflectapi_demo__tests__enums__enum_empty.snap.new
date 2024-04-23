@@ -1,0 +1,18 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+assertion_line: 5
+expression: "super::into_input_schema::<TestEnumEmpty>().input_types"
+---
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflectapi::Empty",
+      "description": "Struct object with no fields"
+    },
+    {
+      "kind": "enum",
+      "name": "reflectapi_demo::tests::enums::TestEnumEmpty"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+error: failure to derive reflectapi::Input/reflectapi::Output while serde compilation fails
+ --> tests/errors/invalid_reflect_enum.rs:2:7
+  |
+2 | union MyUnion {
+  |       ^^^^^^^

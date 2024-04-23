@@ -1,0 +1,89 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+assertion_line: 365
+expression: "super::into_schema::<TestStructTryFormProxy>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::TestStructTryFormProxy"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::TestStructTryFormProxy"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStructTryFormProxy",
+        "fields": [
+          {
+            "name": "0",
+            "type": {
+              "name": "reflectapi_demo::tests::serde::TestStructTryFrom"
+            }
+          }
+        ],
+        "transparent": true
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStructTryFrom",
+        "fields": [
+          {
+            "name": "f",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStructTryFormProxy",
+        "fields": [
+          {
+            "name": "f",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

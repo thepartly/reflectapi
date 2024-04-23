@@ -1,0 +1,16 @@
+[package]
+name = "reflectapi-cli"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reflectapi = { workspace = true, features = ["codegen"] }
+
+clap = { version = "4.5.3", features = ["derive"] }
+clap_derive = "4.5.3"
+askama = "0.12.1"
+
+anyhow = "1.0.81"
+serde_json = "1.0.114"

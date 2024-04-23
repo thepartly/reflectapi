@@ -1,0 +1,107 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+assertion_line: 298
+expression: "super::into_schema::<TestStructWithTransformInput>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructWithTransformInput"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructWithTransformInput"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructWithTransformInput",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::sync::Arc",
+        "description": "std::sync::Arc pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructWithTransformInput",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::sync::Arc",
+              "parameters": [
+                {
+                  "name": "u8"
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::sync::Arc",
+        "description": "std::sync::Arc pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

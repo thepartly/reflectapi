@@ -1,15 +1,15 @@
 [workspace]
 members = [
-    "reflect",
-    "reflect-cli",
-    "reflect-demo",
-    "reflect-demo/clients/rust",
-    "reflect-derive",
-    "reflect-schema",
+    "reflectapi",
+    "reflectapi-cli",
+    "reflectapi-demo",
+    "reflectapi-demo/clients/rust",
+    "reflectapi-derive",
+    "reflectapi-schema",
 ]
 resolver = "2"
 
 [workspace.dependencies]
-reflect = { path = "reflect" }
-reflect-derive = { path = "reflect-derive" }
-reflect-schema = { path = "reflect-schema" }
+reflectapi = { path = "reflectapi" }
+reflectapi-derive = { path = "reflectapi-derive" }
+reflectapi-schema = { path = "reflectapi-schema" }

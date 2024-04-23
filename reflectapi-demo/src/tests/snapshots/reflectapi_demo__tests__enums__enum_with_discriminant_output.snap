@@ -1,0 +1,27 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: "super::into_output_schema::<TestEnumWithDiscriminant>().output_types"
+---
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflectapi::Infallible",
+      "description": "Error object which is expected to be never returned"
+    },
+    {
+      "kind": "enum",
+      "name": "reflectapi_demo::tests::enums::TestEnumWithDiscriminant",
+      "variants": [
+        {
+          "name": "Variant1",
+          "discriminant": 1
+        },
+        {
+          "name": "Variant2",
+          "discriminant": 2
+        }
+      ]
+    }
+  ]
+}

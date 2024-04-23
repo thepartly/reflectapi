@@ -1,0 +1,170 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+assertion_line: 296
+expression: "super::into_schema::<TestStructWithFlattenOptional>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::TestStructWithFlattenOptional"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::TestStructWithFlattenOptional"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested",
+        "fields": [
+          {
+            "name": "f",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStructWithFlattenOptional",
+        "fields": [
+          {
+            "name": "g",
+            "type": {
+              "name": "std::option::Option",
+              "parameters": [
+                {
+                  "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested"
+                }
+              ]
+            },
+            "flattened": true
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "None",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "T"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested",
+        "fields": [
+          {
+            "name": "f",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStructWithFlattenOptional",
+        "fields": [
+          {
+            "name": "g",
+            "type": {
+              "name": "std::option::Option",
+              "parameters": [
+                {
+                  "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested"
+                }
+              ]
+            },
+            "flattened": true
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "None",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "T"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

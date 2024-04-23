@@ -1,0 +1,22 @@
+{
+  "name": "reflectapi-demo-typescript",
+  "version": "1.0.0",
+  "description": "",
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "tsc -p tsconfig.json && node build/index.js"
+  },
+  "dependencies": {
+    "node-fetch": "2"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.30",
+    "@types/node-fetch": "2",
+    "typescript": "5.4.3",
+    "tslib": "2.6.2"
+  }
+}

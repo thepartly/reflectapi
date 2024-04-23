@@ -1,0 +1,76 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+assertion_line: 59
+expression: "super::into_schema::<TestStructOneBasicFieldStringReflectBothEqually>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothEqually"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothEqually"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothEqually",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "u32"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothEqually",
+        "fields": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "u32"
+            },
+            "required": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  }
+}

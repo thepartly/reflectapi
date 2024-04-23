@@ -1,0 +1,58 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+assertion_line: 210
+expression: "super::into_schema::<TestEnumWithFieldSkip>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::TestEnumWithFieldSkip"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::TestEnumWithFieldSkip"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::TestEnumWithFieldSkip",
+        "variants": [
+          {
+            "name": "Variant1"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::TestEnumWithFieldSkip",
+        "variants": [
+          {
+            "name": "Variant1"
+          }
+        ]
+      }
+    ]
+  }
+}
