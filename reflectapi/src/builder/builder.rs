@@ -89,7 +89,7 @@ where
         }
         self.schema.prepend_path(path);
         for h in self.handlers.iter_mut() {
-            h.path = format!("{}{}", self.path, h.path);
+            h.path = format!("{}{}", path, h.path);
         }
         self
     }
