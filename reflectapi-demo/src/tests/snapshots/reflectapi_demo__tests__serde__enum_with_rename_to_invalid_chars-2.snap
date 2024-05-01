@@ -270,7 +270,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.serde.TestEnumWithRenameToInvalidChars, headers: {}) => __request<
         reflectapi_demo.tests.serde.TestEnumWithRenameToInvalidChars, {}, reflectapi_demo.tests.serde.TestEnumWithRenameToInvalidChars, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

@@ -7,6 +7,7 @@ expression: "super::into_schema::<TestStructRenameDifferently>()"
   "functions": [
     {
       "name": "",
+      "path": "",
       "input_type": {
         "name": "reflectapi_demo::tests::serde::MyStructInput"
       },

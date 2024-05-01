@@ -284,7 +284,7 @@ class ClientInstance {
 function input_test(client: Client) {
     return (input: reflectapi_demo.tests.basic.TestEnumDocumented<number /* u8 */>, headers: {}) => __request<
         reflectapi_demo.tests.basic.TestEnumDocumented<number /* u8 */>, {}, {}, {}
-    >(client, 'input_test', input, headers);
+    >(client, '/input_test', input, headers);
 }
 
 }

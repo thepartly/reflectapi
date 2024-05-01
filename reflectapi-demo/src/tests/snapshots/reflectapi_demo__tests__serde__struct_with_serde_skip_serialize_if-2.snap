@@ -279,7 +279,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf, headers: {}) => __request<
         reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf, {}, reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

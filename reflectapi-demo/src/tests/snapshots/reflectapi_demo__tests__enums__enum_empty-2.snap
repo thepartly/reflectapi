@@ -265,7 +265,7 @@ class ClientInstance {
 function input_test(client: Client) {
     return (input: reflectapi_demo.tests.enums.TestEnumEmpty, headers: {}) => __request<
         reflectapi_demo.tests.enums.TestEnumEmpty, {}, {}, {}
-    >(client, 'input_test', input, headers);
+    >(client, '/input_test', input, headers);
 }
 
 }

@@ -15,6 +15,7 @@ where
     for handler in handlers {
         let Handler {
             name,
+            path,
             readonly,
             input_headers,
             callback,
@@ -34,7 +35,10 @@ where
         };
         if readonly {
             // Partly API over HTTP standard requires to expose readonly methods on GET and POST
-            app = app.route(format!("/{}", name).as_str(), get(axum_handler.clone()));
+            app = app.route(
+                format!("{}/{}", path, name).as_str(),
+                get(axum_handler.clone()),
+            );
         }
         app = app.route(format!("/{}", name).as_str(), post(axum_handler));
     }

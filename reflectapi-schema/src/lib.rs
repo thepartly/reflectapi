@@ -266,6 +266,8 @@ impl Typespace {
 pub struct Function {
     /// Includes entity and action, for example: users.login
     pub name: String,
+    /// URL mounting path, for example: /api/v1
+    pub path: String,
     /// Description of the call
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
@@ -302,6 +304,7 @@ impl Function {
     pub fn new(name: String) -> Self {
         Function {
             name,
+            path: String::new(),
             description: String::new(),
             input_type: None,
             input_headers: None,
@@ -314,6 +317,10 @@ impl Function {
 
     pub fn name(&self) -> &str {
         self.name.as_str()
+    }
+
+    pub fn path(&self) -> &str {
+        self.path.as_str()
     }
 
     pub fn description(&self) -> &str {

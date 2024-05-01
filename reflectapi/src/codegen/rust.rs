@@ -813,7 +813,7 @@ fn render_function(
         function_signature(function, schema, implemented_types);
     let function_template = templates::FunctionImplementationTemplate {
         name: function.name.replace("-", "_").replace('.', "__"),
-        path: function.name.clone(),
+        path: format!("{}/{}", function.path, function.name),
         input_type,
         input_headers,
         output_type,

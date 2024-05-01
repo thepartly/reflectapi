@@ -267,7 +267,7 @@ class ClientInstance {
 function output_test(client: Client) {
     return (input: {}, headers: {}) => __request<
         {}, {}, reflectapi_demo.tests.enums.TestEnumWithDiscriminant, {}
-    >(client, 'output_test', input, headers);
+    >(client, '/output_test', input, headers);
 }
 
 }

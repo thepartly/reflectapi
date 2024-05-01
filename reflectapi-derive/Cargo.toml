@@ -19,7 +19,7 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 proc-macro = true
 
 [dependencies]
-reflectapi-schema = "0.1.0"
+reflectapi-schema.workspace = true
 
 proc-macro2 = "1.0"
 quote = "1.0"

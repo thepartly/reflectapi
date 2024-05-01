@@ -309,7 +309,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.basic.TestStructWithAllPrimitiveTypeFields, headers: {}) => __request<
         reflectapi_demo.tests.basic.TestStructWithAllPrimitiveTypeFields, {}, reflectapi_demo.tests.basic.TestStructWithAllPrimitiveTypeFields, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

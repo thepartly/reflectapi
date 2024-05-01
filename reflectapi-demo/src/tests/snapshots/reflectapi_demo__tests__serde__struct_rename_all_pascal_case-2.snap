@@ -267,7 +267,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.serde.TestStructRenameAllPascalCase, headers: {}) => __request<
         reflectapi_demo.tests.serde.TestStructRenameAllPascalCase, {}, reflectapi_demo.tests.serde.TestStructRenameAllPascalCase, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

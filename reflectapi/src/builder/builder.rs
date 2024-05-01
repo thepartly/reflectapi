@@ -46,6 +46,7 @@ where
         let rb = builder(RouteBuilder::new());
         let route = crate::Handler::new(
             rb.name,
+            rb.path,
             rb.description,
             rb.readonly,
             handler,
@@ -97,6 +98,7 @@ where
 
 pub struct RouteBuilder {
     name: String,
+    path: String,
     description: String,
     readonly: bool,
 }
@@ -105,6 +107,7 @@ impl RouteBuilder {
     pub fn new() -> Self {
         Self {
             name: String::new(),
+            path: String::from(""),
             description: String::new(),
             readonly: false,
         }
@@ -112,6 +115,17 @@ impl RouteBuilder {
 
     pub fn name(mut self, name: String) -> Self {
         self.name = name;
+        self
+    }
+
+    pub fn path(mut self, scope: String) -> Self {
+        self.path = scope;
+        if self.path.ends_with('/') {
+            self.path.pop();
+        }
+        if !self.path.starts_with("/") && self.path.len() > 0 {
+            self.path.insert(0, '/');
+        }
         self
     }
 

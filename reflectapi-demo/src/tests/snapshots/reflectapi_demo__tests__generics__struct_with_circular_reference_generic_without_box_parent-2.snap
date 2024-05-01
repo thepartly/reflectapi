@@ -272,7 +272,7 @@ class ClientInstance {
 function input_test(client: Client) {
     return (input: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent<reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent<number /* u8 */, number /* u16 */>, reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent<string, number /* u32 */>>, headers: {}) => __request<
         reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent<reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent<number /* u8 */, number /* u16 */>, reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent<string, number /* u32 */>>, {}, {}, {}
-    >(client, 'input_test', input, headers);
+    >(client, '/input_test', input, headers);
 }
 
 }

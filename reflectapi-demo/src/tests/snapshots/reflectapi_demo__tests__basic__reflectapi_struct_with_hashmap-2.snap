@@ -267,7 +267,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.basic.TestStructWithHashMap, headers: {}) => __request<
         reflectapi_demo.tests.basic.TestStructWithHashMap, {}, reflectapi_demo.tests.basic.TestStructWithHashMap, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

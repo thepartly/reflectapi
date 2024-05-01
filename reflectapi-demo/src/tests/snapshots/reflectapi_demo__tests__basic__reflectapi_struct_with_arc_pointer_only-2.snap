@@ -267,7 +267,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.basic.TestStructWithArcPointerOnly, headers: {}) => __request<
         reflectapi_demo.tests.basic.TestStructWithArcPointerOnly, {}, reflectapi_demo.tests.basic.TestStructWithArcPointerOnly, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

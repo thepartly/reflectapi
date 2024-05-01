@@ -281,7 +281,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.serde.input.TestStructIntoProxy, headers: {}) => __request<
         reflectapi_demo.tests.serde.input.TestStructIntoProxy, {}, reflectapi_demo.tests.serde.output.TestStructIntoProxy, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

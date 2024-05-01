@@ -269,7 +269,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.serde.MyStructInput, headers: {}) => __request<
         reflectapi_demo.tests.serde.MyStructInput, {}, reflectapi_demo.tests.serde.MyStructOutput, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

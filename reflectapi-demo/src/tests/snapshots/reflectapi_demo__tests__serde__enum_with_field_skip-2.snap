@@ -266,7 +266,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.serde.TestEnumWithFieldSkip, headers: {}) => __request<
         reflectapi_demo.tests.serde.TestEnumWithFieldSkip, {}, reflectapi_demo.tests.serde.TestEnumWithFieldSkip, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

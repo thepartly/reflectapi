@@ -276,7 +276,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.serde.input.TestEnumWithVariantSkipDeserialize, headers: {}) => __request<
         reflectapi_demo.tests.serde.input.TestEnumWithVariantSkipDeserialize, {}, reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipDeserialize, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

@@ -1036,25 +1036,11 @@ dependencies = [
  "bytes",
  "chrono",
  "indexmap",
- "reflectapi-derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "reflectapi-schema 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "reflectapi-derive",
+ "reflectapi-schema",
  "serde",
  "serde_json",
  "uuid",
-]
-
-[[package]]
-name = "reflectapi"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb193c3e54e7c33ba29e0f646d701b6a22e63f512fc00d0087764e490c21ac85"
-dependencies = [
- "anyhow",
- "askama",
- "indexmap",
- "reflectapi-derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "reflectapi-schema 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde",
 ]
 
 [[package]]
@@ -1065,7 +1051,7 @@ dependencies = [
  "askama",
  "clap",
  "clap_derive",
- "reflectapi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "reflectapi",
  "serde_json",
 ]
 
@@ -1077,7 +1063,7 @@ dependencies = [
  "bytes",
  "chrono",
  "insta",
- "reflectapi 0.1.0",
+ "reflectapi",
  "serde",
  "serde_json",
  "tokio",
@@ -1090,7 +1076,7 @@ name = "reflectapi-demo-client"
 version = "0.1.0"
 dependencies = [
  "bytes",
- "reflectapi 0.1.0",
+ "reflectapi",
  "reqwest",
  "serde",
 ]
@@ -1102,21 +1088,7 @@ dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "reflectapi-schema 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive_internals",
- "syn 2.0.52",
-]
-
-[[package]]
-name = "reflectapi-derive"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8007ced8acb69683b32efc95e85fc764ec953c644985a5019bbeabee43e1e9a"
-dependencies = [
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "reflectapi-schema 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "reflectapi-schema",
  "serde_derive_internals",
  "syn 2.0.52",
 ]
@@ -1124,15 +1096,6 @@ dependencies = [
 [[package]]
 name = "reflectapi-schema"
 version = "0.1.0"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "reflectapi-schema"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c47bea0573de145ac4c3062f66287bbb0792fdac84c90f8fdea07eeabd4e9ff2"
 dependencies = [
  "serde",
 ]

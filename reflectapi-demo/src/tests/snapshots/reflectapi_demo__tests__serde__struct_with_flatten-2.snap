@@ -270,7 +270,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.serde.TestStructWithFlatten, headers: {}) => __request<
         reflectapi_demo.tests.serde.TestStructWithFlatten, {}, reflectapi_demo.tests.serde.TestStructWithFlatten, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

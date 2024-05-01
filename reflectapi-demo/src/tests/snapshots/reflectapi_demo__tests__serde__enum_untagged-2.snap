@@ -271,7 +271,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.serde.TestEnumUntagged, headers: {}) => __request<
         reflectapi_demo.tests.serde.TestEnumUntagged, {}, reflectapi_demo.tests.serde.TestEnumUntagged, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

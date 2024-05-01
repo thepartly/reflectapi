@@ -23,6 +23,7 @@ where
     S: Send + 'static,
 {
     pub name: String,
+    pub path: String,
     pub readonly: bool,
     pub input_headers: Vec<String>,
     pub callback: Arc<HandlerCallback<S>>,
@@ -34,6 +35,7 @@ where
 {
     pub(crate) fn new<F, Fut, R, I, O, E, H>(
         name: String,
+        path: String,
         description: String,
         readonly: bool,
         handler: F,
@@ -66,6 +68,7 @@ where
 
         let function_def = Function {
             name: name.clone(),
+            path: path.clone(),
             description: description,
             input_type: if input_type.name == "reflectapi::Empty" {
                 None
@@ -97,7 +100,8 @@ where
         input_headers_names.push("traceparent".into());
 
         Handler {
-            name: name,
+            name,
+            path,
             readonly,
             input_headers: input_headers_names.clone(),
             callback: Arc::new(move |state: S, input: HandlerInput| {

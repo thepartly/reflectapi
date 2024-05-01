@@ -267,7 +267,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric<string>, headers: {}) => __request<
         reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric<string>, {}, reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric<string>, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

@@ -7,6 +7,7 @@ expression: "super::into_schema::<TestStructWithFlattenOptionalAndRequired>()"
   "functions": [
     {
       "name": "",
+      "path": "",
       "input_type": {
         "name": "reflectapi_demo::tests::serde::TestStructWithFlattenOptionalAndRequired"
       },

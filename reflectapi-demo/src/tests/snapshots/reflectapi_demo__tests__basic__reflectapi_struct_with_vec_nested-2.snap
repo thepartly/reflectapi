@@ -275,7 +275,7 @@ class ClientInstance {
 function (client: Client) {
     return (input: reflectapi_demo.tests.basic.TestStructWithVecNested, headers: {}) => __request<
         reflectapi_demo.tests.basic.TestStructWithVecNested, {}, reflectapi_demo.tests.basic.TestStructWithVecNested, {}
-    >(client, '', input, headers);
+    >(client, '/', input, headers);
 }
 
 }

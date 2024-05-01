@@ -7,6 +7,7 @@ expression: "super::into_schema::<TestStructWithTransformFallback>()"
   "functions": [
     {
       "name": "",
+      "path": "",
       "input_type": {
         "name": "reflectapi_demo::tests::basic::TestStructWithTransformFallback"
       },
