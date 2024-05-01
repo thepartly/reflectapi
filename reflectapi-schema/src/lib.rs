@@ -49,6 +49,27 @@ impl Schema {
         &self.output_types
     }
 
+    pub fn extend(&mut self, other: Self) {
+        let Self {
+            functions,
+            input_types,
+            output_types,
+            ..
+        } = other;
+        self.functions.extend(functions);
+        self.input_types.extend(input_types);
+        self.output_types.extend(output_types);
+    }
+
+    pub fn prepend_path(&mut self, path: &str) {
+        if path.is_empty() {
+            return;
+        }
+        for function in self.functions.iter_mut() {
+            function.path = format!("{}{}", path, function.path);
+        }
+    }
+
     pub fn consolidate_types(&mut self) -> Vec<String> {
         // this is probably very inefficient approach to deduplicate types
         // but is simple enough and will work for foreseeable future
@@ -241,6 +262,21 @@ impl Typespace {
     pub fn sort_types(&mut self) {
         self.types.sort_by(|a, b| a.name().cmp(&b.name()));
         self.build_types_map();
+    }
+
+    pub fn has_type(&self, name: &str) -> bool {
+        self.ensure_types_map();
+        self.types_map.borrow().contains_key(name)
+    }
+
+    pub fn extend(&mut self, other: Self) {
+        self.ensure_types_map();
+        for ty in other.types {
+            if self.has_type(ty.name()) {
+                continue;
+            }
+            self.insert_type(ty);
+        }
     }
 
     fn invalidate_types_map(&self) {

@@ -3,6 +3,7 @@ where
     S: Send + 'static,
 {
     schema: crate::Schema,
+    path: String,
     handlers: Vec<crate::Handler<S>>,
     validators: Vec<fn(&crate::Schema) -> Vec<crate::ValidationError>>,
 }
@@ -14,6 +15,7 @@ where
     pub fn new() -> Self {
         Self {
             schema: crate::Schema::new(),
+            path: String::from(""),
             handlers: Vec::new(),
             validators: Vec::new(),
         }
@@ -21,6 +23,17 @@ where
 
     pub fn name(mut self, name: String) -> Self {
         self.schema.name = name;
+        self
+    }
+
+    pub fn path(mut self, path: String) -> Self {
+        self.path = path;
+        if self.path.ends_with('/') {
+            self.path.pop();
+        }
+        if !self.path.starts_with("/") && self.path.len() > 0 {
+            self.path.insert(0, '/');
+        }
         self
     }
 
@@ -43,7 +56,7 @@ where
         O: crate::Output + serde::ser::Serialize + Send + 'static,
         E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
-        let rb = builder(RouteBuilder::new());
+        let rb = builder(RouteBuilder::new().path(self.path.clone()));
         let route = crate::Handler::new(
             rb.name,
             rb.path,
@@ -53,6 +66,24 @@ where
             &mut self.schema,
         );
         self.handlers.push(route);
+        self
+    }
+
+    pub fn extend(mut self, other: Builder<S>) -> Self {
+        let other = other.prepend_path(self.path.as_str());
+        self.schema.extend(other.schema);
+        self.handlers.extend(other.handlers);
+        self
+    }
+
+    pub fn prepend_path(mut self, path: &str) -> Self {
+        if path.is_empty() {
+            return self;
+        }
+        self.schema.prepend_path(path);
+        for h in self.handlers.iter_mut() {
+            h.path = format!("{}{}", self.path, h.path);
+        }
         self
     }
 
@@ -118,8 +149,8 @@ impl RouteBuilder {
         self
     }
 
-    pub fn path(mut self, scope: String) -> Self {
-        self.path = scope;
+    pub fn path(mut self, path: String) -> Self {
+        self.path = path;
         if self.path.ends_with('/') {
             self.path.pop();
         }
