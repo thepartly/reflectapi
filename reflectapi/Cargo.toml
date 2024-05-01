@@ -17,8 +17,8 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 
 [dependencies]
 # workspace dependencies
-reflectapi-derive.workspace = true
-reflectapi-schema.workspace = true
+reflectapi-derive = { workspace = true, version = "0.1.0" }
+reflectapi-schema = { workspace = true, version = "0.1.0" }
 
 # mandatory 3rd party dependencies
 serde = { version = "1.0.197", features = ["derive"] }
