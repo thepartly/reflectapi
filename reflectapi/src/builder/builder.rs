@@ -5,6 +5,7 @@ where
     schema: crate::Schema,
     path: String,
     handlers: Vec<crate::Handler<S>>,
+    merged_handlers: Vec<(String, Vec<crate::Handler<S>>)>,
     validators: Vec<fn(&crate::Schema) -> Vec<crate::ValidationError>>,
 }
 
@@ -17,6 +18,7 @@ where
             schema: crate::Schema::new(),
             path: String::from(""),
             handlers: Vec::new(),
+            merged_handlers: Vec::new(),
             validators: Vec::new(),
         }
     }
@@ -70,13 +72,18 @@ where
     }
 
     pub fn extend(mut self, other: Builder<S>) -> Self {
-        let other = other.prepend_path(self.path.as_str());
+        let other_name = other.schema.name.clone();
+        self.merged_handlers.push((other_name, other.handlers));
         self.schema.extend(other.schema);
-        self.handlers.extend(other.handlers);
         self
     }
 
-    pub fn prepend_path(mut self, path: &str) -> Self {
+    pub fn nest(self, other: Builder<S>) -> Self {
+        let other = other.prepend_path(self.path.as_str());
+        self.extend(other)
+    }
+
+    fn prepend_path(mut self, path: &str) -> Self {
         if path.is_empty() {
             return self;
         }
@@ -110,9 +117,7 @@ where
         self
     }
 
-    pub fn build(
-        mut self,
-    ) -> Result<(crate::Schema, Vec<crate::Handler<S>>), Vec<crate::ValidationError>> {
+    pub fn build(mut self) -> Result<(crate::Schema, Vec<Router<S>>), Vec<crate::ValidationError>> {
         self.schema.input_types.sort_types();
         self.schema.output_types.sort_types();
 
@@ -123,8 +128,27 @@ where
         if !errors.is_empty() {
             return Err(errors);
         }
-        Ok((self.schema, self.handlers))
+        let mut routers = vec![Router {
+            name: self.schema.name.clone(),
+            handlers: self.handlers,
+        }];
+        for (name, handlers) in self.merged_handlers {
+            let router = Router {
+                name: name.clone(),
+                handlers: handlers,
+            };
+            routers.push(router);
+        }
+        Ok((self.schema, routers))
     }
+}
+
+pub struct Router<S>
+where
+    S: Send + 'static,
+{
+    pub name: String,
+    pub handlers: Vec<crate::Handler<S>>,
 }
 
 pub struct RouteBuilder {

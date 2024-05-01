@@ -7,11 +7,25 @@ use axum::{
 
 use crate::{Handler, HandlerInput, HandlerOutput};
 
-pub fn into_router<S>(app_state: S, handlers: Vec<Handler<S>>) -> Router
+pub fn into_router<S, F>(app_state: S, router: Vec<crate::Router<S>>, cb: F) -> Router
+where
+    S: Send + Clone + 'static,
+    F: Fn(String, Router) -> Router,
+{
+    let mut app = Router::new();
+    for r in router {
+        let (name, router) = into_router_one(app_state.clone(), r);
+        let router = cb(name, router);
+        app = app.merge(router);
+    }
+    app
+}
+fn into_router_one<S>(app_state: S, router: crate::Router<S>) -> (String, Router)
 where
     S: Send + Clone + 'static,
 {
     let mut app = Router::new();
+    let crate::Router { name, handlers } = router;
     for handler in handlers {
         let Handler {
             name,
@@ -33,16 +47,14 @@ where
                 result.into_response()
             }
         };
+        let mount_path = format!("{}/{}", path, name);
         if readonly {
             // Partly API over HTTP standard requires to expose readonly methods on GET and POST
-            app = app.route(
-                format!("{}/{}", path, name).as_str(),
-                get(axum_handler.clone()),
-            );
+            app = app.route(mount_path.as_str(), get(axum_handler.clone()));
         }
-        app = app.route(format!("/{}", name).as_str(), post(axum_handler));
+        app = app.route(mount_path.as_str(), post(axum_handler));
     }
-    app
+    (name, app)
 }
 
 impl IntoResponse for HandlerOutput {

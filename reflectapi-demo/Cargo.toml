@@ -16,6 +16,7 @@ reflectapi = { workspace = true, features = [
 
 tokio = { version = "1.5.0", features = ["full"] }
 axum = "0.7.4"
+tower-http = { version = "0.5.2", features = ["trace", "cors", "timeout"] }
 
 uuid = "1.7.0"
 chrono = { version = "0.4.37", features = ["serde"] }
