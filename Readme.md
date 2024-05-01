@@ -23,3 +23,8 @@ cd reflectapi-demo/clients/typescript/
 pnpm install
 pnpm run start
 ```
+
+To release
+```
+cargo release --exclude reflectapi-demo --exclude reflectapi-demo-client minor --execute
+```
