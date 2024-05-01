@@ -10,6 +10,5 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
+# this is the only one which is referenced via workspace dependency
 reflectapi = { path = "reflectapi" }
-reflectapi-derive = { path = "reflectapi-derive" }
-reflectapi-schema = { path = "reflectapi-schema" }

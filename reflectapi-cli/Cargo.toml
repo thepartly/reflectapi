@@ -16,7 +16,7 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reflectapi = { workspace = true, version = "0.1.0", features = ["codegen"] }
+reflectapi = { path = "../reflectapi", version = "0.1.0", features = ["codegen"] }
 
 clap = { version = "4.5.3", features = ["derive"] }
 clap_derive = "4.5.3"
