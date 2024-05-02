@@ -69,7 +69,7 @@ export class Result<T, E> {
         if ('ok' in this.value) {
             return this.value.ok;
         }
-        throw new Error('called `unwrap_ok` on an `err` value: ' + this.value.err?.toString());
+        throw new Error(`called \`unwrap_ok\` on an \`err\` value: ${this.value.err}`);
     }
     public unwrap_err(): E {
         if ('err' in this.value) {
@@ -240,7 +240,7 @@ export function __request<I, H, O, E>(client: Client, path: string, input: I | u
                 try {
                     parsed_response_body = JSON.parse(response_body)
                 } catch (e) {
-                    return new Result<O, Err<E>>({ err: new Err({ other_err: response_body }) });
+                    return new Result<O, Err<E>>({ err: new Err({ other_err: `[${status}] ${response_body}` }) });
                 }
                 return new Result<O, Err<E>>({ err: new Err({ application_err: parsed_response_body as E }) });
             }
@@ -267,12 +267,12 @@ class ClientInstance {
     constructor(private base: string) {}
 
     public request(path: string, body: string, headers: Record<string, string>): Promise<[number, string]> {
-        return fetch(`${this.base}/${path}`, {
+        return (globalThis as any).fetch(`${this.base}${path}`, {
             method: 'POST',
             headers: headers,
             body: body,
-        }).then((response) => {
-            return response.text().then((text) => {
+        }).then((response: any) => {
+            return response.text().then((text: string) => {
                 return [response.status, text];
             });
         });

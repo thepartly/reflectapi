@@ -300,7 +300,7 @@ export function __request<I, H, O, E>(client: Client, path: string, input: I | u
                 try {
                     parsed_response_body = JSON.parse(response_body)
                 } catch (e) {
-                    return new Result<O, Err<E>>({ err: new Err({ other_err: response_body }) });
+                    return new Result<O, Err<E>>({ err: new Err({ other_err: response_body status }) });
                 }
                 return new Result<O, Err<E>>({ err: new Err({ application_err: parsed_response_body as E }) });
             }
@@ -327,7 +327,7 @@ class ClientInstance {
     constructor(private base: string) {}
 
     public request(path: string, body: string, headers: Record<string, string>): Promise<[number, string]> {
-        return fetch(`${this.base}/${path}`, {
+        return fetch(`${this.base}${path}`, {
             method: 'POST',
             headers: headers,
             body: body,
