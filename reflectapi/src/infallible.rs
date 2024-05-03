@@ -8,8 +8,8 @@ pub struct Infallible {
 
 #[cfg(any(feature = "builder", feature = "axum"))]
 impl StatusCode for Infallible {
-    fn status_code(&self) -> u16 {
-        500
+    fn status_code(&self) -> http::StatusCode {
+        http::StatusCode::INTERNAL_SERVER_ERROR
     }
 }
 

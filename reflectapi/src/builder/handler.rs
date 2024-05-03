@@ -8,7 +8,7 @@ pub struct HandlerInput {
 }
 
 pub struct HandlerOutput {
-    pub code: u16,
+    pub code: http::StatusCode,
     pub body: bytes::Bytes,
     pub headers: std::collections::HashMap<String, String>,
 }
@@ -134,7 +134,7 @@ where
             Ok(r) => r,
             Err(err) => {
                 return HandlerOutput {
-                    code: 400,
+                    code: http::StatusCode::BAD_REQUEST,
                     body: bytes::Bytes::from(
                         format!(
                             "Failed to parse request body: {}, received: {:?}",
@@ -169,7 +169,7 @@ where
             Ok(r) => r,
             Err(err) => {
                 return HandlerOutput {
-                    code: 400,
+                    code: http::StatusCode::BAD_REQUEST,
                     body: bytes::Bytes::from(
                         format!("Failed to parse request headers: {}", err).into_bytes(),
                     ),
@@ -187,7 +187,7 @@ where
             Err(err) => {
                 response_headers.insert("content-type".to_string(), "text/plain".to_string());
                 return HandlerOutput {
-                    code: 500,
+                    code: http::StatusCode::INTERNAL_SERVER_ERROR,
                     body: bytes::Bytes::from(
                         format!("Failed to serialize response body: {}", err).into_bytes(),
                     ),

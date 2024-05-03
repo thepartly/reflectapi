@@ -1,5 +1,5 @@
 pub trait StatusCode {
-    fn status_code(&self) -> u16;
+    fn status_code(&self) -> http::StatusCode;
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -18,18 +18,18 @@ where
     T: crate::Output,
     E: crate::Output + StatusCode,
 {
-    pub fn status_code(&self) -> u16 {
+    pub fn status_code(&self) -> http::StatusCode {
         match self {
-            Result::Ok(_) => 200,
+            Result::Ok(_) => http::StatusCode::OK,
             Result::Err(e) => {
                 let custom_error = e.status_code();
-                if custom_error == 200 {
+                if custom_error == http::StatusCode::OK {
                     // It means a user has implemented ToStatusCode trait for their
                     // type incorrectly. It is a protocol error to return 200 status
                     // code for an error response, as the client will not be able
                     // to "cast" the response body to the correct type.
                     // So, we are reverting it to internal error
-                    500
+                    http::StatusCode::INTERNAL_SERVER_ERROR
                 } else {
                     custom_error
                 }

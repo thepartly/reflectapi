@@ -26,6 +26,7 @@ serde = { version = "1.0.197", features = ["derive"] }
 # optional 3rd party dependencies for implementing schema builder
 serde_json = { version = "1.0.114", optional = true }
 bytes = { version = "1.5.0", optional = true }
+http = { version = "1.1.0", optional = true }
 
 # optional 3rd party dependencies for implementing reflects traits for foreigh types
 uuid = { version = "1.7.0", optional = true }
@@ -42,7 +43,7 @@ indexmap = { version = "2.2.6", optional = true }
 
 [features]
 # feature for implementing schema builder
-builder = ["dep:serde_json", "dep:bytes"]
+builder = ["dep:serde_json", "dep:bytes", "http"]
 # features for implementing reflect traits for foreigh types
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]

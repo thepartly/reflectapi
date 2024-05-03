@@ -269,8 +269,8 @@ mod proto {
     pub struct UnauthorizedError;
 
     impl reflectapi::StatusCode for UnauthorizedError {
-        fn status_code(&self) -> u16 {
-            axum::http::StatusCode::UNAUTHORIZED.as_u16()
+        fn status_code(&self) -> http::StatusCode {
+            http::StatusCode::UNAUTHORIZED
         }
     }
 
@@ -306,10 +306,10 @@ mod proto {
     }
 
     impl reflectapi::StatusCode for PetsListError {
-        fn status_code(&self) -> u16 {
+        fn status_code(&self) -> http::StatusCode {
             match self {
-                PetsListError::InvalidCustor => axum::http::StatusCode::BAD_REQUEST.as_u16(),
-                PetsListError::Unauthorized => axum::http::StatusCode::UNAUTHORIZED.as_u16(),
+                PetsListError::InvalidCustor => http::StatusCode::BAD_REQUEST,
+                PetsListError::Unauthorized => http::StatusCode::UNAUTHORIZED,
             }
         }
     }
@@ -331,13 +331,11 @@ mod proto {
     }
 
     impl reflectapi::StatusCode for PetsCreateError {
-        fn status_code(&self) -> u16 {
+        fn status_code(&self) -> http::StatusCode {
             match self {
-                PetsCreateError::Conflict => axum::http::StatusCode::CONFLICT.as_u16(),
-                PetsCreateError::NotAuthorized => axum::http::StatusCode::UNAUTHORIZED.as_u16(),
-                PetsCreateError::InvalidIdentity { .. } => {
-                    axum::http::StatusCode::UNPROCESSABLE_ENTITY.as_u16()
-                }
+                PetsCreateError::Conflict => http::StatusCode::CONFLICT,
+                PetsCreateError::NotAuthorized => http::StatusCode::UNAUTHORIZED,
+                PetsCreateError::InvalidIdentity { .. } => http::StatusCode::UNPROCESSABLE_ENTITY,
             }
         }
     }
@@ -370,10 +368,10 @@ mod proto {
     }
 
     impl reflectapi::StatusCode for PetsUpdateError {
-        fn status_code(&self) -> u16 {
+        fn status_code(&self) -> http::StatusCode {
             match self {
-                PetsUpdateError::NotFound => axum::http::StatusCode::NOT_FOUND.as_u16(),
-                PetsUpdateError::NotAuthorized => axum::http::StatusCode::UNAUTHORIZED.as_u16(),
+                PetsUpdateError::NotFound => http::StatusCode::NOT_FOUND,
+                PetsUpdateError::NotAuthorized => http::StatusCode::UNAUTHORIZED,
             }
         }
     }
@@ -397,10 +395,10 @@ mod proto {
     }
 
     impl reflectapi::StatusCode for PetsRemoveError {
-        fn status_code(&self) -> u16 {
+        fn status_code(&self) -> http::StatusCode {
             match self {
-                PetsRemoveError::NotFound => axum::http::StatusCode::NOT_FOUND.as_u16(),
-                PetsRemoveError::NotAuthorized => axum::http::StatusCode::UNAUTHORIZED.as_u16(),
+                PetsRemoveError::NotFound => http::StatusCode::NOT_FOUND,
+                PetsRemoveError::NotAuthorized => http::StatusCode::UNAUTHORIZED,
             }
         }
     }
