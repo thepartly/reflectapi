@@ -9,6 +9,7 @@ edition = "2021"
 reflectapi = { workspace = true, features = [
     "uuid",
     "chrono",
+    "url",
     "builder",
     "axum",
     "codegen",

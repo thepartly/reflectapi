@@ -31,6 +31,7 @@ http = { version = "1.1.0", optional = true }
 # optional 3rd party dependencies for implementing reflects traits for foreigh types
 uuid = { version = "1.7.0", optional = true }
 chrono = { version = "0.4.37", optional = true }
+url = { version = "2.5.0", optional = true }
 
 # optional 3rd party dependencies for transforming reflect schema
 # to runnable servers based on dififerent web server frameworks
@@ -47,6 +48,7 @@ builder = ["dep:serde_json", "dep:bytes", "http"]
 # features for implementing reflect traits for foreigh types
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]
+url = ["dep:url"]
 # features for transforming reflect schema to runnable servers
 # based on dififerent web server frameworks
 axum = ["dep:axum"]

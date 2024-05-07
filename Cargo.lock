@@ -1041,6 +1041,7 @@ dependencies = [
  "reflectapi-schema",
  "serde",
  "serde_json",
+ "url",
  "uuid",
 ]
 
