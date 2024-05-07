@@ -95,7 +95,7 @@ fn test_enum_with_generics_and_fields_and_named_fields() {
 
 #[allow(dead_code)]
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-#[reflect(discriminant)]
+#[reflectapi(discriminant)]
 enum TestEnumWithDiscriminant {
     Variant1 = 1,
     Variant2 = 2,

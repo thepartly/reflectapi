@@ -41,7 +41,7 @@ fn test_reflectapi_struct_one_basic_field_string_reflectapi_both() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructOneBasicFieldStringReflectBothDifferently {
-    #[reflect(output_type = "u32", input_type = "i32")]
+    #[reflectapi(output_type = "u32", input_type = "i32")]
     _f: String,
 }
 #[test]
@@ -51,7 +51,7 @@ fn test_reflectapi_struct_one_basic_field_string_reflectapi_both_with_attributes
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructOneBasicFieldStringReflectBothEqually {
-    #[reflect(output_type = "u32", input_type = "u32")]
+    #[reflectapi(output_type = "u32", input_type = "u32")]
     _f: String,
 }
 #[test]
@@ -61,7 +61,7 @@ fn test_reflectapi_struct_one_basic_field_string_reflectapi_both_equally() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructOneBasicFieldStringReflectBothEqually2 {
-    #[reflect(type = "u32")]
+    #[reflectapi(type = "u32")]
     _f: String,
 }
 #[test]
@@ -226,7 +226,7 @@ fn test_reflectapi_struct_with_self_via_arc() {
 }
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-#[reflect(input_type = "u8", output_type = "u8")]
+#[reflectapi(input_type = "u8", output_type = "u8")]
 struct TestStructWithAttributes {
     _f: String,
 }
@@ -236,7 +236,7 @@ fn test_reflectapi_struct_with_attributes() {
 }
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-#[reflect(input_type = "String")]
+#[reflectapi(input_type = "String")]
 struct TestStructWithAttributesInputOnly {
     _f: String,
 }
@@ -246,7 +246,7 @@ fn test_reflectapi_struct_with_attributes_input_only() {
 }
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-#[reflect(output_type = "String")]
+#[reflectapi(output_type = "String")]
 struct TestStructWithAttributesOutputOnly {
     _f: String,
 }
@@ -256,7 +256,7 @@ fn test_reflectapi_struct_with_attributes_output_only() {
 }
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-#[reflect(type = "String")]
+#[reflectapi(type = "String")]
 struct TestStructWithAttributesTypeOnly {
     _f: String,
 }
@@ -267,7 +267,7 @@ fn test_reflectapi_struct_with_attributes_type_only() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformFallback {
-    #[reflect(
+    #[reflectapi(
         input_transform = "reflectapi::TypeReference::fallback_recursively",
         output_transform = "reflectapi::TypeReference::fallback_recursively"
     )]
@@ -280,7 +280,7 @@ fn test_reflectapi_struct_with_transform_fallback() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformBoth {
-    #[reflect(transform = "reflectapi::TypeReference::fallback_recursively")]
+    #[reflectapi(transform = "reflectapi::TypeReference::fallback_recursively")]
     _f: std::sync::Arc<u8>,
 }
 #[test]
@@ -290,7 +290,7 @@ fn test_reflectapi_struct_with_transform_both() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformInput {
-    #[reflect(input_transform = "reflectapi::TypeReference::fallback_recursively")]
+    #[reflectapi(input_transform = "reflectapi::TypeReference::fallback_recursively")]
     _f: std::sync::Arc<u8>,
 }
 #[test]
@@ -300,7 +300,7 @@ fn test_reflectapi_struct_with_transform_input() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformOutput {
-    #[reflect(output_transform = "reflectapi::TypeReference::fallback_recursively")]
+    #[reflectapi(output_transform = "reflectapi::TypeReference::fallback_recursively")]
     _f: std::sync::Arc<u8>,
 }
 #[test]
@@ -310,7 +310,7 @@ fn test_reflectapi_struct_with_transform_output() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformFallbackNested {
-    #[reflect(
+    #[reflectapi(
         input_transform = "reflectapi::TypeReference::fallback_recursively",
         output_transform = "reflectapi::TypeReference::fallback_recursively"
     )]
@@ -323,7 +323,7 @@ fn test_reflectapi_struct_with_transform_fallback_nested() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformArray {
-    #[reflect(transform = "reflectapi::TypeReference::fallback_recursively")]
+    #[reflectapi(transform = "reflectapi::TypeReference::fallback_recursively")]
     _f: [u8; 8],
 }
 #[test]
@@ -493,7 +493,7 @@ fn test_reflectapi_struct_unit_type() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSkipField {
-    #[reflect(skip)]
+    #[reflectapi(skip)]
     _f: u8,
 }
 #[test]
@@ -503,7 +503,7 @@ fn test_reflectapi_struct_with_skip_field() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSkipFieldInput {
-    #[reflect(input_skip)]
+    #[reflectapi(input_skip)]
     _f: u8,
 }
 #[test]
@@ -513,7 +513,7 @@ fn test_reflectapi_struct_with_skip_field_input() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSkipFieldOutput {
-    #[reflect(output_skip)]
+    #[reflectapi(output_skip)]
     _f: u8,
 }
 #[test]

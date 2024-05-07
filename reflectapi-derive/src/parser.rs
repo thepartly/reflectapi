@@ -175,7 +175,7 @@ pub(crate) fn parse_doc_attributes(attrs: &Vec<syn::Attribute>) -> String {
     result.join("\n")
 }
 
-/// Extract out the `#[reflect(...)]` attributes from a type definition.
+/// Extract out the `#[reflectapi(...)]` attributes from a type definition.
 pub(crate) fn parse_type_attributes(
     cx: &Context,
     attributes: &Vec<syn::Attribute>,
@@ -195,7 +195,7 @@ pub(crate) fn parse_type_attributes(
 
         if let Err(err) = attr.parse_nested_meta(|meta| {
             if meta.path == OUTPUT_TYPE {
-                // #[reflect(output_type = "...")]
+                // #[reflectapi(output_type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, OUTPUT_TYPE, &meta)? {
                     if cx.reflectapi_type() == ReflectType::Output {
                         result.output_type = Some(syn::Type::Path(syn::TypePath {
@@ -205,7 +205,7 @@ pub(crate) fn parse_type_attributes(
                     }
                 }
             } else if meta.path == INPUT_TYPE {
-                // #[reflect(input_type = "...")]
+                // #[reflectapi(input_type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, INPUT_TYPE, &meta)? {
                     if cx.reflectapi_type() == ReflectType::Input {
                         result.input_type = Some(syn::Type::Path(syn::TypePath {
@@ -215,7 +215,7 @@ pub(crate) fn parse_type_attributes(
                     }
                 }
             } else if meta.path == TYPE {
-                // #[reflect(type = "...")]
+                // #[reflectapi(type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, TYPE, &meta)? {
                     let referred_type = syn::Type::Path(syn::TypePath {
                         qself: path.qself,
@@ -225,7 +225,7 @@ pub(crate) fn parse_type_attributes(
                     result.input_type = Some(referred_type);
                 }
             } else if meta.path == DISCRIMINANT {
-                // #[reflect(discriminant)]
+                // #[reflectapi(discriminant)]
                 result.discriminant = true;
             } else {
                 let path = meta.path.to_token_stream().to_string();
@@ -258,7 +258,7 @@ pub(crate) fn parse_field_attributes(
 
         if let Err(err) = attr.parse_nested_meta(|meta| {
             if meta.path == OUTPUT_TYPE {
-                // #[reflect(output_type = "...")]
+                // #[reflectapi(output_type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, OUTPUT_TYPE, &meta)? {
                     if cx.reflectapi_type() == ReflectType::Output {
                         result.output_type = Some(syn::Type::Path(syn::TypePath {
@@ -268,7 +268,7 @@ pub(crate) fn parse_field_attributes(
                     }
                 }
             } else if meta.path == INPUT_TYPE {
-                // #[reflect(input_type = "...")]
+                // #[reflectapi(input_type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, INPUT_TYPE, &meta)? {
                     if cx.reflectapi_type() == ReflectType::Input {
                         result.input_type = Some(syn::Type::Path(syn::TypePath {
@@ -278,7 +278,7 @@ pub(crate) fn parse_field_attributes(
                     }
                 }
             } else if meta.path == TYPE {
-                // #[reflect(type = "...")]
+                // #[reflectapi(type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, TYPE, &meta)? {
                     let referred_type = syn::Type::Path(syn::TypePath {
                         qself: path.qself,
@@ -288,33 +288,33 @@ pub(crate) fn parse_field_attributes(
                     result.input_type = Some(referred_type);
                 }
             } else if meta.path == OUTPUT_TRANSFORM {
-                // #[reflect(output_type = "...")]
+                // #[reflectapi(output_type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, OUTPUT_TYPE, &meta)? {
                     if cx.reflectapi_type() == ReflectType::Output {
                         result.output_transform = path.to_token_stream().to_string();
                     }
                 }
             } else if meta.path == INPUT_TRANSFORM {
-                // #[reflect(input_type = "...")]
+                // #[reflectapi(input_type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, INPUT_TYPE, &meta)? {
                     if cx.reflectapi_type() == ReflectType::Input {
                         result.input_transform = path.to_token_stream().to_string();
                     }
                 }
             } else if meta.path == TRANSFORM {
-                // #[reflect(type = "...")]
+                // #[reflectapi(type = "...")]
                 if let Some(path) = parse_lit_into_expr_path(cx, TYPE, &meta)? {
                     result.output_transform = path.to_token_stream().to_string();
                     result.input_transform = path.to_token_stream().to_string();
                 }
             } else if meta.path == INPUT_SKIP {
-                // #[reflect(input_skip)]
+                // #[reflectapi(input_skip)]
                 result.input_skip = true;
             } else if meta.path == OUTPUT_SKIP {
-                // #[reflect(output_skip)]
+                // #[reflectapi(output_skip)]
                 result.output_skip = true;
             } else if meta.path == SKIP {
-                // #[reflect(skip)]
+                // #[reflectapi(skip)]
                 result.input_skip = true;
                 result.output_skip = true;
             } else {

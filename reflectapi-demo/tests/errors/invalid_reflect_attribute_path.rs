@@ -1,6 +1,6 @@
 #[derive(serde::Deserialize, reflectapi::Input)]
 struct MyStruct {
-    #[reflect(output_type)]
+    #[reflectapi(output_type)]
     field: u32,
 }
 

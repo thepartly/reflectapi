@@ -1,6 +1,6 @@
 #[derive(reflectapi::Input)]
 struct MyStruct {
-    #[reflect(input_type = "u32")]
+    #[reflectapi(input_type = "u32")]
     field: u32,
 }
 
