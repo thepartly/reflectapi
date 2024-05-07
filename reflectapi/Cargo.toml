@@ -32,6 +32,7 @@ http = { version = "1.1.0", optional = true }
 uuid = { version = "1.7.0", optional = true }
 chrono = { version = "0.4.37", optional = true }
 url = { version = "2.5.0", optional = true }
+rust_decimal = { version = "1.35.0", optional = true }
 
 # optional 3rd party dependencies for transforming reflect schema
 # to runnable servers based on dififerent web server frameworks
@@ -49,6 +50,7 @@ builder = ["dep:serde_json", "dep:bytes", "http"]
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]
 url = ["dep:url"]
+rust_decimal = ["dep:rust_decimal"]
 # features for transforming reflect schema to runnable servers
 # based on dififerent web server frameworks
 axum = ["dep:axum"]

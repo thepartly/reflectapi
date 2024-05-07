@@ -7,6 +7,9 @@ mod chrono;
 #[cfg(feature = "url")]
 mod url;
 
+#[cfg(feature = "rust_decimal")]
+mod rust_decimal;
+
 #[allow(unused_imports)]
 #[cfg(feature = "uuid")]
 pub use uuid::*;
@@ -18,3 +21,7 @@ pub use chrono::*;
 #[allow(unused_imports)]
 #[cfg(feature = "url")]
 pub use url::*;
+
+#[allow(unused_imports)]
+#[cfg(feature = "rust_decimal")]
+pub use rust_decimal::*;
