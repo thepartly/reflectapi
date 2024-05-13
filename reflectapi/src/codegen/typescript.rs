@@ -474,7 +474,9 @@ class ClientInstance {
         fn fields_brakets(&self) -> (String, String) {
             if self.fields.is_empty() {
                 ("".into(), "".into())
-            } else if self.fields.iter().all(|f| f.is_unnamed()) {
+            } else if self.fields.iter().all(|f| f.is_unnamed())
+                && !self.representation.is_internal()
+            {
                 if self.fields.len() == 1 {
                     ("".into(), "".into())
                 } else {

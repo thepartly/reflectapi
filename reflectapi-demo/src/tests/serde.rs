@@ -104,6 +104,8 @@ fn test_enum_untagged() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 #[serde(tag = "type")]
+// TODO this code panics on serialize:
+// see https://github.com/thepartly/reflectapi/issues/1
 enum TestEnumTag {
     Variant1 { field_name: u8 },
     Variant2(u8),
