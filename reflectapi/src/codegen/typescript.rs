@@ -474,9 +474,7 @@ class ClientInstance {
         fn fields_brakets(&self) -> (String, String) {
             if self.fields.is_empty() {
                 ("".into(), "".into())
-            } else if self.fields.iter().all(|f| f.is_unnamed())
-                && !self.representation.is_internal()
-            {
+            } else if self.fields.iter().all(|f| f.is_unnamed()) {
                 if self.fields.len() == 1 {
                     ("".into(), "".into())
                 } else {
@@ -505,7 +503,18 @@ class ClientInstance {
                         self.render_fields(None)?
                     )
                 }
-                crate::Representation::Internal { tag } => self.render_fields(Some(tag))?,
+                crate::Representation::Internal { tag } => {
+                    if self.fields.len() == 1 && self.fields.iter().all(|f| f.is_unnamed()) {
+                        format!(
+                            "{{ {}: {} }} & {}",
+                            tag,
+                            self.name,
+                            self.render_fields(None)?
+                        )
+                    } else {
+                        self.render_fields(Some(tag))?
+                    }
+                }
                 crate::Representation::Adjacent { tag, content } => {
                     format!(
                         "{{ {}: {}, {}: {} }}",

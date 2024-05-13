@@ -195,10 +195,9 @@ export type TestEnumTag =
             type: "Variant1",
             field_name: number /* u8 */
         }
-    | {
-            type: "Variant2",
+    | { type: Variant2 } & 
             number /* u8 */
-        };
+        ;
 
 }
 
