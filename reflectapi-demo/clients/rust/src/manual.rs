@@ -18,25 +18,22 @@ pub trait Client<E> {
 pub enum Error<AE, NE> {
     Application(AE),
     Network(NE),
-    Server {
-        code: http::StatusCode,
-        body: bytes::Bytes
-    },
     Protocol {
         info: String,
-        stage: SerdeStage,
+        stage: ProtocolErrorStage,
     },
+    Server(http::StatusCode, bytes::Bytes),
 }
 
-pub enum SerdeStage {
+pub enum ProtocolErrorStage {
     SerializeRequestBody,
     SerializeRequestHeaders,
-    DeserializeResponseBody,
-    DeserializeResponseError,
+    DeserializeResponseBody(bytes::Bytes),
+    DeserializeResponseError(http::StatusCode, bytes::Bytes),
 }
 
 pub trait TypedClient<NE> {
-    async fn request<I, H, O, E>(
+    async fn typed_request<I, H, O, E>(
         &self,
         path: String,
         body: I,
@@ -53,7 +50,7 @@ impl<T, NE> TypedClient<NE> for T
 where
     T: Client<NE>,
 {
-    async fn request<I, H, O, E>(
+    async fn typed_request<I, H, O, E>(
         &self,
         path: String,
         body: I,
@@ -65,73 +62,107 @@ where
         O: serde::de::DeserializeOwned,
         E: serde::de::DeserializeOwned,
     {
-        let body = serde_json::to_vec(&body).map_err(Error::JsonSerde)?;
+        let body = serde_json::to_vec(&body).map_err(|e| Error::Protocol {
+            info: e.to_string(),
+            stage: ProtocolErrorStage::SerializeRequestBody,
+        })?;
         let body = bytes::Bytes::from(body);
-        let headers = serde_json::to_vec(&headers).map_err(Error::JsonSerde)?;
-        let headers = bytes::Bytes::from(headers);
+        let headers = serde_json::to_value(&headers).map_err(|e| Error::Protocol {
+            info: e.to_string(),
+            stage: ProtocolErrorStage::SerializeRequestHeaders,
+        })?;
+
+        let mut headers_serialized = HashMap::new();
+        match headers {
+            serde_json::Value::Object(headers) => {
+                for (k, v) in headers.into_iter() {
+                    let v_str = match v {
+                        serde_json::Value::String(v) => v,
+                        v => v.to_string(),
+                    };
+                    headers_serialized.insert(k, v_str);
+                }
+            }
+            _ => {
+                return Err(Error::Protocol {
+                    info: "Headers must be an object".to_string(),
+                    stage: ProtocolErrorStage::SerializeRequestHeaders,
+                });
+            }
+        }
         let (status, body) = self
-            .request(path, body, Default::default())
+            .request(path, body, headers_serialized)
             .await
             .map_err(Error::Network)?;
         if status.is_success() {
-            let output = serde_json::from_slice(&body).map_err(Error::JsonSerde)?;
+            let output = serde_json::from_slice(&body).map_err(|e| Error::Protocol {
+                info: e.to_string(),
+                stage: ProtocolErrorStage::DeserializeResponseBody(body),
+            })?;
             Ok(output)
-        } else {
+        } else if status.is_client_error() {
             match serde_json::from_slice::<E>(&body) {
                 Ok(error) => Err(Error::Application(error)),
-                Err(_) => Err(Error::Server(status, body)),
+                Err(e) => Err(Error::Protocol {
+                    info: e.to_string(),
+                    stage: ProtocolErrorStage::DeserializeResponseError(status, body),
+                }),
             }
+        } else {
+            Err(Error::Server(status, body))
         }
     }
 }
 
 // #[cfg(feature = "reqwest")]
-mod reqwest {
+// mod reqwest {
 
-    pub struct ReqwestClient {
-        client: reqwest::Client,
-        base_url: String,
-    }
+pub struct ReqwestClient {
+    client: reqwest::Client,
+    base_url: String,
+}
 
-    impl ReqwestClient {
-        pub fn new(client: reqwest::Client, base_url: String) -> Self {
-            Self { client, base_url }
-        }
-    }
-
-    impl super::Client<reqwest::Error> for ReqwestClient {
-        async fn request(
-            &self,
-            path: String,
-            body: bytes::Bytes,
-            headers: std::collections::HashMap<String, String>,
-        ) -> Result<(http::StatusCode, bytes::Bytes), reqwest::Error> {
-            let url = format!("{}{}", self.base_url, path);
-            let mut request = self.client.post(&url);
-            for (k, v) in headers {
-                request = request.header(k, v);
-            }
-            let response = request.body(body).send().await;
-            let response = match response {
-                Ok(response) => response,
-                Err(e) => return Err(e),
-            };
-            let status = response.status();
-            let body = response.bytes().await;
-            let body = match body {
-                Ok(body) => body,
-                Err(e) => return Err(e),
-            };
-            Ok((status, body))
-        }
+impl ReqwestClient {
+    pub fn new(client: reqwest::Client, base_url: String) -> Self {
+        Self { client, base_url }
     }
 }
 
-mod interface {
-    use super::Client;
+impl Client<reqwest::Error> for ReqwestClient {
+    async fn request(
+        &self,
+        path: String,
+        body: bytes::Bytes,
+        headers: std::collections::HashMap<String, String>,
+    ) -> Result<(http::StatusCode, bytes::Bytes), reqwest::Error> {
+        let url = format!("{}{}", self.base_url, path);
+        let mut request = self.client.post(&url);
+        for (k, v) in headers {
+            request = request.header(k, v);
+        }
+        let response = request.body(body).send().await;
+        let response = match response {
+            Ok(response) => response,
+            Err(e) => return Err(e),
+        };
+        let status = response.status();
+        let body = response.bytes().await;
+        let body = match body {
+            Ok(body) => body,
+            Err(e) => return Err(e),
+        };
+        Ok((status, body))
+    }
+}
+// }
 
-    struct Interface<E, C: Client<E>> {
-        health: Health<E, C>,
+pub mod interface {
+    use std::marker::PhantomData;
+
+    use super::{Client, TypedClient};
+
+    pub struct Interface<E, C: Client<E>> {
+        pub health: Health<E, C>,
         // pets: Pets<E, C>,
     }
 
@@ -144,33 +175,81 @@ mod interface {
         }
     }
 
-    struct Health<E, C>
+    pub struct Health<E, C>
     where
         C: Client<E>,
     {
         client: C,
+        _marker: PhantomData<E>,
     }
 
     impl<E, C: Client<E>> Health<E, C> {
         pub fn new(client: C) -> Self {
-            Self { client }
+            Self {
+                client,
+                _marker: PhantomData,
+            }
         }
 
-        async fn check(&self, input: (), headers: ()) -> Result<(), ()> {
-            let body = serde_json::to_vec(&input).unwrap();
-            let body = bytes::Bytes::from(body);
-            let headers = Default::default();
-            let result = self
-                .client
-                .request("health.check".to_string(), body, headers)
-                .await;
-
-            Ok(())
+        pub async fn check(&self, input: (), headers: ()) -> Result<(), super::Error<(), E>> {
+            TypedClient::typed_request(&self.client, "health.check".to_string(), input, headers)
+                .await
         }
     }
+
     // struct Pets<E, C: Client<E>> {
     //     client: C,
     // }
+}
+
+async fn demo() {
+    // making a request client and initializing typed client interface once per app
+    // note we use generated default provided implementation of the Client trait by Reqwest...
+    let client = ReqwestClient::new(reqwest::Client::new(), "http://localhost:8080".to_string());
+    // .. it is possible to use other implementations of a Client trait
+    let interface = interface::Interface::new(client);
+    
+    // making a call
+    let result = interface.health.check((), ()).await;
+    
+    // similarly code will look for:
+    // let result = interface.sellables.ingest(IngestRequest { sellables: ..., gapc_parts: ... }, IngestHeaders { authorization: ... }).await;
+    
+    // error handling demo:
+    match result {
+        Ok(v) => {
+            // use structured application response data here
+            println!("Health check successful")
+        },
+        Err(e) => match e {
+            Error::Application(v) => {
+                // use structured application error here
+                println!("Health check failed")
+            },
+            Error::Network(e) => {
+                println!("Network error: {:?}", e)
+            },
+            Error::Protocol { info, stage } => {
+                match stage {
+                    ProtocolErrorStage::SerializeRequestBody => {
+                        eprint!("Failed to serialize request body: {}", info)
+                    }
+                    ProtocolErrorStage::SerializeRequestHeaders => {
+                        eprint!("Failed to serialize request headers: {}", info)
+                    }
+                    ProtocolErrorStage::DeserializeResponseBody(body) => {
+                        eprint!("Failed to deserialize response body: {}", info)
+                    }
+                    ProtocolErrorStage::DeserializeResponseError(status, body) => {
+                        eprint!("Failed to deserialize response error: {} at {:?}", info, status)
+                    }
+                }
+            }
+            Error::Server(status, body) => {
+                println!("Server error: {} with body {:?}", status, body)
+            }
+        },
+    }
 }
 
 // pub fn client<E, C: Client<E>>(client: C) -> __definition::Interface {
