@@ -4,6 +4,7 @@
   "functions": [
     {
       "name": "health.check",
+      "path": "",
       "description": "Check the health of the service",
       "serialization": [
         "json"
@@ -12,6 +13,7 @@
     },
     {
       "name": "pets.list",
+      "path": "",
       "description": "List available pets",
       "input_type": {
         "name": "myapi::proto::PetsListRequest"
@@ -37,6 +39,7 @@
     },
     {
       "name": "pets.create",
+      "path": "",
       "description": "Create a new pet",
       "input_type": {
         "name": "myapi::proto::PetsCreateRequest"
@@ -53,6 +56,7 @@
     },
     {
       "name": "pets.update",
+      "path": "",
       "description": "Update an existing pet",
       "input_type": {
         "name": "myapi::proto::PetsUpdateRequest"
@@ -69,6 +73,7 @@
     },
     {
       "name": "pets.remove",
+      "path": "",
       "description": "Remove an existing pet",
       "input_type": {
         "name": "myapi::proto::PetsRemoveRequest"
@@ -85,6 +90,7 @@
     },
     {
       "name": "pets.get-first",
+      "path": "",
       "description": "Fetch first pet, if any exists",
       "input_headers": {
         "name": "myapi::proto::Headers"

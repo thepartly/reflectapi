@@ -4,483 +4,325 @@
 // Schema name: Demo application
 // This is a demo application
 
-use std::collections::HashMap;
 
-pub trait Client<E> {
-    async fn request(path: String, body: bytes::Bytes, headers: HashMap<String, String>) -> Result<(u16, bytes::Bytes), E>;
-}
+mod __definition {
 
-pub enum Error<AE, OE> {
-    Application(AE),
-    Other(OE),
-}
-
-// #[cfg(feature = "reqwest")]
-mod reqwest {
-
-    pub struct Client {
-        client: reqwest::Client,
-        base_url: String,
-    }
-
-    impl Client {
-        pub fn new(base_url: String) -> Self {
-            Self {
-                client: reqwest::Client::new(),
-                base_url,
-            }
-        }
-    }
-
-    impl From<reqwest::Client> for Client {
-        fn from(client: reqwest::Client) -> Self {
-            Self {
-                client,
-                base_url,
-            }
-        }
-    }
-
-    impl super::Client<reqwest::Error> for Client {
-        async fn request(&self, path: String, body: bytes::Bytes, headers: std::collections::HashMap<String, String>) -> Result<(u16, bytes::Bytes), reqwest::Error> {
-            let url = format!("{}/{}", self.base_url, path);
-            let mut request = self.client.post(&url);
-            for (k, v) in headers {
-                request = request.header(k, v);
-            }
-            let response = request.body(body).send().await;
-            let response = match response {
-                Ok(response) => response,
-                Err(e) => return Err(e),
-            };
-            let status = response.status().as_u16();
-            let body = response.bytes().await;
-            let body = match body {
-                Ok(body) => body,
-                Err(e) => return Err(e),
-            };
-            Ok((status, body))
-        }
-    }
-}
-
-
-export function client(base: string | Client): __definition.Interface {
-    return __implementation.__client(base)
-}
-
-export namespace __definition {
-
-export interface Interface {
+pub struct Interface {
+    #[serde(rename = "")]
     health: health.Interface,
+    #[serde(rename = "")]
     pets: pets.Interface,
 }
 
-export namespace health {
+mod health {
 
-export interface Interface {
+pub struct Interface {
     /// Check the health of the service
+    #[serde(rename = "")]
     check: (input: {}, headers: {})
-        => AsyncResult<{}, {}>,
+        => Result<{}, {}>,
 }
 
 }
 
-export namespace pets {
+mod pets {
 
-export interface Interface {
+pub struct Interface {
     /// List available pets
-    list: (input: myapi.proto.PetsListRequest, headers: myapi.proto.Headers)
-        => AsyncResult<myapi.proto.Paginated<myapi.model.Pet>, myapi.proto.PetsListError>,
+    #[serde(rename = "")]
+    list: (input: myapi::proto::PetsListRequest, headers: myapi::proto::Headers)
+        => Result<myapi::proto::Paginated<myapi::model::Pet>, myapi::proto::PetsListError>,
     /// Create a new pet
-    create: (input: myapi.proto.PetsCreateRequest, headers: myapi.proto.Headers)
-        => AsyncResult<{}, myapi.proto.PetsCreateError>,
+    #[serde(rename = "")]
+    create: (input: myapi::proto::PetsCreateRequest, headers: myapi::proto::Headers)
+        => Result<{}, myapi::proto::PetsCreateError>,
     /// Update an existing pet
-    update: (input: myapi.proto.PetsUpdateRequest, headers: myapi.proto.Headers)
-        => AsyncResult<{}, myapi.proto.PetsUpdateError>,
+    #[serde(rename = "")]
+    update: (input: myapi::proto::PetsUpdateRequest, headers: myapi::proto::Headers)
+        => Result<{}, myapi::proto::PetsUpdateError>,
     /// Remove an existing pet
-    remove: (input: myapi.proto.PetsRemoveRequest, headers: myapi.proto.Headers)
-        => AsyncResult<{}, myapi.proto.PetsRemoveError>,
+    #[serde(rename = "")]
+    remove: (input: myapi::proto::PetsRemoveRequest, headers: myapi::proto::Headers)
+        => Result<{}, myapi::proto::PetsRemoveError>,
     /// Fetch first pet, if any exists
-    get_first: (input: {}, headers: myapi.proto.Headers)
-        => AsyncResult<myapi.model.Pet | null, myapi.proto.UnauthorizedError>,
+    #[serde(rename = "")]
+    get_first: (input: {}, headers: myapi::proto::Headers)
+        => Result<std::option::Option<myapi::model::Pet>, myapi::proto::UnauthorizedError>,
 }
 
 }
 
 }
 
-export interface Client {
-    request(path: string, body: string, headers: Record<string, string>): Promise<[number, string]>;
+pub trait Client<E> {
+    async fn request(
+        &self,
+        path: &str,
+        body: bytes::Bytes,
+        headers: std::collections::HashMap<String, String>,
+    ) -> Result<(http::StatusCode, bytes::Bytes), E>;
 }
 
-export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
+pub enum Error<AE, NE> {
+    Application(AE),
+    Network(NE),
+    Protocol {
+        info: String,
+        stage: ProtocolErrorStage,
+    },
+    Server(http::StatusCode, bytes::Bytes),
+}
 
-export class Result<T, E> {
-    constructor(private value: { ok: T } | { err: E }) {}
+pub enum ProtocolErrorStage {
+    SerializeRequestBody,
+    SerializeRequestHeaders,
+    DeserializeResponseBody(bytes::Bytes),
+    DeserializeResponseError(http::StatusCode, bytes::Bytes),
+}
 
-    public ok(): T | undefined {
-        if ('ok' in this.value) {
-            return this.value.ok;
-        }
-        return undefined;
-    }
-    public err(): E | undefined {
-        if ('err' in this.value) {
-            return this.value.err;
-        }
-        return undefined;
-    }
+#[cfg(feature = "reqwest")]
+pub struct ReqwestClient {
+    client: reqwest::Client,
+    base_url: String,
+}
 
-    public is_ok(): boolean {
-        return 'ok' in this.value;
-    }
-    public is_err(): boolean {
-        return 'err' in this.value;
-    }
-
-    public map<U>(f: (r: T) => U): Result<U, E> {
-        if ('ok' in this.value) {
-            return new Result({ ok: f(this.value.ok) });
-        } else {
-            return new Result({ err: this.value.err });
-        }
-    }
-    public map_err<U>(f: (r: E) => U): Result<T, U> {
-        if ('err' in this.value) {
-            return new Result({ err: f(this.value.err) });
-        } else {
-            return new Result({ ok: this.value.ok });
-        }
-    }
-
-    public unwrap_ok(): T {
-        if ('ok' in this.value) {
-            return this.value.ok;
-        }
-        throw new Error('called `unwrap_ok` on an `err` value: ' + this.value.err?.toString());
-    }
-    public unwrap_err(): E {
-        if ('err' in this.value) {
-            return this.value.err;
-        }
-        throw new Error('called `unwrap_err` on an `ok` value');
-    }
-
-    public unwrap_ok_or_default(default_: T): T {
-        if ('ok' in this.value) {
-            return this.value.ok;
-        }
-        return default_;
-    }
-    public unwrap_err_or_default(default_: E): E {
-        if ('err' in this.value) {
-            return this.value.err;
-        }
-        return default_;
-    }
-
-    public unwrap_ok_or_else(f: (e: E) => T): T {
-        if ('ok' in this.value) {
-            return this.value.ok;
-        }
-        return f(this.value.err);
-    }
-    public unwrap_err_or_else(f: (v: T) => E): E {
-        if ('err' in this.value) {
-            return this.value.err;
-        }
-        return f(this.value.ok);
-    }
-
-    public toString(): string {
-        if ('ok' in this.value) {
-            return `Ok { ok: ${this.value.ok} }`;
-        } else {
-            return `Err { err: ${this.value.err} }`;
-        }
+#[cfg(feature = "reqwest")]
+impl ReqwestClient {
+    pub fn new(client: reqwest::Client, base_url: String) -> Self {
+        Self { client, base_url }
     }
 }
 
-export class Err<E> {
-    constructor(private value: { application_err: E } | { other_err: any }) { }
-
-    public err(): E | undefined {
-        if ('application_err' in this.value) {
-            return this.value.application_err;
+#[cfg(feature = "reqwest")]
+impl Client<reqwest::Error> for ReqwestClient {
+    async fn request(
+        &self,
+        path: &str,
+        body: bytes::Bytes,
+        headers: std::collections::HashMap<String, String>,
+    ) -> Result<(http::StatusCode, bytes::Bytes), reqwest::Error> {
+        let url = format!("{}{}", self.base_url, path);
+        let mut request = self.client.post(&url);
+        for (k, v) in headers {
+            request = request.header(k, v);
         }
-        return undefined;
-    }
-    public other_err(): any | undefined {
-        if ('other_err' in this.value) {
-            return this.value.other_err;
-        }
-        return undefined;
-    }
-
-    public is_err(): boolean {
-        return 'application_err' in this.value;
-    }
-    public is_other_err(): boolean {
-        return 'other_err' in this.value;
-    }
-
-    public map<U>(f: (r: E) => U): Err<U> {
-        if ('application_err' in this.value) {
-            return new Err({ application_err: f(this.value.application_err) });
-        } else {
-            return new Err({ other_err: this.value.other_err });
-        }
-    }
-    public unwrap(): E {
-        if ('application_err' in this.value) {
-            return this.value.application_err;
-        } else {
-            throw this.value.other_err;
-        }
-    }
-    public unwrap_or_default(default_: E): E {
-        if ('application_err' in this.value) {
-            return this.value.application_err;
-        }
-        return default_;
-    }
-    public unwrap_or_else(f: () => E): E {
-        if ('application_err' in this.value) {
-            return this.value.application_err;
-        }
-        return f();
-    }
-
-    public toString(): string {
-        if ('application_err' in this.value) {
-            return `Application Error: ${this.value.application_err}`;
-        } else {
-            return `Other Error: ${this.value.other_err}`;
-        }
+        let response = request.body(body).send().await;
+        let response = match response {
+            Ok(response) => response,
+            Err(e) => return Err(e),
+        };
+        let status = response.status();
+        let body = response.bytes().await;
+        let body = match body {
+            Ok(body) => body,
+            Err(e) => return Err(e),
+        };
+        Ok((status, body))
     }
 }
 
-export namespace myapi {
+mod myapi {
 
-export namespace model {
+mod model {
 
-export type Behavior =
+pub type Behavior =
     | "Calm"
     | {
         Aggressive: [
             /// aggressiveness level
-            number /* f64 */,
+            f64,
             /// some notes
-            string
+            std::string::String
         ]
     }
     | {
         Other: {
             /// Custom provided description of a behavior
-            description: string,
+            description: std::string::String,
             /// Additional notes
             /// Up to a user to put free text here
-            notes?: string
+            #[serde(default)]
+    notes: std::string::String
         }
     };
 
-export type Kind =
+pub type Kind =
     /// A dog
     | "dog"
     /// A cat
     | "cat";
 
-export interface Pet {
+pub struct Pet {
     /// identity
-    name: string,
+    name: std::string::String,
     /// kind of pet
-    kind: myapi.model.Kind,
+    kind: myapi::model::Kind,
     /// age of the pet
-    age?: number /* u8 */ | null,
+    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+    age: std::option::Option<u8>,
     /// behaviors of the pet
-    behaviors?: Array<myapi.model.Behavior>,
+    #[serde(default, skip_serializing_if = "std::vec::Vec::is_empty")]
+    behaviors: std::vec::Vec<myapi::model::Behavior>,
 }
 
 }
 
-export namespace proto {
+mod proto {
 
-export interface Headers {
-    authorization: string,
+pub struct Headers {
+    authorization: std::string::String,
 }
 
-export interface Paginated<T> {
+pub struct Paginated<T> {
     /// slice of a collection
-    items: Array<T>,
+    items: std::vec::Vec<T>,
     /// cursor for getting next page
-    cursor?: string | null,
+    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+    cursor: std::option::Option<std::string::String>,
 }
 
-export type PetsCreateError =
+pub type PetsCreateError =
     | "Conflict"
     | "NotAuthorized"
     | {
         InvalidIdentity: {
-            message: string
+            message: std::string::String
         }
     };
 
-export type PetsCreateRequest = myapi.model.Pet;
+pub type PetsCreateRequest = myapi::model::Pet;
 
-export type PetsListError =
+pub type PetsListError =
     | "InvalidCustor"
     | "Unauthorized";
 
-export interface PetsListRequest {
-    limit?: number /* u8 */ | null,
-    cursor?: string | null,
+pub struct PetsListRequest {
+    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+    limit: std::option::Option<u8>,
+    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+    cursor: std::option::Option<std::string::String>,
 }
 
-export type PetsRemoveError =
+pub type PetsRemoveError =
     | "NotFound"
     | "NotAuthorized";
 
-export interface PetsRemoveRequest {
+pub struct PetsRemoveRequest {
     /// identity
-    name: string,
+    name: std::string::String,
 }
 
-export type PetsUpdateError =
+pub type PetsUpdateError =
     | "NotFound"
     | "NotAuthorized";
 
-export interface PetsUpdateRequest {
+pub struct PetsUpdateRequest {
     /// identity
-    name: string,
+    name: std::string::String,
     /// kind of pet, non nullable in the model
-    kind?: myapi.model.Kind | null,
+    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+    kind: std::option::Option<myapi::model::Kind>,
     /// age of the pet, nullable in the model
-    age?: number /* u8 */ | null | undefined,
+    #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+    age: reflectapi::Option<u8>,
     /// behaviors of the pet, nullable in the model
-    behaviors?: Array<myapi.model.Behavior> | null | undefined,
+    #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+    behaviors: reflectapi::Option<std::vec::Vec<myapi::model::Behavior>>,
 }
 
-export type UnauthorizedError = null;
+pub type UnauthorizedError = ();
 
-}
-
-}
-
-export namespace reflect {
-
-/// Struct object with no fields
-export interface Empty {
-}
-
-/// Error object which is expected to be never returned
-export interface Infallible {
 }
 
 }
 
-namespace __implementation {
+mod __implementation {
+    async fn __request_impl<C, NE, I, H, O, E>(
+        client: &C,
+        path: &str,
+        body: I,
+        headers: H,
+    ) -> Result<O, Error<E, NE>>
+    where
+        C: Client<NE>,
+        I: serde::Serialize,
+        H: serde::Serialize,
+        O: serde::de::DeserializeOwned,
+        E: serde::de::DeserializeOwned,
+    {
+        let body = serde_json::to_vec(&body).map_err(|e| Error::Protocol {
+            info: e.to_string(),
+            stage: ProtocolErrorStage::SerializeRequestBody,
+        })?;
+        let body = bytes::Bytes::from(body);
+        let headers = serde_json::to_value(&headers).map_err(|e| Error::Protocol {
+            info: e.to_string(),
+            stage: ProtocolErrorStage::SerializeRequestHeaders,
+        })?;
 
-export function __client(base: string | Client): __definition.Interface {
-    const client_instance = typeof base === 'string' ? new ClientInstance(base) : base;
-    return { impl: {
-        health: {
-            check: health__check(client_instance),
-        },
-        pets: {
-            list: pets__list(client_instance),
-            create: pets__create(client_instance),
-            update: pets__update(client_instance),
-            remove: pets__remove(client_instance),
-            get_first: pets__get_first(client_instance),
-        },
-    }, }.impl
-}
-
-export function __request<I, H, O, E>(client: Client, path: string, input: I | undefined, headers: H | undefined): AsyncResult<O, E> {
-    let hdrs: Record<string, string> = {
-        'content-type': 'application/json',
-    };
-    if (headers) {
-        for (const [k, v] of Object.entries(headers)) {
-            hdrs[k?.toString()] = v?.toString() || '';
-        }
-    }
-    return client.request(path, JSON.stringify(input), hdrs)
-        .then(([status, response_body]) => {
-            if (status < 200 || status >= 300) {
-                let parsed_response_body;
-                try {
-                    parsed_response_body = JSON.parse(response_body)
-                } catch (e) {
-                    return new Result<O, Err<E>>({ err: new Err({ other_err: response_body }) });
+        let mut headers_serialized = HashMap::new();
+        match headers {
+            serde_json::Value::Object(headers) => {
+                for (k, v) in headers.into_iter() {
+                    let v_str = match v {
+                        serde_json::Value::String(v) => v,
+                        v => v.to_string(),
+                    };
+                    headers_serialized.insert(k, v_str);
                 }
-                return new Result<O, Err<E>>({ err: new Err({ application_err: parsed_response_body as E }) });
             }
-
-            let parsed_response_body;
-            try {
-                 parsed_response_body = JSON.parse(response_body)
-            } catch (e) {
-                return new Result<O, Err<E>>({
-                    err: new Err({
-                        other_err:
-                            'internal error: failure to parse response body as json on successful status code: ' + response_body
-                    })
+            _ => {
+                return Err(Error::Protocol {
+                    info: "Headers must be an object".to_string(),
+                    stage: ProtocolErrorStage::SerializeRequestHeaders,
                 });
             }
-            return new Result<O, Err<E>>({ ok: parsed_response_body as O });
         }
-        ).catch((e) => {
-            return new Result<O, Err<E>>({ err: new Err({ other_err: e }) });
-        });
-}
-
-class ClientInstance {
-    constructor(private base: string) {}
-
-    public request(path: string, body: string, headers: Record<string, string>): Promise<[number, string]> {
-        return fetch(`${this.base}/${path}`, {
-            method: 'POST',
-            headers: headers,
-            body: body,
-        }).then((response) => {
-            return response.text().then((text) => {
-                return [response.status, text];
-            });
-        });
+        let (status, body) = client
+            .request(path, body, headers_serialized)
+            .await
+            .map_err(Error::Network)?;
+        if status.is_success() {
+            let output = serde_json::from_slice(&body).map_err(|e| Error::Protocol {
+                info: e.to_string(),
+                stage: ProtocolErrorStage::DeserializeResponseBody(body),
+            })?;
+            Ok(output)
+        } else if status.is_client_error() {
+            match serde_json::from_slice::<E>(&body) {
+                Ok(error) => Err(Error::Application(error)),
+                Err(e) => Err(Error::Protocol {
+                    info: e.to_string(),
+                    stage: ProtocolErrorStage::DeserializeResponseError(status, body),
+                }),
+            }
+        } else {
+            Err(Error::Server(status, body))
+        }
     }
 }
 
-function health__check(client: Client) {
-    return (input: {}, headers: {}) => __request<
-        {}, {}, {}, {}
-    >(client, 'health.check', input, headers);
+async fn health__check(&self, input: {}, headers: {})
+        -> Result<{}, super::Error<{}, E>> {
+            __request_impl(&self.client, "/health.check", input, headers).await
 }
-function pets__list(client: Client) {
-    return (input: myapi.proto.PetsListRequest, headers: myapi.proto.Headers) => __request<
-        myapi.proto.PetsListRequest, myapi.proto.Headers, myapi.proto.Paginated<myapi.model.Pet>, myapi.proto.PetsListError
-    >(client, 'pets.list', input, headers);
+async fn pets__list(&self, input: myapi::proto::PetsListRequest, headers: myapi::proto::Headers)
+        -> Result<myapi::proto::Paginated<myapi::model::Pet>, super::Error<myapi::proto::PetsListError, E>> {
+            __request_impl(&self.client, "/pets.list", input, headers).await
 }
-function pets__create(client: Client) {
-    return (input: myapi.proto.PetsCreateRequest, headers: myapi.proto.Headers) => __request<
-        myapi.proto.PetsCreateRequest, myapi.proto.Headers, {}, myapi.proto.PetsCreateError
-    >(client, 'pets.create', input, headers);
+async fn pets__create(&self, input: myapi::proto::PetsCreateRequest, headers: myapi::proto::Headers)
+        -> Result<{}, super::Error<myapi::proto::PetsCreateError, E>> {
+            __request_impl(&self.client, "/pets.create", input, headers).await
 }
-function pets__update(client: Client) {
-    return (input: myapi.proto.PetsUpdateRequest, headers: myapi.proto.Headers) => __request<
-        myapi.proto.PetsUpdateRequest, myapi.proto.Headers, {}, myapi.proto.PetsUpdateError
-    >(client, 'pets.update', input, headers);
+async fn pets__update(&self, input: myapi::proto::PetsUpdateRequest, headers: myapi::proto::Headers)
+        -> Result<{}, super::Error<myapi::proto::PetsUpdateError, E>> {
+            __request_impl(&self.client, "/pets.update", input, headers).await
 }
-function pets__remove(client: Client) {
-    return (input: myapi.proto.PetsRemoveRequest, headers: myapi.proto.Headers) => __request<
-        myapi.proto.PetsRemoveRequest, myapi.proto.Headers, {}, myapi.proto.PetsRemoveError
-    >(client, 'pets.remove', input, headers);
+async fn pets__remove(&self, input: myapi::proto::PetsRemoveRequest, headers: myapi::proto::Headers)
+        -> Result<{}, super::Error<myapi::proto::PetsRemoveError, E>> {
+            __request_impl(&self.client, "/pets.remove", input, headers).await
 }
-function pets__get_first(client: Client) {
-    return (input: {}, headers: myapi.proto.Headers) => __request<
-        {}, myapi.proto.Headers, myapi.model.Pet | null, myapi.proto.UnauthorizedError
-    >(client, 'pets.get-first', input, headers);
-}
-
+async fn pets__get_first(&self, input: {}, headers: myapi::proto::Headers)
+        -> Result<std::option::Option<myapi::model::Pet>, super::Error<myapi::proto::UnauthorizedError, E>> {
+            __request_impl(&self.client, "/pets.get-first", input, headers).await
 }

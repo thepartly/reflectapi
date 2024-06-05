@@ -343,7 +343,6 @@ fn visit_field<'a>(
 ) -> Option<reflectapi_schema::Field> {
     let (field_name, serde_name) =
         visit_name(cx, field.attrs.name(), field.original.ident.as_ref());
-    let field_name = field_name.into();
     let attrs = parse_field_attributes(cx, &field.original.attrs);
     if match cx.reflectapi_type() {
         ReflectType::Input => attrs.input_skip || field.attrs.skip_deserializing(),

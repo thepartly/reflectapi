@@ -6,10 +6,14 @@ use indexmap::IndexMap;
 use reflectapi_schema::Function;
 
 pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
-    let implemented_types = build_implemented_types();
+    let implemented_types = __build_implemented_types();
 
     let mut rendered_types = HashMap::new();
     for original_type_name in schema.consolidate_types() {
+        if original_type_name.starts_with("std::") || original_type_name.starts_with("reflectapi::")
+        {
+            continue;
+        }
         let type_def = schema.get_type(&original_type_name).context(format!(
             "internal error: failed to get consolidated type definition for type: {}",
             original_type_name
@@ -81,7 +85,7 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
 
     let generated_impl_client = client_impl_from_function_group(8, &function_groups).render();
     let file_template = templates::FileFootter {
-        client_impl: generated_impl_client,
+        client_impl: "".into(), //generated_impl_client,
         implemented_functions: rendered_functions.join("\n"),
     };
     generated_code.push(
@@ -105,10 +109,7 @@ mod templates {
 //
 // Schema name: {{ name }}
 // {{ description }}
-
-export function client(base: string | Client): __definition.Interface {
-    return __implementation.__client(base)
-}",
+",
         ext = "txt"
     )]
     pub(super) struct FileHeader {
@@ -119,154 +120,70 @@ export function client(base: string | Client): __definition.Interface {
     #[derive(Template)]
     #[template(
         source = "
-export interface Client {
-    request(path: string, body: string, headers: Record<string, string>): Promise<[number, string]>;
+pub trait Client<E> {
+    async fn request(
+        &self,
+        path: &str,
+        body: bytes::Bytes,
+        headers: std::collections::HashMap<String, String>,
+    ) -> Result<(http::StatusCode, bytes::Bytes), E>;
 }
 
-export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
+pub enum Error<AE, NE> {
+    Application(AE),
+    Network(NE),
+    Protocol {
+        info: String,
+        stage: ProtocolErrorStage,
+    },
+    Server(http::StatusCode, bytes::Bytes),
+}
 
-export class Result<T, E> {
-    constructor(private value: { ok: T } | { err: E }) {}
+pub enum ProtocolErrorStage {
+    SerializeRequestBody,
+    SerializeRequestHeaders,
+    DeserializeResponseBody(bytes::Bytes),
+    DeserializeResponseError(http::StatusCode, bytes::Bytes),
+}
 
-    public ok(): T | undefined {
-        if ('ok' in this.value) {
-            return this.value.ok;
-        }
-        return undefined;
-    }
-    public err(): E | undefined {
-        if ('err' in this.value) {
-            return this.value.err;
-        }
-        return undefined;
-    }
+#[cfg(feature = \"reqwest\")]
+pub struct ReqwestClient {
+    client: reqwest::Client,
+    base_url: String,
+}
 
-    public is_ok(): boolean {
-        return 'ok' in this.value;
-    }
-    public is_err(): boolean {
-        return 'err' in this.value;
-    }
-
-    public map<U>(f: (r: T) => U): Result<U, E> {
-        if ('ok' in this.value) {
-            return new Result({ ok: f(this.value.ok) });
-        } else {
-            return new Result({ err: this.value.err });
-        }
-    }
-    public map_err<U>(f: (r: E) => U): Result<T, U> {
-        if ('err' in this.value) {
-            return new Result({ err: f(this.value.err) });
-        } else {
-            return new Result({ ok: this.value.ok });
-        }
-    }
-
-    public unwrap_ok(): T {
-        if ('ok' in this.value) {
-            return this.value.ok;
-        }
-        throw new Error('called `unwrap_ok` on an `err` value: ' + this.value.err?.toString());
-    }
-    public unwrap_err(): E {
-        if ('err' in this.value) {
-            return this.value.err;
-        }
-        throw new Error('called `unwrap_err` on an `ok` value');
-    }
-
-    public unwrap_ok_or_default(default_: T): T {
-        if ('ok' in this.value) {
-            return this.value.ok;
-        }
-        return default_;
-    }
-    public unwrap_err_or_default(default_: E): E {
-        if ('err' in this.value) {
-            return this.value.err;
-        }
-        return default_;
-    }
-
-    public unwrap_ok_or_else(f: (e: E) => T): T {
-        if ('ok' in this.value) {
-            return this.value.ok;
-        }
-        return f(this.value.err);
-    }
-    public unwrap_err_or_else(f: (v: T) => E): E {
-        if ('err' in this.value) {
-            return this.value.err;
-        }
-        return f(this.value.ok);
-    }
-
-    public toString(): string {
-        if ('ok' in this.value) {
-            return `Ok { ok: ${this.value.ok} }`;
-        } else {
-            return `Err { err: ${this.value.err} }`;
-        }
+#[cfg(feature = \"reqwest\")]
+impl ReqwestClient {
+    pub fn new(client: reqwest::Client, base_url: String) -> Self {
+        Self { client, base_url }
     }
 }
 
-export class Err<E> {
-    constructor(private value: { application_err: E } | { other_err: any }) { }
-
-    public err(): E | undefined {
-        if ('application_err' in this.value) {
-            return this.value.application_err;
+#[cfg(feature = \"reqwest\")]
+impl Client<reqwest::Error> for ReqwestClient {
+    async fn request(
+        &self,
+        path: &str,
+        body: bytes::Bytes,
+        headers: std::collections::HashMap<String, String>,
+    ) -> Result<(http::StatusCode, bytes::Bytes), reqwest::Error> {
+        let url = format!(\"{}{}\", self.base_url, path);
+        let mut request = self.client.post(&url);
+        for (k, v) in headers {
+            request = request.header(k, v);
         }
-        return undefined;
-    }
-    public other_err(): any | undefined {
-        if ('other_err' in this.value) {
-            return this.value.other_err;
-        }
-        return undefined;
-    }
-
-    public is_err(): boolean {
-        return 'application_err' in this.value;
-    }
-    public is_other_err(): boolean {
-        return 'other_err' in this.value;
-    }
-
-    public map<U>(f: (r: E) => U): Err<U> {
-        if ('application_err' in this.value) {
-            return new Err({ application_err: f(this.value.application_err) });
-        } else {
-            return new Err({ other_err: this.value.other_err });
-        }
-    }
-    public unwrap(): E {
-        if ('application_err' in this.value) {
-            return this.value.application_err;
-        } else {
-            throw this.value.other_err;
-        }
-    }
-    public unwrap_or_default(default_: E): E {
-        if ('application_err' in this.value) {
-            return this.value.application_err;
-        }
-        return default_;
-    }
-    public unwrap_or_else(f: () => E): E {
-        if ('application_err' in this.value) {
-            return this.value.application_err;
-        }
-        return f();
-    }
-
-    public toString(): string {
-        if ('application_err' in this.value) {
-            return `Application Error: ${this.value.application_err}`;
-        } else {
-            return `Other Error: ${this.value.other_err}`;
-        }
+        let response = request.body(body).send().await;
+        let response = match response {
+            Ok(response) => response,
+            Err(e) => return Err(e),
+        };
+        let status = response.status();
+        let body = response.bytes().await;
+        let body = match body {
+            Ok(body) => body,
+            Err(e) => return Err(e),
+        };
+        Ok((status, body))
     }
 }
 ",
@@ -277,71 +194,73 @@ export class Err<E> {
     #[derive(Template)]
     #[template(
         source = "
-namespace __implementation {
+mod __implementation {
+    async fn __request_impl<C, NE, I, H, O, E>(
+        client: &C,
+        path: &str,
+        body: I,
+        headers: H,
+    ) -> Result<O, Error<E, NE>>
+    where
+        C: Client<NE>,
+        I: serde::Serialize,
+        H: serde::Serialize,
+        O: serde::de::DeserializeOwned,
+        E: serde::de::DeserializeOwned,
+    {
+        let body = serde_json::to_vec(&body).map_err(|e| Error::Protocol {
+            info: e.to_string(),
+            stage: ProtocolErrorStage::SerializeRequestBody,
+        })?;
+        let body = bytes::Bytes::from(body);
+        let headers = serde_json::to_value(&headers).map_err(|e| Error::Protocol {
+            info: e.to_string(),
+            stage: ProtocolErrorStage::SerializeRequestHeaders,
+        })?;
 
-export function __client(base: string | Client): __definition.Interface {
-    const client_instance = typeof base === 'string' ? new ClientInstance(base) : base;
-    return { impl: {{ client_impl }} }.impl
-}
-
-export function __request<I, H, O, E>(client: Client, path: string, input: I | undefined, headers: H | undefined): AsyncResult<O, E> {
-    let hdrs: Record<string, string> = {
-        'content-type': 'application/json',
-    };
-    if (headers) {
-        for (const [k, v] of Object.entries(headers)) {
-            hdrs[k?.toString()] = v?.toString() || '';
-        }
-    }
-    return client.request(path, JSON.stringify(input), hdrs)
-        .then(([status, response_body]) => {
-            if (status < 200 || status >= 300) {
-                let parsed_response_body;
-                try {
-                    parsed_response_body = JSON.parse(response_body)
-                } catch (e) {
-                    return new Result<O, Err<E>>({ err: new Err({ other_err: response_body status }) });
+        let mut headers_serialized = HashMap::new();
+        match headers {
+            serde_json::Value::Object(headers) => {
+                for (k, v) in headers.into_iter() {
+                    let v_str = match v {
+                        serde_json::Value::String(v) => v,
+                        v => v.to_string(),
+                    };
+                    headers_serialized.insert(k, v_str);
                 }
-                return new Result<O, Err<E>>({ err: new Err({ application_err: parsed_response_body as E }) });
             }
-
-            let parsed_response_body;
-            try {
-                 parsed_response_body = JSON.parse(response_body)
-            } catch (e) {
-                return new Result<O, Err<E>>({
-                    err: new Err({
-                        other_err:
-                            'internal error: failure to parse response body as json on successful status code: ' + response_body
-                    })
+            _ => {
+                return Err(Error::Protocol {
+                    info: \"Headers must be an object\".to_string(),
+                    stage: ProtocolErrorStage::SerializeRequestHeaders,
                 });
             }
-            return new Result<O, Err<E>>({ ok: parsed_response_body as O });
         }
-        ).catch((e) => {
-            return new Result<O, Err<E>>({ err: new Err({ other_err: e }) });
-        });
-}
-
-class ClientInstance {
-    constructor(private base: string) {}
-
-    public request(path: string, body: string, headers: Record<string, string>): Promise<[number, string]> {
-        return fetch(`${this.base}${path}`, {
-            method: 'POST',
-            headers: headers,
-            body: body,
-        }).then((response) => {
-            return response.text().then((text) => {
-                return [response.status, text];
-            });
-        });
+        let (status, body) = client
+            .request(path, body, headers_serialized)
+            .await
+            .map_err(Error::Network)?;
+        if status.is_success() {
+            let output = serde_json::from_slice(&body).map_err(|e| Error::Protocol {
+                info: e.to_string(),
+                stage: ProtocolErrorStage::DeserializeResponseBody(body),
+            })?;
+            Ok(output)
+        } else if status.is_client_error() {
+            match serde_json::from_slice::<E>(&body) {
+                Ok(error) => Err(Error::Application(error)),
+                Err(e) => Err(Error::Protocol {
+                    info: e.to_string(),
+                    stage: ProtocolErrorStage::DeserializeResponseError(status, body),
+                }),
+            }
+        } else {
+            Err(Error::Server(status, body))
+        }
     }
 }
 
 {{ implemented_functions }}
-
-}
 ",
         ext = "txt"
     )]
@@ -385,7 +304,7 @@ class ClientInstance {
             if self.name.is_empty() || self.is_empty() {
                 "".into()
             } else {
-                format!("export namespace {} {{", self.name)
+                format!("mod {} {{", self.name)
             }
         }
 
@@ -401,14 +320,14 @@ class ClientInstance {
     #[derive(Template)]
     #[template(
         source = "
-{{ description }}export {{ self.render_keyword() }} {{ name }} {{ self.render_brackets().0 }}
+{{ description }}pub {{ self.render_keyword() }} {{ name }} {{ self.render_brackets().0 }}
     {%- for field in fields.iter() %}
     {{ field }},
     {%- endfor %}
 {{ self.render_brackets().1 }}{{ self.render_flattened_types() }}",
         ext = "txt"
     )]
-    pub(super) struct Interface {
+    pub(super) struct Struct {
         pub name: String,
         pub description: String,
         pub fields: Vec<Field>,
@@ -416,12 +335,12 @@ class ClientInstance {
         pub flattened_types: Vec<String>,
     }
 
-    impl Interface {
+    impl Struct {
         fn render_keyword(&self) -> String {
             if self.is_tuple || !self.flattened_types.is_empty() {
                 "type".into()
             } else {
-                "interface".into()
+                "struct".into()
             }
         }
 
@@ -447,7 +366,7 @@ class ClientInstance {
     #[derive(Template)]
     #[template(
         source = "
-{{ description }}export type {{ name }} =
+{{ description }}pub type {{ name }} =
     {%- for variant in variants.iter() %}
     {{ variant }}
     {%- endfor %};",
@@ -548,11 +467,12 @@ class ClientInstance {
 
     #[derive(Template)]
     #[template(
-        source = "{{ description }}{% if !self.is_unnamed() %}{{ self.normalized_name() }}{% if optional %}{{ \"?\" }}{% endif %}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
+        source = "{{ description }}{{ self.serde_attributes() }}{% if !self.is_unnamed() %}{{ self.normalized_name() }}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
         ext = "txt"
     )]
     pub(super) struct Field {
         pub name: String,
+        pub serde_name: String,
         pub description: String,
         pub type_: String,
         pub optional: bool,
@@ -572,15 +492,50 @@ class ClientInstance {
                 self.name.clone()
             }
         }
+
+        fn serde_attributes(&self) -> String {
+            let mut attrs = vec![];
+            if self.serde_name != self.name {
+                attrs.push(format!("rename = \"{}\"", self.serde_name));
+            }
+            if self.optional {
+                attrs.push("default".into());
+
+                // this one is important to not serialize undefined values
+                // as this is the special built-in type which allows to differentiate between undefined and null
+                if self.type_.starts_with("reflectapi::Option<") {
+                    attrs.push("skip_serializing_if = \"reflectapi::Option::is_undefined\"".into());
+                }
+                // the rest are nice to have, we enumerate only commonly used std types
+                if self.type_.starts_with("std::option::Option<") {
+                    attrs.push("skip_serializing_if = \"std::option::Option::is_none\"".into());
+                }
+                if self.type_.starts_with("std::vec::Vec<") {
+                    attrs.push("skip_serializing_if = \"std::vec::Vec::is_empty\"".into());
+                }
+                if self.type_.starts_with("std::collections::") {
+                    let type_without_generics = self.type_.split('<').next().unwrap();
+                    attrs.push(format!(
+                        "skip_serializing_if = \"{}::is_empty\"",
+                        type_without_generics
+                    ));
+                }
+            }
+            if attrs.is_empty() {
+                "".into()
+            } else {
+                format!("#[serde({})]\n    ", attrs.join(", "))
+            }
+        }
     }
 
     #[derive(Template)]
     #[template(
         source = "
-{{ description }}export type {{ name }} = {{ type_ }};",
+{{ description }}pub type {{ name }} = {{ type_ }};",
         ext = "txt"
     )]
-    pub(super) struct Alias {
+    pub(super) struct __Alias {
         pub name: String,
         pub description: String,
         pub type_: String,
@@ -588,10 +543,9 @@ class ClientInstance {
 
     #[derive(Template)]
     #[template(
-        source = "function {{ name }}(client: Client) {
-    return (input: {{ input_type }}, headers: {{ input_headers }}) => __request<
-        {{ input_type }}, {{ input_headers }}, {{ output_type }}, {{ error_type }}
-    >(client, '{{ path }}', input, headers);
+        source = "async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
+        -> Result<{{ output_type }}, super::Error<{{ error_type }}, E>> {
+            __request_impl(&self.client, \"{{ path }}\", input, headers).await
 }",
         ext = "txt"
     )]
@@ -683,28 +637,28 @@ fn client_impl_from_function_group(
     }
 }
 
-fn function_signature(
+fn __function_signature(
     function: &Function,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> (String, String, String, String) {
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
-        type_ref_to_ts_ref(input_type, schema, implemented_types)
+        __type_ref_to_ts_ref(input_type, schema, implemented_types)
     } else {
         "{}".into()
     };
     let input_headers = if let Some(input_headers) = function.input_headers.as_ref() {
-        type_ref_to_ts_ref(input_headers, schema, implemented_types)
+        __type_ref_to_ts_ref(input_headers, schema, implemented_types)
     } else {
         "{}".into()
     };
     let output_type = if let Some(output_type) = function.output_type.as_ref() {
-        type_ref_to_ts_ref(output_type, schema, implemented_types)
+        __type_ref_to_ts_ref(output_type, schema, implemented_types)
     } else {
         "{}".into()
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
-        type_ref_to_ts_ref(error_type, schema, implemented_types)
+        __type_ref_to_ts_ref(error_type, schema, implemented_types)
     } else {
         "{}".into()
     };
@@ -723,7 +677,7 @@ fn modules_from_function_group(
         types: vec![],
         submodules: IndexMap::new(),
     };
-    let mut type_template = templates::Interface {
+    let mut type_template = templates::Struct {
         name: "Interface".into(),
         description: "".into(),
         fields: Default::default(),
@@ -734,12 +688,13 @@ fn modules_from_function_group(
     for function_name in group.functions.iter() {
         let function = functions_by_name.get(function_name).unwrap();
         let (input_type, input_headers, output_type, error_type) =
-            function_signature(function, schema, implemented_types);
+            __function_signature(function, schema, implemented_types);
         type_template.fields.push(templates::Field {
             name: function_name.split('.').last().unwrap().replace("-", "_"),
-            description: doc_to_ts_comments(function.description.as_str(), 4),
+            serde_name: String::new(),
+            description: __doc_to_ts_comments(function.description.as_str(), 4),
             type_: format!(
-                "(input: {}, headers: {})\n        => AsyncResult<{}, {}>",
+                "(input: {}, headers: {})\n        => Result<{}, {}>",
                 input_type, input_headers, output_type, error_type
             ),
             optional: false,
@@ -750,6 +705,7 @@ fn modules_from_function_group(
         .fields
         .extend(group.subgroups.keys().map(|f| templates::Field {
             name: f.clone(),
+            serde_name: String::new(),
             description: "".into(),
             type_: format!("{}.Interface", f),
             optional: false,
@@ -810,7 +766,7 @@ fn render_function(
     implemented_types: &HashMap<String, String>,
 ) -> Result<String, anyhow::Error> {
     let (input_type, input_headers, output_type, error_type) =
-        function_signature(function, schema, implemented_types);
+        __function_signature(function, schema, implemented_types);
     let function_template = templates::FunctionImplementationTemplate {
         name: function.name.replace("-", "_").replace('.', "__"),
         path: format!("{}/{}", function.path, function.name),
@@ -829,33 +785,34 @@ fn render_type(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> Result<String, anyhow::Error> {
-    let type_name = type_to_ts_name(&type_def);
+    let type_name = __type_to_ts_name(&type_def);
 
     Ok(match type_def {
         crate::Type::Struct(struct_def) => {
             if struct_def.is_alias() {
                 let field_type_ref = struct_def.fields.first().unwrap().type_ref.clone();
-                let alias_template = templates::Alias {
+                let alias_template = templates::__Alias {
                     name: type_name,
-                    description: doc_to_ts_comments(&struct_def.description, 0),
-                    type_: type_ref_to_ts_ref(&field_type_ref, schema, implemented_types),
+                    description: __doc_to_ts_comments(&struct_def.description, 0),
+                    type_: __type_ref_to_ts_ref(&field_type_ref, schema, implemented_types),
                 };
                 alias_template
                     .render()
                     .context("Failed to render template")?
             } else {
-                let interface_template = templates::Interface {
+                let interface_template = templates::Struct {
                     name: type_name,
-                    description: doc_to_ts_comments(&struct_def.description, 0),
+                    description: __doc_to_ts_comments(&struct_def.description, 0),
                     is_tuple: struct_def.is_tuple(),
                     fields: struct_def
                         .fields
                         .iter()
                         .filter(|f| !f.flattened)
                         .map(|field| templates::Field {
-                            name: field.serde_name().into(),
-                            description: doc_to_ts_comments(&field.description, 4),
-                            type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
+                            name: field.name().into(),
+                            serde_name: field.serde_name().into(),
+                            description: __doc_to_ts_comments(&field.description, 4),
+                            type_: __type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
                             optional: !field.required,
                         })
                         .collect::<Vec<_>>(),
@@ -865,7 +822,7 @@ fn render_type(
                         .filter(|f| f.flattened)
                         .map(|field| {
                             let type_ref =
-                                type_ref_to_ts_ref(&field.type_ref, schema, implemented_types);
+                                __type_ref_to_ts_ref(&field.type_ref, schema, implemented_types);
                             if field.required {
                                 type_ref
                             } else {
@@ -882,21 +839,22 @@ fn render_type(
         crate::Type::Enum(enum_def) => {
             let enum_template = templates::Enum {
                 name: type_name,
-                description: doc_to_ts_comments(&enum_def.description, 0),
+                description: __doc_to_ts_comments(&enum_def.description, 0),
                 variants: enum_def
                     .variants
                     .iter()
                     .map(|variant| templates::Variant {
                         name: variant.serde_name().into(),
-                        description: doc_to_ts_comments(&variant.description, 4),
+                        description: __doc_to_ts_comments(&variant.description, 4),
                         representation: enum_def.representation.clone(),
                         fields: variant
                             .fields
                             .iter()
                             .map(|field| templates::Field {
-                                name: field.serde_name().into(),
-                                description: doc_to_ts_comments(&field.description, 12),
-                                type_: type_ref_to_ts_ref(
+                                name: field.name().into(),
+                                serde_name: field.serde_name().into(),
+                                description: __doc_to_ts_comments(&field.description, 12),
+                                type_: __type_ref_to_ts_ref(
                                     &field.type_ref,
                                     schema,
                                     implemented_types,
@@ -918,9 +876,9 @@ fn render_type(
                 "warning: {} type is not implemented for Typescript",
                 type_def.name
             );
-            let alias_template = templates::Alias {
+            let alias_template = templates::__Alias {
                 name: type_name,
-                description: doc_to_ts_comments(&type_def.description, 0),
+                description: __doc_to_ts_comments(&type_def.description, 0),
                 type_: format!(
                     "any /* fallback to any for unimplemented type: {} */",
                     type_def.name
@@ -933,29 +891,30 @@ fn render_type(
     })
 }
 
-fn type_ref_to_ts_ref(
+fn __type_ref_to_ts_ref(
     type_ref: &crate::TypeReference,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> String {
-    if let Some(resolved_type) = resolve_type_ref(type_ref, schema, implemented_types) {
+    if let Some(resolved_type) = __resolve_type_ref(type_ref, schema, implemented_types) {
         return resolved_type;
     }
 
-    let type_name_parts = type_ref.name.split("::").collect::<Vec<_>>();
-    let n = type_name_parts.join(".");
-    let p = type_ref_params_to_ts_ref(&type_ref.parameters, schema, implemented_types);
-    format!("{}{}", n, p)
+    format!(
+        "{}{}",
+        type_ref.name,
+        __type_ref_params_to_ts_ref(&type_ref.parameters, schema, implemented_types)
+    )
 }
 
-fn type_ref_params_to_ts_ref(
+fn __type_ref_params_to_ts_ref(
     type_params: &Vec<crate::TypeReference>,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> String {
     let p = type_params
         .iter()
-        .map(|type_ref| type_ref_to_ts_ref(type_ref, schema, implemented_types))
+        .map(|type_ref| __type_ref_to_ts_ref(type_ref, schema, implemented_types))
         .collect::<Vec<_>>()
         .join(", ");
     if p.is_empty() {
@@ -965,18 +924,18 @@ fn type_ref_params_to_ts_ref(
     }
 }
 
-fn type_to_ts_name(type_: &crate::Type) -> String {
-    let n = type_
+fn __type_to_ts_name(type_def: &crate::Type) -> String {
+    let n = type_def
         .name()
         .split("::")
         .last()
         .unwrap_or_default()
         .to_string();
-    let p = type_params_to_ts_name(type_.parameters());
+    let p = __type_params_to_ts_name(type_def.parameters());
     format!("{}{}", n, p)
 }
 
-fn type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParameter>) -> String {
+fn __type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParameter>) -> String {
     let p = type_params
         .map(|type_param| type_param.name.clone())
         .collect::<Vec<_>>()
@@ -988,27 +947,13 @@ fn type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParameter
     }
 }
 
-fn resolve_type_ref(
+fn __resolve_type_ref(
     type_ref: &crate::TypeReference,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> Option<String> {
     let Some(mut implementation) = implemented_types.get(type_ref.name.as_str()).cloned() else {
-        let Some(fallback_type_ref) = type_ref.fallback_once(schema.input_types()) else {
-            let Some(fallback_type_ref) = type_ref.fallback_once(schema.output_types()) else {
-                return None;
-            };
-            return Some(type_ref_to_ts_ref(
-                &fallback_type_ref,
-                schema,
-                implemented_types,
-            ));
-        };
-        return Some(type_ref_to_ts_ref(
-            &fallback_type_ref,
-            schema,
-            implemented_types,
-        ));
+        return None;
     };
 
     let Some(type_def) = schema.get_type(type_ref.name()) else {
@@ -1019,7 +964,7 @@ fn resolve_type_ref(
         if implementation.contains(type_def_param.name.as_str()) {
             implementation = implementation.replace(
                 type_def_param.name.as_str(),
-                type_ref_to_ts_ref(type_ref_param, schema, implemented_types).as_str(),
+                __type_ref_to_ts_ref(type_ref_param, schema, implemented_types).as_str(),
             );
         }
     }
@@ -1027,7 +972,7 @@ fn resolve_type_ref(
     Some(implementation)
 }
 
-fn doc_to_ts_comments(doc: &str, offset: u8) -> String {
+fn __doc_to_ts_comments(doc: &str, offset: u8) -> String {
     if doc.is_empty() {
         return "".into();
     }
@@ -1047,84 +992,44 @@ fn doc_to_ts_comments(doc: &str, offset: u8) -> String {
     format!("{}\n{}", doc, offset)
 }
 
-fn build_implemented_types() -> HashMap<String, String> {
+fn __build_implemented_types() -> HashMap<String, String> {
     let mut implemented_types = HashMap::new();
-    implemented_types.insert("u8".into(), "number /* u8 */".into());
-    implemented_types.insert("u16".into(), "number /* u16 */".into());
-    implemented_types.insert("u32".into(), "number /* u32 */".into());
-    implemented_types.insert("u64".into(), "number /* u64 */".into());
-    implemented_types.insert("u128".into(), "number /* u128 */".into());
-    implemented_types.insert("i8".into(), "number /* i8 */".into());
-    implemented_types.insert("i16".into(), "number /* i16 */".into());
-    implemented_types.insert("i32".into(), "number /* i32 */".into());
-    implemented_types.insert("i64".into(), "number /* i64 */".into());
-    implemented_types.insert("i128".into(), "number /* i128 */".into());
-
-    implemented_types.insert("f32".into(), "number /* f32 */".into());
-    implemented_types.insert("f64".into(), "number /* f64 */".into());
-
-    implemented_types.insert("bool".into(), "boolean".into());
-    implemented_types.insert("char".into(), "string".into());
-    implemented_types.insert("std::string::String".into(), "string".into());
-    implemented_types.insert("()".into(), "null".into());
 
     // warning: all generic type parameter names should match reflect defnition coming from
     // the implementation of reflect for standard types
 
-    implemented_types.insert("std::option::Option".into(), "T | null".into());
-    implemented_types.insert("reflectapi::Option".into(), "T | null | undefined".into());
-
-    implemented_types.insert("std::vec::Vec".into(), "Array<T>".into());
-    implemented_types.insert("std::collections::HashMap".into(), "Record<K, V>".into());
-
-    implemented_types.insert("std::tuple::Tuple1".into(), "[T1]".into());
-    implemented_types.insert("std::tuple::Tuple2".into(), "[T1, T2]".into());
-    implemented_types.insert("std::tuple::Tuple3".into(), "[T1, T2, T3]".into());
-    implemented_types.insert("std::tuple::Tuple4".into(), "[T1, T2, T3, T4]".into());
-    implemented_types.insert("std::tuple::Tuple5".into(), "[T1, T2, T3, T4, T5]".into());
+    implemented_types.insert("std::tuple::Tuple1".into(), "(T1)".into());
+    implemented_types.insert("std::tuple::Tuple2".into(), "(T1, T2)".into());
+    implemented_types.insert("std::tuple::Tuple3".into(), "(T1, T2, T3)".into());
+    implemented_types.insert("std::tuple::Tuple4".into(), "(T1, T2, T3, T4)".into());
+    implemented_types.insert("std::tuple::Tuple5".into(), "(T1, T2, T3, T4, T5)".into());
     implemented_types.insert(
         "std::tuple::Tuple6".into(),
-        "[T1, T2, T3, T4, T5, T6]".into(),
+        "(T1, T2, T3, T4, T5, T6)".into(),
     );
     implemented_types.insert(
         "std::tuple::Tuple7".into(),
-        "[T1, T2, T3, T4, T5, T6, T7]".into(),
+        "(T1, T2, T3, T4, T5, T6, T7)".into(),
     );
     implemented_types.insert(
         "std::tuple::Tuple8".into(),
-        "[T1, T2, T3, T4, T5, T6, T7, T8]".into(),
+        "(T1, T2, T3, T4, T5, T6, T7, T8)".into(),
     );
     implemented_types.insert(
         "std::tuple::Tuple9".into(),
-        "[T1, T2, T3, T4, T5, T6, T7, T8, T9]".into(),
+        "(T1, T2, T3, T4, T5, T6, T7, T8, T9)".into(),
     );
     implemented_types.insert(
         "std::tuple::Tuple10".into(),
-        "[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]".into(),
+        "(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)".into(),
     );
     implemented_types.insert(
         "std::tuple::Tuple11".into(),
-        "[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]".into(),
+        "(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)".into(),
     );
     implemented_types.insert(
         "std::tuple::Tuple12".into(),
-        "[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]".into(),
-    );
-
-    implemented_types.insert(
-        "serde_json::Value".into(),
-        "any /* serde_json::Value */".into(),
-    );
-
-    // it is only string in json format,
-    // message pack delivers it as bytes
-    // but we ignore it as this client encodes as only json
-    implemented_types.insert("uuid::Uuid".into(), "string /* uuid::Uuid */".into());
-
-    // we preserve it in case the generated code might have references to unused generic parameters
-    implemented_types.insert(
-        "std::marker::PhantomData".into(),
-        "undefined | T /* phantom data */".into(),
+        "(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)".into(),
     );
 
     implemented_types

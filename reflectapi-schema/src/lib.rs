@@ -833,9 +833,13 @@ impl Into<Type> for Struct {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Field {
+    /// Field name, should be a valid Rust field name identifier
     pub name: String,
+    /// If a serialized name is not a valid Rust field name identifier
+    /// then this defines the name of a field to be used in serialization
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub serde_name: String,
+    /// Rust docs for the field
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
@@ -856,7 +860,7 @@ pub struct Field {
     /// not required and nullable:
     ///   serializers and deserializers are required to differentiate between
     ///   missing fields and null / none fields
-    /// - Rust: Patch<T> (Patch is enum with Missing, None and Some variants)
+    /// - Rust: reflectapi::Option<T> is enum with Undefined, None and Some variants
     /// - TypeScript: T | null | undefined
     ///
     /// Default is false
