@@ -320,45 +320,26 @@ mod __implementation {
     #[derive(Template)]
     #[template(
         source = "
-{{ description }}pub {{ self.render_keyword() }} {{ name }} {{ self.render_brackets().0 }}
+{{ description }}pub struct {{ name }} {{ self.render_brackets().0 }}
     {%- for field in fields.iter() %}
     {{ field }},
     {%- endfor %}
-{{ self.render_brackets().1 }}{{ self.render_flattened_types() }}",
+{{ self.render_brackets().1 }}",
         ext = "txt"
     )]
-    pub(super) struct Struct {
+    pub(super) struct __Struct {
         pub name: String,
         pub description: String,
-        pub fields: Vec<Field>,
+        pub fields: Vec<__Field>,
         pub is_tuple: bool,
-        pub flattened_types: Vec<String>,
     }
 
-    impl Struct {
-        fn render_keyword(&self) -> String {
-            if self.is_tuple || !self.flattened_types.is_empty() {
-                "type".into()
-            } else {
-                "struct".into()
-            }
-        }
-
+    impl __Struct {
         fn render_brackets(&self) -> (&'static str, &'static str) {
-            if !self.flattened_types.is_empty() {
-                ("= {", "}")
-            } else if self.is_tuple {
-                ("= [", "]\n")
+            if self.is_tuple {
+                ("(", ")")
             } else {
                 ("{", "}")
-            }
-        }
-
-        fn render_flattened_types(&self) -> String {
-            if self.flattened_types.is_empty() {
-                "".into()
-            } else {
-                return format!(" & {}", self.flattened_types.join(" &\n    "));
             }
         }
     }
@@ -366,119 +347,124 @@ mod __implementation {
     #[derive(Template)]
     #[template(
         source = "
-{{ description }}pub type {{ name }} =
+{{ description }}{{ self.render_attributes() }}pub enum {{ name }} {
     {%- for variant in variants.iter() %}
     {{ variant }}
-    {%- endfor %};",
+    {%- endfor %}
+}",
         ext = "txt"
     )]
-    pub(super) struct Enum {
+    pub(super) struct __Enum {
         pub name: String,
         pub description: String,
-        pub variants: Vec<Variant>,
-    }
-
-    #[derive(Template)]
-    #[template(source = "{{ description }}| {{ self.render_self()? }}", ext = "txt")]
-    pub(super) struct Variant {
-        pub name: String,
-        pub description: String,
+        pub variants: Vec<__Variant>,
         pub representation: crate::Representation,
-        pub fields: Vec<Field>,
-        pub discriminant: Option<isize>,
-        pub untagged: bool,
     }
 
-    impl Variant {
-        fn fields_brakets(&self) -> (String, String) {
-            if self.fields.is_empty() {
-                ("".into(), "".into())
-            } else if self.fields.iter().all(|f| f.is_unnamed()) {
-                if self.fields.len() == 1 {
-                    ("".into(), "".into())
-                } else {
-                    ("[".into(), "]".into())
+    impl __Enum {
+        fn render_attributes(&self) -> String {
+            match &self.representation {
+                crate::Representation::External => "".into(),
+                crate::Representation::Internal { tag } => {
+                    format!("#[serde(tag = \"{}\")]\n", tag)
                 }
-            } else {
-                ("{".into(), "}".into())
-            }
-        }
-
-        fn render_self(&self) -> anyhow::Result<String> {
-            if self.fields.is_empty() {
-                if let Some(discriminant) = self.discriminant {
-                    return Ok(format!("{} /* {} */", discriminant, self.name));
-                }
-                return Ok(format!("\"{}\"", self.normalized_name()));
-            }
-            if self.untagged {
-                return self.render_fields(None);
-            }
-            let r = match &self.representation {
-                crate::Representation::External => {
-                    format!(
-                        "{{\n        {}: {}\n    }}",
-                        self.normalized_name(),
-                        self.render_fields(None)?
-                    )
-                }
-                crate::Representation::Internal { tag } => self.render_fields(Some(tag))?,
                 crate::Representation::Adjacent { tag, content } => {
-                    format!(
-                        "{{ {}: {}, {}: {} }}",
-                        tag,
-                        self.normalized_name(),
-                        content,
-                        self.render_fields(None)?
-                    )
+                    format!("#[serde(tag = \"{}\", content = \"{}\")]\n", tag, content)
                 }
-                crate::Representation::None => self.render_fields(None)?,
-            };
-            Ok(r)
-        }
-
-        fn normalized_name(&self) -> String {
-            if self.name.chars().enumerate().any(|(ind, c)| {
-                ind == 0 && !c.is_alphabetic() && c != '_' || !c.is_alphanumeric() && c != '_'
-            }) {
-                format!("\"{}\"", self.name)
-            } else {
-                self.name.clone()
+                crate::Representation::None => {
+                    format!("#[serde(untagged)]\n")
+                }
             }
-        }
-
-        fn render_fields(&self, inner_tag: Option<&str>) -> anyhow::Result<String> {
-            let brackets = self.fields_brakets();
-            let mut rendered_fields = Vec::new();
-            if let Some(inner_tag) = inner_tag {
-                rendered_fields.push(format!("{}: \"{}\"", inner_tag, self.name));
-            }
-            for field in self.fields.iter() {
-                rendered_fields.push(field.render()?);
-            }
-            Ok(format!(
-                "{}\n            {}\n        {}",
-                brackets.0,
-                rendered_fields.join(",\n            "),
-                brackets.1
-            ))
         }
     }
 
     #[derive(Template)]
     #[template(
-        source = "{{ description }}{{ self.serde_attributes() }}{% if !self.is_unnamed() %}{{ self.normalized_name() }}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
+        source = "{{ description }}{{ self.render_attributes() }}{{ self.render_self()? }},",
         ext = "txt"
     )]
-    pub(super) struct Field {
+    pub(super) struct __Variant {
+        pub name: String,
+        pub serde_name: String,
+        pub description: String,
+        pub fields: Vec<__Field>,
+        pub discriminant: Option<isize>,
+        pub untagged: bool,
+    }
+
+    impl __Variant {
+        fn render_self(&self) -> anyhow::Result<String> {
+            let brakets = self.render_brackets();
+            let r = format!(
+                "{}{}{}{}",
+                self.name,
+                brakets.0,
+                self.render_fields()?,
+                brakets.1
+            );
+            Ok(r)
+        }
+
+        fn render_attributes(&self) -> String {
+            let mut attrs = vec![];
+            if self.serde_name != self.name {
+                attrs.push(format!("rename = \"{}\"", self.serde_name));
+            }
+            if self.untagged {
+                attrs.push("untagged".into());
+            }
+            if attrs.is_empty() {
+                "".into()
+            } else {
+                format!("#[serde({})]\n    ", attrs.join(", "))
+            }
+        }
+
+        fn render_fields(&self) -> anyhow::Result<String> {
+            let mut rendered_fields = Vec::new();
+            for field in self.fields.iter() {
+                rendered_fields.push(field.render()?);
+            }
+            if rendered_fields.is_empty() {
+                Ok("".into())
+            } else {
+                Ok(format!(
+                    "\n        {},\n    ",
+                    rendered_fields.join(",\n    ")
+                ))
+            }
+        }
+
+        fn render_brackets(&self) -> (&'static str, &'static str) {
+            if self.fields.is_empty() {
+                ("", "")
+            } else if self.is_tuple() {
+                ("(", ")")
+            } else {
+                (" {", "}")
+            }
+        }
+
+        fn is_tuple(&self) -> bool {
+            self.fields.iter().all(|f| f.is_unnamed())
+        }
+    }
+
+    #[derive(Template)]
+    #[template(
+        source = "{{ description }}{{ self.render_attributes() }}{% if !self.is_unnamed() %}{{ self.normalized_name() }}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
+        ext = "txt"
+    )]
+    pub(super) struct __Field {
         pub name: String,
         pub serde_name: String,
         pub description: String,
         pub type_: String,
         pub optional: bool,
+        pub flattened: bool,
     }
 
-    impl Field {
+    impl __Field {
         fn is_unnamed(&self) -> bool {
             self.name.parse::<u64>().is_ok()
         }
@@ -493,7 +479,7 @@ mod __implementation {
             }
         }
 
-        fn serde_attributes(&self) -> String {
+        fn render_attributes(&self) -> String {
             let mut attrs = vec![];
             if self.serde_name != self.name {
                 attrs.push(format!("rename = \"{}\"", self.serde_name));
@@ -510,6 +496,12 @@ mod __implementation {
                 if self.type_.starts_with("std::option::Option<") {
                     attrs.push("skip_serializing_if = \"std::option::Option::is_none\"".into());
                 }
+                if self.type_ == "()" {
+                    attrs.push("skip_serializing".into());
+                }
+                if self.type_.starts_with("std::string::String") {
+                    attrs.push("skip_serializing_if = \"std::string::String::is_empty\"".into());
+                }
                 if self.type_.starts_with("std::vec::Vec<") {
                     attrs.push("skip_serializing_if = \"std::vec::Vec::is_empty\"".into());
                 }
@@ -520,6 +512,9 @@ mod __implementation {
                         type_without_generics
                     ));
                 }
+            }
+            if self.flattened {
+                attrs.push("flattened".into());
             }
             if attrs.is_empty() {
                 "".into()
@@ -539,6 +534,17 @@ mod __implementation {
         pub name: String,
         pub description: String,
         pub type_: String,
+    }
+
+    #[derive(Template)]
+    #[template(
+        source = "
+{{ description }}pub struct {{ name }};",
+        ext = "txt"
+    )]
+    pub(super) struct __Unit {
+        pub name: String,
+        pub description: String,
     }
 
     #[derive(Template)]
@@ -645,22 +651,22 @@ fn __function_signature(
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
         __type_ref_to_ts_ref(input_type, schema, implemented_types)
     } else {
-        "{}".into()
+        "()".into()
     };
     let input_headers = if let Some(input_headers) = function.input_headers.as_ref() {
         __type_ref_to_ts_ref(input_headers, schema, implemented_types)
     } else {
-        "{}".into()
+        "()".into()
     };
     let output_type = if let Some(output_type) = function.output_type.as_ref() {
         __type_ref_to_ts_ref(output_type, schema, implemented_types)
     } else {
-        "{}".into()
+        "()".into()
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
         __type_ref_to_ts_ref(error_type, schema, implemented_types)
     } else {
-        "{}".into()
+        "()".into()
     };
     (input_type, input_headers, output_type, error_type)
 }
@@ -677,19 +683,18 @@ fn modules_from_function_group(
         types: vec![],
         submodules: IndexMap::new(),
     };
-    let mut type_template = templates::Struct {
+    let mut type_template = templates::__Struct {
         name: "Interface".into(),
         description: "".into(),
         fields: Default::default(),
         is_tuple: false,
-        flattened_types: vec![],
     };
 
     for function_name in group.functions.iter() {
         let function = functions_by_name.get(function_name).unwrap();
         let (input_type, input_headers, output_type, error_type) =
             __function_signature(function, schema, implemented_types);
-        type_template.fields.push(templates::Field {
+        type_template.fields.push(templates::__Field {
             name: function_name.split('.').last().unwrap().replace("-", "_"),
             serde_name: String::new(),
             description: __doc_to_ts_comments(function.description.as_str(), 4),
@@ -698,17 +703,19 @@ fn modules_from_function_group(
                 input_type, input_headers, output_type, error_type
             ),
             optional: false,
+            flattened: false,
         });
     }
 
     type_template
         .fields
-        .extend(group.subgroups.keys().map(|f| templates::Field {
+        .extend(group.subgroups.keys().map(|f| templates::__Field {
             name: f.clone(),
             serde_name: String::new(),
             description: "".into(),
             type_: format!("{}.Interface", f),
             optional: false,
+            flattened: false,
         }));
 
     module.types.push(type_template.render().unwrap());
@@ -789,7 +796,15 @@ fn render_type(
 
     Ok(match type_def {
         crate::Type::Struct(struct_def) => {
-            if struct_def.is_alias() {
+            if struct_def.is_unit() {
+                let unit_struct_template = templates::__Unit {
+                    name: type_name,
+                    description: __doc_to_ts_comments(&struct_def.description, 0),
+                };
+                unit_struct_template
+                    .render()
+                    .context("Failed to render template")?
+            } else if struct_def.is_alias() {
                 let field_type_ref = struct_def.fields.first().unwrap().type_ref.clone();
                 let alias_template = templates::__Alias {
                     name: type_name,
@@ -800,34 +815,20 @@ fn render_type(
                     .render()
                     .context("Failed to render template")?
             } else {
-                let interface_template = templates::Struct {
+                let interface_template = templates::__Struct {
                     name: type_name,
                     description: __doc_to_ts_comments(&struct_def.description, 0),
                     is_tuple: struct_def.is_tuple(),
                     fields: struct_def
                         .fields
                         .iter()
-                        .filter(|f| !f.flattened)
-                        .map(|field| templates::Field {
+                        .map(|field| templates::__Field {
                             name: field.name().into(),
                             serde_name: field.serde_name().into(),
                             description: __doc_to_ts_comments(&field.description, 4),
                             type_: __type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
                             optional: !field.required,
-                        })
-                        .collect::<Vec<_>>(),
-                    flattened_types: struct_def
-                        .fields
-                        .iter()
-                        .filter(|f| f.flattened)
-                        .map(|field| {
-                            let type_ref =
-                                __type_ref_to_ts_ref(&field.type_ref, schema, implemented_types);
-                            if field.required {
-                                type_ref
-                            } else {
-                                format!("Partial<{}>", type_ref.replace(" | null", ""))
-                            }
+                            flattened: field.flattened,
                         })
                         .collect::<Vec<_>>(),
                 };
@@ -837,20 +838,21 @@ fn render_type(
             }
         }
         crate::Type::Enum(enum_def) => {
-            let enum_template = templates::Enum {
+            let enum_template = templates::__Enum {
                 name: type_name,
                 description: __doc_to_ts_comments(&enum_def.description, 0),
+                representation: enum_def.representation.clone(),
                 variants: enum_def
                     .variants
                     .iter()
-                    .map(|variant| templates::Variant {
-                        name: variant.serde_name().into(),
+                    .map(|variant| templates::__Variant {
+                        name: variant.name().into(),
+                        serde_name: variant.serde_name().into(),
                         description: __doc_to_ts_comments(&variant.description, 4),
-                        representation: enum_def.representation.clone(),
                         fields: variant
                             .fields
                             .iter()
-                            .map(|field| templates::Field {
+                            .map(|field| templates::__Field {
                                 name: field.name().into(),
                                 serde_name: field.serde_name().into(),
                                 description: __doc_to_ts_comments(&field.description, 12),
@@ -860,6 +862,7 @@ fn render_type(
                                     implemented_types,
                                 ),
                                 optional: !field.required,
+                                flattened: field.flattened,
                             })
                             .collect::<Vec<_>>(),
                         discriminant: variant.discriminant,
@@ -871,22 +874,9 @@ fn render_type(
                 .render()
                 .context("Failed to render template")?
         }
-        crate::Type::Primitive(type_def) => {
-            eprintln!(
-                "warning: {} type is not implemented for Typescript",
-                type_def.name
-            );
-            let alias_template = templates::__Alias {
-                name: type_name,
-                description: __doc_to_ts_comments(&type_def.description, 0),
-                type_: format!(
-                    "any /* fallback to any for unimplemented type: {} */",
-                    type_def.name
-                ),
-            };
-            alias_template
-                .render()
-                .context("Failed to render template")?
+        crate::Type::Primitive(_) => {
+            // do nothing, we will use the primitive types as is
+            "".into()
         }
     })
 }

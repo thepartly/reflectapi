@@ -19,8 +19,8 @@ mod health {
 pub struct Interface {
     /// Check the health of the service
     #[serde(rename = "")]
-    check: (input: {}, headers: {})
-        => Result<{}, {}>,
+    check: (input: (), headers: ())
+        => Result<(), ()>,
 }
 
 }
@@ -35,18 +35,18 @@ pub struct Interface {
     /// Create a new pet
     #[serde(rename = "")]
     create: (input: myapi::proto::PetsCreateRequest, headers: myapi::proto::Headers)
-        => Result<{}, myapi::proto::PetsCreateError>,
+        => Result<(), myapi::proto::PetsCreateError>,
     /// Update an existing pet
     #[serde(rename = "")]
     update: (input: myapi::proto::PetsUpdateRequest, headers: myapi::proto::Headers)
-        => Result<{}, myapi::proto::PetsUpdateError>,
+        => Result<(), myapi::proto::PetsUpdateError>,
     /// Remove an existing pet
     #[serde(rename = "")]
     remove: (input: myapi::proto::PetsRemoveRequest, headers: myapi::proto::Headers)
-        => Result<{}, myapi::proto::PetsRemoveError>,
+        => Result<(), myapi::proto::PetsRemoveError>,
     /// Fetch first pet, if any exists
     #[serde(rename = "")]
-    get_first: (input: {}, headers: myapi::proto::Headers)
+    get_first: (input: (), headers: myapi::proto::Headers)
         => Result<std::option::Option<myapi::model::Pet>, myapi::proto::UnauthorizedError>,
 }
 
@@ -125,32 +125,30 @@ mod myapi {
 
 mod model {
 
-pub type Behavior =
-    | "Calm"
-    | {
-        Aggressive: [
-            /// aggressiveness level
+pub enum Behavior {
+    Calm,
+    Aggressive(
+        /// aggressiveness level
             f64,
-            /// some notes
-            std::string::String
-        ]
-    }
-    | {
-        Other: {
-            /// Custom provided description of a behavior
+    /// some notes
+            std::string::String,
+    ),
+    Other {
+        /// Custom provided description of a behavior
             description: std::string::String,
-            /// Additional notes
+    /// Additional notes
             /// Up to a user to put free text here
-            #[serde(default)]
-    notes: std::string::String
-        }
-    };
+            #[serde(default, skip_serializing_if = "std::string::String::is_empty")]
+    notes: std::string::String,
+    },
+}
 
-pub type Kind =
+pub enum Kind {
     /// A dog
-    | "dog"
+    dog,
     /// A cat
-    | "cat";
+    cat,
+}
 
 pub struct Pet {
     /// identity
@@ -181,20 +179,20 @@ pub struct Paginated<T> {
     cursor: std::option::Option<std::string::String>,
 }
 
-pub type PetsCreateError =
-    | "Conflict"
-    | "NotAuthorized"
-    | {
-        InvalidIdentity: {
-            message: std::string::String
-        }
-    };
+pub enum PetsCreateError {
+    Conflict,
+    NotAuthorized,
+    InvalidIdentity {
+        message: std::string::String,
+    },
+}
 
 pub type PetsCreateRequest = myapi::model::Pet;
 
-pub type PetsListError =
-    | "InvalidCustor"
-    | "Unauthorized";
+pub enum PetsListError {
+    InvalidCustor,
+    Unauthorized,
+}
 
 pub struct PetsListRequest {
     #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
@@ -203,18 +201,20 @@ pub struct PetsListRequest {
     cursor: std::option::Option<std::string::String>,
 }
 
-pub type PetsRemoveError =
-    | "NotFound"
-    | "NotAuthorized";
+pub enum PetsRemoveError {
+    NotFound,
+    NotAuthorized,
+}
 
 pub struct PetsRemoveRequest {
     /// identity
     name: std::string::String,
 }
 
-pub type PetsUpdateError =
-    | "NotFound"
-    | "NotAuthorized";
+pub enum PetsUpdateError {
+    NotFound,
+    NotAuthorized,
+}
 
 pub struct PetsUpdateRequest {
     /// identity
@@ -230,7 +230,7 @@ pub struct PetsUpdateRequest {
     behaviors: reflectapi::Option<std::vec::Vec<myapi::model::Behavior>>,
 }
 
-pub type UnauthorizedError = ();
+pub struct UnauthorizedError;
 
 }
 
@@ -302,8 +302,8 @@ mod __implementation {
     }
 }
 
-async fn health__check(&self, input: {}, headers: {})
-        -> Result<{}, super::Error<{}, E>> {
+async fn health__check(&self, input: (), headers: ())
+        -> Result<(), super::Error<(), E>> {
             __request_impl(&self.client, "/health.check", input, headers).await
 }
 async fn pets__list(&self, input: myapi::proto::PetsListRequest, headers: myapi::proto::Headers)
@@ -311,18 +311,18 @@ async fn pets__list(&self, input: myapi::proto::PetsListRequest, headers: myapi:
             __request_impl(&self.client, "/pets.list", input, headers).await
 }
 async fn pets__create(&self, input: myapi::proto::PetsCreateRequest, headers: myapi::proto::Headers)
-        -> Result<{}, super::Error<myapi::proto::PetsCreateError, E>> {
+        -> Result<(), super::Error<myapi::proto::PetsCreateError, E>> {
             __request_impl(&self.client, "/pets.create", input, headers).await
 }
 async fn pets__update(&self, input: myapi::proto::PetsUpdateRequest, headers: myapi::proto::Headers)
-        -> Result<{}, super::Error<myapi::proto::PetsUpdateError, E>> {
+        -> Result<(), super::Error<myapi::proto::PetsUpdateError, E>> {
             __request_impl(&self.client, "/pets.update", input, headers).await
 }
 async fn pets__remove(&self, input: myapi::proto::PetsRemoveRequest, headers: myapi::proto::Headers)
-        -> Result<{}, super::Error<myapi::proto::PetsRemoveError, E>> {
+        -> Result<(), super::Error<myapi::proto::PetsRemoveError, E>> {
             __request_impl(&self.client, "/pets.remove", input, headers).await
 }
-async fn pets__get_first(&self, input: {}, headers: myapi::proto::Headers)
+async fn pets__get_first(&self, input: (), headers: myapi::proto::Headers)
         -> Result<std::option::Option<myapi::model::Pet>, super::Error<myapi::proto::UnauthorizedError, E>> {
             __request_impl(&self.client, "/pets.get-first", input, headers).await
 }

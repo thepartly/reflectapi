@@ -747,9 +747,15 @@ impl Into<Type> for Primitive {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Struct {
+    /// Name of a struct, should be a valid Rust struct name identifier
     pub name: String,
+
+    /// If a serialized name is not a valid Rust struct name identifier
+    /// then this defines the name of a struct to be used in serialization
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub serde_name: String,
+
+    /// Markdown docs for the struct
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
@@ -777,10 +783,12 @@ impl Struct {
         }
     }
 
+    /// Returns the name of a struct, should be a valid Rust struct name identifier
     pub fn name(&self) -> &str {
         self.name.as_str()
     }
 
+    /// Returns the name of a struct to be used in serialization
     pub fn serde_name(&self) -> &str {
         if self.serde_name.is_empty() {
             self.name.as_str()
@@ -805,10 +813,26 @@ impl Struct {
         self.transparent
     }
 
+    /// Returns true if a struct has 1 field and it is either named "0"
+    /// or is transparent in the serialized form
     pub fn is_alias(&self) -> bool {
         self.fields.len() == 1 && (self.fields[0].name() == "0" || self.transparent)
     }
 
+    /// Returns true is a struct is a Rust unit struct.
+    /// Please note, that a unit struct is also an alias
+    pub fn is_unit(&self) -> bool {
+        let Some(first_field) = self.fields.first() else {
+            return false;
+        };
+
+        self.fields.len() == 1
+            && first_field.name() == "0"
+            && first_field.type_ref.name == "()"
+            && !first_field.required
+    }
+
+    /// Returns true if a struct is a Rust tuple struct.
     pub fn is_tuple(&self) -> bool {
         self.fields.len() != 0
             && self
