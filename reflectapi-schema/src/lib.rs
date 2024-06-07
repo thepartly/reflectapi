@@ -583,6 +583,13 @@ impl Type {
         }
     }
 
+    pub fn is_struct(&self) -> bool {
+        match self {
+            Type::Struct(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn as_enum(&self) -> Option<&Enum> {
         match self {
             Type::Enum(e) => Some(e),
@@ -590,10 +597,24 @@ impl Type {
         }
     }
 
+    pub fn is_enum(&self) -> bool {
+        match self {
+            Type::Enum(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn as_primitive(&self) -> Option<&Primitive> {
         match self {
             Type::Primitive(p) => Some(p),
             _ => None,
+        }
+    }
+
+    pub fn is_primitive(&self) -> bool {
+        match self {
+            Type::Primitive(_) => true,
+            _ => false,
         }
     }
 

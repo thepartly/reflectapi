@@ -139,16 +139,13 @@ impl Client<reqwest::Error> for ReqwestClient {
 }
 
 pub mod interface {
-    use std::marker::PhantomData;
 
-    use super::{Client, __request_impl};
-
-    pub struct Interface<E, C: Client<E>> {
+    pub struct Interface<E, C: super::Client<E>> {
         pub health: Health<E, C>,
         // pets: Pets<E, C>,
     }
 
-    impl<E, C: Client<E>> Interface<E, C> {
+    impl<E, C: super::Client<E>> Interface<E, C> {
         pub fn new(client: C) -> Self {
             Self {
                 health: Health::new(client),
@@ -159,22 +156,22 @@ pub mod interface {
 
     pub struct Health<E, C>
     where
-        C: Client<E>,
+        C: super::Client<E>,
     {
         client: C,
-        _marker: PhantomData<E>,
+        _marker: std::marker::PhantomData<E>,
     }
 
-    impl<E, C: Client<E>> Health<E, C> {
+    impl<E, C: super::Client<E>> Health<E, C> {
         pub fn new(client: C) -> Self {
             Self {
                 client,
-                _marker: PhantomData,
+                _marker: std::marker::PhantomData,
             }
         }
 
         pub async fn check(&self, input: (), headers: ()) -> Result<(), super::Error<(), E>> {
-            __request_impl(&self.client, "health.check", input, headers).await
+            super::__request_impl(&self.client, "health.check", input, headers).await
         }
     }
 
@@ -184,6 +181,15 @@ pub mod interface {
 }
 
 pub async fn demo() {
+    reqwest::Client::builder()
+        
+        .build()
+        .unwrap()
+        .get("http://localhost:8080")
+        .send()
+        .await
+        .unwrap();
+    
     // making a request client and initializing typed client interface once per app
     // note we use generated default provided implementation of the Client trait by Reqwest...
     let client = ReqwestClient::new(reqwest::Client::new(), "http://localhost:8080".to_string());

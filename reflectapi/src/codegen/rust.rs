@@ -26,7 +26,7 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
         }
         rendered_types.insert(
             original_type_name,
-            render_type(type_def, &schema, &implemented_types)?,
+            __render_type(type_def, &schema, &implemented_types)?,
         );
     }
 
@@ -34,7 +34,7 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
         .functions()
         .map(|f| (f.name.clone(), f))
         .collect::<IndexMap<_, _>>();
-    let function_groups = function_groups_from_function_names(
+    let function_groups = __function_groups_from_function_names(
         schema
             .functions()
             .map(|f| f.name.clone())
@@ -43,7 +43,7 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
 
     let mut generated_code = vec![];
 
-    let file_template = templates::FileHeader {
+    let file_template = templates::__FileHeader {
         name: schema.name.clone(),
         description: schema.description.clone(),
     };
@@ -62,14 +62,14 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     );
     generated_code.push(module.render().context("Failed to render template")?);
 
-    let file_template = templates::FileMiddle {};
+    let file_template = templates::__FileMiddle {};
     generated_code.push(
         file_template
             .render()
             .context("Failed to render template")?,
     );
 
-    let module = modules_from_rendered_types(schema.consolidate_types(), rendered_types);
+    let module = __modules_from_rendered_types(schema.consolidate_types(), rendered_types);
     generated_code.push(
         module
             .render()
@@ -80,12 +80,11 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
 
     let mut rendered_functions = Vec::new();
     for function in schema.functions.iter() {
-        rendered_functions.push(render_function(function, &schema, &implemented_types)?);
+        rendered_functions.push(__render_function(function, &schema, &implemented_types)?);
     }
 
     let generated_impl_client = client_impl_from_function_group(8, &function_groups).render();
-    let file_template = templates::FileFootter {
-        client_impl: "".into(), //generated_impl_client,
+    let file_template = templates::__FileFootter {
         implemented_functions: rendered_functions.join("\n"),
     };
     generated_code.push(
@@ -109,10 +108,12 @@ mod templates {
 //
 // Schema name: {{ name }}
 // {{ description }}
-",
+
+// TODO make interface configurable via command line
+pub use __definition::Interface;",
         ext = "txt"
     )]
-    pub(super) struct FileHeader {
+    pub(super) struct __FileHeader {
         pub name: String,
         pub description: String,
     }
@@ -147,28 +148,14 @@ pub enum ProtocolErrorStage {
 }
 
 #[cfg(feature = \"reqwest\")]
-pub struct ReqwestClient {
-    client: reqwest::Client,
-    base_url: String,
-}
-
-#[cfg(feature = \"reqwest\")]
-impl ReqwestClient {
-    pub fn new(client: reqwest::Client, base_url: String) -> Self {
-        Self { client, base_url }
-    }
-}
-
-#[cfg(feature = \"reqwest\")]
-impl Client<reqwest::Error> for ReqwestClient {
+impl Client<reqwest::Error> for reqwest::Client {
     async fn request(
         &self,
         path: &str,
         body: bytes::Bytes,
         headers: std::collections::HashMap<String, String>,
     ) -> Result<(http::StatusCode, bytes::Bytes), reqwest::Error> {
-        let url = format!(\"{}{}\", self.base_url, path);
-        let mut request = self.client.post(&url);
+        let mut request = self.post(path);
         for (k, v) in headers {
             request = request.header(k, v);
         }
@@ -189,83 +176,81 @@ impl Client<reqwest::Error> for ReqwestClient {
 ",
         ext = "txt"
     )]
-    pub(super) struct FileMiddle {}
+    pub(super) struct __FileMiddle {}
 
     #[derive(Template)]
     #[template(
         source = "
-mod __implementation {
-    async fn __request_impl<C, NE, I, H, O, E>(
-        client: &C,
-        path: &str,
-        body: I,
-        headers: H,
-    ) -> Result<O, Error<E, NE>>
-    where
-        C: Client<NE>,
-        I: serde::Serialize,
-        H: serde::Serialize,
-        O: serde::de::DeserializeOwned,
-        E: serde::de::DeserializeOwned,
-    {
-        let body = serde_json::to_vec(&body).map_err(|e| Error::Protocol {
-            info: e.to_string(),
-            stage: ProtocolErrorStage::SerializeRequestBody,
-        })?;
-        let body = bytes::Bytes::from(body);
-        let headers = serde_json::to_value(&headers).map_err(|e| Error::Protocol {
-            info: e.to_string(),
-            stage: ProtocolErrorStage::SerializeRequestHeaders,
-        })?;
+async fn __request_impl<C, NE, I, H, O, E>(
+    client: &C,
+    path: &str,
+    body: I,
+    headers: H,
+) -> Result<O, Error<E, NE>>
+where
+    C: Client<NE>,
+    I: serde::Serialize,
+    H: serde::Serialize,
+    O: serde::de::DeserializeOwned,
+    E: serde::de::DeserializeOwned,
+{
+    let body = serde_json::to_vec(&body).map_err(|e| Error::Protocol {
+        info: e.to_string(),
+        stage: ProtocolErrorStage::SerializeRequestBody,
+    })?;
+    let body = bytes::Bytes::from(body);
+    let headers = serde_json::to_value(&headers).map_err(|e| Error::Protocol {
+        info: e.to_string(),
+        stage: ProtocolErrorStage::SerializeRequestHeaders,
+    })?;
 
-        let mut headers_serialized = HashMap::new();
-        match headers {
-            serde_json::Value::Object(headers) => {
-                for (k, v) in headers.into_iter() {
-                    let v_str = match v {
-                        serde_json::Value::String(v) => v,
-                        v => v.to_string(),
-                    };
-                    headers_serialized.insert(k, v_str);
-                }
-            }
-            _ => {
-                return Err(Error::Protocol {
-                    info: \"Headers must be an object\".to_string(),
-                    stage: ProtocolErrorStage::SerializeRequestHeaders,
-                });
+    let mut headers_serialized = std::collections::HashMap::new();
+    match headers {
+        serde_json::Value::Object(headers) => {
+            for (k, v) in headers.into_iter() {
+                let v_str = match v {
+                    serde_json::Value::String(v) => v,
+                    v => v.to_string(),
+                };
+                headers_serialized.insert(k, v_str);
             }
         }
-        let (status, body) = client
-            .request(path, body, headers_serialized)
-            .await
-            .map_err(Error::Network)?;
-        if status.is_success() {
-            let output = serde_json::from_slice(&body).map_err(|e| Error::Protocol {
-                info: e.to_string(),
-                stage: ProtocolErrorStage::DeserializeResponseBody(body),
-            })?;
-            Ok(output)
-        } else if status.is_client_error() {
-            match serde_json::from_slice::<E>(&body) {
-                Ok(error) => Err(Error::Application(error)),
-                Err(e) => Err(Error::Protocol {
-                    info: e.to_string(),
-                    stage: ProtocolErrorStage::DeserializeResponseError(status, body),
-                }),
-            }
-        } else {
-            Err(Error::Server(status, body))
+        _ => {
+            return Err(Error::Protocol {
+                info: \"Headers must be an object\".to_string(),
+                stage: ProtocolErrorStage::SerializeRequestHeaders,
+            });
         }
     }
+    let (status, body) = client
+        .request(path, body, headers_serialized)
+        .await
+        .map_err(Error::Network)?;
+    if status.is_success() {
+        let output = serde_json::from_slice(&body).map_err(|e| Error::Protocol {
+            info: e.to_string(),
+            stage: ProtocolErrorStage::DeserializeResponseBody(body),
+        })?;
+        Ok(output)
+    } else if status.is_client_error() {
+        match serde_json::from_slice::<E>(&body) {
+            Ok(error) => Err(Error::Application(error)),
+            Err(e) => Err(Error::Protocol {
+                info: e.to_string(),
+                stage: ProtocolErrorStage::DeserializeResponseError(status, body),
+            }),
+        }
+    } else {
+        Err(Error::Server(status, body))
+    }
 }
+
 
 {{ implemented_functions }}
 ",
         ext = "txt"
     )]
-    pub(super) struct FileFootter {
-        pub client_impl: String,
+    pub(super) struct __FileFootter {
         pub implemented_functions: String,
     }
 
@@ -283,14 +268,14 @@ mod __implementation {
 {{ self.render_end() }}",
         ext = "txt"
     )]
-    pub(super) struct Module {
+    pub(super) struct __Module {
         pub name: String,
         pub types: Vec<String>,
-        pub submodules: IndexMap<String, Module>,
+        pub submodules: IndexMap<String, __Module>,
     }
 
-    impl Module {
-        fn submodules_sorted(&self) -> Vec<&Module> {
+    impl __Module {
+        fn submodules_sorted(&self) -> Vec<&__Module> {
             let mut submodules = self.submodules.values().collect::<Vec<_>>();
             submodules.sort_by(|a, b| a.name.cmp(&b.name));
             submodules
@@ -320,7 +305,8 @@ mod __implementation {
     #[derive(Template)]
     #[template(
         source = "
-{{ description }}pub struct {{ name }} {{ self.render_brackets().0 }}
+{{ description }}#[derive(serde::Serialize, serde::Deserialize)]
+pub struct {{ name }} {{ self.render_brackets().0 }}
     {%- for field in fields.iter() %}
     {{ field }},
     {%- endfor %}
@@ -347,7 +333,8 @@ mod __implementation {
     #[derive(Template)]
     #[template(
         source = "
-{{ description }}{{ self.render_attributes() }}pub enum {{ name }} {
+{{ description }}#[derive(serde::Serialize, serde::Deserialize)]
+{{ self.render_attributes() }}pub enum {{ name }} {
     {%- for variant in variants.iter() %}
     {{ variant }}
     {%- endfor %}
@@ -396,11 +383,14 @@ mod __implementation {
         fn render_self(&self) -> anyhow::Result<String> {
             let brakets = self.render_brackets();
             let r = format!(
-                "{}{}{}{}",
+                "{}{}{}{}{}",
                 self.name,
                 brakets.0,
                 self.render_fields()?,
-                brakets.1
+                brakets.1,
+                self.discriminant
+                    .map(|d| format!(" = {}", d))
+                    .unwrap_or_default()
             );
             Ok(r)
         }
@@ -452,7 +442,7 @@ mod __implementation {
 
     #[derive(Template)]
     #[template(
-        source = "{{ description }}{{ self.render_attributes() }}{% if !self.is_unnamed() %}{{ self.normalized_name() }}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
+        source = "{{ description }}{{ self.render_attributes() }}{% if !self.is_unnamed() %}{{ self.render_visibility_modifier() }}{{ name }}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
         ext = "txt"
     )]
     pub(super) struct __Field {
@@ -462,6 +452,7 @@ mod __implementation {
         pub type_: String,
         pub optional: bool,
         pub flattened: bool,
+        pub public: bool,
     }
 
     impl __Field {
@@ -469,13 +460,11 @@ mod __implementation {
             self.name.parse::<u64>().is_ok()
         }
 
-        fn normalized_name(&self) -> String {
-            if self.name.chars().enumerate().any(|(ind, c)| {
-                ind == 0 && !c.is_alphabetic() && c != '_' || !c.is_alphanumeric() && c != '_'
-            }) {
-                format!("\"{}\"", self.name)
+        fn render_visibility_modifier(&self) -> String {
+            if self.public {
+                "pub ".into()
             } else {
-                self.name.clone()
+                "".into()
             }
         }
 
@@ -550,12 +539,12 @@ mod __implementation {
     #[derive(Template)]
     #[template(
         source = "async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
-        -> Result<{{ output_type }}, super::Error<{{ error_type }}, E>> {
+        -> Result<{{ output_type }}, Error<{{ error_type }}, E>> {
             __request_impl(&self.client, \"{{ path }}\", input, headers).await
 }",
         ext = "txt"
     )]
-    pub(super) struct FunctionImplementationTemplate {
+    pub(super) struct __FunctionImplementationTemplate {
         pub name: String,
         pub path: String,
         pub input_type: String,
@@ -594,13 +583,33 @@ mod __implementation {
     }
 }
 
-struct FunctionGroup {
+struct __FunctionGroup {
     functions: Vec<String>,
-    subgroups: IndexMap<String, FunctionGroup>,
+    subgroups: IndexMap<String, __FunctionGroup>,
 }
 
-fn function_groups_from_function_names(function_names: Vec<String>) -> FunctionGroup {
-    let mut root_group = FunctionGroup {
+impl __FunctionGroup {
+    fn render(&self, offset: u8) -> String {
+        let mut result = vec![];
+        result.push(format!("{{"));
+        for function in self.functions.iter() {
+            result.push(format!("{}{},", " ".repeat(offset as usize), function));
+        }
+        for (name, group) in self.subgroups.iter() {
+            result.push(format!(
+                "{}{}: {}",
+                " ".repeat(offset as usize),
+                name,
+                group.render(offset + 4)
+            ));
+        }
+        result.push(format!("{}}}", " ".repeat(offset as usize - 4)));
+        result.join("\n")
+    }
+}
+
+fn __function_groups_from_function_names(function_names: Vec<String>) -> __FunctionGroup {
+    let mut root_group = __FunctionGroup {
         functions: vec![],
         subgroups: IndexMap::new(),
     };
@@ -609,10 +618,13 @@ fn function_groups_from_function_names(function_names: Vec<String>) -> FunctionG
         let mut parts = function_name.split(".").collect::<Vec<_>>();
         parts.pop().unwrap();
         for part in parts {
-            group = group.subgroups.entry(part.into()).or_insert(FunctionGroup {
-                functions: vec![],
-                subgroups: IndexMap::new(),
-            });
+            group = group
+                .subgroups
+                .entry(part.into())
+                .or_insert(__FunctionGroup {
+                    functions: vec![],
+                    subgroups: IndexMap::new(),
+                });
         }
         group.functions.push(function_name);
     }
@@ -621,7 +633,7 @@ fn function_groups_from_function_names(function_names: Vec<String>) -> FunctionG
 
 fn client_impl_from_function_group(
     offset: usize,
-    group: &FunctionGroup,
+    group: &__FunctionGroup,
 ) -> templates::ClientImplementationGroup {
     templates::ClientImplementationGroup {
         offset: offset,
@@ -673,52 +685,70 @@ fn __function_signature(
 
 fn modules_from_function_group(
     name: String,
-    group: &FunctionGroup,
+    group: &__FunctionGroup,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     functions_by_name: &IndexMap<String, &Function>,
-) -> templates::Module {
-    let mut module = templates::Module {
+) -> templates::__Module {
+    let mut module = templates::__Module {
         name: name,
         types: vec![],
         submodules: IndexMap::new(),
     };
     let mut type_template = templates::__Struct {
-        name: "Interface".into(),
+        name: "Interface<E, C: crate::generated::Client<E>>".into(),
         description: "".into(),
         fields: Default::default(),
         is_tuple: false,
     };
 
+    for subgroup_name in group.subgroups.keys() {
+        type_template.fields.push(templates::__Field {
+            name: subgroup_name.clone(),
+            serde_name: subgroup_name.clone(),
+            description: "".into(),
+            type_: format!(
+                "crate::generated::__definition::{}::Interface<E, C>",
+                subgroup_name.to_string().replace("-", "_")
+            ),
+            optional: false,
+            flattened: false,
+            public: true,
+        });
+    }
+    for field in vec![
+        ("client", "C"),
+        ("base_url", "std::string::String"),
+        ("marker", "std::marker::PhantomData<E>"),
+    ] {
+        type_template.fields.push(templates::__Field {
+            name: field.0.into(),
+            serde_name: field.0.into(),
+            description: "".into(),
+            type_: field.1.into(),
+            optional: false,
+            flattened: false,
+            public: false,
+        });
+    }
+    module.types.push(type_template.render().unwrap());
+
     for function_name in group.functions.iter() {
         let function = functions_by_name.get(function_name).unwrap();
         let (input_type, input_headers, output_type, error_type) =
             __function_signature(function, schema, implemented_types);
-        type_template.fields.push(templates::__Field {
-            name: function_name.split('.').last().unwrap().replace("-", "_"),
-            serde_name: String::new(),
-            description: __doc_to_ts_comments(function.description.as_str(), 4),
-            type_: format!(
-                "(input: {}, headers: {})\n        => Result<{}, {}>",
-                input_type, input_headers, output_type, error_type
-            ),
-            optional: false,
-            flattened: false,
-        });
+        // type_template.fields.push(templates::__Field {
+        //     name: function_name.split('.').last().unwrap().replace("-", "_"),
+        //     serde_name: String::new(),
+        //     description: __doc_to_ts_comments(function.description.as_str(), 4),
+        //     type_: format!(
+        //         "(input: {}, headers: {})\n        => Result<{}, {}>",
+        //         input_type, input_headers, output_type, error_type
+        //     ),
+        //     optional: false,
+        //     flattened: false,
+        // });
     }
-
-    type_template
-        .fields
-        .extend(group.subgroups.keys().map(|f| templates::__Field {
-            name: f.clone(),
-            serde_name: String::new(),
-            description: "".into(),
-            type_: format!("{}.Interface", f),
-            optional: false,
-            flattened: false,
-        }));
-
-    module.types.push(type_template.render().unwrap());
 
     for (subgroup_name, subgroup) in group.subgroups.iter() {
         module.submodules.insert(
@@ -735,11 +765,11 @@ fn modules_from_function_group(
     module
 }
 
-fn modules_from_rendered_types(
+fn __modules_from_rendered_types(
     original_type_names: Vec<String>,
     mut rendered_types: HashMap<String, String>,
-) -> templates::Module {
-    let mut root_module = templates::Module {
+) -> templates::__Module {
+    let mut root_module = templates::__Module {
         name: "".into(),
         types: vec![],
         submodules: IndexMap::new(),
@@ -753,7 +783,7 @@ fn modules_from_rendered_types(
             module = module
                 .submodules
                 .entry(part.into())
-                .or_insert(templates::Module {
+                .or_insert(templates::__Module {
                     name: part.into(),
                     types: vec![],
                     submodules: IndexMap::new(),
@@ -767,14 +797,14 @@ fn modules_from_rendered_types(
     root_module
 }
 
-fn render_function(
+fn __render_function(
     function: &Function,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> Result<String, anyhow::Error> {
     let (input_type, input_headers, output_type, error_type) =
         __function_signature(function, schema, implemented_types);
-    let function_template = templates::FunctionImplementationTemplate {
+    let function_template = templates::__FunctionImplementationTemplate {
         name: function.name.replace("-", "_").replace('.', "__"),
         path: format!("{}/{}", function.path, function.name),
         input_type,
@@ -787,7 +817,7 @@ fn render_function(
         .context("Failed to render template")
 }
 
-fn render_type(
+fn __render_type(
     type_def: &crate::Type,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
@@ -829,6 +859,7 @@ fn render_type(
                             type_: __type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
                             optional: !field.required,
                             flattened: field.flattened,
+                            public: true,
                         })
                         .collect::<Vec<_>>(),
                 };
@@ -863,6 +894,7 @@ fn render_type(
                                 ),
                                 optional: !field.required,
                                 flattened: field.flattened,
+                                public: false,
                             })
                             .collect::<Vec<_>>(),
                         discriminant: variant.discriminant,
@@ -890,8 +922,19 @@ fn __type_ref_to_ts_ref(
         return resolved_type;
     }
 
+    let mut prefix = schema
+        .get_type(type_ref.name())
+        .filter(|i| !i.is_primitive())
+        .map(|i| "crate::generated::".to_string())
+        .unwrap_or_default();
+
+    if type_ref.name().starts_with("reflectapi::") {
+        prefix = "".into();
+    }
+
     format!(
-        "{}{}",
+        "{}{}{}",
+        prefix,
         type_ref.name,
         __type_ref_params_to_ts_ref(&type_ref.parameters, schema, implemented_types)
     )
@@ -985,9 +1028,20 @@ fn __doc_to_ts_comments(doc: &str, offset: u8) -> String {
 fn __build_implemented_types() -> HashMap<String, String> {
     let mut implemented_types = HashMap::new();
 
+    // TODO once the todos below are addressed it would be possible to drop this function completely
+
     // warning: all generic type parameter names should match reflect defnition coming from
     // the implementation of reflect for standard types
 
+    // TODO this one should probably be defined as primitive type
+    implemented_types.insert(
+        "std::option::Option".into(),
+        "std::option::Option<T>".into(),
+    );
+    // TODO this one should probably be defined as primitive type
+    implemented_types.insert("reflectapi::Option".into(), "reflectapi::Option<T>".into());
+
+    // TODO the following could be declared via type aliases in the generated code or in the reflect api
     implemented_types.insert("std::tuple::Tuple1".into(), "(T1)".into());
     implemented_types.insert("std::tuple::Tuple2".into(), "(T1, T2)".into());
     implemented_types.insert("std::tuple::Tuple3".into(), "(T1, T2, T3)".into());
