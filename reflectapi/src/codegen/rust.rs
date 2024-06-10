@@ -4,6 +4,7 @@ use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
 use reflectapi_schema::Function;
+use templates::__FunctionImplementationTemplate;
 
 pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     let implemented_types = __build_implemented_types();
@@ -53,7 +54,7 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
             .context("Failed to render template")?,
     );
 
-    let module = modules_from_function_group(
+    let module = __interface_types_from_function_group(
         "".into(),
         &function_groups,
         &schema,
@@ -83,15 +84,7 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
             .to_string(),
     );
 
-    let mut rendered_functions = Vec::new();
-    for function in schema.functions.iter() {
-        rendered_functions.push(__render_function(function, &schema, &implemented_types)?);
-    }
-
-    let generated_impl_client = client_impl_from_function_group(8, &function_groups).render();
-    let file_template = templates::__FileFootter {
-        implemented_functions: rendered_functions.join("\n"),
-    };
+    let file_template = templates::__FileFootter {};
     generated_code.push(
         file_template
             .render()
@@ -115,6 +108,7 @@ mod templates {
 // {{ description }}
 
 #![allow(non_camel_case_types)]
+#![allow(dead_code)]
 
 pub use interface::Interface;",
         ext = "txt"
@@ -189,6 +183,7 @@ impl Client<reqwest::Error> for reqwest::Client {
         source = "
 async fn __request_impl<C, NE, I, H, O, E>(
     client: &C,
+    base_url: &str,
     path: &str,
     body: I,
     headers: H,
@@ -221,6 +216,7 @@ where
                 headers_serialized.insert(k, v_str);
             }
         }
+        serde_json::Value::Null => {}
         _ => {
             return Err(Error::Protocol {
                 info: \"Headers must be an object\".to_string(),
@@ -229,7 +225,7 @@ where
         }
     }
     let (status, body) = client
-        .request(path, body, headers_serialized)
+        .request(&format!(\"{}{}\", base_url, path), body, headers_serialized)
         .await
         .map_err(Error::Network)?;
     if status.is_success() {
@@ -237,28 +233,21 @@ where
             info: e.to_string(),
             stage: ProtocolErrorStage::DeserializeResponseBody(body),
         })?;
-        Ok(output)
-    } else if status.is_client_error() {
-        match serde_json::from_slice::<E>(&body) {
-            Ok(error) => Err(Error::Application(error)),
-            Err(e) => Err(Error::Protocol {
-                info: e.to_string(),
-                stage: ProtocolErrorStage::DeserializeResponseError(status, body),
-            }),
-        }
-    } else {
-        Err(Error::Server(status, body))
+        return Ok(output)
+    }
+    match serde_json::from_slice::<E>(&body) {
+        Ok(error) => Err(Error::Application(error)),
+        Err(e) if status.is_client_error() => Err(Error::Protocol {
+            info: e.to_string(),
+            stage: ProtocolErrorStage::DeserializeResponseError(status, body),
+        }),
+        Err(_) => Err(Error::Server(status, body)),
     }
 }
-
-
-{{ implemented_functions }}
 ",
         ext = "txt"
     )]
-    pub(super) struct __FileFootter {
-        pub implemented_functions: String,
-    }
+    pub(super) struct __FileFootter {}
 
     #[derive(Template)]
     #[template(
@@ -295,7 +284,7 @@ where
             if self.name.is_empty() || self.is_empty() {
                 "".into()
             } else {
-                format!("mod {} {{", self.name)
+                format!("pub mod {} {{", self.name)
             }
         }
 
@@ -446,7 +435,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         }
     }
 
-    #[derive(Template)]
+    #[derive(Template, Clone)]
     #[template(
         source = "{{ description }}{{ self.render_attributes() }}{% if !self.is_unnamed() %}{{ self.render_visibility_modifier() }}{{ name }}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
         ext = "txt"
@@ -534,7 +523,8 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
     #[derive(Template)]
     #[template(
         source = "
-{{ description }}pub struct {{ name }};",
+{{ description }}#[derive(serde::Serialize, serde::Deserialize)]
+pub struct {{ name }};",
         ext = "txt"
     )]
     pub(super) struct __Unit {
@@ -544,14 +534,15 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
 
     #[derive(Template)]
     #[template(
-        source = "async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
-        -> Result<{{ output_type }}, Error<{{ error_type }}, E>> {
-            __request_impl(&self.client, \"{{ path }}\", input, headers).await
+        source = "{{description}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
+        -> Result<{{ output_type }}, super::Error<{{ error_type }}, E>> {
+            super::__request_impl(&self.client, &self.base_url, \"{{ path }}\", input, headers).await
 }",
         ext = "txt"
     )]
     pub(super) struct __FunctionImplementationTemplate {
         pub name: String,
+        pub description: String,
         pub path: String,
         pub input_type: String,
         pub input_headers: String,
@@ -559,33 +550,29 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         pub error_type: String,
     }
 
-    pub(super) struct ClientImplementationGroup {
-        pub offset: usize,
-        pub functions: IndexMap<String, String>,
-        pub subgroups: IndexMap<String, ClientImplementationGroup>,
-    }
-
-    impl ClientImplementationGroup {
-        fn offset(&self) -> String {
-            " ".repeat(self.offset)
-        }
-        pub fn render(&self) -> String {
-            let mut result = vec![];
-            result.push(format!("{{"));
-            for (name, function) in self.functions.iter() {
-                result.push(format!(
-                    "{}{}: {}(client_instance),",
-                    self.offset(),
-                    name,
-                    function
-                ));
+    #[derive(Template)]
+    #[template(
+        source = "impl<E, C: super::Client<E> + Clone> {{ name }} {
+            pub fn new(client: C, base_url: std::string::String) -> Self {
+                Self {
+                    {%- for field in fields.iter() %}
+                    {{ field.name }}: {{ field.type_ }}::new(client.clone(), base_url.clone()),
+                    {%- endfor %}
+                    client,
+                    base_url,
+                    marker: std::marker::PhantomData,
+                }
             }
-            for (name, group) in self.subgroups.iter() {
-                result.push(format!("{}{}: {}", self.offset(), name, group.render()));
-            }
-            result.push(format!("{}}},", " ".repeat(self.offset - 4)));
-            result.join("\n")
-        }
+            {%- for func in functions.iter() %}
+            {{ func }}
+            {%- endfor %}
+        }",
+        ext = "txt"
+    )]
+    pub(super) struct __InterfaceImplementationTemplate {
+        pub name: String,
+        pub fields: Vec<__Field>,
+        pub functions: Vec<__FunctionImplementationTemplate>,
     }
 }
 
@@ -593,26 +580,6 @@ struct __FunctionGroup {
     parent: Vec<String>,
     functions: Vec<String>,
     subgroups: IndexMap<String, __FunctionGroup>,
-}
-
-impl __FunctionGroup {
-    fn render(&self, offset: u8) -> String {
-        let mut result = vec![];
-        result.push(format!("{{"));
-        for function in self.functions.iter() {
-            result.push(format!("{}{},", " ".repeat(offset as usize), function));
-        }
-        for (name, group) in self.subgroups.iter() {
-            result.push(format!(
-                "{}{}: {}",
-                " ".repeat(offset as usize),
-                name,
-                group.render(offset + 4)
-            ));
-        }
-        result.push(format!("{}}}", " ".repeat(offset as usize - 4)));
-        result.join("\n")
-    }
 }
 
 fn __function_groups_from_function_names(function_names: Vec<String>) -> __FunctionGroup {
@@ -645,30 +612,6 @@ fn __function_groups_from_function_names(function_names: Vec<String>) -> __Funct
     root_group
 }
 
-fn client_impl_from_function_group(
-    offset: usize,
-    group: &__FunctionGroup,
-) -> templates::ClientImplementationGroup {
-    templates::ClientImplementationGroup {
-        offset: offset,
-        functions: group
-            .functions
-            .iter()
-            .map(|f| {
-                (
-                    f.split('.').last().unwrap().replace("-", "_"),
-                    f.replace('.', "__").replace("-", "_"),
-                )
-            })
-            .collect(),
-        subgroups: group
-            .subgroups
-            .iter()
-            .map(|(n, g)| (n.clone(), client_impl_from_function_group(offset + 4, g)))
-            .collect(),
-    }
-}
-
 fn __function_signature(
     function: &Function,
     schema: &crate::Schema,
@@ -677,27 +620,35 @@ fn __function_signature(
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
         __type_ref_to_ts_ref(input_type, schema, implemented_types, 0)
     } else {
-        "()".into()
+        "reflectapi::Empty".into()
     };
     let input_headers = if let Some(input_headers) = function.input_headers.as_ref() {
         __type_ref_to_ts_ref(input_headers, schema, implemented_types, 0)
     } else {
-        "()".into()
+        "reflectapi::Empty".into()
     };
     let output_type = if let Some(output_type) = function.output_type.as_ref() {
         __type_ref_to_ts_ref(output_type, schema, implemented_types, 0)
     } else {
-        "()".into()
+        "reflectapi::Empty".into()
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
         __type_ref_to_ts_ref(error_type, schema, implemented_types, 0)
     } else {
-        "()".into()
+        "reflectapi::Empty".into()
     };
-    (input_type, input_headers, output_type, error_type)
+
+    let with_prefix = |name: &str| -> String { name.replace("super::", "super::types::") };
+
+    (
+        with_prefix(&input_type),
+        with_prefix(&input_headers),
+        with_prefix(&output_type),
+        with_prefix(&error_type),
+    )
 }
 
-fn modules_from_function_group(
+fn __interface_types_from_function_group(
     name: String,
     group: &__FunctionGroup,
     schema: &crate::Schema,
@@ -717,12 +668,20 @@ fn modules_from_function_group(
 
     let mut type_template = templates::__Struct {
         name: format!(
-            "{}Interface<E, C: super::Client<E>>",
+            "{}Interface<E, C: super::Client<E> + Clone>",
             struct_name_from_parent_name_and_name(&group.parent, &name)
         ),
         description: "".into(),
         fields: Default::default(),
         is_tuple: false,
+    };
+    let mut interface_implementation = templates::__InterfaceImplementationTemplate {
+        name: format!(
+            "{}Interface<E, C>",
+            struct_name_from_parent_name_and_name(&group.parent, &name)
+        ),
+        fields: vec![],
+        functions: vec![],
     };
 
     for subgroup_name in group.subgroups.keys() {
@@ -732,6 +691,18 @@ fn modules_from_function_group(
             description: "".into(),
             type_: format!(
                 "{}Interface<E, C>",
+                struct_name_from_parent_name_and_name(&group.parent, &subgroup_name)
+            ),
+            optional: false,
+            flattened: false,
+            public: true,
+        });
+        interface_implementation.fields.push(templates::__Field {
+            name: __function_name_for_field_name(&subgroup_name),
+            serde_name: __function_name_for_field_name(&subgroup_name),
+            description: "".into(),
+            type_: format!(
+                "{}Interface",
                 struct_name_from_parent_name_and_name(&group.parent, &subgroup_name)
             ),
             optional: false,
@@ -755,27 +726,34 @@ fn modules_from_function_group(
         });
     }
 
-    let mut result = vec![type_template.render().unwrap()];
-
     for function_name in group.functions.iter() {
         let function = functions_by_name.get(function_name).unwrap();
         let (input_type, input_headers, output_type, error_type) =
             __function_signature(function, schema, implemented_types);
-        // type_template.fields.push(templates::__Field {
-        //     name: function_name.split('.').last().unwrap().replace("-", "_"),
-        //     serde_name: String::new(),
-        //     description: __doc_to_ts_comments(function.description.as_str(), 4),
-        //     type_: format!(
-        //         "(input: {}, headers: {})\n        => Result<{}, {}>",
-        //         input_type, input_headers, output_type, error_type
-        //     ),
-        //     optional: false,
-        //     flattened: false,
-        // });
+        let func_impl = templates::__FunctionImplementationTemplate {
+            name: function
+                .name
+                .split('.')
+                .last()
+                .unwrap_or_default()
+                .replace("-", "_"),
+            description: __doc_to_ts_comments(function.description.as_str(), 0),
+            path: format!("{}/{}", function.path, function.name),
+            input_type,
+            input_headers,
+            output_type,
+            error_type,
+        };
+        interface_implementation.functions.push(func_impl);
     }
 
+    let mut result = vec![
+        type_template.render().unwrap(),
+        interface_implementation.render().unwrap(),
+    ];
+
     for (subgroup_name, subgroup) in group.subgroups.iter() {
-        result.extend(modules_from_function_group(
+        result.extend(__interface_types_from_function_group(
             subgroup_name.clone(),
             subgroup,
             schema,
@@ -816,26 +794,6 @@ fn __modules_from_rendered_types(
     }
 
     root_module
-}
-
-fn __render_function(
-    function: &Function,
-    schema: &crate::Schema,
-    implemented_types: &HashMap<String, String>,
-) -> Result<String, anyhow::Error> {
-    let (input_type, input_headers, output_type, error_type) =
-        __function_signature(function, schema, implemented_types);
-    let function_template = templates::__FunctionImplementationTemplate {
-        name: function.name.replace("-", "_").replace('.', "__"),
-        path: format!("{}/{}", function.path, function.name),
-        input_type,
-        input_headers,
-        output_type,
-        error_type,
-    };
-    function_template
-        .render()
-        .context("Failed to render template")
 }
 
 fn __render_type(

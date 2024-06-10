@@ -1,6 +1,52 @@
-// mod generated;
-// mod manual;
+mod generated;
 
-fn main() {
-    println!("Hello, world!");
+use generated::{Error, Interface, ProtocolErrorStage};
+
+#[tokio::main]
+async fn main() {
+    let client = Interface::new(reqwest::Client::new(), "http://localhost:3000".into());
+
+    let result = client
+        .health
+        .check(reflectapi::Empty {}, reflectapi::Empty {})
+        .await;
+    // error handling demo:
+    match result {
+        Ok(_v) => {
+            // use structured application response data here
+            println!("Health check successful")
+        }
+        Err(e) => match e {
+            Error::Application(_v) => {
+                // use structured application error here
+                println!("Health check failed")
+            }
+            Error::Network(e) => {
+                println!("Network error: {:?}", e)
+            }
+            Error::Protocol { info, stage } => match stage {
+                ProtocolErrorStage::SerializeRequestBody => {
+                    eprint!("Failed to serialize request body: {}", info)
+                }
+                ProtocolErrorStage::SerializeRequestHeaders => {
+                    eprint!("Failed to serialize request headers: {}", info)
+                }
+                ProtocolErrorStage::DeserializeResponseBody(body) => {
+                    eprint!("Failed to deserialize response body: {}: {:#?}", info, body)
+                }
+                ProtocolErrorStage::DeserializeResponseError(status, body) => {
+                    eprint!(
+                        "Failed to deserialize response error: {} at {:?}: {:#?}",
+                        info, status, body
+                    )
+                }
+            },
+            Error::Server(status, body) => {
+                println!("Server error: {} with body: {:?}", status, body)
+            }
+        },
+    }
+
+    println!("done")
+    // println!("{:#?}", result);
 }

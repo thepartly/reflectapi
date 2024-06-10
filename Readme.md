@@ -24,6 +24,16 @@ pnpm install
 pnpm run start
 ```
 
+To generate client in Rust for demo server:
+```
+cargo run --bin reflectapi-cli -- codegen --language rust --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/rust/src
+```
+
+To run the Rust generated client. Note: requires the demo server running
+```
+cargo run --bin reflectapi-demo-client --all-features
+```
+
 To release
 ```
 cargo release --exclude reflectapi-demo --exclude reflectapi-demo-client minor --execute
