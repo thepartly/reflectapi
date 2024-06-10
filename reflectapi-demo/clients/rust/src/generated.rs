@@ -4,38 +4,33 @@
 // Schema name: Demo application
 // This is a demo application
 
-// TODO make interface configurable via command line
-pub use __definition::Interface;
+#![allow(non_camel_case_types)]
 
-mod __definition {
+pub use interface::Interface;
+
+mod interface {
 
     #[derive(serde::Serialize, serde::Deserialize)]
-    pub struct Interface<E, C: crate::generated::Client<E>> {
-        pub health: crate::generated::__definition::health::Interface<E, C>,
-        pub pets: crate::generated::__definition::pets::Interface<E, C>,
+    pub struct Interface<E, C: super::Client<E>> {
+        pub health: HealthInterface<E, C>,
+        pub pets: PetsInterface<E, C>,
         client: C,
         base_url: std::string::String,
         marker: std::marker::PhantomData<E>,
     }
 
-    mod health {
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct Interface<E, C: crate::generated::Client<E>> {
-            client: C,
-            base_url: std::string::String,
-            marker: std::marker::PhantomData<E>,
-        }
+    #[derive(serde::Serialize, serde::Deserialize)]
+    pub struct HealthInterface<E, C: super::Client<E>> {
+        client: C,
+        base_url: std::string::String,
+        marker: std::marker::PhantomData<E>,
     }
 
-    mod pets {
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct Interface<E, C: crate::generated::Client<E>> {
-            client: C,
-            base_url: std::string::String,
-            marker: std::marker::PhantomData<E>,
-        }
+    #[derive(serde::Serialize, serde::Deserialize)]
+    pub struct PetsInterface<E, C: super::Client<E>> {
+        client: C,
+        base_url: std::string::String,
+        marker: std::marker::PhantomData<E>,
     }
 }
 
@@ -92,126 +87,129 @@ impl Client<reqwest::Error> for reqwest::Client {
     }
 }
 
-mod myapi {
+mod types {
 
-    mod model {
+    mod myapi {
 
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub enum Behavior {
-            Calm,
-            Aggressive(
-                /// aggressiveness level
-                f64,
-                /// some notes
-                std::string::String,
-            ),
-            Other {
-                /// Custom provided description of a behavior
-                description: std::string::String,
-                /// Additional notes
-                /// Up to a user to put free text here
-                #[serde(default, skip_serializing_if = "std::string::String::is_empty")]
-                notes: std::string::String,
-            },
+        mod model {
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub enum Behavior {
+                Calm,
+                Aggressive(
+                    /// aggressiveness level
+                    f64,
+                    /// some notes
+                    std::string::String,
+                ),
+                Other {
+                    /// Custom provided description of a behavior
+                    description: std::string::String,
+                    /// Additional notes
+                    /// Up to a user to put free text here
+                    #[serde(default, skip_serializing_if = "std::string::String::is_empty")]
+                    notes: std::string::String,
+                },
+            }
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub enum Kind {
+                /// A dog
+                dog,
+                /// A cat
+                cat,
+            }
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub struct Pet {
+                /// identity
+                pub name: std::string::String,
+                /// kind of pet
+                pub kind: super::super::myapi::model::Kind,
+                /// age of the pet
+                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                pub age: std::option::Option<u8>,
+                /// behaviors of the pet
+                #[serde(default, skip_serializing_if = "std::vec::Vec::is_empty")]
+                pub behaviors: std::vec::Vec<super::super::myapi::model::Behavior>,
+            }
         }
 
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub enum Kind {
-            /// A dog
-            dog,
-            /// A cat
-            cat,
+        mod proto {
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub struct Headers {
+                pub authorization: std::string::String,
+            }
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub struct Paginated<T> {
+                /// slice of a collection
+                pub items: std::vec::Vec<T>,
+                /// cursor for getting next page
+                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                pub cursor: std::option::Option<std::string::String>,
+            }
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub enum PetsCreateError {
+                Conflict,
+                NotAuthorized,
+                InvalidIdentity { message: std::string::String },
+            }
+
+            pub type PetsCreateRequest = super::super::myapi::model::Pet;
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub enum PetsListError {
+                InvalidCustor,
+                Unauthorized,
+            }
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub struct PetsListRequest {
+                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                pub limit: std::option::Option<u8>,
+                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                pub cursor: std::option::Option<std::string::String>,
+            }
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub enum PetsRemoveError {
+                NotFound,
+                NotAuthorized,
+            }
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub struct PetsRemoveRequest {
+                /// identity
+                pub name: std::string::String,
+            }
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub enum PetsUpdateError {
+                NotFound,
+                NotAuthorized,
+            }
+
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub struct PetsUpdateRequest {
+                /// identity
+                pub name: std::string::String,
+                /// kind of pet, non nullable in the model
+                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                pub kind: std::option::Option<super::super::myapi::model::Kind>,
+                /// age of the pet, nullable in the model
+                #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+                pub age: reflectapi::Option<u8>,
+                /// behaviors of the pet, nullable in the model
+                #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+                pub behaviors:
+                    reflectapi::Option<std::vec::Vec<super::super::myapi::model::Behavior>>,
+            }
+
+            pub struct UnauthorizedError;
         }
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct Pet {
-            /// identity
-            pub name: std::string::String,
-            /// kind of pet
-            pub kind: crate::generated::myapi::model::Kind,
-            /// age of the pet
-            #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
-            pub age: std::option::Option<u8>,
-            /// behaviors of the pet
-            #[serde(default, skip_serializing_if = "std::vec::Vec::is_empty")]
-            pub behaviors: std::vec::Vec<crate::generated::myapi::model::Behavior>,
-        }
-    }
-
-    mod proto {
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct Headers {
-            pub authorization: std::string::String,
-        }
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct Paginated<T> {
-            /// slice of a collection
-            pub items: std::vec::Vec<T>,
-            /// cursor for getting next page
-            #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
-            pub cursor: std::option::Option<std::string::String>,
-        }
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub enum PetsCreateError {
-            Conflict,
-            NotAuthorized,
-            InvalidIdentity { message: std::string::String },
-        }
-
-        pub type PetsCreateRequest = crate::generated::myapi::model::Pet;
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub enum PetsListError {
-            InvalidCustor,
-            Unauthorized,
-        }
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct PetsListRequest {
-            #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
-            pub limit: std::option::Option<u8>,
-            #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
-            pub cursor: std::option::Option<std::string::String>,
-        }
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub enum PetsRemoveError {
-            NotFound,
-            NotAuthorized,
-        }
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct PetsRemoveRequest {
-            /// identity
-            pub name: std::string::String,
-        }
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub enum PetsUpdateError {
-            NotFound,
-            NotAuthorized,
-        }
-
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct PetsUpdateRequest {
-            /// identity
-            pub name: std::string::String,
-            /// kind of pet, non nullable in the model
-            #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
-            pub kind: std::option::Option<crate::generated::myapi::model::Kind>,
-            /// age of the pet, nullable in the model
-            #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
-            pub age: reflectapi::Option<u8>,
-            /// behaviors of the pet, nullable in the model
-            #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
-            pub behaviors:
-                reflectapi::Option<std::vec::Vec<crate::generated::myapi::model::Behavior>>,
-        }
-
-        pub struct UnauthorizedError;
     }
 }
 
@@ -284,42 +282,42 @@ async fn health__check(&self, input: (), headers: ()) -> Result<(), Error<(), E>
 }
 async fn pets__list(
     &self,
-    input: crate::generated::myapi::proto::PetsListRequest,
-    headers: crate::generated::myapi::proto::Headers,
+    input: super::myapi::proto::PetsListRequest,
+    headers: super::myapi::proto::Headers,
 ) -> Result<
-    crate::generated::myapi::proto::Paginated<crate::generated::myapi::model::Pet>,
-    Error<crate::generated::myapi::proto::PetsListError, E>,
+    super::myapi::proto::Paginated<super::myapi::model::Pet>,
+    Error<super::myapi::proto::PetsListError, E>,
 > {
     __request_impl(&self.client, "/pets.list", input, headers).await
 }
 async fn pets__create(
     &self,
-    input: crate::generated::myapi::proto::PetsCreateRequest,
-    headers: crate::generated::myapi::proto::Headers,
-) -> Result<(), Error<crate::generated::myapi::proto::PetsCreateError, E>> {
+    input: super::myapi::proto::PetsCreateRequest,
+    headers: super::myapi::proto::Headers,
+) -> Result<(), Error<super::myapi::proto::PetsCreateError, E>> {
     __request_impl(&self.client, "/pets.create", input, headers).await
 }
 async fn pets__update(
     &self,
-    input: crate::generated::myapi::proto::PetsUpdateRequest,
-    headers: crate::generated::myapi::proto::Headers,
-) -> Result<(), Error<crate::generated::myapi::proto::PetsUpdateError, E>> {
+    input: super::myapi::proto::PetsUpdateRequest,
+    headers: super::myapi::proto::Headers,
+) -> Result<(), Error<super::myapi::proto::PetsUpdateError, E>> {
     __request_impl(&self.client, "/pets.update", input, headers).await
 }
 async fn pets__remove(
     &self,
-    input: crate::generated::myapi::proto::PetsRemoveRequest,
-    headers: crate::generated::myapi::proto::Headers,
-) -> Result<(), Error<crate::generated::myapi::proto::PetsRemoveError, E>> {
+    input: super::myapi::proto::PetsRemoveRequest,
+    headers: super::myapi::proto::Headers,
+) -> Result<(), Error<super::myapi::proto::PetsRemoveError, E>> {
     __request_impl(&self.client, "/pets.remove", input, headers).await
 }
 async fn pets__get_first(
     &self,
     input: (),
-    headers: crate::generated::myapi::proto::Headers,
+    headers: super::myapi::proto::Headers,
 ) -> Result<
-    std::option::Option<crate::generated::myapi::model::Pet>,
-    Error<crate::generated::myapi::proto::UnauthorizedError, E>,
+    std::option::Option<super::myapi::model::Pet>,
+    Error<super::myapi::proto::UnauthorizedError, E>,
 > {
     __request_impl(&self.client, "/pets.get-first", input, headers).await
 }

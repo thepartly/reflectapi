@@ -21,7 +21,7 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
         if implemented_types.contains_key(&original_type_name) {
             continue;
         }
-        if type_def.as_primitive().map(|i| &i.fallback).is_some() {
+        if type_def.as_primitive().is_some() {
             continue;
         }
         rendered_types.insert(
@@ -54,12 +54,17 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     );
 
     let module = modules_from_function_group(
-        "__definition".into(),
+        "".into(),
         &function_groups,
         &schema,
         &implemented_types,
         &functions_by_name,
     );
+    let module = templates::__Module {
+        name: "interface".into(),
+        types: module,
+        submodules: IndexMap::new(),
+    };
     generated_code.push(module.render().context("Failed to render template")?);
 
     let file_template = templates::__FileMiddle {};
@@ -109,8 +114,9 @@ mod templates {
 // Schema name: {{ name }}
 // {{ description }}
 
-// TODO make interface configurable via command line
-pub use __definition::Interface;",
+#![allow(non_camel_case_types)]
+
+pub use interface::Interface;",
         ext = "txt"
     )]
     pub(super) struct __FileHeader {
@@ -584,6 +590,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
 }
 
 struct __FunctionGroup {
+    parent: Vec<String>,
     functions: Vec<String>,
     subgroups: IndexMap<String, __FunctionGroup>,
 }
@@ -610,6 +617,7 @@ impl __FunctionGroup {
 
 fn __function_groups_from_function_names(function_names: Vec<String>) -> __FunctionGroup {
     let mut root_group = __FunctionGroup {
+        parent: vec![],
         functions: vec![],
         subgroups: IndexMap::new(),
     };
@@ -617,11 +625,17 @@ fn __function_groups_from_function_names(function_names: Vec<String>) -> __Funct
         let mut group = &mut root_group;
         let mut parts = function_name.split(".").collect::<Vec<_>>();
         parts.pop().unwrap();
+        let mut parent = vec![];
         for part in parts {
+            parent.push(part);
             group = group
                 .subgroups
                 .entry(part.into())
                 .or_insert(__FunctionGroup {
+                    parent: parent
+                        .split_last()
+                        .map(|(_, p)| p.iter().map(|i| format!("{}", i)).collect())
+                        .unwrap_or_default(),
                     functions: vec![],
                     subgroups: IndexMap::new(),
                 });
@@ -661,22 +675,22 @@ fn __function_signature(
     implemented_types: &HashMap<String, String>,
 ) -> (String, String, String, String) {
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
-        __type_ref_to_ts_ref(input_type, schema, implemented_types)
+        __type_ref_to_ts_ref(input_type, schema, implemented_types, 0)
     } else {
         "()".into()
     };
     let input_headers = if let Some(input_headers) = function.input_headers.as_ref() {
-        __type_ref_to_ts_ref(input_headers, schema, implemented_types)
+        __type_ref_to_ts_ref(input_headers, schema, implemented_types, 0)
     } else {
         "()".into()
     };
     let output_type = if let Some(output_type) = function.output_type.as_ref() {
-        __type_ref_to_ts_ref(output_type, schema, implemented_types)
+        __type_ref_to_ts_ref(output_type, schema, implemented_types, 0)
     } else {
         "()".into()
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
-        __type_ref_to_ts_ref(error_type, schema, implemented_types)
+        __type_ref_to_ts_ref(error_type, schema, implemented_types, 0)
     } else {
         "()".into()
     };
@@ -689,14 +703,23 @@ fn modules_from_function_group(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     functions_by_name: &IndexMap<String, &Function>,
-) -> templates::__Module {
-    let mut module = templates::__Module {
-        name: name,
-        types: vec![],
-        submodules: IndexMap::new(),
-    };
+) -> Vec<String> {
+    fn struct_name_from_parent_name_and_name(parent: &Vec<String>, name: &str) -> String {
+        if parent.is_empty() {
+            return __function_name_for_type_name(name);
+        }
+        format!(
+            "{}_{}",
+            parent.join("_"),
+            __function_name_for_type_name(name)
+        )
+    }
+
     let mut type_template = templates::__Struct {
-        name: "Interface<E, C: crate::generated::Client<E>>".into(),
+        name: format!(
+            "{}Interface<E, C: super::Client<E>>",
+            struct_name_from_parent_name_and_name(&group.parent, &name)
+        ),
         description: "".into(),
         fields: Default::default(),
         is_tuple: false,
@@ -704,12 +727,12 @@ fn modules_from_function_group(
 
     for subgroup_name in group.subgroups.keys() {
         type_template.fields.push(templates::__Field {
-            name: subgroup_name.clone(),
-            serde_name: subgroup_name.clone(),
+            name: __function_name_for_field_name(&subgroup_name),
+            serde_name: __function_name_for_field_name(&subgroup_name),
             description: "".into(),
             type_: format!(
-                "crate::generated::__definition::{}::Interface<E, C>",
-                subgroup_name.to_string().replace("-", "_")
+                "{}Interface<E, C>",
+                struct_name_from_parent_name_and_name(&group.parent, &subgroup_name)
             ),
             optional: false,
             flattened: false,
@@ -731,7 +754,8 @@ fn modules_from_function_group(
             public: false,
         });
     }
-    module.types.push(type_template.render().unwrap());
+
+    let mut result = vec![type_template.render().unwrap()];
 
     for function_name in group.functions.iter() {
         let function = functions_by_name.get(function_name).unwrap();
@@ -751,18 +775,15 @@ fn modules_from_function_group(
     }
 
     for (subgroup_name, subgroup) in group.subgroups.iter() {
-        module.submodules.insert(
+        result.extend(modules_from_function_group(
             subgroup_name.clone(),
-            modules_from_function_group(
-                subgroup_name.clone(),
-                subgroup,
-                schema,
-                implemented_types,
-                functions_by_name,
-            ),
-        );
+            subgroup,
+            schema,
+            implemented_types,
+            functions_by_name,
+        ));
     }
-    module
+    result
 }
 
 fn __modules_from_rendered_types(
@@ -770,7 +791,7 @@ fn __modules_from_rendered_types(
     mut rendered_types: HashMap<String, String>,
 ) -> templates::__Module {
     let mut root_module = templates::__Module {
-        name: "".into(),
+        name: "types".into(),
         types: vec![],
         submodules: IndexMap::new(),
     };
@@ -823,6 +844,7 @@ fn __render_type(
     implemented_types: &HashMap<String, String>,
 ) -> Result<String, anyhow::Error> {
     let type_name = __type_to_ts_name(&type_def);
+    let type_name_depth = type_name.split("::").count();
 
     Ok(match type_def {
         crate::Type::Struct(struct_def) => {
@@ -839,7 +861,12 @@ fn __render_type(
                 let alias_template = templates::__Alias {
                     name: type_name,
                     description: __doc_to_ts_comments(&struct_def.description, 0),
-                    type_: __type_ref_to_ts_ref(&field_type_ref, schema, implemented_types),
+                    type_: __type_ref_to_ts_ref(
+                        &field_type_ref,
+                        schema,
+                        implemented_types,
+                        type_name_depth,
+                    ),
                 };
                 alias_template
                     .render()
@@ -856,7 +883,12 @@ fn __render_type(
                             name: field.name().into(),
                             serde_name: field.serde_name().into(),
                             description: __doc_to_ts_comments(&field.description, 4),
-                            type_: __type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
+                            type_: __type_ref_to_ts_ref(
+                                &field.type_ref,
+                                schema,
+                                implemented_types,
+                                type_name_depth,
+                            ),
                             optional: !field.required,
                             flattened: field.flattened,
                             public: true,
@@ -891,6 +923,7 @@ fn __render_type(
                                     &field.type_ref,
                                     schema,
                                     implemented_types,
+                                    type_name_depth,
                                 ),
                                 optional: !field.required,
                                 flattened: field.flattened,
@@ -917,15 +950,21 @@ fn __type_ref_to_ts_ref(
     type_ref: &crate::TypeReference,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
+    type_name_depth: usize,
 ) -> String {
-    if let Some(resolved_type) = __resolve_type_ref(type_ref, schema, implemented_types) {
+    let with_super_prefix =
+        |name: &str| -> String { format!("super::{}{}", "super::".repeat(type_name_depth), name) };
+
+    if let Some(resolved_type) =
+        __resolve_type_ref(type_ref, schema, implemented_types, type_name_depth)
+    {
         return resolved_type;
     }
 
     let mut prefix = schema
         .get_type(type_ref.name())
         .filter(|i| !i.is_primitive())
-        .map(|i| "crate::generated::".to_string())
+        .map(|_| with_super_prefix(""))
         .unwrap_or_default();
 
     if type_ref.name().starts_with("reflectapi::") {
@@ -936,7 +975,12 @@ fn __type_ref_to_ts_ref(
         "{}{}{}",
         prefix,
         type_ref.name,
-        __type_ref_params_to_ts_ref(&type_ref.parameters, schema, implemented_types)
+        __type_ref_params_to_ts_ref(
+            &type_ref.parameters,
+            schema,
+            implemented_types,
+            type_name_depth
+        )
     )
 }
 
@@ -944,10 +988,11 @@ fn __type_ref_params_to_ts_ref(
     type_params: &Vec<crate::TypeReference>,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
+    type_name_depth: usize,
 ) -> String {
     let p = type_params
         .iter()
-        .map(|type_ref| __type_ref_to_ts_ref(type_ref, schema, implemented_types))
+        .map(|type_ref| __type_ref_to_ts_ref(type_ref, schema, implemented_types, type_name_depth))
         .collect::<Vec<_>>()
         .join(", ");
     if p.is_empty() {
@@ -984,6 +1029,7 @@ fn __resolve_type_ref(
     type_ref: &crate::TypeReference,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
+    type_name_depth: usize,
 ) -> Option<String> {
     let Some(mut implementation) = implemented_types.get(type_ref.name.as_str()).cloned() else {
         return None;
@@ -997,7 +1043,8 @@ fn __resolve_type_ref(
         if implementation.contains(type_def_param.name.as_str()) {
             implementation = implementation.replace(
                 type_def_param.name.as_str(),
-                __type_ref_to_ts_ref(type_ref_param, schema, implemented_types).as_str(),
+                __type_ref_to_ts_ref(type_ref_param, schema, implemented_types, type_name_depth)
+                    .as_str(),
             );
         }
     }
@@ -1077,4 +1124,27 @@ fn __build_implemented_types() -> HashMap<String, String> {
     );
 
     implemented_types
+}
+
+fn __function_name_for_type_name(name: &str) -> String {
+    let mut result = String::new();
+    let mut capitalize = true;
+    for c in name.chars() {
+        if c == '-' {
+            capitalize = true;
+        } else if c == '.' {
+            result.push('_');
+            capitalize = true;
+        } else if capitalize {
+            result.push(c.to_ascii_uppercase());
+            capitalize = false;
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}
+
+fn __function_name_for_field_name(name: &str) -> String {
+    name.replace("-", "_")
 }
