@@ -36,5 +36,5 @@ cargo run --bin reflectapi-demo-client --all-features
 
 To release
 ```
-cargo release --exclude reflectapi-demo --exclude reflectapi-demo-client minor --execute
+cargo release --exclude reflectapi-demo --exclude reflectapi-demo-client --exclude reflectapi-demo-client-generated minor --execute
 ```
