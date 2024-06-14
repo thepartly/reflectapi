@@ -45,8 +45,16 @@ impl Schema {
         &self.input_types
     }
 
+    pub fn is_input_type(&self, name: &str) -> bool {
+        self.input_types.has_type(name)
+    }
+
     pub fn output_types(&self) -> &Typespace {
         &self.output_types
+    }
+
+    pub fn is_output_type(&self, name: &str) -> bool {
+        self.output_types.has_type(name)
     }
 
     pub fn extend(&mut self, other: Self) {

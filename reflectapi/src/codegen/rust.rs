@@ -50,8 +50,14 @@ pub fn generate(mut schema: crate::Schema, shared_modules: Vec<String>) -> anyho
             continue;
         }
         rendered_types.insert(
-            original_type_name,
-            __render_type(type_def, &schema, &implemented_types)?,
+            original_type_name.clone(),
+            __render_type(
+                type_def,
+                &schema,
+                &implemented_types,
+                schema.is_input_type(&original_type_name),
+                schema.is_output_type(&original_type_name),
+            )?,
         );
     }
 
@@ -324,7 +330,7 @@ where
     #[derive(Template)]
     #[template(
         source = "
-{{ description }}#[derive(serde::Serialize, serde::Deserialize)]
+{{ description }}{{ self.render_attributes_derive() }}
 pub struct {{ name }} {{ self.render_brackets().0 }}
     {%- for field in fields.iter() %}
     {{ field }},
@@ -337,6 +343,8 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         pub description: String,
         pub fields: Vec<__Field>,
         pub is_tuple: bool,
+        pub is_input_type: bool,
+        pub is_output_type: bool,
     }
 
     impl __Struct {
@@ -347,12 +355,29 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
                 ("{", "}")
             }
         }
+
+        fn render_attributes_derive(&self) -> String {
+            let mut attrs: Vec<String> = vec![];
+            if self.is_input_type {
+                // for client it is the inverse, input types are outgoing types
+                attrs.push("serde::Serialize".into());
+            }
+            if self.is_output_type {
+                // for client it is the inverse, output types are incoming types
+                attrs.push("serde::Deserialize".into());
+            }
+            if attrs.is_empty() {
+                "".into()
+            } else {
+                format!("#[derive({})]", attrs.join(", "))
+            }
+        }
     }
 
     #[derive(Template)]
     #[template(
         source = "
-{{ description }}#[derive(serde::Serialize, serde::Deserialize)]
+{{ description }}{{ self.render_attributes_derive() }}
 {{ self.render_attributes() }}pub enum {{ name }} {
     {%- for variant in variants.iter() %}
     {{ variant }}
@@ -365,9 +390,28 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         pub description: String,
         pub variants: Vec<__Variant>,
         pub representation: crate::Representation,
+        pub is_input_type: bool,
+        pub is_output_type: bool,
     }
 
     impl __Enum {
+        fn render_attributes_derive(&self) -> String {
+            let mut attrs: Vec<String> = vec![];
+            if self.is_input_type {
+                // for client it is the inverse, input types are outgoing types
+                attrs.push("serde::Serialize".into());
+            }
+            if self.is_output_type {
+                // for client it is the inverse, output types are incoming types
+                attrs.push("serde::Deserialize".into());
+            }
+            if attrs.is_empty() {
+                "".into()
+            } else {
+                format!("#[derive({})]", attrs.join(", "))
+            }
+        }
+
         fn render_attributes(&self) -> String {
             let mut attrs = vec![];
             match &self.representation {
@@ -554,13 +598,34 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
     #[derive(Template)]
     #[template(
         source = "
-{{ description }}#[derive(serde::Serialize, serde::Deserialize)]
+{{ description }}{{ self.render_attributes_derive() }}
 pub struct {{ name }};",
         ext = "txt"
     )]
     pub(super) struct __Unit {
         pub name: String,
         pub description: String,
+        pub is_input_type: bool,
+        pub is_output_type: bool,
+    }
+
+    impl __Unit {
+        fn render_attributes_derive(&self) -> String {
+            let mut attrs: Vec<String> = vec![];
+            if self.is_input_type {
+                // for client it is the inverse, input types are outgoing types
+                attrs.push("serde::Serialize".into());
+            }
+            if self.is_output_type {
+                // for client it is the inverse, output types are incoming types
+                attrs.push("serde::Deserialize".into());
+            }
+            if attrs.is_empty() {
+                "".into()
+            } else {
+                format!("#[derive({})]", attrs.join(", "))
+            }
+        }
     }
 
     #[derive(Template)]
@@ -699,6 +764,8 @@ fn __interface_types_from_function_group(
         description: "".into(),
         fields: Default::default(),
         is_tuple: false,
+        is_input_type: false,
+        is_output_type: false,
     };
     let mut interface_implementation = templates::__InterfaceImplementationTemplate {
         name: format!(
@@ -825,6 +892,8 @@ fn __render_type(
     type_def: &crate::Type,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
+    is_input_type: bool,
+    is_output_type: bool,
 ) -> Result<String, anyhow::Error> {
     let type_name = __type_to_ts_name(&type_def);
     let type_name_depth = type_def.name().split("::").count() - 1;
@@ -835,6 +904,8 @@ fn __render_type(
                 let unit_struct_template = templates::__Unit {
                     name: type_name,
                     description: __doc_to_ts_comments(&struct_def.description, 0),
+                    is_input_type,
+                    is_output_type,
                 };
                 unit_struct_template
                     .render()
@@ -859,6 +930,8 @@ fn __render_type(
                     name: type_name,
                     description: __doc_to_ts_comments(&struct_def.description, 0),
                     is_tuple: struct_def.is_tuple(),
+                    is_input_type,
+                    is_output_type,
                     fields: struct_def
                         .fields
                         .iter()
@@ -888,6 +961,8 @@ fn __render_type(
                 name: type_name,
                 description: __doc_to_ts_comments(&enum_def.description, 0),
                 representation: enum_def.representation.clone(),
+                is_input_type,
+                is_output_type,
                 variants: enum_def
                     .variants
                     .iter()
