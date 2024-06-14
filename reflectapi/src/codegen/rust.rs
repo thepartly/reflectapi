@@ -16,7 +16,14 @@ pub fn generate(mut schema: crate::Schema, shared_modules: Vec<String>) -> anyho
             .iter()
             .any(|m| type_def.name().starts_with(m))
         {
-            implemented_types.insert(type_def.name().into(), type_def.name().into());
+            implemented_types.insert(
+                type_def.name().into(),
+                format!(
+                    "{}{}",
+                    type_def.name(),
+                    __type_params_to_ts_name(type_def.parameters())
+                ),
+            );
         }
     }
 
