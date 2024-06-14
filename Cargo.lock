@@ -1258,12 +1258,9 @@ dependencies = [
 name = "reflectapi-demo-client"
 version = "0.1.0"
 dependencies = [
- "bytes",
- "http",
  "reflectapi",
+ "reflectapi-demo-client-generated",
  "reqwest",
- "serde",
- "serde_json",
  "tokio",
 ]
 

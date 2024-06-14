@@ -1,10 +1,8 @@
-mod generated;
-
-use generated::{Error, Interface, ProtocolErrorStage};
+use reflectapi_demo_client_generated::{DemoServerClient, Error, ProtocolErrorStage};
 
 #[tokio::main]
 async fn main() {
-    let client = Interface::new(reqwest::Client::new(), "http://localhost:3000".into());
+    let client = DemoServerClient::new(reqwest::Client::new(), "http://localhost:3000".into());
 
     let result = client
         .health

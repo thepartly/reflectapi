@@ -6,16 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reflectapi = { workspace = true }
-
-bytes = "1.5.0"
-serde = { version = "1.0.197", features = ["derive", "rc"] }
-serde_json = "1.0.116"
+reflectapi-demo-client-generated = { path = "generated", features = [
+    "reqwest",
+] }
 
 tokio = { version = "1.38.0", features = ["full"] }
-http = "1.1.0"
+reqwest = { version = "0.12.2" }
 
-reqwest = { version = "0.12.2", optional = true }
-
-[features]
-reqwest = ["dep:reqwest"]
+reflectapi.workspace = true
