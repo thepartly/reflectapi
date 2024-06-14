@@ -4,7 +4,6 @@ use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
 use reflectapi_schema::Function;
-use templates::__FunctionImplementationTemplate;
 
 pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     let implemented_types = __build_implemented_types();
@@ -257,7 +256,7 @@ where
 {{ type }}
 {%- endfor %}
 {%- for module in self.submodules_sorted() %}
-{{ module }}
+{{- module }}
 {%- endfor %}
 
 {{ self.render_end() }}",
@@ -345,17 +344,24 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
 
     impl __Enum {
         fn render_attributes(&self) -> String {
+            let mut attrs = vec![];
             match &self.representation {
-                crate::Representation::External => "".into(),
+                crate::Representation::External => {}
                 crate::Representation::Internal { tag } => {
-                    format!("#[serde(tag = \"{}\")]\n", tag)
+                    attrs.push(format!("tag = \"{}\"", tag));
                 }
                 crate::Representation::Adjacent { tag, content } => {
-                    format!("#[serde(tag = \"{}\", content = \"{}\")]\n", tag, content)
+                    attrs.push(format!("tag = \"{}\"", tag));
+                    attrs.push(format!("content = \"{}\"", content));
                 }
                 crate::Representation::None => {
-                    format!("#[serde(untagged)]\n")
+                    attrs.push("untagged".into());
                 }
+            }
+            if attrs.is_empty() {
+                "".into()
+            } else {
+                format!("#[serde({})]\n    ", attrs.join(", "))
             }
         }
     }
@@ -535,9 +541,9 @@ pub struct {{ name }};",
     #[derive(Template)]
     #[template(
         source = "{{description}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
-        -> Result<{{ output_type }}, super::Error<{{ error_type }}, E>> {
-            super::__request_impl(&self.client, &self.base_url, \"{{ path }}\", input, headers).await
-}",
+    -> Result<{{ output_type }}, super::Error<{{ error_type }}, E>> {
+        super::__request_impl(&self.client, &self.base_url, \"{{ path }}\", input, headers).await
+    }",
         ext = "txt"
     )]
     pub(super) struct __FunctionImplementationTemplate {
@@ -552,21 +558,22 @@ pub struct {{ name }};",
 
     #[derive(Template)]
     #[template(
-        source = "impl<E, C: super::Client<E> + Clone> {{ name }} {
-            pub fn new(client: C, base_url: std::string::String) -> Self {
-                Self {
-                    {%- for field in fields.iter() %}
-                    {{ field.name }}: {{ field.type_ }}::new(client.clone(), base_url.clone()),
-                    {%- endfor %}
-                    client,
-                    base_url,
-                    marker: std::marker::PhantomData,
-                }
-            }
-            {%- for func in functions.iter() %}
-            {{ func }}
+        source = "
+impl<E, C: super::Client<E> + Clone> {{ name }} {
+    pub fn new(client: C, base_url: std::string::String) -> Self {
+        Self {
+            {%- for field in fields.iter() %}
+            {{ field.name }}: {{ field.type_ }}::new(client.clone(), base_url.clone()),
             {%- endfor %}
-        }",
+            client,
+            base_url,
+            marker: std::marker::PhantomData,
+        }
+    }
+    {%- for func in functions.iter() %}
+    {{ func }}
+    {%- endfor %}
+}",
         ext = "txt"
     )]
     pub(super) struct __InterfaceImplementationTemplate {
@@ -737,7 +744,7 @@ fn __interface_types_from_function_group(
                 .last()
                 .unwrap_or_default()
                 .replace("-", "_"),
-            description: __doc_to_ts_comments(function.description.as_str(), 0),
+            description: __doc_to_ts_comments(function.description.as_str(), 4),
             path: format!("{}/{}", function.path, function.name),
             input_type,
             input_headers,
@@ -838,7 +845,7 @@ fn __render_type(
                         .fields
                         .iter()
                         .map(|field| templates::__Field {
-                            name: field.name().into(),
+                            name: __name_to_snake_case(field.name().into()),
                             serde_name: field.serde_name().into(),
                             description: __doc_to_ts_comments(&field.description, 4),
                             type_: __type_ref_to_ts_ref(
@@ -867,14 +874,14 @@ fn __render_type(
                     .variants
                     .iter()
                     .map(|variant| templates::__Variant {
-                        name: variant.name().into(),
+                        name: __name_to_pascal_case(variant.name()),
                         serde_name: variant.serde_name().into(),
                         description: __doc_to_ts_comments(&variant.description, 4),
                         fields: variant
                             .fields
                             .iter()
                             .map(|field| templates::__Field {
-                                name: field.name().into(),
+                                name: __name_to_snake_case(field.name()),
                                 serde_name: field.serde_name().into(),
                                 description: __doc_to_ts_comments(&field.description, 12),
                                 type_: __type_ref_to_ts_ref(
@@ -1105,4 +1112,35 @@ fn __function_name_for_type_name(name: &str) -> String {
 
 fn __function_name_for_field_name(name: &str) -> String {
     name.replace("-", "_")
+}
+
+fn __name_to_pascal_case(name: &str) -> String {
+    let mut result = String::new();
+    let mut capitalize = true;
+    for c in name.chars() {
+        if c == '-' || c == '_' || c == '.' {
+            capitalize = true;
+        } else if capitalize {
+            result.push(c.to_ascii_uppercase());
+            capitalize = false;
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}
+
+fn __name_to_snake_case(name: &str) -> String {
+    let mut result = String::new();
+    for c in name.chars() {
+        if c.is_ascii_uppercase() {
+            if !result.is_empty() {
+                result.push('_');
+            }
+            result.push(c.to_ascii_lowercase());
+        } else {
+            result.push(c);
+        }
+    }
+    result
 }

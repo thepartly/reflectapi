@@ -19,17 +19,18 @@ pub struct Interface<E, C: super::Client<E> + Clone> {
     base_url: std::string::String,
     marker: std::marker::PhantomData<E>,
 }
+
 impl<E, C: super::Client<E> + Clone> Interface<E, C> {
-            pub fn new(client: C, base_url: std::string::String) -> Self {
-                Self {
-                    health: HealthInterface::new(client.clone(), base_url.clone()),
-                    pets: PetsInterface::new(client.clone(), base_url.clone()),
-                    client,
-                    base_url,
-                    marker: std::marker::PhantomData,
-                }
-            }
+    pub fn new(client: C, base_url: std::string::String) -> Self {
+        Self {
+            health: HealthInterface::new(client.clone(), base_url.clone()),
+            pets: PetsInterface::new(client.clone(), base_url.clone()),
+            client,
+            base_url,
+            marker: std::marker::PhantomData,
         }
+    }
+}
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct HealthInterface<E, C: super::Client<E> + Clone> {
@@ -37,20 +38,21 @@ pub struct HealthInterface<E, C: super::Client<E> + Clone> {
     base_url: std::string::String,
     marker: std::marker::PhantomData<E>,
 }
+
 impl<E, C: super::Client<E> + Clone> HealthInterface<E, C> {
-            pub fn new(client: C, base_url: std::string::String) -> Self {
-                Self {
-                    client,
-                    base_url,
-                    marker: std::marker::PhantomData,
-                }
-            }
-            /// Check the health of the service
-pub async fn check(&self, input: reflectapi::Empty, headers: reflectapi::Empty)
-        -> Result<reflectapi::Empty, super::Error<reflectapi::Empty, E>> {
-            super::__request_impl(&self.client, &self.base_url, "/health.check", input, headers).await
-}
+    pub fn new(client: C, base_url: std::string::String) -> Self {
+        Self {
+            client,
+            base_url,
+            marker: std::marker::PhantomData,
         }
+    }
+    /// Check the health of the service
+    pub async fn check(&self, input: reflectapi::Empty, headers: reflectapi::Empty)
+    -> Result<reflectapi::Empty, super::Error<reflectapi::Empty, E>> {
+        super::__request_impl(&self.client, &self.base_url, "/health.check", input, headers).await
+    }
+}
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct PetsInterface<E, C: super::Client<E> + Clone> {
@@ -58,40 +60,41 @@ pub struct PetsInterface<E, C: super::Client<E> + Clone> {
     base_url: std::string::String,
     marker: std::marker::PhantomData<E>,
 }
+
 impl<E, C: super::Client<E> + Clone> PetsInterface<E, C> {
-            pub fn new(client: C, base_url: std::string::String) -> Self {
-                Self {
-                    client,
-                    base_url,
-                    marker: std::marker::PhantomData,
-                }
-            }
-            /// List available pets
-pub async fn list(&self, input: super::types::myapi::proto::PetsListRequest, headers: super::types::myapi::proto::Headers)
-        -> Result<super::types::myapi::proto::Paginated<super::types::myapi::model::Pet>, super::Error<super::types::myapi::proto::PetsListError, E>> {
-            super::__request_impl(&self.client, &self.base_url, "/pets.list", input, headers).await
-}
-            /// Create a new pet
-pub async fn create(&self, input: super::types::myapi::proto::PetsCreateRequest, headers: super::types::myapi::proto::Headers)
-        -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsCreateError, E>> {
-            super::__request_impl(&self.client, &self.base_url, "/pets.create", input, headers).await
-}
-            /// Update an existing pet
-pub async fn update(&self, input: super::types::myapi::proto::PetsUpdateRequest, headers: super::types::myapi::proto::Headers)
-        -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsUpdateError, E>> {
-            super::__request_impl(&self.client, &self.base_url, "/pets.update", input, headers).await
-}
-            /// Remove an existing pet
-pub async fn remove(&self, input: super::types::myapi::proto::PetsRemoveRequest, headers: super::types::myapi::proto::Headers)
-        -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsRemoveError, E>> {
-            super::__request_impl(&self.client, &self.base_url, "/pets.remove", input, headers).await
-}
-            /// Fetch first pet, if any exists
-pub async fn get_first(&self, input: reflectapi::Empty, headers: super::types::myapi::proto::Headers)
-        -> Result<std::option::Option<super::types::myapi::model::Pet>, super::Error<super::types::myapi::proto::UnauthorizedError, E>> {
-            super::__request_impl(&self.client, &self.base_url, "/pets.get-first", input, headers).await
-}
+    pub fn new(client: C, base_url: std::string::String) -> Self {
+        Self {
+            client,
+            base_url,
+            marker: std::marker::PhantomData,
         }
+    }
+    /// List available pets
+    pub async fn list(&self, input: super::types::myapi::proto::PetsListRequest, headers: super::types::myapi::proto::Headers)
+    -> Result<super::types::myapi::proto::Paginated<super::types::myapi::model::Pet>, super::Error<super::types::myapi::proto::PetsListError, E>> {
+        super::__request_impl(&self.client, &self.base_url, "/pets.list", input, headers).await
+    }
+    /// Create a new pet
+    pub async fn create(&self, input: super::types::myapi::proto::PetsCreateRequest, headers: super::types::myapi::proto::Headers)
+    -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsCreateError, E>> {
+        super::__request_impl(&self.client, &self.base_url, "/pets.create", input, headers).await
+    }
+    /// Update an existing pet
+    pub async fn update(&self, input: super::types::myapi::proto::PetsUpdateRequest, headers: super::types::myapi::proto::Headers)
+    -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsUpdateError, E>> {
+        super::__request_impl(&self.client, &self.base_url, "/pets.update", input, headers).await
+    }
+    /// Remove an existing pet
+    pub async fn remove(&self, input: super::types::myapi::proto::PetsRemoveRequest, headers: super::types::myapi::proto::Headers)
+    -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsRemoveError, E>> {
+        super::__request_impl(&self.client, &self.base_url, "/pets.remove", input, headers).await
+    }
+    /// Fetch first pet, if any exists
+    pub async fn get_first(&self, input: reflectapi::Empty, headers: super::types::myapi::proto::Headers)
+    -> Result<std::option::Option<super::types::myapi::model::Pet>, super::Error<super::types::myapi::proto::UnauthorizedError, E>> {
+        super::__request_impl(&self.client, &self.base_url, "/pets.get-first", input, headers).await
+    }
+}
 
 }
 
@@ -149,9 +152,7 @@ impl Client<reqwest::Error> for reqwest::Client {
 }
 
 pub mod types {
-
 pub mod myapi {
-
 pub mod model {
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -176,9 +177,11 @@ pub enum Behavior {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum Kind {
     /// A dog
-    dog,
+    #[serde(rename = "dog")]
+    Dog,
     /// A cat
-    cat,
+    #[serde(rename = "cat")]
+    Cat,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -196,7 +199,6 @@ pub struct Pet {
 }
 
 }
-
 pub mod proto {
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -277,11 +279,6 @@ pub struct UnauthorizedError;
 }
 
 }
-
-
-
-
-
 
 
 

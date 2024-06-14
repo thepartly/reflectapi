@@ -77,10 +77,40 @@ where
     reflectapi::codegen::typescript::generate(eps).unwrap()
 }
 
+pub fn into_input_rust_code<I>() -> String
+where
+    I: reflectapi::Input + serde::de::DeserializeOwned + Send + 'static,
+{
+    let eps = into_input_schema::<I>();
+    reflectapi::codegen::rust::generate(eps).unwrap()
+}
+
+pub fn into_output_rust_code<O>() -> String
+where
+    O: reflectapi::Output + serde::ser::Serialize + Send + 'static,
+{
+    let eps = into_output_schema::<O>();
+    reflectapi::codegen::rust::generate(eps).unwrap()
+}
+
+pub fn into_rust_code<T>() -> String
+where
+    T: reflectapi::Input
+        + serde::de::DeserializeOwned
+        + reflectapi::Output
+        + serde::ser::Serialize
+        + Send
+        + 'static,
+{
+    let eps = into_schema::<T>();
+    reflectapi::codegen::rust::generate(eps).unwrap()
+}
+
 macro_rules! assert_input_snapshot {
     ($I:ty) => {
         insta::assert_json_snapshot!(super::into_input_schema::<$I>().input_types);
         insta::assert_snapshot!(super::into_input_typescript_code::<$I>());
+        insta::assert_snapshot!(super::into_input_rust_code::<$I>());
     };
 }
 
@@ -88,6 +118,7 @@ macro_rules! assert_output_snapshot {
     ($O:ty) => {
         insta::assert_json_snapshot!(super::into_output_schema::<$O>().output_types);
         insta::assert_snapshot!(super::into_output_typescript_code::<$O>());
+        insta::assert_snapshot!(super::into_output_rust_code::<$O>());
     };
 }
 
@@ -95,5 +126,6 @@ macro_rules! assert_snapshot {
     ($T:ty) => {
         insta::assert_json_snapshot!(super::into_schema::<$T>());
         insta::assert_snapshot!(super::into_typescript_code::<$T>());
+        insta::assert_snapshot!(super::into_rust_code::<$T>());
     };
 }
