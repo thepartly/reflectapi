@@ -452,7 +452,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         pub description: String,
         pub type_: String,
         pub optional: bool,
-        pub flattened: bool,
+        pub flatten: bool,
         pub public: bool,
     }
 
@@ -503,8 +503,8 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
                     ));
                 }
             }
-            if self.flattened {
-                attrs.push("flattened".into());
+            if self.flatten {
+                attrs.push("flatten".into());
             }
             if attrs.is_empty() {
                 "".into()
@@ -601,18 +601,15 @@ fn __function_groups_from_function_names(function_names: Vec<String>) -> __Funct
         parts.pop().unwrap();
         let mut parent = vec![];
         for part in parts {
-            parent.push(part);
             group = group
                 .subgroups
                 .entry(part.into())
                 .or_insert(__FunctionGroup {
-                    parent: parent
-                        .split_last()
-                        .map(|(_, p)| p.iter().map(|i| format!("{}", i)).collect())
-                        .unwrap_or_default(),
+                    parent: parent.clone(),
                     functions: vec![],
                     subgroups: IndexMap::new(),
                 });
+            parent.push(part.into());
         }
         group.functions.push(function_name);
     }
@@ -625,22 +622,22 @@ fn __function_signature(
     implemented_types: &HashMap<String, String>,
 ) -> (String, String, String, String) {
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
-        __type_ref_to_ts_ref(input_type, schema, implemented_types, 0)
+        __type_ref_to_ts_ref(input_type, schema, implemented_types, 1)
     } else {
         "reflectapi::Empty".into()
     };
     let input_headers = if let Some(input_headers) = function.input_headers.as_ref() {
-        __type_ref_to_ts_ref(input_headers, schema, implemented_types, 0)
+        __type_ref_to_ts_ref(input_headers, schema, implemented_types, 1)
     } else {
         "reflectapi::Empty".into()
     };
     let output_type = if let Some(output_type) = function.output_type.as_ref() {
-        __type_ref_to_ts_ref(output_type, schema, implemented_types, 0)
+        __type_ref_to_ts_ref(output_type, schema, implemented_types, 1)
     } else {
         "reflectapi::Empty".into()
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
-        __type_ref_to_ts_ref(error_type, schema, implemented_types, 0)
+        __type_ref_to_ts_ref(error_type, schema, implemented_types, 1)
     } else {
         "reflectapi::Empty".into()
     };
@@ -662,21 +659,17 @@ fn __interface_types_from_function_group(
     implemented_types: &HashMap<String, String>,
     functions_by_name: &IndexMap<String, &Function>,
 ) -> Vec<String> {
-    fn struct_name_from_parent_name_and_name(parent: &Vec<String>, name: &str) -> String {
+    fn __struct_name_from_parent_name_and_name(parent: &Vec<String>, name: &str) -> String {
         if parent.is_empty() {
             return __function_name_for_type_name(name);
         }
-        format!(
-            "{}_{}",
-            parent.join("_"),
-            __function_name_for_type_name(name)
-        )
+        __function_name_for_type_name(&format!("{}_{}", parent.join("_"), name))
     }
 
     let mut type_template = templates::__Struct {
         name: format!(
             "{}Interface<E, C: super::Client<E> + Clone>",
-            struct_name_from_parent_name_and_name(&group.parent, &name)
+            __struct_name_from_parent_name_and_name(&group.parent, &name)
         ),
         description: "".into(),
         fields: Default::default(),
@@ -685,23 +678,23 @@ fn __interface_types_from_function_group(
     let mut interface_implementation = templates::__InterfaceImplementationTemplate {
         name: format!(
             "{}Interface<E, C>",
-            struct_name_from_parent_name_and_name(&group.parent, &name)
+            __struct_name_from_parent_name_and_name(&group.parent, &name)
         ),
         fields: vec![],
         functions: vec![],
     };
 
-    for subgroup_name in group.subgroups.keys() {
+    for (subgroup_name, subgroup) in group.subgroups.iter() {
         type_template.fields.push(templates::__Field {
             name: __function_name_for_field_name(&subgroup_name),
             serde_name: __function_name_for_field_name(&subgroup_name),
             description: "".into(),
             type_: format!(
                 "{}Interface<E, C>",
-                struct_name_from_parent_name_and_name(&group.parent, &subgroup_name)
+                __struct_name_from_parent_name_and_name(&subgroup.parent, &subgroup_name)
             ),
             optional: false,
-            flattened: false,
+            flatten: false,
             public: true,
         });
         interface_implementation.fields.push(templates::__Field {
@@ -710,10 +703,10 @@ fn __interface_types_from_function_group(
             description: "".into(),
             type_: format!(
                 "{}Interface",
-                struct_name_from_parent_name_and_name(&group.parent, &subgroup_name)
+                __struct_name_from_parent_name_and_name(&subgroup.parent, &subgroup_name)
             ),
             optional: false,
-            flattened: false,
+            flatten: false,
             public: true,
         });
     }
@@ -728,7 +721,7 @@ fn __interface_types_from_function_group(
             description: "".into(),
             type_: field.1.into(),
             optional: false,
-            flattened: false,
+            flatten: false,
             public: false,
         });
     }
@@ -809,7 +802,7 @@ fn __render_type(
     implemented_types: &HashMap<String, String>,
 ) -> Result<String, anyhow::Error> {
     let type_name = __type_to_ts_name(&type_def);
-    let type_name_depth = type_name.split("::").count();
+    let type_name_depth = type_def.name().split("::").count() - 1;
 
     Ok(match type_def {
         crate::Type::Struct(struct_def) => {
@@ -845,7 +838,7 @@ fn __render_type(
                         .fields
                         .iter()
                         .map(|field| templates::__Field {
-                            name: __name_to_snake_case(field.name().into()),
+                            name: __field_name_to_snake_case(field.name().into()),
                             serde_name: field.serde_name().into(),
                             description: __doc_to_ts_comments(&field.description, 4),
                             type_: __type_ref_to_ts_ref(
@@ -855,7 +848,7 @@ fn __render_type(
                                 type_name_depth,
                             ),
                             optional: !field.required,
-                            flattened: field.flattened,
+                            flatten: field.flattened,
                             public: true,
                         })
                         .collect::<Vec<_>>(),
@@ -881,7 +874,7 @@ fn __render_type(
                             .fields
                             .iter()
                             .map(|field| templates::__Field {
-                                name: __name_to_snake_case(field.name()),
+                                name: __field_name_to_snake_case(field.name()),
                                 serde_name: field.serde_name().into(),
                                 description: __doc_to_ts_comments(&field.description, 12),
                                 type_: __type_ref_to_ts_ref(
@@ -891,7 +884,7 @@ fn __render_type(
                                     type_name_depth,
                                 ),
                                 optional: !field.required,
-                                flattened: field.flattened,
+                                flatten: field.flattened,
                                 public: false,
                             })
                             .collect::<Vec<_>>(),
@@ -918,7 +911,7 @@ fn __type_ref_to_ts_ref(
     type_name_depth: usize,
 ) -> String {
     let with_super_prefix =
-        |name: &str| -> String { format!("super::{}{}", "super::".repeat(type_name_depth), name) };
+        |name: &str| -> String { format!("{}{}", "super::".repeat(type_name_depth), name) };
 
     if let Some(resolved_type) =
         __resolve_type_ref(type_ref, schema, implemented_types, type_name_depth)
@@ -1095,7 +1088,7 @@ fn __function_name_for_type_name(name: &str) -> String {
     let mut result = String::new();
     let mut capitalize = true;
     for c in name.chars() {
-        if c == '-' {
+        if c == '-' || c == '_' {
             capitalize = true;
         } else if c == '.' {
             result.push('_');
@@ -1130,7 +1123,7 @@ fn __name_to_pascal_case(name: &str) -> String {
     result
 }
 
-fn __name_to_snake_case(name: &str) -> String {
+fn __field_name_to_snake_case(name: &str) -> String {
     let mut result = String::new();
     for c in name.chars() {
         if c.is_ascii_uppercase() {
@@ -1142,5 +1135,10 @@ fn __name_to_snake_case(name: &str) -> String {
             result.push(c);
         }
     }
-    result
+    // if rust keyword, add underscore
+    if check_keyword::CheckKeyword::is_keyword(&result) {
+        format!("{}_", result)
+    } else {
+        result
+    }
 }

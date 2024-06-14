@@ -42,6 +42,7 @@ axum = { version = "0.7.4", optional = true }
 askama = { version = "0.12.1", optional = true }
 anyhow = { version = "1.0.81", optional = true }
 indexmap = { version = "2.2.6", optional = true }
+check_keyword = { version = "0.2.0", optional = true }
 
 [features]
 # feature for implementing schema builder
@@ -55,4 +56,4 @@ rust_decimal = ["dep:rust_decimal"]
 # based on dififerent web server frameworks
 axum = ["dep:axum"]
 # feature flag for enabling codegen libraries
-codegen = ["dep:askama", "dep:anyhow", "dep:indexmap"]
+codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword"]
