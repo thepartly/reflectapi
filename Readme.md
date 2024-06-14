@@ -26,7 +26,7 @@ pnpm run start
 
 To generate client in Rust for demo server:
 ```
-cargo run --bin reflectapi-cli -- codegen --language rust --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/rust/src
+cargo run --bin reflectapi-cli -- codegen --language rust --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/rust/generated/src/
 ```
 
 To run the Rust generated client. Note: requires the demo server running

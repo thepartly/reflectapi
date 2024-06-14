@@ -121,12 +121,12 @@ pub use interface::Interface;",
     #[template(
         source = "
 pub trait Client<E> {
-    async fn request(
+    fn request(
         &self,
         path: &str,
         body: bytes::Bytes,
         headers: std::collections::HashMap<String, String>,
-    ) -> Result<(http::StatusCode, bytes::Bytes), E>;
+    ) -> impl std::future::Future<Output = Result<(http::StatusCode, bytes::Bytes), E>>;
 }
 
 pub enum Error<AE, NE> {

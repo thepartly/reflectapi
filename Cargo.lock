@@ -1268,6 +1268,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "reflectapi-demo-client-generated"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "http",
+ "reflectapi",
+ "reqwest",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "reflectapi-derive"
 version = "0.5.5"
 dependencies = [

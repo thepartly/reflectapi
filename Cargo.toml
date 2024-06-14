@@ -4,6 +4,7 @@ members = [
     "reflectapi-cli",
     "reflectapi-demo",
     "reflectapi-demo/clients/rust",
+    "reflectapi-demo/clients/rust/generated",
     "reflectapi-derive",
     "reflectapi-schema",
 ]
