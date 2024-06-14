@@ -29,6 +29,14 @@ enum Commands {
         /// Language to generate code for
         #[arg(short, long)]
         language: Language,
+
+        /// Specific to Rust codegen only.
+        /// A module which does not need types generated for a client
+        /// because that module is a 3rd party or open source crate
+        /// which can be used by the client code directly as a dependency.
+        /// Multiple modules can be specified.
+        #[arg(long)]
+        shared_module: Option<Vec<String>>,
     },
 }
 
@@ -46,8 +54,9 @@ fn main() {
             schema,
             output,
             language,
+            shared_module,
         } => {
-            handle_anyhow_result(generate(schema, output, language));
+            handle_anyhow_result(generate(schema, output, language, shared_module));
         }
     }
 }
@@ -66,6 +75,7 @@ fn generate(
     schema: Option<std::path::PathBuf>,
     output: Option<std::path::PathBuf>,
     language: crate::Language,
+    shared_modules: Option<Vec<String>>,
 ) -> anyhow::Result<()> {
     let schema_path = schema.unwrap_or(std::path::PathBuf::from("reflectapi.json"));
     let schema_as_json = std::fs::read_to_string(schema_path.clone())
@@ -83,7 +93,8 @@ fn generate(
                 .context(format!("Failed to write to file: {:?}", output))?;
         }
         crate::Language::Rust => {
-            let generated_code = reflectapi::codegen::rust::generate(schema)?;
+            let generated_code =
+                reflectapi::codegen::rust::generate(schema, shared_modules.unwrap_or_default())?;
             let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
             let output = output.join("generated.rs");
             let mut file = std::fs::File::create(output.clone())
