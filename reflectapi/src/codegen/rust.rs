@@ -357,7 +357,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         }
 
         fn render_attributes_derive(&self) -> String {
-            let mut attrs: Vec<String> = vec![];
+            let mut attrs: Vec<String> = vec!["Debug".into()];
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
                 attrs.push("serde::Serialize".into());
@@ -396,7 +396,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
 
     impl __Enum {
         fn render_attributes_derive(&self) -> String {
-            let mut attrs: Vec<String> = vec![];
+            let mut attrs: Vec<String> = vec!["Debug".into()];
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
                 attrs.push("serde::Serialize".into());
@@ -611,7 +611,7 @@ pub struct {{ name }};",
 
     impl __Unit {
         fn render_attributes_derive(&self) -> String {
-            let mut attrs: Vec<String> = vec![];
+            let mut attrs: Vec<String> = vec!["Debug".into()];
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
                 attrs.push("serde::Serialize".into());
