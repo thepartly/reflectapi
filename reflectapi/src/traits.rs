@@ -63,6 +63,47 @@ impl_reflectapi_simple!(bool, "Boolean value");
 impl_reflectapi_simple!(char, "Unicode character");
 impl_reflectapi_simple!(std::string::String, "UTF-8 encoded string");
 
+macro_rules! impl_reflectapi_simple_with_fallback {
+    ($type:ty, $description:tt, $fallback:expr) => {
+        impl Input for $type {
+            fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+                reflectapi_type_simple(schema, stringify!($type), $description, $fallback)
+            }
+        }
+        impl Output for $type {
+            fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+                reflectapi_type_simple(schema, stringify!($type), $description, $fallback)
+            }
+        }
+    };
+}
+
+impl_reflectapi_simple_with_fallback!(
+    std::num::NonZeroU8,
+    "8-bit non-zero unsigned integer",
+    Some("u8".into())
+);
+impl_reflectapi_simple_with_fallback!(
+    std::num::NonZeroU16,
+    "16-bit non-zero unsigned integer",
+    Some("u16".into())
+);
+impl_reflectapi_simple_with_fallback!(
+    std::num::NonZeroU32,
+    "32-bit non-zero unsigned integer",
+    Some("u32".into())
+);
+impl_reflectapi_simple_with_fallback!(
+    std::num::NonZeroU64,
+    "64-bit non-zero unsigned integer",
+    Some("u64".into())
+);
+impl_reflectapi_simple_with_fallback!(
+    std::num::NonZeroU128,
+    "128-bit non-zero unsigned integer",
+    Some("u128".into())
+);
+
 impl Input for isize {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         let fallback = Some(i64::reflectapi_input_type(schema));
