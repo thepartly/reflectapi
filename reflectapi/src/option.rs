@@ -136,7 +136,8 @@ fn reflectapi_type_option(schema: &mut crate::Typespace) -> String {
         type_def.variants.push(variant);
 
         let mut variant = crate::Variant::new("None".into());
-        variant.description = "The value is provided but set to none, i.e. null in JavaScript".into();
+        variant.description =
+            "The value is provided but set to none, i.e. null in JavaScript".into();
         type_def.variants.push(variant);
 
         let mut variant = crate::Variant::new("Some".into());
