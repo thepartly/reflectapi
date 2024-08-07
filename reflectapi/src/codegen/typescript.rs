@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, process::Command};
 
+use super::format_with;
 use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
@@ -91,7 +92,12 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     );
 
     let generated_code = generated_code.join("\n");
-    Ok(generated_code)
+
+    format_with(
+        Command::new("prettier").args(["--parser", "typescript"]),
+        generated_code,
+    )
+    .map_err(Into::into)
 }
 
 mod templates {
