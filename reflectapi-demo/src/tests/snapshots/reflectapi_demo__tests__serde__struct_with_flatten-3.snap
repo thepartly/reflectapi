@@ -15,7 +15,7 @@ pub use interface::Interface;
 
 pub mod interface {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
 pub struct Interface<E, C: super::Client<E> + Clone> {
     client: C,
     base_url: std::string::String,
@@ -99,13 +99,13 @@ pub mod reflectapi_demo {
 pub mod tests {
 pub mod serde {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TestStructWithFlatten {
-    #[serde(flattened)]
-    pub g: super::super::reflectapi_demo::tests::serde::TestStructWithFlattenNested,
+    #[serde(flatten)]
+    pub g: super::super::super::reflectapi_demo::tests::serde::TestStructWithFlattenNested,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TestStructWithFlattenNested {
     pub f: u8,
 }

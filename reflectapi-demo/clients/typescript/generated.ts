@@ -97,7 +97,7 @@ export class Result<T, E> {
         if ('ok' in this.value) {
             return this.value.ok;
         }
-        throw new Error('called `unwrap_ok` on an `err` value: ' + this.value.err?.toString());
+        throw new Error(`called \`unwrap_ok\` on an \`err\` value: ${this.value.err}`);
     }
     public unwrap_err(): E {
         if ('err' in this.value) {
@@ -306,7 +306,7 @@ export type UnauthorizedError = null;
 
 }
 
-export namespace reflect {
+export namespace reflectapi {
 
 /// Struct object with no fields
 export interface Empty {
@@ -352,7 +352,7 @@ export function __request<I, H, O, E>(client: Client, path: string, input: I | u
                 try {
                     parsed_response_body = JSON.parse(response_body)
                 } catch (e) {
-                    return new Result<O, Err<E>>({ err: new Err({ other_err: response_body }) });
+                    return new Result<O, Err<E>>({ err: new Err({ other_err: `[${status}] ${response_body}` }) });
                 }
                 return new Result<O, Err<E>>({ err: new Err({ application_err: parsed_response_body as E }) });
             }
@@ -379,12 +379,12 @@ class ClientInstance {
     constructor(private base: string) {}
 
     public request(path: string, body: string, headers: Record<string, string>): Promise<[number, string]> {
-        return fetch(`${this.base}/${path}`, {
+        return (globalThis as any).fetch(`${this.base}${path}`, {
             method: 'POST',
             headers: headers,
             body: body,
-        }).then((response) => {
-            return response.text().then((text) => {
+        }).then((response: any) => {
+            return response.text().then((text: string) => {
                 return [response.status, text];
             });
         });
@@ -394,32 +394,32 @@ class ClientInstance {
 function health__check(client: Client) {
     return (input: {}, headers: {}) => __request<
         {}, {}, {}, {}
-    >(client, 'health.check', input, headers);
+    >(client, '/health.check', input, headers);
 }
 function pets__list(client: Client) {
     return (input: myapi.proto.PetsListRequest, headers: myapi.proto.Headers) => __request<
         myapi.proto.PetsListRequest, myapi.proto.Headers, myapi.proto.Paginated<myapi.model.Pet>, myapi.proto.PetsListError
-    >(client, 'pets.list', input, headers);
+    >(client, '/pets.list', input, headers);
 }
 function pets__create(client: Client) {
     return (input: myapi.proto.PetsCreateRequest, headers: myapi.proto.Headers) => __request<
         myapi.proto.PetsCreateRequest, myapi.proto.Headers, {}, myapi.proto.PetsCreateError
-    >(client, 'pets.create', input, headers);
+    >(client, '/pets.create', input, headers);
 }
 function pets__update(client: Client) {
     return (input: myapi.proto.PetsUpdateRequest, headers: myapi.proto.Headers) => __request<
         myapi.proto.PetsUpdateRequest, myapi.proto.Headers, {}, myapi.proto.PetsUpdateError
-    >(client, 'pets.update', input, headers);
+    >(client, '/pets.update', input, headers);
 }
 function pets__remove(client: Client) {
     return (input: myapi.proto.PetsRemoveRequest, headers: myapi.proto.Headers) => __request<
         myapi.proto.PetsRemoveRequest, myapi.proto.Headers, {}, myapi.proto.PetsRemoveError
-    >(client, 'pets.remove', input, headers);
+    >(client, '/pets.remove', input, headers);
 }
 function pets__get_first(client: Client) {
     return (input: {}, headers: myapi.proto.Headers) => __request<
         {}, myapi.proto.Headers, myapi.model.Pet | null, myapi.proto.UnauthorizedError
-    >(client, 'pets.get-first', input, headers);
+    >(client, '/pets.get-first', input, headers);
 }
 
 }

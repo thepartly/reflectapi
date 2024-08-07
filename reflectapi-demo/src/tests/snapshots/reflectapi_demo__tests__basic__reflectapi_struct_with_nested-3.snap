@@ -15,7 +15,7 @@ pub use interface::Interface;
 
 pub mod interface {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
 pub struct Interface<E, C: super::Client<E> + Clone> {
     client: C,
     base_url: std::string::String,
@@ -99,14 +99,14 @@ pub mod reflectapi_demo {
 pub mod tests {
 pub mod basic {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TestStructNested {
     pub _f: std::string::String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TestStructWithNested {
-    pub _f: super::super::reflectapi_demo::tests::basic::TestStructNested,
+    pub _f: super::super::super::reflectapi_demo::tests::basic::TestStructNested,
 }
 
 }

@@ -11,7 +11,7 @@ pub use interface::Interface;
 
 pub mod interface {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
 pub struct Interface<E, C: super::Client<E> + Clone> {
     pub health: HealthInterface<E, C>,
     pub pets: PetsInterface<E, C>,
@@ -32,7 +32,7 @@ impl<E, C: super::Client<E> + Clone> Interface<E, C> {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
 pub struct HealthInterface<E, C: super::Client<E> + Clone> {
     client: C,
     base_url: std::string::String,
@@ -54,7 +54,7 @@ impl<E, C: super::Client<E> + Clone> HealthInterface<E, C> {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
 pub struct PetsInterface<E, C: super::Client<E> + Clone> {
     client: C,
     base_url: std::string::String,
@@ -155,7 +155,7 @@ pub mod types {
 pub mod myapi {
 pub mod model {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Behavior {
     Calm,
     Aggressive(
@@ -174,7 +174,7 @@ pub enum Behavior {
     },
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Kind {
     /// A dog
     #[serde(rename = "dog")]
@@ -184,7 +184,7 @@ pub enum Kind {
     Cat,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Pet {
     /// identity
     pub name: std::string::String,
@@ -201,12 +201,12 @@ pub struct Pet {
 }
 pub mod proto {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct Headers {
     pub authorization: std::string::String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub struct Paginated<T> {
     /// slice of a collection
     pub items: std::vec::Vec<T>,
@@ -215,7 +215,7 @@ pub struct Paginated<T> {
     pub cursor: std::option::Option<std::string::String>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub enum PetsCreateError {
     Conflict,
     NotAuthorized,
@@ -226,13 +226,13 @@ pub enum PetsCreateError {
 
 pub type PetsCreateRequest = super::super::myapi::model::Pet;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub enum PetsListError {
     InvalidCustor,
     Unauthorized,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct PetsListRequest {
     #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
     pub limit: std::option::Option<u8>,
@@ -240,25 +240,25 @@ pub struct PetsListRequest {
     pub cursor: std::option::Option<std::string::String>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub enum PetsRemoveError {
     NotFound,
     NotAuthorized,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct PetsRemoveRequest {
     /// identity
     pub name: std::string::String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub enum PetsUpdateError {
     NotFound,
     NotAuthorized,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct PetsUpdateRequest {
     /// identity
     pub name: std::string::String,
@@ -273,7 +273,7 @@ pub struct PetsUpdateRequest {
     pub behaviors: reflectapi::Option<std::vec::Vec<super::super::myapi::model::Behavior>>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub struct UnauthorizedError;
 
 }

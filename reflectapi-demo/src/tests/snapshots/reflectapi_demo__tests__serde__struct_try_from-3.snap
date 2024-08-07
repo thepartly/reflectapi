@@ -15,7 +15,7 @@ pub use interface::Interface;
 
 pub mod interface {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
 pub struct Interface<E, C: super::Client<E> + Clone> {
     client: C,
     base_url: std::string::String,
@@ -99,18 +99,18 @@ pub mod reflectapi_demo {
 pub mod tests {
 pub mod serde {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct TestStructTryFrom {
     pub f: u8,
 }
 pub mod input {
 
-pub type TestStructTryFormProxy = super::super::reflectapi_demo::tests::serde::TestStructTryFrom;
+pub type TestStructTryFormProxy = super::super::super::super::reflectapi_demo::tests::serde::TestStructTryFrom;
 
 }
 pub mod output {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub struct TestStructTryFormProxy {
     pub f: u8,
 }

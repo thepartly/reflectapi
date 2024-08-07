@@ -15,7 +15,7 @@ pub use interface::Interface;
 
 pub mod interface {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
 pub struct Interface<E, C: super::Client<E> + Clone> {
     client: C,
     base_url: std::string::String,
@@ -99,7 +99,7 @@ pub mod reflectapi_demo {
 pub mod tests {
 pub mod enums {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize)]
 pub enum TestEnumWithFields {
     Variant1(
         u8,

@@ -15,7 +15,7 @@ pub use interface::Interface;
 
 pub mod interface {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
 pub struct Interface<E, C: super::Client<E> + Clone> {
     client: C,
     base_url: std::string::String,
@@ -99,13 +99,13 @@ pub mod reflectapi_demo {
 pub mod tests {
 pub mod generics {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct TestStructWithNestedGenericStructTwice {
-    pub _f: super::super::reflectapi_demo::tests::generics::TestStructWithSimpleGeneric<u8>,
-    pub _f2: super::super::reflectapi_demo::tests::generics::TestStructWithSimpleGeneric<std::string::String>,
+    pub _f: super::super::super::reflectapi_demo::tests::generics::TestStructWithSimpleGeneric<u8>,
+    pub _f2: super::super::super::reflectapi_demo::tests::generics::TestStructWithSimpleGeneric<std::string::String>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct TestStructWithSimpleGeneric<A> {
     pub _f: A,
 }

@@ -15,7 +15,7 @@ pub use interface::Interface;
 
 pub mod interface {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
 pub struct Interface<E, C: super::Client<E> + Clone> {
     client: C,
     base_url: std::string::String,
@@ -100,7 +100,7 @@ pub mod tests {
 pub mod basic {
 pub mod input {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct TestStructOneBasicFieldStringReflectBothDifferently {
     pub _f: i32,
 }
@@ -108,7 +108,7 @@ pub struct TestStructOneBasicFieldStringReflectBothDifferently {
 }
 pub mod output {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub struct TestStructOneBasicFieldStringReflectBothDifferently {
     pub _f: u32,
 }
