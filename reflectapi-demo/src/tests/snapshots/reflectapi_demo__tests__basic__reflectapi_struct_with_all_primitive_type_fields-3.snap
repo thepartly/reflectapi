@@ -207,7 +207,7 @@ pub mod types {
                         u81,
                         u82,
                     ),
-                    pub _f_array: std::array::Array<u8, 3>,
+                    pub _f_array: [u8; 3],
                     pub _f_pointer_box: std::boxed::Box<u8>,
                     pub _f_pointer_arc: std::sync::Arc<u8>,
                     pub _f_pointer_cell: std::cell::Cell<u8>,
