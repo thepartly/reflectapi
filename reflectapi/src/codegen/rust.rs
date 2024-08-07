@@ -356,7 +356,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
     impl __Struct {
         fn render_brackets(&self) -> (&'static str, &'static str) {
             if self.is_tuple {
-                ("(", ")")
+                ("(", ");")
             } else {
                 ("{", "}")
             }
