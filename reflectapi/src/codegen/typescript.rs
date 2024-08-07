@@ -563,6 +563,8 @@ class ClientInstance {
         }
     }
 
+    // TODO The ? is in the wrong place for optional tuple fields.
+    // i.e. syntax is { name?: string } for object-like things but [string?] for array-like things
     #[derive(Template)]
     #[template(
         source = "{{ description }}{% if !self.is_unnamed() %}{{ self.normalized_name() }}{% if optional %}{{ \"?\" }}{% endif %}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
@@ -1020,15 +1022,14 @@ fn resolve_type_ref(
 ) -> Option<String> {
     let Some(mut implementation) = implemented_types.get(type_ref.name.as_str()).cloned() else {
         let Some(fallback_type_ref) = type_ref.fallback_once(schema.input_types()) else {
-            let Some(fallback_type_ref) = type_ref.fallback_once(schema.output_types()) else {
-                return None;
-            };
+            let fallback_type_ref = type_ref.fallback_once(schema.output_types())?;
             return Some(type_ref_to_ts_ref(
                 &fallback_type_ref,
                 schema,
                 implemented_types,
             ));
         };
+
         return Some(type_ref_to_ts_ref(
             &fallback_type_ref,
             schema,
@@ -1036,15 +1037,18 @@ fn resolve_type_ref(
         ));
     };
 
-    let Some(type_def) = schema.get_type(type_ref.name()) else {
-        return None;
-    };
+    let type_def = schema.get_type(type_ref.name())?;
 
+    assert_eq!(type_def.parameters().len(), type_ref.parameters().len());
     for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.parameters.iter()) {
         if implementation.contains(type_def_param.name.as_str()) {
-            implementation = implementation.replace(
+            // Ensure only the first occurence of the type parameter is replaced.
+            // For example, this can cause trouble for large tuples where T1 erroneously matches T11.
+            // I think ideally we shouldn't be doing this by string substitution...
+            implementation = implementation.replacen(
                 type_def_param.name.as_str(),
                 type_ref_to_ts_ref(type_ref_param, schema, implemented_types).as_str(),
+                1,
             );
         }
     }
