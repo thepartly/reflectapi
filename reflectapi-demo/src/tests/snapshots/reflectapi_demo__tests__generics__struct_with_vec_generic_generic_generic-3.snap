@@ -15,7 +15,7 @@ pub use interface::Interface;
 
 pub mod interface {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
 pub struct Interface<E, C: super::Client<E> + Clone> {
     client: C,
     base_url: std::string::String,
@@ -99,14 +99,14 @@ pub mod reflectapi_demo {
 pub mod tests {
 pub mod generics {
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct TestStructWithVecGeneric<T> {
     pub _f: std::vec::Vec<T>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct TestStructWithVecGenericGenericGeneric<T> {
-    pub _f: std::vec::Vec<super::super::reflectapi_demo::tests::generics::TestStructWithVecGeneric<T>>,
+    pub _f: std::vec::Vec<super::super::super::reflectapi_demo::tests::generics::TestStructWithVecGeneric<T>>,
 }
 
 }

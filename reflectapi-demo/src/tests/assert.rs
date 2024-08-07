@@ -82,7 +82,7 @@ where
     I: reflectapi::Input + serde::de::DeserializeOwned + Send + 'static,
 {
     let eps = into_input_schema::<I>();
-    reflectapi::codegen::rust::generate(eps).unwrap()
+    reflectapi::codegen::rust::generate(eps, vec![]).unwrap()
 }
 
 pub fn into_output_rust_code<O>() -> String
@@ -90,7 +90,7 @@ where
     O: reflectapi::Output + serde::ser::Serialize + Send + 'static,
 {
     let eps = into_output_schema::<O>();
-    reflectapi::codegen::rust::generate(eps).unwrap()
+    reflectapi::codegen::rust::generate(eps, vec![]).unwrap()
 }
 
 pub fn into_rust_code<T>() -> String
@@ -103,7 +103,7 @@ where
         + 'static,
 {
     let eps = into_schema::<T>();
-    reflectapi::codegen::rust::generate(eps).unwrap()
+    reflectapi::codegen::rust::generate(eps, vec![]).unwrap()
 }
 
 macro_rules! assert_input_snapshot {
