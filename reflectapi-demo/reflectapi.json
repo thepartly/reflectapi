@@ -369,11 +369,11 @@
         "variants": [
           {
             "name": "Undefined",
-            "description": "The value is missing, i.e. undefined in Javascript"
+            "description": "The value is missing, i.e. undefined in JavaScript"
           },
           {
             "name": "None",
-            "description": "The value is provided but set to none, i.e. null in JS"
+            "description": "The value is provided but set to none, i.e. null in JavaScript"
           },
           {
             "name": "Some",

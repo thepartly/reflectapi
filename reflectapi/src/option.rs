@@ -132,11 +132,11 @@ fn reflectapi_type_option(schema: &mut crate::Typespace) -> String {
         type_def.representation = crate::Representation::None;
 
         let mut variant = crate::Variant::new("Undefined".into());
-        variant.description = "The value is missing, i.e. undefined in Javascript".into();
+        variant.description = "The value is missing, i.e. undefined in JavaScript".into();
         type_def.variants.push(variant);
 
         let mut variant = crate::Variant::new("None".into());
-        variant.description = "The value is provided but set to none, i.e. null in JS".into();
+        variant.description = "The value is provided but set to none, i.e. null in JavaScript".into();
         type_def.variants.push(variant);
 
         let mut variant = crate::Variant::new("Some".into());
