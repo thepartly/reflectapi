@@ -477,7 +477,7 @@ class ClientInstance {
     }
 
     impl Variant {
-        fn fields_brakets(&self) -> (String, String) {
+        fn field_brackets(&self) -> (String, String) {
             if self.fields.is_empty() {
                 ("".into(), "".into())
             } else if self.fields.iter().all(|f| f.is_unnamed()) {
@@ -546,7 +546,7 @@ class ClientInstance {
         }
 
         fn render_fields(&self, inner_tag: Option<&str>) -> anyhow::Result<String> {
-            let brackets = self.fields_brakets();
+            let brackets = self.field_brackets();
             let mut rendered_fields = Vec::new();
             if let Some(inner_tag) = inner_tag {
                 rendered_fields.push(format!("{}: \"{}\"", inner_tag, self.name));
@@ -897,9 +897,17 @@ fn render_type(
             }
         }
         crate::Type::Enum(enum_def) => {
+            let description = doc_to_ts_comments(&enum_def.description, 0);
+
+            // An empty enum requires special handling.
+            // This is isomorphic to the never type as a value of this type does not exist.
+            if enum_def.variants.is_empty() {
+                return Ok(format!("{description}export type {type_name} = never"));
+            }
+
             let enum_template = templates::Enum {
                 name: type_name,
-                description: doc_to_ts_comments(&enum_def.description, 0),
+                description,
                 variants: enum_def
                     .variants
                     .iter()
