@@ -1,3 +1,4 @@
+use core::fmt;
 use std::sync::Arc;
 
 use crate::{Function, Schema, Struct};
@@ -126,10 +127,54 @@ where
         R: Into<crate::Result<O, E>>,
     {
         let mut input_headers = input.headers;
-        let input_parsed = if !input.body.is_empty() {
-            serde_json::from_slice::<I>(input.body.as_ref())
-        } else {
-            serde_json::from_value::<I>(serde_json::Value::Object(serde_json::Map::new()))
+
+        #[derive(Debug)]
+        enum ContentType {
+            Json,
+            #[cfg(feature = "msgpack")]
+            MessagePack,
+        }
+
+        impl fmt::Display for ContentType {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                match self {
+                    ContentType::Json => write!(f, "application/json"),
+                    #[cfg(feature = "msgpack")]
+                    ContentType::MessagePack => write!(f, "application/msgpack"),
+                }
+            }
+        }
+
+        let content_type = match input_headers.get("Content-Type").map(|s| s.as_str()) {
+            #[cfg(feature = "msgpack")]
+            Some("application/msgpack") => ContentType::MessagePack,
+            None | Some("application/json") => ContentType::Json,
+            _ => {
+                return HandlerOutput {
+                    code: http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                    body: bytes::Bytes::from("Unsupported content type".as_bytes()),
+                    headers: std::collections::HashMap::new(),
+                };
+            }
+        };
+
+        let input_parsed = match content_type {
+            ContentType::Json => if !input.body.is_empty() {
+                serde_json::from_slice::<I>(input.body.as_ref())
+            } else {
+                serde_json::from_value::<I>(serde_json::Value::Object(serde_json::Map::new()))
+            }
+            .map_err(anyhow::Error::from),
+            #[cfg(feature = "msgpack")]
+            ContentType::MessagePack => {
+                if !input.body.is_empty() {
+                    rmp_serde::from_read::<_, I>(input.body.as_ref())
+                } else {
+                    todo!()
+                    // rmp_serde::from_read::<I>(std::io::empty())
+                }
+                .map_err(anyhow::Error::from)
+            }
         };
 
         let input = match input_parsed {
@@ -150,8 +195,8 @@ where
         };
 
         let mut response_headers = std::collections::HashMap::new();
-        // for now it is only json but we will add messagepack in the future depending on the request content type
-        response_headers.insert("content-type".to_string(), "application/json".to_string());
+        // Respond in the same format as the request
+        response_headers.insert("content-type".to_string(), content_type.to_string());
 
         let mut headers_as_json_map = serde_json::Map::new();
         for (header_name, header_value) in input_headers.drain() {
@@ -183,7 +228,12 @@ where
         let output = handler(state, input, input_headers).await;
         let output: crate::Result<O, E> = output.into();
 
-        let output_serialized = serde_json::to_vec(&output);
+        let output_serialized = match content_type {
+            ContentType::Json => serde_json::to_vec(&output).map_err(anyhow::Error::from),
+            #[cfg(feature = "msgpack")]
+            ContentType::MessagePack => rmp_serde::to_vec(&output).map_err(anyhow::Error::from),
+        };
+
         let output_serialized = match output_serialized {
             Ok(r) => r,
             Err(err) => {
