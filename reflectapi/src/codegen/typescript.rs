@@ -131,6 +131,9 @@ export interface Client {
 
 export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
 
+export type FixedSizeArray<T, N extends number> = Array<T> & { length: N };
+
+
 export class Result<T, E> {
     constructor(private value: { ok: T } | { err: E }) {}
 
@@ -1101,6 +1104,7 @@ fn build_implemented_types() -> HashMap<String, String> {
     // the implementation of reflect for standard types
 
     implemented_types.insert("std::option::Option".into(), "T | null".into());
+    implemented_types.insert("std::array::Array".into(), "FixedSizeArray<T, N>".into());
     implemented_types.insert("reflectapi::Option".into(), "T | null | undefined".into());
 
     implemented_types.insert("std::vec::Vec".into(), "Array<T>".into());

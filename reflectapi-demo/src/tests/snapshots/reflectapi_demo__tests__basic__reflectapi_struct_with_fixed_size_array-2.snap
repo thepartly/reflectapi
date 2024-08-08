@@ -34,6 +34,8 @@ export interface Client {
 
 export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
 
+export type FixedSizeArray<T, N extends number> = Array<T> & { length: N };
+
 export class Result<T, E> {
   constructor(private value: { ok: T } | { err: E }) {}
 
@@ -193,7 +195,7 @@ export namespace reflectapi_demo {
   export namespace tests {
     export namespace basic {
       export interface TestStructWithFixedSizeArray {
-        _f: Array<number /* u8 */>;
+        _f: FixedSizeArray<number /* u8 */, 3>;
       }
     }
   }
