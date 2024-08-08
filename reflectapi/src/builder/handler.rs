@@ -59,9 +59,10 @@ where
             .input_types
             .get_type(&input_headers.name.as_str())
             .map(|type_def| match type_def {
-                crate::Type::Struct(Struct { fields, .. }) => {
-                    fields.iter().map(|field| field.name.clone()).collect()
-                }
+                crate::Type::Struct(Struct { fields, .. }) => fields
+                    .iter()
+                    .map(|field| field.serde_name().to_owned())
+                    .collect(),
                 _ => vec![],
             })
             .unwrap_or_default();
