@@ -3,15 +3,12 @@ use std::cell::RefCell;
 use std::fmt::Display;
 use std::thread;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-#[derive(Default)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Default)]
 pub(crate) enum ReflectType {
     #[default]
     Input,
     Output,
 }
-
-
 
 pub(crate) struct ContextEncounters {
     pub fields: Vec<(reflectapi_schema::TypeReference, syn::Type)>,

@@ -976,7 +976,7 @@ fn type_ref_to_ts_ref(
 }
 
 fn type_ref_params_to_ts_ref(
-    type_params: &Vec<crate::TypeReference>,
+    type_params: &[crate::TypeReference],
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> String {

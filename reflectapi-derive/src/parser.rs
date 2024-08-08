@@ -123,8 +123,6 @@ pub(crate) struct ParsedTypeAttributes {
     pub discriminant: bool,
 }
 
-
-
 #[derive(Default)]
 pub(crate) struct ParsedFieldAttributes {
     pub input_type: Option<syn::Type>,
@@ -134,8 +132,6 @@ pub(crate) struct ParsedFieldAttributes {
     pub input_skip: bool,
     pub output_skip: bool,
 }
-
-
 
 pub(crate) fn parse_doc_attributes(attrs: &Vec<syn::Attribute>) -> String {
     let mut result = Vec::new();
@@ -161,7 +157,7 @@ pub(crate) fn parse_doc_attributes(attrs: &Vec<syn::Attribute>) -> String {
 /// Extract out the `#[reflectapi(...)]` attributes from a type definition.
 pub(crate) fn parse_type_attributes(
     cx: &Context,
-    attributes: &Vec<syn::Attribute>,
+    attributes: &[syn::Attribute],
 ) -> ParsedTypeAttributes {
     let mut result = ParsedTypeAttributes::default();
 
@@ -224,7 +220,7 @@ pub(crate) fn parse_type_attributes(
 
 pub(crate) fn parse_field_attributes(
     cx: &Context,
-    attributes: &Vec<syn::Attribute>,
+    attributes: &[syn::Attribute],
 ) -> ParsedFieldAttributes {
     let mut result = ParsedFieldAttributes::default();
 

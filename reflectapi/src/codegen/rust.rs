@@ -755,7 +755,7 @@ fn __interface_types_from_function_group(
     implemented_types: &HashMap<String, String>,
     functions_by_name: &IndexMap<String, &Function>,
 ) -> Vec<String> {
-    fn __struct_name_from_parent_name_and_name(parent: &Vec<String>, name: &str) -> String {
+    fn __struct_name_from_parent_name_and_name(parent: &[String], name: &str) -> String {
         if parent.is_empty() {
             return __function_name_for_type_name(name);
         }
@@ -808,9 +808,11 @@ fn __interface_types_from_function_group(
             public: true,
         });
     }
-    for field in [("client", "C"),
+    for field in [
+        ("client", "C"),
         ("base_url", "std::string::String"),
-        ("marker", "std::marker::PhantomData<E>")] {
+        ("marker", "std::marker::PhantomData<E>"),
+    ] {
         type_template.fields.push(templates::__Field {
             name: field.0.into(),
             serde_name: field.0.into(),
@@ -1047,7 +1049,7 @@ fn __type_ref_to_ts_ref(
 }
 
 fn __type_ref_params_to_ts_ref(
-    type_params: &Vec<crate::TypeReference>,
+    type_params: &[crate::TypeReference],
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     type_name_depth: usize,
@@ -1093,13 +1095,8 @@ fn __resolve_type_ref(
     implemented_types: &HashMap<String, String>,
     type_name_depth: usize,
 ) -> Option<String> {
-    let Some(mut implementation) = implemented_types.get(type_ref.name.as_str()).cloned() else {
-        return None;
-    };
-
-    let Some(type_def) = schema.get_type(type_ref.name()) else {
-        return None;
-    };
+    let mut implementation = implemented_types.get(type_ref.name.as_str()).cloned()?;
+    let type_def = schema.get_type(type_ref.name())?;
 
     for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.parameters.iter()) {
         if implementation.contains(type_def_param.name.as_str()) {

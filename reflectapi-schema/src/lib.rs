@@ -255,7 +255,8 @@ impl Typespace {
         let index = self
             .types_map
             .borrow()
-            .get(ty).copied()
+            .get(ty)
+            .copied()
             .unwrap_or(usize::MAX);
         if index == usize::MAX {
             return None;
@@ -442,10 +443,7 @@ pub struct TypeReference {
 
 impl TypeReference {
     pub fn new(name: String, parameters: Vec<TypeReference>) -> Self {
-        TypeReference {
-            name,
-            parameters,
-        }
+        TypeReference { name, parameters }
     }
 
     pub fn name(&self) -> &str {
@@ -469,9 +467,7 @@ impl TypeReference {
     }
 
     pub fn fallback_once(&self, schema: &Typespace) -> Option<TypeReference> {
-        let Some(type_def) = schema.get_type(self.name()) else {
-            return None;
-        };
+        let type_def = schema.get_type(self.name())?;
         type_def.fallback_internal(self)
     }
 
@@ -597,10 +593,7 @@ impl Type {
     }
 
     pub fn is_struct(&self) -> bool {
-        match self {
-            Type::Struct(_) => true,
-            _ => false,
-        }
+        matches!(self, Type::Struct(_))
     }
 
     pub fn as_enum(&self) -> Option<&Enum> {
@@ -611,10 +604,7 @@ impl Type {
     }
 
     pub fn is_enum(&self) -> bool {
-        match self {
-            Type::Enum(_) => true,
-            _ => false,
-        }
+        matches!(self, Type::Enum(_))
     }
 
     pub fn as_primitive(&self) -> Option<&Primitive> {
@@ -625,10 +615,7 @@ impl Type {
     }
 
     pub fn is_primitive(&self) -> bool {
-        match self {
-            Type::Primitive(_) => true,
-            _ => false,
-        }
+        matches!(self, Type::Primitive(_))
     }
 
     fn fallback_internal(&self, origin: &TypeReference) -> Option<TypeReference> {
@@ -716,9 +703,7 @@ impl Primitive {
         // fallback is HashSet<V> (stupid example, but it demos generic param discard)
         // origin is DashMap<String, u8>
         // It should transform origin to HashSet<u8>
-        let Some(fallback) = &self.fallback else {
-            return None;
-        };
+        let fallback = self.fallback.as_ref()?;
 
         if let Some((type_def_param_index, _)) = self
             .parameters()
@@ -1132,8 +1117,7 @@ impl Variant {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
-#[derive(Default)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash, Default)]
 pub enum Representation {
     /// The default.
     ///
@@ -1191,13 +1175,11 @@ impl Representation {
     }
 }
 
-
-
 fn rename_type_or_module(name: &str, search_string: &str, replacer: &str) -> String {
     if search_string.ends_with("::") {
         // replacing module name
-        if name.starts_with(search_string) {
-            format!("{}{}", replacer, &name[search_string.len()..])
+        if let Some(name) = name.strip_prefix(search_string) {
+            format!("{replacer}{name}")
         } else {
             name.into()
         }

@@ -49,10 +49,7 @@ impl<'a> TokenizableTypeReference<'a> {
 impl<'a> ToTokens for TokenizableTypeReference<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
-        let parameters = self
-            .inner
-            .parameters()
-            .map(TokenizableTypeReference::new);
+        let parameters = self.inner.parameters().map(TokenizableTypeReference::new);
         tokens.extend(quote::quote! {
             reflectapi::TypeReference {
                 name: #name.into(),
@@ -218,10 +215,7 @@ impl<'a> ToTokens for TokenizableEnum<'a> {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
-        let parameters = self
-            .inner
-            .parameters()
-            .map(TokenizableTypeParameter::new);
+        let parameters = self.inner.parameters().map(TokenizableTypeParameter::new);
         let representation = TokenizableRepresentation::new(&self.inner.representation);
         let variants = self.inner.variants().map(TokenizableVariant::new);
         tokens.extend(quote::quote! {
@@ -252,10 +246,7 @@ impl<'a> ToTokens for TokenizableStruct<'a> {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
-        let parameters = self
-            .inner
-            .parameters()
-            .map(TokenizableTypeParameter::new);
+        let parameters = self.inner.parameters().map(TokenizableTypeParameter::new);
         let fields = self.inner.fields().map(TokenizableField::new);
         let transparent = self.inner.transparent;
         tokens.extend(quote::quote! {
@@ -285,10 +276,7 @@ impl<'a> ToTokens for TokenizablePrimitive<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
         let description = self.inner.description.as_str();
-        let parameters = self
-            .inner
-            .parameters()
-            .map(TokenizableTypeParameter::new);
+        let parameters = self.inner.parameters().map(TokenizableTypeParameter::new);
         let fallback = self
             .inner
             .fallback

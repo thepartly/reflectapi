@@ -269,7 +269,7 @@ fn visit_type(cx: &Context, container: &serde_derive_internals::ast::Container<'
     }
 }
 
-fn visit_generic_parameters<'a>(
+fn visit_generic_parameters(
     cx: &Context,
     generics: &syn::Generics,
     parameters: &mut Vec<reflectapi_schema::TypeParameter>,
@@ -372,7 +372,7 @@ fn visit_field(
     Some(field_def)
 }
 
-fn visit_field_type<'a>(cx: &Context, ty: &syn::Type) -> reflectapi_schema::TypeReference {
+fn visit_field_type(cx: &Context, ty: &syn::Type) -> reflectapi_schema::TypeReference {
     let result: reflectapi_schema::TypeReference =
         naive_parse_as_type_reference(ty.to_token_stream().to_string().as_str());
     cx.encountered_field_type(result.clone(), ty.clone());
