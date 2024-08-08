@@ -125,7 +125,7 @@ pub fn generate(mut schema: crate::Schema, shared_modules: Vec<String>) -> anyho
 
     let generated_code = generated_code.join("\n");
     format_with(
-        Command::new("rustfmt").args(["--edition", "2021"]),
+        [Command::new("rustfmt").args(["--edition", "2021"])],
         generated_code,
     )
     .map_err(Into::into)

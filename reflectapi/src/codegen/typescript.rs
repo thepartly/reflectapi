@@ -94,7 +94,10 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     let generated_code = generated_code.join("\n");
 
     format_with(
-        Command::new("prettier").args(["--parser", "typescript"]),
+        [
+            Command::new("prettier").args(["--parser", "typescript"]),
+            Command::new("npx").args(["prettier", "--parser", "typescript"]),
+        ],
         generated_code,
     )
     .map_err(Into::into)

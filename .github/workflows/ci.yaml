@@ -13,6 +13,7 @@ jobs:
     name: Rust format, lint, and test
     runs-on: ubuntu-latest
     steps:
+      - run: npx
       - uses: actions/checkout@v4
       # https://github.com/actions-rs/toolchain
       - uses: dtolnay/rust-toolchain@stable
