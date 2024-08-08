@@ -4,16 +4,14 @@ use std::fmt::Display;
 use std::thread;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Default)]
 pub(crate) enum ReflectType {
+    #[default]
     Input,
     Output,
 }
 
-impl Default for ReflectType {
-    fn default() -> Self {
-        ReflectType::Input
-    }
-}
+
 
 pub(crate) struct ContextEncounters {
     pub fields: Vec<(reflectapi_schema::TypeReference, syn::Type)>,

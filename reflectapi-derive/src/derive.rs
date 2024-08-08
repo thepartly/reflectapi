@@ -131,7 +131,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
     })
 }
 
-fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Container<'a>) -> Type {
+fn visit_type(cx: &Context, container: &serde_derive_internals::ast::Container<'_>) -> Type {
     let (type_def_name, serde_name) =
         visit_name(cx, container.attrs.name(), Some(&container.original.ident));
     let type_def_description = parse_doc_attributes(&container.original.attrs);
@@ -167,7 +167,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                     type_def_name,
                     type_def_description,
                     serde_name,
-                    visit_field_type(cx, &a),
+                    visit_field_type(cx, a),
                 )
                 .into();
             }
@@ -176,7 +176,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                     type_def_name,
                     type_def_description,
                     serde_name,
-                    visit_field_type(cx, &a),
+                    visit_field_type(cx, a),
                 )
                 .into();
             }
@@ -196,7 +196,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                     type_def_name,
                     type_def_description,
                     serde_name,
-                    visit_field_type(cx, &a),
+                    visit_field_type(cx, a),
                 )
                 .into();
             }
@@ -238,8 +238,8 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                         .push(visit_variant(cx, variant, attrs.discriminant));
                 }
             }
-            visit_generic_parameters(cx, &container.generics, &mut result.parameters);
-            return result.into();
+            visit_generic_parameters(cx, container.generics, &mut result.parameters);
+            result.into()
         }
         serde_derive_internals::ast::Data::Struct(style, fields) => {
             if matches!(style, serde_derive_internals::ast::Style::Unit) {
@@ -251,7 +251,7 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                     visit_field_type(cx, &unit_type),
                 );
                 result.transparent = container.attrs.transparent();
-                return result.into();
+                result.into()
             } else {
                 let mut result = Struct::new(type_def_name);
                 result.description = type_def_description;
@@ -261,9 +261,9 @@ fn visit_type<'a>(cx: &Context, container: &serde_derive_internals::ast::Contain
                     };
                     result.fields.push(f);
                 }
-                visit_generic_parameters(cx, &container.generics, &mut result.parameters);
+                visit_generic_parameters(cx, container.generics, &mut result.parameters);
                 result.transparent = container.attrs.transparent();
-                return result.into();
+                result.into()
             }
         }
     }
@@ -305,9 +305,9 @@ fn visit_generic_parameters<'a>(
     }
 }
 
-fn visit_variant<'a>(
+fn visit_variant(
     cx: &Context,
-    variant: &serde_derive_internals::ast::Variant<'a>,
+    variant: &serde_derive_internals::ast::Variant<'_>,
     use_discriminant: bool,
 ) -> reflectapi_schema::Variant {
     let (variant_def_name, serde_name) =
@@ -337,9 +337,9 @@ fn visit_variant<'a>(
     result
 }
 
-fn visit_field<'a>(
+fn visit_field(
     cx: &Context,
-    field: &serde_derive_internals::ast::Field<'a>,
+    field: &serde_derive_internals::ast::Field<'_>,
 ) -> Option<reflectapi_schema::Field> {
     let (field_name, serde_name) =
         visit_name(cx, field.attrs.name(), field.original.ident.as_ref());

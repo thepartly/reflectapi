@@ -1,8 +1,8 @@
 fn reflectapi_uuid(schema: &mut crate::Typespace) -> String {
     let type_name = "uuid::Uuid";
-    if schema.reserve_type(&type_name) {
+    if schema.reserve_type(type_name) {
         let type_def =
-            crate::Primitive::new(type_name.into(), format!("UUID value type"), vec![], None);
+            crate::Primitive::new(type_name.into(), "UUID value type".to_string(), vec![], None);
         schema.insert_type(type_def.into());
     }
     type_name.into()

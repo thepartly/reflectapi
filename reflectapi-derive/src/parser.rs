@@ -116,22 +116,16 @@ mod tests {
     }
 }
 
+#[derive(Default)]
 pub(crate) struct ParsedTypeAttributes {
     pub input_type: Option<syn::Type>,
     pub output_type: Option<syn::Type>,
     pub discriminant: bool,
 }
 
-impl Default for ParsedTypeAttributes {
-    fn default() -> Self {
-        ParsedTypeAttributes {
-            input_type: None,
-            output_type: None,
-            discriminant: false,
-        }
-    }
-}
 
+
+#[derive(Default)]
 pub(crate) struct ParsedFieldAttributes {
     pub input_type: Option<syn::Type>,
     pub output_type: Option<syn::Type>,
@@ -141,18 +135,7 @@ pub(crate) struct ParsedFieldAttributes {
     pub output_skip: bool,
 }
 
-impl Default for ParsedFieldAttributes {
-    fn default() -> Self {
-        ParsedFieldAttributes {
-            input_type: None,
-            output_type: None,
-            input_transform: String::new(),
-            output_transform: String::new(),
-            input_skip: false,
-            output_skip: false,
-        }
-    }
-}
+
 
 pub(crate) fn parse_doc_attributes(attrs: &Vec<syn::Attribute>) -> String {
     let mut result = Vec::new();

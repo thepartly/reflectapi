@@ -9,6 +9,15 @@ where
     validators: Vec<fn(&crate::Schema) -> Vec<crate::ValidationError>>,
 }
 
+impl<S> Default for Builder<S>
+where
+    S: Send + 'static,
+ {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<S> Builder<S>
 where
     S: Send + 'static,
@@ -33,7 +42,7 @@ where
         if self.path.ends_with('/') {
             self.path.pop();
         }
-        if !self.path.starts_with("/") && self.path.len() > 0 {
+        if !self.path.starts_with('/') && !self.path.is_empty() {
             self.path.insert(0, '/');
         }
         self
@@ -135,7 +144,7 @@ where
         for (name, handlers) in self.merged_handlers {
             let router = Router {
                 name: name.clone(),
-                handlers: handlers,
+                handlers,
             };
             routers.push(router);
         }
@@ -158,6 +167,12 @@ pub struct RouteBuilder {
     readonly: bool,
 }
 
+impl Default for RouteBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RouteBuilder {
     pub fn new() -> Self {
         Self {
@@ -178,7 +193,7 @@ impl RouteBuilder {
         if self.path.ends_with('/') {
             self.path.pop();
         }
-        if !self.path.starts_with("/") && self.path.len() > 0 {
+        if !self.path.starts_with('/') && !self.path.is_empty() {
             self.path.insert(0, '/');
         }
         self

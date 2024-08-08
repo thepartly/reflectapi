@@ -18,6 +18,12 @@ pub struct Schema {
     pub output_types: Typespace,
 }
 
+impl Default for Schema {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Schema {
     pub fn new() -> Self {
         Schema {
@@ -116,11 +122,11 @@ impl Schema {
 
                 let mut type_name_parts = type_name.split("::").collect::<Vec<_>>();
                 type_name_parts.insert(type_name_parts.len() - 1, "input");
-                self.rename_input_type(&type_name, &type_name_parts.join("::"));
+                self.rename_input_type(type_name, &type_name_parts.join("::"));
 
                 let mut type_name_parts = type_name.split("::").collect::<Vec<_>>();
                 type_name_parts.insert(type_name_parts.len() - 1, "output");
-                self.rename_output_type(&type_name, &type_name_parts.join("::"));
+                self.rename_output_type(type_name, &type_name_parts.join("::"));
             }
         }
     }
@@ -214,7 +220,7 @@ impl Typespace {
         self.ensure_types_map();
         let index = {
             let b = self.types_map.borrow();
-            b.get(name).map(|i| i.clone()).unwrap_or(usize::MAX)
+            b.get(name).copied().unwrap_or(usize::MAX)
         };
         if index == usize::MAX {
             return None;
@@ -249,8 +255,7 @@ impl Typespace {
         let index = self
             .types_map
             .borrow()
-            .get(ty)
-            .map(|i| *i)
+            .get(ty).copied()
             .unwrap_or(usize::MAX);
         if index == usize::MAX {
             return None;
@@ -268,7 +273,7 @@ impl Typespace {
     }
 
     pub fn sort_types(&mut self) {
-        self.types.sort_by(|a, b| a.name().cmp(&b.name()));
+        self.types.sort_by(|a, b| a.name().cmp(b.name()));
         self.build_types_map();
     }
 
@@ -438,7 +443,7 @@ pub struct TypeReference {
 impl TypeReference {
     pub fn new(name: String, parameters: Vec<TypeReference>) -> Self {
         TypeReference {
-            name: name,
+            name,
             parameters,
         }
     }
@@ -467,7 +472,7 @@ impl TypeReference {
         let Some(type_def) = schema.get_type(self.name()) else {
             return None;
         };
-        type_def.fallback_internal(&self)
+        type_def.fallback_internal(self)
     }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
@@ -768,9 +773,9 @@ impl Primitive {
     }
 }
 
-impl Into<Type> for Primitive {
-    fn into(self) -> Type {
-        Type::Primitive(self)
+impl From<Primitive> for Type {
+    fn from(val: Primitive) -> Self {
+        Type::Primitive(val)
     }
 }
 
@@ -863,7 +868,7 @@ impl Struct {
 
     /// Returns true if a struct is a Rust tuple struct.
     pub fn is_tuple(&self) -> bool {
-        self.fields.len() != 0
+        !self.fields.is_empty()
             && self
                 .fields
                 .iter()
@@ -878,9 +883,9 @@ impl Struct {
     }
 }
 
-impl Into<Type> for Struct {
-    fn into(self) -> Type {
-        Type::Struct(self)
+impl From<Struct> for Type {
+    fn from(val: Struct) -> Self {
+        Type::Struct(val)
     }
 }
 
@@ -1056,9 +1061,9 @@ impl Enum {
     }
 }
 
-impl Into<Type> for Enum {
-    fn into(self) -> Type {
-        Type::Enum(self)
+impl From<Enum> for Type {
+    fn from(val: Enum) -> Self {
+        Type::Enum(val)
     }
 }
 
@@ -1128,12 +1133,14 @@ impl Variant {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Default)]
 pub enum Representation {
     /// The default.
     ///
     /// ```json
     /// {"variant1": {"key1": "value1", "key2": "value2"}}
     /// ```
+    #[default]
     External,
 
     /// `#[serde(tag = "type")]`
@@ -1184,11 +1191,7 @@ impl Representation {
     }
 }
 
-impl Default for Representation {
-    fn default() -> Self {
-        Representation::External
-    }
-}
+
 
 fn rename_type_or_module(name: &str, search_string: &str, replacer: &str) -> String {
     if search_string.ends_with("::") {

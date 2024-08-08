@@ -693,7 +693,7 @@ fn __function_groups_from_function_names(function_names: Vec<String>) -> __Funct
     };
     for function_name in function_names {
         let mut group = &mut root_group;
-        let mut parts = function_name.split(".").collect::<Vec<_>>();
+        let mut parts = function_name.split('.').collect::<Vec<_>>();
         parts.pop().unwrap();
         let mut parent = vec![];
         for part in parts {
@@ -784,35 +784,33 @@ fn __interface_types_from_function_group(
 
     for (subgroup_name, subgroup) in group.subgroups.iter() {
         type_template.fields.push(templates::__Field {
-            name: __function_name_for_field_name(&subgroup_name),
-            serde_name: __function_name_for_field_name(&subgroup_name),
+            name: __function_name_for_field_name(subgroup_name),
+            serde_name: __function_name_for_field_name(subgroup_name),
             description: "".into(),
             type_: format!(
                 "{}Interface<E, C>",
-                __struct_name_from_parent_name_and_name(&subgroup.parent, &subgroup_name)
+                __struct_name_from_parent_name_and_name(&subgroup.parent, subgroup_name)
             ),
             optional: false,
             flatten: false,
             public: true,
         });
         interface_implementation.fields.push(templates::__Field {
-            name: __function_name_for_field_name(&subgroup_name),
-            serde_name: __function_name_for_field_name(&subgroup_name),
+            name: __function_name_for_field_name(subgroup_name),
+            serde_name: __function_name_for_field_name(subgroup_name),
             description: "".into(),
             type_: format!(
                 "{}Interface",
-                __struct_name_from_parent_name_and_name(&subgroup.parent, &subgroup_name)
+                __struct_name_from_parent_name_and_name(&subgroup.parent, subgroup_name)
             ),
             optional: false,
             flatten: false,
             public: true,
         });
     }
-    for field in vec![
-        ("client", "C"),
+    for field in [("client", "C"),
         ("base_url", "std::string::String"),
-        ("marker", "std::marker::PhantomData<E>"),
-    ] {
+        ("marker", "std::marker::PhantomData<E>")] {
         type_template.fields.push(templates::__Field {
             name: field.0.into(),
             serde_name: field.0.into(),
@@ -834,7 +832,7 @@ fn __interface_types_from_function_group(
                 .split('.')
                 .last()
                 .unwrap_or_default()
-                .replace("-", "_"),
+                .replace('-', "_"),
             description: __doc_to_ts_comments(function.description.as_str(), 4),
             path: format!("{}/{}", function.path, function.name),
             input_type,
@@ -901,7 +899,7 @@ fn __render_type(
     is_input_type: bool,
     is_output_type: bool,
 ) -> Result<String, anyhow::Error> {
-    let type_name = __type_to_ts_name(&type_def);
+    let type_name = __type_to_ts_name(type_def);
     let type_name_depth = type_def.name().split("::").count() - 1;
 
     Ok(match type_def {
@@ -942,7 +940,7 @@ fn __render_type(
                         .fields
                         .iter()
                         .map(|field| templates::__Field {
-                            name: __field_name_to_snake_case(field.name().into()),
+                            name: __field_name_to_snake_case(field.name()),
                             serde_name: field.serde_name().into(),
                             description: __doc_to_ts_comments(&field.description, 4),
                             type_: __type_ref_to_ts_ref(
@@ -1122,8 +1120,8 @@ fn __doc_to_ts_comments(doc: &str, offset: u8) -> String {
     }
 
     let offset = " ".repeat(offset as usize);
-    let doc = doc.split("\n").collect::<Vec<_>>();
-    let sp = if doc.iter().all(|i| i.starts_with(" ")) {
+    let doc = doc.split('\n').collect::<Vec<_>>();
+    let sp = if doc.iter().all(|i| i.starts_with(' ')) {
         ""
     } else {
         " "
@@ -1210,7 +1208,7 @@ fn __function_name_for_type_name(name: &str) -> String {
 }
 
 fn __function_name_for_field_name(name: &str) -> String {
-    name.replace("-", "_")
+    name.replace('-', "_")
 }
 
 fn __name_to_pascal_case(name: &str) -> String {

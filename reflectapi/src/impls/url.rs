@@ -1,9 +1,9 @@
 fn reflectapi_url(schema: &mut crate::Typespace) -> String {
     let type_name = "url::Url";
-    if schema.reserve_type(&type_name) {
+    if schema.reserve_type(type_name) {
         let type_def = crate::Primitive::new(
             type_name.into(),
-            format!("URL value type"),
+            "URL value type".to_string(),
             vec![],
             Some("std::string::String".into()),
         );

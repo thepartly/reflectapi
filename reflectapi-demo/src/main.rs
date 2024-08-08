@@ -169,8 +169,7 @@ async fn pets_list(
     let result_items = pets
         .iter()
         .skip(cursor)
-        .take(limit)
-        .map(|i| i.clone())
+        .take(limit).cloned()
         .collect::<Vec<_>>();
     let result_cursor = if result_items.is_empty() {
         None
