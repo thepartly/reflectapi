@@ -395,9 +395,9 @@ struct TestStructIntoProxy {
 struct TestStructInto {
     f: u8,
 }
-impl Into<TestStructInto> for TestStructIntoProxy {
-    fn into(self) -> TestStructInto {
-        TestStructInto { f: self.f }
+impl From<TestStructIntoProxy> for TestStructInto {
+    fn from(val: TestStructIntoProxy) -> Self {
+        TestStructInto { f: val.f }
     }
 }
 #[test]

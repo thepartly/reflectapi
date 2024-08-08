@@ -314,6 +314,7 @@ struct TestStructWithTransformFallbackNested {
         input_transform = "reflectapi::TypeReference::fallback_recursively",
         output_transform = "reflectapi::TypeReference::fallback_recursively"
     )]
+    #[allow(clippy::redundant_allocation)]
     _f: std::sync::Arc<std::sync::Arc<u8>>,
 }
 #[test]

@@ -348,10 +348,10 @@ impl_reflectapi_tuple! { A B C D E F G H I J K L }
 
 fn reflectapi_type_array(schema: &mut crate::Typespace) -> String {
     let type_name = "std::array::Array";
-    if schema.reserve_type(&type_name) {
+    if schema.reserve_type(type_name) {
         let type_def = crate::Primitive::new(
             type_name.into(),
-            format!("Fixed-size Array"),
+            "Fixed-size Array".to_string(),
             vec!["T".into(), "N".to_string().into()],
             Some(crate::TypeReference::new(
                 reflectapi_type_vector(schema),
@@ -384,7 +384,7 @@ fn reflectapi_type_pointer(
     type_name: &str,
     with_lifetime: bool,
 ) -> String {
-    if schema.reserve_type(&type_name) {
+    if schema.reserve_type(type_name) {
         let mut type_def = crate::Primitive::new(
             type_name.into(),
             format!("{type_name} pointer type"),
@@ -513,10 +513,10 @@ impl<'a, T: Output + Clone> Output for std::borrow::Cow<'a, T> {
 
 fn reflectapi_type_phantom_data(schema: &mut crate::Typespace) -> String {
     let type_name = "std::marker::PhantomData";
-    if schema.reserve_type(&type_name) {
+    if schema.reserve_type(type_name) {
         let type_def = crate::Primitive::new(
             type_name.into(),
-            format!("Zero-sized phantom data"),
+            "Zero-sized phantom data".to_string(),
             vec!["T".into()],
             None,
         );

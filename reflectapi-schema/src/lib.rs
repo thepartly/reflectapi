@@ -18,6 +18,12 @@ pub struct Schema {
     pub output_types: Typespace,
 }
 
+impl Default for Schema {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Schema {
     pub fn new() -> Self {
         Schema {
@@ -116,11 +122,11 @@ impl Schema {
 
                 let mut type_name_parts = type_name.split("::").collect::<Vec<_>>();
                 type_name_parts.insert(type_name_parts.len() - 1, "input");
-                self.rename_input_type(&type_name, &type_name_parts.join("::"));
+                self.rename_input_type(type_name, &type_name_parts.join("::"));
 
                 let mut type_name_parts = type_name.split("::").collect::<Vec<_>>();
                 type_name_parts.insert(type_name_parts.len() - 1, "output");
-                self.rename_output_type(&type_name, &type_name_parts.join("::"));
+                self.rename_output_type(type_name, &type_name_parts.join("::"));
             }
         }
     }
@@ -214,7 +220,7 @@ impl Typespace {
         self.ensure_types_map();
         let index = {
             let b = self.types_map.borrow();
-            b.get(name).map(|i| i.clone()).unwrap_or(usize::MAX)
+            b.get(name).copied().unwrap_or(usize::MAX)
         };
         if index == usize::MAX {
             return None;
@@ -250,7 +256,7 @@ impl Typespace {
             .types_map
             .borrow()
             .get(ty)
-            .map(|i| *i)
+            .copied()
             .unwrap_or(usize::MAX);
         if index == usize::MAX {
             return None;
@@ -268,7 +274,7 @@ impl Typespace {
     }
 
     pub fn sort_types(&mut self) {
-        self.types.sort_by(|a, b| a.name().cmp(&b.name()));
+        self.types.sort_by(|a, b| a.name().cmp(b.name()));
         self.build_types_map();
     }
 
@@ -437,10 +443,7 @@ pub struct TypeReference {
 
 impl TypeReference {
     pub fn new(name: String, parameters: Vec<TypeReference>) -> Self {
-        TypeReference {
-            name: name,
-            parameters,
-        }
+        TypeReference { name, parameters }
     }
 
     pub fn name(&self) -> &str {
@@ -464,10 +467,8 @@ impl TypeReference {
     }
 
     pub fn fallback_once(&self, schema: &Typespace) -> Option<TypeReference> {
-        let Some(type_def) = schema.get_type(self.name()) else {
-            return None;
-        };
-        type_def.fallback_internal(&self)
+        let type_def = schema.get_type(self.name())?;
+        type_def.fallback_internal(self)
     }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
@@ -592,10 +593,7 @@ impl Type {
     }
 
     pub fn is_struct(&self) -> bool {
-        match self {
-            Type::Struct(_) => true,
-            _ => false,
-        }
+        matches!(self, Type::Struct(_))
     }
 
     pub fn as_enum(&self) -> Option<&Enum> {
@@ -606,10 +604,7 @@ impl Type {
     }
 
     pub fn is_enum(&self) -> bool {
-        match self {
-            Type::Enum(_) => true,
-            _ => false,
-        }
+        matches!(self, Type::Enum(_))
     }
 
     pub fn as_primitive(&self) -> Option<&Primitive> {
@@ -620,10 +615,7 @@ impl Type {
     }
 
     pub fn is_primitive(&self) -> bool {
-        match self {
-            Type::Primitive(_) => true,
-            _ => false,
-        }
+        matches!(self, Type::Primitive(_))
     }
 
     fn fallback_internal(&self, origin: &TypeReference) -> Option<TypeReference> {
@@ -711,9 +703,7 @@ impl Primitive {
         // fallback is HashSet<V> (stupid example, but it demos generic param discard)
         // origin is DashMap<String, u8>
         // It should transform origin to HashSet<u8>
-        let Some(fallback) = &self.fallback else {
-            return None;
-        };
+        let fallback = self.fallback.as_ref()?;
 
         if let Some((type_def_param_index, _)) = self
             .parameters()
@@ -768,9 +758,9 @@ impl Primitive {
     }
 }
 
-impl Into<Type> for Primitive {
-    fn into(self) -> Type {
-        Type::Primitive(self)
+impl From<Primitive> for Type {
+    fn from(val: Primitive) -> Self {
+        Type::Primitive(val)
     }
 }
 
@@ -863,7 +853,7 @@ impl Struct {
 
     /// Returns true if a struct is a Rust tuple struct.
     pub fn is_tuple(&self) -> bool {
-        self.fields.len() != 0
+        !self.fields.is_empty()
             && self
                 .fields
                 .iter()
@@ -878,9 +868,9 @@ impl Struct {
     }
 }
 
-impl Into<Type> for Struct {
-    fn into(self) -> Type {
-        Type::Struct(self)
+impl From<Struct> for Type {
+    fn from(val: Struct) -> Self {
+        Type::Struct(val)
     }
 }
 
@@ -1056,9 +1046,9 @@ impl Enum {
     }
 }
 
-impl Into<Type> for Enum {
-    fn into(self) -> Type {
-        Type::Enum(self)
+impl From<Enum> for Type {
+    fn from(val: Enum) -> Self {
+        Type::Enum(val)
     }
 }
 
@@ -1127,13 +1117,14 @@ impl Variant {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash, Default)]
 pub enum Representation {
     /// The default.
     ///
     /// ```json
     /// {"variant1": {"key1": "value1", "key2": "value2"}}
     /// ```
+    #[default]
     External,
 
     /// `#[serde(tag = "type")]`
@@ -1184,17 +1175,11 @@ impl Representation {
     }
 }
 
-impl Default for Representation {
-    fn default() -> Self {
-        Representation::External
-    }
-}
-
 fn rename_type_or_module(name: &str, search_string: &str, replacer: &str) -> String {
     if search_string.ends_with("::") {
         // replacing module name
-        if name.starts_with(search_string) {
-            format!("{}{}", replacer, &name[search_string.len()..])
+        if let Some(name) = name.strip_prefix(search_string) {
+            format!("{replacer}{name}")
         } else {
             name.into()
         }

@@ -94,7 +94,10 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     let generated_code = generated_code.join("\n");
 
     format_with(
-        Command::new("prettier").args(["--parser", "typescript"]),
+        [
+            Command::new("prettier").args(["--parser", "typescript"]),
+            Command::new("npx").args(["prettier", "--parser", "typescript"]),
+        ],
         generated_code,
     )
     .map_err(Into::into)
@@ -445,7 +448,7 @@ class ClientInstance {
             if self.flattened_types.is_empty() {
                 "".into()
             } else {
-                return format!(" & {}", self.flattened_types.join(" &\n    "));
+                format!(" & {}", self.flattened_types.join(" &\n    "))
             }
         }
     }
@@ -635,7 +638,7 @@ class ClientInstance {
         }
         pub fn render(&self) -> String {
             let mut result = vec![];
-            result.push(format!("{{"));
+            result.push("{".to_string());
             for (name, function) in self.functions.iter() {
                 result.push(format!(
                     "{}{}: {}(client_instance),",
@@ -665,7 +668,7 @@ fn function_groups_from_function_names(function_names: Vec<String>) -> FunctionG
     };
     for function_name in function_names {
         let mut group = &mut root_group;
-        let mut parts = function_name.split(".").collect::<Vec<_>>();
+        let mut parts = function_name.split('.').collect::<Vec<_>>();
         parts.pop().unwrap();
         for part in parts {
             group = group.subgroups.entry(part.into()).or_insert(FunctionGroup {
@@ -683,14 +686,14 @@ fn client_impl_from_function_group(
     group: &FunctionGroup,
 ) -> templates::ClientImplementationGroup {
     templates::ClientImplementationGroup {
-        offset: offset,
+        offset,
         functions: group
             .functions
             .iter()
             .map(|f| {
                 (
-                    f.split('.').last().unwrap().replace("-", "_"),
-                    f.replace('.', "__").replace("-", "_"),
+                    f.split('.').last().unwrap().replace('-', "_"),
+                    f.replace('.', "__").replace('-', "_"),
                 )
             })
             .collect(),
@@ -738,7 +741,7 @@ fn modules_from_function_group(
     functions_by_name: &IndexMap<String, &Function>,
 ) -> templates::Module {
     let mut module = templates::Module {
-        name: name,
+        name,
         types: vec![],
         submodules: IndexMap::new(),
     };
@@ -755,7 +758,7 @@ fn modules_from_function_group(
         let (input_type, input_headers, output_type, error_type) =
             function_signature(function, schema, implemented_types);
         type_template.fields.push(templates::Field {
-            name: function_name.split('.').last().unwrap().replace("-", "_"),
+            name: function_name.split('.').last().unwrap().replace('-', "_"),
             description: doc_to_ts_comments(function.description.as_str(), 4),
             type_: format!(
                 "(input: {}, headers: {})\n        => AsyncResult<{}, {}>",
@@ -831,7 +834,7 @@ fn render_function(
     let (input_type, input_headers, output_type, error_type) =
         function_signature(function, schema, implemented_types);
     let function_template = templates::FunctionImplementationTemplate {
-        name: function.name.replace("-", "_").replace('.', "__"),
+        name: function.name.replace('-', "_").replace('.', "__"),
         path: format!("{}/{}", function.path, function.name),
         input_type,
         input_headers,
@@ -848,7 +851,7 @@ fn render_type(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> Result<String, anyhow::Error> {
-    let type_name = type_to_ts_name(&type_def);
+    let type_name = type_to_ts_name(type_def);
 
     Ok(match type_def {
         crate::Type::Struct(struct_def) => {
@@ -976,7 +979,7 @@ fn type_ref_to_ts_ref(
 }
 
 fn type_ref_params_to_ts_ref(
-    type_params: &Vec<crate::TypeReference>,
+    type_params: &[crate::TypeReference],
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> String {
@@ -1062,8 +1065,8 @@ fn doc_to_ts_comments(doc: &str, offset: u8) -> String {
     }
 
     let offset = " ".repeat(offset as usize);
-    let doc = doc.split("\n").collect::<Vec<_>>();
-    let sp = if doc.iter().all(|i| i.starts_with(" ")) {
+    let doc = doc.split('\n').collect::<Vec<_>>();
+    let sp = if doc.iter().all(|i| i.starts_with(' ')) {
         ""
     } else {
         " "

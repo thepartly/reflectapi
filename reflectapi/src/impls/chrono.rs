@@ -13,34 +13,22 @@ fn reflectapi_date_time(schema: &mut crate::Typespace) -> String {
 }
 impl crate::Input for chrono::DateTime<chrono::Utc> {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        crate::TypeReference::new(
-            reflectapi_date_time(schema),
-            vec!["chrono::Utc".into()],
-        )
+        crate::TypeReference::new(reflectapi_date_time(schema), vec!["chrono::Utc".into()])
     }
 }
 impl crate::Output for chrono::DateTime<chrono::Utc> {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        crate::TypeReference::new(
-            reflectapi_date_time(schema),
-            vec!["chrono::Utc".into()],
-        )
+        crate::TypeReference::new(reflectapi_date_time(schema), vec!["chrono::Utc".into()])
     }
 }
 impl crate::Input for chrono::DateTime<chrono::Local> {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        crate::TypeReference::new(
-            reflectapi_date_time(schema),
-            vec!["chrono::Local".into()],
-        )
+        crate::TypeReference::new(reflectapi_date_time(schema), vec!["chrono::Local".into()])
     }
 }
 impl crate::Output for chrono::DateTime<chrono::Local> {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        crate::TypeReference::new(
-            reflectapi_date_time(schema),
-            vec!["chrono::Local".into()],
-        )
+        crate::TypeReference::new(reflectapi_date_time(schema), vec!["chrono::Local".into()])
     }
 }
 impl crate::Input for chrono::DateTime<chrono::FixedOffset> {

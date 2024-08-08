@@ -3,16 +3,11 @@ use std::cell::RefCell;
 use std::fmt::Display;
 use std::thread;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Default)]
 pub(crate) enum ReflectType {
+    #[default]
     Input,
     Output,
-}
-
-impl Default for ReflectType {
-    fn default() -> Self {
-        ReflectType::Input
-    }
 }
 
 pub(crate) struct ContextEncounters {

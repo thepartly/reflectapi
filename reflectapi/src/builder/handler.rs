@@ -57,7 +57,7 @@ where
 
         let mut input_headers_names = schema
             .input_types
-            .get_type(&input_headers.name.as_str())
+            .get_type(input_headers.name.as_str())
             .map(|type_def| match type_def {
                 crate::Type::Struct(Struct { fields, .. }) => {
                     fields.iter().map(|field| field.name.clone()).collect()
@@ -69,7 +69,7 @@ where
         let function_def = Function {
             name: name.clone(),
             path: path.clone(),
-            description: description,
+            description,
             input_type: if input_type.name == "reflectapi::Empty" {
                 None
             } else {
@@ -125,7 +125,7 @@ where
         R: Into<crate::Result<O, E>>,
     {
         let mut input_headers = input.headers;
-        let input_parsed = if input.body.len() != 0 {
+        let input_parsed = if !input.body.is_empty() {
             serde_json::from_slice::<I>(input.body.as_ref())
         } else {
             serde_json::from_value::<I>(serde_json::Value::Object(serde_json::Map::new()))
