@@ -104,7 +104,7 @@ pub mod types {
 
                 #[derive(Debug, serde::Serialize, serde::Deserialize)]
                 pub struct TestStructWithFixedSizeArray {
-                    pub _f: std::array::Array<u8, 3>,
+                    pub _f: [u8; 3],
                 }
             }
         }

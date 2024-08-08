@@ -1147,6 +1147,8 @@ fn __build_implemented_types() -> HashMap<String, String> {
     // TODO this one should probably be defined as primitive type
     implemented_types.insert("reflectapi::Option".into(), "reflectapi::Option<T>".into());
 
+    implemented_types.insert("std::array::Array".into(), "[T; N]".into());
+
     // TODO the following could be declared via type aliases in the generated code or in the reflect api
     implemented_types.insert("std::tuple::Tuple1".into(), "(T1)".into());
     implemented_types.insert("std::tuple::Tuple2".into(), "(T1, T2)".into());
