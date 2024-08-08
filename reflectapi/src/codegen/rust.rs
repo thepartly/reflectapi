@@ -1,9 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, process::Command};
 
 use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
 use reflectapi_schema::Function;
+
+use super::format_with;
 
 pub fn generate(mut schema: crate::Schema, shared_modules: Vec<String>) -> anyhow::Result<String> {
     let mut implemented_types = __build_implemented_types();
@@ -122,7 +124,11 @@ pub fn generate(mut schema: crate::Schema, shared_modules: Vec<String>) -> anyho
     );
 
     let generated_code = generated_code.join("\n");
-    Ok(generated_code)
+    format_with(
+        Command::new("rustfmt").args(["--edition", "2021"]),
+        generated_code,
+    )
+    .map_err(Into::into)
 }
 
 mod templates {
@@ -350,7 +356,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
     impl __Struct {
         fn render_brackets(&self) -> (&'static str, &'static str) {
             if self.is_tuple {
-                ("(", ")")
+                ("(", ");")
             } else {
                 ("{", "}")
             }

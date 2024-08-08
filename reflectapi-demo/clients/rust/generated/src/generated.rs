@@ -11,91 +11,134 @@ pub use interface::Interface;
 
 pub mod interface {
 
-#[derive(Debug)]
-pub struct Interface<E, C: super::Client<E> + Clone> {
-    pub health: HealthInterface<E, C>,
-    pub pets: PetsInterface<E, C>,
-    client: C,
-    base_url: std::string::String,
-    marker: std::marker::PhantomData<E>,
-}
+    #[derive(Debug)]
+    pub struct Interface<E, C: super::Client<E> + Clone> {
+        pub health: HealthInterface<E, C>,
+        pub pets: PetsInterface<E, C>,
+        client: C,
+        base_url: std::string::String,
+        marker: std::marker::PhantomData<E>,
+    }
 
-impl<E, C: super::Client<E> + Clone> Interface<E, C> {
-    pub fn new(client: C, base_url: std::string::String) -> Self {
-        Self {
-            health: HealthInterface::new(client.clone(), base_url.clone()),
-            pets: PetsInterface::new(client.clone(), base_url.clone()),
-            client,
-            base_url,
-            marker: std::marker::PhantomData,
+    impl<E, C: super::Client<E> + Clone> Interface<E, C> {
+        pub fn new(client: C, base_url: std::string::String) -> Self {
+            Self {
+                health: HealthInterface::new(client.clone(), base_url.clone()),
+                pets: PetsInterface::new(client.clone(), base_url.clone()),
+                client,
+                base_url,
+                marker: std::marker::PhantomData,
+            }
         }
     }
-}
 
-#[derive(Debug)]
-pub struct HealthInterface<E, C: super::Client<E> + Clone> {
-    client: C,
-    base_url: std::string::String,
-    marker: std::marker::PhantomData<E>,
-}
+    #[derive(Debug)]
+    pub struct HealthInterface<E, C: super::Client<E> + Clone> {
+        client: C,
+        base_url: std::string::String,
+        marker: std::marker::PhantomData<E>,
+    }
 
-impl<E, C: super::Client<E> + Clone> HealthInterface<E, C> {
-    pub fn new(client: C, base_url: std::string::String) -> Self {
-        Self {
-            client,
-            base_url,
-            marker: std::marker::PhantomData,
+    impl<E, C: super::Client<E> + Clone> HealthInterface<E, C> {
+        pub fn new(client: C, base_url: std::string::String) -> Self {
+            Self {
+                client,
+                base_url,
+                marker: std::marker::PhantomData,
+            }
+        }
+        /// Check the health of the service
+        pub async fn check(
+            &self,
+            input: reflectapi::Empty,
+            headers: reflectapi::Empty,
+        ) -> Result<reflectapi::Empty, super::Error<reflectapi::Empty, E>> {
+            super::__request_impl(
+                &self.client,
+                &self.base_url,
+                "/health.check",
+                input,
+                headers,
+            )
+            .await
         }
     }
-    /// Check the health of the service
-    pub async fn check(&self, input: reflectapi::Empty, headers: reflectapi::Empty)
-    -> Result<reflectapi::Empty, super::Error<reflectapi::Empty, E>> {
-        super::__request_impl(&self.client, &self.base_url, "/health.check", input, headers).await
+
+    #[derive(Debug)]
+    pub struct PetsInterface<E, C: super::Client<E> + Clone> {
+        client: C,
+        base_url: std::string::String,
+        marker: std::marker::PhantomData<E>,
     }
-}
 
-#[derive(Debug)]
-pub struct PetsInterface<E, C: super::Client<E> + Clone> {
-    client: C,
-    base_url: std::string::String,
-    marker: std::marker::PhantomData<E>,
-}
-
-impl<E, C: super::Client<E> + Clone> PetsInterface<E, C> {
-    pub fn new(client: C, base_url: std::string::String) -> Self {
-        Self {
-            client,
-            base_url,
-            marker: std::marker::PhantomData,
+    impl<E, C: super::Client<E> + Clone> PetsInterface<E, C> {
+        pub fn new(client: C, base_url: std::string::String) -> Self {
+            Self {
+                client,
+                base_url,
+                marker: std::marker::PhantomData,
+            }
+        }
+        /// List available pets
+        pub async fn list(
+            &self,
+            input: super::types::myapi::proto::PetsListRequest,
+            headers: super::types::myapi::proto::Headers,
+        ) -> Result<
+            super::types::myapi::proto::Paginated<super::types::myapi::model::Pet>,
+            super::Error<super::types::myapi::proto::PetsListError, E>,
+        > {
+            super::__request_impl(&self.client, &self.base_url, "/pets.list", input, headers).await
+        }
+        /// Create a new pet
+        pub async fn create(
+            &self,
+            input: super::types::myapi::proto::PetsCreateRequest,
+            headers: super::types::myapi::proto::Headers,
+        ) -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsCreateError, E>>
+        {
+            super::__request_impl(&self.client, &self.base_url, "/pets.create", input, headers)
+                .await
+        }
+        /// Update an existing pet
+        pub async fn update(
+            &self,
+            input: super::types::myapi::proto::PetsUpdateRequest,
+            headers: super::types::myapi::proto::Headers,
+        ) -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsUpdateError, E>>
+        {
+            super::__request_impl(&self.client, &self.base_url, "/pets.update", input, headers)
+                .await
+        }
+        /// Remove an existing pet
+        pub async fn remove(
+            &self,
+            input: super::types::myapi::proto::PetsRemoveRequest,
+            headers: super::types::myapi::proto::Headers,
+        ) -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsRemoveError, E>>
+        {
+            super::__request_impl(&self.client, &self.base_url, "/pets.remove", input, headers)
+                .await
+        }
+        /// Fetch first pet, if any exists
+        pub async fn get_first(
+            &self,
+            input: reflectapi::Empty,
+            headers: super::types::myapi::proto::Headers,
+        ) -> Result<
+            std::option::Option<super::types::myapi::model::Pet>,
+            super::Error<super::types::myapi::proto::UnauthorizedError, E>,
+        > {
+            super::__request_impl(
+                &self.client,
+                &self.base_url,
+                "/pets.get-first",
+                input,
+                headers,
+            )
+            .await
         }
     }
-    /// List available pets
-    pub async fn list(&self, input: super::types::myapi::proto::PetsListRequest, headers: super::types::myapi::proto::Headers)
-    -> Result<super::types::myapi::proto::Paginated<super::types::myapi::model::Pet>, super::Error<super::types::myapi::proto::PetsListError, E>> {
-        super::__request_impl(&self.client, &self.base_url, "/pets.list", input, headers).await
-    }
-    /// Create a new pet
-    pub async fn create(&self, input: super::types::myapi::proto::PetsCreateRequest, headers: super::types::myapi::proto::Headers)
-    -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsCreateError, E>> {
-        super::__request_impl(&self.client, &self.base_url, "/pets.create", input, headers).await
-    }
-    /// Update an existing pet
-    pub async fn update(&self, input: super::types::myapi::proto::PetsUpdateRequest, headers: super::types::myapi::proto::Headers)
-    -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsUpdateError, E>> {
-        super::__request_impl(&self.client, &self.base_url, "/pets.update", input, headers).await
-    }
-    /// Remove an existing pet
-    pub async fn remove(&self, input: super::types::myapi::proto::PetsRemoveRequest, headers: super::types::myapi::proto::Headers)
-    -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsRemoveError, E>> {
-        super::__request_impl(&self.client, &self.base_url, "/pets.remove", input, headers).await
-    }
-    /// Fetch first pet, if any exists
-    pub async fn get_first(&self, input: reflectapi::Empty, headers: super::types::myapi::proto::Headers)
-    -> Result<std::option::Option<super::types::myapi::model::Pet>, super::Error<super::types::myapi::proto::UnauthorizedError, E>> {
-        super::__request_impl(&self.client, &self.base_url, "/pets.get-first", input, headers).await
-    }
-}
-
 }
 
 pub trait Client<E> {
@@ -152,149 +195,129 @@ impl Client<reqwest::Error> for reqwest::Client {
 }
 
 pub mod types {
-pub mod myapi {
-pub mod model {
+    pub mod myapi {
+        pub mod model {
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub enum Behavior {
-    Calm,
-    Aggressive(
-        /// aggressiveness level
-            f64,
-    /// some notes
-            std::string::String,
-    ),
-    Other {
-        /// Custom provided description of a behavior
-            description: std::string::String,
-    /// Additional notes
-            /// Up to a user to put free text here
-            #[serde(default, skip_serializing_if = "std::string::String::is_empty")]
-    notes: std::string::String,
-    },
-}
+            #[derive(Debug, serde::Serialize, serde::Deserialize)]
+            pub enum Behavior {
+                Calm,
+                Aggressive(
+                    /// aggressiveness level
+                    f64,
+                    /// some notes
+                    std::string::String,
+                ),
+                Other {
+                    /// Custom provided description of a behavior
+                    description: std::string::String,
+                    /// Additional notes
+                    /// Up to a user to put free text here
+                    #[serde(default, skip_serializing_if = "std::string::String::is_empty")]
+                    notes: std::string::String,
+                },
+            }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub enum Kind {
-    /// A dog
-    #[serde(rename = "dog")]
-    Dog,
-    /// A cat
-    #[serde(rename = "cat")]
-    Cat,
-}
+            #[derive(Debug, serde::Serialize, serde::Deserialize)]
+            pub enum Kind {
+                /// A dog
+                #[serde(rename = "dog")]
+                Dog,
+                /// A cat
+                #[serde(rename = "cat")]
+                Cat,
+            }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct Pet {
-    /// identity
-    pub name: std::string::String,
-    /// kind of pet
-    pub kind: super::super::myapi::model::Kind,
-    /// age of the pet
-    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
-    pub age: std::option::Option<u8>,
-    /// behaviors of the pet
-    #[serde(default, skip_serializing_if = "std::vec::Vec::is_empty")]
-    pub behaviors: std::vec::Vec<super::super::myapi::model::Behavior>,
-}
+            #[derive(Debug, serde::Serialize, serde::Deserialize)]
+            pub struct Pet {
+                /// identity
+                pub name: std::string::String,
+                /// kind of pet
+                pub kind: super::super::myapi::model::Kind,
+                /// age of the pet
+                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                pub age: std::option::Option<u8>,
+                /// behaviors of the pet
+                #[serde(default, skip_serializing_if = "std::vec::Vec::is_empty")]
+                pub behaviors: std::vec::Vec<super::super::myapi::model::Behavior>,
+            }
+        }
+        pub mod proto {
 
-}
-pub mod proto {
+            #[derive(Debug, serde::Serialize)]
+            pub struct Headers {
+                pub authorization: std::string::String,
+            }
 
-#[derive(Debug, serde::Serialize)]
-pub struct Headers {
-    pub authorization: std::string::String,
-}
+            #[derive(Debug, serde::Deserialize)]
+            pub struct Paginated<T> {
+                /// slice of a collection
+                pub items: std::vec::Vec<T>,
+                /// cursor for getting next page
+                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                pub cursor: std::option::Option<std::string::String>,
+            }
 
-#[derive(Debug, serde::Deserialize)]
-pub struct Paginated<T> {
-    /// slice of a collection
-    pub items: std::vec::Vec<T>,
-    /// cursor for getting next page
-    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
-    pub cursor: std::option::Option<std::string::String>,
-}
+            #[derive(Debug, serde::Deserialize)]
+            pub enum PetsCreateError {
+                Conflict,
+                NotAuthorized,
+                InvalidIdentity { message: std::string::String },
+            }
 
-#[derive(Debug, serde::Deserialize)]
-pub enum PetsCreateError {
-    Conflict,
-    NotAuthorized,
-    InvalidIdentity {
-        message: std::string::String,
-    },
-}
+            pub type PetsCreateRequest = super::super::myapi::model::Pet;
 
-pub type PetsCreateRequest = super::super::myapi::model::Pet;
+            #[derive(Debug, serde::Deserialize)]
+            pub enum PetsListError {
+                InvalidCustor,
+                Unauthorized,
+            }
 
-#[derive(Debug, serde::Deserialize)]
-pub enum PetsListError {
-    InvalidCustor,
-    Unauthorized,
-}
+            #[derive(Debug, serde::Serialize)]
+            pub struct PetsListRequest {
+                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                pub limit: std::option::Option<u8>,
+                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                pub cursor: std::option::Option<std::string::String>,
+            }
 
-#[derive(Debug, serde::Serialize)]
-pub struct PetsListRequest {
-    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
-    pub limit: std::option::Option<u8>,
-    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
-    pub cursor: std::option::Option<std::string::String>,
-}
+            #[derive(Debug, serde::Deserialize)]
+            pub enum PetsRemoveError {
+                NotFound,
+                NotAuthorized,
+            }
 
-#[derive(Debug, serde::Deserialize)]
-pub enum PetsRemoveError {
-    NotFound,
-    NotAuthorized,
-}
+            #[derive(Debug, serde::Serialize)]
+            pub struct PetsRemoveRequest {
+                /// identity
+                pub name: std::string::String,
+            }
 
-#[derive(Debug, serde::Serialize)]
-pub struct PetsRemoveRequest {
-    /// identity
-    pub name: std::string::String,
-}
+            #[derive(Debug, serde::Deserialize)]
+            pub enum PetsUpdateError {
+                NotFound,
+                NotAuthorized,
+            }
 
-#[derive(Debug, serde::Deserialize)]
-pub enum PetsUpdateError {
-    NotFound,
-    NotAuthorized,
-}
+            #[derive(Debug, serde::Serialize)]
+            pub struct PetsUpdateRequest {
+                /// identity
+                pub name: std::string::String,
+                /// kind of pet, non nullable in the model
+                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                pub kind: std::option::Option<super::super::myapi::model::Kind>,
+                /// age of the pet, nullable in the model
+                #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+                pub age: reflectapi::Option<u8>,
+                /// behaviors of the pet, nullable in the model
+                #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+                pub behaviors:
+                    reflectapi::Option<std::vec::Vec<super::super::myapi::model::Behavior>>,
+            }
 
-#[derive(Debug, serde::Serialize)]
-pub struct PetsUpdateRequest {
-    /// identity
-    pub name: std::string::String,
-    /// kind of pet, non nullable in the model
-    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
-    pub kind: std::option::Option<super::super::myapi::model::Kind>,
-    /// age of the pet, nullable in the model
-    #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
-    pub age: reflectapi::Option<u8>,
-    /// behaviors of the pet, nullable in the model
-    #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
-    pub behaviors: reflectapi::Option<std::vec::Vec<super::super::myapi::model::Behavior>>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-pub struct UnauthorizedError;
-
-}
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            #[derive(Debug, serde::Deserialize)]
+            pub struct UnauthorizedError;
+        }
+    }
 }
 
 async fn __request_impl<C, NE, I, H, O, E>(
@@ -349,7 +372,7 @@ where
             info: e.to_string(),
             stage: ProtocolErrorStage::DeserializeResponseBody(body),
         })?;
-        return Ok(output)
+        return Ok(output);
     }
     match serde_json::from_slice::<E>(&body) {
         Ok(error) => Err(Error::Application(error)),

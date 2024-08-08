@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, process::Command};
 
+use super::format_with;
 use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
@@ -91,7 +92,12 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
     );
 
     let generated_code = generated_code.join("\n");
-    Ok(generated_code)
+
+    format_with(
+        Command::new("prettier").args(["--parser", "typescript"]),
+        generated_code,
+    )
+    .map_err(Into::into)
 }
 
 mod templates {
@@ -471,7 +477,7 @@ class ClientInstance {
     }
 
     impl Variant {
-        fn fields_brakets(&self) -> (String, String) {
+        fn field_brackets(&self) -> (String, String) {
             if self.fields.is_empty() {
                 ("".into(), "".into())
             } else if self.fields.iter().all(|f| f.is_unnamed()) {
@@ -540,7 +546,7 @@ class ClientInstance {
         }
 
         fn render_fields(&self, inner_tag: Option<&str>) -> anyhow::Result<String> {
-            let brackets = self.fields_brakets();
+            let brackets = self.field_brackets();
             let mut rendered_fields = Vec::new();
             if let Some(inner_tag) = inner_tag {
                 rendered_fields.push(format!("{}: \"{}\"", inner_tag, self.name));
@@ -557,6 +563,8 @@ class ClientInstance {
         }
     }
 
+    // TODO The ? is in the wrong place for optional tuple fields.
+    // i.e. syntax is { name?: string } for object-like things but [string?] for array-like things
     #[derive(Template)]
     #[template(
         source = "{{ description }}{% if !self.is_unnamed() %}{{ self.normalized_name() }}{% if optional %}{{ \"?\" }}{% endif %}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
@@ -891,9 +899,17 @@ fn render_type(
             }
         }
         crate::Type::Enum(enum_def) => {
+            let description = doc_to_ts_comments(&enum_def.description, 0);
+
+            // An empty enum requires special handling.
+            // This is isomorphic to the never type as a value of this type does not exist.
+            if enum_def.variants.is_empty() {
+                return Ok(format!("{description}export type {type_name} = never"));
+            }
+
             let enum_template = templates::Enum {
                 name: type_name,
-                description: doc_to_ts_comments(&enum_def.description, 0),
+                description,
                 variants: enum_def
                     .variants
                     .iter()
@@ -1006,15 +1022,14 @@ fn resolve_type_ref(
 ) -> Option<String> {
     let Some(mut implementation) = implemented_types.get(type_ref.name.as_str()).cloned() else {
         let Some(fallback_type_ref) = type_ref.fallback_once(schema.input_types()) else {
-            let Some(fallback_type_ref) = type_ref.fallback_once(schema.output_types()) else {
-                return None;
-            };
+            let fallback_type_ref = type_ref.fallback_once(schema.output_types())?;
             return Some(type_ref_to_ts_ref(
                 &fallback_type_ref,
                 schema,
                 implemented_types,
             ));
         };
+
         return Some(type_ref_to_ts_ref(
             &fallback_type_ref,
             schema,
@@ -1022,15 +1037,18 @@ fn resolve_type_ref(
         ));
     };
 
-    let Some(type_def) = schema.get_type(type_ref.name()) else {
-        return None;
-    };
+    let type_def = schema.get_type(type_ref.name())?;
 
+    assert_eq!(type_def.parameters().len(), type_ref.parameters().len());
     for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.parameters.iter()) {
         if implementation.contains(type_def_param.name.as_str()) {
-            implementation = implementation.replace(
+            // Ensure only the first occurence of the type parameter is replaced.
+            // For example, this can cause trouble for large tuples where T1 erroneously matches T11.
+            // I think ideally we shouldn't be doing this by string substitution...
+            implementation = implementation.replacen(
                 type_def_param.name.as_str(),
                 type_ref_to_ts_ref(type_ref_param, schema, implemented_types).as_str(),
+                1,
             );
         }
     }

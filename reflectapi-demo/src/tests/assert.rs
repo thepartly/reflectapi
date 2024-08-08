@@ -42,7 +42,7 @@ where
         + 'static,
 {
     let eps = reflectapi::Builder::new()
-        .route(handler::<T, T>, |b| b)
+        .route(handler::<T, T>, |b| b.name("inout_test".into()))
         .build()
         .unwrap();
     eps.0
