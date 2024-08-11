@@ -131,6 +131,7 @@ where
         } else {
             serde_json::from_value::<I>(serde_json::Value::Object(serde_json::Map::new()))
         };
+
         let input = match input_parsed {
             Ok(r) => r,
             Err(err) => {
