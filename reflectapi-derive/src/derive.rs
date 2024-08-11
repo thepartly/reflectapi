@@ -14,8 +14,16 @@ use crate::{
 pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -> TokenStream {
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
     let type_ident = input.ident.clone();
-    let type_generics = input.generics.clone();
-    let type_generics_where = input.generics.where_clause.clone();
+    let mut type_generics = input.generics.clone();
+
+    // Bound each generic by `reflectapi::Input` or `reflectapi::Output`.
+    for param in type_generics.type_params_mut() {
+        param.bounds.push(match reflectapi_type {
+            ReflectType::Input => parse_quote!(reflectapi::Input),
+            ReflectType::Output => parse_quote!(reflectapi::Output),
+        });
+    }
+    let type_generics_where = &input.generics.where_clause;
 
     let serde_context = serde_derive_internals::Ctxt::new();
     let serde_type_def = serde_derive_internals::ast::Container::from_ast(
