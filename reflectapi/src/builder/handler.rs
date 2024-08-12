@@ -13,6 +13,47 @@ pub struct HandlerOutput {
     pub headers: http::HeaderMap,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ContentType {
+    Json,
+    #[cfg(feature = "msgpack")]
+    MessagePack,
+}
+
+impl TryFrom<&http::HeaderMap> for ContentType {
+    type Error = ();
+
+    fn try_from(value: &http::HeaderMap) -> Result<Self, Self::Error> {
+        match value.get("content-type") {
+            Some(v) => ContentType::try_from(v),
+            None => Ok(ContentType::Json),
+        }
+    }
+}
+
+impl TryFrom<&http::HeaderValue> for ContentType {
+    type Error = ();
+
+    fn try_from(v: &http::HeaderValue) -> Result<Self, Self::Error> {
+        match v.as_bytes() {
+            b"application/json" => Ok(ContentType::Json),
+            #[cfg(feature = "msgpack")]
+            b"application/msgpack" => Ok(ContentType::MessagePack),
+            _ => Err(()),
+        }
+    }
+}
+
+impl From<ContentType> for http::HeaderValue {
+    fn from(t: ContentType) -> http::HeaderValue {
+        http::HeaderValue::from_static(match t {
+            ContentType::Json => "application/json",
+            #[cfg(feature = "msgpack")]
+            ContentType::MessagePack => "application/msgpack",
+        })
+    }
+}
+
 pub type HandlerFuture =
     std::pin::Pin<Box<dyn std::future::Future<Output = HandlerOutput> + Send + 'static>>;
 
@@ -127,31 +168,12 @@ where
     {
         let mut input_headers = input.headers;
 
-        #[derive(Debug)]
-        enum ContentType {
-            Json,
-            #[cfg(feature = "msgpack")]
-            MessagePack,
-        }
-
-        impl ContentType {
-            fn header_value(&self) -> http::HeaderValue {
-                http::HeaderValue::from_static(match self {
-                    ContentType::Json => "application/json",
-                    #[cfg(feature = "msgpack")]
-                    ContentType::MessagePack => "application/msgpack",
-                })
-            }
-        }
-
-        let content_type = match input_headers.get("content-type").map(|s| s.as_bytes()) {
-            #[cfg(feature = "msgpack")]
-            Some(b"application/msgpack") => ContentType::MessagePack,
-            None | Some(b"application/json") => ContentType::Json,
-            _ => {
+        let content_type = match ContentType::try_from(&input_headers) {
+            Ok(t) => t,
+            Err(_) => {
                 return HandlerOutput {
                     code: http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
-                    body: bytes::Bytes::from("Unsupported content type".as_bytes()),
+                    body: "Unsupported content type".into(),
                     headers: Default::default(),
                 };
             }
@@ -163,17 +185,14 @@ where
             } else {
                 serde_json::from_value::<I>(serde_json::Value::Object(serde_json::Map::new()))
             }
-            .map_err(anyhow::Error::from),
+            .map_err(|err| err.to_string()),
             #[cfg(feature = "msgpack")]
-            ContentType::MessagePack => {
-                if !input.body.is_empty() {
-                    rmp_serde::from_read::<_, I>(input.body.as_ref())
-                } else {
-                    todo!()
-                    // rmp_serde::from_read::<I>(std::io::empty())
-                }
-                .map_err(anyhow::Error::from)
+            ContentType::MessagePack => if !input.body.is_empty() {
+                rmp_serde::from_read::<_, I>(input.body.as_ref())
+            } else {
+                rmp_serde::from_slice::<I>(&[0x80])
             }
+            .map_err(|err| err.to_string()),
         };
 
         let input = match input_parsed {
@@ -183,8 +202,8 @@ where
                     code: http::StatusCode::BAD_REQUEST,
                     body: bytes::Bytes::from(
                         format!(
-                            "Failed to parse request body: {}, received: {:?}",
-                            err, input.body
+                            "Failed to parse request body: {err}, received: {:?}",
+                            input.body
                         )
                         .into_bytes(),
                     ),
@@ -195,7 +214,7 @@ where
 
         let mut response_headers = http::HeaderMap::new();
         // Respond in the same format as the request
-        response_headers.insert("content-type", content_type.header_value());
+        response_headers.insert("content-type", content_type.into());
 
         let mut headers_as_json_map = serde_json::Map::new();
         let mut current_header_name = None;
@@ -237,9 +256,11 @@ where
         let output: crate::Result<O, E> = output.into();
 
         let output_serialized = match content_type {
-            ContentType::Json => serde_json::to_vec(&output).map_err(anyhow::Error::from),
+            ContentType::Json => serde_json::to_vec_pretty(&output).map_err(|err| err.to_string()),
             #[cfg(feature = "msgpack")]
-            ContentType::MessagePack => rmp_serde::to_vec(&output).map_err(anyhow::Error::from),
+            ContentType::MessagePack => {
+                rmp_serde::to_vec_named(&output).map_err(|err| err.to_string())
+            }
         };
 
         let output_serialized = match output_serialized {
@@ -250,7 +271,7 @@ where
                 return HandlerOutput {
                     code: http::StatusCode::INTERNAL_SERVER_ERROR,
                     body: bytes::Bytes::from(
-                        format!("Failed to serialize response body: {}", err).into_bytes(),
+                        format!("Failed to serialize response body: {err}").into_bytes(),
                     ),
                     headers: response_headers,
                 };

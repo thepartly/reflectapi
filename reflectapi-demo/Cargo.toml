@@ -13,6 +13,7 @@ reflectapi = { workspace = true, features = [
     "builder",
     "axum",
     "codegen",
+    "msgpack",
 ] }
 
 tokio = { version = "1.5.0", features = ["full"] }
@@ -33,6 +34,7 @@ tower = "0.4.0"
 http-rest-file = "0.5.1"
 datatest-stable = "0.2.9"
 anyhow = "1.0.81"
+rmp-serde = "1.3.0"
 
 [[test]]
 name = "run"

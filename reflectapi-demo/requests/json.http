@@ -1,0 +1,16 @@
+POST http://localhost:3000/pets.create
+Content-Type:  application/json
+Authorization: password
+traceparent:   blah
+name: 1
+
+{"name":"Bobby","kind":"dog","age":1,"behaviors":[]}
+
+###
+
+GET http://localhost:3000/pets.list
+Content-Type: application/json
+Authorization: password
+traceparent: blah
+
+{}

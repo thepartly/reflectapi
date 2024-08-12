@@ -1502,6 +1502,7 @@ dependencies = [
  "http-rest-file",
  "insta",
  "reflectapi",
+ "rmp-serde",
  "serde",
  "serde_json",
  "tokio",
