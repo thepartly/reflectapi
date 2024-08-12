@@ -1,17 +1,16 @@
-use core::fmt;
 use std::sync::Arc;
 
 use crate::{Function, Schema, Struct};
 
 pub struct HandlerInput {
     pub body: bytes::Bytes,
-    pub headers: std::collections::HashMap<String, String>,
+    pub headers: http::HeaderMap,
 }
 
 pub struct HandlerOutput {
     pub code: http::StatusCode,
     pub body: bytes::Bytes,
-    pub headers: std::collections::HashMap<String, String>,
+    pub headers: http::HeaderMap,
 }
 
 pub type HandlerFuture =
@@ -135,25 +134,25 @@ where
             MessagePack,
         }
 
-        impl fmt::Display for ContentType {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                match self {
-                    ContentType::Json => write!(f, "application/json"),
+        impl ContentType {
+            fn header_value(&self) -> http::HeaderValue {
+                http::HeaderValue::from_static(match self {
+                    ContentType::Json => "application/json",
                     #[cfg(feature = "msgpack")]
-                    ContentType::MessagePack => write!(f, "application/msgpack"),
-                }
+                    ContentType::MessagePack => "application/msgpack",
+                })
             }
         }
 
-        let content_type = match input_headers.get("Content-Type").map(|s| s.as_str()) {
+        let content_type = match input_headers.get("content-type").map(|s| s.as_bytes()) {
             #[cfg(feature = "msgpack")]
-            Some("application/msgpack") => ContentType::MessagePack,
-            None | Some("application/json") => ContentType::Json,
+            Some(b"application/msgpack") => ContentType::MessagePack,
+            None | Some(b"application/json") => ContentType::Json,
             _ => {
                 return HandlerOutput {
                     code: http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
                     body: bytes::Bytes::from("Unsupported content type".as_bytes()),
-                    headers: std::collections::HashMap::new(),
+                    headers: Default::default(),
                 };
             }
         };
@@ -189,24 +188,33 @@ where
                         )
                         .into_bytes(),
                     ),
-                    headers: std::collections::HashMap::new(),
+                    headers: Default::default(),
                 };
             }
         };
 
-        let mut response_headers = std::collections::HashMap::new();
+        let mut response_headers = http::HeaderMap::new();
         // Respond in the same format as the request
-        response_headers.insert("content-type".to_string(), content_type.to_string());
+        response_headers.insert("content-type", content_type.header_value());
 
         let mut headers_as_json_map = serde_json::Map::new();
+        let mut current_header_name = None;
         for (header_name, header_value) in input_headers.drain() {
+            let header_name = match header_name {
+                Some(header_name) => {
+                    current_header_name = Some(header_name.clone());
+                    header_name
+                }
+                None => current_header_name.as_ref().cloned().unwrap(),
+            };
+
             if header_name == "traceparent" {
-                response_headers.insert("traceparent".to_string(), header_value.clone());
-            } else if header_name == "content-type" {
-                // TODO will be relevant when we add messagepack support
-                // response_headers.insert("content-type".to_string(), header_value.clone());
+                response_headers.insert("traceparent", header_value.clone());
             } else {
-                headers_as_json_map.insert(header_name, serde_json::Value::String(header_value));
+                headers_as_json_map.insert(
+                    header_name.to_string(),
+                    serde_json::Value::String(header_value.to_str().unwrap_or_default().to_owned()),
+                );
             }
         }
         let headers_as_json = serde_json::Value::Object(headers_as_json_map);
@@ -220,7 +228,7 @@ where
                     body: bytes::Bytes::from(
                         format!("Failed to parse request headers: {}", err).into_bytes(),
                     ),
-                    headers: std::collections::HashMap::new(),
+                    headers: Default::default(),
                 };
             }
         };
@@ -237,7 +245,8 @@ where
         let output_serialized = match output_serialized {
             Ok(r) => r,
             Err(err) => {
-                response_headers.insert("content-type".to_string(), "text/plain".to_string());
+                response_headers
+                    .insert("content-type", http::HeaderValue::from_static("text/plain"));
                 return HandlerOutput {
                     code: http::StatusCode::INTERNAL_SERVER_ERROR,
                     body: bytes::Bytes::from(

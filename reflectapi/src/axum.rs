@@ -36,11 +36,14 @@ where
         } = handler;
         let axum_handler = {
             let shared_state = app_state.clone();
-            move |axum_headers: axum::http::HeaderMap, body: axum::body::Bytes| async move {
-                let mut headers = std::collections::HashMap::new();
+            move |axum_headers: http::HeaderMap, body: axum::body::Bytes| async move {
+                let mut headers = http::HeaderMap::new();
                 for h in input_headers {
                     if let Some(value) = axum_headers.get(&h) {
-                        headers.insert(h, value.to_str().unwrap_or_default().to_string());
+                        headers.insert(
+                            http::HeaderName::from_bytes(h.as_bytes()).unwrap(),
+                            value.clone(),
+                        );
                     }
                 }
                 let result = callback(shared_state, HandlerInput { body, headers }).await;
@@ -60,9 +63,7 @@ where
 impl IntoResponse for HandlerOutput {
     fn into_response(self) -> axum::http::Response<axum::body::Body> {
         let mut builder = Builder::new().status(self.code);
-        for (key, value) in self.headers {
-            builder = builder.header(key, value);
-        }
+        *builder.headers_mut().unwrap() = self.headers;
         builder.body(self.body.into()).unwrap()
     }
 }
