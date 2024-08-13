@@ -193,12 +193,12 @@ export namespace reflectapi_demo {
     export namespace serde {
       export type TestEnumTagContent =
         | {
-            type: Variant1;
+            type: "Variant1";
             content: {
               field_name: number /* u8 */;
             };
           }
-        | { type: Variant2; content: number /* u8 */ };
+        | { type: "Variant2"; content: number /* u8 */ };
     }
   }
 }

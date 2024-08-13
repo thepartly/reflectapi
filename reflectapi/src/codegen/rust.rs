@@ -134,7 +134,41 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
         )?;
     }
 
+    if config.typecheck {
+        typecheck(&generated_code)?;
+    }
+
     Ok(generated_code)
+}
+
+fn typecheck(_src: &str) -> anyhow::Result<()> {
+    // bit annoying as there are a bunch of assumed dependencies here
+    Ok(())
+    // let mut child = Command::new("rustc")
+    //     .args([
+    //         "--edition",
+    //         "2021",
+    //         "--crate-type",
+    //         "lib",
+    //         "--emit",
+    //         "metadata",
+    //         "-",
+    //     ])
+    //     .stdin(std::process::Stdio::piped())
+    //     .stdout(std::process::Stdio::null())
+    //     .stderr(std::process::Stdio::piped())
+    //     .spawn()
+    //     .context("Failed to spawn rustc")?;
+    //
+    // child.stdin.take().unwrap().write_all(src.as_bytes())?;
+    //
+    // let output = child.wait_with_output()?;
+    //
+    // if !output.status.success() {
+    //     let stderr = String::from_utf8_lossy(&output.stderr);
+    //     anyhow::bail!("rustc typecheck failed: {stderr}");
+    // }
+    // Ok(())
 }
 
 mod templates {

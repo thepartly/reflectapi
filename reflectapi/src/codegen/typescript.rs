@@ -1,4 +1,8 @@
-use std::{collections::HashMap, process::Command};
+use std::{
+    collections::HashMap,
+    hash::{DefaultHasher, Hasher},
+    process::Command,
+};
 
 use super::{format_with, Config};
 use anyhow::Context;
@@ -101,7 +105,47 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             generated_code,
         )?;
     };
+
+    if config.typecheck {
+        typecheck(&generated_code)?;
+    }
+
     Ok(generated_code)
+}
+
+fn typecheck(code: &str) -> anyhow::Result<()> {
+    let mut hasher = DefaultHasher::new();
+    hasher.write(code.as_bytes());
+    let hash = hasher.finish();
+
+    let path = std::env::temp_dir().join(format!("reflectapi-{hash}.ts"));
+    std::fs::write(&path, code)?;
+    let child = Command::new("tsc")
+        .arg("--noEmit")
+        .arg("--skipLibCheck")
+        .arg("--strict")
+        .args(["--lib", "esnext"])
+        .arg(&path)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .context("failed to spawn tsc")?;
+
+    let output = child.wait_with_output()?;
+
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "tsc failed with exit code {:?}\n{}",
+            output.status.code(),
+            // tsc outputs to stdout
+            String::from_utf8_lossy(&output.stdout)
+        ));
+    }
+
+    // Remove after success check to keep file around for debugging
+    std::fs::remove_file(&path)?;
+
+    Ok(())
 }
 
 mod templates {
