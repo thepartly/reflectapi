@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
-    hash::{DefaultHasher, Hasher},
-    process::Command,
+    process::{Command, Stdio},
 };
 
 use super::{format_with, Config};
@@ -113,21 +112,18 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     Ok(generated_code)
 }
 
-fn typecheck(code: &str) -> anyhow::Result<()> {
-    let mut hasher = DefaultHasher::new();
-    hasher.write(code.as_bytes());
-    let hash = hasher.finish();
+fn typecheck(src: &str) -> anyhow::Result<()> {
+    let path = super::tmp_path(src).with_extension("ts");
+    std::fs::write(&path, src)?;
 
-    let path = std::env::temp_dir().join(format!("reflectapi-{hash}.ts"));
-    std::fs::write(&path, code)?;
     let child = Command::new("tsc")
         .arg("--noEmit")
         .arg("--skipLibCheck")
         .arg("--strict")
         .args(["--lib", "esnext"])
         .arg(&path)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
         .context("failed to spawn tsc")?;
 

@@ -1,4 +1,8 @@
-use std::{collections::HashMap, process::Command};
+use std::{
+    collections::HashMap,
+    io::Write,
+    process::{Command, Stdio},
+};
 
 use anyhow::Context;
 use askama::Template;
@@ -141,34 +145,111 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     Ok(generated_code)
 }
 
-fn typecheck(_src: &str) -> anyhow::Result<()> {
-    // bit annoying as there are a bunch of assumed dependencies in the generated code: serde, serde_json, bytes etc
+fn typecheck(src: &str) -> anyhow::Result<()> {
+    // To avoid pulling and compiling expensive dependencies, there are stubs with the relevant type definitions.
+    // These are compiled into `rlib` files are used as dependencies for the typechecking process.
+
+    const SERDE_DERIVE: &str = include_str!("rust-dependency-stubs/serde_derive.rs");
+    const SERDE_JSON: &str = include_str!("rust-dependency-stubs/serde_json.rs");
+    const SERDE: &str = include_str!("rust-dependency-stubs/serde.rs");
+    const BYTES: &str = include_str!("rust-dependency-stubs/bytes.rs");
+    const HTTP: &str = include_str!("rust-dependency-stubs/http.rs");
+    const REFLECTAPI: &str = include_str!("rust-dependency-stubs/reflectapi.rs");
+
+    // [(name, source, transitive_dependencies)]
+    // In topological order
+    const DEPENDENCY_STUBS: &[(&str, &str, &str, &[&str])] = &[
+        ("proc-macro", "serde_derive", SERDE_DERIVE, &[]),
+        ("lib", "serde", SERDE, &["serde_derive"]),
+        ("lib", "serde_json", SERDE_JSON, &[]),
+        ("lib", "bytes", BYTES, &[]),
+        ("lib", "http", HTTP, &[]),
+        ("lib", "reflectapi", REFLECTAPI, &[]),
+    ];
+
+    let path = super::tmp_path(src);
+    std::fs::create_dir_all(&path).context("Failed to create temporary directory")?;
+
+    for &(ty, name, src, deps) in DEPENDENCY_STUBS {
+        let mut child = Command::new("rustc")
+            .args([
+                "--edition",
+                "2021",
+                "--crate-type",
+                ty,
+                "--crate-name",
+                name,
+                "--emit=metadata,link",
+                "-L",
+            ])
+            .arg(&path)
+            .args(deps.iter().flat_map(|&dep| match dep {
+                "serde_derive" => vec![
+                    // proc-macro crates require both .rmeta and .so
+                    format!("--extern={dep}={}/lib{dep}.rmeta", path.display()),
+                    format!("--extern={dep}={}/lib{dep}.so", path.display()),
+                ],
+                _ => vec![format!("--extern={dep}={}/lib{dep}.rlib", path.display())],
+            }))
+            .arg("--out-dir")
+            .arg(&path)
+            .arg("-")
+            .stdin(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
+
+        let stdin = child.stdin.as_mut().unwrap();
+        stdin.write_all(src.as_bytes())?;
+        let output = child.wait_with_output()?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("rustc stub typecheck for `{name}` failed: {stderr}");
+        }
+    }
+
+    let generated_file_path = path.join("generated.rs");
+    std::fs::write(&generated_file_path, src)?;
+
+    let mut child = Command::new("rustc")
+        .args([
+            "--edition",
+            "2021",
+            "--crate-type",
+            "lib",
+            "--emit=mir=/dev/null",
+            "-L",
+            &format!("{}", path.display()),
+            "--extern",
+            &format!("serde={}/libserde.rlib", path.display()),
+            "--extern",
+            &format!("serde_json={}/libserde_json.rlib", path.display()),
+            "--extern",
+            &format!("bytes={}/libbytes.rlib", path.display()),
+            "--extern",
+            &format!("http={}/libhttp.rlib", path.display()),
+            "--extern",
+            &format!("reflectapi={}/libreflectapi.rlib", path.display()),
+            &format!("{}", generated_file_path.display()),
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .context("Failed to spawn rustc")?;
+
+    let stdin = child.stdin.as_mut().unwrap();
+    stdin.write_all(src.as_bytes())?;
+
+    let output = child.wait_with_output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("rustc typecheck failed: {stderr}");
+    }
+
+    std::fs::remove_dir_all(&path).context("Failed to remove temporary directory")?;
+
     Ok(())
-    // let mut child = Command::new("rustc")
-    //     .args([
-    //         "--edition",
-    //         "2021",
-    //         "--crate-type",
-    //         "lib",
-    //         "--emit",
-    //         "metadata",
-    //         "-",
-    //     ])
-    //     .stdin(std::process::Stdio::piped())
-    //     .stdout(std::process::Stdio::null())
-    //     .stderr(std::process::Stdio::piped())
-    //     .spawn()
-    //     .context("Failed to spawn rustc")?;
-    //
-    // child.stdin.take().unwrap().write_all(src.as_bytes())?;
-    //
-    // let output = child.wait_with_output()?;
-    //
-    // if !output.status.success() {
-    //     let stderr = String::from_utf8_lossy(&output.stderr);
-    //     anyhow::bail!("rustc typecheck failed: {stderr}");
-    // }
-    // Ok(())
 }
 
 mod templates {
