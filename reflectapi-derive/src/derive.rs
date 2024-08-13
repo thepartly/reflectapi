@@ -16,8 +16,11 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
     let type_ident = input.ident.clone();
     let mut type_generics = input.generics.clone();
 
-    // Bound each generic by `reflectapi::Input` or `reflectapi::Output`.
     for param in type_generics.type_params_mut() {
+        // `impl` generics are not allowed to have defaults.
+        param.default = None;
+
+        // Bound each generic by `reflectapi::Input` or `reflectapi::Output`.
         param.bounds.push(match reflectapi_type {
             ReflectType::Input => parse_quote!(reflectapi::Input),
             ReflectType::Output => parse_quote!(reflectapi::Output),
@@ -72,7 +75,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
         .iter()
         .map(|(_, ident)| ident)
         .collect::<Vec<_>>();
-    let type_genercis_idents_code = if type_generics_idents.is_empty() {
+    let type_generics_idents_code = if type_generics_idents.is_empty() {
         quote::quote!()
     } else {
         quote::quote! {
@@ -106,7 +109,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
     let reflected_type_def = crate::tokenizable_schema::TokenizableType::new(&reflected_type_def);
     TokenStream::from(quote::quote! {
         #[allow(unused_doc_comments)]
-        impl #type_generics #trait_ident for #type_ident #type_genercis_idents_code #type_generics_where {
+        impl #type_generics #trait_ident for #type_ident #type_generics_idents_code #type_generics_where {
             fn #fn_reflectapi_type_ident(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
                 let resolved_type_name = format!("{}::{}", std::module_path!(), #reflected_type_name);
                 let mut parameters = Vec::new();
@@ -128,7 +131,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
         }
 
         #[allow(unused_doc_comments)]
-        impl #type_generics #type_ident #type_genercis_idents_code #type_generics_where {
+        impl #type_generics #type_ident #type_generics_idents_code #type_generics_where {
             fn #fn_reflectapi_ident() -> (reflectapi::TypeReference, reflectapi::Typespace) {
                 let mut schema = reflectapi::Typespace::new();
                 let resolved_type_ref = <Self as #trait_ident>::#fn_reflectapi_type_ident(&mut schema);
