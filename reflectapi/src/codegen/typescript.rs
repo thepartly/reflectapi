@@ -547,7 +547,7 @@ class ClientInstance {
                 if let Some(discriminant) = self.discriminant {
                     return Ok(format!("{} /* {} */", discriminant, self.name));
                 }
-                return Ok(format!("\"{}\"", self.normalized_name()));
+                return Ok(format!(r#""{}""#, self.normalized_name()));
             }
             if self.untagged {
                 return self.render_fields(None);
@@ -563,7 +563,7 @@ class ClientInstance {
                 crate::Representation::Internal { tag } => {
                     if self.fields.len() == 1 && self.fields.iter().all(|f| f.is_unnamed()) {
                         format!(
-                            "{{ {}: \"{}\" }} & {}",
+                            r#"{{ {}: "{}" }} & {}"#,
                             tag,
                             self.name,
                             self.render_fields(None)?
@@ -574,7 +574,7 @@ class ClientInstance {
                 }
                 crate::Representation::Adjacent { tag, content } => {
                     format!(
-                        "{{ {}: {}, {}: {} }}",
+                        r#"{{ {}: "{}", {}: {} }}"#,
                         tag,
                         self.normalized_name(),
                         content,

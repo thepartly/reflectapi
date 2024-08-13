@@ -142,7 +142,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
 }
 
 fn typecheck(_src: &str) -> anyhow::Result<()> {
-    // bit annoying as there are a bunch of assumed dependencies here
+    // bit annoying as there are a bunch of assumed dependencies in the generated code: serde, serde_json, bytes etc
     Ok(())
     // let mut child = Command::new("rustc")
     //     .args([
