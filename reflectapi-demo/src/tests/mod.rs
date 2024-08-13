@@ -3,6 +3,7 @@ mod assert;
 mod basic;
 mod enums;
 mod generics;
+mod namespace;
 mod serde;
 
 mod test_lib;

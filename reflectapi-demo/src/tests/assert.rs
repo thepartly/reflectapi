@@ -135,3 +135,20 @@ macro_rules! assert_snapshot {
         insta::assert_snapshot!(super::into_rust_code::<$T>());
     };
 }
+
+macro_rules! assert_builder_snapshot {
+    ($builder:expr) => {{
+        let (schema, _) = $builder.build().unwrap();
+        let config = reflectapi::codegen::Config {
+            format: true,
+            typecheck: true,
+            shared_modules: vec![],
+        };
+        let rust = reflectapi::codegen::rust::generate(schema.clone(), &config).unwrap();
+        let typescript =
+            reflectapi::codegen::typescript::generate(schema.clone(), &config).unwrap();
+        insta::assert_json_snapshot!(schema);
+        insta::assert_snapshot!(typescript);
+        insta::assert_snapshot!(rust);
+    }};
+}
