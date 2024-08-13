@@ -6,6 +6,12 @@ where
     unimplemented!() // should be never called
 }
 
+static CONFIG: reflectapi::codegen::Config = reflectapi::codegen::Config {
+    format: true,
+    typecheck: true,
+    shared_modules: vec![],
+};
+
 pub fn into_input_schema<I>() -> reflectapi::Schema
 where
     I: reflectapi::Input + serde::de::DeserializeOwned + Send + 'static,
@@ -53,7 +59,7 @@ where
     I: reflectapi::Input + serde::de::DeserializeOwned + Send + 'static,
 {
     let eps = into_input_schema::<I>();
-    reflectapi::codegen::typescript::generate(eps).unwrap()
+    reflectapi::codegen::typescript::generate(eps, &CONFIG).unwrap()
 }
 
 pub fn into_output_typescript_code<O>() -> String
@@ -61,7 +67,7 @@ where
     O: reflectapi::Output + serde::ser::Serialize + Send + 'static,
 {
     let eps = into_output_schema::<O>();
-    reflectapi::codegen::typescript::generate(eps).unwrap()
+    reflectapi::codegen::typescript::generate(eps, &CONFIG).unwrap()
 }
 
 pub fn into_typescript_code<T>() -> String
@@ -74,7 +80,7 @@ where
         + 'static,
 {
     let eps = into_schema::<T>();
-    reflectapi::codegen::typescript::generate(eps).unwrap()
+    reflectapi::codegen::typescript::generate(eps, &CONFIG).unwrap()
 }
 
 pub fn into_input_rust_code<I>() -> String
@@ -82,7 +88,7 @@ where
     I: reflectapi::Input + serde::de::DeserializeOwned + Send + 'static,
 {
     let eps = into_input_schema::<I>();
-    reflectapi::codegen::rust::generate(eps, vec![]).unwrap()
+    reflectapi::codegen::rust::generate(eps, &CONFIG).unwrap()
 }
 
 pub fn into_output_rust_code<O>() -> String
@@ -90,7 +96,7 @@ where
     O: reflectapi::Output + serde::ser::Serialize + Send + 'static,
 {
     let eps = into_output_schema::<O>();
-    reflectapi::codegen::rust::generate(eps, vec![]).unwrap()
+    reflectapi::codegen::rust::generate(eps, &CONFIG).unwrap()
 }
 
 pub fn into_rust_code<T>() -> String
@@ -103,7 +109,7 @@ where
         + 'static,
 {
     let eps = into_schema::<T>();
-    reflectapi::codegen::rust::generate(eps, vec![]).unwrap()
+    reflectapi::codegen::rust::generate(eps, &CONFIG).unwrap()
 }
 
 macro_rules! assert_input_snapshot {

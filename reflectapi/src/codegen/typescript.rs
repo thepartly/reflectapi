@@ -1,12 +1,12 @@
 use std::{collections::HashMap, process::Command};
 
-use super::format_with;
+use super::{format_with, Config};
 use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
 use reflectapi_schema::Function;
 
-pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
+pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     let implemented_types = build_implemented_types();
 
     let mut rendered_types = HashMap::new();
@@ -91,16 +91,17 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
             .context("Failed to render template")?,
     );
 
-    let generated_code = generated_code.join("\n");
-
-    format_with(
-        [
-            Command::new("prettier").args(["--parser", "typescript"]),
-            Command::new("npx").args(["prettier", "--parser", "typescript"]),
-        ],
-        generated_code,
-    )
-    .map_err(Into::into)
+    let mut generated_code = generated_code.join("\n");
+    if config.format {
+        generated_code = format_with(
+            [
+                Command::new("prettier").args(["--parser", "typescript"]),
+                Command::new("npx").args(["prettier", "--parser", "typescript"]),
+            ],
+            generated_code,
+        )?;
+    };
+    Ok(generated_code)
 }
 
 mod templates {

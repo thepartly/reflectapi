@@ -5,16 +5,17 @@ use askama::Template;
 use indexmap::IndexMap;
 use reflectapi_schema::Function;
 
-use super::format_with;
+use super::{format_with, Config};
 
-pub fn generate(mut schema: crate::Schema, shared_modules: Vec<String>) -> anyhow::Result<String> {
+pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     let mut implemented_types = __build_implemented_types();
     for type_def in schema
         .input_types()
         .types()
         .chain(schema.output_types().types())
     {
-        if shared_modules
+        if config
+            .shared_modules
             .iter()
             .any(|m| type_def.name().starts_with(m))
         {
@@ -31,7 +32,8 @@ pub fn generate(mut schema: crate::Schema, shared_modules: Vec<String>) -> anyho
 
     let mut rendered_types = HashMap::new();
     for original_type_name in schema.consolidate_types() {
-        if shared_modules
+        if config
+            .shared_modules
             .iter()
             .any(|m| original_type_name.starts_with(m))
         {
@@ -123,12 +125,16 @@ pub fn generate(mut schema: crate::Schema, shared_modules: Vec<String>) -> anyho
             .context("Failed to render template")?,
     );
 
-    let generated_code = generated_code.join("\n");
-    format_with(
-        [Command::new("rustfmt").args(["--edition", "2021"])],
-        generated_code,
-    )
-    .map_err(Into::into)
+    let mut generated_code = generated_code.join("\n");
+
+    if config.format {
+        generated_code = format_with(
+            [Command::new("rustfmt").args(["--edition", "2021"])],
+            generated_code,
+        )?;
+    }
+
+    Ok(generated_code)
 }
 
 mod templates {

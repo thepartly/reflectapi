@@ -82,9 +82,16 @@ fn generate(
         .context(format!("Failed to read schema file: {:?}", schema_path))?;
     let schema: reflectapi::Schema = serde_json::from_str(&schema_as_json)
         .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
+
+    let config = reflectapi::codegen::Config {
+        format: true,
+        typecheck: true,
+        shared_modules: shared_modules.unwrap_or_default(),
+    };
+
     match language {
         crate::Language::Typescript => {
-            let generated_code = reflectapi::codegen::typescript::generate(schema)?;
+            let generated_code = reflectapi::codegen::typescript::generate(schema, &config)?;
             let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
             let output = output.join("generated.ts");
             let mut file = std::fs::File::create(output.clone())
@@ -93,8 +100,7 @@ fn generate(
                 .context(format!("Failed to write to file: {:?}", output))?;
         }
         crate::Language::Rust => {
-            let generated_code =
-                reflectapi::codegen::rust::generate(schema, shared_modules.unwrap_or_default())?;
+            let generated_code = reflectapi::codegen::rust::generate(schema, &config)?;
             let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
             let output = output.join("generated.rs");
             let mut file = std::fs::File::create(output.clone())
