@@ -9,7 +9,7 @@ impl std::ops::Deref for Bytes {
 }
 
 impl From<Vec<u8>> for Bytes {
-    fn from(v: Vec<u8>) -> Self {
+    fn from(_v: Vec<u8>) -> Self {
         unimplemented!()
     }
 }

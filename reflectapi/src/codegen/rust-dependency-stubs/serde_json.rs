@@ -1,12 +1,12 @@
 pub struct Error {}
 
 impl core::fmt::Display for Error {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, _f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         unimplemented!()
     }
 }
 
-pub fn from_slice<'a, T>(v: &'a [u8]) -> Result<T, Error> {
+pub fn from_slice<'a, T>(_v: &'a [u8]) -> Result<T, Error> {
     unimplemented!()
 }
 
@@ -25,7 +25,7 @@ pub enum Value {
 }
 
 impl core::fmt::Display for Value {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, _f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         unimplemented!()
     }
 }
