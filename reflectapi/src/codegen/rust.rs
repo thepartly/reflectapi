@@ -1221,10 +1221,11 @@ fn __resolve_type_ref(
 
     for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.parameters.iter()) {
         if implementation.contains(type_def_param.name.as_str()) {
-            implementation = implementation.replace(
+            implementation = implementation.replacen(
                 type_def_param.name.as_str(),
                 __type_ref_to_ts_ref(type_ref_param, schema, implemented_types, type_name_depth)
                     .as_str(),
+                1,
             );
         }
     }

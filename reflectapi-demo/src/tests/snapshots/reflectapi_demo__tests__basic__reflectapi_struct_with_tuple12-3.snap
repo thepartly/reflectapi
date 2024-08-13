@@ -114,9 +114,9 @@ pub mod types {
                         u8,
                         std::string::String,
                         u8,
-                        u80,
-                        u81,
-                        u82,
+                        std::string::String,
+                        u8,
+                        std::string::String,
                     ),
                 }
             }
