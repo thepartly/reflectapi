@@ -543,7 +543,7 @@ class ClientInstance {
                 if let Some(discriminant) = self.discriminant {
                     return Ok(format!("{} /* {} */", discriminant, self.name));
                 }
-                return Ok(format!(r#""{}""#, self.normalized_name()));
+                return Ok(format!(r#""{}""#, self.name));
             }
             if self.untagged {
                 return self.render_fields(None);
