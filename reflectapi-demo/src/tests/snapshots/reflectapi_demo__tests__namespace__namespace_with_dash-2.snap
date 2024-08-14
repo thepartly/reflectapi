@@ -25,7 +25,7 @@ export namespace __definition {
     export namespace pet_orders {
       export interface Interface {
         /// desc
-        list: (input: {}, headers: {}) => AsyncResult<{}, {}>;
+        list_x: (input: {}, headers: {}) => AsyncResult<{}, {}>;
       }
     }
   }
@@ -204,9 +204,9 @@ namespace __implementation {
       typeof base === "string" ? new ClientInstance(base) : base;
     return {
       impl: {
-        jobs_two: {
-          pet_orders: {
-            list: jobs_two__pet_orders__list(client_instance),
+        "jobs-two": {
+          "pet-orders": {
+            list_x: jobs_two__pet_orders__list_x(client_instance),
           },
         },
       },
@@ -285,11 +285,11 @@ namespace __implementation {
     }
   }
 
-  function jobs_two__pet_orders__list(client: Client) {
+  function jobs_two__pet_orders__list_x(client: Client) {
     return (input: {}, headers: {}) =>
       __request<{}, {}, {}, {}>(
         client,
-        "/jobs-two.pet-orders.list",
+        "/jobs-two.pet-orders.list-x",
         input,
         headers,
       );

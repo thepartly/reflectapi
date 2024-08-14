@@ -6,7 +6,7 @@ expression: schema
   "name": "pet-orders",
   "functions": [
     {
-      "name": "jobs-two.pet-orders.list",
+      "name": "jobs-two.pet-orders.list-x",
       "path": "",
       "description": "desc",
       "serialization": [

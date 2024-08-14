@@ -69,7 +69,7 @@ pub mod interface {
             }
         }
         /// desc
-        pub async fn list(
+        pub async fn list_x(
             &self,
             input: reflectapi::Empty,
             headers: reflectapi::Empty,
@@ -77,7 +77,7 @@ pub mod interface {
             super::__request_impl(
                 &self.client,
                 &self.base_url,
-                "/jobs-two.pet-orders.list",
+                "/jobs-two.pet-orders.list-x",
                 input,
                 headers,
             )

@@ -438,7 +438,7 @@ class ClientInstance {
             if self.name.is_empty() || self.is_empty() {
                 "".into()
             } else {
-                format!("export namespace {} {{", self.name)
+                format!("export namespace {} {{", self.name.replace('-', "_"))
             }
         }
 
@@ -670,6 +670,7 @@ class ClientInstance {
         pub error_type: String,
     }
 
+    #[derive(Debug)]
     pub(super) struct ClientImplementationGroup {
         pub offset: usize,
         pub functions: IndexMap<String, String>,
@@ -685,14 +686,19 @@ class ClientInstance {
             result.push("{".to_string());
             for (name, function) in self.functions.iter() {
                 result.push(format!(
-                    "{}{}: {}(client_instance),",
+                    r#"{}"{}": {}(client_instance),"#,
                     self.offset(),
                     name,
                     function
                 ));
             }
             for (name, group) in self.subgroups.iter() {
-                result.push(format!("{}{}: {}", self.offset(), name, group.render()));
+                result.push(format!(
+                    r#"{}"{}": {}"#,
+                    self.offset(),
+                    name,
+                    group.render()
+                ));
             }
             result.push(format!("{}}},", " ".repeat(self.offset - 4)));
             result.join("\n")
@@ -817,7 +823,7 @@ fn modules_from_function_group(
         .extend(group.subgroups.keys().map(|f| templates::Field {
             name: f.clone(),
             description: "".into(),
-            type_: format!("{}.Interface", f),
+            type_: format!("{}.Interface", f.replace('-', "_")),
             optional: false,
         }));
 
