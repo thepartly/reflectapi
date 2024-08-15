@@ -140,13 +140,15 @@ impl Converter {
                     "char" | "std::string::String" => Type::String,
                     "()" => Type::Null,
                     // Maybe there is a better repr of hashsets?
-                    "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => Type::Array {
-                        items: Box::new(InlineOrRef::Ref(self.convert_type_ref(
-                            schema,
-                            kind,
-                            ty_ref.arguments().next().unwrap(),
-                        ))),
-                    },
+                    "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
+                        Type::Array {
+                            items: Box::new(InlineOrRef::Ref(self.convert_type_ref(
+                                schema,
+                                kind,
+                                ty_ref.arguments().next().unwrap(),
+                            ))),
+                        }
+                    }
                     "std::sync::Arc" => {
                         return self.convert_type_ref(
                             schema,
@@ -154,7 +156,14 @@ impl Converter {
                             ty_ref.arguments().next().unwrap(),
                         )
                     }
-                    "std::collections::HashMap" => todo!(),
+                    // There is no way to express the key type in OpenAPI, so we assume it's always a string (unchecked).
+                    "std::collections::HashMap" => Type::Map {
+                        additional_properties: Box::new(InlineOrRef::Ref(self.convert_type_ref(
+                            schema,
+                            kind,
+                            ty_ref.arguments().last().unwrap(),
+                        ))),
+                    },
                     _ => todo!("primitive: {}", prim.name()),
                 };
                 CompositeSchema::Schema(Schema {

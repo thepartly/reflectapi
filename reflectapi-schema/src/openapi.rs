@@ -82,6 +82,13 @@ pub enum Type {
     Object {
         properties: BTreeMap<String, InlineOrRef<Schema>>,
     },
+    #[serde(rename = "object")]
+    Map {
+        /// The key type is implicitly assumed to be string as OpenAPI does not support other key types.
+        /// The value below should be the value schema.
+        #[serde(rename = "additionalProperties")]
+        additional_properties: Box<InlineOrRef<Schema>>,
+    },
     Null,
 }
 
