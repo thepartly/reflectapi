@@ -34,7 +34,7 @@ expression: "super::into_schema::<TestStructWithTransformOutput>()"
             "name": "_f",
             "type": {
               "name": "std::sync::Arc",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }

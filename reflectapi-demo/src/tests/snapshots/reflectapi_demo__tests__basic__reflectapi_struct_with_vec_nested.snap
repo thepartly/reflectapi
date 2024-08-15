@@ -34,10 +34,10 @@ expression: "super::into_schema::<TestStructWithVecNested>()"
             "name": "_f",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "std::vec::Vec",
-                  "parameters": [
+                  "arguments": [
                     {
                       "name": "reflectapi_demo::tests::test_lib::TestStructNested"
                     }
@@ -94,10 +94,10 @@ expression: "super::into_schema::<TestStructWithVecNested>()"
             "name": "_f",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "std::vec::Vec",
-                  "parameters": [
+                  "arguments": [
                     {
                       "name": "reflectapi_demo::tests::test_lib::TestStructNested"
                     }

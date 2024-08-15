@@ -34,7 +34,7 @@ expression: "super::into_schema::<TestStructWithSerdeSkipSerializeIf>()"
             "name": "f",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -95,7 +95,7 @@ expression: "super::into_schema::<TestStructWithSerdeSkipSerializeIf>()"
             "name": "f",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }

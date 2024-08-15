@@ -23,7 +23,7 @@
       },
       "output_type": {
         "name": "myapi::proto::Paginated",
-        "parameters": [
+        "arguments": [
           {
             "name": "myapi::model::Pet"
           }
@@ -97,7 +97,7 @@
       },
       "output_type": {
         "name": "std::option::Option",
-        "parameters": [
+        "arguments": [
           {
             "name": "myapi::model::Pet"
           }
@@ -207,7 +207,7 @@
             "description": " age of the pet",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -219,7 +219,7 @@
             "description": " behaviors of the pet",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "myapi::model::Behavior"
                 }
@@ -262,7 +262,7 @@
             "name": "limit",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -273,7 +273,7 @@
             "name": "cursor",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "std::string::String"
                 }
@@ -313,7 +313,7 @@
             "description": " kind of pet, non nullable in the model",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "myapi::model::Kind"
                 }
@@ -325,7 +325,7 @@
             "description": " age of the pet, nullable in the model",
             "type": {
               "name": "reflectapi::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -337,10 +337,10 @@
             "description": " behaviors of the pet, nullable in the model",
             "type": {
               "name": "reflectapi::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "std::vec::Vec",
-                  "parameters": [
+                  "arguments": [
                     {
                       "name": "myapi::model::Behavior"
                     }
@@ -541,7 +541,7 @@
             "description": " age of the pet",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -553,7 +553,7 @@
             "description": " behaviors of the pet",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "myapi::model::Behavior"
                 }
@@ -576,7 +576,7 @@
             "description": " slice of a collection",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "T"
                 }
@@ -589,7 +589,7 @@
             "description": " cursor for getting next page",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "std::string::String"
                 }

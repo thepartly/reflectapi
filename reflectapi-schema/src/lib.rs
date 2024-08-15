@@ -1,5 +1,8 @@
 mod internal;
 
+// #[cfg(feature = "openapi")]
+pub mod openapi;
+
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -438,20 +441,20 @@ pub struct TypeReference {
      * declared on the referred generic type
      */
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub parameters: Vec<TypeReference>,
+    pub arguments: Vec<TypeReference>,
 }
 
 impl TypeReference {
-    pub fn new(name: String, parameters: Vec<TypeReference>) -> Self {
-        TypeReference { name, parameters }
+    pub fn new(name: String, arguments: Vec<TypeReference>) -> Self {
+        TypeReference { name, arguments }
     }
 
     pub fn name(&self) -> &str {
         self.name.as_str()
     }
 
-    pub fn parameters(&self) -> std::slice::Iter<TypeReference> {
-        self.parameters.iter()
+    pub fn arguments(&self) -> std::slice::Iter<TypeReference> {
+        self.arguments.iter()
     }
 
     pub fn fallback_recursively(&mut self, schema: &Typespace) {
@@ -473,7 +476,7 @@ impl TypeReference {
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
         self.name = rename_type_or_module(&self.name, search_string, replacer);
-        for param in self.parameters.iter_mut() {
+        for param in self.arguments.iter_mut() {
             param.rename_type(search_string, replacer);
         }
     }
@@ -712,7 +715,7 @@ impl Primitive {
         {
             // this is the case when fallback is to one of the generic parameters
             // for example, Arc<T> to T
-            let Some(origin_type_ref_param) = origin.parameters.get(type_def_param_index) else {
+            let Some(origin_type_ref_param) = origin.arguments.get(type_def_param_index) else {
                 // It means the origin type reference does no provide correct number of generic parameters
                 // required by the type definition
                 // It is invalid schema
@@ -720,12 +723,12 @@ impl Primitive {
             };
             return Some(TypeReference {
                 name: origin_type_ref_param.name.clone(),
-                parameters: origin_type_ref_param.parameters.clone(),
+                arguments: origin_type_ref_param.arguments.clone(),
             });
         }
 
-        let mut new_parameters_for_origin = Vec::new();
-        for fallback_type_ref_param in fallback.parameters() {
+        let mut new_arguments_for_origin = Vec::new();
+        for fallback_type_ref_param in fallback.arguments() {
             let Some((type_def_param_index, _)) =
                 self.parameters().enumerate().find(|(_, type_def_param)| {
                     type_def_param.name() == fallback_type_ref_param.name()
@@ -738,18 +741,18 @@ impl Primitive {
             };
 
             // in our example type_def_param_index would be index 1 for V
-            let Some(origin_type_ref_param) = origin.parameters.get(type_def_param_index) else {
+            let Some(origin_type_ref_param) = origin.arguments.get(type_def_param_index) else {
                 // It means the origin type reference does no provide correct number of generic parameters
                 // required by the type definition
                 // It is invalid schema
                 return None;
             };
-            new_parameters_for_origin.push(origin_type_ref_param.clone());
+            new_arguments_for_origin.push(origin_type_ref_param.clone());
         }
 
         Some(TypeReference {
             name: fallback.name.clone(),
-            parameters: new_parameters_for_origin,
+            arguments: new_arguments_for_origin,
         })
     }
 

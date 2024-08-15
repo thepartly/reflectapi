@@ -1096,8 +1096,8 @@ fn __type_ref_to_ts_ref(
         "{}{}{}",
         prefix,
         type_ref.name,
-        __type_ref_params_to_ts_ref(
-            &type_ref.parameters,
+        __type_args_to_ts_ref(
+            &type_ref.arguments,
             schema,
             implemented_types,
             type_name_depth
@@ -1105,7 +1105,7 @@ fn __type_ref_to_ts_ref(
     )
 }
 
-fn __type_ref_params_to_ts_ref(
+fn __type_args_to_ts_ref(
     type_params: &[crate::TypeReference],
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
@@ -1155,7 +1155,7 @@ fn __resolve_type_ref(
     let mut implementation = implemented_types.get(type_ref.name.as_str()).cloned()?;
     let type_def = schema.get_type(type_ref.name())?;
 
-    for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.parameters.iter()) {
+    for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.arguments.iter()) {
         if implementation.contains(type_def_param.name.as_str()) {
             implementation = implementation.replacen(
                 type_def_param.name.as_str(),

@@ -17,7 +17,7 @@ expression: "super::into_input_schema::<TestStructWithCircularReference>().input
           "name": "_f",
           "type": {
             "name": "std::boxed::Box",
-            "parameters": [
+            "arguments": [
               {
                 "name": "reflectapi_demo::tests::generics::TestStructWithCircularReference"
               }

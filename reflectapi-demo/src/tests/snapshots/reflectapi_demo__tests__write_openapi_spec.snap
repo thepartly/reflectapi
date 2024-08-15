@@ -1,0 +1,198 @@
+---
+source: reflectapi-demo/src/tests/mod.rs
+expression: s
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Demo application",
+    "description": "This is a demo application",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health.check": {
+      "description": "Check the health of the service",
+      "post": {
+        "operationId": "health.check",
+        "description": "Check the health of the service"
+      }
+    },
+    "/pets.create": {
+      "description": "Create a new pet",
+      "post": {
+        "operationId": "pets.create",
+        "description": "Create a new pet",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/myapi.proto.PetsCreateRequest"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/pets.get-first": {
+      "description": "Fetch first pet, if any exists",
+      "post": {
+        "operationId": "pets.get-first",
+        "description": "Fetch first pet, if any exists"
+      }
+    },
+    "/pets.list": {
+      "description": "List available pets",
+      "post": {
+        "operationId": "pets.list",
+        "description": "List available pets",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/myapi.proto.PetsListRequest"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/pets.remove": {
+      "description": "Remove an existing pet",
+      "post": {
+        "operationId": "pets.remove",
+        "description": "Remove an existing pet",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/myapi.proto.PetsRemoveRequest"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/pets.update": {
+      "description": "Update an existing pet",
+      "post": {
+        "operationId": "pets.update",
+        "description": "Update an existing pet",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/myapi.proto.PetsUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "myapi.model.Behavior": {
+        "type": "boolean"
+      },
+      "myapi.model.Kind": {
+        "type": "boolean"
+      },
+      "myapi.model.Pet": {
+        "type": "object",
+        "properties": {
+          "age": {
+            "$ref": "#/components/schemas/std.option.Option__u8__"
+          },
+          "behaviors": {
+            "$ref": "#/components/schemas/std.vec.Vec__myapi.model.Behavior__"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/myapi.model.Kind"
+          },
+          "name": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.proto.PetsCreateRequest": {
+        "type": "object",
+        "properties": {
+          "0": {
+            "$ref": "#/components/schemas/myapi.model.Pet"
+          }
+        }
+      },
+      "myapi.proto.PetsListRequest": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "$ref": "#/components/schemas/std.option.Option__std.string.String__"
+          },
+          "limit": {
+            "$ref": "#/components/schemas/std.option.Option__u8__"
+          }
+        }
+      },
+      "myapi.proto.PetsRemoveRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.proto.PetsUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "age": {
+            "$ref": "#/components/schemas/reflectapi.Option__u8__"
+          },
+          "behaviors": {
+            "$ref": "#/components/schemas/reflectapi.Option__std.vec.Vec__myapi.model.Behavior____"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/std.option.Option__myapi.model.Kind__"
+          },
+          "name": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "reflectapi.Option__std.vec.Vec__myapi.model.Behavior____": {
+        "description": "Undefinable Option type",
+        "type": "boolean"
+      },
+      "reflectapi.Option__u8__": {
+        "description": "Undefinable Option type",
+        "type": "boolean"
+      },
+      "std.option.Option__myapi.model.Kind__": {
+        "description": "Optional nullable type",
+        "type": "boolean"
+      },
+      "std.option.Option__std.string.String__": {
+        "description": "Optional nullable type",
+        "type": "boolean"
+      },
+      "std.option.Option__u8__": {
+        "description": "Optional nullable type",
+        "type": "boolean"
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "std.vec.Vec__myapi.model.Behavior__": {
+        "description": "Expandable array type",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/myapi.model.Behavior"
+        }
+      }
+    }
+  }
+}

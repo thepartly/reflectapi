@@ -53,7 +53,7 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericWi
           "name": "_f",
           "type": {
             "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
-            "parameters": [
+            "arguments": [
               {
                 "name": "D"
               },

@@ -17,10 +17,10 @@ expression: "super::into_input_schema::<TestStructWithNestedGenericStruct>().inp
           "name": "_f",
           "type": {
             "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
-            "parameters": [
+            "arguments": [
               {
                 "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
-                "parameters": [
+                "arguments": [
                   {
                     "name": "u8"
                   }

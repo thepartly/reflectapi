@@ -74,7 +74,7 @@ expression: "super::into_schema::<TestStructWithTransformInput>()"
             "name": "_f",
             "type": {
               "name": "std::sync::Arc",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }

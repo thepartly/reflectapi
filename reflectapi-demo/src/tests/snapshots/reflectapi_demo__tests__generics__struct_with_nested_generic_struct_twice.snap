@@ -17,7 +17,7 @@ expression: "super::into_input_schema::<TestStructWithNestedGenericStructTwice>(
           "name": "_f",
           "type": {
             "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
-            "parameters": [
+            "arguments": [
               {
                 "name": "u8"
               }
@@ -29,7 +29,7 @@ expression: "super::into_input_schema::<TestStructWithNestedGenericStructTwice>(
           "name": "_f2",
           "type": {
             "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
-            "parameters": [
+            "arguments": [
               {
                 "name": "std::string::String"
               }

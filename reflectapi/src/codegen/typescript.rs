@@ -1024,7 +1024,7 @@ fn type_ref_to_ts_ref(
 
     let type_name_parts = type_ref.name.split("::").collect::<Vec<_>>();
     let n = type_name_parts.join(".");
-    let p = type_ref_params_to_ts_ref(&type_ref.parameters, schema, implemented_types);
+    let p = type_ref_params_to_ts_ref(&type_ref.arguments, schema, implemented_types);
     format!("{}{}", n, p)
 }
 
@@ -1092,8 +1092,8 @@ fn resolve_type_ref(
 
     let type_def = schema.get_type(type_ref.name())?;
 
-    assert_eq!(type_def.parameters().len(), type_ref.parameters().len());
-    for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.parameters.iter()) {
+    assert_eq!(type_def.parameters().len(), type_ref.arguments().len());
+    for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.arguments.iter()) {
         if implementation.contains(type_def_param.name.as_str()) {
             // Ensure only the first occurence of the type parameter is replaced.
             // For example, this can cause trouble for large tuples where T1 erroneously matches T11.

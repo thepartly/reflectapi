@@ -34,7 +34,7 @@ expression: "super::into_schema::<TestStructWithTuple12>()"
             "name": "_f",
             "type": {
               "name": "std::tuple::Tuple12",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -147,7 +147,7 @@ expression: "super::into_schema::<TestStructWithTuple12>()"
             "name": "_f",
             "type": {
               "name": "std::tuple::Tuple12",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },

@@ -22,7 +22,7 @@ expression: "super::into_input_schema::<TestStructWithVecGenericGenericGeneric<V
           "name": "_f",
           "type": {
             "name": "std::vec::Vec",
-            "parameters": [
+            "arguments": [
               {
                 "name": "T"
               }
@@ -45,10 +45,10 @@ expression: "super::into_input_schema::<TestStructWithVecGenericGenericGeneric<V
           "name": "_f",
           "type": {
             "name": "std::vec::Vec",
-            "parameters": [
+            "arguments": [
               {
                 "name": "reflectapi_demo::tests::generics::TestStructWithVecGeneric",
-                "parameters": [
+                "arguments": [
                   {
                     "name": "T"
                   }
