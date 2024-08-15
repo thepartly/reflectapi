@@ -1,0 +1,40 @@
+---
+source: reflectapi-demo/src/tests/namespace.rs
+expression: schema
+---
+{
+  "name": "pet-orders",
+  "functions": [
+    {
+      "name": "jobs-two.pet-orders.list-x",
+      "path": "",
+      "description": "desc",
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      }
+    ]
+  }
+}
