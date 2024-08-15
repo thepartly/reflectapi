@@ -49,13 +49,36 @@ impl Converter {
             description: f.description.clone(),
             request_body: f.input_type().map(|ty| RequestBody {
                 content: BTreeMap::from([(
-                    "application/json".to_string(),
+                    // TODO msgpack
+                    "application/json".to_owned(),
                     MediaType {
-                        schema: self.convert_type_ref(schema, Kind::Input, ty),
+                        schema: InlineOrRef::Ref(self.convert_type_ref(schema, Kind::Input, ty)),
                     },
                 )]),
                 required: true,
             }),
+            responses: BTreeMap::from([(
+                "200".into(),
+                Response {
+                    description: "200 OK".to_owned(),
+                    // TODO msgpack
+                    content: BTreeMap::from([(
+                        "application/json".to_owned(),
+                        MediaType {
+                            schema: f.output_type().map_or_else(
+                                || InlineOrRef::Inline(Schema::empty_object()),
+                                |ty| {
+                                    InlineOrRef::Ref(self.convert_type_ref(
+                                        schema,
+                                        Kind::Output,
+                                        ty,
+                                    ))
+                                },
+                            ),
+                        },
+                    )]),
+                },
+            )]),
         };
 
         PathItem {

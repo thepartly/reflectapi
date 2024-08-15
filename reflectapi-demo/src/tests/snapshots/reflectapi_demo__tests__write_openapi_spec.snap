@@ -14,7 +14,21 @@ expression: s
       "description": "Check the health of the service",
       "post": {
         "operationId": "health.check",
-        "description": "Check the health of the service"
+        "description": "Check the health of the service",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/pets.create": {
@@ -31,6 +45,20 @@ expression: s
             }
           },
           "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -38,7 +66,19 @@ expression: s
       "description": "Fetch first pet, if any exists",
       "post": {
         "operationId": "pets.get-first",
-        "description": "Fetch first pet, if any exists"
+        "description": "Fetch first pet, if any exists",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.option.Option__myapi.model.Pet__"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/pets.list": {
@@ -55,6 +95,18 @@ expression: s
             }
           },
           "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/myapi.proto.Paginated__myapi.model.Pet__"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -72,6 +124,20 @@ expression: s
             }
           },
           "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -89,6 +155,20 @@ expression: s
             }
           },
           "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -157,6 +237,17 @@ expression: s
           },
           "name": {
             "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.proto.Paginated__myapi.model.Pet__": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "$ref": "#/components/schemas/std.option.Option__std.string.String__"
+          },
+          "items": {
+            "$ref": "#/components/schemas/std.vec.Vec__myapi.model.Pet__"
           }
         }
       },
@@ -268,6 +359,24 @@ expression: s
           }
         ]
       },
+      "std.option.Option__myapi.model.Pet__": {
+        "oneOf": [
+          {
+            "description": "The value is not provided, i.e. null",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided and set to some value",
+            "type": "object",
+            "properties": {
+              "0": {
+                "$ref": "#/components/schemas/myapi.model.Pet"
+              }
+            }
+          }
+        ]
+      },
       "std.option.Option__std.string.String__": {
         "oneOf": [
           {
@@ -313,6 +422,13 @@ expression: s
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/myapi.model.Behavior"
+        }
+      },
+      "std.vec.Vec__myapi.model.Pet__": {
+        "description": "Expandable array type",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/myapi.model.Pet"
         }
       },
       "u8": {

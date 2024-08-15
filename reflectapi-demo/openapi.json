@@ -10,7 +10,21 @@
       "description": "Check the health of the service",
       "post": {
         "operationId": "health.check",
-        "description": "Check the health of the service"
+        "description": "Check the health of the service",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/pets.create": {
@@ -27,6 +41,20 @@
             }
           },
           "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -34,7 +62,19 @@
       "description": "Fetch first pet, if any exists",
       "post": {
         "operationId": "pets.get-first",
-        "description": "Fetch first pet, if any exists"
+        "description": "Fetch first pet, if any exists",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.option.Option__myapi.model.Pet__"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/pets.list": {
@@ -51,6 +91,18 @@
             }
           },
           "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/myapi.proto.Paginated__myapi.model.Pet__"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -68,6 +120,20 @@
             }
           },
           "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -85,6 +151,20 @@
             }
           },
           "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -153,6 +233,17 @@
           },
           "name": {
             "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.proto.Paginated__myapi.model.Pet__": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "$ref": "#/components/schemas/std.option.Option__std.string.String__"
+          },
+          "items": {
+            "$ref": "#/components/schemas/std.vec.Vec__myapi.model.Pet__"
           }
         }
       },
@@ -264,6 +355,24 @@
           }
         ]
       },
+      "std.option.Option__myapi.model.Pet__": {
+        "oneOf": [
+          {
+            "description": "The value is not provided, i.e. null",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided and set to some value",
+            "type": "object",
+            "properties": {
+              "0": {
+                "$ref": "#/components/schemas/myapi.model.Pet"
+              }
+            }
+          }
+        ]
+      },
       "std.option.Option__std.string.String__": {
         "oneOf": [
           {
@@ -309,6 +418,13 @@
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/myapi.model.Behavior"
+        }
+      },
+      "std.vec.Vec__myapi.model.Pet__": {
+        "description": "Expandable array type",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/myapi.model.Pet"
         }
       },
       "u8": {

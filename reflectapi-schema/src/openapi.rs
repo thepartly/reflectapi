@@ -47,6 +47,7 @@ pub struct Operation {
     description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     request_body: Option<RequestBody>,
+    responses: BTreeMap<String, Response>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -56,8 +57,15 @@ pub struct RequestBody {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Response {
+    description: String,
+    // headers: BTreeMap<String, InlineOrRef<Schema>>,
+    content: BTreeMap<String, MediaType>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MediaType {
-    schema: Ref<Schema>,
+    schema: InlineOrRef<Schema>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -94,6 +102,17 @@ pub struct Schema {
     pub description: String,
     #[serde(flatten)]
     pub ty: Type,
+}
+
+impl Schema {
+    pub fn empty_object() -> Self {
+        Self {
+            description: "empty object".to_owned(),
+            ty: Type::Object {
+                properties: BTreeMap::new(),
+            },
+        }
+    }
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
