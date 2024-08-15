@@ -1,0 +1,76 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: "reflectapi::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructOption"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructOption"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.basic.TestStructOption": {
+        "type": "object",
+        "properties": {
+          "_f": {
+            "$ref": "#/components/schemas/std.option.Option__u8__"
+          }
+        }
+      },
+      "std.option.Option__u8__": {
+        "oneOf": [
+          {
+            "description": "The value is not provided, i.e. null",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided and set to some value",
+            "type": "object",
+            "properties": {
+              "0": {
+                "$ref": "#/components/schemas/u8"
+              }
+            }
+          }
+        ]
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

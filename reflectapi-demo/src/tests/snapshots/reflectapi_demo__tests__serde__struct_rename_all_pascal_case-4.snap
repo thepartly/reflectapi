@@ -1,0 +1,58 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAllPascalCase"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAllPascalCase"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.TestStructRenameAllPascalCase": {
+        "type": "object",
+        "properties": {
+          "FieldName": {
+            "$ref": "#/components/schemas/u8"
+          }
+        }
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

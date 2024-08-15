@@ -129,11 +129,13 @@ macro_rules! assert_output_snapshot {
 }
 
 macro_rules! assert_snapshot {
-    ($T:ty) => {
-        insta::assert_json_snapshot!(super::into_schema::<$T>());
+    ($T:ty) => {{
+        let schema = super::into_schema::<$T>();
+        insta::assert_json_snapshot!(schema);
         insta::assert_snapshot!(super::into_typescript_code::<$T>());
         insta::assert_snapshot!(super::into_rust_code::<$T>());
-    };
+        insta::assert_json_snapshot!(reflectapi::openapi::Spec::from(&schema));
+    }};
 }
 
 macro_rules! assert_builder_snapshot {
@@ -150,5 +152,6 @@ macro_rules! assert_builder_snapshot {
         insta::assert_json_snapshot!(schema);
         insta::assert_snapshot!(typescript);
         insta::assert_snapshot!(rust);
+        insta::assert_json_snapshot!(reflectapi::openapi::Spec::from(&schema));
     }};
 }

@@ -1,0 +1,65 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: "reflectapi::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithHashSetField"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithHashSetField"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.basic.TestStructWithHashSetField": {
+        "type": "object",
+        "properties": {
+          "_f_hashset": {
+            "$ref": "#/components/schemas/std.collections.HashSet__u8__"
+          }
+        }
+      },
+      "std.collections.HashSet__u8__": {
+        "description": "Value set type",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/u8"
+        }
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

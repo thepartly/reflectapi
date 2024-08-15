@@ -113,6 +113,15 @@ impl Converter {
                 .unwrap_or_else(|| panic!("output type not found: `{ty_ref:?}`")),
         };
 
+        let stub = CompositeSchema::Schema(Schema {
+            description: "stub".into(),
+            ty: Type::Null,
+        });
+        if !matches!(reflect_ty, crate::Type::Primitive(..)) {
+            // Insert a stub definition so recursive types don't get stuck.
+            self.components.schemas.insert(name.clone(), stub.clone());
+        }
+
         let schema = match reflect_ty {
             crate::Type::Struct(strukt) => CompositeSchema::Schema(self.struct_to_schema(
                 schema,
@@ -130,13 +139,22 @@ impl Converter {
                     "bool" => Type::Boolean,
                     "char" | "std::string::String" => Type::String,
                     "()" => Type::Null,
-                    "std::vec::Vec" | "std::array::Array" => Type::Array {
+                    // Maybe there is a better repr of hashsets?
+                    "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => Type::Array {
                         items: Box::new(InlineOrRef::Ref(self.convert_type_ref(
                             schema,
                             kind,
                             ty_ref.arguments().next().unwrap(),
                         ))),
                     },
+                    "std::sync::Arc" => {
+                        return self.convert_type_ref(
+                            schema,
+                            kind,
+                            ty_ref.arguments().next().unwrap(),
+                        )
+                    }
+                    "std::collections::HashMap" => todo!(),
                     _ => todo!("primitive: {}", prim.name()),
                 };
                 CompositeSchema::Schema(Schema {
@@ -146,7 +164,10 @@ impl Converter {
             }
         };
 
-        assert!(self.components.schemas.insert(name, schema).is_none());
+        if let Some(existing) = self.components.schemas.insert(name, schema) {
+            assert_eq!(existing, stub, "overwrote a schema that wasn't a stub");
+        }
+
         schema_ref
     }
 

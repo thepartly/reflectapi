@@ -1,0 +1,95 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.TestStructRenameAll": {
+        "type": "object",
+        "properties": {
+          "fieldName": {
+            "$ref": "#/components/schemas/u8"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.TestStructWithFlattenNested": {
+        "type": "object",
+        "properties": {
+          "f": {
+            "$ref": "#/components/schemas/u8"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired": {
+        "type": "object",
+        "properties": {
+          "g": {
+            "$ref": "#/components/schemas/std.option.Option__reflectapi_demo.tests.serde.TestStructWithFlattenNested__"
+          },
+          "k": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAll"
+          }
+        }
+      },
+      "std.option.Option__reflectapi_demo.tests.serde.TestStructWithFlattenNested__": {
+        "oneOf": [
+          {
+            "description": "The value is not provided, i.e. null",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided and set to some value",
+            "type": "object",
+            "properties": {
+              "0": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
+              }
+            }
+          }
+        ]
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}
