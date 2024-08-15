@@ -1,0 +1,66 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: "super::into_schema::<Nums>()"
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::enums::Nums"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::enums::Nums"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::Nums",
+        "variants": [
+          {
+            "name": "Zero",
+            "serde_name": "0"
+          },
+          {
+            "name": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::Nums",
+        "variants": [
+          {
+            "name": "Zero",
+            "serde_name": "0"
+          },
+          {
+            "name": "A"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -123,3 +123,15 @@ fn test_enum_with_discriminant_ignored_input() {
 fn test_enum_with_discriminant_ignored_output() {
     assert_output_snapshot!(TestEnumWithDiscriminantIgnored);
 }
+
+#[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+pub enum Nums {
+    #[serde(rename = "0")]
+    Zero = 0,
+    A = 1,
+}
+
+#[test]
+fn test_enum_rename_num() {
+    assert_snapshot!(Nums);
+}
