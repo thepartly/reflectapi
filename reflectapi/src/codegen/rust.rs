@@ -5,16 +5,17 @@ use askama::Template;
 use indexmap::IndexMap;
 use reflectapi_schema::Function;
 
-use super::format_with;
+use super::{format_with, Config};
 
-pub fn generate(mut schema: crate::Schema, shared_modules: Vec<String>) -> anyhow::Result<String> {
+pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     let mut implemented_types = __build_implemented_types();
     for type_def in schema
         .input_types()
         .types()
         .chain(schema.output_types().types())
     {
-        if shared_modules
+        if config
+            .shared_modules
             .iter()
             .any(|m| type_def.name().starts_with(m))
         {
@@ -31,7 +32,8 @@ pub fn generate(mut schema: crate::Schema, shared_modules: Vec<String>) -> anyho
 
     let mut rendered_types = HashMap::new();
     for original_type_name in schema.consolidate_types() {
-        if shared_modules
+        if config
+            .shared_modules
             .iter()
             .any(|m| original_type_name.starts_with(m))
         {
@@ -123,12 +125,67 @@ pub fn generate(mut schema: crate::Schema, shared_modules: Vec<String>) -> anyho
             .context("Failed to render template")?,
     );
 
-    let generated_code = generated_code.join("\n");
-    format_with(
-        [Command::new("rustfmt").args(["--edition", "2021"])],
-        generated_code,
-    )
-    .map_err(Into::into)
+    let mut generated_code = generated_code.join("\n");
+
+    if config.format {
+        generated_code = format_with(
+            [Command::new("rustfmt").args(["--edition", "2021"])],
+            generated_code,
+        )?;
+    }
+
+    if config.typecheck {
+        typecheck(&generated_code)?;
+    }
+
+    Ok(generated_code)
+}
+
+fn typecheck(src: &str) -> anyhow::Result<()> {
+    // To avoid pulling and compiling expensive dependencies, there are stubs with the relevant type definitions.
+    // These are compiled into `rlib` files are used as dependencies for the typechecking process.
+
+    const SOURCES: &[(&str, &str)] = &[
+        (
+            "serde_derive.rs",
+            include_str!("rust-dependency-stubs/serde_derive.rs"),
+        ),
+        (
+            "serde_json.rs",
+            include_str!("rust-dependency-stubs/serde_json.rs"),
+        ),
+        ("serde.rs", include_str!("rust-dependency-stubs/serde.rs")),
+        ("bytes.rs", include_str!("rust-dependency-stubs/bytes.rs")),
+        ("http.rs", include_str!("rust-dependency-stubs/http.rs")),
+        (
+            "reflectapi.rs",
+            include_str!("rust-dependency-stubs/reflectapi.rs"),
+        ),
+        ("Makefile", include_str!("rust-dependency-stubs/Makefile")),
+    ];
+
+    let path = super::tmp_path(src);
+    std::fs::create_dir_all(&path)?;
+
+    for (name, content) in SOURCES {
+        std::fs::write(path.join(name), content)?;
+    }
+
+    std::fs::write(path.join("generated.rs"), src)?;
+
+    let output = Command::new("make")
+        .current_dir(&path)
+        .arg("check")
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("rustc typecheck failed: {stderr}");
+    }
+
+    std::fs::remove_dir_all(&path)?;
+
+    Ok(())
 }
 
 mod templates {
@@ -1100,10 +1157,11 @@ fn __resolve_type_ref(
 
     for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.parameters.iter()) {
         if implementation.contains(type_def_param.name.as_str()) {
-            implementation = implementation.replace(
+            implementation = implementation.replacen(
                 type_def_param.name.as_str(),
                 __type_ref_to_ts_ref(type_ref_param, schema, implemented_types, type_name_depth)
                     .as_str(),
+                1,
             );
         }
     }

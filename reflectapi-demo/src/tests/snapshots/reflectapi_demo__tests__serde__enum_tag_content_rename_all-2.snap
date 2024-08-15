@@ -196,12 +196,12 @@ export namespace reflectapi_demo {
     export namespace serde {
       export type TestEnumTagContentRenameAll =
         | {
-            type: variant1;
+            type: "variant1";
             content: {
               field_name: number /* u8 */;
             };
           }
-        | { type: variant2; content: number /* u8 */ };
+        | { type: "variant2"; content: number /* u8 */ };
     }
   }
 }

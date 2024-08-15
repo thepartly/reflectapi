@@ -1,12 +1,15 @@
-use std::{collections::HashMap, process::Command};
+use std::{
+    collections::HashMap,
+    process::{Command, Stdio},
+};
 
-use super::format_with;
+use super::{format_with, Config};
 use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
 use reflectapi_schema::Function;
 
-pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
+pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     let implemented_types = build_implemented_types();
 
     let mut rendered_types = HashMap::new();
@@ -91,16 +94,54 @@ pub fn generate(mut schema: crate::Schema) -> anyhow::Result<String> {
             .context("Failed to render template")?,
     );
 
-    let generated_code = generated_code.join("\n");
+    let mut generated_code = generated_code.join("\n");
+    if config.format {
+        generated_code = format_with(
+            [
+                Command::new("prettier").args(["--parser", "typescript"]),
+                Command::new("npx").args(["prettier", "--parser", "typescript"]),
+            ],
+            generated_code,
+        )?;
+    };
 
-    format_with(
-        [
-            Command::new("prettier").args(["--parser", "typescript"]),
-            Command::new("npx").args(["prettier", "--parser", "typescript"]),
-        ],
-        generated_code,
-    )
-    .map_err(Into::into)
+    if config.typecheck {
+        typecheck(&generated_code)?;
+    }
+
+    Ok(generated_code)
+}
+
+fn typecheck(src: &str) -> anyhow::Result<()> {
+    let path = super::tmp_path(src).with_extension("ts");
+    std::fs::write(&path, src)?;
+
+    let child = Command::new("tsc")
+        .arg("--noEmit")
+        .arg("--skipLibCheck")
+        .arg("--strict")
+        .args(["--lib", "esnext"])
+        .arg(&path)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .context("failed to spawn tsc")?;
+
+    let output = child.wait_with_output()?;
+
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "tsc failed with exit code {:?}\n{}",
+            output.status.code(),
+            // tsc outputs to stdout
+            String::from_utf8_lossy(&output.stdout)
+        ));
+    }
+
+    // Remove after success check to keep file around for debugging
+    std::fs::remove_file(&path)?;
+
+    Ok(())
 }
 
 mod templates {
@@ -502,7 +543,7 @@ class ClientInstance {
                 if let Some(discriminant) = self.discriminant {
                     return Ok(format!("{} /* {} */", discriminant, self.name));
                 }
-                return Ok(format!("\"{}\"", self.normalized_name()));
+                return Ok(format!(r#""{}""#, self.normalized_name()));
             }
             if self.untagged {
                 return self.render_fields(None);
@@ -518,7 +559,7 @@ class ClientInstance {
                 crate::Representation::Internal { tag } => {
                     if self.fields.len() == 1 && self.fields.iter().all(|f| f.is_unnamed()) {
                         format!(
-                            "{{ {}: \"{}\" }} & {}",
+                            r#"{{ {}: "{}" }} & {}"#,
                             tag,
                             self.name,
                             self.render_fields(None)?
@@ -529,7 +570,7 @@ class ClientInstance {
                 }
                 crate::Representation::Adjacent { tag, content } => {
                     format!(
-                        "{{ {}: {}, {}: {} }}",
+                        r#"{{ {}: "{}", {}: {} }}"#,
                         tag,
                         self.normalized_name(),
                         content,
