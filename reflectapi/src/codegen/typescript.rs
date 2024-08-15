@@ -98,6 +98,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     if config.format {
         generated_code = format_with(
             [
+                Command::new("biome").args(["format", "--stdin-file-path=anything.ts"]),
                 Command::new("prettier").args(["--parser", "typescript"]),
                 Command::new("npx").args(["prettier", "--parser", "typescript"]),
             ],
