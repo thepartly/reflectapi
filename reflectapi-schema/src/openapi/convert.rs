@@ -83,11 +83,11 @@ impl Converter {
             Kind::Input => schema
                 .input_types
                 .get_type(&ty_ref.name)
-                .unwrap_or_else(|| panic!("input type not found: `{}`", ty_ref.name)),
+                .unwrap_or_else(|| panic!("input type not found: `{ty_ref:?}`")),
             Kind::Output => &schema
                 .output_types
                 .get_type(&ty_ref.name)
-                .unwrap_or_else(|| panic!("output type not found: `{}`", ty_ref.name)),
+                .unwrap_or_else(|| panic!("output type not found: `{ty_ref:?}`")),
         };
 
         let schema = match reflect_ty {
@@ -118,16 +118,14 @@ impl Converter {
                 })
             }
             crate::Type::Enum(adt) => {
-                CompositeSchema::Schema(Schema {
-                    description: reflect_ty.description().to_owned(),
-                    ty: Type::Boolean,
-                })
-                // let subschemas = adt
-                //     .variants()
-                //     .map(|variant| self.variant_to_schema(schema, kind, variant))
-                //     .map(InlineOrRef::Inline)
-                //     .collect();
-                // CompositeSchema::OneOf { subschemas }
+                let adt = adt.clone().instantiate(&ty_ref.arguments);
+
+                let subschemas = adt
+                    .variants()
+                    .map(|variant| self.variant_to_schema(schema, kind, variant))
+                    .map(InlineOrRef::Inline)
+                    .collect();
+                CompositeSchema::OneOf { subschemas }
             }
         };
 
@@ -166,6 +164,7 @@ impl Converter {
                 })
             })),
         };
+
         Schema {
             description: strukt.description().to_owned(),
             ty,

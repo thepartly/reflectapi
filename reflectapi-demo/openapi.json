@@ -91,11 +91,53 @@
   },
   "components": {
     "schemas": {
+      "f64": {
+        "description": "64-bit floating point number",
+        "type": "number"
+      },
       "myapi.model.Behavior": {
-        "type": "boolean"
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "type": "object",
+            "properties": {
+              "0": {
+                "$ref": "#/components/schemas/f64"
+              },
+              "1": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "properties": {
+              "description": {
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "notes": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          }
+        ]
       },
       "myapi.model.Kind": {
-        "type": "boolean"
+        "oneOf": [
+          {
+            "description": " A dog",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": " A cat",
+            "type": "object",
+            "properties": {}
+          }
+        ]
       },
       "myapi.model.Pet": {
         "type": "object",
@@ -159,24 +201,104 @@
         }
       },
       "reflectapi.Option__std.vec.Vec__myapi.model.Behavior____": {
-        "description": "Undefinable Option type",
-        "type": "boolean"
+        "oneOf": [
+          {
+            "description": "The value is missing, i.e. undefined in JavaScript",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided but set to none, i.e. null in JavaScript",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided and set to some value",
+            "type": "object",
+            "properties": {
+              "0": {
+                "$ref": "#/components/schemas/std.vec.Vec__myapi.model.Behavior__"
+              }
+            }
+          }
+        ]
       },
       "reflectapi.Option__u8__": {
-        "description": "Undefinable Option type",
-        "type": "boolean"
+        "oneOf": [
+          {
+            "description": "The value is missing, i.e. undefined in JavaScript",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided but set to none, i.e. null in JavaScript",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided and set to some value",
+            "type": "object",
+            "properties": {
+              "0": {
+                "$ref": "#/components/schemas/u8"
+              }
+            }
+          }
+        ]
       },
       "std.option.Option__myapi.model.Kind__": {
-        "description": "Optional nullable type",
-        "type": "boolean"
+        "oneOf": [
+          {
+            "description": "The value is not provided, i.e. null",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided and set to some value",
+            "type": "object",
+            "properties": {
+              "0": {
+                "$ref": "#/components/schemas/myapi.model.Kind"
+              }
+            }
+          }
+        ]
       },
       "std.option.Option__std.string.String__": {
-        "description": "Optional nullable type",
-        "type": "boolean"
+        "oneOf": [
+          {
+            "description": "The value is not provided, i.e. null",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided and set to some value",
+            "type": "object",
+            "properties": {
+              "0": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          }
+        ]
       },
       "std.option.Option__u8__": {
-        "description": "Optional nullable type",
-        "type": "boolean"
+        "oneOf": [
+          {
+            "description": "The value is not provided, i.e. null",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided and set to some value",
+            "type": "object",
+            "properties": {
+              "0": {
+                "$ref": "#/components/schemas/u8"
+              }
+            }
+          }
+        ]
       },
       "std.string.String": {
         "description": "UTF-8 encoded string",
@@ -188,6 +310,10 @@
         "items": {
           "$ref": "#/components/schemas/myapi.model.Behavior"
         }
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
       }
     }
   }

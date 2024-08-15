@@ -21,6 +21,8 @@ pub struct Schema {
     pub output_types: Typespace,
 }
 
+type Subst = HashMap<String, TypeReference>;
+
 impl Default for Schema {
     fn default() -> Self {
         Self::new()
@@ -478,6 +480,26 @@ impl TypeReference {
         self.name = rename_type_or_module(&self.name, search_string, replacer);
         for param in self.arguments.iter_mut() {
             param.rename_type(search_string, replacer);
+        }
+    }
+
+    fn instantiate(self, subst: &Subst) -> TypeReference {
+        match subst.get(&self.name) {
+            Some(ty) => {
+                assert!(
+                    self.arguments.is_empty(),
+                    "type parameter cannot have type arguments (no HKTs)"
+                );
+                ty.clone()
+            }
+            None => Self {
+                name: self.name,
+                arguments: self
+                    .arguments
+                    .into_iter()
+                    .map(|a| a.instantiate(subst))
+                    .collect(),
+            },
         }
     }
 }
@@ -976,6 +998,13 @@ impl Field {
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
         self.type_ref.rename_type(search_string, replacer);
     }
+
+    fn instantiate(self, subst: &Subst) -> Field {
+        Self {
+            type_ref: self.type_ref.instantiate(subst),
+            ..self
+        }
+    }
 }
 
 fn is_false(b: &bool) -> bool {
@@ -1039,6 +1068,34 @@ impl Enum {
 
     pub fn variants(&self) -> std::slice::Iter<Variant> {
         self.variants.iter()
+    }
+
+    /// Return a new `Enum` with each type parameter substituted with a type
+    pub fn instantiate(self, type_args: &[TypeReference]) -> Self {
+        assert_eq!(
+            self.parameters.len(),
+            type_args.len(),
+            "expected {} type arguments, got {}",
+            self.parameters.len(),
+            type_args.len()
+        );
+
+        let subst = self
+            .parameters
+            .iter()
+            .map(|p| p.name.to_owned())
+            .zip(type_args.iter().cloned())
+            .collect::<HashMap<_, _>>();
+
+        Self {
+            parameters: vec![],
+            variants: self
+                .variants
+                .into_iter()
+                .map(|v| v.instantiate(&subst))
+                .collect(),
+            ..self
+        }
     }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
@@ -1116,6 +1173,17 @@ impl Variant {
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
         for field in self.fields.iter_mut() {
             field.rename_type(search_string, replacer);
+        }
+    }
+
+    fn instantiate(self, subst: &Subst) -> Variant {
+        Self {
+            fields: self
+                .fields
+                .into_iter()
+                .map(|f| f.instantiate(subst))
+                .collect(),
+            ..self
         }
     }
 }
