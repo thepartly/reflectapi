@@ -138,7 +138,8 @@ impl Converter {
                     | "u64" | "u128" | "usize" => Type::Integer,
                     "bool" => Type::Boolean,
                     "char" | "std::string::String" => Type::String,
-                    "()" => Type::Null,
+                    // Think "()" should be renamed to `unit` or `Unit` so it has an alphanumeric name.
+                    "std::marker::PhantomData" | "()" => Type::Null,
                     // Maybe there is a better repr of hashsets?
                     "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
                         Type::Array {
@@ -149,20 +150,40 @@ impl Converter {
                             ))),
                         }
                     }
-                    "std::sync::Arc" => {
+                    // Treat as transparent wrappers? Not sure why these types are relevant to an API anyway @Andrey?
+                    "std::boxed::Box" | "std::cell::Cell" | "std::cell::RefCell"
+                    | "std::sync::Mutex" | "std::sync::RwLock" | "std::rc::Rc"
+                    | "std::rc::Weak" | "std::sync::Arc" | "std::sync::Weak" => {
                         return self.convert_type_ref(
                             schema,
                             kind,
                             ty_ref.arguments().next().unwrap(),
                         )
                     }
-                    // There is no way to express the key type in OpenAPI, so we assume it's always a string (unchecked).
+                    // There is no way to express the key type in OpenAPI, so we assume it's always a string (unenforced).
                     "std::collections::HashMap" => Type::Map {
                         additional_properties: Box::new(InlineOrRef::Ref(self.convert_type_ref(
                             schema,
                             kind,
                             ty_ref.arguments().last().unwrap(),
                         ))),
+                    },
+                    "std::tuple::Tuple1"
+                    | "std::tuple::Tuple2"
+                    | "std::tuple::Tuple3"
+                    | "std::tuple::Tuple4"
+                    | "std::tuple::Tuple5"
+                    | "std::tuple::Tuple6"
+                    | "std::tuple::Tuple7"
+                    | "std::tuple::Tuple8"
+                    | "std::tuple::Tuple9"
+                    | "std::tuple::Tuple10"
+                    | "std::tuple::Tuple11"
+                    | "std::tuple::Tuple12" => Type::Tuple {
+                        prefix_items: ty_ref
+                            .arguments()
+                            .map(|arg| InlineOrRef::Ref(self.convert_type_ref(schema, kind, arg)))
+                            .collect(),
                     },
                     _ => todo!("primitive: {}", prim.name()),
                 };

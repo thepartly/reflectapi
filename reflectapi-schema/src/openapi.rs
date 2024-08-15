@@ -79,6 +79,11 @@ pub enum Type {
     Array {
         items: Box<InlineOrRef<Schema>>,
     },
+    #[serde(rename = "array")]
+    Tuple {
+        #[serde(rename = "prefixItems")]
+        prefix_items: Vec<InlineOrRef<Schema>>,
+    },
     Object {
         properties: BTreeMap<String, InlineOrRef<Schema>>,
     },
@@ -101,6 +106,12 @@ pub enum CompositeSchema {
         subschemas: Vec<InlineOrRef<Schema>>,
     },
     Schema(Schema),
+}
+
+impl From<Schema> for CompositeSchema {
+    fn from(schema: Schema) -> Self {
+        CompositeSchema::Schema(schema)
+    }
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]

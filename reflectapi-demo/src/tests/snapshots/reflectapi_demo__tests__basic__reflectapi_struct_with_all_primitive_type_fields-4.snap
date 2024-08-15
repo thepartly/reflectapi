@@ -1,0 +1,604 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: "reflectapi::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithAllPrimitiveTypeFields"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithAllPrimitiveTypeFields"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Unit": {
+        "description": "Unit type",
+        "type": "null"
+      },
+      "bool": {
+        "description": "Boolean value",
+        "type": "boolean"
+      },
+      "char": {
+        "description": "Unicode character",
+        "type": "string"
+      },
+      "f32": {
+        "description": "32-bit floating point number",
+        "type": "number"
+      },
+      "f64": {
+        "description": "64-bit floating point number",
+        "type": "number"
+      },
+      "i128": {
+        "description": "128-bit signed integer",
+        "type": "integer"
+      },
+      "i16": {
+        "description": "16-bit signed integer",
+        "type": "integer"
+      },
+      "i32": {
+        "description": "32-bit signed integer",
+        "type": "integer"
+      },
+      "i64": {
+        "description": "64-bit signed integer",
+        "type": "integer"
+      },
+      "i8": {
+        "description": "8-bit signed integer",
+        "type": "integer"
+      },
+      "isize": {
+        "description": "Machine-specific-bit signed integer",
+        "type": "integer"
+      },
+      "reflectapi.Infallible": {
+        "description": "Error object which is expected to be never returned",
+        "type": "object",
+        "properties": {}
+      },
+      "reflectapi_demo.tests.basic.TestStructWithAllPrimitiveTypeFields": {
+        "type": "object",
+        "properties": {
+          "_f_array": {
+            "$ref": "#/components/schemas/std.array.Array__u8____3__"
+          },
+          "_f_bool": {
+            "$ref": "#/components/schemas/bool"
+          },
+          "_f_char": {
+            "$ref": "#/components/schemas/char"
+          },
+          "_f_f32": {
+            "$ref": "#/components/schemas/f32"
+          },
+          "_f_f64": {
+            "$ref": "#/components/schemas/f64"
+          },
+          "_f_hashmap": {
+            "$ref": "#/components/schemas/std.collections.HashMap__u8____std.string.String__"
+          },
+          "_f_hashset": {
+            "$ref": "#/components/schemas/std.collections.HashSet__u8__"
+          },
+          "_f_i128": {
+            "$ref": "#/components/schemas/i128"
+          },
+          "_f_i16": {
+            "$ref": "#/components/schemas/i16"
+          },
+          "_f_i32": {
+            "$ref": "#/components/schemas/i32"
+          },
+          "_f_i64": {
+            "$ref": "#/components/schemas/i64"
+          },
+          "_f_i8": {
+            "$ref": "#/components/schemas/i8"
+          },
+          "_f_infallible": {
+            "$ref": "#/components/schemas/reflectapi.Infallible"
+          },
+          "_f_isize": {
+            "$ref": "#/components/schemas/isize"
+          },
+          "_f_option": {
+            "$ref": "#/components/schemas/std.option.Option__u8__"
+          },
+          "_f_phantomdata": {
+            "$ref": "#/components/schemas/std.marker.PhantomData__u8__"
+          },
+          "_f_pointer_arc": {
+            "$ref": "#/components/schemas/u8"
+          },
+          "_f_pointer_box": {
+            "$ref": "#/components/schemas/u8"
+          },
+          "_f_pointer_cell": {
+            "$ref": "#/components/schemas/u8"
+          },
+          "_f_pointer_mutex": {
+            "$ref": "#/components/schemas/u8"
+          },
+          "_f_pointer_refcell": {
+            "$ref": "#/components/schemas/u8"
+          },
+          "_f_pointer_rwlock": {
+            "$ref": "#/components/schemas/u8"
+          },
+          "_f_pointer_weak": {
+            "$ref": "#/components/schemas/u8"
+          },
+          "_f_str": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "_f_tuple": {
+            "$ref": "#/components/schemas/std.tuple.Tuple2__u8____std.string.String__"
+          },
+          "_f_tuple10": {
+            "$ref": "#/components/schemas/std.tuple.Tuple10__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String__"
+          },
+          "_f_tuple11": {
+            "$ref": "#/components/schemas/std.tuple.Tuple11__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8__"
+          },
+          "_f_tuple12": {
+            "$ref": "#/components/schemas/std.tuple.Tuple12__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String__"
+          },
+          "_f_tuple3": {
+            "$ref": "#/components/schemas/std.tuple.Tuple3__u8____std.string.String____u8__"
+          },
+          "_f_tuple4": {
+            "$ref": "#/components/schemas/std.tuple.Tuple4__u8____std.string.String____u8____std.string.String__"
+          },
+          "_f_tuple5": {
+            "$ref": "#/components/schemas/std.tuple.Tuple5__u8____std.string.String____u8____std.string.String____u8__"
+          },
+          "_f_tuple6": {
+            "$ref": "#/components/schemas/std.tuple.Tuple6__u8____std.string.String____u8____std.string.String____u8____std.string.String__"
+          },
+          "_f_tuple7": {
+            "$ref": "#/components/schemas/std.tuple.Tuple7__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8__"
+          },
+          "_f_tuple8": {
+            "$ref": "#/components/schemas/std.tuple.Tuple8__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String__"
+          },
+          "_f_tuple9": {
+            "$ref": "#/components/schemas/std.tuple.Tuple9__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8__"
+          },
+          "_f_u128": {
+            "$ref": "#/components/schemas/u128"
+          },
+          "_f_u16": {
+            "$ref": "#/components/schemas/u16"
+          },
+          "_f_u32": {
+            "$ref": "#/components/schemas/u32"
+          },
+          "_f_u64": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "_f_u8": {
+            "$ref": "#/components/schemas/u8"
+          },
+          "_f_unit": {
+            "$ref": "#/components/schemas/Unit"
+          },
+          "_f_usize": {
+            "$ref": "#/components/schemas/usize"
+          },
+          "_f_vec": {
+            "$ref": "#/components/schemas/std.vec.Vec__u8__"
+          }
+        }
+      },
+      "std.array.Array__u8____3__": {
+        "description": "Fixed-size Array",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/u8"
+        }
+      },
+      "std.collections.HashMap__u8____std.string.String__": {
+        "description": "Key-value map type",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/std.string.String"
+        }
+      },
+      "std.collections.HashSet__u8__": {
+        "description": "Value set type",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/u8"
+        }
+      },
+      "std.marker.PhantomData__u8__": {
+        "description": "Zero-sized phantom data",
+        "type": "null"
+      },
+      "std.option.Option__u8__": {
+        "oneOf": [
+          {
+            "description": "The value is not provided, i.e. null",
+            "type": "object",
+            "properties": {}
+          },
+          {
+            "description": "The value is provided and set to some value",
+            "type": "object",
+            "properties": {
+              "0": {
+                "$ref": "#/components/schemas/u8"
+              }
+            }
+          }
+        ]
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "std.tuple.Tuple10__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String__": {
+        "description": "Tuple holding 10 elements",
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        ]
+      },
+      "std.tuple.Tuple11__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8__": {
+        "description": "Tuple holding 11 elements",
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          }
+        ]
+      },
+      "std.tuple.Tuple12__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String__": {
+        "description": "Tuple holding 12 elements",
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        ]
+      },
+      "std.tuple.Tuple2__u8____std.string.String__": {
+        "description": "Tuple holding 2 elements",
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        ]
+      },
+      "std.tuple.Tuple3__u8____std.string.String____u8__": {
+        "description": "Tuple holding 3 elements",
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          }
+        ]
+      },
+      "std.tuple.Tuple4__u8____std.string.String____u8____std.string.String__": {
+        "description": "Tuple holding 4 elements",
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        ]
+      },
+      "std.tuple.Tuple5__u8____std.string.String____u8____std.string.String____u8__": {
+        "description": "Tuple holding 5 elements",
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          }
+        ]
+      },
+      "std.tuple.Tuple6__u8____std.string.String____u8____std.string.String____u8____std.string.String__": {
+        "description": "Tuple holding 6 elements",
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        ]
+      },
+      "std.tuple.Tuple7__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8__": {
+        "description": "Tuple holding 7 elements",
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          }
+        ]
+      },
+      "std.tuple.Tuple8__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String__": {
+        "description": "Tuple holding 8 elements",
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        ]
+      },
+      "std.tuple.Tuple9__u8____std.string.String____u8____std.string.String____u8____std.string.String____u8____std.string.String____u8__": {
+        "description": "Tuple holding 9 elements",
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          },
+          {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          }
+        ]
+      },
+      "std.vec.Vec__u8__": {
+        "description": "Expandable array type",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/u8"
+        }
+      },
+      "u128": {
+        "description": "128-bit unsigned integer",
+        "type": "integer"
+      },
+      "u16": {
+        "description": "16-bit unsigned integer",
+        "type": "integer"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      },
+      "u64": {
+        "description": "64-bit unsigned integer",
+        "type": "integer"
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      },
+      "usize": {
+        "description": "Machine-specific-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}
