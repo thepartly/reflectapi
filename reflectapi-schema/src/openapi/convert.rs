@@ -91,10 +91,14 @@ impl Converter {
         };
 
         let schema = match reflect_ty {
-            crate::Type::Struct(strukt) => {
-                CompositeSchema::Schema(self.struct_to_schema(schema, kind, strukt))
+            crate::Type::Struct(strukt) => CompositeSchema::Schema(self.struct_to_schema(
+                schema,
+                kind,
+                &strukt.clone().instantiate(&ty_ref.arguments),
+            )),
+            crate::Type::Enum(adt) => {
+                self.enum_to_schema(schema, kind, &adt.clone().instantiate(&ty_ref.arguments))
             }
-            // todo
             crate::Type::Primitive(prim) => {
                 let ty = match prim.name() {
                     "f32" | "f64" => Type::Number,
@@ -117,20 +121,26 @@ impl Converter {
                     ty,
                 })
             }
-            crate::Type::Enum(adt) => {
-                let adt = adt.clone().instantiate(&ty_ref.arguments);
-
-                let subschemas = adt
-                    .variants()
-                    .map(|variant| self.variant_to_schema(schema, kind, variant))
-                    .map(InlineOrRef::Inline)
-                    .collect();
-                CompositeSchema::OneOf { subschemas }
-            }
         };
 
         assert!(self.components.schemas.insert(name, schema).is_none());
         schema_ref
+    }
+
+    fn enum_to_schema(
+        &mut self,
+        schema: &crate::Schema,
+        kind: Kind,
+        adt: &crate::Enum,
+    ) -> CompositeSchema {
+        assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
+
+        let subschemas = adt
+            .variants()
+            .map(|variant| self.variant_to_schema(schema, kind, variant))
+            .map(InlineOrRef::Inline)
+            .collect();
+        CompositeSchema::OneOf { subschemas }
     }
 
     fn variant_to_schema(
@@ -157,6 +167,10 @@ impl Converter {
         kind: Kind,
         strukt: &crate::Struct,
     ) -> Schema {
+        assert!(
+            strukt.parameters.is_empty(),
+            "expect generic strukt to be instantiated"
+        );
         let ty = Type::Object {
             properties: BTreeMap::from_iter(strukt.fields().map(|field| {
                 (field.serde_name().to_owned(), {
