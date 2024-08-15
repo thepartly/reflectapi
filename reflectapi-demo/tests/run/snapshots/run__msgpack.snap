@@ -1,0 +1,37 @@
+---
+source: reflectapi-demo/tests/run/main.rs
+expression: pretty
+---
+HTTP/1.1 200 OK
+
+content-length: 1
+content-type: application/msgpack
+
+{}
+
+
+HTTP/1.1 200 OK
+
+content-length: 1
+content-type: application/msgpack
+traceparent: blah
+
+{}
+
+
+HTTP/1.1 200 OK
+
+content-length: 45
+content-type: application/msgpack
+traceparent: blah
+
+{
+  "cursor": "255",
+  "items": [
+    {
+      "age": 1,
+      "kind": "dog",
+      "name": "Bobby"
+    }
+  ]
+}

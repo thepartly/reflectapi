@@ -4,13 +4,54 @@ use crate::{Function, Schema, Struct};
 
 pub struct HandlerInput {
     pub body: bytes::Bytes,
-    pub headers: std::collections::HashMap<String, String>,
+    pub headers: http::HeaderMap,
 }
 
 pub struct HandlerOutput {
     pub code: http::StatusCode,
     pub body: bytes::Bytes,
-    pub headers: std::collections::HashMap<String, String>,
+    pub headers: http::HeaderMap,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ContentType {
+    Json,
+    #[cfg(feature = "msgpack")]
+    MessagePack,
+}
+
+impl TryFrom<&http::HeaderMap> for ContentType {
+    type Error = ();
+
+    fn try_from(value: &http::HeaderMap) -> Result<Self, Self::Error> {
+        match value.get("content-type") {
+            Some(v) => ContentType::try_from(v),
+            None => Ok(ContentType::Json),
+        }
+    }
+}
+
+impl TryFrom<&http::HeaderValue> for ContentType {
+    type Error = ();
+
+    fn try_from(v: &http::HeaderValue) -> Result<Self, Self::Error> {
+        match v.as_bytes() {
+            b"application/json" => Ok(ContentType::Json),
+            #[cfg(feature = "msgpack")]
+            b"application/msgpack" => Ok(ContentType::MessagePack),
+            _ => Err(()),
+        }
+    }
+}
+
+impl From<ContentType> for http::HeaderValue {
+    fn from(t: ContentType) -> http::HeaderValue {
+        http::HeaderValue::from_static(match t {
+            ContentType::Json => "application/json",
+            #[cfg(feature = "msgpack")]
+            ContentType::MessagePack => "application/msgpack",
+        })
+    }
 }
 
 pub type HandlerFuture =
@@ -126,10 +167,32 @@ where
         R: Into<crate::Result<O, E>>,
     {
         let mut input_headers = input.headers;
-        let input_parsed = if !input.body.is_empty() {
-            serde_json::from_slice::<I>(input.body.as_ref())
-        } else {
-            serde_json::from_value::<I>(serde_json::Value::Object(serde_json::Map::new()))
+
+        let content_type = match ContentType::try_from(&input_headers) {
+            Ok(t) => t,
+            Err(_) => {
+                return HandlerOutput {
+                    code: http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                    body: "Unsupported content type".into(),
+                    headers: Default::default(),
+                };
+            }
+        };
+
+        let input_parsed = match content_type {
+            ContentType::Json => if !input.body.is_empty() {
+                serde_json::from_slice::<I>(input.body.as_ref())
+            } else {
+                serde_json::from_value::<I>(serde_json::Value::Object(serde_json::Map::new()))
+            }
+            .map_err(|err| err.to_string()),
+            #[cfg(feature = "msgpack")]
+            ContentType::MessagePack => if !input.body.is_empty() {
+                rmp_serde::from_read::<_, I>(input.body.as_ref())
+            } else {
+                rmp_serde::from_slice::<I>(&[0x80])
+            }
+            .map_err(|err| err.to_string()),
         };
 
         let input = match input_parsed {
@@ -139,29 +202,38 @@ where
                     code: http::StatusCode::BAD_REQUEST,
                     body: bytes::Bytes::from(
                         format!(
-                            "Failed to parse request body: {}, received: {:?}",
-                            err, input.body
+                            "Failed to parse request body: {err}, received: {:?}",
+                            input.body
                         )
                         .into_bytes(),
                     ),
-                    headers: std::collections::HashMap::new(),
+                    headers: Default::default(),
                 };
             }
         };
 
-        let mut response_headers = std::collections::HashMap::new();
-        // for now it is only json but we will add messagepack in the future depending on the request content type
-        response_headers.insert("content-type".to_string(), "application/json".to_string());
+        let mut response_headers = http::HeaderMap::new();
+        // Respond in the same format as the request
+        response_headers.insert("content-type", content_type.into());
 
         let mut headers_as_json_map = serde_json::Map::new();
+        let mut current_header_name = None;
         for (header_name, header_value) in input_headers.drain() {
+            let header_name = match header_name {
+                Some(header_name) => {
+                    current_header_name = Some(header_name.clone());
+                    header_name
+                }
+                None => current_header_name.as_ref().cloned().unwrap(),
+            };
+
             if header_name == "traceparent" {
-                response_headers.insert("traceparent".to_string(), header_value.clone());
-            } else if header_name == "content-type" {
-                // TODO will be relevant when we add messagepack support
-                // response_headers.insert("content-type".to_string(), header_value.clone());
+                response_headers.insert("traceparent", header_value.clone());
             } else {
-                headers_as_json_map.insert(header_name, serde_json::Value::String(header_value));
+                headers_as_json_map.insert(
+                    header_name.to_string(),
+                    serde_json::Value::String(header_value.to_str().unwrap_or_default().to_owned()),
+                );
             }
         }
         let headers_as_json = serde_json::Value::Object(headers_as_json_map);
@@ -175,7 +247,7 @@ where
                     body: bytes::Bytes::from(
                         format!("Failed to parse request headers: {}", err).into_bytes(),
                     ),
-                    headers: std::collections::HashMap::new(),
+                    headers: Default::default(),
                 };
             }
         };
@@ -183,15 +255,23 @@ where
         let output = handler(state, input, input_headers).await;
         let output: crate::Result<O, E> = output.into();
 
-        let output_serialized = serde_json::to_vec(&output);
+        let output_serialized = match content_type {
+            ContentType::Json => serde_json::to_vec_pretty(&output).map_err(|err| err.to_string()),
+            #[cfg(feature = "msgpack")]
+            ContentType::MessagePack => {
+                rmp_serde::to_vec_named(&output).map_err(|err| err.to_string())
+            }
+        };
+
         let output_serialized = match output_serialized {
             Ok(r) => r,
             Err(err) => {
-                response_headers.insert("content-type".to_string(), "text/plain".to_string());
+                response_headers
+                    .insert("content-type", http::HeaderValue::from_static("text/plain"));
                 return HandlerOutput {
                     code: http::StatusCode::INTERNAL_SERVER_ERROR,
                     body: bytes::Bytes::from(
-                        format!("Failed to serialize response body: {}", err).into_bytes(),
+                        format!("Failed to serialize response body: {err}").into_bytes(),
                     ),
                     headers: response_headers,
                 };

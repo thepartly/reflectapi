@@ -1,0 +1,20 @@
+GET http://localhost:3000/health.check
+Content-Type:  application/msgpack
+
+###
+
+POST http://localhost:3000/pets.create
+Content-Type:  application/msgpack
+Authorization: password
+traceparent:   blah
+
+{"name":"Bobby","kind":"dog","age":1,"behaviors":[]}
+
+###
+
+GET http://localhost:3000/pets.list
+Content-Type: application/msgpack
+Authorization: password
+traceparent: blah
+
+{}

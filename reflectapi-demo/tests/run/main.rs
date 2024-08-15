@@ -15,15 +15,51 @@ async fn run(path: &datatest_stable::Utf8Path) -> datatest_stable::Result<()> {
     let mut app = reflectapi::axum::into_router(Default::default(), router, |_name, r| r);
 
     let mut pretty = String::new();
-    for req in reqs {
+    for mut req in reqs {
+        let content_type = reflectapi::ContentType::try_from(req.headers()).unwrap();
+
+        match content_type {
+            reflectapi::ContentType::Json => {}
+            reflectapi::ContentType::MessagePack => {
+                // For msgpack requests the file still contains json, so we need to convert it.
+                let body = std::mem::take(req.body_mut());
+                let bytes = axum::body::to_bytes(body, 10000).await?;
+                if !bytes.is_empty() {
+                    let value = serde_json::from_slice::<serde_json::Value>(&bytes).unwrap();
+                    let bytes = rmp_serde::to_vec_named(&value).unwrap();
+                    *req.body_mut() = axum::body::Body::from(bytes);
+                }
+            }
+        }
+
         let response = app.call(req).await?;
 
         let (parts, body) = response.into_parts();
-        let body = axum::body::to_bytes(body, 10000).await?;
+        let body: Vec<u8> = axum::body::to_bytes(body, 10000).await?.into();
+
+        let value = match content_type {
+            reflectapi::ContentType::Json => {
+                assert_eq!(
+                    parts.headers.get("content-type"),
+                    Some(&http::HeaderValue::from_static("application/json"))
+                );
+
+                serde_json::from_slice::<serde_json::Value>(&body[..]).unwrap()
+            }
+            reflectapi::ContentType::MessagePack => {
+                // Convert msgpack response to json for pretty printing.
+                assert_eq!(
+                    parts.headers.get("content-type"),
+                    Some(&http::HeaderValue::from_static("application/msgpack"))
+                );
+
+                rmp_serde::from_read::<_, serde_json::Value>(&body[..]).unwrap()
+            }
+        };
 
         let response = ResponsePretty {
             parts,
-            body: String::from_utf8_lossy(&body).to_string(),
+            body: serde_json::to_string_pretty(&value).unwrap(),
         };
 
         pretty.push_str(&format!("{response}\n\n"));
