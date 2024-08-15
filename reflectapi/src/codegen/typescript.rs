@@ -1149,7 +1149,7 @@ fn build_implemented_types() -> HashMap<String, String> {
     implemented_types.insert("bool".into(), "boolean".into());
     implemented_types.insert("char".into(), "string".into());
     implemented_types.insert("std::string::String".into(), "string".into());
-    implemented_types.insert("()".into(), "null".into());
+    implemented_types.insert("unit".into(), "null".into());
 
     // warning: all generic type parameter names should match reflect defnition coming from
     // the implementation of reflect for standard types

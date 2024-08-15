@@ -872,7 +872,7 @@ impl Struct {
 
         self.fields.len() == 1
             && first_field.name() == "0"
-            && first_field.type_ref.name == "()"
+            && first_field.type_ref.name == "unit"
             && !first_field.required
     }
 
@@ -886,7 +886,7 @@ impl Struct {
     }
 
     /// Return a new `Struct` with each type parameter substituted with a type
-    pub fn instantiate(self, type_args: &[TypeReference]) -> Self {
+    pub(crate) fn instantiate(self, type_args: &[TypeReference]) -> Self {
         assert_eq!(
             self.parameters.len(),
             type_args.len(),
@@ -1099,7 +1099,7 @@ impl Enum {
     }
 
     /// Return a new `Enum` with each type parameter substituted with a type
-    pub fn instantiate(self, type_args: &[TypeReference]) -> Self {
+    pub(crate) fn instantiate(self, type_args: &[TypeReference]) -> Self {
         assert_eq!(
             self.parameters.len(),
             type_args.len(),

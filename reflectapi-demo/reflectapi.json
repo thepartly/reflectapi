@@ -444,11 +444,6 @@
     "types": [
       {
         "kind": "primitive",
-        "name": "()",
-        "description": "Unit type"
-      },
-      {
-        "kind": "primitive",
         "name": "f64",
         "description": "64-bit floating point number"
       },
@@ -665,7 +660,7 @@
           {
             "name": "0",
             "type": {
-              "name": "()"
+              "name": "unit"
             }
           }
         ]
@@ -728,6 +723,11 @@
         "kind": "primitive",
         "name": "u8",
         "description": "8-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "unit",
+        "description": "Unit type"
       }
     ]
   }

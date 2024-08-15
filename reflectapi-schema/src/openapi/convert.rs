@@ -138,8 +138,7 @@ impl Converter {
                     | "u64" | "u128" | "usize" => Type::Integer,
                     "bool" => Type::Boolean,
                     "char" | "std::string::String" => Type::String,
-                    // Think "()" should be renamed to `unit` or `Unit` so it has an alphanumeric name.
-                    "std::marker::PhantomData" | "()" => Type::Null,
+                    "std::marker::PhantomData" | "unit" => Type::Null,
                     // Maybe there is a better repr of hashsets?
                     "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
                         Type::Array {
@@ -263,10 +262,6 @@ impl Converter {
 /// Format type reference to string that only includes [a-zA-Z0-9-_]
 fn mangle(ty: &crate::TypeReference) -> String {
     fn normalize(name: &str) -> String {
-        if name == "()" {
-            return "Unit".into();
-        }
-
         name.replace("::", ".")
     }
 

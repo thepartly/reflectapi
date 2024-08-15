@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
+expression: schema
 ---
 {
   "name": "",
@@ -21,11 +21,6 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
   ],
   "input_types": {
     "types": [
-      {
-        "kind": "primitive",
-        "name": "()",
-        "description": "Unit type"
-      },
       {
         "kind": "primitive",
         "name": "bool",
@@ -215,7 +210,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
           {
             "name": "_f_unit",
             "type": {
-              "name": "()"
+              "name": "unit"
             },
             "required": true
           },
@@ -1252,6 +1247,11 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
       },
       {
         "kind": "primitive",
+        "name": "unit",
+        "description": "Unit type"
+      },
+      {
+        "kind": "primitive",
         "name": "usize",
         "description": "Machine-specific-bit unsigned integer",
         "fallback": {
@@ -1262,11 +1262,6 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
   },
   "output_types": {
     "types": [
-      {
-        "kind": "primitive",
-        "name": "()",
-        "description": "Unit type"
-      },
       {
         "kind": "primitive",
         "name": "bool",
@@ -1451,7 +1446,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
           {
             "name": "_f_unit",
             "type": {
-              "name": "()"
+              "name": "unit"
             },
             "required": true
           },
@@ -2485,6 +2480,11 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
         "kind": "primitive",
         "name": "u8",
         "description": "8-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "unit",
+        "description": "Unit type"
       },
       {
         "kind": "primitive",

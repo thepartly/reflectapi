@@ -41,10 +41,6 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "Unit": {
-        "description": "Unit type",
-        "type": "null"
-      },
       "bool": {
         "description": "Boolean value",
         "type": "boolean"
@@ -214,7 +210,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "$ref": "#/components/schemas/u8"
           },
           "_f_unit": {
-            "$ref": "#/components/schemas/Unit"
+            "$ref": "#/components/schemas/unit"
           },
           "_f_usize": {
             "$ref": "#/components/schemas/usize"
@@ -594,6 +590,10 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
       "u8": {
         "description": "8-bit unsigned integer",
         "type": "integer"
+      },
+      "unit": {
+        "description": "Unit type",
+        "type": "null"
       },
       "usize": {
         "description": "Machine-specific-bit unsigned integer",
