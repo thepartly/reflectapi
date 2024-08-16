@@ -48,6 +48,9 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "properties": {
               "field_name": {
                 "$ref": "#/components/schemas/u8"
+              },
+              "type": {
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           },
@@ -56,10 +59,20 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "properties": {
               "0": {
                 "$ref": "#/components/schemas/u8"
+              },
+              "type": {
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           }
-        ]
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
       },
       "u8": {
         "description": "8-bit unsigned integer",

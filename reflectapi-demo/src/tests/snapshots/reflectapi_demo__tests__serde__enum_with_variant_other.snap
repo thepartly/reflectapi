@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super::into_schema::<TestEnumWithVariantOther>()"
+expression: schema
 ---
 {
   "name": "",

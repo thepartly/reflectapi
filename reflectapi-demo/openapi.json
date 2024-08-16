@@ -179,27 +179,42 @@
         "oneOf": [
           {
             "type": "object",
-            "properties": {}
-          },
-          {
-            "type": "object",
             "properties": {
-              "0": {
-                "$ref": "#/components/schemas/f64"
-              },
-              "1": {
-                "$ref": "#/components/schemas/std.string.String"
+              "Calm": {
+                "type": "object",
+                "properties": {}
               }
             }
           },
           {
             "type": "object",
             "properties": {
-              "description": {
-                "$ref": "#/components/schemas/std.string.String"
-              },
-              "notes": {
-                "$ref": "#/components/schemas/std.string.String"
+              "Aggressive": {
+                "type": "object",
+                "properties": {
+                  "0": {
+                    "$ref": "#/components/schemas/f64"
+                  },
+                  "1": {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "properties": {
+              "Other": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "$ref": "#/components/schemas/std.string.String"
+                  },
+                  "notes": {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                }
               }
             }
           }
@@ -208,14 +223,24 @@
       "myapi.model.Kind": {
         "oneOf": [
           {
-            "description": " A dog",
             "type": "object",
-            "properties": {}
+            "properties": {
+              "dog": {
+                "description": " A dog",
+                "type": "object",
+                "properties": {}
+              }
+            }
           },
           {
-            "description": " A cat",
             "type": "object",
-            "properties": {}
+            "properties": {
+              "cat": {
+                "description": " A cat",
+                "type": "object",
+                "properties": {}
+              }
+            }
           }
         ]
       },

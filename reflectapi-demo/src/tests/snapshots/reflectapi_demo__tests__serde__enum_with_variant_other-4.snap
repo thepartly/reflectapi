@@ -45,9 +45,20 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         "oneOf": [
           {
             "type": "object",
-            "properties": {}
+            "properties": {
+              "type": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
           }
-        ]
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
       }
     }
   }

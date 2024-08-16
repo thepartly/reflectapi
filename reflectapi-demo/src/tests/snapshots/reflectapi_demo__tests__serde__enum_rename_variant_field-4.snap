@@ -46,16 +46,26 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           {
             "type": "object",
             "properties": {
-              "variant1_field_name": {
-                "$ref": "#/components/schemas/u8"
+              "Variant1": {
+                "type": "object",
+                "properties": {
+                  "variant1_field_name": {
+                    "$ref": "#/components/schemas/u8"
+                  }
+                }
               }
             }
           },
           {
             "type": "object",
             "properties": {
-              "variant2_field_name": {
-                "$ref": "#/components/schemas/u8"
+              "Variant2": {
+                "type": "object",
+                "properties": {
+                  "variant2_field_name": {
+                    "$ref": "#/components/schemas/u8"
+                  }
+                }
               }
             }
           }

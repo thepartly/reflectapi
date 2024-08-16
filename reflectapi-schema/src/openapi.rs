@@ -104,8 +104,17 @@ pub enum CompositeSchema {
     OneOf {
         #[serde(rename = "oneOf")]
         subschemas: Vec<InlineOrRef<Schema>>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        discriminator: Option<Discriminator>,
     },
     Schema(Schema),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Discriminator {
+    /// Defines a discriminator property name which must be found within all composite objects.
+    pub property_name: String,
 }
 
 impl From<Schema> for CompositeSchema {
@@ -130,25 +139,6 @@ impl Schema {
                 properties: BTreeMap::new(),
             },
         }
-    }
-}
-
-#[derive(Serialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(untagged)]
-pub enum OneOrMany<T> {
-    One(Box<T>),
-    Many(Vec<T>),
-}
-
-impl<T> From<T> for OneOrMany<T> {
-    fn from(one: T) -> Self {
-        OneOrMany::One(Box::new(one))
-    }
-}
-
-impl<T> From<Vec<T>> for OneOrMany<T> {
-    fn from(many: Vec<T>) -> Self {
-        OneOrMany::Many(many)
     }
 }
 

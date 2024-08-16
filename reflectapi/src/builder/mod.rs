@@ -4,6 +4,7 @@ mod result;
 pub use handler::*;
 pub use result::*;
 
+#[derive(Debug)]
 pub struct Builder<S>
 where
     S: Send + 'static,
@@ -30,7 +31,7 @@ where
 {
     pub fn new() -> Self {
         Self {
-            schema: crate::Schema::new(),
+            schema: Default::default(),
             path: String::from(""),
             handlers: Vec::new(),
             merged_handlers: Vec::new(),

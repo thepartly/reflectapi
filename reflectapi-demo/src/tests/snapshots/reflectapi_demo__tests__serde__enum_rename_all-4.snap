@@ -45,7 +45,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         "oneOf": [
           {
             "type": "object",
-            "properties": {}
+            "properties": {
+              "fieldName": {
+                "type": "object",
+                "properties": {}
+              }
+            }
           }
         ]
       }

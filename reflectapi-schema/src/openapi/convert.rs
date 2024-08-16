@@ -103,15 +103,22 @@ impl Converter {
         }
 
         let reflect_ty = match kind {
-            Kind::Input => schema
-                .input_types
-                .get_type(&ty_ref.name)
-                .unwrap_or_else(|| panic!("input type not found: `{ty_ref:?}`")),
-            Kind::Output => &schema
-                .output_types
-                .get_type(&ty_ref.name)
-                .unwrap_or_else(|| panic!("output type not found: `{ty_ref:?}`")),
-        };
+            Kind::Input => schema.input_types.get_type(&ty_ref.name),
+            Kind::Output => schema.output_types.get_type(&ty_ref.name),
+        }
+        .unwrap_or_else(|| {
+            if ty_ref.name == "std::string::String" {
+                // FIXME HACK this type is used for the tag type, but may not exist in the schema
+                return Box::leak(Box::new(crate::Type::Primitive(crate::Primitive {
+                    name: "std::string::String".into(),
+                    description: "UTF-8 encoded string".into(),
+                    parameters: vec![],
+                    fallback: None,
+                })));
+            };
+
+            panic!("{kind:?} type not found: {ty_ref:?}",)
+        });
 
         let stub = CompositeSchema::Schema(Schema {
             description: "stub".into(),
@@ -210,19 +217,36 @@ impl Converter {
 
         let subschemas = adt
             .variants()
-            .map(|variant| self.variant_to_schema(schema, kind, variant))
+            .map(|variant| self.variant_to_schema(schema, kind, adt, variant))
             .map(InlineOrRef::Inline)
-            .collect();
-        CompositeSchema::OneOf { subschemas }
+            .collect::<Vec<_>>();
+
+        match adt.representation() {
+            crate::Representation::Internal { tag } => CompositeSchema::OneOf {
+                subschemas,
+                discriminator: Some(Discriminator {
+                    property_name: tag.to_owned(),
+                }),
+            },
+            crate::Representation::External
+            | crate::Representation::Adjacent { .. }
+            | crate::Representation::None => CompositeSchema::OneOf {
+                subschemas,
+                discriminator: None,
+            },
+        }
     }
 
     fn variant_to_schema(
         &mut self,
         schema: &crate::Schema,
         kind: Kind,
+        adt: &crate::Enum,
         variant: &crate::Variant,
     ) -> Schema {
-        let strukt = crate::Struct {
+        assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
+
+        let mut strukt = crate::Struct {
             name: variant.name().to_owned(),
             serde_name: variant.serde_name.to_owned(),
             description: variant.description().to_owned(),
@@ -230,6 +254,53 @@ impl Converter {
             fields: variant.fields.clone(),
             transparent: false,
         };
+
+        match adt.representation() {
+            crate::Representation::External => {
+                return Schema {
+                    description: "".to_owned(),
+                    ty: Type::Object {
+                        properties: BTreeMap::from_iter([(
+                            variant.serde_name().to_owned(),
+                            InlineOrRef::Inline(self.struct_to_schema(schema, kind, &strukt)),
+                        )]),
+                    },
+                };
+            }
+            crate::Representation::Adjacent { tag, content } => {
+                return Schema {
+                    description: "".to_owned(),
+                    ty: Type::Object {
+                        properties: BTreeMap::from_iter([
+                            (
+                                tag.to_owned(),
+                                InlineOrRef::Inline(Schema {
+                                    description: "".to_owned(),
+                                    ty: Type::String,
+                                }),
+                            ),
+                            (
+                                content.to_owned(),
+                                InlineOrRef::Inline(self.struct_to_schema(schema, kind, &strukt)),
+                            ),
+                        ]),
+                    },
+                };
+            }
+            crate::Representation::Internal { tag } => {
+                strukt.fields.push(crate::Field {
+                    name: tag.to_owned(),
+                    serde_name: tag.to_owned(),
+                    description: "tag".to_owned(),
+                    type_ref: crate::TypeReference::new("std::string::String".into(), vec![]),
+                    required: true,
+                    flattened: false,
+                    transform_callback: String::new(),
+                    transform_callback_fn: None,
+                });
+            }
+            crate::Representation::None => {}
+        }
 
         self.struct_to_schema(schema, kind, &strukt)
     }

@@ -46,8 +46,13 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           {
             "type": "object",
             "properties": {
-              "0": {
-                "$ref": "#/components/schemas/u8"
+              "Variant1": {
+                "type": "object",
+                "properties": {
+                  "0": {
+                    "$ref": "#/components/schemas/u8"
+                  }
+                }
               }
             }
           }
