@@ -18,7 +18,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithAttributes"
+                "$ref": "#/components/schemas/u8"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithAttributes"
+                  "$ref": "#/components/schemas/u8"
                 }
               }
             }
@@ -41,14 +41,6 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructWithAttributes": {
-        "type": "array",
-        "prefixItems": [
-          {
-            "$ref": "#/components/schemas/u8"
-          }
-        ]
-      },
       "u8": {
         "description": "8-bit unsigned integer",
         "type": "integer"

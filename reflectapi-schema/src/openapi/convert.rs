@@ -126,11 +126,20 @@ impl Converter {
         }
 
         let schema = match reflect_ty {
-            crate::Type::Struct(strukt) => Schema::Flat(self.struct_to_schema(
+            crate::Type::Struct(strukt) => match self.struct_to_schema(
                 schema,
                 kind,
                 &strukt.clone().instantiate(&ty_ref.arguments),
-            )),
+            ) {
+                InlineOrRef::Inline(schema) => schema,
+                InlineOrRef::Ref(r) => {
+                    assert!(
+                        self.components.schemas.remove(&name).is_some(),
+                        "remove stub"
+                    );
+                    return InlineOrRef::Ref(r);
+                }
+            },
             crate::Type::Enum(adt) => {
                 if adt.name == "std::option::Option" {
                     // Special case `Option` to generate a nicer spec.
@@ -145,7 +154,20 @@ impl Converter {
                         discriminator: None,
                     }
                 } else {
-                    self.enum_to_schema(schema, kind, &adt.clone().instantiate(&ty_ref.arguments))
+                    match self.enum_to_schema(
+                        schema,
+                        kind,
+                        &adt.clone().instantiate(&ty_ref.arguments),
+                    ) {
+                        InlineOrRef::Inline(schema) => schema,
+                        InlineOrRef::Ref(r) => {
+                            assert!(
+                                self.components.schemas.remove(&name).is_some(),
+                                "remove stub"
+                            );
+                            return InlineOrRef::Ref(r);
+                        }
+                    }
                 }
             }
             crate::Type::Primitive(prim) => {
@@ -227,17 +249,20 @@ impl Converter {
         }
     }
 
-    fn enum_to_schema(&mut self, schema: &crate::Schema, kind: Kind, adt: &crate::Enum) -> Schema {
+    fn enum_to_schema(
+        &mut self,
+        schema: &crate::Schema,
+        kind: Kind,
+        adt: &crate::Enum,
+    ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
         let subschemas = adt
             .variants()
             .map(|variant| self.variant_to_schema(schema, kind, adt, variant))
-            .map(Schema::Flat)
-            .map(InlineOrRef::Inline)
             .collect::<Vec<_>>();
 
-        match adt.representation() {
+        let schema = match adt.representation() {
             crate::Representation::Internal { tag } => Schema::OneOf {
                 subschemas,
                 discriminator: Some(Discriminator {
@@ -250,7 +275,9 @@ impl Converter {
                 subschemas,
                 discriminator: None,
             },
-        }
+        };
+
+        InlineOrRef::Inline(schema)
     }
 
     fn variant_to_schema(
@@ -259,7 +286,7 @@ impl Converter {
         kind: Kind,
         adt: &crate::Enum,
         variant: &crate::Variant,
-    ) -> FlatSchema {
+    ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
         let mut strukt = crate::Struct {
@@ -273,42 +300,44 @@ impl Converter {
 
         match adt.representation() {
             crate::Representation::External => {
-                return FlatSchema {
-                    description: "".to_owned(),
-                    ty: Type::Object {
-                        properties: BTreeMap::from_iter([(
-                            variant.serde_name().to_owned(),
-                            InlineOrRef::Inline(
-                                self.struct_to_schema(schema, kind, &strukt).into(),
-                            ),
-                        )]),
-                    },
-                };
+                return InlineOrRef::Inline(
+                    FlatSchema {
+                        description: "".to_owned(),
+                        ty: Type::Object {
+                            properties: BTreeMap::from([(
+                                variant.serde_name().to_owned(),
+                                self.struct_to_schema(schema, kind, &strukt),
+                            )]),
+                        },
+                    }
+                    .into(),
+                );
             }
             crate::Representation::Adjacent { tag, content } => {
-                return FlatSchema {
-                    description: "".to_owned(),
-                    ty: Type::Object {
-                        properties: BTreeMap::from_iter([
-                            (
-                                tag.to_owned(),
-                                InlineOrRef::Inline(
-                                    FlatSchema {
-                                        description: "".to_owned(),
-                                        ty: Type::String,
-                                    }
-                                    .into(),
+                return InlineOrRef::Inline(
+                    FlatSchema {
+                        description: "".to_owned(),
+                        ty: Type::Object {
+                            properties: BTreeMap::from([
+                                (
+                                    tag.to_owned(),
+                                    InlineOrRef::Inline(
+                                        FlatSchema {
+                                            description: "".to_owned(),
+                                            ty: Type::String,
+                                        }
+                                        .into(),
+                                    ),
                                 ),
-                            ),
-                            (
-                                content.to_owned(),
-                                InlineOrRef::Inline(
-                                    self.struct_to_schema(schema, kind, &strukt).into(),
+                                (
+                                    content.to_owned(),
+                                    self.struct_to_schema(schema, kind, &strukt),
                                 ),
-                            ),
-                        ]),
-                    },
-                };
+                            ]),
+                        },
+                    }
+                    .into(),
+                );
             }
             crate::Representation::Internal { tag } => {
                 strukt.fields.push(crate::Field {
@@ -333,19 +362,27 @@ impl Converter {
         schema: &crate::Schema,
         kind: Kind,
         strukt: &crate::Struct,
-    ) -> FlatSchema {
+    ) -> InlineOrRef<Schema> {
         assert!(
             strukt.parameters.is_empty(),
             "expect generic struct to be instantiated"
         );
 
+        if strukt.transparent() {
+            assert_eq!(strukt.fields().len(), 1);
+            return self.convert_type_ref(schema, kind, strukt.fields[0].type_ref());
+        }
+
         let ty = if strukt.fields().all(|f| f.is_named()) {
             Type::Object {
-                properties: BTreeMap::from_iter(strukt.fields().map(|field| {
-                    (field.serde_name().to_owned(), {
-                        self.convert_type_ref(schema, kind, field.type_ref())
+                properties: strukt
+                    .fields()
+                    .map(|field| {
+                        (field.serde_name().to_owned(), {
+                            self.convert_type_ref(schema, kind, field.type_ref())
+                        })
                     })
-                })),
+                    .collect(),
             }
         } else {
             Type::Tuple {
@@ -356,10 +393,13 @@ impl Converter {
             }
         };
 
-        FlatSchema {
-            description: strukt.description().to_owned(),
-            ty,
-        }
+        InlineOrRef::Inline(
+            FlatSchema {
+                description: strukt.description().to_owned(),
+                ty,
+            }
+            .into(),
+        )
     }
 }
 

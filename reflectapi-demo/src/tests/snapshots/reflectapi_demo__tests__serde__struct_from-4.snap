@@ -18,7 +18,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructFromProxy"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructFrom"
               }
             }
           },
@@ -50,12 +50,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         }
       },
       "reflectapi_demo.tests.serde.TestStructFromProxy": {
-        "type": "array",
-        "prefixItems": [
-          {
-            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructFrom"
+        "type": "object",
+        "properties": {
+          "f": {
+            "$ref": "#/components/schemas/u8"
           }
-        ]
+        }
       },
       "u8": {
         "description": "8-bit unsigned integer",
