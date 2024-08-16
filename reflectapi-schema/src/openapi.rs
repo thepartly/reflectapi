@@ -78,6 +78,9 @@ pub enum Type {
     String,
     Array {
         items: Box<InlineOrRef<Schema>>,
+        #[serde(rename = "uniqueItems")]
+        #[serde(skip_serializing_if = "std::ops::Not::not")]
+        unique_items: bool,
     },
     #[serde(rename = "array")]
     Tuple {

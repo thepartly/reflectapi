@@ -25,7 +25,8 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
                     "type": "array",
                     "items": {
                       "$ref": "#/components/schemas/std.string.String"
-                    }
+                    },
+                    "uniqueItems": true
                   }
                 }
               }
@@ -46,7 +47,8 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/std.string.String"
-                      }
+                      },
+                      "uniqueItems": true
                     }
                   }
                 }

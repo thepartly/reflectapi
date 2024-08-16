@@ -157,7 +157,6 @@ impl Converter {
                     "bool" => Type::Boolean,
                     "char" | "std::string::String" => Type::String,
                     "std::marker::PhantomData" | "unit" => Type::Null,
-                    // Maybe there is a better repr of hashsets?
                     "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
                         Type::Array {
                             items: Box::new(self.convert_type_ref(
@@ -165,6 +164,7 @@ impl Converter {
                                 kind,
                                 ty_ref.arguments().next().unwrap(),
                             )),
+                            unique_items: prim.name() == "std::collections::HashSet",
                         }
                     }
                     // Treat as transparent wrappers? Not sure why these types are relevant to an API anyway @Andrey?
@@ -202,8 +202,9 @@ impl Converter {
                             .map(|arg| self.convert_type_ref(schema, kind, arg))
                             .collect(),
                     },
-                    _ => todo!("primitive: {}", prim.name()),
+                    _ => unimplemented!("primitive: {}", prim.name()),
                 };
+
                 Schema::Flat(FlatSchema {
                     description: reflect_ty.description().to_owned(),
                     ty,
@@ -362,6 +363,7 @@ impl Converter {
     }
 }
 
+// OpenAPI doesn't allow `:`
 fn normalize(name: &str) -> String {
     name.replace("::", ".")
 }

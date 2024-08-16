@@ -120,7 +120,8 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/u8"
-            }
+            },
+            "uniqueItems": true
           },
           "_f_i128": {
             "$ref": "#/components/schemas/i128"

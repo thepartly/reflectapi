@@ -106,8 +106,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     };
 
     if config.typecheck {
-        // TMP
-        // typecheck(&generated_code)?;
+        typecheck(&generated_code)?;
     }
 
     Ok(generated_code)

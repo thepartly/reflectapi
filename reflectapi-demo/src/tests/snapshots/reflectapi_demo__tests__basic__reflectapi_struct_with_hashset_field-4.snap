@@ -49,7 +49,8 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/u8"
-            }
+            },
+            "uniqueItems": true
           }
         }
       },
