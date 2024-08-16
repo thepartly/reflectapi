@@ -4,8 +4,7 @@
 // with `openapi` constructs of the same name.
 //
 // Since `reflectapi` has a richer type system than `openapi`, the conversion is not perfect.
-// Generics are effectively monomorphized so each instantiation of a generic type is treated as a
-// separate type in openapi.
+// Generics are effectively monomorphized i.e. each instantiation of a generic type is inlined.
 
 use super::*;
 
@@ -336,14 +335,24 @@ impl Converter {
     ) -> FlatSchema {
         assert!(
             strukt.parameters.is_empty(),
-            "expect generic strukt to be instantiated"
+            "expect generic struct to be instantiated"
         );
-        let ty = Type::Object {
-            properties: BTreeMap::from_iter(strukt.fields().map(|field| {
-                (field.serde_name().to_owned(), {
-                    self.convert_type_ref(schema, kind, field.type_ref())
-                })
-            })),
+
+        let ty = if strukt.fields().all(|f| f.is_named()) {
+            Type::Object {
+                properties: BTreeMap::from_iter(strukt.fields().map(|field| {
+                    (field.serde_name().to_owned(), {
+                        self.convert_type_ref(schema, kind, field.type_ref())
+                    })
+                })),
+            }
+        } else {
+            Type::Tuple {
+                prefix_items: strukt
+                    .fields()
+                    .map(|field| self.convert_type_ref(schema, kind, field.type_ref()))
+                    .collect(),
+            }
         };
 
         FlatSchema {

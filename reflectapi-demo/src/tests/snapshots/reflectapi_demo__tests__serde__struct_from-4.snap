@@ -50,12 +50,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         }
       },
       "reflectapi_demo.tests.serde.TestStructFromProxy": {
-        "type": "object",
-        "properties": {
-          "0": {
+        "type": "array",
+        "prefixItems": [
+          {
             "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructFrom"
           }
-        }
+        ]
       },
       "u8": {
         "description": "8-bit unsigned integer",

@@ -63,12 +63,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "type": "object",
             "properties": {
               "content": {
-                "type": "object",
-                "properties": {
-                  "0": {
+                "type": "array",
+                "prefixItems": [
+                  {
                     "$ref": "#/components/schemas/u8"
                   }
-                }
+                ]
               },
               "type": {
                 "type": "string"

@@ -42,12 +42,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   "components": {
     "schemas": {
       "reflectapi_demo.tests.basic.TestStructUnitType": {
-        "type": "object",
-        "properties": {
-          "0": {
+        "type": "array",
+        "prefixItems": [
+          {
             "$ref": "#/components/schemas/unit"
           }
-        }
+        ]
       },
       "unit": {
         "description": "Unit type",

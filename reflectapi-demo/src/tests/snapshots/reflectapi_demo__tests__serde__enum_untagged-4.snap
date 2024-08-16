@@ -44,12 +44,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestEnumUntagged": {
         "oneOf": [
           {
-            "type": "object",
-            "properties": {
-              "0": {
+            "type": "array",
+            "prefixItems": [
+              {
                 "$ref": "#/components/schemas/u8"
               }
-            }
+            ]
           },
           {
             "type": "object",

@@ -222,15 +222,15 @@ expression: s
             "type": "object",
             "properties": {
               "Aggressive": {
-                "type": "object",
-                "properties": {
-                  "0": {
+                "type": "array",
+                "prefixItems": [
+                  {
                     "$ref": "#/components/schemas/f64"
                   },
-                  "1": {
+                  {
                     "$ref": "#/components/schemas/std.string.String"
                   }
-                }
+                ]
               }
             }
           },
@@ -306,12 +306,12 @@ expression: s
         }
       },
       "myapi.proto.PetsCreateRequest": {
-        "type": "object",
-        "properties": {
-          "0": {
+        "type": "array",
+        "prefixItems": [
+          {
             "$ref": "#/components/schemas/myapi.model.Pet"
           }
-        }
+        ]
       },
       "myapi.proto.PetsListRequest": {
         "type": "object",
@@ -365,12 +365,12 @@ expression: s
               },
               {
                 "description": "The value is provided and set to some value",
-                "type": "object",
-                "properties": {
-                  "0": {
+                "type": "array",
+                "prefixItems": [
+                  {
                     "$ref": "#/components/schemas/u8"
                   }
-                }
+                ]
               }
             ]
           },
@@ -388,16 +388,16 @@ expression: s
               },
               {
                 "description": "The value is provided and set to some value",
-                "type": "object",
-                "properties": {
-                  "0": {
+                "type": "array",
+                "prefixItems": [
+                  {
                     "description": "Expandable array type",
                     "type": "array",
                     "items": {
                       "$ref": "#/components/schemas/myapi.model.Behavior"
                     }
                   }
-                }
+                ]
               }
             ]
           },

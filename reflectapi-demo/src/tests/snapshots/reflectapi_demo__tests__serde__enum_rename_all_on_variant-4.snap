@@ -60,12 +60,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "type": "object",
             "properties": {
               "Variant2": {
-                "type": "object",
-                "properties": {
-                  "0": {
+                "type": "array",
+                "prefixItems": [
+                  {
                     "$ref": "#/components/schemas/u8"
                   }
-                }
+                ]
               }
             }
           }

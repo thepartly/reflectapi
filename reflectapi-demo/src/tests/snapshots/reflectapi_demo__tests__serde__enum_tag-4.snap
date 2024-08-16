@@ -55,15 +55,15 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             }
           },
           {
-            "type": "object",
-            "properties": {
-              "0": {
+            "type": "array",
+            "prefixItems": [
+              {
                 "$ref": "#/components/schemas/u8"
               },
-              "type": {
+              {
                 "$ref": "#/components/schemas/std.string.String"
               }
-            }
+            ]
           }
         ],
         "discriminator": {

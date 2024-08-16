@@ -42,12 +42,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   "components": {
     "schemas": {
       "reflectapi_demo.tests.serde.TestStructTryFormProxy": {
-        "type": "object",
-        "properties": {
-          "0": {
+        "type": "array",
+        "prefixItems": [
+          {
             "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructTryFrom"
           }
-        }
+        ]
       },
       "reflectapi_demo.tests.serde.TestStructTryFrom": {
         "type": "object",

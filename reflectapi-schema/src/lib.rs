@@ -991,6 +991,14 @@ impl Field {
         self.name.as_str()
     }
 
+    pub fn is_named(&self) -> bool {
+        !self.is_unnamed()
+    }
+
+    pub fn is_unnamed(&self) -> bool {
+        self.name.parse::<u64>().is_ok()
+    }
+
     pub fn serde_name(&self) -> &str {
         if self.serde_name.is_empty() {
             self.name.as_str()
