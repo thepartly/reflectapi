@@ -133,7 +133,21 @@ impl Converter {
                 &strukt.clone().instantiate(&ty_ref.arguments),
             )),
             crate::Type::Enum(adt) => {
-                self.enum_to_schema(schema, kind, &adt.clone().instantiate(&ty_ref.arguments))
+                if adt.name == "std::option::Option" {
+                    // Special case `Option` to generate a nicer spec.
+                    Schema::OneOf {
+                        subschemas: vec![
+                            InlineOrRef::Inline(Schema::Flat(FlatSchema {
+                                description: "Null".to_owned(),
+                                ty: Type::Null,
+                            })),
+                            self.convert_type_ref(schema, kind, ty_ref.arguments().next().unwrap()),
+                        ],
+                        discriminator: None,
+                    }
+                } else {
+                    self.enum_to_schema(schema, kind, &adt.clone().instantiate(&ty_ref.arguments))
+                }
             }
             crate::Type::Primitive(prim) => {
                 assert_eq!(ty_ref.arguments.len(), prim.parameters.len());
@@ -164,7 +178,7 @@ impl Converter {
                             ty_ref.arguments().next().unwrap(),
                         )
                     }
-                    // There is no way to express the key type in OpenAPI, so we assume it's always a string (unenforced).
+                    // There is no way to specify the key type in OpenAPI, so we assume it's always a string (unenforced).
                     "std::collections::HashMap" => Type::Map {
                         additional_properties: Box::new(self.convert_type_ref(
                             schema,

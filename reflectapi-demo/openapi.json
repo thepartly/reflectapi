@@ -71,18 +71,11 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "description": "The value is not provided, i.e. null",
-                      "type": "object",
-                      "properties": {}
+                      "description": "Null",
+                      "type": "null"
                     },
                     {
-                      "description": "The value is provided and set to some value",
-                      "type": "object",
-                      "properties": {
-                        "0": {
-                          "$ref": "#/components/schemas/myapi.model.Pet"
-                        }
-                      }
+                      "$ref": "#/components/schemas/myapi.model.Pet"
                     }
                   ]
                 }
@@ -118,18 +111,11 @@
                     "cursor": {
                       "oneOf": [
                         {
-                          "description": "The value is not provided, i.e. null",
-                          "type": "object",
-                          "properties": {}
+                          "description": "Null",
+                          "type": "null"
                         },
                         {
-                          "description": "The value is provided and set to some value",
-                          "type": "object",
-                          "properties": {
-                            "0": {
-                              "$ref": "#/components/schemas/std.string.String"
-                            }
-                          }
+                          "$ref": "#/components/schemas/std.string.String"
                         }
                       ]
                     },
@@ -292,18 +278,11 @@
           "age": {
             "oneOf": [
               {
-                "description": "The value is not provided, i.e. null",
-                "type": "object",
-                "properties": {}
+                "description": "Null",
+                "type": "null"
               },
               {
-                "description": "The value is provided and set to some value",
-                "type": "object",
-                "properties": {
-                  "0": {
-                    "$ref": "#/components/schemas/u8"
-                  }
-                }
+                "$ref": "#/components/schemas/u8"
               }
             ]
           },
@@ -336,36 +315,22 @@
           "cursor": {
             "oneOf": [
               {
-                "description": "The value is not provided, i.e. null",
-                "type": "object",
-                "properties": {}
+                "description": "Null",
+                "type": "null"
               },
               {
-                "description": "The value is provided and set to some value",
-                "type": "object",
-                "properties": {
-                  "0": {
-                    "$ref": "#/components/schemas/std.string.String"
-                  }
-                }
+                "$ref": "#/components/schemas/std.string.String"
               }
             ]
           },
           "limit": {
             "oneOf": [
               {
-                "description": "The value is not provided, i.e. null",
-                "type": "object",
-                "properties": {}
+                "description": "Null",
+                "type": "null"
               },
               {
-                "description": "The value is provided and set to some value",
-                "type": "object",
-                "properties": {
-                  "0": {
-                    "$ref": "#/components/schemas/u8"
-                  }
-                }
+                "$ref": "#/components/schemas/u8"
               }
             ]
           }
@@ -435,18 +400,11 @@
           "kind": {
             "oneOf": [
               {
-                "description": "The value is not provided, i.e. null",
-                "type": "object",
-                "properties": {}
+                "description": "Null",
+                "type": "null"
               },
               {
-                "description": "The value is provided and set to some value",
-                "type": "object",
-                "properties": {
-                  "0": {
-                    "$ref": "#/components/schemas/myapi.model.Kind"
-                  }
-                }
+                "$ref": "#/components/schemas/myapi.model.Kind"
               }
             ]
           },

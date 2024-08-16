@@ -47,18 +47,11 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "_f": {
             "oneOf": [
               {
-                "description": "The value is not provided, i.e. null",
-                "type": "object",
-                "properties": {}
+                "description": "Null",
+                "type": "null"
               },
               {
-                "description": "The value is provided and set to some value",
-                "type": "object",
-                "properties": {
-                  "0": {
-                    "$ref": "#/components/schemas/u8"
-                  }
-                }
+                "$ref": "#/components/schemas/u8"
               }
             ]
           }

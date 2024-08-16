@@ -55,18 +55,11 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "g": {
             "oneOf": [
               {
-                "description": "The value is not provided, i.e. null",
-                "type": "object",
-                "properties": {}
+                "description": "Null",
+                "type": "null"
               },
               {
-                "description": "The value is provided and set to some value",
-                "type": "object",
-                "properties": {
-                  "0": {
-                    "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
-                  }
-                }
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
               }
             ]
           }
