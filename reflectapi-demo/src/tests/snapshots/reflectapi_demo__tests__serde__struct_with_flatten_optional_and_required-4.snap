@@ -61,30 +61,27 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         "type": "object",
         "properties": {
           "g": {
-            "$ref": "#/components/schemas/std.option.Option__reflectapi_demo.tests.serde.TestStructWithFlattenNested__"
+            "oneOf": [
+              {
+                "description": "The value is not provided, i.e. null",
+                "type": "object",
+                "properties": {}
+              },
+              {
+                "description": "The value is provided and set to some value",
+                "type": "object",
+                "properties": {
+                  "0": {
+                    "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
+                  }
+                }
+              }
+            ]
           },
           "k": {
             "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAll"
           }
         }
-      },
-      "std.option.Option__reflectapi_demo.tests.serde.TestStructWithFlattenNested__": {
-        "oneOf": [
-          {
-            "description": "The value is not provided, i.e. null",
-            "type": "object",
-            "properties": {}
-          },
-          {
-            "description": "The value is provided and set to some value",
-            "type": "object",
-            "properties": {
-              "0": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
-              }
-            }
-          }
-        ]
       },
       "u8": {
         "description": "8-bit unsigned integer",

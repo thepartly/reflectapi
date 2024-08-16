@@ -49,25 +49,19 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         "type": "object",
         "properties": {
           "_f": {
-            "$ref": "#/components/schemas/std.vec.Vec__u8__"
+            "description": "Expandable array type",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/u8"
+            }
           },
           "_f2": {
-            "$ref": "#/components/schemas/std.vec.Vec__i8__"
+            "description": "Expandable array type",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/i8"
+            }
           }
-        }
-      },
-      "std.vec.Vec__i8__": {
-        "description": "Expandable array type",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/i8"
-        }
-      },
-      "std.vec.Vec__u8__": {
-        "description": "Expandable array type",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/u8"
         }
       },
       "u8": {

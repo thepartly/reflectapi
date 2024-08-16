@@ -45,15 +45,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         "type": "object",
         "properties": {
           "_f": {
-            "$ref": "#/components/schemas/std.collections.HashMap__u8____std.string.String__"
+            "description": "Key-value map type",
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/std.string.String"
+            }
           }
-        }
-      },
-      "std.collections.HashMap__u8____std.string.String__": {
-        "description": "Key-value map type",
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "#/components/schemas/std.string.String"
         }
       },
       "std.string.String": {

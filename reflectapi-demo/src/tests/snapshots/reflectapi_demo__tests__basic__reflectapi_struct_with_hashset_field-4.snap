@@ -45,15 +45,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         "type": "object",
         "properties": {
           "_f_hashset": {
-            "$ref": "#/components/schemas/std.collections.HashSet__u8__"
+            "description": "Value set type",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/u8"
+            }
           }
-        }
-      },
-      "std.collections.HashSet__u8__": {
-        "description": "Value set type",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/u8"
         }
       },
       "u8": {

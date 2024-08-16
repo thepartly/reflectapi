@@ -52,7 +52,7 @@ impl Converter {
                     // TODO msgpack
                     "application/json".to_owned(),
                     MediaType {
-                        schema: InlineOrRef::Ref(self.convert_type_ref(schema, Kind::Input, ty)),
+                        schema: self.convert_type_ref(schema, Kind::Input, ty),
                     },
                 )]),
                 required: true,
@@ -67,13 +67,7 @@ impl Converter {
                         MediaType {
                             schema: f.output_type().map_or_else(
                                 || InlineOrRef::Inline(Schema::empty_object()),
-                                |ty| {
-                                    InlineOrRef::Ref(self.convert_type_ref(
-                                        schema,
-                                        Kind::Output,
-                                        ty,
-                                    ))
-                                },
+                                |ty| self.convert_type_ref(schema, Kind::Output, ty),
                             ),
                         },
                     )]),
@@ -95,11 +89,11 @@ impl Converter {
         schema: &crate::Schema,
         kind: Kind,
         ty_ref: &crate::TypeReference,
-    ) -> Ref<Schema> {
-        let name = mangle(ty_ref);
-        let schema_ref = Ref::new(format!("#/components/schemas/{}", mangle(ty_ref)));
-        if let Some(_schema) = self.components.schemas.get(&name) {
-            return schema_ref;
+    ) -> InlineOrRef<Schema> {
+        let name = normalize(&ty_ref.name);
+        let schema_ref = Ref::new(format!("#/components/schemas/{name}"));
+        if self.components.schemas.contains_key(&name) {
+            return InlineOrRef::Ref(schema_ref);
         }
 
         let reflect_ty = match kind {
@@ -108,7 +102,7 @@ impl Converter {
         }
         .unwrap_or_else(|| {
             if ty_ref.name == "std::string::String" {
-                // FIXME HACK this type is used for the tag type, but may not exist in the schema
+                // FIXME HACK string type is used for the tag type, but may not exist in the schema
                 return Box::leak(Box::new(crate::Type::Primitive(crate::Primitive {
                     name: "std::string::String".into(),
                     description: "UTF-8 encoded string".into(),
@@ -120,17 +114,20 @@ impl Converter {
             panic!("{kind:?} type not found: {ty_ref:?}",)
         });
 
-        let stub = CompositeSchema::Schema(Schema {
+        let stub = Schema::Flat(FlatSchema {
             description: "stub".into(),
             ty: Type::Null,
         });
-        if !matches!(reflect_ty, crate::Type::Primitive(..)) {
+
+        if !matches!(reflect_ty, crate::Type::Primitive(_))
+            && reflect_ty.parameters().next().is_none()
+        {
             // Insert a stub definition so recursive types don't get stuck.
             self.components.schemas.insert(name.clone(), stub.clone());
         }
 
         let schema = match reflect_ty {
-            crate::Type::Struct(strukt) => CompositeSchema::Schema(self.struct_to_schema(
+            crate::Type::Struct(strukt) => Schema::Flat(self.struct_to_schema(
                 schema,
                 kind,
                 &strukt.clone().instantiate(&ty_ref.arguments),
@@ -139,6 +136,7 @@ impl Converter {
                 self.enum_to_schema(schema, kind, &adt.clone().instantiate(&ty_ref.arguments))
             }
             crate::Type::Primitive(prim) => {
+                assert_eq!(ty_ref.arguments.len(), prim.parameters.len());
                 let ty = match prim.name() {
                     "f32" | "f64" => Type::Number,
                     "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32"
@@ -149,11 +147,11 @@ impl Converter {
                     // Maybe there is a better repr of hashsets?
                     "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
                         Type::Array {
-                            items: Box::new(InlineOrRef::Ref(self.convert_type_ref(
+                            items: Box::new(self.convert_type_ref(
                                 schema,
                                 kind,
                                 ty_ref.arguments().next().unwrap(),
-                            ))),
+                            )),
                         }
                     }
                     // Treat as transparent wrappers? Not sure why these types are relevant to an API anyway @Andrey?
@@ -168,11 +166,11 @@ impl Converter {
                     }
                     // There is no way to express the key type in OpenAPI, so we assume it's always a string (unenforced).
                     "std::collections::HashMap" => Type::Map {
-                        additional_properties: Box::new(InlineOrRef::Ref(self.convert_type_ref(
+                        additional_properties: Box::new(self.convert_type_ref(
                             schema,
                             kind,
                             ty_ref.arguments().last().unwrap(),
-                        ))),
+                        )),
                     },
                     "std::tuple::Tuple1"
                     | "std::tuple::Tuple2"
@@ -188,41 +186,45 @@ impl Converter {
                     | "std::tuple::Tuple12" => Type::Tuple {
                         prefix_items: ty_ref
                             .arguments()
-                            .map(|arg| InlineOrRef::Ref(self.convert_type_ref(schema, kind, arg)))
+                            .map(|arg| self.convert_type_ref(schema, kind, arg))
                             .collect(),
                     },
                     _ => todo!("primitive: {}", prim.name()),
                 };
-                CompositeSchema::Schema(Schema {
+                Schema::Flat(FlatSchema {
                     description: reflect_ty.description().to_owned(),
                     ty,
                 })
             }
         };
 
-        if let Some(existing) = self.components.schemas.insert(name, schema) {
-            assert_eq!(existing, stub, "overwrote a schema that wasn't a stub");
-        }
+        // Inline if the type is generic, otherwise store as a component schema.
+        if ty_ref.arguments.is_empty() {
+            if let Some(existing) = self.components.schemas.insert(name.clone(), schema) {
+                assert_eq!(
+                    existing, stub,
+                    "overwrote a schema that wasn't a stub: name={name}"
+                );
+            }
 
-        schema_ref
+            InlineOrRef::Ref(schema_ref)
+        } else {
+            InlineOrRef::Inline(schema)
+        }
     }
 
-    fn enum_to_schema(
-        &mut self,
-        schema: &crate::Schema,
-        kind: Kind,
-        adt: &crate::Enum,
-    ) -> CompositeSchema {
+    fn enum_to_schema(&mut self, schema: &crate::Schema, kind: Kind, adt: &crate::Enum) -> Schema {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
         let subschemas = adt
             .variants()
             .map(|variant| self.variant_to_schema(schema, kind, adt, variant))
+            .map(Schema::Flat)
             .map(InlineOrRef::Inline)
             .collect::<Vec<_>>();
 
         match adt.representation() {
-            crate::Representation::Internal { tag } => CompositeSchema::OneOf {
+            crate::Representation::Internal { tag } => Schema::OneOf {
                 subschemas,
                 discriminator: Some(Discriminator {
                     property_name: tag.to_owned(),
@@ -230,7 +232,7 @@ impl Converter {
             },
             crate::Representation::External
             | crate::Representation::Adjacent { .. }
-            | crate::Representation::None => CompositeSchema::OneOf {
+            | crate::Representation::None => Schema::OneOf {
                 subschemas,
                 discriminator: None,
             },
@@ -243,7 +245,7 @@ impl Converter {
         kind: Kind,
         adt: &crate::Enum,
         variant: &crate::Variant,
-    ) -> Schema {
+    ) -> FlatSchema {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
         let mut strukt = crate::Struct {
@@ -257,31 +259,38 @@ impl Converter {
 
         match adt.representation() {
             crate::Representation::External => {
-                return Schema {
+                return FlatSchema {
                     description: "".to_owned(),
                     ty: Type::Object {
                         properties: BTreeMap::from_iter([(
                             variant.serde_name().to_owned(),
-                            InlineOrRef::Inline(self.struct_to_schema(schema, kind, &strukt)),
+                            InlineOrRef::Inline(
+                                self.struct_to_schema(schema, kind, &strukt).into(),
+                            ),
                         )]),
                     },
                 };
             }
             crate::Representation::Adjacent { tag, content } => {
-                return Schema {
+                return FlatSchema {
                     description: "".to_owned(),
                     ty: Type::Object {
                         properties: BTreeMap::from_iter([
                             (
                                 tag.to_owned(),
-                                InlineOrRef::Inline(Schema {
-                                    description: "".to_owned(),
-                                    ty: Type::String,
-                                }),
+                                InlineOrRef::Inline(
+                                    FlatSchema {
+                                        description: "".to_owned(),
+                                        ty: Type::String,
+                                    }
+                                    .into(),
+                                ),
                             ),
                             (
                                 content.to_owned(),
-                                InlineOrRef::Inline(self.struct_to_schema(schema, kind, &strukt)),
+                                InlineOrRef::Inline(
+                                    self.struct_to_schema(schema, kind, &strukt).into(),
+                                ),
                             ),
                         ]),
                     },
@@ -310,7 +319,7 @@ impl Converter {
         schema: &crate::Schema,
         kind: Kind,
         strukt: &crate::Struct,
-    ) -> Schema {
+    ) -> FlatSchema {
         assert!(
             strukt.parameters.is_empty(),
             "expect generic strukt to be instantiated"
@@ -318,32 +327,20 @@ impl Converter {
         let ty = Type::Object {
             properties: BTreeMap::from_iter(strukt.fields().map(|field| {
                 (field.serde_name().to_owned(), {
-                    InlineOrRef::Ref(self.convert_type_ref(schema, kind, field.type_ref()))
+                    self.convert_type_ref(schema, kind, field.type_ref())
                 })
             })),
         };
 
-        Schema {
+        FlatSchema {
             description: strukt.description().to_owned(),
             ty,
         }
     }
 }
 
-/// Format type reference to string that only includes [a-zA-Z0-9-_]
-fn mangle(ty: &crate::TypeReference) -> String {
-    fn normalize(name: &str) -> String {
-        name.replace("::", ".")
-    }
-
-    let mut s = normalize(ty.name());
-    // need some better unambiguous encoding for generics, we only have `[a-zA-Z0-9-_]` to work with I think
-    for arg in ty.arguments() {
-        s.push_str("__");
-        s.push_str(&mangle(arg));
-        s.push_str("__");
-    }
-    s
+fn normalize(name: &str) -> String {
+    name.replace("::", ".")
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]

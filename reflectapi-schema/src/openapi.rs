@@ -28,7 +28,7 @@ pub struct Info {
 
 #[derive(Debug, Clone, PartialEq, Default, Serialize)]
 pub struct Components {
-    schemas: BTreeMap<String, CompositeSchema>,
+    schemas: BTreeMap<String, Schema>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -100,14 +100,26 @@ pub enum Type {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 #[serde(rename_all = "camelCase")]
-pub enum CompositeSchema {
+pub enum Schema {
     OneOf {
         #[serde(rename = "oneOf")]
         subschemas: Vec<InlineOrRef<Schema>>,
         #[serde(skip_serializing_if = "Option::is_none")]
         discriminator: Option<Discriminator>,
     },
-    Schema(Schema),
+    Flat(FlatSchema),
+}
+
+impl From<FlatSchema> for Schema {
+    fn from(schema: FlatSchema) -> Self {
+        Schema::Flat(schema)
+    }
+}
+
+impl Schema {
+    pub fn empty_object() -> Self {
+        Schema::Flat(FlatSchema::empty_object())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -117,21 +129,15 @@ pub struct Discriminator {
     pub property_name: String,
 }
 
-impl From<Schema> for CompositeSchema {
-    fn from(schema: Schema) -> Self {
-        CompositeSchema::Schema(schema)
-    }
-}
-
 #[derive(Clone, Debug, Serialize, PartialEq)]
-pub struct Schema {
+pub struct FlatSchema {
     #[serde(skip_serializing_if = "String::is_empty")]
     pub description: String,
     #[serde(flatten)]
     pub ty: Type,
 }
 
-impl Schema {
+impl FlatSchema {
     pub fn empty_object() -> Self {
         Self {
             description: "empty object".to_owned(),

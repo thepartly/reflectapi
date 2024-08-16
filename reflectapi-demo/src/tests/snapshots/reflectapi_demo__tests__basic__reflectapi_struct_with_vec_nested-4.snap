@@ -45,7 +45,15 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         "type": "object",
         "properties": {
           "_f": {
-            "$ref": "#/components/schemas/std.vec.Vec__std.vec.Vec__reflectapi_demo.tests.test_lib.TestStructNested____"
+            "description": "Expandable array type",
+            "type": "array",
+            "items": {
+              "description": "Expandable array type",
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.test_lib.TestStructNested"
+              }
+            }
           }
         }
       },
@@ -60,20 +68,6 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
       "std.string.String": {
         "description": "UTF-8 encoded string",
         "type": "string"
-      },
-      "std.vec.Vec__reflectapi_demo.tests.test_lib.TestStructNested__": {
-        "description": "Expandable array type",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/reflectapi_demo.tests.test_lib.TestStructNested"
-        }
-      },
-      "std.vec.Vec__std.vec.Vec__reflectapi_demo.tests.test_lib.TestStructNested____": {
-        "description": "Expandable array type",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/std.vec.Vec__reflectapi_demo.tests.test_lib.TestStructNested__"
-        }
       }
     }
   }

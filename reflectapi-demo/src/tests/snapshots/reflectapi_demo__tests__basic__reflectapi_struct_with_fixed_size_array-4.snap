@@ -45,15 +45,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         "type": "object",
         "properties": {
           "_f": {
-            "$ref": "#/components/schemas/std.array.Array__u8____3__"
+            "description": "Fixed-size Array",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/u8"
+            }
           }
-        }
-      },
-      "std.array.Array__u8____3__": {
-        "description": "Fixed-size Array",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/u8"
         }
       },
       "u8": {
