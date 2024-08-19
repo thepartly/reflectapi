@@ -134,7 +134,7 @@ where
 
     pub fn build(
         mut self,
-    ) -> anyhow::Result<(crate::Schema, Vec<Router<S>>), Vec<crate::ValidationError>> {
+    ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), Vec<crate::ValidationError>> {
         self.schema.input_types.sort_types();
         self.schema.output_types.sort_types();
 
