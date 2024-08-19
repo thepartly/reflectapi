@@ -85,7 +85,7 @@ where
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
         Fut: std::future::Future<Output = R> + Send + 'static,
-        R: Into<crate::Result<O, E>> + 'static,
+        R: crate::IntoResult<O, E> + 'static,
         I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         O: crate::Output + serde::ser::Serialize + Send + 'static,
@@ -164,7 +164,7 @@ where
         E: crate::Output + serde::ser::Serialize + crate::StatusCode,
         F: Fn(S, I, H) -> Fut,
         Fut: std::future::Future<Output = R> + Send + 'static,
-        R: Into<crate::Result<O, E>>,
+        R: crate::IntoResult<O, E>,
     {
         let mut input_headers = input.headers;
 
@@ -253,7 +253,7 @@ where
         };
 
         let output = handler(state, input, input_headers).await;
-        let output: crate::Result<O, E> = output.into();
+        let output = UntaggedResult::from(output.into_result());
 
         let output_serialized = match content_type {
             ContentType::Json => serde_json::to_vec_pretty(&output).map_err(|err| err.to_string()),
@@ -278,10 +278,43 @@ where
             }
         };
 
+        let code = match output {
+            UntaggedResult::Ok(_) => http::StatusCode::OK,
+            UntaggedResult::Err(err) => {
+                let custom_error = err.status_code();
+                if custom_error == http::StatusCode::OK {
+                    // It means a user has implemented ToStatusCode trait for their
+                    // type incorrectly. It is a protocol error to return 200 status
+                    // code for an error response, as the client will not be able
+                    // to "cast" the response body to the correct type.
+                    // So, we are reverting it to internal error
+                    http::StatusCode::INTERNAL_SERVER_ERROR
+                } else {
+                    custom_error
+                }
+            }
+        };
+
         HandlerOutput {
-            code: output.status_code(),
+            code,
             body: bytes::Bytes::from(output_serialized),
             headers: response_headers,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(untagged)]
+enum UntaggedResult<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+impl<T, E> From<Result<T, E>> for UntaggedResult<T, E> {
+    fn from(res: Result<T, E>) -> Self {
+        match res {
+            Ok(v) => UntaggedResult::Ok(v),
+            Err(err) => UntaggedResult::Err(err),
         }
     }
 }
