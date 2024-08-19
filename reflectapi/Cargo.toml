@@ -64,4 +64,3 @@ rust_decimal = ["dep:rust_decimal"]
 axum = ["dep:axum"]
 # feature flag for enabling codegen libraries
 codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword"]
-openapi = ["reflectapi-schema/openapi"]

@@ -22,5 +22,3 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 [dependencies]
 serde = { version = "1.0.197", features = ["derive"] }
 
-[features]
-openapi = []

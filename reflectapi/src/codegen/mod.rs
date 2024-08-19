@@ -1,4 +1,5 @@
 mod format;
+pub mod openapi;
 pub mod rust;
 pub mod typescript;
 

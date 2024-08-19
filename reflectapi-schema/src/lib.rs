@@ -1,8 +1,5 @@
 mod internal;
 
-// #[cfg(feature = "openapi")]
-pub mod openapi;
-
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -885,8 +882,8 @@ impl Struct {
                 .all(|f| f.name().parse::<usize>().is_ok())
     }
 
-    /// Return a new `Struct` with each type parameter substituted with a type
-    pub(crate) fn instantiate(self, type_args: &[TypeReference]) -> Self {
+    /// Return a new non-generic `Struct` with each type parameter substituted with a type
+    pub fn instantiate(self, type_args: &[TypeReference]) -> Self {
         assert_eq!(
             self.parameters.len(),
             type_args.len(),
@@ -1106,8 +1103,8 @@ impl Enum {
         self.variants.iter()
     }
 
-    /// Return a new `Enum` with each type parameter substituted with a type
-    pub(crate) fn instantiate(self, type_args: &[TypeReference]) -> Self {
+    /// Return a new non-generic `Enum` with each type parameter substituted with a type
+    pub fn instantiate(self, type_args: &[TypeReference]) -> Self {
         assert_eq!(
             self.parameters.len(),
             type_args.len(),
