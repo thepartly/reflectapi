@@ -18,8 +18,6 @@ pub struct Schema {
     pub output_types: Typespace,
 }
 
-type Subst = HashMap<String, TypeReference>;
-
 impl Default for Schema {
     fn default() -> Self {
         Self::new()
@@ -480,7 +478,7 @@ impl TypeReference {
         }
     }
 
-    fn instantiate(self, subst: &Subst) -> TypeReference {
+    fn instantiate(self, subst: &HashMap<String, TypeReference>) -> TypeReference {
         match subst.get(&self.name) {
             Some(ty) => {
                 assert!(
@@ -1032,7 +1030,7 @@ impl Field {
         self.type_ref.rename_type(search_string, replacer);
     }
 
-    fn instantiate(self, subst: &Subst) -> Field {
+    fn instantiate(self, subst: &HashMap<String, TypeReference>) -> Field {
         Self {
             type_ref: self.type_ref.instantiate(subst),
             ..self
@@ -1209,7 +1207,7 @@ impl Variant {
         }
     }
 
-    fn instantiate(self, subst: &Subst) -> Variant {
+    fn instantiate(self, subst: &HashMap<String, TypeReference>) -> Variant {
         Self {
             fields: self
                 .fields
