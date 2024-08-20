@@ -44,6 +44,7 @@ enum Commands {
 enum Language {
     Typescript,
     Rust,
+    Openapi,
 }
 
 fn main() {
@@ -74,7 +75,7 @@ fn handle_anyhow_result(result: anyhow::Result<()>) {
 fn generate(
     schema: Option<std::path::PathBuf>,
     output: Option<std::path::PathBuf>,
-    language: crate::Language,
+    language: Language,
     shared_modules: Option<Vec<String>>,
 ) -> anyhow::Result<()> {
     let schema_path = schema.unwrap_or(std::path::PathBuf::from("reflectapi.json"));
@@ -89,26 +90,27 @@ fn generate(
         shared_modules: shared_modules.unwrap_or_default(),
     };
 
-    match language {
-        crate::Language::Typescript => {
-            let generated_code = reflectapi::codegen::typescript::generate(schema, &config)?;
-            let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
-            let output = output.join("generated.ts");
-            let mut file = std::fs::File::create(output.clone())
-                .context(format!("Failed to create file: {:?}", output))?;
-            file.write(generated_code.as_bytes())
-                .context(format!("Failed to write to file: {:?}", output))?;
-        }
-        crate::Language::Rust => {
-            let generated_code = reflectapi::codegen::rust::generate(schema, &config)?;
-            let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
-            let output = output.join("generated.rs");
-            let mut file = std::fs::File::create(output.clone())
-                .context(format!("Failed to create file: {:?}", output))?;
-            file.write(generated_code.as_bytes())
-                .context(format!("Failed to write to file: {:?}", output))?;
-        }
-    }
+    let (filename, generated_code) = match language {
+        Language::Typescript => (
+            "generated.ts",
+            reflectapi::codegen::typescript::generate(schema, &config)?,
+        ),
+        Language::Rust => (
+            "generated.rs",
+            reflectapi::codegen::rust::generate(schema, &config)?,
+        ),
+        Language::Openapi => (
+            "openapi.json",
+            reflectapi::codegen::openapi::generate(schema, &config)?,
+        ),
+    };
+
+    let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
+    let output = output.join(filename);
+    let mut file = std::fs::File::create(output.clone())
+        .context(format!("Failed to create file: {:?}", output))?;
+    file.write(generated_code.as_bytes())
+        .context(format!("Failed to write to file: {:?}", output))?;
 
     Ok(())
 }
