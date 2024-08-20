@@ -8,12 +8,12 @@ fn replace_type_references_for_type_ref(
     if declaring_type_parameters.is_empty() {
         // This code needs to replace unresolved type reference to resolved type reference
         // For example, 'Vec<u8>' without parameters to std::vec::Vec with parameters [u8].
-        this.name = resolved_type_ref.name.clone();
-        this.parameters = resolved_type_ref.parameters.clone();
+        this.name.clone_from(&resolved_type_ref.name);
+        this.parameters.clone_from(&resolved_type_ref.parameters);
     } else {
         let unresolved_parsed = this.clone();
-        this.name = resolved_type_ref.name.clone();
-        this.parameters = resolved_type_ref.parameters.clone();
+        this.name.clone_from(&resolved_type_ref.name);
+        this.parameters.clone_from(&resolved_type_ref.parameters);
 
         replace_specific_type_ref_by_generic_for_type_ref(
             this,
