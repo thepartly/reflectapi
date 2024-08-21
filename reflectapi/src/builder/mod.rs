@@ -67,7 +67,7 @@ where
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
         Fut: std::future::Future<Output = R> + Send + 'static,
-        R: Into<crate::Result<O, E>> + 'static,
+        R: IntoResult<O, E> + 'static,
         I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         O: crate::Output + serde::ser::Serialize + Send + 'static,
