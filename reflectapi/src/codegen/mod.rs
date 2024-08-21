@@ -30,15 +30,23 @@ fn tmp_path(src: &str) -> PathBuf {
     std::env::temp_dir().join(format!("reflectapi-{hash}"))
 }
 
-trait Substitute {
-    /// Replace the type parameters of a struct or enum with the given parameter_name to type mapping.
-    fn subst(self, subst: &HashMap<String, TypeReference>) -> Self;
-}
-
 trait Instantiate {
     /// Apply type arguments to a generic struct or enum. This should return a non-generic
     /// instance with all type parameters substituted with the matching type arguments.
+    ///
+    /// Example:
+    /// Given a generic struct `struct Foo<T, U> { a: T, b: U }` and type arguments `[i32,
+    /// String]`, the `instantiate(struct Foo<T, U>, [i32, String])` should be a non-generic struct `struct Foo { a: i32, b: String }`.
+    /// This is implemented by generating a substitution map from the type parameters to the type
+    /// argument `T -> i32, U -> String` and then substituting each occurence of the type parameter with the type argument.
     fn instantiate(self, args: &[TypeReference]) -> Self;
+}
+
+trait Substitute {
+    /// The important implementation of this is `impl Substitute for TypeReference`.
+    /// All other implementations just recursively call `subst` on their relevant fields which
+    /// contain `TypeReference`s.
+    fn subst(self, subst: &HashMap<String, TypeReference>) -> Self;
 }
 
 impl Substitute for TypeReference {
