@@ -11,6 +11,7 @@
 
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
+use std::sync::OnceLock;
 
 use serde::Serialize;
 
@@ -281,13 +282,16 @@ impl Converter {
         }
         .unwrap_or_else(|| {
             if ty_ref.name == "std::string::String" {
-                // FIXME HACK string type is used for the tag type, but may not exist in the schema
-                return Box::leak(Box::new(crate::Type::Primitive(crate::Primitive {
-                    name: "std::string::String".into(),
-                    description: "UTF-8 encoded string".into(),
-                    parameters: vec![],
-                    fallback: None,
-                })));
+                // HACK: string type is used for the tag type, but may not exist in the schema.
+                static STRING_TYPE: OnceLock<crate::Type> = OnceLock::new();
+                return STRING_TYPE.get_or_init(|| {
+                    crate::Type::Primitive(crate::Primitive {
+                        name: "std::string::String".into(),
+                        description: "UTF-8 encoded string".into(),
+                        parameters: vec![],
+                        fallback: None,
+                    })
+                });
             };
 
             panic!("{kind:?} type not found: {ty_ref:?}",)
