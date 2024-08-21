@@ -660,7 +660,7 @@
           {
             "name": "0",
             "type": {
-              "name": "unit"
+              "name": "std::tuple::Tuple0"
             }
           }
         ]
@@ -711,6 +711,11 @@
       },
       {
         "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
+      },
+      {
+        "kind": "primitive",
         "name": "std::vec::Vec",
         "description": "Expandable array type",
         "parameters": [
@@ -723,11 +728,6 @@
         "kind": "primitive",
         "name": "u8",
         "description": "8-bit unsigned integer"
-      },
-      {
-        "kind": "primitive",
-        "name": "unit",
-        "description": "Unit type"
       }
     ]
   }

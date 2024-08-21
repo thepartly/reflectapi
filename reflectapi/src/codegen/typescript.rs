@@ -1148,7 +1148,6 @@ fn build_implemented_types() -> HashMap<String, String> {
     implemented_types.insert("bool".into(), "boolean".into());
     implemented_types.insert("char".into(), "string".into());
     implemented_types.insert("std::string::String".into(), "string".into());
-    implemented_types.insert("unit".into(), "null".into());
 
     // warning: all generic type parameter names should match reflect defnition coming from
     // the implementation of reflect for standard types
@@ -1160,6 +1159,8 @@ fn build_implemented_types() -> HashMap<String, String> {
     implemented_types.insert("std::vec::Vec".into(), "Array<T>".into());
     implemented_types.insert("std::collections::HashMap".into(), "Record<K, V>".into());
 
+    // serde_json serializes `()` as `null` not `[]`
+    implemented_types.insert("std::tuple::Tuple0".into(), "null".into());
     implemented_types.insert("std::tuple::Tuple1".into(), "[T1]".into());
     implemented_types.insert("std::tuple::Tuple2".into(), "[T1, T2]".into());
     implemented_types.insert("std::tuple::Tuple3".into(), "[T1, T2, T3]".into());

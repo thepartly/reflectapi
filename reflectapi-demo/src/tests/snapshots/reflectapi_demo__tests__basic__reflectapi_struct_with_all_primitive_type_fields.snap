@@ -210,7 +210,7 @@ expression: schema
           {
             "name": "_f_unit",
             "type": {
-              "name": "unit"
+              "name": "std::tuple::Tuple0"
             },
             "required": true
           },
@@ -904,6 +904,11 @@ expression: schema
       },
       {
         "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
+      },
+      {
+        "kind": "primitive",
         "name": "std::tuple::Tuple10",
         "description": "Tuple holding 10 elements",
         "parameters": [
@@ -1244,11 +1249,6 @@ expression: schema
         "kind": "primitive",
         "name": "u8",
         "description": "8-bit unsigned integer"
-      },
-      {
-        "kind": "primitive",
-        "name": "unit",
-        "description": "Unit type"
       },
       {
         "kind": "primitive",
@@ -1446,7 +1446,7 @@ expression: schema
           {
             "name": "_f_unit",
             "type": {
-              "name": "unit"
+              "name": "std::tuple::Tuple0"
             },
             "required": true
           },
@@ -2140,6 +2140,11 @@ expression: schema
       },
       {
         "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
+      },
+      {
+        "kind": "primitive",
         "name": "std::tuple::Tuple10",
         "description": "Tuple holding 10 elements",
         "parameters": [
@@ -2480,11 +2485,6 @@ expression: schema
         "kind": "primitive",
         "name": "u8",
         "description": "8-bit unsigned integer"
-      },
-      {
-        "kind": "primitive",
-        "name": "unit",
-        "description": "Unit type"
       },
       {
         "kind": "primitive",

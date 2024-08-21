@@ -33,14 +33,14 @@ expression: schema
           {
             "name": "0",
             "type": {
-              "name": "unit"
+              "name": "std::tuple::Tuple0"
             }
           }
         ]
       },
       {
         "kind": "primitive",
-        "name": "unit",
+        "name": "std::tuple::Tuple0",
         "description": "Unit type"
       }
     ]
@@ -59,14 +59,14 @@ expression: schema
           {
             "name": "0",
             "type": {
-              "name": "unit"
+              "name": "std::tuple::Tuple0"
             }
           }
         ]
       },
       {
         "kind": "primitive",
-        "name": "unit",
+        "name": "std::tuple::Tuple0",
         "description": "Unit type"
       }
     ]

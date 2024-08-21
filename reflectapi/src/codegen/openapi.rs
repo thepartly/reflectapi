@@ -358,7 +358,7 @@ impl Converter {
                     | "u64" | "u128" | "usize" => Type::Integer,
                     "bool" => Type::Boolean,
                     "char" | "std::string::String" => Type::String,
-                    "std::marker::PhantomData" | "unit" => Type::Null,
+                    "std::marker::PhantomData" | "std::tuple::Tuple0" => Type::Null,
                     "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
                         Type::Array {
                             items: Box::new(self.convert_type_ref(
@@ -369,7 +369,7 @@ impl Converter {
                             unique_items: prim.name() == "std::collections::HashSet",
                         }
                     }
-                    // Treat as transparent wrappers? Not sure why these types are relevant to an API anyway @Andrey?
+                    // Treat these as transparent wrappers.
                     "std::boxed::Box" | "std::cell::Cell" | "std::cell::RefCell"
                     | "std::sync::Mutex" | "std::sync::RwLock" | "std::rc::Rc"
                     | "std::rc::Weak" | "std::sync::Arc" | "std::sync::Weak" => {

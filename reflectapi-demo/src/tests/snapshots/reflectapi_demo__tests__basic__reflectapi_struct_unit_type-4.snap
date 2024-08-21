@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -45,11 +45,11 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         "type": "array",
         "prefixItems": [
           {
-            "$ref": "#/components/schemas/unit"
+            "$ref": "#/components/schemas/std.tuple.Tuple0"
           }
         ]
       },
-      "unit": {
+      "std.tuple.Tuple0": {
         "description": "Unit type",
         "type": "null"
       }

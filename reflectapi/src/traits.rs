@@ -556,13 +556,13 @@ impl Output for std::convert::Infallible {
 
 impl Input for () {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        reflectapi_type_simple(schema, "unit", "Unit type", None)
+        reflectapi_type_simple(schema, "std::tuple::Tuple0", "Unit type", None)
     }
 }
 
 impl Output for () {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        reflectapi_type_simple(schema, "unit", "Unit type", None)
+        reflectapi_type_simple(schema, "std::tuple::Tuple0", "Unit type", None)
     }
 }
 

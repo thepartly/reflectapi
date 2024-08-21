@@ -618,7 +618,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
                 if self.type_.starts_with("std::option::Option<") {
                     attrs.push("skip_serializing_if = \"std::option::Option::is_none\"".into());
                 }
-                if self.type_ == "unit" {
+                if self.type_ == "std::tuple::Tuple0" {
                     attrs.push("skip_serializing".into());
                 }
                 if self.type_.starts_with("std::string::String") {
@@ -1208,7 +1208,7 @@ fn __build_implemented_types() -> HashMap<String, String> {
     implemented_types.insert("std::array::Array".into(), "[T; N]".into());
 
     // TODO the following could be declared via type aliases in the generated code or in the reflect api
-    implemented_types.insert("unit".into(), "()".into());
+    implemented_types.insert("std::tuple::Tuple0".into(), "()".into());
     implemented_types.insert("std::tuple::Tuple1".into(), "(T1)".into());
     implemented_types.insert("std::tuple::Tuple2".into(), "(T1, T2)".into());
     implemented_types.insert("std::tuple::Tuple3".into(), "(T1, T2, T3)".into());

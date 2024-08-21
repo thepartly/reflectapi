@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -496,7 +496,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "$ref": "#/components/schemas/u8"
           },
           "_f_unit": {
-            "$ref": "#/components/schemas/unit"
+            "$ref": "#/components/schemas/std.tuple.Tuple0"
           },
           "_f_usize": {
             "$ref": "#/components/schemas/usize"
@@ -513,6 +513,10 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
       "std.string.String": {
         "description": "UTF-8 encoded string",
         "type": "string"
+      },
+      "std.tuple.Tuple0": {
+        "description": "Unit type",
+        "type": "null"
       },
       "u128": {
         "description": "128-bit unsigned integer",
@@ -533,10 +537,6 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
       "u8": {
         "description": "8-bit unsigned integer",
         "type": "integer"
-      },
-      "unit": {
-        "description": "Unit type",
-        "type": "null"
       },
       "usize": {
         "description": "Machine-specific-bit unsigned integer",

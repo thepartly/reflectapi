@@ -847,7 +847,7 @@ impl Struct {
 
         self.fields.len() == 1
             && first_field.name() == "0"
-            && first_field.type_ref.name == "unit"
+            && first_field.type_ref.name == "std::tuple::Tuple0"
             && !first_field.required
     }
 
@@ -1045,7 +1045,6 @@ impl Enum {
     pub fn variants(&self) -> std::slice::Iter<Variant> {
         self.variants.iter()
     }
-
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
         self.name = rename_type_or_module(&self.name, search_string, replacer);
