@@ -30,21 +30,24 @@ fn tmp_path(src: &str) -> PathBuf {
     std::env::temp_dir().join(format!("reflectapi-{hash}"))
 }
 
-trait Subst {
+trait Substitute {
+    /// Replace the type parameters of a struct or enum with the given parameter_name to type mapping.
     fn subst(self, subst: &HashMap<String, TypeReference>) -> Self;
 }
 
 trait Instantiate {
+    /// Apply type arguments to a generic struct or enum. This should return a non-generic
+    /// instance with all type parameters substituted with the matching type arguments.
     fn instantiate(self, args: &[TypeReference]) -> Self;
 }
 
-impl Subst for TypeReference {
+impl Substitute for TypeReference {
     fn subst(self, subst: &HashMap<String, TypeReference>) -> Self {
         match subst.get(&self.name) {
             Some(ty) => {
                 assert!(
                     self.arguments.is_empty(),
-                    "type parameter cannot have type arguments (no HKTs)"
+                    "type parameter cannot have type arguments"
                 );
                 ty.clone()
             }
@@ -56,7 +59,7 @@ impl Subst for TypeReference {
     }
 }
 
-impl Subst for Field {
+impl Substitute for Field {
     fn subst(self, subst: &HashMap<String, TypeReference>) -> Self {
         Field {
             type_ref: self.type_ref.subst(subst),
@@ -65,7 +68,7 @@ impl Subst for Field {
     }
 }
 
-impl Subst for Variant {
+impl Substitute for Variant {
     fn subst(self, subst: &HashMap<String, TypeReference>) -> Variant {
         Self {
             fields: self.fields.into_iter().map(|f| f.subst(subst)).collect(),
