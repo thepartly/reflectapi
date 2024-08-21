@@ -14,7 +14,7 @@ use std::marker::PhantomData;
 
 use serde::Serialize;
 
-use super::Config;
+use super::{Config, Instantiate};
 
 pub fn generate(schema: crate::Schema, _config: &Config) -> anyhow::Result<String> {
     let spec = Spec::from(&schema);

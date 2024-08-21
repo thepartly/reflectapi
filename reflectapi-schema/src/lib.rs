@@ -477,26 +477,6 @@ impl TypeReference {
             param.rename_type(search_string, replacer);
         }
     }
-
-    fn instantiate(self, subst: &HashMap<String, TypeReference>) -> TypeReference {
-        match subst.get(&self.name) {
-            Some(ty) => {
-                assert!(
-                    self.arguments.is_empty(),
-                    "type parameter cannot have type arguments (no HKTs)"
-                );
-                ty.clone()
-            }
-            None => Self {
-                name: self.name,
-                arguments: self
-                    .arguments
-                    .into_iter()
-                    .map(|a| a.instantiate(subst))
-                    .collect(),
-            },
-        }
-    }
 }
 
 impl From<&str> for TypeReference {
@@ -880,34 +860,6 @@ impl Struct {
                 .all(|f| f.name().parse::<usize>().is_ok())
     }
 
-    /// Return a new non-generic `Struct` with each type parameter substituted with a type
-    pub fn instantiate(self, type_args: &[TypeReference]) -> Self {
-        assert_eq!(
-            self.parameters.len(),
-            type_args.len(),
-            "expected {} type arguments, got {}",
-            self.parameters.len(),
-            type_args.len()
-        );
-
-        let subst = self
-            .parameters
-            .iter()
-            .map(|p| p.name.to_owned())
-            .zip(type_args.iter().cloned())
-            .collect::<HashMap<_, _>>();
-
-        Self {
-            parameters: vec![],
-            fields: self
-                .fields
-                .into_iter()
-                .map(|f| f.instantiate(&subst))
-                .collect(),
-            ..self
-        }
-    }
-
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
         self.name = rename_type_or_module(&self.name, search_string, replacer);
         for field in self.fields.iter_mut() {
@@ -1029,13 +981,6 @@ impl Field {
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
         self.type_ref.rename_type(search_string, replacer);
     }
-
-    fn instantiate(self, subst: &HashMap<String, TypeReference>) -> Field {
-        Self {
-            type_ref: self.type_ref.instantiate(subst),
-            ..self
-        }
-    }
 }
 
 fn is_false(b: &bool) -> bool {
@@ -1101,33 +1046,6 @@ impl Enum {
         self.variants.iter()
     }
 
-    /// Return a new non-generic `Enum` with each type parameter substituted with a type
-    pub fn instantiate(self, type_args: &[TypeReference]) -> Self {
-        assert_eq!(
-            self.parameters.len(),
-            type_args.len(),
-            "expected {} type arguments, got {}",
-            self.parameters.len(),
-            type_args.len()
-        );
-
-        let subst = self
-            .parameters
-            .iter()
-            .map(|p| p.name.to_owned())
-            .zip(type_args.iter().cloned())
-            .collect::<HashMap<_, _>>();
-
-        Self {
-            parameters: vec![],
-            variants: self
-                .variants
-                .into_iter()
-                .map(|v| v.instantiate(&subst))
-                .collect(),
-            ..self
-        }
-    }
 
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
         self.name = rename_type_or_module(&self.name, search_string, replacer);
@@ -1204,17 +1122,6 @@ impl Variant {
     fn rename_type(&mut self, search_string: &str, replacer: &str) {
         for field in self.fields.iter_mut() {
             field.rename_type(search_string, replacer);
-        }
-    }
-
-    fn instantiate(self, subst: &HashMap<String, TypeReference>) -> Variant {
-        Self {
-            fields: self
-                .fields
-                .into_iter()
-                .map(|f| f.instantiate(subst))
-                .collect(),
-            ..self
         }
     }
 }
