@@ -1024,7 +1024,7 @@ fn type_ref_to_ts_ref(
 
     let type_name_parts = type_ref.name.split("::").collect::<Vec<_>>();
     let n = type_name_parts.join(".");
-    let p = type_ref_params_to_ts_ref(&type_ref.parameters, schema, implemented_types);
+    let p = type_ref_params_to_ts_ref(&type_ref.arguments, schema, implemented_types);
     format!("{}{}", n, p)
 }
 
@@ -1092,8 +1092,8 @@ fn resolve_type_ref(
 
     let type_def = schema.get_type(type_ref.name())?;
 
-    assert_eq!(type_def.parameters().len(), type_ref.parameters().len());
-    for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.parameters.iter()) {
+    assert_eq!(type_def.parameters().len(), type_ref.arguments().len());
+    for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.arguments.iter()) {
         if implementation.contains(type_def_param.name.as_str()) {
             // Ensure only the first occurence of the type parameter is replaced.
             // For example, this can cause trouble for large tuples where T1 erroneously matches T11.
@@ -1148,7 +1148,6 @@ fn build_implemented_types() -> HashMap<String, String> {
     implemented_types.insert("bool".into(), "boolean".into());
     implemented_types.insert("char".into(), "string".into());
     implemented_types.insert("std::string::String".into(), "string".into());
-    implemented_types.insert("()".into(), "null".into());
 
     // warning: all generic type parameter names should match reflect defnition coming from
     // the implementation of reflect for standard types
@@ -1160,6 +1159,8 @@ fn build_implemented_types() -> HashMap<String, String> {
     implemented_types.insert("std::vec::Vec".into(), "Array<T>".into());
     implemented_types.insert("std::collections::HashMap".into(), "Record<K, V>".into());
 
+    // serde_json serializes `()` as `null` not `[]`
+    implemented_types.insert("std::tuple::Tuple0".into(), "null".into());
     implemented_types.insert("std::tuple::Tuple1".into(), "[T1]".into());
     implemented_types.insert("std::tuple::Tuple2".into(), "[T1, T2]".into());
     implemented_types.insert("std::tuple::Tuple3".into(), "[T1, T2, T3]".into());

@@ -34,7 +34,7 @@ expression: "super::into_schema::<TestStructWithHashSetField>()"
             "name": "_f_hashset",
             "type": {
               "name": "std::collections::HashSet",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -55,7 +55,7 @@ expression: "super::into_schema::<TestStructWithHashSetField>()"
         ],
         "fallback": {
           "name": "std::vec::Vec",
-          "parameters": [
+          "arguments": [
             {
               "name": "V"
             }
@@ -94,7 +94,7 @@ expression: "super::into_schema::<TestStructWithHashSetField>()"
             "name": "_f_hashset",
             "type": {
               "name": "std::collections::HashSet",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -115,7 +115,7 @@ expression: "super::into_schema::<TestStructWithHashSetField>()"
         ],
         "fallback": {
           "name": "std::vec::Vec",
-          "parameters": [
+          "arguments": [
             {
               "name": "V"
             }

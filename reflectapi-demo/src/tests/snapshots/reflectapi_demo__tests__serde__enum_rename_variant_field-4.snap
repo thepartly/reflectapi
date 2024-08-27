@@ -1,0 +1,80 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumRenameVariantField"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumRenameVariantField"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.TestEnumRenameVariantField": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "Variant1": {
+                "type": "object",
+                "properties": {
+                  "variant1_field_name": {
+                    "$ref": "#/components/schemas/u8"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "properties": {
+              "Variant2": {
+                "type": "object",
+                "properties": {
+                  "variant2_field_name": {
+                    "$ref": "#/components/schemas/u8"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

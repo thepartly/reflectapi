@@ -49,11 +49,11 @@ impl<'a> TokenizableTypeReference<'a> {
 impl<'a> ToTokens for TokenizableTypeReference<'a> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
-        let parameters = self.inner.parameters().map(TokenizableTypeReference::new);
+        let arguments = self.inner.arguments().map(TokenizableTypeReference::new);
         tokens.extend(quote::quote! {
             reflectapi::TypeReference {
                 name: #name.into(),
-                parameters: vec![#(#parameters),*]
+                arguments: vec![#(#arguments),*]
             }
         });
     }

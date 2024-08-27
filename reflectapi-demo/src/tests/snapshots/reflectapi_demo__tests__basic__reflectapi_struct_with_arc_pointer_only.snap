@@ -34,7 +34,7 @@ expression: "super::into_schema::<TestStructWithArcPointerOnly>()"
             "name": "_f_pointer_arc",
             "type": {
               "name": "std::sync::Arc",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -79,7 +79,7 @@ expression: "super::into_schema::<TestStructWithArcPointerOnly>()"
             "name": "_f_pointer_arc",
             "type": {
               "name": "std::sync::Arc",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }

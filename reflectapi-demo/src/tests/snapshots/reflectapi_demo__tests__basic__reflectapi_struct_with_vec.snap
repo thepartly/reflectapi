@@ -34,7 +34,7 @@ expression: "super::into_schema::<TestStructWithVec>()"
             "name": "_f",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -76,7 +76,7 @@ expression: "super::into_schema::<TestStructWithVec>()"
             "name": "_f",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }

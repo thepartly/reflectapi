@@ -20,3 +20,18 @@ fn write_schema() {
     )
     .unwrap();
 }
+
+#[test]
+fn write_openapi_spec() {
+    let (schema, _) = crate::builder().build().unwrap();
+
+    let spec = reflectapi::codegen::openapi::Spec::from(&schema);
+    let s = serde_json::to_string_pretty(&spec).unwrap();
+
+    std::fs::write(
+        format!("{}/{}", env!("CARGO_MANIFEST_DIR"), "openapi.json"),
+        &s,
+    )
+    .unwrap();
+    insta::assert_snapshot!(s);
+}

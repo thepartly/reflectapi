@@ -101,7 +101,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
     for (_, origin_type_param) in context_encounters.generics.into_iter() {
         generics_type_references_resolution_code.extend(quote::quote! {
             {
-                parameters.push(<#origin_type_param as #trait_ident>::#fn_reflectapi_type_ident(schema));
+                arguments.push(<#origin_type_param as #trait_ident>::#fn_reflectapi_type_ident(schema));
             }
         });
     }
@@ -112,7 +112,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
         impl #type_generics #trait_ident for #type_ident #type_generics_idents_code #type_generics_where {
             fn #fn_reflectapi_type_ident(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
                 let resolved_type_name = format!("{}::{}", std::module_path!(), #reflected_type_name);
-                let mut parameters = Vec::new();
+                let mut arguments = Vec::new();
                 #generics_type_references_resolution_code;
 
                 if schema.reserve_type(resolved_type_name.as_ref()) {
@@ -126,7 +126,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
                     schema.insert_type(reflected_type_def);
                 }
 
-                reflectapi::TypeReference::new(resolved_type_name, parameters)
+                reflectapi::TypeReference::new(resolved_type_name, arguments)
             }
         }
 

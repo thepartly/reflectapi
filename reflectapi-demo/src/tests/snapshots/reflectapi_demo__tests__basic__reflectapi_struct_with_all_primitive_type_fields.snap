@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
+expression: schema
 ---
 {
   "name": "",
@@ -21,11 +21,6 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
   ],
   "input_types": {
     "types": [
-      {
-        "kind": "primitive",
-        "name": "()",
-        "description": "Unit type"
-      },
       {
         "kind": "primitive",
         "name": "bool",
@@ -215,7 +210,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
           {
             "name": "_f_unit",
             "type": {
-              "name": "()"
+              "name": "std::tuple::Tuple0"
             },
             "required": true
           },
@@ -223,7 +218,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_option",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -235,7 +230,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_vec",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -247,7 +242,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_hashmap",
             "type": {
               "name": "std::collections::HashMap",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -262,7 +257,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_hashset",
             "type": {
               "name": "std::collections::HashSet",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -274,7 +269,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple",
             "type": {
               "name": "std::tuple::Tuple2",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -289,7 +284,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple3",
             "type": {
               "name": "std::tuple::Tuple3",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -307,7 +302,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple4",
             "type": {
               "name": "std::tuple::Tuple4",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -328,7 +323,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple5",
             "type": {
               "name": "std::tuple::Tuple5",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -352,7 +347,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple6",
             "type": {
               "name": "std::tuple::Tuple6",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -379,7 +374,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple7",
             "type": {
               "name": "std::tuple::Tuple7",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -409,7 +404,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple8",
             "type": {
               "name": "std::tuple::Tuple8",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -442,7 +437,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple9",
             "type": {
               "name": "std::tuple::Tuple9",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -478,7 +473,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple10",
             "type": {
               "name": "std::tuple::Tuple10",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -517,7 +512,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple11",
             "type": {
               "name": "std::tuple::Tuple11",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -559,7 +554,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple12",
             "type": {
               "name": "std::tuple::Tuple12",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -604,7 +599,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_array",
             "type": {
               "name": "std::array::Array",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -619,7 +614,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_box",
             "type": {
               "name": "std::boxed::Box",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -631,7 +626,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_arc",
             "type": {
               "name": "std::sync::Arc",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -643,7 +638,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_cell",
             "type": {
               "name": "std::cell::Cell",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -655,7 +650,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_refcell",
             "type": {
               "name": "std::cell::RefCell",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -667,7 +662,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_mutex",
             "type": {
               "name": "std::sync::Mutex",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -679,7 +674,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_rwlock",
             "type": {
               "name": "std::sync::RwLock",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -691,7 +686,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_weak",
             "type": {
               "name": "std::sync::Weak",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -703,7 +698,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_phantomdata",
             "type": {
               "name": "std::marker::PhantomData",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -734,7 +729,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
         ],
         "fallback": {
           "name": "std::vec::Vec",
-          "parameters": [
+          "arguments": [
             {
               "name": "T"
             }
@@ -804,7 +799,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
         ],
         "fallback": {
           "name": "std::vec::Vec",
-          "parameters": [
+          "arguments": [
             {
               "name": "V"
             }
@@ -906,6 +901,11 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
         "fallback": {
           "name": "T"
         }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
       },
       {
         "kind": "primitive",
@@ -1264,11 +1264,6 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
     "types": [
       {
         "kind": "primitive",
-        "name": "()",
-        "description": "Unit type"
-      },
-      {
-        "kind": "primitive",
         "name": "bool",
         "description": "Boolean value"
       },
@@ -1451,7 +1446,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
           {
             "name": "_f_unit",
             "type": {
-              "name": "()"
+              "name": "std::tuple::Tuple0"
             },
             "required": true
           },
@@ -1459,7 +1454,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_option",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -1471,7 +1466,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_vec",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -1483,7 +1478,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_hashmap",
             "type": {
               "name": "std::collections::HashMap",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1498,7 +1493,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_hashset",
             "type": {
               "name": "std::collections::HashSet",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -1510,7 +1505,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple",
             "type": {
               "name": "std::tuple::Tuple2",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1525,7 +1520,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple3",
             "type": {
               "name": "std::tuple::Tuple3",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1543,7 +1538,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple4",
             "type": {
               "name": "std::tuple::Tuple4",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1564,7 +1559,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple5",
             "type": {
               "name": "std::tuple::Tuple5",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1588,7 +1583,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple6",
             "type": {
               "name": "std::tuple::Tuple6",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1615,7 +1610,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple7",
             "type": {
               "name": "std::tuple::Tuple7",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1645,7 +1640,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple8",
             "type": {
               "name": "std::tuple::Tuple8",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1678,7 +1673,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple9",
             "type": {
               "name": "std::tuple::Tuple9",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1714,7 +1709,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple10",
             "type": {
               "name": "std::tuple::Tuple10",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1753,7 +1748,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple11",
             "type": {
               "name": "std::tuple::Tuple11",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1795,7 +1790,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_tuple12",
             "type": {
               "name": "std::tuple::Tuple12",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1840,7 +1835,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_array",
             "type": {
               "name": "std::array::Array",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -1855,7 +1850,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_box",
             "type": {
               "name": "std::boxed::Box",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -1867,7 +1862,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_arc",
             "type": {
               "name": "std::sync::Arc",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -1879,7 +1874,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_cell",
             "type": {
               "name": "std::cell::Cell",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -1891,7 +1886,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_refcell",
             "type": {
               "name": "std::cell::RefCell",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -1903,7 +1898,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_mutex",
             "type": {
               "name": "std::sync::Mutex",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -1915,7 +1910,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_rwlock",
             "type": {
               "name": "std::sync::RwLock",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -1927,7 +1922,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_pointer_weak",
             "type": {
               "name": "std::sync::Weak",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -1939,7 +1934,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
             "name": "_f_phantomdata",
             "type": {
               "name": "std::marker::PhantomData",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -1970,7 +1965,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
         ],
         "fallback": {
           "name": "std::vec::Vec",
-          "parameters": [
+          "arguments": [
             {
               "name": "T"
             }
@@ -2040,7 +2035,7 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
         ],
         "fallback": {
           "name": "std::vec::Vec",
-          "parameters": [
+          "arguments": [
             {
               "name": "V"
             }
@@ -2142,6 +2137,11 @@ expression: "super::into_schema::<TestStructWithAllPrimitiveTypeFields>()"
         "fallback": {
           "name": "T"
         }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
       },
       {
         "kind": "primitive",

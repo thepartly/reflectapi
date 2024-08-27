@@ -22,10 +22,10 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
           "name": "_f",
           "type": {
             "name": "std::boxed::Box",
-            "parameters": [
+            "arguments": [
               {
                 "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGeneric",
-                "parameters": [
+                "arguments": [
                   {
                     "name": "T"
                   }
@@ -57,13 +57,13 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
           "name": "_f",
           "type": {
             "name": "std::boxed::Box",
-            "parameters": [
+            "arguments": [
               {
                 "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGeneric",
-                "parameters": [
+                "arguments": [
                   {
                     "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericParent",
-                    "parameters": [
+                    "arguments": [
                       {
                         "name": "T"
                       }
@@ -79,7 +79,7 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
           "name": "_f2",
           "type": {
             "name": "std::marker::PhantomData",
-            "parameters": [
+            "arguments": [
               {
                 "name": "T"
               }

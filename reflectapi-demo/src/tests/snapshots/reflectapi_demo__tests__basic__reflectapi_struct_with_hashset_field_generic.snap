@@ -10,7 +10,7 @@ expression: "super::into_schema::<TestStructWithHashSetFieldGeneric<String>>()"
       "path": "",
       "input_type": {
         "name": "reflectapi_demo::tests::basic::TestStructWithHashSetFieldGeneric",
-        "parameters": [
+        "arguments": [
           {
             "name": "std::string::String"
           }
@@ -18,7 +18,7 @@ expression: "super::into_schema::<TestStructWithHashSetFieldGeneric<String>>()"
       },
       "output_type": {
         "name": "reflectapi_demo::tests::basic::TestStructWithHashSetFieldGeneric",
-        "parameters": [
+        "arguments": [
           {
             "name": "std::string::String"
           }
@@ -49,7 +49,7 @@ expression: "super::into_schema::<TestStructWithHashSetFieldGeneric<String>>()"
             "name": "_f_hashset",
             "type": {
               "name": "std::collections::HashSet",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "G"
                 }
@@ -70,7 +70,7 @@ expression: "super::into_schema::<TestStructWithHashSetFieldGeneric<String>>()"
         ],
         "fallback": {
           "name": "std::vec::Vec",
-          "parameters": [
+          "arguments": [
             {
               "name": "V"
             }
@@ -114,7 +114,7 @@ expression: "super::into_schema::<TestStructWithHashSetFieldGeneric<String>>()"
             "name": "_f_hashset",
             "type": {
               "name": "std::collections::HashSet",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "G"
                 }
@@ -135,7 +135,7 @@ expression: "super::into_schema::<TestStructWithHashSetFieldGeneric<String>>()"
         ],
         "fallback": {
           "name": "std::vec::Vec",
-          "parameters": [
+          "arguments": [
             {
               "name": "V"
             }

@@ -618,7 +618,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
                 if self.type_.starts_with("std::option::Option<") {
                     attrs.push("skip_serializing_if = \"std::option::Option::is_none\"".into());
                 }
-                if self.type_ == "()" {
+                if self.type_ == "std::tuple::Tuple0" {
                     attrs.push("skip_serializing".into());
                 }
                 if self.type_.starts_with("std::string::String") {
@@ -1096,8 +1096,8 @@ fn __type_ref_to_ts_ref(
         "{}{}{}",
         prefix,
         type_ref.name,
-        __type_ref_params_to_ts_ref(
-            &type_ref.parameters,
+        __type_args_to_ts_ref(
+            &type_ref.arguments,
             schema,
             implemented_types,
             type_name_depth
@@ -1105,7 +1105,7 @@ fn __type_ref_to_ts_ref(
     )
 }
 
-fn __type_ref_params_to_ts_ref(
+fn __type_args_to_ts_ref(
     type_params: &[crate::TypeReference],
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
@@ -1155,7 +1155,7 @@ fn __resolve_type_ref(
     let mut implementation = implemented_types.get(type_ref.name.as_str()).cloned()?;
     let type_def = schema.get_type(type_ref.name())?;
 
-    for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.parameters.iter()) {
+    for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.arguments.iter()) {
         if implementation.contains(type_def_param.name.as_str()) {
             implementation = implementation.replacen(
                 type_def_param.name.as_str(),
@@ -1208,6 +1208,7 @@ fn __build_implemented_types() -> HashMap<String, String> {
     implemented_types.insert("std::array::Array".into(), "[T; N]".into());
 
     // TODO the following could be declared via type aliases in the generated code or in the reflect api
+    implemented_types.insert("std::tuple::Tuple0".into(), "()".into());
     implemented_types.insert("std::tuple::Tuple1".into(), "(T1)".into());
     implemented_types.insert("std::tuple::Tuple2".into(), "(T1, T2)".into());
     implemented_types.insert("std::tuple::Tuple3".into(), "(T1, T2, T3)".into());

@@ -1,0 +1,38 @@
+---
+source: reflectapi-demo/src/tests/namespace.rs
+expression: "reflectapi::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "pet-orders",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/jobs-two.pet-orders.list-x": {
+      "description": "desc",
+      "post": {
+        "operationId": "jobs-two.pet-orders.list-x",
+        "description": "desc",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}

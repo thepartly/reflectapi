@@ -39,7 +39,7 @@ expression: "super::into_schema::<TestStructWithVecTwo>()"
             "name": "_f",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -51,7 +51,7 @@ expression: "super::into_schema::<TestStructWithVecTwo>()"
             "name": "_f2",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "i8"
                 }
@@ -98,7 +98,7 @@ expression: "super::into_schema::<TestStructWithVecTwo>()"
             "name": "_f",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 }
@@ -110,7 +110,7 @@ expression: "super::into_schema::<TestStructWithVecTwo>()"
             "name": "_f2",
             "type": {
               "name": "std::vec::Vec",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "i8"
                 }

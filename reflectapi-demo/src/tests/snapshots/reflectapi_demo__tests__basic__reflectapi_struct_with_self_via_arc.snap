@@ -34,7 +34,7 @@ expression: "super::into_schema::<TestStructWithSelfViaArc>()"
             "name": "_f",
             "type": {
               "name": "std::sync::Arc",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "reflectapi_demo::tests::basic::TestStructWithSelfViaArc"
                 }
@@ -74,7 +74,7 @@ expression: "super::into_schema::<TestStructWithSelfViaArc>()"
             "name": "_f",
             "type": {
               "name": "std::sync::Arc",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "reflectapi_demo::tests::basic::TestStructWithSelfViaArc"
                 }

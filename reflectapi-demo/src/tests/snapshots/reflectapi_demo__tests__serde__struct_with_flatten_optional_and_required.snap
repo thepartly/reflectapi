@@ -60,7 +60,7 @@ expression: "super::into_schema::<TestStructWithFlattenOptionalAndRequired>()"
             "name": "g",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested"
                 }
@@ -155,7 +155,7 @@ expression: "super::into_schema::<TestStructWithFlattenOptionalAndRequired>()"
             "name": "g",
             "type": {
               "name": "std::option::Option",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested"
                 }

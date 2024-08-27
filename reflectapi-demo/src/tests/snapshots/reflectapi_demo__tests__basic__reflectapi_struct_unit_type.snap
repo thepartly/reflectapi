@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "super::into_schema::<TestStructUnitType>()"
+expression: schema
 ---
 {
   "name": "",
@@ -22,11 +22,6 @@ expression: "super::into_schema::<TestStructUnitType>()"
   "input_types": {
     "types": [
       {
-        "kind": "primitive",
-        "name": "()",
-        "description": "Unit type"
-      },
-      {
         "kind": "struct",
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields"
@@ -38,20 +33,20 @@ expression: "super::into_schema::<TestStructUnitType>()"
           {
             "name": "0",
             "type": {
-              "name": "()"
+              "name": "std::tuple::Tuple0"
             }
           }
         ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
       }
     ]
   },
   "output_types": {
     "types": [
-      {
-        "kind": "primitive",
-        "name": "()",
-        "description": "Unit type"
-      },
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
@@ -64,10 +59,15 @@ expression: "super::into_schema::<TestStructUnitType>()"
           {
             "name": "0",
             "type": {
-              "name": "()"
+              "name": "std::tuple::Tuple0"
             }
           }
         ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
       }
     ]
   }

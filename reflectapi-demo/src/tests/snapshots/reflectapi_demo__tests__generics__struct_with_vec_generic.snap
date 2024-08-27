@@ -22,7 +22,7 @@ expression: "super::into_input_schema::<TestStructWithVecGeneric<u8>>().input_ty
           "name": "_f",
           "type": {
             "name": "std::vec::Vec",
-            "parameters": [
+            "arguments": [
               {
                 "name": "T"
               }

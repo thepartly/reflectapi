@@ -34,7 +34,7 @@ expression: "super::into_schema::<TestStructWithFixedSizeArray>()"
             "name": "_f",
             "type": {
               "name": "std::array::Array",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -61,7 +61,7 @@ expression: "super::into_schema::<TestStructWithFixedSizeArray>()"
         ],
         "fallback": {
           "name": "std::vec::Vec",
-          "parameters": [
+          "arguments": [
             {
               "name": "T"
             }
@@ -100,7 +100,7 @@ expression: "super::into_schema::<TestStructWithFixedSizeArray>()"
             "name": "_f",
             "type": {
               "name": "std::array::Array",
-              "parameters": [
+              "arguments": [
                 {
                   "name": "u8"
                 },
@@ -127,7 +127,7 @@ expression: "super::into_schema::<TestStructWithFixedSizeArray>()"
         ],
         "fallback": {
           "name": "std::vec::Vec",
-          "parameters": [
+          "arguments": [
             {
               "name": "T"
             }

@@ -1,3 +1,4 @@
+use core::fmt;
 use std::sync::Arc;
 
 use crate::{Function, Schema, Struct};
@@ -68,6 +69,20 @@ where
     pub readonly: bool,
     pub input_headers: Vec<String>,
     pub callback: Arc<HandlerCallback<S>>,
+}
+
+impl<S> fmt::Debug for Handler<S>
+where
+    S: Send + 'static,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Handler")
+            .field("name", &self.name)
+            .field("path", &self.path)
+            .field("readonly", &self.readonly)
+            .field("input_headers", &self.input_headers)
+            .finish()
+    }
 }
 
 impl<S> Handler<S>
