@@ -63,4 +63,4 @@ rust_decimal = ["dep:rust_decimal"]
 # based on dififerent web server frameworks
 axum = ["dep:axum"]
 # feature flag for enabling codegen libraries
-codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword"]
+codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep:serde_json"]
