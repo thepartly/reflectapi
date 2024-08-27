@@ -409,7 +409,13 @@ impl Converter {
                             .map(|arg| self.convert_type_ref(schema, kind, arg))
                             .collect(),
                     },
-                    _ => unimplemented!("primitive: {}", prim.name()),
+                    name => {
+                        if let Some(fallback) = prim.fallback() {
+                            return self.convert_type_ref(schema, kind, fallback);
+                        } else {
+                            unimplemented!("primitive with no fallback: {name}")
+                        }
+                    }
                 };
 
                 Schema::Flat(FlatSchema {
