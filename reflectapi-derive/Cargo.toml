@@ -1,6 +1,6 @@
 [package]
 name = "reflectapi-derive"
-version = "0.5.15"
+version = "0.5.16"
 edition = "2021"
 
 license = "MIT"
@@ -19,7 +19,7 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 proc-macro = true
 
 [dependencies]
-reflectapi-schema = { path = '../reflectapi-schema', version = "0.5.15" }
+reflectapi-schema = { path = '../reflectapi-schema', version = "0.5.16" }
 
 proc-macro2 = "1.0"
 quote = "1.0"
