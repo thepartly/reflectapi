@@ -361,7 +361,8 @@ impl Converter {
                     "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32"
                     | "u64" | "u128" | "usize" => Type::Integer,
                     "bool" => Type::Boolean,
-                    "char" | "std::string::String" => Type::String,
+
+                    "uuid::Uuid" | "char" | "std::string::String" => Type::String,
                     "std::marker::PhantomData" | "std::tuple::Tuple0" => Type::Null,
                     "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
                         Type::Array {
