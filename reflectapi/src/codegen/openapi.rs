@@ -480,6 +480,10 @@ impl Converter {
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
+        if variant.fields.len() == 1 && !variant.fields[0].is_named() {
+            return self.convert_type_ref(schema, kind, variant.fields[0].type_ref());
+        }
+
         let mut strukt = crate::Struct {
             name: variant.name().to_owned(),
             serde_name: variant.serde_name.to_owned(),
