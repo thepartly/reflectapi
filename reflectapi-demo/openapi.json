@@ -360,13 +360,7 @@
                 "properties": {}
               },
               {
-                "description": "The value is provided and set to some value",
-                "type": "array",
-                "prefixItems": [
-                  {
-                    "$ref": "#/components/schemas/u8"
-                  }
-                ]
+                "$ref": "#/components/schemas/u8"
               }
             ]
           },
@@ -383,17 +377,11 @@
                 "properties": {}
               },
               {
-                "description": "The value is provided and set to some value",
+                "description": "Expandable array type",
                 "type": "array",
-                "prefixItems": [
-                  {
-                    "description": "Expandable array type",
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/myapi.model.Behavior"
-                    }
-                  }
-                ]
+                "items": {
+                  "$ref": "#/components/schemas/myapi.model.Behavior"
+                }
               }
             ]
           },

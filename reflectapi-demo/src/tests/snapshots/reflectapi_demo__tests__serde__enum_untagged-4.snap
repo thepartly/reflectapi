@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -44,12 +44,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestEnumUntagged": {
         "oneOf": [
           {
-            "type": "array",
-            "prefixItems": [
-              {
-                "$ref": "#/components/schemas/u8"
-              }
-            ]
+            "$ref": "#/components/schemas/u8"
           },
           {
             "type": "object",
