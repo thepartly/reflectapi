@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.basic.TestStructWithVecExternal": {
         "type": "object",
         "title": "reflectapi_demo::tests::basic::TestStructWithVecExternal",
+        "required": [
+          "_f"
+        ],
         "properties": {
           "_f": {
             "description": "Expandable array type",
@@ -57,6 +60,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.test_lib.TestStructNested": {
         "type": "object",
         "title": "reflectapi_demo::tests::test_lib::TestStructNested",
+        "required": [
+          "_f"
+        ],
         "properties": {
           "_f": {
             "$ref": "#/components/schemas/std.string.String"

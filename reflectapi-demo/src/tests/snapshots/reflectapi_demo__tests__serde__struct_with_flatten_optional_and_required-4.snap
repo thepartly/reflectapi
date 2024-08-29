@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestStructRenameAll": {
         "type": "object",
         "title": "reflectapi_demo::tests::serde::TestStructRenameAll",
+        "required": [
+          "fieldName"
+        ],
         "properties": {
           "fieldName": {
             "$ref": "#/components/schemas/u8"
@@ -53,6 +56,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestStructWithFlattenNested": {
         "type": "object",
         "title": "reflectapi_demo::tests::serde::TestStructWithFlattenNested",
+        "required": [
+          "f"
+        ],
         "properties": {
           "f": {
             "$ref": "#/components/schemas/u8"
@@ -62,6 +68,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired": {
         "type": "object",
         "title": "reflectapi_demo::tests::serde::TestStructWithFlattenOptionalAndRequired",
+        "required": [
+          "k"
+        ],
         "properties": {
           "g": {
             "oneOf": [

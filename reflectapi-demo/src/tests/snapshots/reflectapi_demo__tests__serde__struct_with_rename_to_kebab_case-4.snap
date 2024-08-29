@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.struct_name": {
         "type": "object",
         "title": "reflectapi_demo::tests::serde::struct_name",
+        "required": [
+          "field-name"
+        ],
         "properties": {
           "field-name": {
             "$ref": "#/components/schemas/u8"

@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestStructRenameAllPascalCase": {
         "type": "object",
         "title": "reflectapi_demo::tests::serde::TestStructRenameAllPascalCase",
+        "required": [
+          "FieldName"
+        ],
         "properties": {
           "FieldName": {
             "$ref": "#/components/schemas/u8"

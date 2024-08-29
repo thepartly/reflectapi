@@ -46,6 +46,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           {
             "type": "object",
             "title": "fieldName",
+            "required": [
+              "fieldName"
+            ],
             "properties": {
               "fieldName": {
                 "type": "object",

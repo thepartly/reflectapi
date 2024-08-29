@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually": {
         "type": "object",
         "title": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothEqually",
+        "required": [
+          "_f"
+        ],
         "properties": {
           "_f": {
             "$ref": "#/components/schemas/u32"

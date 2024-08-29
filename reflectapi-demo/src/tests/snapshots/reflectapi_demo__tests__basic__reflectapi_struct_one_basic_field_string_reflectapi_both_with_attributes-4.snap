@@ -48,6 +48,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothDifferently": {
         "type": "object",
         "title": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothDifferently",
+        "required": [
+          "_f"
+        ],
         "properties": {
           "_f": {
             "$ref": "#/components/schemas/i32"

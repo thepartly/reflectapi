@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestStructTryFormProxy": {
         "type": "object",
         "title": "reflectapi_demo::tests::serde::TestStructTryFormProxy",
+        "required": [
+          "f"
+        ],
         "properties": {
           "f": {
             "$ref": "#/components/schemas/u8"
@@ -53,6 +56,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestStructTryFrom": {
         "type": "object",
         "title": "reflectapi_demo::tests::serde::TestStructTryFrom",
+        "required": [
+          "f"
+        ],
         "properties": {
           "f": {
             "$ref": "#/components/schemas/u8"

@@ -109,6 +109,8 @@ pub enum Type {
     Object {
         #[serde(skip_serializing_if = "String::is_empty")]
         title: String,
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        required: Vec<String>,
         properties: BTreeMap<String, InlineOrRef<Schema>>,
     },
     #[serde(rename = "object")]
@@ -167,6 +169,7 @@ impl FlatSchema {
             description: "empty object".to_owned(),
             ty: Type::Object {
                 title: "".to_owned(),
+                required: vec![],
                 properties: BTreeMap::new(),
             },
         }
@@ -503,6 +506,7 @@ impl Converter {
                         description: variant.description().to_owned(),
                         ty: Type::Object {
                             title: variant.name().to_owned(),
+                            required: vec![variant.serde_name().to_owned()],
                             properties: BTreeMap::from([(
                                 variant.serde_name().to_owned(),
                                 self.struct_to_schema(schema, kind, &strukt),
@@ -518,6 +522,7 @@ impl Converter {
                         description: variant.description().to_owned(),
                         ty: Type::Object {
                             title: variant.name().to_owned(),
+                            required: vec![tag.to_owned(), content.to_owned()],
                             properties: BTreeMap::from([
                                 (
                                     tag.to_owned(),
@@ -576,6 +581,11 @@ impl Converter {
         let ty = if strukt.fields().all(|f| f.is_named()) {
             Type::Object {
                 title: strukt.name().to_owned(),
+                required: strukt
+                    .fields()
+                    .filter(|f| f.required)
+                    .map(|f| f.serde_name().to_owned())
+                    .collect(),
                 properties: strukt
                     .fields()
                     .map(|field| {

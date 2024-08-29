@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.basic.TestStructWithHashMap": {
         "type": "object",
         "title": "reflectapi_demo::tests::basic::TestStructWithHashMap",
+        "required": [
+          "_f"
+        ],
         "properties": {
           "_f": {
             "description": "Key-value map type",

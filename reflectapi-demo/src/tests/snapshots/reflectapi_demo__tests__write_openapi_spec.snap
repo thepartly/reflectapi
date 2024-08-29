@@ -112,6 +112,9 @@ expression: s
                 "schema": {
                   "type": "object",
                   "title": "myapi::proto::Paginated",
+                  "required": [
+                    "items"
+                  ],
                   "properties": {
                     "cursor": {
                       "oneOf": [
@@ -213,6 +216,9 @@ expression: s
           {
             "type": "object",
             "title": "Calm",
+            "required": [
+              "Calm"
+            ],
             "properties": {
               "Calm": {
                 "type": "object",
@@ -224,6 +230,9 @@ expression: s
           {
             "type": "object",
             "title": "Aggressive",
+            "required": [
+              "Aggressive"
+            ],
             "properties": {
               "Aggressive": {
                 "type": "array",
@@ -241,10 +250,16 @@ expression: s
           {
             "type": "object",
             "title": "Other",
+            "required": [
+              "Other"
+            ],
             "properties": {
               "Other": {
                 "type": "object",
                 "title": "Other",
+                "required": [
+                  "description"
+                ],
                 "properties": {
                   "description": {
                     "$ref": "#/components/schemas/std.string.String"
@@ -264,6 +279,9 @@ expression: s
             "description": " A dog",
             "type": "object",
             "title": "dog",
+            "required": [
+              "dog"
+            ],
             "properties": {
               "dog": {
                 "description": " A dog",
@@ -277,6 +295,9 @@ expression: s
             "description": " A cat",
             "type": "object",
             "title": "cat",
+            "required": [
+              "cat"
+            ],
             "properties": {
               "cat": {
                 "description": " A cat",
@@ -291,6 +312,10 @@ expression: s
       "myapi.model.Pet": {
         "type": "object",
         "title": "myapi::model::Pet",
+        "required": [
+          "name",
+          "kind"
+        ],
         "properties": {
           "age": {
             "oneOf": [
@@ -357,6 +382,9 @@ expression: s
       "myapi.proto.PetsRemoveRequest": {
         "type": "object",
         "title": "myapi::proto::PetsRemoveRequest",
+        "required": [
+          "name"
+        ],
         "properties": {
           "name": {
             "$ref": "#/components/schemas/std.string.String"
@@ -366,6 +394,9 @@ expression: s
       "myapi.proto.PetsUpdateRequest": {
         "type": "object",
         "title": "myapi::proto::PetsUpdateRequest",
+        "required": [
+          "name"
+        ],
         "properties": {
           "age": {
             "oneOf": [

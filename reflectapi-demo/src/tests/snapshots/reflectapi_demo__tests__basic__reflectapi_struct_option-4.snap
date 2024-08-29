@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.basic.TestStructOption": {
         "type": "object",
         "title": "reflectapi_demo::tests::basic::TestStructOption",
+        "required": [
+          "_f"
+        ],
         "properties": {
           "_f": {
             "oneOf": [

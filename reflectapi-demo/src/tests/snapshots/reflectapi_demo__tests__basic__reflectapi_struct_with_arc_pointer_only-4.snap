@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.basic.TestStructWithArcPointerOnly": {
         "type": "object",
         "title": "reflectapi_demo::tests::basic::TestStructWithArcPointerOnly",
+        "required": [
+          "_f_pointer_arc"
+        ],
         "properties": {
           "_f_pointer_arc": {
             "$ref": "#/components/schemas/u8"

@@ -46,6 +46,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           {
             "type": "object",
             "title": "V0",
+            "required": [
+              "type"
+            ],
             "properties": {
               "type": {
                 "$ref": "#/components/schemas/std.string.String"

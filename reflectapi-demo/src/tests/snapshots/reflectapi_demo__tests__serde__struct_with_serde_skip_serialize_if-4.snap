@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf": {
         "type": "object",
         "title": "reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf",
+        "required": [
+          "f"
+        ],
         "properties": {
           "f": {
             "oneOf": [

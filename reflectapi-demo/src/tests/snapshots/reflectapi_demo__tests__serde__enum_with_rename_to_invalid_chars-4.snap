@@ -46,10 +46,16 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           {
             "type": "object",
             "title": "Variant1",
+            "required": [
+              "variant-name&&"
+            ],
             "properties": {
               "variant-name&&": {
                 "type": "object",
                 "title": "Variant1",
+                "required": [
+                  "field-name&&"
+                ],
                 "properties": {
                   "field-name&&": {
                     "$ref": "#/components/schemas/u8"

@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestStructWithFlatten": {
         "type": "object",
         "title": "reflectapi_demo::tests::serde::TestStructWithFlatten",
+        "required": [
+          "g"
+        ],
         "properties": {
           "g": {
             "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
@@ -53,6 +56,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestStructWithFlattenNested": {
         "type": "object",
         "title": "reflectapi_demo::tests::serde::TestStructWithFlattenNested",
+        "required": [
+          "f"
+        ],
         "properties": {
           "f": {
             "$ref": "#/components/schemas/u8"

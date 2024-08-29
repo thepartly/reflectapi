@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.basic.TestStructWithNestedExternal": {
         "type": "object",
         "title": "reflectapi_demo::tests::basic::TestStructWithNestedExternal",
+        "required": [
+          "_f"
+        ],
         "properties": {
           "_f": {
             "$ref": "#/components/schemas/reflectapi_demo.tests.test_lib.TestStructNested"
@@ -53,6 +56,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.test_lib.TestStructNested": {
         "type": "object",
         "title": "reflectapi_demo::tests::test_lib::TestStructNested",
+        "required": [
+          "_f"
+        ],
         "properties": {
           "_f": {
             "$ref": "#/components/schemas/std.string.String"

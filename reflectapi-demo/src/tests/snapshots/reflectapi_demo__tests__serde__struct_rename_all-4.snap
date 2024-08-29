@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestStructRenameAll": {
         "type": "object",
         "title": "reflectapi_demo::tests::serde::TestStructRenameAll",
+        "required": [
+          "fieldName"
+        ],
         "properties": {
           "fieldName": {
             "$ref": "#/components/schemas/u8"

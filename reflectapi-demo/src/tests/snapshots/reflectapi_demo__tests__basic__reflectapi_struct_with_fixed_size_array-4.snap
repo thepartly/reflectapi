@@ -44,6 +44,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.basic.TestStructWithFixedSizeArray": {
         "type": "object",
         "title": "reflectapi_demo::tests::basic::TestStructWithFixedSizeArray",
+        "required": [
+          "_f"
+        ],
         "properties": {
           "_f": {
             "description": "Fixed-size Array",

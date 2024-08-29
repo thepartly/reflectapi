@@ -46,6 +46,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           {
             "type": "object",
             "title": "Variant1",
+            "required": [
+              "Variant1"
+            ],
             "properties": {
               "Variant1": {
                 "type": "object",
