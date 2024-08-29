@@ -255,6 +255,7 @@ expression: s
       "myapi.model.Kind": {
         "oneOf": [
           {
+            "description": " A dog",
             "type": "object",
             "properties": {
               "dog": {
@@ -265,6 +266,7 @@ expression: s
             }
           },
           {
+            "description": " A cat",
             "type": "object",
             "properties": {
               "cat": {

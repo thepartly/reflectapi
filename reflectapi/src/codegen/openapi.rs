@@ -497,7 +497,7 @@ impl Converter {
             crate::Representation::External => {
                 return InlineOrRef::Inline(
                     FlatSchema {
-                        description: "".to_owned(),
+                        description: variant.description().to_owned(),
                         ty: Type::Object {
                             properties: BTreeMap::from([(
                                 variant.serde_name().to_owned(),
@@ -511,14 +511,14 @@ impl Converter {
             crate::Representation::Adjacent { tag, content } => {
                 return InlineOrRef::Inline(
                     FlatSchema {
-                        description: "".to_owned(),
+                        description: variant.description().to_owned(),
                         ty: Type::Object {
                             properties: BTreeMap::from([
                                 (
                                     tag.to_owned(),
                                     InlineOrRef::Inline(
                                         FlatSchema {
-                                            description: "".to_owned(),
+                                            description: variant.description().to_owned(),
                                             ty: Type::String,
                                         }
                                         .into(),

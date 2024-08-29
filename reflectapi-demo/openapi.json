@@ -251,6 +251,7 @@
       "myapi.model.Kind": {
         "oneOf": [
           {
+            "description": " A dog",
             "type": "object",
             "properties": {
               "dog": {
@@ -261,6 +262,7 @@
             }
           },
           {
+            "description": " A cat",
             "type": "object",
             "properties": {
               "cat": {
