@@ -111,6 +111,7 @@ expression: s
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "title": "myapi::proto::Paginated",
                   "properties": {
                     "cursor": {
                       "oneOf": [
@@ -211,15 +212,18 @@ expression: s
         "oneOf": [
           {
             "type": "object",
+            "title": "Calm",
             "properties": {
               "Calm": {
                 "type": "object",
+                "title": "Calm",
                 "properties": {}
               }
             }
           },
           {
             "type": "object",
+            "title": "Aggressive",
             "properties": {
               "Aggressive": {
                 "type": "array",
@@ -236,9 +240,11 @@ expression: s
           },
           {
             "type": "object",
+            "title": "Other",
             "properties": {
               "Other": {
                 "type": "object",
+                "title": "Other",
                 "properties": {
                   "description": {
                     "$ref": "#/components/schemas/std.string.String"
@@ -257,10 +263,12 @@ expression: s
           {
             "description": " A dog",
             "type": "object",
+            "title": "dog",
             "properties": {
               "dog": {
                 "description": " A dog",
                 "type": "object",
+                "title": "dog",
                 "properties": {}
               }
             }
@@ -268,10 +276,12 @@ expression: s
           {
             "description": " A cat",
             "type": "object",
+            "title": "cat",
             "properties": {
               "cat": {
                 "description": " A cat",
                 "type": "object",
+                "title": "cat",
                 "properties": {}
               }
             }
@@ -280,6 +290,7 @@ expression: s
       },
       "myapi.model.Pet": {
         "type": "object",
+        "title": "myapi::model::Pet",
         "properties": {
           "age": {
             "oneOf": [
@@ -317,6 +328,7 @@ expression: s
       },
       "myapi.proto.PetsListRequest": {
         "type": "object",
+        "title": "myapi::proto::PetsListRequest",
         "properties": {
           "cursor": {
             "oneOf": [
@@ -344,6 +356,7 @@ expression: s
       },
       "myapi.proto.PetsRemoveRequest": {
         "type": "object",
+        "title": "myapi::proto::PetsRemoveRequest",
         "properties": {
           "name": {
             "$ref": "#/components/schemas/std.string.String"
@@ -352,6 +365,7 @@ expression: s
       },
       "myapi.proto.PetsUpdateRequest": {
         "type": "object",
+        "title": "myapi::proto::PetsUpdateRequest",
         "properties": {
           "age": {
             "oneOf": [

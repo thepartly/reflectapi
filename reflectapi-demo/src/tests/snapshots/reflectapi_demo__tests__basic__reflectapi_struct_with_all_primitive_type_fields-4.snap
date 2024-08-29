@@ -84,10 +84,12 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi.Infallible": {
         "description": "Error object which is expected to be never returned",
         "type": "object",
+        "title": "reflectapi::Infallible",
         "properties": {}
       },
       "reflectapi_demo.tests.basic.TestStructWithAllPrimitiveTypeFields": {
         "type": "object",
+        "title": "reflectapi_demo::tests::basic::TestStructWithAllPrimitiveTypeFields",
         "properties": {
           "_f_array": {
             "description": "Fixed-size Array",

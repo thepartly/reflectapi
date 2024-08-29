@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -45,9 +45,11 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         "oneOf": [
           {
             "type": "object",
+            "title": "Variant1",
             "properties": {
               "Variant1": {
                 "type": "object",
+                "title": "Variant1",
                 "properties": {}
               }
             }
