@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithVecNested"
+                "$ref": "#/components/schemas/TestStructWithVecNested"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithVecNested"
+                  "$ref": "#/components/schemas/TestStructWithVecNested"
                 }
               }
             }
@@ -41,9 +41,25 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructWithVecNested": {
+      "String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "TestStructNested": {
         "type": "object",
-        "title": "reflectapi_demo::tests::basic::TestStructWithVecNested",
+        "title": "TestStructNested",
+        "required": [
+          "_f"
+        ],
+        "properties": {
+          "_f": {
+            "$ref": "#/components/schemas/String"
+          }
+        }
+      },
+      "TestStructWithVecNested": {
+        "type": "object",
+        "title": "TestStructWithVecNested",
         "required": [
           "_f"
         ],
@@ -55,27 +71,11 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
               "description": "Expandable array type",
               "type": "array",
               "items": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.test_lib.TestStructNested"
+                "$ref": "#/components/schemas/TestStructNested"
               }
             }
           }
         }
-      },
-      "reflectapi_demo.tests.test_lib.TestStructNested": {
-        "type": "object",
-        "title": "reflectapi_demo::tests::test_lib::TestStructNested",
-        "required": [
-          "_f"
-        ],
-        "properties": {
-          "_f": {
-            "$ref": "#/components/schemas/std.string.String"
-          }
-        }
-      },
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
       }
     }
   }

@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithVec"
+                "$ref": "#/components/schemas/TestStructWithVec"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithVec"
+                  "$ref": "#/components/schemas/TestStructWithVec"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructWithVec": {
+      "TestStructWithVec": {
         "type": "object",
-        "title": "reflectapi_demo::tests::basic::TestStructWithVec",
+        "title": "TestStructWithVec",
         "required": [
           "_f"
         ],

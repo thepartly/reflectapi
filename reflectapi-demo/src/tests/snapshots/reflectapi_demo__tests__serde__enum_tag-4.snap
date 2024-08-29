@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumTag"
+                "$ref": "#/components/schemas/TestEnumTag"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumTag"
+                  "$ref": "#/components/schemas/TestEnumTag"
                 }
               }
             }
@@ -41,7 +41,11 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestEnumTag": {
+      "String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "TestEnumTag": {
         "oneOf": [
           {
             "type": "object",
@@ -55,7 +59,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               }
             }
           },
@@ -66,10 +70,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         "discriminator": {
           "propertyName": "type"
         }
-      },
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
       },
       "u8": {
         "description": "8-bit unsigned integer",

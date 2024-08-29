@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually"
+                "$ref": "#/components/schemas/TestStructOneBasicFieldStringReflectBothEqually"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually"
+                  "$ref": "#/components/schemas/TestStructOneBasicFieldStringReflectBothEqually"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually": {
+      "TestStructOneBasicFieldStringReflectBothEqually": {
         "type": "object",
-        "title": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothEqually",
+        "title": "TestStructOneBasicFieldStringReflectBothEqually",
         "required": [
           "_f"
         ],

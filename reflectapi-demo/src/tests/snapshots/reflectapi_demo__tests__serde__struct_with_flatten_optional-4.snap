@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenOptional"
+                "$ref": "#/components/schemas/TestStructWithFlattenOptional"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenOptional"
+                  "$ref": "#/components/schemas/TestStructWithFlattenOptional"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestStructWithFlattenNested": {
+      "TestStructWithFlattenNested": {
         "type": "object",
-        "title": "reflectapi_demo::tests::serde::TestStructWithFlattenNested",
+        "title": "TestStructWithFlattenNested",
         "required": [
           "f"
         ],
@@ -53,9 +53,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           }
         }
       },
-      "reflectapi_demo.tests.serde.TestStructWithFlattenOptional": {
+      "TestStructWithFlattenOptional": {
         "type": "object",
-        "title": "reflectapi_demo::tests::serde::TestStructWithFlattenOptional",
+        "title": "TestStructWithFlattenOptional",
         "properties": {
           "g": {
             "oneOf": [
@@ -64,7 +64,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
+                "$ref": "#/components/schemas/TestStructWithFlattenNested"
               }
             ]
           }

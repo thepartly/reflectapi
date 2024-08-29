@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithArcPointerOnly"
+                "$ref": "#/components/schemas/TestStructWithArcPointerOnly"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithArcPointerOnly"
+                  "$ref": "#/components/schemas/TestStructWithArcPointerOnly"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructWithArcPointerOnly": {
+      "TestStructWithArcPointerOnly": {
         "type": "object",
-        "title": "reflectapi_demo::tests::basic::TestStructWithArcPointerOnly",
+        "title": "TestStructWithArcPointerOnly",
         "required": [
           "_f_pointer_arc"
         ],

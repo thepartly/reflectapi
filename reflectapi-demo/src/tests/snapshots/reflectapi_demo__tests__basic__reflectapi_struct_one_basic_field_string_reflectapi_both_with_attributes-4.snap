@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothDifferently"
+                "$ref": "#/components/schemas/TestStructOneBasicFieldStringReflectBothDifferently"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothDifferently"
+                  "$ref": "#/components/schemas/TestStructOneBasicFieldStringReflectBothDifferently"
                 }
               }
             }
@@ -41,13 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "i32": {
-        "description": "32-bit signed integer",
-        "type": "integer"
-      },
-      "reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothDifferently": {
+      "TestStructOneBasicFieldStringReflectBothDifferently": {
         "type": "object",
-        "title": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothDifferently",
+        "title": "TestStructOneBasicFieldStringReflectBothDifferently",
         "required": [
           "_f"
         ],
@@ -56,6 +52,10 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "$ref": "#/components/schemas/i32"
           }
         }
+      },
+      "i32": {
+        "description": "32-bit signed integer",
+        "type": "integer"
       }
     }
   }

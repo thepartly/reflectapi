@@ -19,7 +19,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "application/json": {
               "schema": {
                 "type": "object",
-                "title": "reflectapi_demo::tests::basic::TestStructWithHashSetFieldGeneric",
+                "title": "TestStructWithHashSetFieldGeneric",
                 "required": [
                   "_f_hashset"
                 ],
@@ -28,7 +28,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                     "description": "Value set type",
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/std.string.String"
+                      "$ref": "#/components/schemas/String"
                     },
                     "uniqueItems": true
                   }
@@ -45,7 +45,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "title": "reflectapi_demo::tests::basic::TestStructWithHashSetFieldGeneric",
+                  "title": "TestStructWithHashSetFieldGeneric",
                   "required": [
                     "_f_hashset"
                   ],
@@ -54,7 +54,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                       "description": "Value set type",
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/std.string.String"
+                        "$ref": "#/components/schemas/String"
                       },
                       "uniqueItems": true
                     }
@@ -69,7 +69,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "std.string.String": {
+      "String": {
         "description": "UTF-8 encoded string",
         "type": "string"
       }

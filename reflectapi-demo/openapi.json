@@ -36,7 +36,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/myapi.proto.PetsCreateRequest"
+                "$ref": "#/components/schemas/PetsCreateRequest"
               }
             }
           },
@@ -75,7 +75,7 @@
                       "type": "null"
                     },
                     {
-                      "$ref": "#/components/schemas/myapi.model.Pet"
+                      "$ref": "#/components/schemas/Pet"
                     }
                   ]
                 }
@@ -94,7 +94,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/myapi.proto.PetsListRequest"
+                "$ref": "#/components/schemas/PetsListRequest"
               }
             }
           },
@@ -107,7 +107,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "title": "myapi::proto::Paginated",
+                  "title": "Paginated",
                   "required": [
                     "items"
                   ],
@@ -119,7 +119,7 @@
                           "type": "null"
                         },
                         {
-                          "$ref": "#/components/schemas/std.string.String"
+                          "$ref": "#/components/schemas/String"
                         }
                       ]
                     },
@@ -127,7 +127,7 @@
                       "description": "Expandable array type",
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/myapi.model.Pet"
+                        "$ref": "#/components/schemas/Pet"
                       }
                     }
                   }
@@ -147,7 +147,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/myapi.proto.PetsRemoveRequest"
+                "$ref": "#/components/schemas/PetsRemoveRequest"
               }
             }
           },
@@ -178,7 +178,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/myapi.proto.PetsUpdateRequest"
+                "$ref": "#/components/schemas/PetsUpdateRequest"
               }
             }
           },
@@ -203,11 +203,7 @@
   },
   "components": {
     "schemas": {
-      "f64": {
-        "description": "64-bit floating point number",
-        "type": "number"
-      },
-      "myapi.model.Behavior": {
+      "Behavior": {
         "oneOf": [
           {
             "type": "object",
@@ -237,7 +233,7 @@
                     "$ref": "#/components/schemas/f64"
                   },
                   {
-                    "$ref": "#/components/schemas/std.string.String"
+                    "$ref": "#/components/schemas/String"
                   }
                 ]
               }
@@ -258,10 +254,10 @@
                 ],
                 "properties": {
                   "description": {
-                    "$ref": "#/components/schemas/std.string.String"
+                    "$ref": "#/components/schemas/String"
                   },
                   "notes": {
-                    "$ref": "#/components/schemas/std.string.String"
+                    "$ref": "#/components/schemas/String"
                   }
                 }
               }
@@ -269,7 +265,7 @@
           }
         ]
       },
-      "myapi.model.Kind": {
+      "Kind": {
         "oneOf": [
           {
             "description": " A dog",
@@ -305,9 +301,9 @@
           }
         ]
       },
-      "myapi.model.Pet": {
+      "Pet": {
         "type": "object",
-        "title": "myapi::model::Pet",
+        "title": "Pet",
         "required": [
           "name",
           "kind"
@@ -328,28 +324,28 @@
             "description": "Expandable array type",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/myapi.model.Behavior"
+              "$ref": "#/components/schemas/Behavior"
             }
           },
           "kind": {
-            "$ref": "#/components/schemas/myapi.model.Kind"
+            "$ref": "#/components/schemas/Kind"
           },
           "name": {
-            "$ref": "#/components/schemas/std.string.String"
+            "$ref": "#/components/schemas/String"
           }
         }
       },
-      "myapi.proto.PetsCreateRequest": {
+      "PetsCreateRequest": {
         "type": "array",
         "prefixItems": [
           {
-            "$ref": "#/components/schemas/myapi.model.Pet"
+            "$ref": "#/components/schemas/Pet"
           }
         ]
       },
-      "myapi.proto.PetsListRequest": {
+      "PetsListRequest": {
         "type": "object",
-        "title": "myapi::proto::PetsListRequest",
+        "title": "PetsListRequest",
         "properties": {
           "cursor": {
             "oneOf": [
@@ -358,7 +354,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               }
             ]
           },
@@ -375,21 +371,21 @@
           }
         }
       },
-      "myapi.proto.PetsRemoveRequest": {
+      "PetsRemoveRequest": {
         "type": "object",
-        "title": "myapi::proto::PetsRemoveRequest",
+        "title": "PetsRemoveRequest",
         "required": [
           "name"
         ],
         "properties": {
           "name": {
-            "$ref": "#/components/schemas/std.string.String"
+            "$ref": "#/components/schemas/String"
           }
         }
       },
-      "myapi.proto.PetsUpdateRequest": {
+      "PetsUpdateRequest": {
         "type": "object",
-        "title": "myapi::proto::PetsUpdateRequest",
+        "title": "PetsUpdateRequest",
         "required": [
           "name"
         ],
@@ -415,7 +411,7 @@
                 "description": "Expandable array type",
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/myapi.model.Behavior"
+                  "$ref": "#/components/schemas/Behavior"
                 }
               }
             ]
@@ -427,18 +423,22 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/myapi.model.Kind"
+                "$ref": "#/components/schemas/Kind"
               }
             ]
           },
           "name": {
-            "$ref": "#/components/schemas/std.string.String"
+            "$ref": "#/components/schemas/String"
           }
         }
       },
-      "std.string.String": {
+      "String": {
         "description": "UTF-8 encoded string",
         "type": "string"
+      },
+      "f64": {
+        "description": "64-bit floating point number",
+        "type": "number"
       },
       "u8": {
         "description": "8-bit unsigned integer",

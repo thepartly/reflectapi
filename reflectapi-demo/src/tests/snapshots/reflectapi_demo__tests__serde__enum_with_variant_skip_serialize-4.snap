@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumWithVariantSkipSerialize"
+                "$ref": "#/components/schemas/TestEnumWithVariantSkipSerialize"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumWithVariantSkipSerialize"
+                  "$ref": "#/components/schemas/TestEnumWithVariantSkipSerialize"
                 }
               }
             }
@@ -41,7 +41,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestEnumWithVariantSkipSerialize": {
+      "TestEnumWithVariantSkipSerialize": {
         "oneOf": [
           {
             "type": "object",

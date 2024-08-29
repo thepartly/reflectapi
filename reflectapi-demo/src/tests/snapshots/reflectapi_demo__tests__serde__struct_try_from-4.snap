@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructTryFrom"
+                "$ref": "#/components/schemas/TestStructTryFrom"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructTryFormProxy"
+                  "$ref": "#/components/schemas/TestStructTryFormProxy"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestStructTryFormProxy": {
+      "TestStructTryFormProxy": {
         "type": "object",
-        "title": "reflectapi_demo::tests::serde::TestStructTryFormProxy",
+        "title": "TestStructTryFormProxy",
         "required": [
           "f"
         ],
@@ -53,9 +53,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           }
         }
       },
-      "reflectapi_demo.tests.serde.TestStructTryFrom": {
+      "TestStructTryFrom": {
         "type": "object",
-        "title": "reflectapi_demo::tests::serde::TestStructTryFrom",
+        "title": "TestStructTryFrom",
         "required": [
           "f"
         ],

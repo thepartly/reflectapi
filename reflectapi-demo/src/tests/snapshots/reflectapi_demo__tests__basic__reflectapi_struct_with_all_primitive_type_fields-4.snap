@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithAllPrimitiveTypeFields"
+                "$ref": "#/components/schemas/TestStructWithAllPrimitiveTypeFields"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithAllPrimitiveTypeFields"
+                  "$ref": "#/components/schemas/TestStructWithAllPrimitiveTypeFields"
                 }
               }
             }
@@ -41,55 +41,19 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "bool": {
-        "description": "Boolean value",
-        "type": "boolean"
-      },
-      "char": {
-        "description": "Unicode character",
-        "type": "string"
-      },
-      "f32": {
-        "description": "32-bit floating point number",
-        "type": "number"
-      },
-      "f64": {
-        "description": "64-bit floating point number",
-        "type": "number"
-      },
-      "i128": {
-        "description": "128-bit signed integer",
-        "type": "integer"
-      },
-      "i16": {
-        "description": "16-bit signed integer",
-        "type": "integer"
-      },
-      "i32": {
-        "description": "32-bit signed integer",
-        "type": "integer"
-      },
-      "i64": {
-        "description": "64-bit signed integer",
-        "type": "integer"
-      },
-      "i8": {
-        "description": "8-bit signed integer",
-        "type": "integer"
-      },
-      "isize": {
-        "description": "Machine-specific-bit signed integer",
-        "type": "integer"
-      },
-      "reflectapi.Infallible": {
+      "Infallible": {
         "description": "Error object which is expected to be never returned",
         "type": "object",
-        "title": "reflectapi::Infallible",
+        "title": "Infallible",
         "properties": {}
       },
-      "reflectapi_demo.tests.basic.TestStructWithAllPrimitiveTypeFields": {
+      "String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "TestStructWithAllPrimitiveTypeFields": {
         "type": "object",
-        "title": "reflectapi_demo::tests::basic::TestStructWithAllPrimitiveTypeFields",
+        "title": "TestStructWithAllPrimitiveTypeFields",
         "required": [
           "_f_u8",
           "_f_u16",
@@ -159,7 +123,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "description": "Key-value map type",
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/std.string.String"
+              "$ref": "#/components/schemas/String"
             }
           },
           "_f_hashset": {
@@ -186,7 +150,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "$ref": "#/components/schemas/i8"
           },
           "_f_infallible": {
-            "$ref": "#/components/schemas/reflectapi.Infallible"
+            "$ref": "#/components/schemas/Infallible"
           },
           "_f_isize": {
             "$ref": "#/components/schemas/isize"
@@ -228,7 +192,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "$ref": "#/components/schemas/u8"
           },
           "_f_str": {
-            "$ref": "#/components/schemas/std.string.String"
+            "$ref": "#/components/schemas/String"
           },
           "_f_tuple": {
             "description": "Tuple holding 2 elements",
@@ -238,7 +202,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               }
             ]
           },
@@ -250,31 +214,31 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               }
             ]
           },
@@ -286,31 +250,31 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
@@ -325,37 +289,37 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               }
             ]
           },
@@ -367,7 +331,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
@@ -382,13 +346,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               }
             ]
           },
@@ -400,13 +364,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
@@ -421,19 +385,19 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               }
             ]
           },
@@ -445,19 +409,19 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
@@ -472,25 +436,25 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               }
             ]
           },
@@ -502,25 +466,25 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               },
               {
                 "$ref": "#/components/schemas/u8"
@@ -543,7 +507,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "$ref": "#/components/schemas/u8"
           },
           "_f_unit": {
-            "$ref": "#/components/schemas/std.tuple.Tuple0"
+            "$ref": "#/components/schemas/Tuple0"
           },
           "_f_usize": {
             "$ref": "#/components/schemas/usize"
@@ -557,13 +521,49 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           }
         }
       },
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
-      },
-      "std.tuple.Tuple0": {
+      "Tuple0": {
         "description": "Unit type",
         "type": "null"
+      },
+      "bool": {
+        "description": "Boolean value",
+        "type": "boolean"
+      },
+      "char": {
+        "description": "Unicode character",
+        "type": "string"
+      },
+      "f32": {
+        "description": "32-bit floating point number",
+        "type": "number"
+      },
+      "f64": {
+        "description": "64-bit floating point number",
+        "type": "number"
+      },
+      "i128": {
+        "description": "128-bit signed integer",
+        "type": "integer"
+      },
+      "i16": {
+        "description": "16-bit signed integer",
+        "type": "integer"
+      },
+      "i32": {
+        "description": "32-bit signed integer",
+        "type": "integer"
+      },
+      "i64": {
+        "description": "64-bit signed integer",
+        "type": "integer"
+      },
+      "i8": {
+        "description": "8-bit signed integer",
+        "type": "integer"
+      },
+      "isize": {
+        "description": "Machine-specific-bit signed integer",
+        "type": "integer"
       },
       "u128": {
         "description": "128-bit unsigned integer",

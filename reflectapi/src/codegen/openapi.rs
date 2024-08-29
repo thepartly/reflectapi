@@ -580,7 +580,7 @@ impl Converter {
 
         let ty = if strukt.fields().all(|f| f.is_named()) {
             Type::Object {
-                title: strukt.name().to_owned(),
+                title: normalize(strukt.name()),
                 required: strukt
                     .fields()
                     .filter(|f| f.required)
@@ -614,9 +614,12 @@ impl Converter {
     }
 }
 
-// OpenAPI doesn't allow `:`
-fn normalize(name: &str) -> String {
-    name.replace("::", ".")
+// Take the last segment of the path as the name.
+fn normalize(name: impl AsRef<str>) -> String {
+    let name = name.as_ref();
+    name.rsplit_once("::")
+        .map_or(name, |(_, name)| name)
+        .to_owned()
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]

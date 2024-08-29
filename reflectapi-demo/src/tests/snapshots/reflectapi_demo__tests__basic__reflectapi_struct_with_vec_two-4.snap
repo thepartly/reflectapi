@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithVecTwo"
+                "$ref": "#/components/schemas/TestStructWithVecTwo"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithVecTwo"
+                  "$ref": "#/components/schemas/TestStructWithVecTwo"
                 }
               }
             }
@@ -41,13 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "i8": {
-        "description": "8-bit signed integer",
-        "type": "integer"
-      },
-      "reflectapi_demo.tests.basic.TestStructWithVecTwo": {
+      "TestStructWithVecTwo": {
         "type": "object",
-        "title": "reflectapi_demo::tests::basic::TestStructWithVecTwo",
+        "title": "TestStructWithVecTwo",
         "required": [
           "_f",
           "_f2"
@@ -68,6 +64,10 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             }
           }
         }
+      },
+      "i8": {
+        "description": "8-bit signed integer",
+        "type": "integer"
       },
       "u8": {
         "description": "8-bit unsigned integer",
