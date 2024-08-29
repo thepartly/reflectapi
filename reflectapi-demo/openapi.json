@@ -350,14 +350,8 @@
           "age": {
             "oneOf": [
               {
-                "description": "The value is missing, i.e. undefined in JavaScript",
-                "type": "object",
-                "properties": {}
-              },
-              {
-                "description": "The value is provided but set to none, i.e. null in JavaScript",
-                "type": "object",
-                "properties": {}
+                "description": "Null",
+                "type": "null"
               },
               {
                 "$ref": "#/components/schemas/u8"
@@ -367,14 +361,8 @@
           "behaviors": {
             "oneOf": [
               {
-                "description": "The value is missing, i.e. undefined in JavaScript",
-                "type": "object",
-                "properties": {}
-              },
-              {
-                "description": "The value is provided but set to none, i.e. null in JavaScript",
-                "type": "object",
-                "properties": {}
+                "description": "Null",
+                "type": "null"
               },
               {
                 "description": "Expandable array type",

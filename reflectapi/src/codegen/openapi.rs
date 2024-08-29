@@ -325,7 +325,7 @@ impl Converter {
                 }
             },
             crate::Type::Enum(adt) => {
-                if adt.name == "std::option::Option" {
+                if adt.name == "std::option::Option" || adt.name == "reflectapi::Option" {
                     // Special case `Option` to generate a nicer spec.
                     Schema::OneOf {
                         subschemas: vec![
