@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -18,7 +18,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithArcPointerOnly"
+                "$ref": "#/components/schemas/TestStructWithArcPointerOnly"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithArcPointerOnly"
+                  "$ref": "#/components/schemas/TestStructWithArcPointerOnly"
                 }
               }
             }
@@ -41,8 +41,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructWithArcPointerOnly": {
+      "TestStructWithArcPointerOnly": {
         "type": "object",
+        "title": "TestStructWithArcPointerOnly",
+        "required": [
+          "_f_pointer_arc"
+        ],
         "properties": {
           "_f_pointer_arc": {
             "$ref": "#/components/schemas/u8"

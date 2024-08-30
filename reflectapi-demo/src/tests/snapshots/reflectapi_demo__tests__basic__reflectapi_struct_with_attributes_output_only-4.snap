@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -18,7 +18,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly"
+                "$ref": "#/components/schemas/TestStructWithAttributesOutputOnly"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly"
+                  "$ref": "#/components/schemas/TestStructWithAttributesOutputOnly"
                 }
               }
             }
@@ -41,17 +41,21 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly": {
-        "type": "object",
-        "properties": {
-          "_f": {
-            "$ref": "#/components/schemas/std.string.String"
-          }
-        }
-      },
-      "std.string.String": {
+      "String": {
         "description": "UTF-8 encoded string",
         "type": "string"
+      },
+      "TestStructWithAttributesOutputOnly": {
+        "type": "object",
+        "title": "TestStructWithAttributesOutputOnly",
+        "required": [
+          "_f"
+        ],
+        "properties": {
+          "_f": {
+            "$ref": "#/components/schemas/String"
+          }
+        }
       }
     }
   }

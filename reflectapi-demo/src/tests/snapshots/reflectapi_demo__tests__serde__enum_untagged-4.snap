@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumUntagged"
+                "$ref": "#/components/schemas/TestEnumUntagged"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumUntagged"
+                  "$ref": "#/components/schemas/TestEnumUntagged"
                 }
               }
             }
@@ -41,13 +41,17 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestEnumUntagged": {
+      "TestEnumUntagged": {
         "oneOf": [
           {
             "$ref": "#/components/schemas/u8"
           },
           {
             "type": "object",
+            "title": "Variant2",
+            "required": [
+              "field_name"
+            ],
             "properties": {
               "field_name": {
                 "$ref": "#/components/schemas/u8"

@@ -1,7 +1,9 @@
+use axum::{response::Html, Json};
+
 #[tokio::main]
 async fn main() {
     let builder = reflectapi_demo::builder();
-    let (schema, mut routers) = match builder.build() {
+    let (schema, routers) = match builder.build() {
         Ok((schema, routers)) => (schema, routers),
         Err(errors) => {
             for error in errors {
@@ -11,59 +13,7 @@ async fn main() {
         }
     };
 
-    let codegen_config = reflectapi::codegen::Config::default();
-    let openapi_schema_json: &'static str = Box::leak(
-        reflectapi::codegen::openapi::generate(schema.clone(), &codegen_config)
-            .unwrap()
-            .into_boxed_str(),
-    );
-
-    routers.extend([
-        reflectapi::Router {
-            name: "openapi".to_string(),
-            handlers: vec![reflectapi::Handler {
-                name: "openapi.json".to_string(),
-                path: "".to_string(),
-                readonly: true,
-                input_headers: vec![],
-                callback: std::sync::Arc::new(move |_state, _body| {
-                    Box::pin(async move {
-                        reflectapi::HandlerOutput {
-                            code: http::StatusCode::OK,
-                            body: openapi_schema_json.into(),
-                            headers: http::HeaderMap::from_iter([(
-                                http::HeaderName::from_static("content-type"),
-                                "application/json".parse().unwrap(),
-                            )]),
-                        }
-                    })
-                }),
-            }],
-        },
-        reflectapi::Router {
-            name: "openapi".to_string(),
-            handlers: vec![reflectapi::Handler {
-                name: "doc".to_string(),
-                path: "".to_string(),
-                readonly: true,
-                input_headers: vec![],
-                callback: std::sync::Arc::new(|_state, _body| {
-                    Box::pin(async move {
-                        reflectapi::HandlerOutput {
-                            code: http::StatusCode::OK,
-                            body: include_bytes!("./redoc.html")[..].into(),
-                            headers: {
-                                http::HeaderMap::from_iter([(
-                                    http::HeaderName::from_static("content-type"),
-                                    "text/html".parse().unwrap(),
-                                )])
-                            },
-                        }
-                    })
-                }),
-            }],
-        },
-    ]);
+    let openapi_spec = reflectapi::codegen::openapi::Spec::from(&schema);
 
     // write reflect schema to a file
     tokio::fs::write(
@@ -80,7 +30,20 @@ async fn main() {
         // it can be different depending on the router name,
         // (we have only 1 in the demo example)
         r.layer(tower_http::trace::TraceLayer::new_for_http())
-    });
+    })
+    .route(
+        "/openapi.json",
+        axum::routing::get(|| async { Json(openapi_spec) }),
+    )
+    .route(
+        "/doc",
+        axum::routing::get(|| async { Html(include_str!("./swagger-ui.html")) }),
+    )
+    .route(
+        "/redoc",
+        axum::routing::get(|| async { Html(include_str!("./redoc.html")) }),
+    );
+
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     eprintln!("Listening on http://0.0.0.0:3000");
     axum::serve(listener, axum_app).await.unwrap();

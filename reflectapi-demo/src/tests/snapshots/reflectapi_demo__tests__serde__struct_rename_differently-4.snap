@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -18,7 +18,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.MyStructInput"
+                "$ref": "#/components/schemas/MyStructInput"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.MyStructOutput"
+                  "$ref": "#/components/schemas/MyStructOutput"
                 }
               }
             }
@@ -41,12 +41,14 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.MyStructInput": {
+      "MyStructInput": {
         "type": "object",
+        "title": "MyStructInput",
         "properties": {}
       },
-      "reflectapi_demo.tests.serde.MyStructOutput": {
+      "MyStructOutput": {
         "type": "object",
+        "title": "MyStructOutput",
         "properties": {}
       }
     }

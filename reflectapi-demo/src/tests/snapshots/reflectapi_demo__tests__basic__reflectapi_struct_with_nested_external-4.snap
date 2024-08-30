@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -18,7 +18,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithNestedExternal"
+                "$ref": "#/components/schemas/TestStructWithNestedExternal"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithNestedExternal"
+                  "$ref": "#/components/schemas/TestStructWithNestedExternal"
                 }
               }
             }
@@ -41,25 +41,33 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructWithNestedExternal": {
-        "type": "object",
-        "properties": {
-          "_f": {
-            "$ref": "#/components/schemas/reflectapi_demo.tests.test_lib.TestStructNested"
-          }
-        }
-      },
-      "reflectapi_demo.tests.test_lib.TestStructNested": {
-        "type": "object",
-        "properties": {
-          "_f": {
-            "$ref": "#/components/schemas/std.string.String"
-          }
-        }
-      },
-      "std.string.String": {
+      "String": {
         "description": "UTF-8 encoded string",
         "type": "string"
+      },
+      "TestStructNested": {
+        "type": "object",
+        "title": "TestStructNested",
+        "required": [
+          "_f"
+        ],
+        "properties": {
+          "_f": {
+            "$ref": "#/components/schemas/String"
+          }
+        }
+      },
+      "TestStructWithNestedExternal": {
+        "type": "object",
+        "title": "TestStructWithNestedExternal",
+        "required": [
+          "_f"
+        ],
+        "properties": {
+          "_f": {
+            "$ref": "#/components/schemas/TestStructNested"
+          }
+        }
       }
     }
   }

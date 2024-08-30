@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -18,7 +18,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumWithVariantOther"
+                "$ref": "#/components/schemas/TestEnumWithVariantOther"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumWithVariantOther"
+                  "$ref": "#/components/schemas/TestEnumWithVariantOther"
                 }
               }
             }
@@ -41,13 +41,21 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestEnumWithVariantOther": {
+      "String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "TestEnumWithVariantOther": {
         "oneOf": [
           {
             "type": "object",
+            "title": "V0",
+            "required": [
+              "type"
+            ],
             "properties": {
               "type": {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               }
             }
           }
@@ -55,10 +63,6 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
         "discriminator": {
           "propertyName": "type"
         }
-      },
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
       }
     }
   }

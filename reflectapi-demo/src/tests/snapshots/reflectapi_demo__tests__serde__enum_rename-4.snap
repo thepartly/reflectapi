@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -18,7 +18,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.MyEnum"
+                "$ref": "#/components/schemas/MyEnum"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.MyEnum"
+                  "$ref": "#/components/schemas/MyEnum"
                 }
               }
             }
@@ -41,22 +41,32 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.MyEnum": {
+      "MyEnum": {
         "oneOf": [
           {
             "type": "object",
+            "title": "V1",
+            "required": [
+              "V1"
+            ],
             "properties": {
               "V1": {
                 "type": "object",
+                "title": "V1",
                 "properties": {}
               }
             }
           },
           {
             "type": "object",
+            "title": "V2",
+            "required": [
+              "V2"
+            ],
             "properties": {
               "V2": {
                 "type": "object",
+                "title": "V2",
                 "properties": {}
               }
             }

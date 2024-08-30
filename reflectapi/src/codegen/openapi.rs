@@ -107,6 +107,10 @@ pub enum Type {
         prefix_items: Vec<InlineOrRef<Schema>>,
     },
     Object {
+        #[serde(skip_serializing_if = "String::is_empty")]
+        title: String,
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        required: Vec<String>,
         properties: BTreeMap<String, InlineOrRef<Schema>>,
     },
     #[serde(rename = "object")]
@@ -164,6 +168,8 @@ impl FlatSchema {
         Self {
             description: "empty object".to_owned(),
             ty: Type::Object {
+                title: "".to_owned(),
+                required: vec![],
                 properties: BTreeMap::new(),
             },
         }
@@ -497,8 +503,10 @@ impl Converter {
             crate::Representation::External => {
                 return InlineOrRef::Inline(
                     FlatSchema {
-                        description: "".to_owned(),
+                        description: variant.description().to_owned(),
                         ty: Type::Object {
+                            title: variant.name().to_owned(),
+                            required: vec![variant.serde_name().to_owned()],
                             properties: BTreeMap::from([(
                                 variant.serde_name().to_owned(),
                                 self.struct_to_schema(schema, kind, &strukt),
@@ -511,14 +519,16 @@ impl Converter {
             crate::Representation::Adjacent { tag, content } => {
                 return InlineOrRef::Inline(
                     FlatSchema {
-                        description: "".to_owned(),
+                        description: variant.description().to_owned(),
                         ty: Type::Object {
+                            title: variant.name().to_owned(),
+                            required: vec![tag.to_owned(), content.to_owned()],
                             properties: BTreeMap::from([
                                 (
                                     tag.to_owned(),
                                     InlineOrRef::Inline(
                                         FlatSchema {
-                                            description: "".to_owned(),
+                                            description: variant.description().to_owned(),
                                             ty: Type::String,
                                         }
                                         .into(),
@@ -570,6 +580,12 @@ impl Converter {
 
         let ty = if strukt.fields().all(|f| f.is_named()) {
             Type::Object {
+                title: normalize(strukt.name()),
+                required: strukt
+                    .fields()
+                    .filter(|f| f.required)
+                    .map(|f| f.serde_name().to_owned())
+                    .collect(),
                 properties: strukt
                     .fields()
                     .map(|field| {
@@ -598,9 +614,12 @@ impl Converter {
     }
 }
 
-// OpenAPI doesn't allow `:`
-fn normalize(name: &str) -> String {
-    name.replace("::", ".")
+// Take the last segment of the path as the name.
+fn normalize(name: impl AsRef<str>) -> String {
+    let name = name.as_ref();
+    name.rsplit_once("::")
+        .map_or(name, |(_, name)| name)
+        .to_owned()
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]

@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -18,7 +18,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructTryFrom"
+                "$ref": "#/components/schemas/TestStructTryFrom"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructTryFormProxy"
+                  "$ref": "#/components/schemas/TestStructTryFormProxy"
                 }
               }
             }
@@ -41,16 +41,24 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestStructTryFormProxy": {
+      "TestStructTryFormProxy": {
         "type": "object",
+        "title": "TestStructTryFormProxy",
+        "required": [
+          "f"
+        ],
         "properties": {
           "f": {
             "$ref": "#/components/schemas/u8"
           }
         }
       },
-      "reflectapi_demo.tests.serde.TestStructTryFrom": {
+      "TestStructTryFrom": {
         "type": "object",
+        "title": "TestStructTryFrom",
+        "required": [
+          "f"
+        ],
         "properties": {
           "f": {
             "$ref": "#/components/schemas/u8"

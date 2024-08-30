@@ -40,7 +40,7 @@ expression: s
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/myapi.proto.PetsCreateRequest"
+                "$ref": "#/components/schemas/PetsCreateRequest"
               }
             }
           },
@@ -79,7 +79,7 @@ expression: s
                       "type": "null"
                     },
                     {
-                      "$ref": "#/components/schemas/myapi.model.Pet"
+                      "$ref": "#/components/schemas/Pet"
                     }
                   ]
                 }
@@ -98,7 +98,7 @@ expression: s
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/myapi.proto.PetsListRequest"
+                "$ref": "#/components/schemas/PetsListRequest"
               }
             }
           },
@@ -111,6 +111,10 @@ expression: s
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "title": "Paginated",
+                  "required": [
+                    "items"
+                  ],
                   "properties": {
                     "cursor": {
                       "oneOf": [
@@ -119,7 +123,7 @@ expression: s
                           "type": "null"
                         },
                         {
-                          "$ref": "#/components/schemas/std.string.String"
+                          "$ref": "#/components/schemas/String"
                         }
                       ]
                     },
@@ -127,7 +131,7 @@ expression: s
                       "description": "Expandable array type",
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/myapi.model.Pet"
+                        "$ref": "#/components/schemas/Pet"
                       }
                     }
                   }
@@ -147,7 +151,7 @@ expression: s
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/myapi.proto.PetsRemoveRequest"
+                "$ref": "#/components/schemas/PetsRemoveRequest"
               }
             }
           },
@@ -178,7 +182,7 @@ expression: s
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/myapi.proto.PetsUpdateRequest"
+                "$ref": "#/components/schemas/PetsUpdateRequest"
               }
             }
           },
@@ -203,23 +207,28 @@ expression: s
   },
   "components": {
     "schemas": {
-      "f64": {
-        "description": "64-bit floating point number",
-        "type": "number"
-      },
-      "myapi.model.Behavior": {
+      "Behavior": {
         "oneOf": [
           {
             "type": "object",
+            "title": "Calm",
+            "required": [
+              "Calm"
+            ],
             "properties": {
               "Calm": {
                 "type": "object",
+                "title": "Calm",
                 "properties": {}
               }
             }
           },
           {
             "type": "object",
+            "title": "Aggressive",
+            "required": [
+              "Aggressive"
+            ],
             "properties": {
               "Aggressive": {
                 "type": "array",
@@ -228,7 +237,7 @@ expression: s
                     "$ref": "#/components/schemas/f64"
                   },
                   {
-                    "$ref": "#/components/schemas/std.string.String"
+                    "$ref": "#/components/schemas/String"
                   }
                 ]
               }
@@ -236,15 +245,23 @@ expression: s
           },
           {
             "type": "object",
+            "title": "Other",
+            "required": [
+              "Other"
+            ],
             "properties": {
               "Other": {
                 "type": "object",
+                "title": "Other",
+                "required": [
+                  "description"
+                ],
                 "properties": {
                   "description": {
-                    "$ref": "#/components/schemas/std.string.String"
+                    "$ref": "#/components/schemas/String"
                   },
                   "notes": {
-                    "$ref": "#/components/schemas/std.string.String"
+                    "$ref": "#/components/schemas/String"
                   }
                 }
               }
@@ -252,32 +269,49 @@ expression: s
           }
         ]
       },
-      "myapi.model.Kind": {
+      "Kind": {
         "oneOf": [
           {
+            "description": " A dog",
             "type": "object",
+            "title": "dog",
+            "required": [
+              "dog"
+            ],
             "properties": {
               "dog": {
                 "description": " A dog",
                 "type": "object",
+                "title": "dog",
                 "properties": {}
               }
             }
           },
           {
+            "description": " A cat",
             "type": "object",
+            "title": "cat",
+            "required": [
+              "cat"
+            ],
             "properties": {
               "cat": {
                 "description": " A cat",
                 "type": "object",
+                "title": "cat",
                 "properties": {}
               }
             }
           }
         ]
       },
-      "myapi.model.Pet": {
+      "Pet": {
         "type": "object",
+        "title": "Pet",
+        "required": [
+          "name",
+          "kind"
+        ],
         "properties": {
           "age": {
             "oneOf": [
@@ -294,27 +328,28 @@ expression: s
             "description": "Expandable array type",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/myapi.model.Behavior"
+              "$ref": "#/components/schemas/Behavior"
             }
           },
           "kind": {
-            "$ref": "#/components/schemas/myapi.model.Kind"
+            "$ref": "#/components/schemas/Kind"
           },
           "name": {
-            "$ref": "#/components/schemas/std.string.String"
+            "$ref": "#/components/schemas/String"
           }
         }
       },
-      "myapi.proto.PetsCreateRequest": {
+      "PetsCreateRequest": {
         "type": "array",
         "prefixItems": [
           {
-            "$ref": "#/components/schemas/myapi.model.Pet"
+            "$ref": "#/components/schemas/Pet"
           }
         ]
       },
-      "myapi.proto.PetsListRequest": {
+      "PetsListRequest": {
         "type": "object",
+        "title": "PetsListRequest",
         "properties": {
           "cursor": {
             "oneOf": [
@@ -323,7 +358,7 @@ expression: s
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/std.string.String"
+                "$ref": "#/components/schemas/String"
               }
             ]
           },
@@ -340,16 +375,24 @@ expression: s
           }
         }
       },
-      "myapi.proto.PetsRemoveRequest": {
+      "PetsRemoveRequest": {
         "type": "object",
+        "title": "PetsRemoveRequest",
+        "required": [
+          "name"
+        ],
         "properties": {
           "name": {
-            "$ref": "#/components/schemas/std.string.String"
+            "$ref": "#/components/schemas/String"
           }
         }
       },
-      "myapi.proto.PetsUpdateRequest": {
+      "PetsUpdateRequest": {
         "type": "object",
+        "title": "PetsUpdateRequest",
+        "required": [
+          "name"
+        ],
         "properties": {
           "age": {
             "oneOf": [
@@ -372,7 +415,7 @@ expression: s
                 "description": "Expandable array type",
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/myapi.model.Behavior"
+                  "$ref": "#/components/schemas/Behavior"
                 }
               }
             ]
@@ -384,18 +427,22 @@ expression: s
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/myapi.model.Kind"
+                "$ref": "#/components/schemas/Kind"
               }
             ]
           },
           "name": {
-            "$ref": "#/components/schemas/std.string.String"
+            "$ref": "#/components/schemas/String"
           }
         }
       },
-      "std.string.String": {
+      "String": {
         "description": "UTF-8 encoded string",
         "type": "string"
+      },
+      "f64": {
+        "description": "64-bit floating point number",
+        "type": "number"
       },
       "u8": {
         "description": "8-bit unsigned integer",

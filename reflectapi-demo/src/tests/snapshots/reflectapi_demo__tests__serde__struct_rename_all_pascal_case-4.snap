@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "reflectapi::openapi::Spec::from(&schema)"
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -18,7 +18,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAllPascalCase"
+                "$ref": "#/components/schemas/TestStructRenameAllPascalCase"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAllPascalCase"
+                  "$ref": "#/components/schemas/TestStructRenameAllPascalCase"
                 }
               }
             }
@@ -41,8 +41,12 @@ expression: "reflectapi::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestStructRenameAllPascalCase": {
+      "TestStructRenameAllPascalCase": {
         "type": "object",
+        "title": "TestStructRenameAllPascalCase",
+        "required": [
+          "FieldName"
+        ],
         "properties": {
           "FieldName": {
             "$ref": "#/components/schemas/u8"
