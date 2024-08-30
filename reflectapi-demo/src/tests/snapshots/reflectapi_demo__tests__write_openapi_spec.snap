@@ -59,7 +59,17 @@ expression: s
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/String"
+            }
+          }
+        ]
       }
     },
     "/pets.get-first": {
@@ -86,7 +96,17 @@ expression: s
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/String"
+            }
+          }
+        ]
       }
     },
     "/pets.list": {
@@ -139,7 +159,17 @@ expression: s
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/String"
+            }
+          }
+        ]
       }
     },
     "/pets.remove": {
@@ -170,7 +200,17 @@ expression: s
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/String"
+            }
+          }
+        ]
       }
     },
     "/pets.update": {
@@ -201,7 +241,17 @@ expression: s
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/String"
+            }
+          }
+        ]
       }
     }
   },

@@ -67,6 +67,23 @@ pub struct Operation {
     #[serde(skip_serializing_if = "Option::is_none")]
     request_body: Option<RequestBody>,
     responses: BTreeMap<String, Response>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    parameters: Vec<Parameter>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Parameter {
+    name: String,
+    #[serde(rename = "in")]
+    location: In,
+    required: bool,
+    schema: InlineOrRef<Schema>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum In {
+    Header,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -233,6 +250,9 @@ impl Converter {
         let operation = Operation {
             operation_id: f.name.clone(),
             description: f.description.clone(),
+            parameters: f
+                .input_headers()
+                .map_or_else(Vec::new, |headers| self.convert_headers(schema, headers)),
             request_body: f.input_type().map(|ty| RequestBody {
                 content: BTreeMap::from([(
                     // TODO msgpack
@@ -267,6 +287,44 @@ impl Converter {
             // If we do this the `operation_id` will not be unique
             // get: f.readonly.then(|| operation.clone()),
             post: operation,
+        }
+    }
+
+    fn convert_headers(
+        &mut self,
+        schema: &crate::Schema,
+        type_ref: &crate::TypeReference,
+    ) -> Vec<Parameter> {
+        let schema = match self.convert_type_ref(schema, Kind::Input, type_ref) {
+            InlineOrRef::Inline(schema) => schema,
+            InlineOrRef::Ref(r) => {
+                let name = r.ref_path.strip_prefix("#/components/schemas/").unwrap();
+                self.components.schemas.remove(name).unwrap()
+            }
+        };
+
+        match schema {
+            Schema::Flat(FlatSchema {
+                ty:
+                    Type::Object {
+                        title: _,
+                        properties,
+                        required,
+                    },
+                ..
+            }) => properties
+                .into_iter()
+                .map(|(name, schema)| {
+                    let required = required.contains(&name);
+                    Parameter {
+                        name,
+                        location: In::Header,
+                        required,
+                        schema,
+                    }
+                })
+                .collect(),
+            _ => unreachable!("header type is a struct"),
         }
     }
 

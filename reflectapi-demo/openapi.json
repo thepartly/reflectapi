@@ -55,7 +55,17 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/String"
+            }
+          }
+        ]
       }
     },
     "/pets.get-first": {
@@ -82,7 +92,17 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/String"
+            }
+          }
+        ]
       }
     },
     "/pets.list": {
@@ -135,7 +155,17 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/String"
+            }
+          }
+        ]
       }
     },
     "/pets.remove": {
@@ -166,7 +196,17 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/String"
+            }
+          }
+        ]
       }
     },
     "/pets.update": {
@@ -197,7 +237,17 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/String"
+            }
+          }
+        ]
       }
     }
   },
