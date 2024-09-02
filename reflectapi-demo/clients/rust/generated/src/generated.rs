@@ -12,47 +12,40 @@ pub use interface::Interface;
 pub mod interface {
 
     #[derive(Debug)]
-    pub struct Interface<E, C: super::Client<E> + Clone> {
-        pub health: HealthInterface<E, C>,
-        pub pets: PetsInterface<E, C>,
+    pub struct Interface<C: super::Client + Clone> {
+        pub health: HealthInterface<C>,
+        pub pets: PetsInterface<C>,
         client: C,
         base_url: std::string::String,
-        marker: std::marker::PhantomData<E>,
     }
 
-    impl<E, C: super::Client<E> + Clone> Interface<E, C> {
+    impl<C: super::Client + Clone> Interface<C> {
         pub fn new(client: C, base_url: std::string::String) -> Self {
             Self {
                 health: HealthInterface::new(client.clone(), base_url.clone()),
                 pets: PetsInterface::new(client.clone(), base_url.clone()),
                 client,
                 base_url,
-                marker: std::marker::PhantomData,
             }
         }
     }
 
     #[derive(Debug)]
-    pub struct HealthInterface<E, C: super::Client<E> + Clone> {
+    pub struct HealthInterface<C: super::Client + Clone> {
         client: C,
         base_url: std::string::String,
-        marker: std::marker::PhantomData<E>,
     }
 
-    impl<E, C: super::Client<E> + Clone> HealthInterface<E, C> {
+    impl<C: super::Client + Clone> HealthInterface<C> {
         pub fn new(client: C, base_url: std::string::String) -> Self {
-            Self {
-                client,
-                base_url,
-                marker: std::marker::PhantomData,
-            }
+            Self { client, base_url }
         }
         /// Check the health of the service
         pub async fn check(
             &self,
             input: reflectapi::Empty,
             headers: reflectapi::Empty,
-        ) -> Result<reflectapi::Empty, super::Error<reflectapi::Empty, E>> {
+        ) -> Result<reflectapi::Empty, super::Error<reflectapi::Empty, C::Error>> {
             super::__request_impl(
                 &self.client,
                 &self.base_url,
@@ -65,19 +58,14 @@ pub mod interface {
     }
 
     #[derive(Debug)]
-    pub struct PetsInterface<E, C: super::Client<E> + Clone> {
+    pub struct PetsInterface<C: super::Client + Clone> {
         client: C,
         base_url: std::string::String,
-        marker: std::marker::PhantomData<E>,
     }
 
-    impl<E, C: super::Client<E> + Clone> PetsInterface<E, C> {
+    impl<C: super::Client + Clone> PetsInterface<C> {
         pub fn new(client: C, base_url: std::string::String) -> Self {
-            Self {
-                client,
-                base_url,
-                marker: std::marker::PhantomData,
-            }
+            Self { client, base_url }
         }
         /// List available pets
         pub async fn list(
@@ -86,7 +74,7 @@ pub mod interface {
             headers: super::types::myapi::proto::Headers,
         ) -> Result<
             super::types::myapi::proto::Paginated<super::types::myapi::model::Pet>,
-            super::Error<super::types::myapi::proto::PetsListError, E>,
+            super::Error<super::types::myapi::proto::PetsListError, C::Error>,
         > {
             super::__request_impl(&self.client, &self.base_url, "/pets.list", input, headers).await
         }
@@ -95,8 +83,10 @@ pub mod interface {
             &self,
             input: super::types::myapi::proto::PetsCreateRequest,
             headers: super::types::myapi::proto::Headers,
-        ) -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsCreateError, E>>
-        {
+        ) -> Result<
+            reflectapi::Empty,
+            super::Error<super::types::myapi::proto::PetsCreateError, C::Error>,
+        > {
             super::__request_impl(&self.client, &self.base_url, "/pets.create", input, headers)
                 .await
         }
@@ -105,8 +95,10 @@ pub mod interface {
             &self,
             input: super::types::myapi::proto::PetsUpdateRequest,
             headers: super::types::myapi::proto::Headers,
-        ) -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsUpdateError, E>>
-        {
+        ) -> Result<
+            reflectapi::Empty,
+            super::Error<super::types::myapi::proto::PetsUpdateError, C::Error>,
+        > {
             super::__request_impl(&self.client, &self.base_url, "/pets.update", input, headers)
                 .await
         }
@@ -115,8 +107,10 @@ pub mod interface {
             &self,
             input: super::types::myapi::proto::PetsRemoveRequest,
             headers: super::types::myapi::proto::Headers,
-        ) -> Result<reflectapi::Empty, super::Error<super::types::myapi::proto::PetsRemoveError, E>>
-        {
+        ) -> Result<
+            reflectapi::Empty,
+            super::Error<super::types::myapi::proto::PetsRemoveError, C::Error>,
+        > {
             super::__request_impl(&self.client, &self.base_url, "/pets.remove", input, headers)
                 .await
         }
@@ -127,7 +121,7 @@ pub mod interface {
             headers: super::types::myapi::proto::Headers,
         ) -> Result<
             std::option::Option<super::types::myapi::model::Pet>,
-            super::Error<super::types::myapi::proto::UnauthorizedError, E>,
+            super::Error<super::types::myapi::proto::UnauthorizedError, C::Error>,
         > {
             super::__request_impl(
                 &self.client,
@@ -141,13 +135,15 @@ pub mod interface {
     }
 }
 
-pub trait Client<E> {
+pub trait Client {
+    type Error;
+
     fn request(
         &self,
         path: &str,
         body: bytes::Bytes,
         headers: std::collections::HashMap<String, String>,
-    ) -> impl std::future::Future<Output = Result<(http::StatusCode, bytes::Bytes), E>>;
+    ) -> impl std::future::Future<Output = Result<(http::StatusCode, bytes::Bytes), Self::Error>>;
 }
 
 pub enum Error<AE, NE> {
@@ -168,13 +164,15 @@ pub enum ProtocolErrorStage {
 }
 
 #[cfg(feature = "reqwest")]
-impl Client<reqwest::Error> for reqwest::Client {
+impl Client for reqwest::Client {
+    type Error = reqwest::Error;
+
     async fn request(
         &self,
         path: &str,
         body: bytes::Bytes,
         headers: std::collections::HashMap<String, String>,
-    ) -> Result<(http::StatusCode, bytes::Bytes), reqwest::Error> {
+    ) -> Result<(http::StatusCode, bytes::Bytes), Self::Error> {
         let mut request = self.post(path);
         for (k, v) in headers {
             request = request.header(k, v);
@@ -320,15 +318,15 @@ pub mod types {
     }
 }
 
-async fn __request_impl<C, NE, I, H, O, E>(
+async fn __request_impl<C, I, H, O, E>(
     client: &C,
     base_url: &str,
     path: &str,
     body: I,
     headers: H,
-) -> Result<O, Error<E, NE>>
+) -> Result<O, Error<E, C::Error>>
 where
-    C: Client<NE>,
+    C: Client,
     I: serde::Serialize,
     H: serde::Serialize,
     O: serde::de::DeserializeOwned,
