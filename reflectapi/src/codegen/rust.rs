@@ -214,13 +214,15 @@ pub use interface::Interface;",
     #[derive(Template)]
     #[template(
         source = "
-pub trait Client<E> {
+pub trait Client {
+    type Error;
+
     fn request(
         &self,
         path: &str,
         body: bytes::Bytes,
         headers: std::collections::HashMap<String, String>,
-    ) -> impl std::future::Future<Output = Result<(http::StatusCode, bytes::Bytes), E>>;
+    ) -> impl std::future::Future<Output = Result<(http::StatusCode, bytes::Bytes), Self::Error>>;
 }
 
 pub enum Error<AE, NE> {
@@ -241,13 +243,15 @@ pub enum ProtocolErrorStage {
 }
 
 #[cfg(feature = \"reqwest\")]
-impl Client<reqwest::Error> for reqwest::Client {
+impl Client for reqwest::Client {
+    type Error = reqwest::Error;
+
     async fn request(
         &self,
         path: &str,
         body: bytes::Bytes,
         headers: std::collections::HashMap<String, String>,
-    ) -> Result<(http::StatusCode, bytes::Bytes), reqwest::Error> {
+    ) -> Result<(http::StatusCode, bytes::Bytes), Self::Error> {
         let mut request = self.post(path);
         for (k, v) in headers {
             request = request.header(k, v);
@@ -274,15 +278,15 @@ impl Client<reqwest::Error> for reqwest::Client {
     #[derive(Template)]
     #[template(
         source = "
-async fn __request_impl<C, NE, I, H, O, E>(
+async fn __request_impl<C, I, H, O, E>(
     client: &C,
     base_url: &str,
     path: &str,
     body: I,
     headers: H,
-) -> Result<O, Error<E, NE>>
+) -> Result<O, Error<E, C::Error>>
 where
-    C: Client<NE>,
+    C: Client,
     I: serde::Serialize,
     H: serde::Serialize,
     O: serde::de::DeserializeOwned,
@@ -694,7 +698,7 @@ pub struct {{ name }};",
     #[derive(Template)]
     #[template(
         source = "{{description}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
-    -> Result<{{ output_type }}, super::Error<{{ error_type }}, E>> {
+    -> Result<{{ output_type }}, super::Error<{{ error_type }}, C::Error>> {
         super::__request_impl(&self.client, &self.base_url, \"{{ path }}\", input, headers).await
     }",
         ext = "txt"
@@ -712,7 +716,7 @@ pub struct {{ name }};",
     #[derive(Template)]
     #[template(
         source = "
-impl<E, C: super::Client<E> + Clone> {{ name }} {
+impl<C: super::Client + Clone> {{ name }} {
     pub fn new(client: C, base_url: std::string::String) -> Self {
         Self {
             {%- for field in fields.iter() %}
@@ -720,7 +724,6 @@ impl<E, C: super::Client<E> + Clone> {{ name }} {
             {%- endfor %}
             client,
             base_url,
-            marker: std::marker::PhantomData,
         }
     }
     {%- for func in functions.iter() %}
@@ -821,7 +824,7 @@ fn __interface_types_from_function_group(
 
     let mut type_template = templates::__Struct {
         name: format!(
-            "{}Interface<E, C: super::Client<E> + Clone>",
+            "{}Interface<C: super::Client + Clone>",
             __struct_name_from_parent_name_and_name(&group.parent, &name)
         ),
         description: "".into(),
@@ -832,7 +835,7 @@ fn __interface_types_from_function_group(
     };
     let mut interface_implementation = templates::__InterfaceImplementationTemplate {
         name: format!(
-            "{}Interface<E, C>",
+            "{}Interface<C>",
             __struct_name_from_parent_name_and_name(&group.parent, &name)
         ),
         fields: vec![],
@@ -845,7 +848,7 @@ fn __interface_types_from_function_group(
             serde_name: __function_name_for_field_name(subgroup_name),
             description: "".into(),
             type_: format!(
-                "{}Interface<E, C>",
+                "{}Interface<C>",
                 __struct_name_from_parent_name_and_name(&subgroup.parent, subgroup_name)
             ),
             optional: false,
@@ -865,11 +868,7 @@ fn __interface_types_from_function_group(
             public: true,
         });
     }
-    for field in [
-        ("client", "C"),
-        ("base_url", "std::string::String"),
-        ("marker", "std::marker::PhantomData<E>"),
-    ] {
+    for field in [("client", "C"), ("base_url", "std::string::String")] {
         type_template.fields.push(templates::__Field {
             name: field.0.into(),
             serde_name: field.0.into(),
