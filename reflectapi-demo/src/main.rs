@@ -42,6 +42,10 @@ async fn main() {
     .route(
         "/redoc",
         axum::routing::get(|| async { Html(include_str!("./redoc.html")) }),
+    )
+    .route(
+        "/scalar",
+        axum::routing::get(|| async { Html(include_str!("./scalar.html")) }),
     );
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
