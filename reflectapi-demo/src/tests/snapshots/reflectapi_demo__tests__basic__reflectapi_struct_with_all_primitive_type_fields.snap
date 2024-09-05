@@ -77,643 +77,647 @@ expression: schema
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructWithAllPrimitiveTypeFields",
-        "fields": [
-          {
-            "name": "_f_u8",
-            "type": {
-              "name": "u8"
+        "fields": {
+          "named": [
+            {
+              "name": "_f_u8",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_u16",
-            "type": {
-              "name": "u16"
+            {
+              "name": "_f_u16",
+              "type": {
+                "name": "u16"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_u32",
-            "type": {
-              "name": "u32"
+            {
+              "name": "_f_u32",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_u64",
-            "type": {
-              "name": "u64"
+            {
+              "name": "_f_u64",
+              "type": {
+                "name": "u64"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_u128",
-            "type": {
-              "name": "u128"
+            {
+              "name": "_f_u128",
+              "type": {
+                "name": "u128"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_usize",
-            "type": {
-              "name": "usize"
+            {
+              "name": "_f_usize",
+              "type": {
+                "name": "usize"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_i8",
-            "type": {
-              "name": "i8"
+            {
+              "name": "_f_i8",
+              "type": {
+                "name": "i8"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_i16",
-            "type": {
-              "name": "i16"
+            {
+              "name": "_f_i16",
+              "type": {
+                "name": "i16"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_i32",
-            "type": {
-              "name": "i32"
+            {
+              "name": "_f_i32",
+              "type": {
+                "name": "i32"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_i64",
-            "type": {
-              "name": "i64"
+            {
+              "name": "_f_i64",
+              "type": {
+                "name": "i64"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_i128",
-            "type": {
-              "name": "i128"
+            {
+              "name": "_f_i128",
+              "type": {
+                "name": "i128"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_isize",
-            "type": {
-              "name": "isize"
+            {
+              "name": "_f_isize",
+              "type": {
+                "name": "isize"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_f32",
-            "type": {
-              "name": "f32"
+            {
+              "name": "_f_f32",
+              "type": {
+                "name": "f32"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_f64",
-            "type": {
-              "name": "f64"
+            {
+              "name": "_f_f64",
+              "type": {
+                "name": "f64"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_bool",
-            "type": {
-              "name": "bool"
+            {
+              "name": "_f_bool",
+              "type": {
+                "name": "bool"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_char",
-            "type": {
-              "name": "char"
+            {
+              "name": "_f_char",
+              "type": {
+                "name": "char"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_str",
-            "type": {
-              "name": "std::string::String"
+            {
+              "name": "_f_str",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_unit",
-            "type": {
-              "name": "std::tuple::Tuple0"
+            {
+              "name": "_f_unit",
+              "type": {
+                "name": "std::tuple::Tuple0"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_option",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_vec",
-            "type": {
-              "name": "std::vec::Vec",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_vec",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_hashmap",
-            "type": {
-              "name": "std::collections::HashMap",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_hashmap",
+              "type": {
+                "name": "std::collections::HashMap",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_hashset",
-            "type": {
-              "name": "std::collections::HashSet",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_hashset",
+              "type": {
+                "name": "std::collections::HashSet",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple",
-            "type": {
-              "name": "std::tuple::Tuple2",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple",
+              "type": {
+                "name": "std::tuple::Tuple2",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple3",
-            "type": {
-              "name": "std::tuple::Tuple3",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_tuple3",
+              "type": {
+                "name": "std::tuple::Tuple3",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple4",
-            "type": {
-              "name": "std::tuple::Tuple4",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple4",
+              "type": {
+                "name": "std::tuple::Tuple4",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple5",
-            "type": {
-              "name": "std::tuple::Tuple5",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_tuple5",
+              "type": {
+                "name": "std::tuple::Tuple5",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple6",
-            "type": {
-              "name": "std::tuple::Tuple6",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple6",
+              "type": {
+                "name": "std::tuple::Tuple6",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple7",
-            "type": {
-              "name": "std::tuple::Tuple7",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_tuple7",
+              "type": {
+                "name": "std::tuple::Tuple7",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple8",
-            "type": {
-              "name": "std::tuple::Tuple8",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple8",
+              "type": {
+                "name": "std::tuple::Tuple8",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple9",
-            "type": {
-              "name": "std::tuple::Tuple9",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_tuple9",
+              "type": {
+                "name": "std::tuple::Tuple9",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple10",
-            "type": {
-              "name": "std::tuple::Tuple10",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple10",
+              "type": {
+                "name": "std::tuple::Tuple10",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple11",
-            "type": {
-              "name": "std::tuple::Tuple11",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_tuple11",
+              "type": {
+                "name": "std::tuple::Tuple11",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple12",
-            "type": {
-              "name": "std::tuple::Tuple12",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple12",
+              "type": {
+                "name": "std::tuple::Tuple12",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_array",
-            "type": {
-              "name": "std::array::Array",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "3"
-                }
-              ]
+            {
+              "name": "_f_array",
+              "type": {
+                "name": "std::array::Array",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "3"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_box",
-            "type": {
-              "name": "std::boxed::Box",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_box",
+              "type": {
+                "name": "std::boxed::Box",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_arc",
-            "type": {
-              "name": "std::sync::Arc",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_arc",
+              "type": {
+                "name": "std::sync::Arc",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_cell",
-            "type": {
-              "name": "std::cell::Cell",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_cell",
+              "type": {
+                "name": "std::cell::Cell",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_refcell",
-            "type": {
-              "name": "std::cell::RefCell",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_refcell",
+              "type": {
+                "name": "std::cell::RefCell",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_mutex",
-            "type": {
-              "name": "std::sync::Mutex",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_mutex",
+              "type": {
+                "name": "std::sync::Mutex",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_rwlock",
-            "type": {
-              "name": "std::sync::RwLock",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_rwlock",
+              "type": {
+                "name": "std::sync::RwLock",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_weak",
-            "type": {
-              "name": "std::sync::Weak",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_weak",
+              "type": {
+                "name": "std::sync::Weak",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_phantomdata",
-            "type": {
-              "name": "std::marker::PhantomData",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_phantomdata",
+              "type": {
+                "name": "std::marker::PhantomData",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_infallible",
-            "type": {
-              "name": "reflectapi::Infallible"
-            },
-            "required": true
-          }
-        ]
+            {
+              "name": "_f_infallible",
+              "type": {
+                "name": "reflectapi::Infallible"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "primitive",
@@ -829,19 +833,22 @@ expression: schema
         "variants": [
           {
             "name": "None",
-            "description": "The value is not provided, i.e. null"
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
           },
           {
             "name": "Some",
             "description": "The value is provided and set to some value",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         ]
       },
@@ -1318,638 +1325,641 @@ expression: schema
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructWithAllPrimitiveTypeFields",
-        "fields": [
-          {
-            "name": "_f_u8",
-            "type": {
-              "name": "u8"
+        "fields": {
+          "named": [
+            {
+              "name": "_f_u8",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_u16",
-            "type": {
-              "name": "u16"
+            {
+              "name": "_f_u16",
+              "type": {
+                "name": "u16"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_u32",
-            "type": {
-              "name": "u32"
+            {
+              "name": "_f_u32",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_u64",
-            "type": {
-              "name": "u64"
+            {
+              "name": "_f_u64",
+              "type": {
+                "name": "u64"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_u128",
-            "type": {
-              "name": "u128"
+            {
+              "name": "_f_u128",
+              "type": {
+                "name": "u128"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_usize",
-            "type": {
-              "name": "usize"
+            {
+              "name": "_f_usize",
+              "type": {
+                "name": "usize"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_i8",
-            "type": {
-              "name": "i8"
+            {
+              "name": "_f_i8",
+              "type": {
+                "name": "i8"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_i16",
-            "type": {
-              "name": "i16"
+            {
+              "name": "_f_i16",
+              "type": {
+                "name": "i16"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_i32",
-            "type": {
-              "name": "i32"
+            {
+              "name": "_f_i32",
+              "type": {
+                "name": "i32"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_i64",
-            "type": {
-              "name": "i64"
+            {
+              "name": "_f_i64",
+              "type": {
+                "name": "i64"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_i128",
-            "type": {
-              "name": "i128"
+            {
+              "name": "_f_i128",
+              "type": {
+                "name": "i128"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_isize",
-            "type": {
-              "name": "isize"
+            {
+              "name": "_f_isize",
+              "type": {
+                "name": "isize"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_f32",
-            "type": {
-              "name": "f32"
+            {
+              "name": "_f_f32",
+              "type": {
+                "name": "f32"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_f64",
-            "type": {
-              "name": "f64"
+            {
+              "name": "_f_f64",
+              "type": {
+                "name": "f64"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_bool",
-            "type": {
-              "name": "bool"
+            {
+              "name": "_f_bool",
+              "type": {
+                "name": "bool"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_char",
-            "type": {
-              "name": "char"
+            {
+              "name": "_f_char",
+              "type": {
+                "name": "char"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_str",
-            "type": {
-              "name": "std::string::String"
+            {
+              "name": "_f_str",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_unit",
-            "type": {
-              "name": "std::tuple::Tuple0"
+            {
+              "name": "_f_unit",
+              "type": {
+                "name": "std::tuple::Tuple0"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_option",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_vec",
-            "type": {
-              "name": "std::vec::Vec",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_vec",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_hashmap",
-            "type": {
-              "name": "std::collections::HashMap",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_hashmap",
+              "type": {
+                "name": "std::collections::HashMap",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_hashset",
-            "type": {
-              "name": "std::collections::HashSet",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_hashset",
+              "type": {
+                "name": "std::collections::HashSet",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple",
-            "type": {
-              "name": "std::tuple::Tuple2",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple",
+              "type": {
+                "name": "std::tuple::Tuple2",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple3",
-            "type": {
-              "name": "std::tuple::Tuple3",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_tuple3",
+              "type": {
+                "name": "std::tuple::Tuple3",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple4",
-            "type": {
-              "name": "std::tuple::Tuple4",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple4",
+              "type": {
+                "name": "std::tuple::Tuple4",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple5",
-            "type": {
-              "name": "std::tuple::Tuple5",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_tuple5",
+              "type": {
+                "name": "std::tuple::Tuple5",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple6",
-            "type": {
-              "name": "std::tuple::Tuple6",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple6",
+              "type": {
+                "name": "std::tuple::Tuple6",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple7",
-            "type": {
-              "name": "std::tuple::Tuple7",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_tuple7",
+              "type": {
+                "name": "std::tuple::Tuple7",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple8",
-            "type": {
-              "name": "std::tuple::Tuple8",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple8",
+              "type": {
+                "name": "std::tuple::Tuple8",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple9",
-            "type": {
-              "name": "std::tuple::Tuple9",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_tuple9",
+              "type": {
+                "name": "std::tuple::Tuple9",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple10",
-            "type": {
-              "name": "std::tuple::Tuple10",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple10",
+              "type": {
+                "name": "std::tuple::Tuple10",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple11",
-            "type": {
-              "name": "std::tuple::Tuple11",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_tuple11",
+              "type": {
+                "name": "std::tuple::Tuple11",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_tuple12",
-            "type": {
-              "name": "std::tuple::Tuple12",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                },
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "_f_tuple12",
+              "type": {
+                "name": "std::tuple::Tuple12",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_array",
-            "type": {
-              "name": "std::array::Array",
-              "arguments": [
-                {
-                  "name": "u8"
-                },
-                {
-                  "name": "3"
-                }
-              ]
+            {
+              "name": "_f_array",
+              "type": {
+                "name": "std::array::Array",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  },
+                  {
+                    "name": "3"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_box",
-            "type": {
-              "name": "std::boxed::Box",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_box",
+              "type": {
+                "name": "std::boxed::Box",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_arc",
-            "type": {
-              "name": "std::sync::Arc",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_arc",
+              "type": {
+                "name": "std::sync::Arc",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_cell",
-            "type": {
-              "name": "std::cell::Cell",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_cell",
+              "type": {
+                "name": "std::cell::Cell",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_refcell",
-            "type": {
-              "name": "std::cell::RefCell",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_refcell",
+              "type": {
+                "name": "std::cell::RefCell",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_mutex",
-            "type": {
-              "name": "std::sync::Mutex",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_mutex",
+              "type": {
+                "name": "std::sync::Mutex",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_rwlock",
-            "type": {
-              "name": "std::sync::RwLock",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_rwlock",
+              "type": {
+                "name": "std::sync::RwLock",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_pointer_weak",
-            "type": {
-              "name": "std::sync::Weak",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_pointer_weak",
+              "type": {
+                "name": "std::sync::Weak",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_phantomdata",
-            "type": {
-              "name": "std::marker::PhantomData",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "_f_phantomdata",
+              "type": {
+                "name": "std::marker::PhantomData",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "_f_infallible",
-            "type": {
-              "name": "reflectapi::Infallible"
-            },
-            "required": true
-          }
-        ]
+            {
+              "name": "_f_infallible",
+              "type": {
+                "name": "reflectapi::Infallible"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "primitive",
@@ -2065,19 +2075,22 @@ expression: schema
         "variants": [
           {
             "name": "None",
-            "description": "The value is not provided, i.e. null"
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
           },
           {
             "name": "Some",
             "description": "The value is provided and set to some value",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         ]
       },

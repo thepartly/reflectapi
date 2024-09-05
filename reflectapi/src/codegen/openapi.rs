@@ -559,22 +559,33 @@ impl Converter {
 
         match adt.representation() {
             crate::Representation::External => {
-                // Subtle serialization differences between similar seeming variants.
-                // Last two are not correctly handled in codegen generally yet.
-                // ```rust
-                // #[derive(Serialize)]
-                // enum {
-                //    A,            // "A"
-                //    B { x: i32  } // { "B": { "x": 42 } }
-                //    C {}          // { "C": {} }
-                //    D()           // { "D": [] }
-                // }
-                // ```
                 if variant.fields.is_empty() {
+                    // Subtle serialization differences between similar seeming empty variants.
+                    // ```rust
+                    // #[derive(Serialize)]
+                    // enum {
+                    //    A,            // "A"
+                    //    B {}          // { "B": {} }
+                    //    C()           // { "C": [] }
+                    // }
+                    // ```
+
+                    let ty = match variant.fields {
+                        reflectapi_schema::Fields::Named(_) => Type::Object {
+                            title: variant.name().to_owned(),
+                            required: vec![],
+                            properties: BTreeMap::new(),
+                        },
+                        reflectapi_schema::Fields::Unnamed(_) => Type::Tuple {
+                            prefix_items: vec![],
+                        },
+                        reflectapi_schema::Fields::None => Type::String,
+                    };
+
                     return InlineOrRef::Inline(
                         FlatSchema {
                             description: variant.description().to_owned(),
-                            ty: Type::String,
+                            ty,
                         }
                         .into(),
                     );
@@ -624,7 +635,7 @@ impl Converter {
                 );
             }
             crate::Representation::Internal { tag } => {
-                strukt.fields.push(crate::Field {
+                let tag_field = crate::Field {
                     name: tag.to_owned(),
                     serde_name: tag.to_owned(),
                     description: "tag".to_owned(),
@@ -633,7 +644,17 @@ impl Converter {
                     flattened: false,
                     transform_callback: String::new(),
                     transform_callback_fn: None,
-                });
+                };
+
+                match &mut strukt.fields {
+                    reflectapi_schema::Fields::Named(fields) => fields.push(tag_field),
+                    reflectapi_schema::Fields::None => {
+                        strukt.fields = reflectapi_schema::Fields::Named(vec![tag_field])
+                    }
+                    reflectapi_schema::Fields::Unnamed(_) => {
+                        unreachable!("serde disallows internal repr with tuple variants")
+                    }
+                }
             }
             crate::Representation::None => {}
         }

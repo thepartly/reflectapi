@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super::into_schema::<TestEnumWithVariantSkipSerialize>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,14 +24,16 @@ expression: "super::into_schema::<TestEnumWithVariantSkipSerialize>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "enum",
         "name": "reflectapi_demo::tests::serde::TestEnumWithVariantSkipSerialize",
         "variants": [
           {
-            "name": "Variant1"
+            "name": "Variant1",
+            "fields": "none"
           }
         ]
       }
@@ -42,7 +44,8 @@ expression: "super::into_schema::<TestEnumWithVariantSkipSerialize>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "enum",

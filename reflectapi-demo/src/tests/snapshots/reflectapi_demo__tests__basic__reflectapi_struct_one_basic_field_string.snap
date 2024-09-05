@@ -7,20 +7,23 @@ expression: "super::into_input_schema::<TestStructOneBasicFieldString>().input_t
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "struct",
       "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldString",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "std::string::String"
-          },
-          "required": true
-        }
-      ]
+      "fields": {
+        "named": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "primitive",

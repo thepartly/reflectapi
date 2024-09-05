@@ -1,6 +1,7 @@
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use reflectapi_schema::{Enum, Field, Struct, Type, TypeParameter};
+use reflectapi_schema::{Enum, Field, Fields, Struct, Type, TypeParameter, Variant};
+use serde_derive_internals::ast;
 use syn::parse_quote;
 
 use crate::{
@@ -29,7 +30,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
     let type_generics_where = &input.generics.where_clause;
 
     let serde_context = serde_derive_internals::Ctxt::new();
-    let serde_type_def = serde_derive_internals::ast::Container::from_ast(
+    let serde_type_def = ast::Container::from_ast(
         &serde_context,
         &input,
         serde_derive_internals::Derive::Deserialize,
@@ -142,7 +143,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
     })
 }
 
-fn visit_type(cx: &Context, container: &serde_derive_internals::ast::Container<'_>) -> Type {
+fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
     let (type_def_name, serde_name) =
         visit_name(cx, container.attrs.name(), Some(&container.original.ident));
     let type_def_description = parse_doc_attributes(&container.original.attrs);
@@ -153,12 +154,14 @@ fn visit_type(cx: &Context, container: &serde_derive_internals::ast::Container<'
         serde_name: String,
         type_ref: reflectapi_schema::TypeReference,
     ) -> Struct {
-        let mut result = Struct::new(type_def_name);
-        result.description = type_def_description;
-        result.transparent = true; // making it as type alias
-        result.serde_name = serde_name;
-        result.fields.push(Field::new("0".into(), type_ref));
-        result
+        Struct {
+            name: type_def_name,
+            serde_name,
+            description: type_def_description,
+            parameters: Vec::new(),
+            fields: Fields::Unnamed(vec![Field::new("0".into(), type_ref)]),
+            transparent: true,
+        }
     }
 
     let attrs = parse_type_attributes(cx, &container.original.attrs);
@@ -215,7 +218,7 @@ fn visit_type(cx: &Context, container: &serde_derive_internals::ast::Container<'
     }
 
     match &container.data {
-        serde_derive_internals::ast::Data::Enum(variants) => {
+        ast::Data::Enum(variants) => {
             let mut result = Enum::new(type_def_name);
             result.description = type_def_description;
             result.serde_name = serde_name;
@@ -252,7 +255,7 @@ fn visit_type(cx: &Context, container: &serde_derive_internals::ast::Container<'
             visit_generic_parameters(cx, container.generics, &mut result.parameters);
             result.into()
         }
-        serde_derive_internals::ast::Data::Struct(style, fields) => {
+        ast::Data::Struct(style, fields) => {
             if matches!(style, serde_derive_internals::ast::Style::Unit) {
                 let unit_type: syn::Type = parse_quote! { () };
                 let mut result = make_alias_type(
@@ -266,12 +269,17 @@ fn visit_type(cx: &Context, container: &serde_derive_internals::ast::Container<'
             } else {
                 let mut result = Struct::new(type_def_name);
                 result.description = type_def_description;
-                for field in fields {
-                    let Some(f) = visit_field(cx, field) else {
-                        continue;
-                    };
-                    result.fields.push(f);
-                }
+                let fields = fields
+                    .iter()
+                    .filter_map(|field| visit_field(cx, field))
+                    .collect::<Vec<_>>();
+
+                result.fields = match style {
+                    ast::Style::Struct => Fields::Named(fields),
+                    ast::Style::Tuple | ast::Style::Newtype => Fields::Unnamed(fields),
+                    ast::Style::Unit => Fields::None,
+                };
+
                 visit_generic_parameters(cx, container.generics, &mut result.parameters);
                 result.transparent = container.attrs.transparent();
                 result.into()
@@ -318,40 +326,45 @@ fn visit_generic_parameters(
 
 fn visit_variant(
     cx: &Context,
-    variant: &serde_derive_internals::ast::Variant<'_>,
+    variant: &ast::Variant<'_>,
     use_discriminant: bool,
 ) -> reflectapi_schema::Variant {
     let (variant_def_name, serde_name) =
         visit_name(cx, variant.attrs.name(), Some(&variant.original.ident));
-    let mut result = reflectapi_schema::Variant::new(variant_def_name);
-    result.description = parse_doc_attributes(&variant.original.attrs);
-    result.serde_name = serde_name;
+
+    let fields = variant
+        .fields
+        .iter()
+        .filter_map(|field| visit_field(cx, field))
+        .collect::<Vec<_>>();
+
+    let mut discriminant = None;
     if use_discriminant {
-        if let Some(discriminant) = variant.original.discriminant.as_ref() {
-            result.discriminant = Some(
-                discriminant
-                    .1
-                    .to_token_stream()
-                    .to_string()
-                    .parse()
-                    .unwrap_or_default(), // will be checked by compiler anyway
+        if let Some((_, d)) = variant.original.discriminant.as_ref() {
+            discriminant = Some(
+                // will be checked by compiler anyway
+                d.to_token_stream().to_string().parse().unwrap_or_default(),
             );
         }
     }
-    for field in &variant.fields {
-        let Some(f) = visit_field(cx, field) else {
-            continue;
-        };
-        result.fields.push(f);
+
+    let fields = match variant.style {
+        ast::Style::Struct => Fields::Named(fields),
+        ast::Style::Tuple | ast::Style::Newtype => Fields::Unnamed(fields),
+        ast::Style::Unit => Fields::None,
+    };
+
+    Variant {
+        name: variant_def_name,
+        serde_name,
+        description: parse_doc_attributes(&variant.original.attrs),
+        fields,
+        discriminant,
+        untagged: variant.attrs.untagged(),
     }
-    result.untagged = variant.attrs.untagged();
-    result
 }
 
-fn visit_field(
-    cx: &Context,
-    field: &serde_derive_internals::ast::Field<'_>,
-) -> Option<reflectapi_schema::Field> {
+fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema::Field> {
     let (field_name, serde_name) =
         visit_name(cx, field.attrs.name(), field.original.ident.as_ref());
     let attrs = parse_field_attributes(cx, &field.original.attrs);

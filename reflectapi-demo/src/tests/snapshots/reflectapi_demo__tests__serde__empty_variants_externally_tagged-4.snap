@@ -1,0 +1,62 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestEmptyVariantsExternallyTagged"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestEmptyVariantsExternallyTagged"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TestEmptyVariantsExternallyTagged": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "prefixItems": []
+          },
+          {
+            "type": "object",
+            "title": "EmptyStruct",
+            "properties": {}
+          }
+        ]
+      }
+    }
+  }
+}

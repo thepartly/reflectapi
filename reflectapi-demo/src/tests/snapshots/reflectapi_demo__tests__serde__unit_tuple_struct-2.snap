@@ -1,0 +1,43 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "super::into_typescript_code::<TestUnitTupleStruct>()"
+---
+export namespace __definition {
+  export interface Interface {
+    inout_test: (
+      input: reflectapi_demo.tests.serde.TestUnitTupleStruct,
+      headers: {},
+    ) => AsyncResult<reflectapi_demo.tests.serde.TestUnitTupleStruct, {}>;
+  }
+}
+export namespace reflectapi {
+  /// Struct object with no fields
+  export interface Empty {}
+
+  /// Error object which is expected to be never returned
+  export interface Infallible {}
+}
+
+export namespace reflectapi_demo {
+  export namespace tests {
+    export namespace serde {
+      export type TestUnitTupleStruct = null;
+    }
+  }
+}
+
+namespace __implementation {
+
+  function inout_test(client: Client) {
+    return (
+      input: reflectapi_demo.tests.serde.TestUnitTupleStruct,
+      headers: {},
+    ) =>
+      __request<
+        reflectapi_demo.tests.serde.TestUnitTupleStruct,
+        {},
+        reflectapi_demo.tests.serde.TestUnitTupleStruct,
+        {}
+      >(client, "/inout_test", input, headers);
+  }
+}

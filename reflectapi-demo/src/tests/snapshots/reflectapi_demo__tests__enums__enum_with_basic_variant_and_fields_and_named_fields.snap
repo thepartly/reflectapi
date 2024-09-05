@@ -7,52 +7,58 @@ expression: "super::into_input_schema::<TestEnumWithBasicVariantAndFieldsAndName
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "enum",
       "name": "reflectapi_demo::tests::enums::TestEnumWithBasicVariantAndFieldsAndNamedFields",
       "variants": [
         {
-          "name": "Variant0"
+          "name": "Variant0",
+          "fields": "none"
         },
         {
           "name": "Variant1",
-          "fields": [
-            {
-              "name": "0",
-              "type": {
-                "name": "u8"
+          "fields": {
+            "unnamed": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "u8"
+                },
+                "required": true
               },
-              "required": true
-            },
-            {
-              "name": "1",
-              "type": {
-                "name": "std::string::String"
-              },
-              "required": true
-            }
-          ]
+              {
+                "name": "1",
+                "type": {
+                  "name": "std::string::String"
+                },
+                "required": true
+              }
+            ]
+          }
         },
         {
           "name": "Variant2",
-          "fields": [
-            {
-              "name": "field1",
-              "type": {
-                "name": "u8"
+          "fields": {
+            "named": [
+              {
+                "name": "field1",
+                "type": {
+                  "name": "u8"
+                },
+                "required": true
               },
-              "required": true
-            },
-            {
-              "name": "field2",
-              "type": {
-                "name": "std::string::String"
-              },
-              "required": true
-            }
-          ]
+              {
+                "name": "field2",
+                "type": {
+                  "name": "std::string::String"
+                },
+                "required": true
+              }
+            ]
+          }
         }
       ]
     },

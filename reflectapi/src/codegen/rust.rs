@@ -5,7 +5,7 @@ use askama::Template;
 use indexmap::IndexMap;
 use reflectapi_schema::Function;
 
-use super::{format_with, Config};
+use super::{format_with, Config, END_BOILERPLATE, START_BOILERPLATE};
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     let mut implemented_types = __build_implemented_types();
@@ -76,7 +76,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             .collect::<Vec<_>>(),
     );
 
-    let mut generated_code = vec![];
+    let mut generated_code = vec![START_BOILERPLATE.into()];
 
     let file_template = templates::__FileHeader {
         name: schema.name.clone(),
@@ -87,6 +87,15 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             .render()
             .context("Failed to render template")?,
     );
+
+    let file_template = templates::__FileMiddle {};
+    generated_code.push(
+        file_template
+            .render()
+            .context("Failed to render template")?,
+    );
+
+    generated_code.push(END_BOILERPLATE.into());
 
     let module = __interface_types_from_function_group(
         "".into(),
@@ -102,13 +111,6 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     };
     generated_code.push(module.render().context("Failed to render template")?);
 
-    let file_template = templates::__FileMiddle {};
-    generated_code.push(
-        file_template
-            .render()
-            .context("Failed to render template")?,
-    );
-
     let module = __modules_from_rendered_types(schema.consolidate_types(), rendered_types);
     generated_code.push(
         module
@@ -118,12 +120,16 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             .to_string(),
     );
 
+    generated_code.push(START_BOILERPLATE.into());
+
     let file_template = templates::__FileFootter {};
     generated_code.push(
         file_template
             .render()
             .context("Failed to render template")?,
     );
+
+    generated_code.push(END_BOILERPLATE.into());
 
     let mut generated_code = generated_code.join("\n");
 
@@ -973,7 +979,7 @@ fn __render_type(
                     .render()
                     .context("Failed to render template")?
             } else if struct_def.is_alias() {
-                let field_type_ref = struct_def.fields.first().unwrap().type_ref.clone();
+                let field_type_ref = struct_def.fields.iter().next().unwrap().type_ref.clone();
                 let alias_template = templates::__Alias {
                     name: type_name,
                     description: __doc_to_ts_comments(&struct_def.description, 0),

@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super::into_schema::<TestEnumRename>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,17 +24,20 @@ expression: "super::into_schema::<TestEnumRename>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "enum",
         "name": "reflectapi_demo::tests::serde::MyEnum",
         "variants": [
           {
-            "name": "V1"
+            "name": "V1",
+            "fields": "none"
           },
           {
-            "name": "V2"
+            "name": "V2",
+            "fields": "none"
           }
         ]
       }
@@ -45,17 +48,20 @@ expression: "super::into_schema::<TestEnumRename>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "enum",
         "name": "reflectapi_demo::tests::serde::MyEnum",
         "variants": [
           {
-            "name": "V1"
+            "name": "V1",
+            "fields": "none"
           },
           {
-            "name": "V2"
+            "name": "V2",
+            "fields": "none"
           }
         ]
       }

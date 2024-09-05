@@ -7,7 +7,8 @@ expression: "super::into_input_schema::<TestEnumDocumented<u8>>().input_types"
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "enum",
@@ -23,30 +24,34 @@ expression: "super::into_input_schema::<TestEnumDocumented<u8>>().input_types"
         {
           "name": "Variant1",
           "description": " Variant1 docs",
-          "fields": [
-            {
-              "name": "0",
-              "description": " variant1 field docs",
-              "type": {
-                "name": "T"
-              },
-              "required": true
-            }
-          ]
+          "fields": {
+            "unnamed": [
+              {
+                "name": "0",
+                "description": " variant1 field docs",
+                "type": {
+                  "name": "T"
+                },
+                "required": true
+              }
+            ]
+          }
         },
         {
           "name": "Variant2",
           "description": " Variant2 docs\n multiline\n more\n more",
-          "fields": [
-            {
-              "name": "named_field",
-              "description": " named field variant2 field docs",
-              "type": {
-                "name": "T"
-              },
-              "required": true
-            }
-          ]
+          "fields": {
+            "named": [
+              {
+                "name": "named_field",
+                "description": " named field variant2 field docs",
+                "type": {
+                  "name": "T"
+                },
+                "required": true
+              }
+            ]
+          }
         }
       ]
     },

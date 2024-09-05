@@ -54,12 +54,24 @@ where
     eps.0
 }
 
+fn codegen_rust(schema: reflectapi::Schema) -> String {
+    reflectapi::codegen::strip_boilerplate(
+        &reflectapi::codegen::rust::generate(schema, &CONFIG).unwrap(),
+    )
+}
+
+fn codegen_typescript(schema: reflectapi::Schema) -> String {
+    reflectapi::codegen::strip_boilerplate(
+        &reflectapi::codegen::typescript::generate(schema, &CONFIG).unwrap(),
+    )
+}
+
 pub fn into_input_typescript_code<I>() -> String
 where
     I: reflectapi::Input + serde::de::DeserializeOwned + Send + 'static,
 {
     let eps = into_input_schema::<I>();
-    reflectapi::codegen::typescript::generate(eps, &CONFIG).unwrap()
+    codegen_typescript(eps)
 }
 
 pub fn into_output_typescript_code<O>() -> String
@@ -67,7 +79,7 @@ where
     O: reflectapi::Output + serde::ser::Serialize + Send + 'static,
 {
     let eps = into_output_schema::<O>();
-    reflectapi::codegen::typescript::generate(eps, &CONFIG).unwrap()
+    codegen_typescript(eps)
 }
 
 pub fn into_typescript_code<T>() -> String
@@ -80,7 +92,7 @@ where
         + 'static,
 {
     let eps = into_schema::<T>();
-    reflectapi::codegen::typescript::generate(eps, &CONFIG).unwrap()
+    codegen_typescript(eps)
 }
 
 pub fn into_input_rust_code<I>() -> String
@@ -88,7 +100,7 @@ where
     I: reflectapi::Input + serde::de::DeserializeOwned + Send + 'static,
 {
     let eps = into_input_schema::<I>();
-    reflectapi::codegen::rust::generate(eps, &CONFIG).unwrap()
+    codegen_rust(eps)
 }
 
 pub fn into_output_rust_code<O>() -> String
@@ -96,7 +108,7 @@ where
     O: reflectapi::Output + serde::ser::Serialize + Send + 'static,
 {
     let eps = into_output_schema::<O>();
-    reflectapi::codegen::rust::generate(eps, &CONFIG).unwrap()
+    codegen_rust(eps)
 }
 
 pub fn into_rust_code<T>() -> String
@@ -109,7 +121,7 @@ where
         + 'static,
 {
     let eps = into_schema::<T>();
-    reflectapi::codegen::rust::generate(eps, &CONFIG).unwrap()
+    codegen_rust(eps)
 }
 
 macro_rules! assert_input_snapshot {

@@ -7,7 +7,8 @@ expression: "super::into_input_schema::<TestEnumWithGenerics<u8>>().input_types"
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "enum",
@@ -20,34 +21,38 @@ expression: "super::into_input_schema::<TestEnumWithGenerics<u8>>().input_types"
       "variants": [
         {
           "name": "Variant1",
-          "fields": [
-            {
-              "name": "0",
-              "type": {
-                "name": "T"
-              },
-              "required": true
-            }
-          ]
+          "fields": {
+            "unnamed": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "T"
+                },
+                "required": true
+              }
+            ]
+          }
         },
         {
           "name": "Variant2",
-          "fields": [
-            {
-              "name": "0",
-              "type": {
-                "name": "T"
+          "fields": {
+            "unnamed": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "T"
+                },
+                "required": true
               },
-              "required": true
-            },
-            {
-              "name": "1",
-              "type": {
-                "name": "T"
-              },
-              "required": true
-            }
-          ]
+              {
+                "name": "1",
+                "type": {
+                  "name": "T"
+                },
+                "required": true
+              }
+            ]
+          }
         }
       ]
     },

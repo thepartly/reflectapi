@@ -1,0 +1,98 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::TestEmptyVariantsAdjacentlyTagged"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::TestEmptyVariantsAdjacentlyTagged"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::TestEmptyVariantsAdjacentlyTagged",
+        "representation": {
+          "Adjacent": {
+            "tag": "t",
+            "content": "c"
+          }
+        },
+        "variants": [
+          {
+            "name": "Empty",
+            "fields": "none"
+          },
+          {
+            "name": "EmptyUnit",
+            "fields": {
+              "unnamed": []
+            }
+          },
+          {
+            "name": "EmptyStruct",
+            "fields": {
+              "named": []
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::TestEmptyVariantsAdjacentlyTagged",
+        "representation": {
+          "Adjacent": {
+            "tag": "t",
+            "content": "c"
+          }
+        },
+        "variants": [
+          {
+            "name": "Empty",
+            "fields": "none"
+          },
+          {
+            "name": "EmptyUnit",
+            "fields": {
+              "unnamed": []
+            }
+          },
+          {
+            "name": "EmptyStruct",
+            "fields": {
+              "named": []
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

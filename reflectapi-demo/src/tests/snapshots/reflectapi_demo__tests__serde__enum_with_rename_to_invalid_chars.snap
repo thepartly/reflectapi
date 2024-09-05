@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super::into_schema::<TestEnumWithRenameToInvalidChars>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,7 +24,8 @@ expression: "super::into_schema::<TestEnumWithRenameToInvalidChars>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -34,16 +35,18 @@ expression: "super::into_schema::<TestEnumWithRenameToInvalidChars>()"
           {
             "name": "Variant1",
             "serde_name": "variant-name&&",
-            "fields": [
-              {
-                "name": "f",
-                "serde_name": "field-name&&",
-                "type": {
-                  "name": "u8"
-                },
-                "required": true
-              }
-            ]
+            "fields": {
+              "named": [
+                {
+                  "name": "f",
+                  "serde_name": "field-name&&",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
       },
@@ -59,7 +62,8 @@ expression: "super::into_schema::<TestEnumWithRenameToInvalidChars>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -69,16 +73,18 @@ expression: "super::into_schema::<TestEnumWithRenameToInvalidChars>()"
           {
             "name": "Variant1",
             "serde_name": "variant-name&&",
-            "fields": [
-              {
-                "name": "f",
-                "serde_name": "field-name&&",
-                "type": {
-                  "name": "u8"
-                },
-                "required": true
-              }
-            ]
+            "fields": {
+              "named": [
+                {
+                  "name": "f",
+                  "serde_name": "field-name&&",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
       },

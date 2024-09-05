@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super::into_schema::<TestStructRename>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,11 +24,15 @@ expression: "super::into_schema::<TestStructRename>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::MyStruct"
+        "name": "reflectapi_demo::tests::serde::MyStruct",
+        "fields": {
+          "named": []
+        }
       }
     ]
   },
@@ -37,11 +41,15 @@ expression: "super::into_schema::<TestStructRename>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::MyStruct"
+        "name": "reflectapi_demo::tests::serde::MyStruct",
+        "fields": {
+          "named": []
+        }
       }
     ]
   }

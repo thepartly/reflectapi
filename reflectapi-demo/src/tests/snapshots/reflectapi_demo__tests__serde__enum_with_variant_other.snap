@@ -24,7 +24,8 @@ expression: schema
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -36,7 +37,8 @@ expression: schema
         },
         "variants": [
           {
-            "name": "V0"
+            "name": "V0",
+            "fields": "none"
           }
         ]
       }
@@ -47,7 +49,8 @@ expression: schema
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -59,10 +62,12 @@ expression: schema
         },
         "variants": [
           {
-            "name": "V0"
+            "name": "V0",
+            "fields": "none"
           },
           {
-            "name": "Variant1"
+            "name": "Variant1",
+            "fields": "none"
           }
         ]
       }

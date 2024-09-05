@@ -7,7 +7,8 @@ expression: "super::into_input_schema::<TestEnumEmpty>().input_types"
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "enum",

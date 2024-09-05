@@ -1,0 +1,48 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "super::into_typescript_code::<TestEmptyVariantsInterallyTagged>()"
+---
+export namespace __definition {
+  export interface Interface {
+    inout_test: (
+      input: reflectapi_demo.tests.serde.TestEmptyVariantsInterallyTagged,
+      headers: {},
+    ) => AsyncResult<
+      reflectapi_demo.tests.serde.TestEmptyVariantsInterallyTagged,
+      {}
+    >;
+  }
+}
+export namespace reflectapi {
+  /// Struct object with no fields
+  export interface Empty {}
+
+  /// Error object which is expected to be never returned
+  export interface Infallible {}
+}
+
+export namespace reflectapi_demo {
+  export namespace tests {
+    export namespace serde {
+      export type TestEmptyVariantsInterallyTagged =
+        | { type: "Empty" }
+        | { type: "EmptyStruct" };
+    }
+  }
+}
+
+namespace __implementation {
+
+  function inout_test(client: Client) {
+    return (
+      input: reflectapi_demo.tests.serde.TestEmptyVariantsInterallyTagged,
+      headers: {},
+    ) =>
+      __request<
+        reflectapi_demo.tests.serde.TestEmptyVariantsInterallyTagged,
+        {},
+        reflectapi_demo.tests.serde.TestEmptyVariantsInterallyTagged,
+        {}
+      >(client, "/inout_test", input, headers);
+  }
+}

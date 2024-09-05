@@ -7,7 +7,8 @@ expression: "super::into_output_schema::<TestEnumWithDiscriminant>().output_type
     {
       "kind": "struct",
       "name": "reflectapi::Infallible",
-      "description": "Error object which is expected to be never returned"
+      "description": "Error object which is expected to be never returned",
+      "fields": "none"
     },
     {
       "kind": "enum",
@@ -15,10 +16,12 @@ expression: "super::into_output_schema::<TestEnumWithDiscriminant>().output_type
       "variants": [
         {
           "name": "Variant1",
+          "fields": "none",
           "discriminant": 1
         },
         {
           "name": "Variant2",
+          "fields": "none",
           "discriminant": 2
         }
       ]

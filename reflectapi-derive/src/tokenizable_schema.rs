@@ -142,6 +142,18 @@ impl<'a> ToTokens for TokenizableVariant<'a> {
         let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
         let fields = self.inner.fields().map(TokenizableField::new);
+
+        let fields = match self.inner.fields {
+            reflectapi_schema::Fields::Named(..) => quote::quote! {
+                reflectapi::Fields::Named(vec![#(#fields),*])
+            },
+            reflectapi_schema::Fields::Unnamed(..) => quote::quote! {
+                reflectapi::Fields::Unnamed(vec![#(#fields),*])
+            },
+            reflectapi_schema::Fields::None => quote::quote! {
+                reflectapi::Fields::None
+            },
+        };
         let discriminant = self
             .inner
             .discriminant
@@ -154,7 +166,7 @@ impl<'a> ToTokens for TokenizableVariant<'a> {
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
-                fields: vec![#(#fields),*],
+                fields: #fields,
                 discriminant: #discriminant,
                 untagged: #untagged,
             }
@@ -248,6 +260,18 @@ impl<'a> ToTokens for TokenizableStruct<'a> {
         let description = self.inner.description.as_str();
         let parameters = self.inner.parameters().map(TokenizableTypeParameter::new);
         let fields = self.inner.fields().map(TokenizableField::new);
+        let fields = match self.inner.fields {
+            reflectapi_schema::Fields::Named(..) => quote::quote! {
+                reflectapi::Fields::Named(vec![#(#fields),*])
+            },
+            reflectapi_schema::Fields::Unnamed(..) => quote::quote! {
+                reflectapi::Fields::Unnamed(vec![#(#fields),*])
+            },
+            reflectapi_schema::Fields::None => quote::quote! {
+                reflectapi::Fields::None
+            },
+        };
+
         let transparent = self.inner.transparent;
         tokens.extend(quote::quote! {
             reflectapi::Struct {
@@ -255,7 +279,7 @@ impl<'a> ToTokens for TokenizableStruct<'a> {
                 serde_name: #serde_name.into(),
                 description: #description.into(),
                 parameters: vec![#(#parameters),*],
-                fields: vec![#(#fields),*],
+                fields: #fields,
                 transparent: #transparent,
             }
         });

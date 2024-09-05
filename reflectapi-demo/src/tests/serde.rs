@@ -77,10 +77,12 @@ fn test_enum_rename_all() {
     assert_snapshot!(TestEnumRenameAll);
 }
 
-// test enume rename variant named and unnamed field
+// test enum rename variant named field
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 enum TestEnumRenameVariantField {
-    Variant1(#[serde(rename = "variant1_field_name")] u8),
+    // reflectapi doesn't allow renaming tuple fields. `serde_json` seems to ignore it anyway.
+    // TODO: find a way to deny this in the derive macro.
+    // Variant1(#[serde(rename = "variant1_field_name")] u8, usize),
     Variant2 {
         #[serde(rename = "variant2_field_name")]
         field_name: u8,
@@ -403,4 +405,57 @@ impl From<TestStructIntoProxy> for TestStructInto {
 #[test]
 fn test_struct_into() {
     assert_snapshot!(TestStructIntoProxy);
+}
+
+#[test]
+fn test_unit_struct() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct TestUnitStruct;
+    assert_snapshot!(TestUnitStruct);
+}
+
+#[test]
+fn test_unit_tuple_struct() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct TestUnitTupleStruct(());
+    assert_snapshot!(TestUnitTupleStruct);
+}
+
+#[test]
+fn test_empty_variants_externally_tagged() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    enum TestEmptyVariantsExternallyTagged {
+        Empty,
+        EmptyUnit(),
+        EmptyStruct {},
+    }
+
+    assert_snapshot!(TestEmptyVariantsExternallyTagged);
+}
+
+#[test]
+fn test_empty_variants_internally_tagged() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    enum TestEmptyVariantsInterallyTagged {
+        Empty,
+        // Tuple variants are not allowed in this representation
+        // EmptyUnit(),
+        EmptyStruct {},
+    }
+
+    assert_snapshot!(TestEmptyVariantsInterallyTagged);
+}
+
+#[test]
+fn test_empty_variants_adjacently_tagged() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "t", content = "c")]
+    enum TestEmptyVariantsAdjacentlyTagged {
+        Empty,
+        EmptyUnit(),
+        EmptyStruct {},
+    }
+
+    assert_snapshot!(TestEmptyVariantsAdjacentlyTagged);
 }

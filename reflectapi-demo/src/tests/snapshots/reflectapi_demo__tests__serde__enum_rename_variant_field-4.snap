@@ -45,27 +45,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         "oneOf": [
           {
             "type": "object",
-            "title": "Variant1",
-            "required": [
-              "Variant1"
-            ],
-            "properties": {
-              "Variant1": {
-                "type": "object",
-                "title": "Variant1",
-                "required": [
-                  "variant1_field_name"
-                ],
-                "properties": {
-                  "variant1_field_name": {
-                    "$ref": "#/components/schemas/u8"
-                  }
-                }
-              }
-            }
-          },
-          {
-            "type": "object",
             "title": "Variant2",
             "required": [
               "Variant2"

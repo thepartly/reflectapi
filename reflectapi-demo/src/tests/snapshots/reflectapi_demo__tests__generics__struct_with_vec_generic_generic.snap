@@ -7,7 +7,8 @@ expression: "super::into_input_schema::<TestStructWithVecGenericGeneric<u8>>().i
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "struct",
@@ -17,15 +18,17 @@ expression: "super::into_input_schema::<TestStructWithVecGenericGeneric<u8>>().i
           "name": "A"
         }
       ],
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "A"
-          },
-          "required": true
-        }
-      ]
+      "fields": {
+        "named": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "A"
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "struct",
@@ -35,25 +38,27 @@ expression: "super::into_input_schema::<TestStructWithVecGenericGeneric<u8>>().i
           "name": "T"
         }
       ],
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "std::vec::Vec",
-            "arguments": [
-              {
-                "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
-                "arguments": [
-                  {
-                    "name": "T"
-                  }
-                ]
-              }
-            ]
-          },
-          "required": true
-        }
-      ]
+      "fields": {
+        "named": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::vec::Vec",
+              "arguments": [
+                {
+                  "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
+                  "arguments": [
+                    {
+                      "name": "T"
+                    }
+                  ]
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "primitive",
