@@ -44,18 +44,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "TestEnumWithFieldSkip": {
         "oneOf": [
           {
-            "type": "object",
-            "title": "Variant1",
-            "required": [
-              "Variant1"
-            ],
-            "properties": {
-              "Variant1": {
-                "type": "object",
-                "title": "Variant1",
-                "properties": {}
-              }
-            }
+            "type": "string"
           }
         ]
       }

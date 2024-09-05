@@ -559,6 +559,27 @@ impl Converter {
 
         match adt.representation() {
             crate::Representation::External => {
+                // Subtle serialization differences between similar seeming variants.
+                // Last two are not correctly handled in codegen generally yet.
+                // ```rust
+                // #[derive(Serialize)]
+                // enum {
+                //    A,            // "A"
+                //    B { x: i32  } // { "B": { "x": 42 } }
+                //    C {}          // { "C": {} }
+                //    D()           // { "D": [] }
+                // }
+                // ```
+                if variant.fields.is_empty() {
+                    return InlineOrRef::Inline(
+                        FlatSchema {
+                            description: variant.description().to_owned(),
+                            ty: Type::String,
+                        }
+                        .into(),
+                    );
+                }
+
                 return InlineOrRef::Inline(
                     FlatSchema {
                         description: variant.description().to_owned(),

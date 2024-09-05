@@ -260,18 +260,7 @@ expression: s
       "Behavior": {
         "oneOf": [
           {
-            "type": "object",
-            "title": "Calm",
-            "required": [
-              "Calm"
-            ],
-            "properties": {
-              "Calm": {
-                "type": "object",
-                "title": "Calm",
-                "properties": {}
-              }
-            }
+            "type": "string"
           },
           {
             "type": "object",
@@ -323,35 +312,11 @@ expression: s
         "oneOf": [
           {
             "description": " A dog",
-            "type": "object",
-            "title": "dog",
-            "required": [
-              "dog"
-            ],
-            "properties": {
-              "dog": {
-                "description": " A dog",
-                "type": "object",
-                "title": "dog",
-                "properties": {}
-              }
-            }
+            "type": "string"
           },
           {
             "description": " A cat",
-            "type": "object",
-            "title": "cat",
-            "required": [
-              "cat"
-            ],
-            "properties": {
-              "cat": {
-                "description": " A cat",
-                "type": "object",
-                "title": "cat",
-                "properties": {}
-              }
-            }
+            "type": "string"
           }
         ]
       },

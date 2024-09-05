@@ -44,32 +44,10 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "Nums": {
         "oneOf": [
           {
-            "type": "object",
-            "title": "Zero",
-            "required": [
-              "0"
-            ],
-            "properties": {
-              "0": {
-                "type": "object",
-                "title": "Zero",
-                "properties": {}
-              }
-            }
+            "type": "string"
           },
           {
-            "type": "object",
-            "title": "A",
-            "required": [
-              "A"
-            ],
-            "properties": {
-              "A": {
-                "type": "object",
-                "title": "A",
-                "properties": {}
-              }
-            }
+            "type": "string"
           }
         ]
       }
