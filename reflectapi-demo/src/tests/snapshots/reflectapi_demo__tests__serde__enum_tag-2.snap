@@ -36,7 +36,10 @@ export namespace reflectapi_demo {
             type: "Variant1";
             field_name: number /* u8 */;
           }
-        | ({ type: "Variant2" } & number) /* u8 */;
+        | {
+            type: "Variant2";
+            field_name: number /* u8 */;
+          };
     }
   }
 }

@@ -53,9 +53,9 @@ expression: schema
           {
             "name": "Variant2",
             "fields": {
-              "unnamed": [
+              "named": [
                 {
-                  "name": "0",
+                  "name": "field_name",
                   "type": {
                     "name": "u8"
                   },
@@ -107,9 +107,9 @@ expression: schema
           {
             "name": "Variant2",
             "fields": {
-              "unnamed": [
+              "named": [
                 {
-                  "name": "0",
+                  "name": "field_name",
                   "type": {
                     "name": "u8"
                   },

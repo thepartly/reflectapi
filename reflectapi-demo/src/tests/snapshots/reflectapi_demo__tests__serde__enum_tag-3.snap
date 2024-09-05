@@ -47,7 +47,7 @@ pub mod types {
                 #[serde(tag = "type")]
                 pub enum TestEnumTag {
                     Variant1 { field_name: u8 },
-                    Variant2(u8),
+                    Variant2 { field_name: u8 },
                 }
             }
         }

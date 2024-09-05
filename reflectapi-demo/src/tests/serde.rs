@@ -110,7 +110,8 @@ fn test_enum_untagged() {
 // see https://github.com/thepartly/reflectapi/issues/1
 enum TestEnumTag {
     Variant1 { field_name: u8 },
-    Variant2(u8),
+    Variant2 { field_name: u8 },
+    // Variant2(u8),
 }
 #[test]
 fn test_enum_tag() {

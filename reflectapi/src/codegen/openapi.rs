@@ -518,12 +518,28 @@ impl Converter {
             .collect::<Vec<_>>();
 
         let schema = match adt.representation() {
-            crate::Representation::Internal { tag } => Schema::OneOf {
-                subschemas,
-                discriminator: Some(Discriminator {
-                    property_name: tag.to_owned(),
-                }),
-            },
+            crate::Representation::Internal { tag } => {
+                subschemas.iter().for_each(|s| match s {
+                    InlineOrRef::Inline(schema) => match schema {
+                        Schema::OneOf { .. } => {
+                            unreachable!("not expecting nested schema for internal repr")
+                        }
+                        Schema::Flat(schema) => match &schema.ty {
+                            Type::Object { properties, .. } => {
+                                assert!(properties.iter().any(|(name, _)| name == tag))
+                            }
+                            _ => unreachable!("expected object for internal repr"),
+                        },
+                    },
+                    InlineOrRef::Ref(_) => unreachable!("not expecting a ref for internal repr"),
+                });
+                Schema::OneOf {
+                    subschemas,
+                    discriminator: Some(Discriminator {
+                        property_name: tag.to_owned(),
+                    }),
+                }
+            }
             crate::Representation::External
             | crate::Representation::Adjacent { .. }
             | crate::Representation::None => Schema::OneOf {
@@ -544,10 +560,6 @@ impl Converter {
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
-        if variant.fields.len() == 1 && !variant.fields[0].is_named() {
-            return self.convert_type_ref(schema, kind, variant.fields[0].type_ref());
-        }
-
         let mut strukt = crate::Struct {
             name: variant.name().to_owned(),
             serde_name: variant.serde_name.to_owned(),
@@ -559,6 +571,10 @@ impl Converter {
 
         match adt.representation() {
             crate::Representation::External => {
+                if variant.fields.len() == 1 && !variant.fields[0].is_named() {
+                    return self.convert_type_ref(schema, kind, variant.fields[0].type_ref());
+                }
+
                 if variant.fields.is_empty() {
                     // Subtle serialization differences between similar seeming empty variants.
                     // ```rust
@@ -652,7 +668,7 @@ impl Converter {
                         strukt.fields = reflectapi_schema::Fields::Named(vec![tag_field])
                     }
                     reflectapi_schema::Fields::Unnamed(_) => {
-                        unreachable!("serde disallows internal repr with tuple variants")
+                        panic!("internal repr with unnamed fields is not allowed")
                     }
                 }
             }
