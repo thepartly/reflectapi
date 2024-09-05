@@ -76,7 +76,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             .collect::<Vec<_>>(),
     );
 
-    let mut generated_code = vec![START_BOILERPLATE.into()];
+    let mut generated_code = vec![];
 
     let file_template = templates::__FileHeader {
         name: schema.name.clone(),
@@ -87,6 +87,8 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             .render()
             .context("Failed to render template")?,
     );
+
+    generated_code.push(START_BOILERPLATE.into());
 
     let file_template = templates::__FileMiddle {};
     generated_code.push(
