@@ -19,7 +19,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "application/json": {
               "schema": {
                 "type": "object",
-                "title": "reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric",
+                "title": "reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric<std.string.String>",
                 "required": [
                   "_f_hashset"
                 ],
@@ -45,7 +45,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "title": "reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric",
+                  "title": "reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric<std.string.String>",
                   "required": [
                     "_f_hashset"
                   ],

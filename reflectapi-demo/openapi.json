@@ -127,7 +127,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "title": "myapi.proto.Paginated",
+                  "title": "myapi.proto.Paginated<myapi.model.Pet>",
                   "required": [
                     "items"
                   ],
