@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super::into_schema::<TestEnumWithVariantUntagged>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,7 +24,8 @@ expression: "super::into_schema::<TestEnumWithVariantUntagged>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -32,15 +33,17 @@ expression: "super::into_schema::<TestEnumWithVariantUntagged>()"
         "variants": [
           {
             "name": "Variant1",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "u8"
-                },
-                "required": true
-              }
-            ],
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            },
             "untagged": true
           }
         ]
@@ -57,7 +60,8 @@ expression: "super::into_schema::<TestEnumWithVariantUntagged>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -65,15 +69,17 @@ expression: "super::into_schema::<TestEnumWithVariantUntagged>()"
         "variants": [
           {
             "name": "Variant1",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "u8"
-                },
-                "required": true
-              }
-            ],
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            },
             "untagged": true
           }
         ]

@@ -194,9 +194,7 @@ fn reflectapi_type_option(schema: &mut crate::Typespace) -> String {
 
         let mut variant = crate::Variant::new("Some".into());
         variant.description = "The value is provided and set to some value".into();
-        variant
-            .fields
-            .push(crate::Field::new("0".into(), "T".into()));
+        variant.fields = crate::Fields::Unnamed(vec![crate::Field::new("0".into(), "T".into())]);
         type_def.variants.push(variant);
 
         schema.insert_type(type_def.into());

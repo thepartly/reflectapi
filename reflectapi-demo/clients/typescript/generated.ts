@@ -7,53 +7,7 @@
 export function client(base: string | Client): __definition.Interface {
   return __implementation.__client(base);
 }
-
-export namespace __definition {
-  export interface Interface {
-    health: health.Interface;
-    pets: pets.Interface;
-  }
-
-  export namespace health {
-    export interface Interface {
-      /// Check the health of the service
-      check: (input: {}, headers: {}) => AsyncResult<{}, {}>;
-    }
-  }
-
-  export namespace pets {
-    export interface Interface {
-      /// List available pets
-      list: (
-        input: myapi.proto.PetsListRequest,
-        headers: myapi.proto.Headers,
-      ) => AsyncResult<
-        myapi.proto.Paginated<myapi.model.Pet>,
-        myapi.proto.PetsListError
-      >;
-      /// Create a new pet
-      create: (
-        input: myapi.proto.PetsCreateRequest,
-        headers: myapi.proto.Headers,
-      ) => AsyncResult<{}, myapi.proto.PetsCreateError>;
-      /// Update an existing pet
-      update: (
-        input: myapi.proto.PetsUpdateRequest,
-        headers: myapi.proto.Headers,
-      ) => AsyncResult<{}, myapi.proto.PetsUpdateError>;
-      /// Remove an existing pet
-      remove: (
-        input: myapi.proto.PetsRemoveRequest,
-        headers: myapi.proto.Headers,
-      ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
-      /// Fetch first pet, if any exists
-      get_first: (
-        input: {},
-        headers: myapi.proto.Headers,
-      ) => AsyncResult<myapi.model.Pet | null, myapi.proto.UnauthorizedError>;
-    }
-  }
-}
+/* <----- */
 
 export interface Client {
   request(
@@ -214,6 +168,54 @@ export class Err<E> {
   }
 }
 
+/* -----> */
+
+export namespace __definition {
+  export interface Interface {
+    health: health.Interface;
+    pets: pets.Interface;
+  }
+
+  export namespace health {
+    export interface Interface {
+      /// Check the health of the service
+      check: (input: {}, headers: {}) => AsyncResult<{}, {}>;
+    }
+  }
+
+  export namespace pets {
+    export interface Interface {
+      /// List available pets
+      list: (
+        input: myapi.proto.PetsListRequest,
+        headers: myapi.proto.Headers,
+      ) => AsyncResult<
+        myapi.proto.Paginated<myapi.model.Pet>,
+        myapi.proto.PetsListError
+      >;
+      /// Create a new pet
+      create: (
+        input: myapi.proto.PetsCreateRequest,
+        headers: myapi.proto.Headers,
+      ) => AsyncResult<{}, myapi.proto.PetsCreateError>;
+      /// Update an existing pet
+      update: (
+        input: myapi.proto.PetsUpdateRequest,
+        headers: myapi.proto.Headers,
+      ) => AsyncResult<{}, myapi.proto.PetsUpdateError>;
+      /// Remove an existing pet
+      remove: (
+        input: myapi.proto.PetsRemoveRequest,
+        headers: myapi.proto.Headers,
+      ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
+      /// Fetch first pet, if any exists
+      get_first: (
+        input: {},
+        headers: myapi.proto.Headers,
+      ) => AsyncResult<myapi.model.Pet | null, myapi.proto.UnauthorizedError>;
+    }
+  }
+}
 export namespace myapi {
   export namespace model {
     export type Behavior =
@@ -317,6 +319,8 @@ export namespace reflectapi {
 }
 
 namespace __implementation {
+  /* <----- */
+
   export function __client(base: string | Client): __definition.Interface {
     const client_instance =
       typeof base === "string" ? new ClientInstance(base) : base;
@@ -407,6 +411,8 @@ namespace __implementation {
         });
     }
   }
+
+  /* -----> */
 
   function health__check(client: Client) {
     return (input: {}, headers: {}) =>

@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super::into_schema::<TestEnumTagContent>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,7 +24,8 @@ expression: "super::into_schema::<TestEnumTagContent>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -38,27 +39,31 @@ expression: "super::into_schema::<TestEnumTagContent>()"
         "variants": [
           {
             "name": "Variant1",
-            "fields": [
-              {
-                "name": "field_name",
-                "type": {
-                  "name": "u8"
-                },
-                "required": true
-              }
-            ]
+            "fields": {
+              "named": [
+                {
+                  "name": "field_name",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
           },
           {
             "name": "Variant2",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "u8"
-                },
-                "required": true
-              }
-            ]
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
       },
@@ -74,7 +79,8 @@ expression: "super::into_schema::<TestEnumTagContent>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -88,27 +94,31 @@ expression: "super::into_schema::<TestEnumTagContent>()"
         "variants": [
           {
             "name": "Variant1",
-            "fields": [
-              {
-                "name": "field_name",
-                "type": {
-                  "name": "u8"
-                },
-                "required": true
-              }
-            ]
+            "fields": {
+              "named": [
+                {
+                  "name": "field_name",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
           },
           {
             "name": "Variant2",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "u8"
-                },
-                "required": true
-              }
-            ]
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
       },

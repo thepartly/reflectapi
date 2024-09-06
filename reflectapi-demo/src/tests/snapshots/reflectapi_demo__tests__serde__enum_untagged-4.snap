@@ -44,7 +44,12 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "TestEnumUntagged": {
         "oneOf": [
           {
-            "$ref": "#/components/schemas/u8"
+            "type": "array",
+            "prefixItems": [
+              {
+                "$ref": "#/components/schemas/u8"
+              }
+            ]
           },
           {
             "type": "object",

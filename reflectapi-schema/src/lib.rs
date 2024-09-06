@@ -1,6 +1,6 @@
 mod internal;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Index};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Schema {
@@ -782,8 +782,7 @@ pub struct Struct {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub parameters: Vec<TypeParameter>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub fields: Vec<Field>,
+    pub fields: Fields,
 
     /// If serde transparent attribute is set on a struct
     #[serde(skip_serializing_if = "is_false", default)]
@@ -797,7 +796,7 @@ impl Struct {
             serde_name: String::new(),
             description: String::new(),
             parameters: Vec::new(),
-            fields: Vec::new(),
+            fields: Fields::None,
             transparent: false,
         }
     }
@@ -840,8 +839,9 @@ impl Struct {
 
     /// Returns true is a struct is a Rust unit struct.
     /// Please note, that a unit struct is also an alias
+    // NOTE(andy): does this function make sense? A unit struct is a struct with no fields.
     pub fn is_unit(&self) -> bool {
-        let Some(first_field) = self.fields.first() else {
+        let Some(first_field) = self.fields.iter().next() else {
             return false;
         };
 
@@ -871,6 +871,78 @@ impl Struct {
 impl From<Struct> for Type {
     fn from(val: Struct) -> Self {
         Type::Struct(val)
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum Fields {
+    /// Named struct or variant:
+    /// struct S { a: u8, b: u8 }
+    /// enum S { T { a: u8, b: u8 } }
+    Named(Vec<Field>),
+    /// Tuple struct or variant:
+    /// struct S(u8, u8);
+    /// enum S { T(u8, u8) }
+    Unnamed(Vec<Field>),
+    /// Unit struct or variant:
+    ///
+    /// struct S;
+    /// enum S { U }
+    None,
+}
+
+impl Fields {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Fields::Named(fields) | Fields::Unnamed(fields) => fields.is_empty(),
+            Fields::None => true,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            Fields::Named(fields) | Fields::Unnamed(fields) => fields.len(),
+            Fields::None => 0,
+        }
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<Field> {
+        match self {
+            Fields::Named(fields) | Fields::Unnamed(fields) => fields.iter(),
+            Fields::None => [].iter(),
+        }
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<Field> {
+        match self {
+            Fields::Named(fields) | Fields::Unnamed(fields) => fields.iter_mut(),
+            Fields::None => [].iter_mut(),
+        }
+    }
+}
+
+impl Index<usize> for Fields {
+    type Output = Field;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match self {
+            Fields::Named(fields) | Fields::Unnamed(fields) => &fields[index],
+            Fields::None => panic!("index out of bounds"),
+        }
+    }
+}
+
+impl IntoIterator for Fields {
+    type Item = Field;
+    type IntoIter = std::vec::IntoIter<Field>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Fields::Named(fields) => fields.into_iter(),
+            Fields::Unnamed(fields) => fields.into_iter(),
+            Fields::None => vec![].into_iter(),
+        }
     }
 }
 
@@ -1068,8 +1140,7 @@ pub struct Variant {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub fields: Vec<Field>,
+    pub fields: Fields,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub discriminant: Option<isize>,
 
@@ -1084,7 +1155,7 @@ impl Variant {
             name,
             serde_name: String::new(),
             description: String::new(),
-            fields: Vec::new(),
+            fields: Fields::None,
             discriminant: None,
             untagged: false,
         }

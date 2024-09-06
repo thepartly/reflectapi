@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super::into_schema::<TestStructWithSerdeSkipSerializeIf>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,25 +24,28 @@ expression: "super::into_schema::<TestStructWithSerdeSkipSerializeIf>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf",
-        "fields": [
-          {
-            "name": "f",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "f",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "enum",
@@ -57,19 +60,22 @@ expression: "super::into_schema::<TestStructWithSerdeSkipSerializeIf>()"
         "variants": [
           {
             "name": "None",
-            "description": "The value is not provided, i.e. null"
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
           },
           {
             "name": "Some",
             "description": "The value is provided and set to some value",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         ]
       },
@@ -85,24 +91,27 @@ expression: "super::into_schema::<TestStructWithSerdeSkipSerializeIf>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf",
-        "fields": [
-          {
-            "name": "f",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+        "fields": {
+          "named": [
+            {
+              "name": "f",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
             }
-          }
-        ]
+          ]
+        }
       },
       {
         "kind": "enum",
@@ -117,19 +126,22 @@ expression: "super::into_schema::<TestStructWithSerdeSkipSerializeIf>()"
         "variants": [
           {
             "name": "None",
-            "description": "The value is not provided, i.e. null"
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
           },
           {
             "name": "Some",
             "description": "The value is provided and set to some value",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         ]
       },

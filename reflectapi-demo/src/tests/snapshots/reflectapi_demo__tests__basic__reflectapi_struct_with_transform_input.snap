@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "super::into_schema::<TestStructWithTransformInput>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,20 +24,23 @@ expression: "super::into_schema::<TestStructWithTransformInput>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructWithTransformInput",
-        "fields": [
-          {
-            "name": "_f",
-            "type": {
-              "name": "u8"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "_f",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "primitive",
@@ -64,25 +67,28 @@ expression: "super::into_schema::<TestStructWithTransformInput>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructWithTransformInput",
-        "fields": [
-          {
-            "name": "_f",
-            "type": {
-              "name": "std::sync::Arc",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "_f",
+              "type": {
+                "name": "std::sync::Arc",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "primitive",

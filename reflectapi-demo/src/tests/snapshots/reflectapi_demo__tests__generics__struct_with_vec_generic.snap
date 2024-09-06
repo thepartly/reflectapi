@@ -7,7 +7,8 @@ expression: "super::into_input_schema::<TestStructWithVecGeneric<u8>>().input_ty
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "struct",
@@ -17,20 +18,22 @@ expression: "super::into_input_schema::<TestStructWithVecGeneric<u8>>().input_ty
           "name": "T"
         }
       ],
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "std::vec::Vec",
-            "arguments": [
-              {
-                "name": "T"
-              }
-            ]
-          },
-          "required": true
-        }
-      ]
+      "fields": {
+        "named": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::vec::Vec",
+              "arguments": [
+                {
+                  "name": "T"
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "primitive",

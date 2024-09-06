@@ -7,7 +7,8 @@ expression: "super::into_input_schema::<TestStructWithSimpleGeneric<u8>>().input
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "struct",
@@ -17,15 +18,17 @@ expression: "super::into_input_schema::<TestStructWithSimpleGeneric<u8>>().input
           "name": "A"
         }
       ],
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "A"
-          },
-          "required": true
-        }
-      ]
+      "fields": {
+        "named": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "A"
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "primitive",

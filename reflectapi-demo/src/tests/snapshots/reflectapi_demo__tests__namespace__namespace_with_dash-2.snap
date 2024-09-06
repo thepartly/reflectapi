@@ -11,25 +11,7 @@ expression: typescript
 export function client(base: string | Client): __definition.Interface {
   return __implementation.__client(base);
 }
-
-export namespace __definition {
-  export interface Interface {
-    "jobs-two": jobs_two.Interface;
-  }
-
-  export namespace jobs_two {
-    export interface Interface {
-      "pet-orders": pet_orders.Interface;
-    }
-
-    export namespace pet_orders {
-      export interface Interface {
-        /// desc
-        list_x: (input: {}, headers: {}) => AsyncResult<{}, {}>;
-      }
-    }
-  }
-}
+/* <----- */
 
 export interface Client {
   request(
@@ -190,6 +172,26 @@ export class Err<E> {
   }
 }
 
+/* -----> */
+
+export namespace __definition {
+  export interface Interface {
+    "jobs-two": jobs_two.Interface;
+  }
+
+  export namespace jobs_two {
+    export interface Interface {
+      "pet-orders": pet_orders.Interface;
+    }
+
+    export namespace pet_orders {
+      export interface Interface {
+        /// desc
+        list_x: (input: {}, headers: {}) => AsyncResult<{}, {}>;
+      }
+    }
+  }
+}
 export namespace reflectapi {
   /// Struct object with no fields
   export interface Empty {}
@@ -199,6 +201,8 @@ export namespace reflectapi {
 }
 
 namespace __implementation {
+  /* <----- */
+
   export function __client(base: string | Client): __definition.Interface {
     const client_instance =
       typeof base === "string" ? new ClientInstance(base) : base;
@@ -284,6 +288,8 @@ namespace __implementation {
         });
     }
   }
+
+  /* -----> */
 
   function jobs_two__pet_orders__list_x(client: Client) {
     return (input: {}, headers: {}) =>

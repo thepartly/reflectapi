@@ -7,25 +7,28 @@ expression: "super::into_input_schema::<TestStructWithCircularReference>().input
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "struct",
       "name": "reflectapi_demo::tests::generics::TestStructWithCircularReference",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "std::boxed::Box",
-            "arguments": [
-              {
-                "name": "reflectapi_demo::tests::generics::TestStructWithCircularReference"
-              }
-            ]
-          },
-          "required": true
-        }
-      ]
+      "fields": {
+        "named": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::boxed::Box",
+              "arguments": [
+                {
+                  "name": "reflectapi_demo::tests::generics::TestStructWithCircularReference"
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "primitive",

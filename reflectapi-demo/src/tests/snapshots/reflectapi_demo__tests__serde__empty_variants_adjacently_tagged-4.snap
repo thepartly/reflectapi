@@ -1,0 +1,104 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestEmptyVariantsAdjacentlyTagged"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestEmptyVariantsAdjacentlyTagged"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TestEmptyVariantsAdjacentlyTagged": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Empty",
+            "required": [
+              "t",
+              "c"
+            ],
+            "properties": {
+              "c": {
+                "type": "object",
+                "title": "Empty",
+                "properties": {}
+              },
+              "t": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "EmptyUnit",
+            "required": [
+              "t",
+              "c"
+            ],
+            "properties": {
+              "c": {
+                "type": "object",
+                "title": "EmptyUnit",
+                "properties": {}
+              },
+              "t": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "EmptyStruct",
+            "required": [
+              "t",
+              "c"
+            ],
+            "properties": {
+              "c": {
+                "type": "object",
+                "title": "EmptyStruct",
+                "properties": {}
+              },
+              "t": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

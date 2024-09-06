@@ -1,0 +1,81 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestEmptyVariantsInterallyTagged"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestEmptyVariantsInterallyTagged"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "TestEmptyVariantsInterallyTagged": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Empty",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "$ref": "#/components/schemas/String"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "EmptyStruct",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "$ref": "#/components/schemas/String"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      }
+    }
+  }
+}

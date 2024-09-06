@@ -7,30 +7,33 @@ expression: "super::into_input_schema::<TestStructWithNestedGenericStruct>().inp
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "struct",
       "name": "reflectapi_demo::tests::generics::TestStructWithNestedGenericStruct",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
-            "arguments": [
-              {
-                "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
-                "arguments": [
-                  {
-                    "name": "u8"
-                  }
-                ]
-              }
-            ]
-          },
-          "required": true
-        }
-      ]
+      "fields": {
+        "named": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
+              "arguments": [
+                {
+                  "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
+                  "arguments": [
+                    {
+                      "name": "u8"
+                    }
+                  ]
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "struct",
@@ -40,15 +43,17 @@ expression: "super::into_input_schema::<TestStructWithNestedGenericStruct>().inp
           "name": "A"
         }
       ],
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "A"
-          },
-          "required": true
-        }
-      ]
+      "fields": {
+        "named": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "A"
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "primitive",

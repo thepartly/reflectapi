@@ -7,7 +7,8 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericWi
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "struct",
@@ -20,59 +21,63 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericWi
           "name": "B"
         }
       ],
-      "fields": [
-        {
-          "name": "_f1",
-          "type": {
-            "name": "A"
+      "fields": {
+        "named": [
+          {
+            "name": "_f1",
+            "type": {
+              "name": "A"
+            },
+            "required": true
           },
-          "required": true
-        },
-        {
-          "name": "_f2",
-          "type": {
-            "name": "B"
-          },
-          "required": true
-        }
-      ]
+          {
+            "name": "_f2",
+            "type": {
+              "name": "B"
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "struct",
       "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBoxParentSpecific",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
-            "arguments": [
-              {
-                "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
-                "arguments": [
-                  {
-                    "name": "u8"
-                  },
-                  {
-                    "name": "u16"
-                  }
-                ]
-              },
-              {
-                "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
-                "arguments": [
-                  {
-                    "name": "std::string::String"
-                  },
-                  {
-                    "name": "u32"
-                  }
-                ]
-              }
-            ]
-          },
-          "required": true
-        }
-      ]
+      "fields": {
+        "named": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
+              "arguments": [
+                {
+                  "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
+                  "arguments": [
+                    {
+                      "name": "u8"
+                    },
+                    {
+                      "name": "u16"
+                    }
+                  ]
+                },
+                {
+                  "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
+                  "arguments": [
+                    {
+                      "name": "std::string::String"
+                    },
+                    {
+                      "name": "u32"
+                    }
+                  ]
+                }
+              ]
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "primitive",

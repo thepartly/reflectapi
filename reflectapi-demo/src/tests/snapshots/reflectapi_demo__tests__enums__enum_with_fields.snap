@@ -12,7 +12,8 @@ expression: "super::into_input_schema::<TestEnumWithFields>().input_types"
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "enum",
@@ -20,34 +21,38 @@ expression: "super::into_input_schema::<TestEnumWithFields>().input_types"
       "variants": [
         {
           "name": "Variant1",
-          "fields": [
-            {
-              "name": "0",
-              "type": {
-                "name": "u8"
-              },
-              "required": true
-            }
-          ]
+          "fields": {
+            "unnamed": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "u8"
+                },
+                "required": true
+              }
+            ]
+          }
         },
         {
           "name": "Variant2",
-          "fields": [
-            {
-              "name": "0",
-              "type": {
-                "name": "std::string::String"
+          "fields": {
+            "unnamed": [
+              {
+                "name": "0",
+                "type": {
+                  "name": "std::string::String"
+                },
+                "required": true
               },
-              "required": true
-            },
-            {
-              "name": "1",
-              "type": {
-                "name": "f64"
-              },
-              "required": true
-            }
-          ]
+              {
+                "name": "1",
+                "type": {
+                  "name": "f64"
+                },
+                "required": true
+              }
+            ]
+          }
         }
       ]
     },

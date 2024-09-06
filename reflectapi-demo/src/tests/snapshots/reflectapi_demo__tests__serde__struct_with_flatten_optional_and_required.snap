@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super::into_schema::<TestStructWithFlattenOptionalAndRequired>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,59 +24,66 @@ expression: "super::into_schema::<TestStructWithFlattenOptionalAndRequired>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::serde::TestStructRenameAll",
-        "fields": [
-          {
-            "name": "fieldName",
-            "type": {
-              "name": "u8"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "fieldName",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested",
-        "fields": [
-          {
-            "name": "f",
-            "type": {
-              "name": "u8"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "f",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::serde::TestStructWithFlattenOptionalAndRequired",
-        "fields": [
-          {
-            "name": "g",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested"
-                }
-              ]
+        "fields": {
+          "named": [
+            {
+              "name": "g",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested"
+                  }
+                ]
+              },
+              "flattened": true
             },
-            "flattened": true
-          },
-          {
-            "name": "k",
-            "type": {
-              "name": "reflectapi_demo::tests::serde::TestStructRenameAll"
-            },
-            "required": true,
-            "flattened": true
-          }
-        ]
+            {
+              "name": "k",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestStructRenameAll"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
       },
       {
         "kind": "enum",
@@ -91,19 +98,22 @@ expression: "super::into_schema::<TestStructWithFlattenOptionalAndRequired>()"
         "variants": [
           {
             "name": "None",
-            "description": "The value is not provided, i.e. null"
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
           },
           {
             "name": "Some",
             "description": "The value is provided and set to some value",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         ]
       },
@@ -119,59 +129,66 @@ expression: "super::into_schema::<TestStructWithFlattenOptionalAndRequired>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::serde::TestStructRenameAll",
-        "fields": [
-          {
-            "name": "fieldName",
-            "type": {
-              "name": "u8"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "fieldName",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested",
-        "fields": [
-          {
-            "name": "f",
-            "type": {
-              "name": "u8"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "f",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::serde::TestStructWithFlattenOptionalAndRequired",
-        "fields": [
-          {
-            "name": "g",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested"
-                }
-              ]
+        "fields": {
+          "named": [
+            {
+              "name": "g",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::serde::TestStructWithFlattenNested"
+                  }
+                ]
+              },
+              "flattened": true
             },
-            "flattened": true
-          },
-          {
-            "name": "k",
-            "type": {
-              "name": "reflectapi_demo::tests::serde::TestStructRenameAll"
-            },
-            "required": true,
-            "flattened": true
-          }
-        ]
+            {
+              "name": "k",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestStructRenameAll"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
       },
       {
         "kind": "enum",
@@ -186,19 +203,22 @@ expression: "super::into_schema::<TestStructWithFlattenOptionalAndRequired>()"
         "variants": [
           {
             "name": "None",
-            "description": "The value is not provided, i.e. null"
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
           },
           {
             "name": "Some",
             "description": "The value is provided and set to some value",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         ]
       },

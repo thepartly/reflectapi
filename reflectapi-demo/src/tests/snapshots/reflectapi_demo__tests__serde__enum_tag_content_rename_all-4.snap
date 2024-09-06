@@ -69,7 +69,25 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             }
           },
           {
-            "$ref": "#/components/schemas/u8"
+            "type": "object",
+            "title": "variant2",
+            "required": [
+              "type",
+              "content"
+            ],
+            "properties": {
+              "content": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "$ref": "#/components/schemas/u8"
+                  }
+                ]
+              },
+              "type": {
+                "type": "string"
+              }
+            }
           }
         ]
       },

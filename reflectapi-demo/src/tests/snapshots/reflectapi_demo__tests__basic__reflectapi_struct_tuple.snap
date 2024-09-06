@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "super::into_schema::<TestStructTuple>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,27 +24,30 @@ expression: "super::into_schema::<TestStructTuple>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructTuple",
-        "fields": [
-          {
-            "name": "0",
-            "type": {
-              "name": "u8"
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "1",
-            "type": {
-              "name": "std::string::String"
-            },
-            "required": true
-          }
-        ]
+            {
+              "name": "1",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "primitive",
@@ -63,27 +66,30 @@ expression: "super::into_schema::<TestStructTuple>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructTuple",
-        "fields": [
-          {
-            "name": "0",
-            "type": {
-              "name": "u8"
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "1",
-            "type": {
-              "name": "std::string::String"
-            },
-            "required": true
-          }
-        ]
+            {
+              "name": "1",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "primitive",

@@ -7,22 +7,25 @@ expression: "super::into_input_schema::<TestStructDocumented>().input_types"
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "struct",
       "name": "reflectapi_demo::tests::basic::TestStructDocumented",
       "description": " Some Struct docs\n more\n more",
-      "fields": [
-        {
-          "name": "f",
-          "description": " field docs\n multiline",
-          "type": {
-            "name": "u8"
-          },
-          "required": true
-        }
-      ]
+      "fields": {
+        "named": [
+          {
+            "name": "f",
+            "description": " field docs\n multiline",
+            "type": {
+              "name": "u8"
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "primitive",

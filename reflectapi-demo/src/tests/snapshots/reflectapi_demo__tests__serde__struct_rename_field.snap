@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super::into_schema::<TestStructRenameField>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,20 +24,23 @@ expression: "super::into_schema::<TestStructRenameField>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::serde::TestStructRenameField",
-        "fields": [
-          {
-            "name": "fieldName",
-            "type": {
-              "name": "u8"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "fieldName",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "primitive",
@@ -51,20 +54,23 @@ expression: "super::into_schema::<TestStructRenameField>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::serde::TestStructRenameField",
-        "fields": [
-          {
-            "name": "field_name",
-            "type": {
-              "name": "u8"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "field_name",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "primitive",

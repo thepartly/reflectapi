@@ -7,20 +7,23 @@ expression: "super::into_input_schema::<TestStructOneBasicFieldU32>().input_type
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "struct",
       "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldU32",
-      "fields": [
-        {
-          "name": "_f",
-          "type": {
-            "name": "u32"
-          },
-          "required": true
-        }
-      ]
+      "fields": {
+        "named": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "u32"
+            },
+            "required": true
+          }
+        ]
+      }
     },
     {
       "kind": "primitive",

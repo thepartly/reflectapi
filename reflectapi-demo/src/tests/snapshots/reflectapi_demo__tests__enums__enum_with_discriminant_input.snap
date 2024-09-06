@@ -7,7 +7,8 @@ expression: "super::into_input_schema::<TestEnumWithDiscriminant>().input_types"
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "enum",
@@ -15,10 +16,12 @@ expression: "super::into_input_schema::<TestEnumWithDiscriminant>().input_types"
       "variants": [
         {
           "name": "Variant1",
+          "fields": "none",
           "discriminant": 1
         },
         {
           "name": "Variant2",
+          "fields": "none",
           "discriminant": 2
         }
       ]

@@ -123,48 +123,53 @@
         "name": "myapi::model::Behavior",
         "variants": [
           {
-            "name": "Calm"
+            "name": "Calm",
+            "fields": "none"
           },
           {
             "name": "Aggressive",
-            "fields": [
-              {
-                "name": "0",
-                "description": " aggressiveness level ",
-                "type": {
-                  "name": "f64"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "description": " aggressiveness level ",
+                  "type": {
+                    "name": "f64"
+                  },
+                  "required": true
                 },
-                "required": true
-              },
-              {
-                "name": "1",
-                "description": " some notes ",
-                "type": {
-                  "name": "std::string::String"
-                },
-                "required": true
-              }
-            ]
+                {
+                  "name": "1",
+                  "description": " some notes ",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            }
           },
           {
             "name": "Other",
-            "fields": [
-              {
-                "name": "description",
-                "description": " Custom provided description of a behavior",
-                "type": {
-                  "name": "std::string::String"
+            "fields": {
+              "named": [
+                {
+                  "name": "description",
+                  "description": " Custom provided description of a behavior",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
                 },
-                "required": true
-              },
-              {
-                "name": "notes",
-                "description": " Additional notes\n Up to a user to put free text here",
-                "type": {
-                  "name": "std::string::String"
+                {
+                  "name": "notes",
+                  "description": " Additional notes\n Up to a user to put free text here",
+                  "type": {
+                    "name": "std::string::String"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         ]
       },
@@ -174,187 +179,202 @@
         "variants": [
           {
             "name": "dog",
-            "description": " A dog"
+            "description": " A dog",
+            "fields": "none"
           },
           {
             "name": "cat",
-            "description": " A cat"
+            "description": " A cat",
+            "fields": "none"
           }
         ]
       },
       {
         "kind": "struct",
         "name": "myapi::model::Pet",
-        "fields": [
-          {
-            "name": "name",
-            "description": " identity",
-            "type": {
-              "name": "std::string::String"
+        "fields": {
+          "named": [
+            {
+              "name": "name",
+              "description": " identity",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "kind",
-            "description": " kind of pet",
-            "type": {
-              "name": "myapi::model::Kind"
+            {
+              "name": "kind",
+              "description": " kind of pet",
+              "type": {
+                "name": "myapi::model::Kind"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "age",
-            "description": " age of the pet",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "age",
+              "description": " age of the pet",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "behaviors",
+              "description": " behaviors of the pet",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "myapi::model::Behavior"
+                  }
+                ]
+              }
             }
-          },
-          {
-            "name": "behaviors",
-            "description": " behaviors of the pet",
-            "type": {
-              "name": "std::vec::Vec",
-              "arguments": [
-                {
-                  "name": "myapi::model::Behavior"
-                }
-              ]
-            }
-          }
-        ]
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "myapi::proto::Headers",
-        "fields": [
-          {
-            "name": "authorization",
-            "type": {
-              "name": "std::string::String"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "authorization",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "myapi::proto::PetsCreateRequest",
-        "fields": [
-          {
-            "name": "0",
-            "type": {
-              "name": "myapi::model::Pet"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "myapi::model::Pet"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "myapi::proto::PetsListRequest",
-        "fields": [
-          {
-            "name": "limit",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+        "fields": {
+          "named": [
+            {
+              "name": "limit",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "cursor",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              }
             }
-          },
-          {
-            "name": "cursor",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "std::string::String"
-                }
-              ]
-            }
-          }
-        ]
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "myapi::proto::PetsRemoveRequest",
-        "fields": [
-          {
-            "name": "name",
-            "description": " identity",
-            "type": {
-              "name": "std::string::String"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "name",
+              "description": " identity",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "myapi::proto::PetsUpdateRequest",
-        "fields": [
-          {
-            "name": "name",
-            "description": " identity",
-            "type": {
-              "name": "std::string::String"
+        "fields": {
+          "named": [
+            {
+              "name": "name",
+              "description": " identity",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "kind",
-            "description": " kind of pet, non nullable in the model",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "myapi::model::Kind"
-                }
-              ]
+            {
+              "name": "kind",
+              "description": " kind of pet, non nullable in the model",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "myapi::model::Kind"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "age",
+              "description": " age of the pet, nullable in the model",
+              "type": {
+                "name": "reflectapi::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "behaviors",
+              "description": " behaviors of the pet, nullable in the model",
+              "type": {
+                "name": "reflectapi::Option",
+                "arguments": [
+                  {
+                    "name": "std::vec::Vec",
+                    "arguments": [
+                      {
+                        "name": "myapi::model::Behavior"
+                      }
+                    ]
+                  }
+                ]
+              }
             }
-          },
-          {
-            "name": "age",
-            "description": " age of the pet, nullable in the model",
-            "type": {
-              "name": "reflectapi::Option",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
-            }
-          },
-          {
-            "name": "behaviors",
-            "description": " behaviors of the pet, nullable in the model",
-            "type": {
-              "name": "reflectapi::Option",
-              "arguments": [
-                {
-                  "name": "std::vec::Vec",
-                  "arguments": [
-                    {
-                      "name": "myapi::model::Behavior"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        ]
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -369,23 +389,27 @@
         "variants": [
           {
             "name": "Undefined",
-            "description": "The value is missing, i.e. undefined in JavaScript"
+            "description": "The value is missing, i.e. undefined in JavaScript",
+            "fields": "none"
           },
           {
             "name": "None",
-            "description": "The value is provided but set to none, i.e. null in JavaScript"
+            "description": "The value is provided but set to none, i.e. null in JavaScript",
+            "fields": "none"
           },
           {
             "name": "Some",
             "description": "The value is provided and set to some value",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         ]
       },
@@ -402,19 +426,22 @@
         "variants": [
           {
             "name": "None",
-            "description": "The value is not provided, i.e. null"
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
           },
           {
             "name": "Some",
             "description": "The value is provided and set to some value",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         ]
       },
@@ -452,48 +479,53 @@
         "name": "myapi::model::Behavior",
         "variants": [
           {
-            "name": "Calm"
+            "name": "Calm",
+            "fields": "none"
           },
           {
             "name": "Aggressive",
-            "fields": [
-              {
-                "name": "0",
-                "description": " aggressiveness level ",
-                "type": {
-                  "name": "f64"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "description": " aggressiveness level ",
+                  "type": {
+                    "name": "f64"
+                  },
+                  "required": true
                 },
-                "required": true
-              },
-              {
-                "name": "1",
-                "description": " some notes ",
-                "type": {
-                  "name": "std::string::String"
-                },
-                "required": true
-              }
-            ]
+                {
+                  "name": "1",
+                  "description": " some notes ",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            }
           },
           {
             "name": "Other",
-            "fields": [
-              {
-                "name": "description",
-                "description": " Custom provided description of a behavior",
-                "type": {
-                  "name": "std::string::String"
+            "fields": {
+              "named": [
+                {
+                  "name": "description",
+                  "description": " Custom provided description of a behavior",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
                 },
-                "required": true
-              },
-              {
-                "name": "notes",
-                "description": " Additional notes\n Up to a user to put free text here",
-                "type": {
-                  "name": "std::string::String"
+                {
+                  "name": "notes",
+                  "description": " Additional notes\n Up to a user to put free text here",
+                  "type": {
+                    "name": "std::string::String"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         ]
       },
@@ -503,59 +535,63 @@
         "variants": [
           {
             "name": "dog",
-            "description": " A dog"
+            "description": " A dog",
+            "fields": "none"
           },
           {
             "name": "cat",
-            "description": " A cat"
+            "description": " A cat",
+            "fields": "none"
           }
         ]
       },
       {
         "kind": "struct",
         "name": "myapi::model::Pet",
-        "fields": [
-          {
-            "name": "name",
-            "description": " identity",
-            "type": {
-              "name": "std::string::String"
+        "fields": {
+          "named": [
+            {
+              "name": "name",
+              "description": " identity",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "kind",
-            "description": " kind of pet",
-            "type": {
-              "name": "myapi::model::Kind"
+            {
+              "name": "kind",
+              "description": " kind of pet",
+              "type": {
+                "name": "myapi::model::Kind"
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "age",
-            "description": " age of the pet",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "u8"
-                }
-              ]
+            {
+              "name": "age",
+              "description": " age of the pet",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "behaviors",
+              "description": " behaviors of the pet",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "myapi::model::Behavior"
+                  }
+                ]
+              }
             }
-          },
-          {
-            "name": "behaviors",
-            "description": " behaviors of the pet",
-            "type": {
-              "name": "std::vec::Vec",
-              "arguments": [
-                {
-                  "name": "myapi::model::Behavior"
-                }
-              ]
-            }
-          }
-        ]
+          ]
+        }
       },
       {
         "kind": "struct",
@@ -565,55 +601,61 @@
             "name": "T"
           }
         ],
-        "fields": [
-          {
-            "name": "items",
-            "description": " slice of a collection",
-            "type": {
-              "name": "std::vec::Vec",
-              "arguments": [
-                {
-                  "name": "T"
-                }
-              ]
+        "fields": {
+          "named": [
+            {
+              "name": "items",
+              "description": " slice of a collection",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "T"
+                  }
+                ]
+              },
+              "required": true
             },
-            "required": true
-          },
-          {
-            "name": "cursor",
-            "description": " cursor for getting next page",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "std::string::String"
-                }
-              ]
+            {
+              "name": "cursor",
+              "description": " cursor for getting next page",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              }
             }
-          }
-        ]
+          ]
+        }
       },
       {
         "kind": "enum",
         "name": "myapi::proto::PetsCreateError",
         "variants": [
           {
-            "name": "Conflict"
+            "name": "Conflict",
+            "fields": "none"
           },
           {
-            "name": "NotAuthorized"
+            "name": "NotAuthorized",
+            "fields": "none"
           },
           {
             "name": "InvalidIdentity",
-            "fields": [
-              {
-                "name": "message",
-                "type": {
-                  "name": "std::string::String"
-                },
-                "required": true
-              }
-            ]
+            "fields": {
+              "named": [
+                {
+                  "name": "message",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
       },
@@ -622,10 +664,12 @@
         "name": "myapi::proto::PetsListError",
         "variants": [
           {
-            "name": "InvalidCustor"
+            "name": "InvalidCustor",
+            "fields": "none"
           },
           {
-            "name": "Unauthorized"
+            "name": "Unauthorized",
+            "fields": "none"
           }
         ]
       },
@@ -634,10 +678,12 @@
         "name": "myapi::proto::PetsRemoveError",
         "variants": [
           {
-            "name": "NotFound"
+            "name": "NotFound",
+            "fields": "none"
           },
           {
-            "name": "NotAuthorized"
+            "name": "NotAuthorized",
+            "fields": "none"
           }
         ]
       },
@@ -646,34 +692,40 @@
         "name": "myapi::proto::PetsUpdateError",
         "variants": [
           {
-            "name": "NotFound"
+            "name": "NotFound",
+            "fields": "none"
           },
           {
-            "name": "NotAuthorized"
+            "name": "NotAuthorized",
+            "fields": "none"
           }
         ]
       },
       {
         "kind": "struct",
         "name": "myapi::proto::UnauthorizedError",
-        "fields": [
-          {
-            "name": "0",
-            "type": {
-              "name": "std::tuple::Tuple0"
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::tuple::Tuple0"
+              }
             }
-          }
-        ]
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -688,19 +740,22 @@
         "variants": [
           {
             "name": "None",
-            "description": "The value is not provided, i.e. null"
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
           },
           {
             "name": "Some",
             "description": "The value is provided and set to some value",
-            "fields": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         ]
       },

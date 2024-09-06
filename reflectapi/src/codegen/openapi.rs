@@ -518,12 +518,28 @@ impl Converter {
             .collect::<Vec<_>>();
 
         let schema = match adt.representation() {
-            crate::Representation::Internal { tag } => Schema::OneOf {
-                subschemas,
-                discriminator: Some(Discriminator {
-                    property_name: tag.to_owned(),
-                }),
-            },
+            crate::Representation::Internal { tag } => {
+                subschemas.iter().for_each(|s| match s {
+                    InlineOrRef::Inline(schema) => match schema {
+                        Schema::OneOf { .. } => {
+                            unreachable!("not expecting nested schema for internal repr")
+                        }
+                        Schema::Flat(schema) => match &schema.ty {
+                            Type::Object { properties, .. } => {
+                                assert!(properties.iter().any(|(name, _)| name == tag))
+                            }
+                            _ => unreachable!("expected object for internal repr"),
+                        },
+                    },
+                    InlineOrRef::Ref(_) => unreachable!("not expecting a ref for internal repr"),
+                });
+                Schema::OneOf {
+                    subschemas,
+                    discriminator: Some(Discriminator {
+                        property_name: tag.to_owned(),
+                    }),
+                }
+            }
             crate::Representation::External
             | crate::Representation::Adjacent { .. }
             | crate::Representation::None => Schema::OneOf {
@@ -544,10 +560,6 @@ impl Converter {
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
-        if variant.fields.len() == 1 && !variant.fields[0].is_named() {
-            return self.convert_type_ref(schema, kind, variant.fields[0].type_ref());
-        }
-
         let mut strukt = crate::Struct {
             name: variant.name().to_owned(),
             serde_name: variant.serde_name.to_owned(),
@@ -559,6 +571,42 @@ impl Converter {
 
         match adt.representation() {
             crate::Representation::External => {
+                if variant.fields.len() == 1 && !variant.fields[0].is_named() {
+                    return self.convert_type_ref(schema, kind, variant.fields[0].type_ref());
+                }
+
+                if variant.fields.is_empty() {
+                    // Subtle serialization differences between similar seeming empty variants.
+                    // ```rust
+                    // #[derive(Serialize)]
+                    // enum {
+                    //    A,            // "A"
+                    //    B {}          // { "B": {} }
+                    //    C()           // { "C": [] }
+                    // }
+                    // ```
+
+                    let ty = match variant.fields {
+                        reflectapi_schema::Fields::Named(_) => Type::Object {
+                            title: variant.name().to_owned(),
+                            required: vec![],
+                            properties: BTreeMap::new(),
+                        },
+                        reflectapi_schema::Fields::Unnamed(_) => Type::Tuple {
+                            prefix_items: vec![],
+                        },
+                        reflectapi_schema::Fields::None => Type::String,
+                    };
+
+                    return InlineOrRef::Inline(
+                        FlatSchema {
+                            description: variant.description().to_owned(),
+                            ty,
+                        }
+                        .into(),
+                    );
+                }
+
                 return InlineOrRef::Inline(
                     FlatSchema {
                         description: variant.description().to_owned(),
@@ -603,7 +651,7 @@ impl Converter {
                 );
             }
             crate::Representation::Internal { tag } => {
-                strukt.fields.push(crate::Field {
+                let tag_field = crate::Field {
                     name: tag.to_owned(),
                     serde_name: tag.to_owned(),
                     description: "tag".to_owned(),
@@ -612,7 +660,17 @@ impl Converter {
                     flattened: false,
                     transform_callback: String::new(),
                     transform_callback_fn: None,
-                });
+                };
+
+                match &mut strukt.fields {
+                    reflectapi_schema::Fields::Named(fields) => fields.push(tag_field),
+                    reflectapi_schema::Fields::None => {
+                        strukt.fields = reflectapi_schema::Fields::Named(vec![tag_field])
+                    }
+                    reflectapi_schema::Fields::Unnamed(_) => {
+                        panic!("internal repr with unnamed fields is not allowed")
+                    }
+                }
             }
             crate::Representation::None => {}
         }

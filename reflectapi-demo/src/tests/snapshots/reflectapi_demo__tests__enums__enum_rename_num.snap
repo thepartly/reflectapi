@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/enums.rs
-expression: "super::into_schema::<Nums>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,7 +24,8 @@ expression: "super::into_schema::<Nums>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -32,10 +33,12 @@ expression: "super::into_schema::<Nums>()"
         "variants": [
           {
             "name": "Zero",
-            "serde_name": "0"
+            "serde_name": "0",
+            "fields": "none"
           },
           {
-            "name": "A"
+            "name": "A",
+            "fields": "none"
           }
         ]
       }
@@ -46,7 +49,8 @@ expression: "super::into_schema::<Nums>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "enum",
@@ -54,10 +58,12 @@ expression: "super::into_schema::<Nums>()"
         "variants": [
           {
             "name": "Zero",
-            "serde_name": "0"
+            "serde_name": "0",
+            "fields": "none"
           },
           {
-            "name": "A"
+            "name": "A",
+            "fields": "none"
           }
         ]
       }

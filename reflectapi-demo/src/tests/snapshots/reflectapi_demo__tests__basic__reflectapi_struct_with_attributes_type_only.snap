@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "super::into_schema::<TestStructWithAttributesTypeOnly>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,19 +24,22 @@ expression: "super::into_schema::<TestStructWithAttributesTypeOnly>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructWithAttributesTypeOnly",
-        "fields": [
-          {
-            "name": "0",
-            "type": {
-              "name": "std::string::String"
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::string::String"
+              }
             }
-          }
-        ],
+          ]
+        },
         "transparent": true
       },
       {
@@ -51,19 +54,22 @@ expression: "super::into_schema::<TestStructWithAttributesTypeOnly>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructWithAttributesTypeOnly",
-        "fields": [
-          {
-            "name": "0",
-            "type": {
-              "name": "std::string::String"
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::string::String"
+              }
             }
-          }
-        ],
+          ]
+        },
         "transparent": true
       },
       {

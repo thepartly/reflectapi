@@ -3,7 +3,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use super::{format_with, Config};
+use super::{format_with, Config, END_BOILERPLATE, START_BOILERPLATE};
 use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
@@ -53,6 +53,17 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             .context("Failed to render template")?,
     );
 
+    generated_code.push(START_BOILERPLATE.into());
+
+    let file_template = templates::FileMiddle {};
+    generated_code.push(
+        file_template
+            .render()
+            .context("Failed to render template")?,
+    );
+
+    generated_code.push(END_BOILERPLATE.into());
+
     let module = modules_from_function_group(
         "__definition".into(),
         &function_groups,
@@ -61,13 +72,6 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
         &functions_by_name,
     );
     generated_code.push(module.render().context("Failed to render template")?);
-
-    let file_template = templates::FileMiddle {};
-    generated_code.push(
-        file_template
-            .render()
-            .context("Failed to render template")?,
-    );
 
     let module = modules_from_rendered_types(schema.consolidate_types(), rendered_types);
     generated_code.push(
@@ -84,7 +88,9 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     }
 
     let generated_impl_client = client_impl_from_function_group(8, &function_groups).render();
-    let file_template = templates::FileFootter {
+    let file_template = templates::FileFooter {
+        start_boilerplate: START_BOILERPLATE,
+        end_boilerplate: END_BOILERPLATE,
         client_impl: generated_impl_client,
         implemented_functions: rendered_functions.join("\n"),
     };
@@ -332,6 +338,8 @@ export class Err<E> {
         source = "
 namespace __implementation {
 
+{{ start_boilerplate }}
+
 export function __client(base: string | Client): __definition.Interface {
     const client_instance = typeof base === 'string' ? new ClientInstance(base) : base;
     return { impl: {{ client_impl }} }.impl
@@ -392,13 +400,17 @@ class ClientInstance {
     }
 }
 
+{{ end_boilerplate }}
+
 {{ implemented_functions }}
 
 }
 ",
         ext = "txt"
     )]
-    pub(super) struct FileFootter {
+    pub(super) struct FileFooter {
+        pub start_boilerplate: &'static str,
+        pub end_boilerplate: &'static str,
         pub client_impl: String,
         pub implemented_functions: String,
     }
@@ -518,16 +530,50 @@ class ClientInstance {
         pub name: String,
         pub description: String,
         pub representation: crate::Representation,
-        pub fields: Vec<Field>,
+        pub fields: Fields,
         pub discriminant: Option<isize>,
         pub untagged: bool,
+    }
+
+    #[derive(Debug)]
+    pub(super) enum Fields {
+        Named(Vec<Field>),
+        Unnamed(Vec<Field>),
+        None,
+    }
+
+    impl Fields {
+        fn is_empty(&self) -> bool {
+            match self {
+                Fields::Named(fields) | Fields::Unnamed(fields) => fields.is_empty(),
+                Fields::None => true,
+            }
+        }
+
+        fn len(&self) -> usize {
+            match self {
+                Fields::Named(fields) | Fields::Unnamed(fields) => fields.len(),
+                Fields::None => 0,
+            }
+        }
+
+        fn is_unnamed(&self) -> bool {
+            matches!(self, Fields::Unnamed(_))
+        }
+
+        fn iter(&self) -> impl Iterator<Item = &Field> {
+            match self {
+                Fields::Named(fields) | Fields::Unnamed(fields) => fields.iter(),
+                Fields::None => [].iter(),
+            }
+        }
     }
 
     impl Variant {
         fn field_brackets(&self) -> (String, String) {
             if self.fields.is_empty() {
                 ("".into(), "".into())
-            } else if self.fields.iter().all(|f| f.is_unnamed()) {
+            } else if self.fields.is_unnamed() {
                 if self.fields.len() == 1 {
                     ("".into(), "".into())
                 } else {
@@ -539,17 +585,23 @@ class ClientInstance {
         }
 
         fn render_self(&self) -> anyhow::Result<String> {
-            if self.fields.is_empty() {
-                if let Some(discriminant) = self.discriminant {
-                    return Ok(format!("{} /* {} */", discriminant, self.name));
-                }
-                return Ok(format!(r#""{}""#, self.name));
-            }
             if self.untagged {
                 return self.render_fields(None);
             }
             let r = match &self.representation {
                 crate::Representation::External => {
+                    if self.fields.is_empty() {
+                        if let Some(discriminant) = self.discriminant {
+                            return Ok(format!("{} /* {} */", discriminant, self.name));
+                        }
+
+                        return Ok(match self.fields {
+                            Fields::Named(_) => format!(r#"{{ {}: {{}} }}"#, self.name),
+                            Fields::Unnamed(_) => format!(r#"{{ {}: [] }}"#, self.name),
+                            Fields::None => format!(r#""{}""#, self.name),
+                        });
+                    }
+
                     format!(
                         "{{\n        {}: {}\n    }}",
                         self.normalized_name(),
@@ -557,7 +609,20 @@ class ClientInstance {
                     )
                 }
                 crate::Representation::Internal { tag } => {
-                    if self.fields.len() == 1 && self.fields.iter().all(|f| f.is_unnamed()) {
+                    if self.fields.is_empty() {
+                        match &self.fields {
+                            Fields::Named(_) | Fields::None => {
+                                return Ok(format!(r#"{{ {tag}: "{}" }}"#, self.name));
+                            }
+                            Fields::Unnamed(_) => {
+                                unreachable!(
+                                    "serde ensures tuple variants can't be internally tagged"
+                                )
+                            }
+                        }
+                    }
+
+                    if self.fields.len() == 1 && self.fields.is_unnamed() {
                         format!(
                             r#"{{ {}: "{}" }} & {}"#,
                             tag,
@@ -569,6 +634,17 @@ class ClientInstance {
                     }
                 }
                 crate::Representation::Adjacent { tag, content } => {
+                    if self.fields.is_empty() {
+                        return Ok(match &self.fields {
+                            Fields::None | Fields::Named(_) => {
+                                format!(r#"{{ {tag}: "{}", {content}: {{}} }}"#, self.name)
+                            }
+                            Fields::Unnamed(_) => {
+                                format!(r#"{{ {tag}: "{}", {content}: [] }}"#, self.name)
+                            }
+                        });
+                    }
+
                     format!(
                         r#"{{ {}: "{}", {}: {} }}"#,
                         tag,
@@ -612,7 +688,7 @@ class ClientInstance {
 
     // TODO The ? is in the wrong place for optional tuple fields.
     // i.e. syntax is { name?: string } for object-like things but [string?] for array-like things
-    #[derive(Template)]
+    #[derive(Debug, Template)]
     #[template(
         source = "{{ description }}{% if !self.is_unnamed() %}{{ self.normalized_name() }}{% if optional %}{{ \"?\" }}{% endif %}: {{ type_ }}{% else %}{{ type_ }}{% endif  %}",
         ext = "txt"
@@ -906,7 +982,7 @@ fn render_type(
     Ok(match type_def {
         crate::Type::Struct(struct_def) => {
             if struct_def.is_alias() {
-                let field_type_ref = struct_def.fields.first().unwrap().type_ref.clone();
+                let field_type_ref = struct_def.fields.iter().next().unwrap().type_ref.clone();
                 let alias_template = templates::Alias {
                     name: type_name,
                     description: doc_to_ts_comments(&struct_def.description, 0),
@@ -970,20 +1046,7 @@ fn render_type(
                         name: variant.serde_name().into(),
                         description: doc_to_ts_comments(&variant.description, 4),
                         representation: enum_def.representation.clone(),
-                        fields: variant
-                            .fields
-                            .iter()
-                            .map(|field| templates::Field {
-                                name: field.serde_name().into(),
-                                description: doc_to_ts_comments(&field.description, 12),
-                                type_: type_ref_to_ts_ref(
-                                    &field.type_ref,
-                                    schema,
-                                    implemented_types,
-                                ),
-                                optional: !field.required,
-                            })
-                            .collect::<Vec<_>>(),
+                        fields: fields_to_ts_fields(&variant.fields, schema, implemented_types),
                         discriminant: variant.discriminant,
                         untagged: variant.untagged,
                     })
@@ -1011,6 +1074,41 @@ fn render_type(
                 .context("Failed to render template")?
         }
     })
+}
+
+fn fields_to_ts_fields(
+    fields: &crate::Fields,
+    schema: &crate::Schema,
+    implemented_types: &HashMap<String, String>,
+) -> templates::Fields {
+    match fields {
+        reflectapi_schema::Fields::Named(fields) => templates::Fields::Named(
+            fields
+                .iter()
+                .map(|f| field_to_ts_field(f, schema, implemented_types))
+                .collect::<Vec<_>>(),
+        ),
+        reflectapi_schema::Fields::Unnamed(fields) => templates::Fields::Unnamed(
+            fields
+                .iter()
+                .map(|f| field_to_ts_field(f, schema, implemented_types))
+                .collect(),
+        ),
+        reflectapi_schema::Fields::None => templates::Fields::None,
+    }
+}
+
+fn field_to_ts_field(
+    field: &crate::Field,
+    schema: &crate::Schema,
+    implemented_types: &HashMap<String, String>,
+) -> templates::Field {
+    templates::Field {
+        name: field.serde_name().into(),
+        description: doc_to_ts_comments(&field.description, 4),
+        type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
+        optional: !field.required,
+    }
 }
 
 fn type_ref_to_ts_ref(

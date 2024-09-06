@@ -24,19 +24,22 @@ expression: schema
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructUnitType",
-        "fields": [
-          {
-            "name": "0",
-            "type": {
-              "name": "std::tuple::Tuple0"
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::tuple::Tuple0"
+              }
             }
-          }
-        ]
+          ]
+        }
       },
       {
         "kind": "primitive",
@@ -50,19 +53,22 @@ expression: schema
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructUnitType",
-        "fields": [
-          {
-            "name": "0",
-            "type": {
-              "name": "std::tuple::Tuple0"
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::tuple::Tuple0"
+              }
             }
-          }
-        ]
+          ]
+        }
       },
       {
         "kind": "primitive",

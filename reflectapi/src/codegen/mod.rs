@@ -9,7 +9,7 @@ use std::{
     path::PathBuf,
 };
 
-use reflectapi_schema::{Enum, Field, Struct, TypeReference, Variant};
+use reflectapi_schema::{Enum, Field, Fields, Struct, TypeReference, Variant};
 
 use self::format::format_with;
 
@@ -67,6 +67,20 @@ impl Substitute for TypeReference {
     }
 }
 
+impl Substitute for Fields {
+    fn subst(self, subst: &HashMap<String, TypeReference>) -> Self {
+        match self {
+            Fields::Named(fields) => {
+                Fields::Named(fields.into_iter().map(|f| f.subst(subst)).collect())
+            }
+            Fields::Unnamed(fields) => {
+                Fields::Unnamed(fields.into_iter().map(|f| f.subst(subst)).collect())
+            }
+            Fields::None => Fields::None,
+        }
+    }
+}
+
 impl Substitute for Field {
     fn subst(self, subst: &HashMap<String, TypeReference>) -> Self {
         Field {
@@ -79,7 +93,7 @@ impl Substitute for Field {
 impl Substitute for Variant {
     fn subst(self, subst: &HashMap<String, TypeReference>) -> Variant {
         Self {
-            fields: self.fields.into_iter().map(|f| f.subst(subst)).collect(),
+            fields: self.fields.subst(subst),
             ..self
         }
     }
@@ -105,7 +119,7 @@ impl Instantiate for Struct {
 
         Self {
             parameters: vec![],
-            fields: self.fields.into_iter().map(|f| f.subst(&subst)).collect(),
+            fields: self.fields.subst(&subst),
             ..self
         }
     }
@@ -135,4 +149,38 @@ impl Instantiate for Enum {
             ..self
         }
     }
+}
+
+// Comes in pairs, anything between them is boilerplate and can be removed for tests snapshots.
+const START_BOILERPLATE: &str = "/* <----- */";
+const END_BOILERPLATE: &str = "/* -----> */";
+
+#[doc(hidden)]
+pub fn strip_boilerplate(src: &str) -> String {
+    let mut stripped = String::new();
+    let mut skip = false;
+    for line in src.lines() {
+        if line.contains(START_BOILERPLATE) {
+            assert!(!skip, "nested start boilerplate markers");
+            skip = true;
+            continue;
+        }
+
+        if line.contains(END_BOILERPLATE) {
+            assert!(skip, "unmatched end boilerplate marker");
+            skip = false;
+            continue;
+        }
+
+        if !skip {
+            stripped.push_str(line);
+            stripped.push('\n');
+        }
+    }
+
+    if skip {
+        panic!("unmatched boilerplate marker");
+    }
+
+    stripped
 }

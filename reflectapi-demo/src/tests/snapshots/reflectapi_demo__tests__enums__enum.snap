@@ -7,17 +7,20 @@ expression: "super::into_input_schema::<TestEnum>().input_types"
     {
       "kind": "struct",
       "name": "reflectapi::Empty",
-      "description": "Struct object with no fields"
+      "description": "Struct object with no fields",
+      "fields": "none"
     },
     {
       "kind": "enum",
       "name": "reflectapi_demo::tests::enums::TestEnum",
       "variants": [
         {
-          "name": "Variant1"
+          "name": "Variant1",
+          "fields": "none"
         },
         {
-          "name": "Variant2"
+          "name": "Variant2",
+          "fields": "none"
         }
       ]
     }

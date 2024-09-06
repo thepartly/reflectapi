@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "super::into_schema::<TestStructWithVecNested>()"
+expression: schema
 ---
 {
   "name": "",
@@ -24,43 +24,48 @@ expression: "super::into_schema::<TestStructWithVecNested>()"
       {
         "kind": "struct",
         "name": "reflectapi::Empty",
-        "description": "Struct object with no fields"
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructWithVecNested",
-        "fields": [
-          {
-            "name": "_f",
-            "type": {
-              "name": "std::vec::Vec",
-              "arguments": [
-                {
-                  "name": "std::vec::Vec",
-                  "arguments": [
-                    {
-                      "name": "reflectapi_demo::tests::test_lib::TestStructNested"
-                    }
-                  ]
-                }
-              ]
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "_f",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "std::vec::Vec",
+                    "arguments": [
+                      {
+                        "name": "reflectapi_demo::tests::test_lib::TestStructNested"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::test_lib::TestStructNested",
-        "fields": [
-          {
-            "name": "_f",
-            "type": {
-              "name": "std::string::String"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "_f",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "primitive",
@@ -84,43 +89,48 @@ expression: "super::into_schema::<TestStructWithVecNested>()"
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned"
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::basic::TestStructWithVecNested",
-        "fields": [
-          {
-            "name": "_f",
-            "type": {
-              "name": "std::vec::Vec",
-              "arguments": [
-                {
-                  "name": "std::vec::Vec",
-                  "arguments": [
-                    {
-                      "name": "reflectapi_demo::tests::test_lib::TestStructNested"
-                    }
-                  ]
-                }
-              ]
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "_f",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "std::vec::Vec",
+                    "arguments": [
+                      {
+                        "name": "reflectapi_demo::tests::test_lib::TestStructNested"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "struct",
         "name": "reflectapi_demo::tests::test_lib::TestStructNested",
-        "fields": [
-          {
-            "name": "_f",
-            "type": {
-              "name": "std::string::String"
-            },
-            "required": true
-          }
-        ]
+        "fields": {
+          "named": [
+            {
+              "name": "_f",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "primitive",
