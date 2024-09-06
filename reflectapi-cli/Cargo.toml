@@ -1,6 +1,6 @@
 [package]
 name = "reflectapi-cli"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
 
 license = "MIT"
@@ -16,7 +16,7 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reflectapi = { path = "../reflectapi", version = "0.6.0", features = ["codegen"] }
+reflectapi = { path = "../reflectapi", version = "0.6.1", features = ["codegen"] }
 
 clap = { version = "4.5.3", features = ["derive"] }
 clap_derive = "4.5.3"
