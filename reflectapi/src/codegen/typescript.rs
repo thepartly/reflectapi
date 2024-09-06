@@ -670,13 +670,24 @@ class ClientInstance {
 
         fn render_fields(&self, inner_tag: Option<&str>) -> anyhow::Result<String> {
             let brackets = self.field_brackets();
+            if brackets.0.is_empty() && self.fields.is_empty() {
+                return Ok(match self.fields {
+                    Fields::Named(_) => "{}",
+                    Fields::Unnamed(_) => "[]",
+                    Fields::None => "null",
+                }
+                .into());
+            }
+
             let mut rendered_fields = Vec::new();
             if let Some(inner_tag) = inner_tag {
                 rendered_fields.push(format!("{}: \"{}\"", inner_tag, self.name));
             }
+
             for field in self.fields.iter() {
                 rendered_fields.push(field.render()?);
             }
+
             Ok(format!(
                 "{}\n            {}\n        {}",
                 brackets.0,

@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEmptyVariantsExternallyTagged"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEmptyVariantsUntagged"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEmptyVariantsExternallyTagged"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEmptyVariantsUntagged"
                 }
               }
             }
@@ -41,32 +41,19 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestEmptyVariantsExternallyTagged": {
+      "reflectapi_demo.tests.serde.TestEmptyVariantsUntagged": {
         "oneOf": [
           {
             "type": "string"
           },
           {
-            "type": "object",
-            "title": "EmptyUnit",
-            "properties": {
-              "EmptyUnit": {
-                "description": "empty tuple",
-                "type": "array",
-                "prefixItems": []
-              }
-            }
+            "type": "array",
+            "prefixItems": []
           },
           {
             "type": "object",
             "title": "EmptyStruct",
-            "properties": {
-              "EmptyStruct": {
-                "description": "empty object",
-                "type": "object",
-                "properties": {}
-              }
-            }
+            "properties": {}
           }
         ]
       }

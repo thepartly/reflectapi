@@ -163,6 +163,10 @@ impl Schema {
     pub fn empty_object() -> Self {
         Schema::Flat(FlatSchema::empty_object())
     }
+
+    pub fn empty_tuple() -> Self {
+        Schema::Flat(FlatSchema::empty_tuple())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -188,6 +192,15 @@ impl FlatSchema {
                 title: "".to_owned(),
                 required: vec![],
                 properties: BTreeMap::new(),
+            },
+        }
+    }
+
+    pub fn empty_tuple() -> Self {
+        Self {
+            description: "empty tuple".to_owned(),
+            ty: Type::Tuple {
+                prefix_items: vec![],
             },
         }
     }
@@ -583,7 +596,6 @@ impl Converter {
                 }
 
                 if variant.fields.is_empty() {
-                    // Subtle serialization differences between similar seeming empty variants.
                     // ```rust
                     // #[derive(Serialize)]
                     // enum {
@@ -597,10 +609,18 @@ impl Converter {
                         reflectapi_schema::Fields::Named(_) => Type::Object {
                             title: fmt_type_ref(&type_ref),
                             required: vec![],
-                            properties: BTreeMap::new(),
+                            properties: BTreeMap::from_iter([(
+                                variant.serde_name().to_owned(),
+                                InlineOrRef::Inline(Schema::empty_object()),
+                            )]),
                         },
-                        reflectapi_schema::Fields::Unnamed(_) => Type::Tuple {
-                            prefix_items: vec![],
+                        reflectapi_schema::Fields::Unnamed(_) => Type::Object {
+                            title: fmt_type_ref(&type_ref),
+                            required: vec![],
+                            properties: BTreeMap::from_iter([(
+                                variant.serde_name().to_owned(),
+                                InlineOrRef::Inline(Schema::empty_tuple()),
+                            )]),
                         },
                         reflectapi_schema::Fields::None => Type::String,
                     };
@@ -679,7 +699,39 @@ impl Converter {
                     }
                 }
             }
-            crate::Representation::None => {}
+            crate::Representation::None => {
+                if variant.fields.is_empty() {
+                    // ```rust
+                    // #[derive(Serialize)]
+                    // #[serde(untagged)]
+                    // enum {
+                    //    A,            // null
+                    //    B {}          // {}
+                    //    C()           // []
+                    // }
+                    // ```
+
+                    let ty = match variant.fields {
+                        reflectapi_schema::Fields::Named(_) => Type::Object {
+                            title: fmt_type_ref(&type_ref),
+                            required: vec![],
+                            properties: BTreeMap::new(),
+                        },
+                        reflectapi_schema::Fields::Unnamed(_) => Type::Tuple {
+                            prefix_items: vec![],
+                        },
+                        reflectapi_schema::Fields::None => Type::String,
+                    };
+
+                    return InlineOrRef::Inline(
+                        FlatSchema {
+                            description: variant.description().to_owned(),
+                            ty,
+                        }
+                        .into(),
+                    );
+                }
+            }
         }
 
         self.struct_to_schema(schema, kind, &type_ref, &strukt)

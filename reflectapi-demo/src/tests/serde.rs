@@ -460,3 +460,16 @@ fn test_empty_variants_adjacently_tagged() {
 
     assert_snapshot!(TestEmptyVariantsAdjacentlyTagged);
 }
+
+#[test]
+fn test_empty_variants_untagged() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(untagged)]
+    enum TestEmptyVariantsUntagged {
+        Empty,
+        EmptyUnit(),
+        EmptyStruct {},
+    }
+
+    assert_snapshot!(TestEmptyVariantsUntagged);
+}

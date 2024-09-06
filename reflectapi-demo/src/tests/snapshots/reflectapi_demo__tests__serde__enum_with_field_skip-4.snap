@@ -46,7 +46,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           {
             "type": "object",
             "title": "Variant1",
-            "properties": {}
+            "properties": {
+              "Variant1": {
+                "description": "empty object",
+                "type": "object",
+                "properties": {}
+              }
+            }
           }
         ]
       }
