@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructWithTransformFallbackNested"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructWithTransformFallbackNested"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructWithTransformFallbackNested": {
+      "reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested": {
         "type": "object",
-        "title": "TestStructWithTransformFallbackNested",
+        "title": "reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested",
         "required": [
           "_f"
         ],

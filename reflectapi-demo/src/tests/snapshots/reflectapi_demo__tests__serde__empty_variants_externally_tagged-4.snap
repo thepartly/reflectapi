@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestEmptyVariantsExternallyTagged"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEmptyVariantsExternallyTagged"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestEmptyVariantsExternallyTagged"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEmptyVariantsExternallyTagged"
                 }
               }
             }
@@ -41,7 +41,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestEmptyVariantsExternallyTagged": {
+      "reflectapi_demo.tests.serde.TestEmptyVariantsExternallyTagged": {
         "oneOf": [
           {
             "type": "string"

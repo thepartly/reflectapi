@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructWithNested"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithNested"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructWithNested"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithNested"
                 }
               }
             }
@@ -41,33 +41,33 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "String": {
+      "reflectapi_demo.tests.basic.TestStructNested": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.basic.TestStructNested",
+        "required": [
+          "_f"
+        ],
+        "properties": {
+          "_f": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "reflectapi_demo.tests.basic.TestStructWithNested": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.basic.TestStructWithNested",
+        "required": [
+          "_f"
+        ],
+        "properties": {
+          "_f": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructNested"
+          }
+        }
+      },
+      "std.string.String": {
         "description": "UTF-8 encoded string",
         "type": "string"
-      },
-      "TestStructNested": {
-        "type": "object",
-        "title": "TestStructNested",
-        "required": [
-          "_f"
-        ],
-        "properties": {
-          "_f": {
-            "$ref": "#/components/schemas/String"
-          }
-        }
-      },
-      "TestStructWithNested": {
-        "type": "object",
-        "title": "TestStructWithNested",
-        "required": [
-          "_f"
-        ],
-        "properties": {
-          "_f": {
-            "$ref": "#/components/schemas/TestStructNested"
-          }
-        }
       }
     }
   }

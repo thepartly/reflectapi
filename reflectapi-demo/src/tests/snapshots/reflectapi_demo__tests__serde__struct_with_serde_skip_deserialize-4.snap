@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructWithSerdeSkipDeserialize"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeSkipDeserialize"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructWithSerdeSkipDeserialize"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeSkipDeserialize"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructWithSerdeSkipDeserialize": {
+      "reflectapi_demo.tests.serde.TestStructWithSerdeSkipDeserialize": {
         "type": "object",
-        "title": "TestStructWithSerdeSkipDeserialize",
+        "title": "reflectapi_demo.tests.serde.TestStructWithSerdeSkipDeserialize",
         "properties": {}
       }
     }

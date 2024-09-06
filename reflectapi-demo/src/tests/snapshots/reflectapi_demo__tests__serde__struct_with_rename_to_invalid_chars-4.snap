@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructWithRenameToInvalidChars"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructWithRenameToInvalidChars"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructWithRenameToInvalidChars": {
+      "reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars": {
         "type": "object",
-        "title": "TestStructWithRenameToInvalidChars",
+        "title": "reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars",
         "required": [
           "field-name&&"
         ],

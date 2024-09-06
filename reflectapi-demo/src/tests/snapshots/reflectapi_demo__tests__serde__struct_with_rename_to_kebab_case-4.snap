@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/struct_name"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.struct_name"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/struct_name"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.struct_name"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "struct_name": {
+      "reflectapi_demo.tests.serde.struct_name": {
         "type": "object",
-        "title": "struct_name",
+        "title": "reflectapi_demo.tests.serde.struct_name",
         "required": [
           "field-name"
         ],

@@ -730,12 +730,8 @@ impl Converter {
     }
 }
 
-// Take the last segment of the path as the name.
 fn normalize(name: impl AsRef<str>) -> String {
-    let name = name.as_ref();
-    name.rsplit_once("::")
-        .map_or(name, |(_, name)| name)
-        .to_owned()
+    name.as_ref().replace("::", ".")
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]

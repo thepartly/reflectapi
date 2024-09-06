@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructWithFixedSizeArray"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithFixedSizeArray"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructWithFixedSizeArray"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithFixedSizeArray"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructWithFixedSizeArray": {
+      "reflectapi_demo.tests.basic.TestStructWithFixedSizeArray": {
         "type": "object",
-        "title": "TestStructWithFixedSizeArray",
+        "title": "reflectapi_demo.tests.basic.TestStructWithFixedSizeArray",
         "required": [
           "_f"
         ],

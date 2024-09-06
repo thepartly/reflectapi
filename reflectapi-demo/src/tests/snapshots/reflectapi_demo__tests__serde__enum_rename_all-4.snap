@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestEnumRenameAll"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumRenameAll"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestEnumRenameAll"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumRenameAll"
                 }
               }
             }
@@ -41,7 +41,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestEnumRenameAll": {
+      "reflectapi_demo.tests.serde.TestEnumRenameAll": {
         "oneOf": [
           {
             "type": "string"
