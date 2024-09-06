@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructRenameAllPascalCase"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAllPascalCase"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructRenameAllPascalCase"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAllPascalCase"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructRenameAllPascalCase": {
+      "reflectapi_demo.tests.serde.TestStructRenameAllPascalCase": {
         "type": "object",
-        "title": "TestStructRenameAllPascalCase",
+        "title": "reflectapi_demo.tests.serde.TestStructRenameAllPascalCase",
         "required": [
           "FieldName"
         ],

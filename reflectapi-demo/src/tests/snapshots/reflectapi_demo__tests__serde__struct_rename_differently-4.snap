@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MyStructInput"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.MyStructInput"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MyStructOutput"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.MyStructOutput"
                 }
               }
             }
@@ -41,14 +41,14 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "MyStructInput": {
+      "reflectapi_demo.tests.serde.MyStructInput": {
         "type": "object",
-        "title": "MyStructInput",
+        "title": "reflectapi_demo.tests.serde.MyStructInput",
         "properties": {}
       },
-      "MyStructOutput": {
+      "reflectapi_demo.tests.serde.MyStructOutput": {
         "type": "object",
-        "title": "MyStructOutput",
+        "title": "reflectapi_demo.tests.serde.MyStructOutput",
         "properties": {}
       }
     }

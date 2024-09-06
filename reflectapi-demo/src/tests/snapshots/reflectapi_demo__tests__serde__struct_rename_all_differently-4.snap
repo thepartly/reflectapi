@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructRenameAllDifferently"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAllDifferently"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructRenameAllDifferently"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAllDifferently"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructRenameAllDifferently": {
+      "reflectapi_demo.tests.serde.TestStructRenameAllDifferently": {
         "type": "object",
-        "title": "TestStructRenameAllDifferently",
+        "title": "reflectapi_demo.tests.serde.TestStructRenameAllDifferently",
         "required": [
           "field_name"
         ],

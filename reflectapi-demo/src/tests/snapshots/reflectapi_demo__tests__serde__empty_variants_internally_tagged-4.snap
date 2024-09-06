@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestEmptyVariantsInterallyTagged"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEmptyVariantsInterallyTagged"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestEmptyVariantsInterallyTagged"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEmptyVariantsInterallyTagged"
                 }
               }
             }
@@ -41,11 +41,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
-      },
-      "TestEmptyVariantsInterallyTagged": {
+      "reflectapi_demo.tests.serde.TestEmptyVariantsInterallyTagged": {
         "oneOf": [
           {
             "type": "object",
@@ -55,7 +51,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ],
             "properties": {
               "type": {
-                "$ref": "#/components/schemas/String"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           },
@@ -67,7 +63,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ],
             "properties": {
               "type": {
-                "$ref": "#/components/schemas/String"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           }
@@ -75,6 +71,10 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         "discriminator": {
           "propertyName": "type"
         }
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
       }
     }
   }

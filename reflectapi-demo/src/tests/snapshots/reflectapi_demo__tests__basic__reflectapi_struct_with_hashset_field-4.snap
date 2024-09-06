@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructWithHashSetField"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithHashSetField"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructWithHashSetField"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithHashSetField"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructWithHashSetField": {
+      "reflectapi_demo.tests.basic.TestStructWithHashSetField": {
         "type": "object",
-        "title": "TestStructWithHashSetField",
+        "title": "reflectapi_demo.tests.basic.TestStructWithHashSetField",
         "required": [
           "_f_hashset"
         ],

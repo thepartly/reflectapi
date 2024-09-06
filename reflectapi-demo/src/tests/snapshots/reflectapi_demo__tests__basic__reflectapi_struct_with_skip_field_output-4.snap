@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructWithSkipFieldOutput"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithSkipFieldOutput"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructWithSkipFieldOutput"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithSkipFieldOutput"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructWithSkipFieldOutput": {
+      "reflectapi_demo.tests.basic.TestStructWithSkipFieldOutput": {
         "type": "object",
-        "title": "TestStructWithSkipFieldOutput",
+        "title": "reflectapi_demo.tests.basic.TestStructWithSkipFieldOutput",
         "required": [
           "_f"
         ],

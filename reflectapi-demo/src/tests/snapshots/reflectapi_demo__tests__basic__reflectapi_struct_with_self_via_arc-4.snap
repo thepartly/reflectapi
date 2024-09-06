@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructWithSelfViaArc"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithSelfViaArc"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructWithSelfViaArc"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithSelfViaArc"
                 }
               }
             }
@@ -41,15 +41,15 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructWithSelfViaArc": {
+      "reflectapi_demo.tests.basic.TestStructWithSelfViaArc": {
         "type": "object",
-        "title": "TestStructWithSelfViaArc",
+        "title": "reflectapi_demo.tests.basic.TestStructWithSelfViaArc",
         "required": [
           "_f"
         ],
         "properties": {
           "_f": {
-            "$ref": "#/components/schemas/TestStructWithSelfViaArc"
+            "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithSelfViaArc"
           }
         }
       }

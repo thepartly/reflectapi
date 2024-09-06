@@ -377,6 +377,7 @@ impl Converter {
             crate::Type::Struct(strukt) => match self.struct_to_schema(
                 schema,
                 kind,
+                ty_ref,
                 &strukt.clone().instantiate(&ty_ref.arguments),
             ) {
                 InlineOrRef::Inline(schema) => schema,
@@ -405,6 +406,7 @@ impl Converter {
                     match self.enum_to_schema(
                         schema,
                         kind,
+                        ty_ref,
                         &adt.clone().instantiate(&ty_ref.arguments),
                     ) {
                         InlineOrRef::Inline(schema) => schema,
@@ -508,13 +510,14 @@ impl Converter {
         &mut self,
         schema: &crate::Schema,
         kind: Kind,
+        type_ref: &crate::TypeReference,
         adt: &crate::Enum,
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
         let subschemas = adt
             .variants()
-            .map(|variant| self.variant_to_schema(schema, kind, adt, variant))
+            .map(|variant| self.variant_to_schema(schema, kind, type_ref, adt, variant))
             .collect::<Vec<_>>();
 
         let schema = match adt.representation() {
@@ -555,10 +558,14 @@ impl Converter {
         &mut self,
         schema: &crate::Schema,
         kind: Kind,
+        type_ref: &crate::TypeReference,
         adt: &crate::Enum,
         variant: &crate::Variant,
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
+
+        let type_ref =
+            crate::TypeReference::new(variant.name().to_owned(), type_ref.arguments.clone());
 
         let mut strukt = crate::Struct {
             name: variant.name().to_owned(),
@@ -588,7 +595,7 @@ impl Converter {
 
                     let ty = match variant.fields {
                         reflectapi_schema::Fields::Named(_) => Type::Object {
-                            title: variant.name().to_owned(),
+                            title: fmt_type_ref(&type_ref),
                             required: vec![],
                             properties: BTreeMap::new(),
                         },
@@ -611,11 +618,11 @@ impl Converter {
                     FlatSchema {
                         description: variant.description().to_owned(),
                         ty: Type::Object {
-                            title: variant.name().to_owned(),
+                            title: fmt_type_ref(&type_ref),
                             required: vec![variant.serde_name().to_owned()],
                             properties: BTreeMap::from([(
                                 variant.serde_name().to_owned(),
-                                self.struct_to_schema(schema, kind, &strukt),
+                                self.struct_to_schema(schema, kind, &type_ref, &strukt),
                             )]),
                         },
                     }
@@ -627,7 +634,7 @@ impl Converter {
                     FlatSchema {
                         description: variant.description().to_owned(),
                         ty: Type::Object {
-                            title: variant.name().to_owned(),
+                            title: fmt_type_ref(&type_ref),
                             required: vec![tag.to_owned(), content.to_owned()],
                             properties: BTreeMap::from([
                                 (
@@ -642,7 +649,7 @@ impl Converter {
                                 ),
                                 (
                                     content.to_owned(),
-                                    self.struct_to_schema(schema, kind, &strukt),
+                                    self.struct_to_schema(schema, kind, &type_ref, &strukt),
                                 ),
                             ]),
                         },
@@ -675,13 +682,14 @@ impl Converter {
             crate::Representation::None => {}
         }
 
-        self.struct_to_schema(schema, kind, &strukt)
+        self.struct_to_schema(schema, kind, &type_ref, &strukt)
     }
 
     fn struct_to_schema(
         &mut self,
         schema: &crate::Schema,
         kind: Kind,
+        type_ref: &crate::TypeReference,
         strukt: &crate::Struct,
     ) -> InlineOrRef<Schema> {
         assert!(
@@ -696,7 +704,7 @@ impl Converter {
 
         let ty = if strukt.fields().all(|f| f.is_named()) {
             Type::Object {
-                title: normalize(strukt.name()),
+                title: fmt_type_ref(type_ref),
                 required: strukt
                     .fields()
                     .filter(|f| f.required)
@@ -730,12 +738,24 @@ impl Converter {
     }
 }
 
-// Take the last segment of the path as the name.
 fn normalize(name: impl AsRef<str>) -> String {
-    let name = name.as_ref();
-    name.rsplit_once("::")
-        .map_or(name, |(_, name)| name)
-        .to_owned()
+    name.as_ref().replace("::", ".")
+}
+
+fn fmt_type_ref(r: &crate::TypeReference) -> String {
+    if r.arguments.is_empty() {
+        normalize(&r.name)
+    } else {
+        format!(
+            "{}<{}>",
+            normalize(&r.name),
+            r.arguments
+                .iter()
+                .map(fmt_type_ref)
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]

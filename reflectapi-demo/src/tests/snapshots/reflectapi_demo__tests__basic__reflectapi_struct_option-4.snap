@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructOption"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructOption"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructOption"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructOption"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructOption": {
+      "reflectapi_demo.tests.basic.TestStructOption": {
         "type": "object",
-        "title": "TestStructOption",
+        "title": "reflectapi_demo.tests.basic.TestStructOption",
         "required": [
           "_f"
         ],

@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestUnitStruct"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestUnitStruct"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestUnitStruct"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestUnitStruct"
                 }
               }
             }
@@ -41,15 +41,15 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestUnitStruct": {
+      "reflectapi_demo.tests.serde.TestUnitStruct": {
         "type": "array",
         "prefixItems": [
           {
-            "$ref": "#/components/schemas/Tuple0"
+            "$ref": "#/components/schemas/std.tuple.Tuple0"
           }
         ]
       },
-      "Tuple0": {
+      "std.tuple.Tuple0": {
         "description": "Unit type",
         "type": "null"
       }

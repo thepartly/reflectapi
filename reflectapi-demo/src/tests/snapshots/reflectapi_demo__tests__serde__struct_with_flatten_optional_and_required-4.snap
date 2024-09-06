@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructWithFlattenOptionalAndRequired"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructWithFlattenOptionalAndRequired"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructRenameAll": {
+      "reflectapi_demo.tests.serde.TestStructRenameAll": {
         "type": "object",
-        "title": "TestStructRenameAll",
+        "title": "reflectapi_demo.tests.serde.TestStructRenameAll",
         "required": [
           "fieldName"
         ],
@@ -53,9 +53,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           }
         }
       },
-      "TestStructWithFlattenNested": {
+      "reflectapi_demo.tests.serde.TestStructWithFlattenNested": {
         "type": "object",
-        "title": "TestStructWithFlattenNested",
+        "title": "reflectapi_demo.tests.serde.TestStructWithFlattenNested",
         "required": [
           "f"
         ],
@@ -65,9 +65,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           }
         }
       },
-      "TestStructWithFlattenOptionalAndRequired": {
+      "reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired": {
         "type": "object",
-        "title": "TestStructWithFlattenOptionalAndRequired",
+        "title": "reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired",
         "required": [
           "k"
         ],
@@ -79,12 +79,12 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/TestStructWithFlattenNested"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
               }
             ]
           },
           "k": {
-            "$ref": "#/components/schemas/TestStructRenameAll"
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAll"
           }
         }
       },

@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestEnumTag"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumTag"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestEnumTag"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumTag"
                 }
               }
             }
@@ -41,11 +41,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
-      },
-      "TestEnumTag": {
+      "reflectapi_demo.tests.serde.TestEnumTag": {
         "oneOf": [
           {
             "type": "object",
@@ -59,7 +55,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
-                "$ref": "#/components/schemas/String"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           },
@@ -75,7 +71,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
-                "$ref": "#/components/schemas/String"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           }
@@ -83,6 +79,10 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         "discriminator": {
           "propertyName": "type"
         }
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
       },
       "u8": {
         "description": "8-bit unsigned integer",

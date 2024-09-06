@@ -36,7 +36,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PetsCreateRequest"
+                "$ref": "#/components/schemas/myapi.proto.PetsCreateRequest"
               }
             }
           },
@@ -62,7 +62,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/String"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -85,7 +85,7 @@
                       "type": "null"
                     },
                     {
-                      "$ref": "#/components/schemas/Pet"
+                      "$ref": "#/components/schemas/myapi.model.Pet"
                     }
                   ]
                 }
@@ -99,7 +99,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/String"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -114,7 +114,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PetsListRequest"
+                "$ref": "#/components/schemas/myapi.proto.PetsListRequest"
               }
             }
           },
@@ -127,7 +127,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "title": "Paginated",
+                  "title": "myapi.proto.Paginated<myapi.model.Pet>",
                   "required": [
                     "items"
                   ],
@@ -139,7 +139,7 @@
                           "type": "null"
                         },
                         {
-                          "$ref": "#/components/schemas/String"
+                          "$ref": "#/components/schemas/std.string.String"
                         }
                       ]
                     },
@@ -147,7 +147,7 @@
                       "description": "Expandable array type",
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Pet"
+                        "$ref": "#/components/schemas/myapi.model.Pet"
                       }
                     }
                   }
@@ -162,7 +162,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/String"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -177,7 +177,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PetsRemoveRequest"
+                "$ref": "#/components/schemas/myapi.proto.PetsRemoveRequest"
               }
             }
           },
@@ -203,7 +203,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/String"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -218,7 +218,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PetsUpdateRequest"
+                "$ref": "#/components/schemas/myapi.proto.PetsUpdateRequest"
               }
             }
           },
@@ -244,7 +244,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/String"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -253,7 +253,11 @@
   },
   "components": {
     "schemas": {
-      "Behavior": {
+      "f64": {
+        "description": "64-bit floating point number",
+        "type": "number"
+      },
+      "myapi.model.Behavior": {
         "oneOf": [
           {
             "type": "string"
@@ -272,7 +276,7 @@
                     "$ref": "#/components/schemas/f64"
                   },
                   {
-                    "$ref": "#/components/schemas/String"
+                    "$ref": "#/components/schemas/std.string.String"
                   }
                 ]
               }
@@ -293,10 +297,10 @@
                 ],
                 "properties": {
                   "description": {
-                    "$ref": "#/components/schemas/String"
+                    "$ref": "#/components/schemas/std.string.String"
                   },
                   "notes": {
-                    "$ref": "#/components/schemas/String"
+                    "$ref": "#/components/schemas/std.string.String"
                   }
                 }
               }
@@ -304,7 +308,7 @@
           }
         ]
       },
-      "Kind": {
+      "myapi.model.Kind": {
         "oneOf": [
           {
             "description": " A dog",
@@ -316,9 +320,9 @@
           }
         ]
       },
-      "Pet": {
+      "myapi.model.Pet": {
         "type": "object",
-        "title": "Pet",
+        "title": "myapi.model.Pet",
         "required": [
           "name",
           "kind"
@@ -339,28 +343,28 @@
             "description": "Expandable array type",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Behavior"
+              "$ref": "#/components/schemas/myapi.model.Behavior"
             }
           },
           "kind": {
-            "$ref": "#/components/schemas/Kind"
+            "$ref": "#/components/schemas/myapi.model.Kind"
           },
           "name": {
-            "$ref": "#/components/schemas/String"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },
-      "PetsCreateRequest": {
+      "myapi.proto.PetsCreateRequest": {
         "type": "array",
         "prefixItems": [
           {
-            "$ref": "#/components/schemas/Pet"
+            "$ref": "#/components/schemas/myapi.model.Pet"
           }
         ]
       },
-      "PetsListRequest": {
+      "myapi.proto.PetsListRequest": {
         "type": "object",
-        "title": "PetsListRequest",
+        "title": "myapi.proto.PetsListRequest",
         "properties": {
           "cursor": {
             "oneOf": [
@@ -369,7 +373,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/String"
+                "$ref": "#/components/schemas/std.string.String"
               }
             ]
           },
@@ -386,21 +390,21 @@
           }
         }
       },
-      "PetsRemoveRequest": {
+      "myapi.proto.PetsRemoveRequest": {
         "type": "object",
-        "title": "PetsRemoveRequest",
+        "title": "myapi.proto.PetsRemoveRequest",
         "required": [
           "name"
         ],
         "properties": {
           "name": {
-            "$ref": "#/components/schemas/String"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },
-      "PetsUpdateRequest": {
+      "myapi.proto.PetsUpdateRequest": {
         "type": "object",
-        "title": "PetsUpdateRequest",
+        "title": "myapi.proto.PetsUpdateRequest",
         "required": [
           "name"
         ],
@@ -426,7 +430,7 @@
                 "description": "Expandable array type",
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/Behavior"
+                  "$ref": "#/components/schemas/myapi.model.Behavior"
                 }
               }
             ]
@@ -438,22 +442,18 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/Kind"
+                "$ref": "#/components/schemas/myapi.model.Kind"
               }
             ]
           },
           "name": {
-            "$ref": "#/components/schemas/String"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },
-      "String": {
+      "std.string.String": {
         "description": "UTF-8 encoded string",
         "type": "string"
-      },
-      "f64": {
-        "description": "64-bit floating point number",
-        "type": "number"
       },
       "u8": {
         "description": "8-bit unsigned integer",

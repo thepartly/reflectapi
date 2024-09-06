@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructWithSerdeSkipSerializeIf"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructWithSerdeSkipSerializeIf"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructWithSerdeSkipSerializeIf": {
+      "reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf": {
         "type": "object",
-        "title": "TestStructWithSerdeSkipSerializeIf",
+        "title": "reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf",
         "required": [
           "f"
         ],

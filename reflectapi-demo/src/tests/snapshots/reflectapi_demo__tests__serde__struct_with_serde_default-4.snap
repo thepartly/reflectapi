@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestStructWithSerdeDefault"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeDefault"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestStructWithSerdeDefault"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeDefault"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "TestStructWithSerdeDefault": {
+      "reflectapi_demo.tests.serde.TestStructWithSerdeDefault": {
         "type": "object",
-        "title": "TestStructWithSerdeDefault",
+        "title": "reflectapi_demo.tests.serde.TestStructWithSerdeDefault",
         "properties": {
           "f": {
             "$ref": "#/components/schemas/u8"
