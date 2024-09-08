@@ -55,10 +55,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
               }
             }
           }
-        ],
-        "discriminator": {
-          "propertyName": "type"
-        }
+        ]
       },
       "std.string.String": {
         "description": "UTF-8 encoded string",

@@ -1,0 +1,140 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Enum"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Enum"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.Enum": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.Strukt1",
+            "required": [
+              "a",
+              "b",
+              "type"
+            ],
+            "properties": {
+              "a": {
+                "$ref": "#/components/schemas/u8"
+              },
+              "b": {
+                "$ref": "#/components/schemas/u16"
+              },
+              "type": {
+                "description": "tag",
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.Strukt2",
+            "required": [
+              "c",
+              "d",
+              "type"
+            ],
+            "properties": {
+              "c": {
+                "$ref": "#/components/schemas/u32"
+              },
+              "d": {
+                "$ref": "#/components/schemas/u64"
+              },
+              "type": {
+                "description": "tag",
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.Strukt1": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.Strukt1",
+        "required": [
+          "a",
+          "b"
+        ],
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/u8"
+          },
+          "b": {
+            "$ref": "#/components/schemas/u16"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.Strukt2": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.Strukt2",
+        "required": [
+          "c",
+          "d"
+        ],
+        "properties": {
+          "c": {
+            "$ref": "#/components/schemas/u32"
+          },
+          "d": {
+            "$ref": "#/components/schemas/u64"
+          }
+        }
+      },
+      "u16": {
+        "description": "16-bit unsigned integer",
+        "type": "integer"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      },
+      "u64": {
+        "description": "64-bit unsigned integer",
+        "type": "integer"
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

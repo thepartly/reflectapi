@@ -473,3 +473,28 @@ fn test_empty_variants_untagged() {
 
     assert_snapshot!(TestEmptyVariantsUntagged);
 }
+
+#[test]
+fn test_newtype_variants_internally_tagged() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    #[serde(rename_all = "snake_case")]
+    enum Enum {
+        A(Strukt1),
+        B(Strukt2),
+    }
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct Strukt1 {
+        a: u8,
+        b: u16,
+    }
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct Strukt2 {
+        c: u32,
+        d: u64,
+    }
+
+    assert_snapshot!(Enum);
+}

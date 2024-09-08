@@ -9,6 +9,7 @@
 // These definitions are only suitable only for serialization, not deserialization
 // because they are stricter than the OpenAPI spec.
 
+use core::fmt;
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
 use std::sync::OnceLock;
@@ -213,13 +214,19 @@ pub enum InlineOrRef<T> {
     Ref(Ref<T>),
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
 pub struct Ref<T> {
     #[serde(rename = "$ref")]
     pub ref_path: String,
     // #[expect(unused)]
     #[serde(skip)]
     phantom: PhantomData<T>,
+}
+
+impl<T> fmt::Debug for Ref<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.ref_path.fmt(f)
+    }
 }
 
 impl<T> Ref<T> {
@@ -300,6 +307,17 @@ impl Converter {
             // If we do this the `operation_id` will not be unique
             // get: f.readonly.then(|| operation.clone()),
             post: operation,
+        }
+    }
+
+    fn resolve_schema_ref<'a>(&'a self, r: &'a InlineOrRef<Schema>) -> &'a Schema {
+        match r {
+            InlineOrRef::Inline(schema) => schema,
+            InlineOrRef::Ref(r) => self
+                .components
+                .schemas
+                .get(r.ref_path.strip_prefix("#/components/schemas/").unwrap())
+                .unwrap(),
         }
     }
 
@@ -544,16 +562,24 @@ impl Converter {
                             Type::Object { properties, .. } => {
                                 assert!(properties.iter().any(|(name, _)| name == tag))
                             }
-                            _ => unreachable!("expected object for internal repr"),
+                            _ => {
+                                unreachable!(
+                                    "expected object for internal repr, got {:?}",
+                                    schema.ty
+                                )
+                            }
                         },
                     },
                     InlineOrRef::Ref(_) => unreachable!("not expecting a ref for internal repr"),
                 });
+
                 Schema::OneOf {
                     subschemas,
-                    discriminator: Some(Discriminator {
-                        property_name: tag.to_owned(),
-                    }),
+                    discriminator: None,
+                    // Passing `Some` makes `redoc` render `any` for some reason. Seems to work fine without it.
+                    // discriminator: Some(Discriminator {
+                    //     property_name: tag.to_owned(),
+                    // }),
                 }
             }
             crate::Representation::External
@@ -694,8 +720,65 @@ impl Converter {
                     reflectapi_schema::Fields::None => {
                         strukt.fields = reflectapi_schema::Fields::Named(vec![tag_field])
                     }
+                    reflectapi_schema::Fields::Unnamed(fields) if fields.len() == 1 => {
+                        let field = fields.pop().unwrap();
+                        let s = self.convert_type_ref(schema, kind, &field.type_ref);
+                        let s = self.resolve_schema_ref(&s);
+                        match s {
+                            Schema::OneOf {
+                                subschemas: _,
+                                discriminator: _,
+                            } => todo!(),
+                            Schema::Flat(schema) => match &schema.ty {
+                                Type::Boolean
+                                | Type::Integer
+                                | Type::Number
+                                | Type::Null
+                                | Type::String
+                                | Type::Array { .. }
+                                | Type::Tuple { .. } => panic!(
+                                    "newtype variant containing `{:?}` will panic on serialization in `{}::{}`",
+                                    schema.ty,
+                                    adt.name(),
+                                    variant.name()
+                                ),
+                                Type::Map { .. } => todo!("map within newtype variant in `{}::{}`", adt.name(), variant.name()),
+                                Type::Object {
+                                    title,
+                                    required,
+                                    properties,
+                                } => {
+                                    return InlineOrRef::Inline(Schema::Flat(FlatSchema {
+                                        description: schema.description.to_owned(),
+                                        ty: Type::Object {
+                                            title: title.to_owned(),
+                                            required: required
+                                                .iter()
+                                                .cloned()
+                                                .chain(std::iter::once(tag.to_owned()))
+                                                .collect(),
+                                            properties: properties
+                                                .iter()
+                                                .map(|(k, v)| (k.to_owned(), v.clone()))
+                                                .chain(std::iter::once((
+                                                    tag.to_owned(),
+                                                    InlineOrRef::Inline(Schema::Flat(FlatSchema {
+                                                        description: "tag".to_owned(),
+                                                        ty: Type::String,
+                                                    })),
+                                                )))
+                                                .collect(),
+                                        },
+                                    }))
+                                }
+                            },
+                        }
+                    }
                     reflectapi_schema::Fields::Unnamed(_) => {
-                        panic!("internal repr with unnamed fields is not allowed")
+                        panic!(
+                            "internal repr with unnamed fields is not allowed by serde: {}",
+                            adt.name()
+                        )
                     }
                 }
             }

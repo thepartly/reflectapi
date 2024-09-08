@@ -1,0 +1,248 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::Enum"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::Enum"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Enum",
+        "representation": {
+          "Internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "a",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::serde::Strukt1"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "b",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::serde::Strukt2"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Strukt1",
+        "fields": {
+          "named": [
+            {
+              "name": "a",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "b",
+              "type": {
+                "name": "u16"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Strukt2",
+        "fields": {
+          "named": [
+            {
+              "name": "c",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "d",
+              "type": {
+                "name": "u64"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "u16",
+        "description": "16-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u64",
+        "description": "64-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Enum",
+        "representation": {
+          "Internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "a",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::serde::Strukt1"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "b",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::serde::Strukt2"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Strukt1",
+        "fields": {
+          "named": [
+            {
+              "name": "a",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "b",
+              "type": {
+                "name": "u16"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Strukt2",
+        "fields": {
+          "named": [
+            {
+              "name": "c",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "d",
+              "type": {
+                "name": "u64"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "u16",
+        "description": "16-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u64",
+        "description": "64-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}
