@@ -735,7 +735,7 @@ impl Converter {
                                 | Type::String
                                 | Type::Array { .. }
                                 | Type::Tuple { .. } => panic!(
-                                    "newtype variant containing `{:?}` will panic on serialization in `{}::{}`",
+                                    "newtype variant containing `{:?}` will panic on serialization in `{}::{}`, either mark this variant as `untagged` or use a different repr",
                                     schema.ty,
                                     adt.name(),
                                     variant.name()
