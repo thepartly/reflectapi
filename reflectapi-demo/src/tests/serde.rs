@@ -498,3 +498,17 @@ fn test_newtype_variants_internally_tagged() {
 
     assert_snapshot!(Enum);
 }
+
+#[test]
+fn test_adj_repr_enum_with_untagged_variant() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    enum Test {
+        Variant1 {
+            field_name: u8,
+        },
+        #[serde(untagged)]
+        Variant2(String),
+    }
+    assert_snapshot!(Test);
+}

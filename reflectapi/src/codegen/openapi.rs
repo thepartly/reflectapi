@@ -553,25 +553,18 @@ impl Converter {
 
         let schema = match adt.representation() {
             crate::Representation::Internal { tag } => {
-                subschemas.iter().for_each(|s| match s {
-                    InlineOrRef::Inline(schema) => match schema {
+                subschemas
+                    .iter()
+                    .for_each(|s| match self.resolve_schema_ref(s) {
                         Schema::OneOf { .. } => {
                             unreachable!("not expecting nested schema for internal repr")
                         }
-                        Schema::Flat(schema) => match &schema.ty {
-                            Type::Object { properties, .. } => {
+                        Schema::Flat(schema) => {
+                            if let Type::Object { properties, .. } = &schema.ty {
                                 assert!(properties.iter().any(|(name, _)| name == tag))
                             }
-                            _ => {
-                                unreachable!(
-                                    "expected object for internal repr, got {:?}",
-                                    schema.ty
-                                )
-                            }
-                        },
-                    },
-                    InlineOrRef::Ref(_) => unreachable!("not expecting a ref for internal repr"),
-                });
+                        }
+                    });
 
                 Schema::OneOf {
                     subschemas,
@@ -615,7 +608,12 @@ impl Converter {
             transparent: false,
         };
 
-        match adt.representation() {
+        let repr = match variant.untagged {
+            true => &crate::Representation::None,
+            false => adt.representation(),
+        };
+
+        match repr {
             crate::Representation::External => {
                 if variant.fields.len() == 1 && !variant.fields[0].is_named() {
                     return self.convert_type_ref(schema, kind, variant.fields[0].type_ref());
@@ -783,6 +781,10 @@ impl Converter {
                 }
             }
             crate::Representation::None => {
+                if variant.fields.len() == 1 && !variant.fields[0].is_named() {
+                    return self.convert_type_ref(schema, kind, variant.fields[0].type_ref());
+                }
+
                 if variant.fields.is_empty() {
                     // ```rust
                     // #[derive(Serialize)]

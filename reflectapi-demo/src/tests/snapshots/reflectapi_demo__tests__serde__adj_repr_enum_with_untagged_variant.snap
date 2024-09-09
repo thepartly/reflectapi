@@ -1,0 +1,142 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::Test"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::Test"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Test",
+        "representation": {
+          "Internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "Variant1",
+            "fields": {
+              "named": [
+                {
+                  "name": "field_name",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Variant2",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            },
+            "untagged": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Test",
+        "representation": {
+          "Internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "Variant1",
+            "fields": {
+              "named": [
+                {
+                  "name": "field_name",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Variant2",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            },
+            "untagged": true
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}
