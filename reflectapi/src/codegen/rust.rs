@@ -5,7 +5,7 @@ use askama::Template;
 use indexmap::IndexMap;
 use reflectapi_schema::Function;
 
-use super::{format_with, Config, END_BOILERPLATE, START_BOILERPLATE};
+use super::{format_with, Config};
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     let mut implemented_types = __build_implemented_types();
@@ -88,17 +88,6 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             .context("Failed to render template")?,
     );
 
-    generated_code.push(START_BOILERPLATE.into());
-
-    let file_template = templates::__FileMiddle {};
-    generated_code.push(
-        file_template
-            .render()
-            .context("Failed to render template")?,
-    );
-
-    generated_code.push(END_BOILERPLATE.into());
-
     let module = __interface_types_from_function_group(
         "".into(),
         &function_groups,
@@ -121,17 +110,6 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             .trim()
             .to_string(),
     );
-
-    generated_code.push(START_BOILERPLATE.into());
-
-    let file_template = templates::__FileFootter {};
-    generated_code.push(
-        file_template
-            .render()
-            .context("Failed to render template")?,
-    );
-
-    generated_code.push(END_BOILERPLATE.into());
 
     let mut generated_code = generated_code.join("\n");
 
@@ -169,6 +147,7 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
             "reflectapi.rs",
             include_str!("rust-dependency-stubs/reflectapi.rs"),
         ),
+        ("rt.rs", include_str!("../../../reflectapi/src/rt.rs")),
         ("Makefile", include_str!("rust-dependency-stubs/Makefile")),
     ];
 
@@ -211,6 +190,7 @@ mod templates {
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
 
+pub use reflectapi::rt::*;
 pub use interface::Interface;",
         ext = "txt"
     )]
@@ -218,187 +198,6 @@ pub use interface::Interface;",
         pub name: String,
         pub description: String,
     }
-
-    #[derive(Template)]
-    #[template(
-        source = "
-pub trait Client {
-    type Error;
-
-    fn request(
-        &self,
-        path: &str,
-        body: bytes::Bytes,
-        headers: std::collections::HashMap<String, String>,
-    ) -> impl std::future::Future<Output = Result<(http::StatusCode, bytes::Bytes), Self::Error>>;
-}
-
-pub enum Error<AE, NE> {
-    Application(AE),
-    Network(NE),
-    Protocol {
-        info: String,
-        stage: ProtocolErrorStage,
-    },
-    Server(http::StatusCode, bytes::Bytes),
-}
-
-impl<AE: core::fmt::Debug, NE: core::fmt::Debug> core::fmt::Debug for Error<AE, NE> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Error::Application(err) => write!(f, \"Application error: {err:?}\"),
-            Error::Network(err) => write!(f, \"Network error: {err:?}\"),
-            Error::Protocol { info, stage } => write!(f, \"Protocol error: {info} at {stage:?}\"),
-            Error::Server(status, body) => write!(f, \"Server error: {status} with body: {}\", String::from_utf8_lossy(body)),
-        }
-    }
-}
-
-impl<AE: core::fmt::Display, NE: core::fmt::Display> core::fmt::Display for Error<AE, NE> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Error::Application(err) => write!(f, \"Application error: {err}\"),
-            Error::Network(err) => write!(f, \"Network error: {err}\"),
-            Error::Protocol { info, stage } => write!(f, \"Protocol error: {info} at {stage}\"),
-            Error::Server(status, body) => write!(f, \"Server error: {status} with body: {}\",  String::from_utf8_lossy(body)),
-        }
-    }
-}
-
-impl<AE: std::error::Error, NE: std::error::Error> std::error::Error for Error<AE, NE> {}
-
-pub enum ProtocolErrorStage {
-    SerializeRequestBody,
-    SerializeRequestHeaders,
-    DeserializeResponseBody(bytes::Bytes),
-    DeserializeResponseError(http::StatusCode, bytes::Bytes),
-}
-
-impl core::fmt::Display for ProtocolErrorStage {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            ProtocolErrorStage::SerializeRequestBody => write!(f, \"failed to serialize request body\"),
-            ProtocolErrorStage::SerializeRequestHeaders => write!(f, \"failed to serialize request headers\"),
-            ProtocolErrorStage::DeserializeResponseBody(body) => write!(f, \"failed to deserialize response body: {}\", String::from_utf8_lossy(body)),
-            ProtocolErrorStage::DeserializeResponseError(status, body) => write!(f, \"failed to deserialize response error: {} with body: {}\", status, String::from_utf8_lossy(body)),
-        }
-    }
-}
-
-impl core::fmt::Debug for ProtocolErrorStage {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            ProtocolErrorStage::SerializeRequestBody => write!(f, \"SerializeRequestBody\"),
-            ProtocolErrorStage::SerializeRequestHeaders => write!(f, \"SerializeRequestHeaders\"),
-            ProtocolErrorStage::DeserializeResponseBody(body) => write!(f, \"DeserializeResponseBody({:?})\", String::from_utf8_lossy(body)),
-            ProtocolErrorStage::DeserializeResponseError(status, body) => write!(f, \"DeserializeResponseError({status}, {:?})\", String::from_utf8_lossy(body)),
-        }
-    }
-}
-
-#[cfg(feature = \"reqwest\")]
-impl Client for reqwest::Client {
-    type Error = reqwest::Error;
-
-    async fn request(
-        &self,
-        path: &str,
-        body: bytes::Bytes,
-        headers: std::collections::HashMap<String, String>,
-    ) -> Result<(http::StatusCode, bytes::Bytes), Self::Error> {
-        let mut request = self.post(path);
-        for (k, v) in headers {
-            request = request.header(k, v);
-        }
-        let response = request.body(body).send().await;
-        let response = match response {
-            Ok(response) => response,
-            Err(e) => return Err(e),
-        };
-        let status = response.status();
-        let body = response.bytes().await;
-        let body = match body {
-            Ok(body) => body,
-            Err(e) => return Err(e),
-        };
-        Ok((status, body))
-    }
-}
-",
-        ext = "txt"
-    )]
-    pub(super) struct __FileMiddle {}
-
-    #[derive(Template)]
-    #[template(
-        source = "
-async fn __request_impl<C, I, H, O, E>(
-    client: &C,
-    base_url: &str,
-    path: &str,
-    body: I,
-    headers: H,
-) -> Result<O, Error<E, C::Error>>
-where
-    C: Client,
-    I: serde::Serialize,
-    H: serde::Serialize,
-    O: serde::de::DeserializeOwned,
-    E: serde::de::DeserializeOwned,
-{
-    let body = serde_json::to_vec(&body).map_err(|e| Error::Protocol {
-        info: e.to_string(),
-        stage: ProtocolErrorStage::SerializeRequestBody,
-    })?;
-    let body = bytes::Bytes::from(body);
-    let headers = serde_json::to_value(&headers).map_err(|e| Error::Protocol {
-        info: e.to_string(),
-        stage: ProtocolErrorStage::SerializeRequestHeaders,
-    })?;
-
-    let mut headers_serialized = std::collections::HashMap::new();
-    match headers {
-        serde_json::Value::Object(headers) => {
-            for (k, v) in headers.into_iter() {
-                let v_str = match v {
-                    serde_json::Value::String(v) => v,
-                    v => v.to_string(),
-                };
-                headers_serialized.insert(k, v_str);
-            }
-        }
-        serde_json::Value::Null => {}
-        _ => {
-            return Err(Error::Protocol {
-                info: \"Headers must be an object\".to_string(),
-                stage: ProtocolErrorStage::SerializeRequestHeaders,
-            });
-        }
-    }
-    let (status, body) = client
-        .request(&format!(\"{}{}\", base_url, path), body, headers_serialized)
-        .await
-        .map_err(Error::Network)?;
-    if status.is_success() {
-        let output = serde_json::from_slice(&body).map_err(|e| Error::Protocol {
-            info: e.to_string(),
-            stage: ProtocolErrorStage::DeserializeResponseBody(body),
-        })?;
-        return Ok(output)
-    }
-    match serde_json::from_slice::<E>(&body) {
-        Ok(error) => Err(Error::Application(error)),
-        Err(e) if status.is_client_error() => Err(Error::Protocol {
-            info: e.to_string(),
-            stage: ProtocolErrorStage::DeserializeResponseError(status, body),
-        }),
-        Err(_) => Err(Error::Server(status, body)),
-    }
-}
-",
-        ext = "txt"
-    )]
-    pub(super) struct __FileFootter {}
 
     #[derive(Template)]
     #[template(
@@ -752,8 +551,8 @@ pub struct {{ name }};",
     #[derive(Template)]
     #[template(
         source = "{{description}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
-    -> Result<{{ output_type }}, super::Error<{{ error_type }}, C::Error>> {
-        super::__request_impl(&self.client, &self.base_url, \"{{ path }}\", input, headers).await
+    -> Result<{{ output_type }}, reflectapi::rt::Error<{{ error_type }}, C::Error>> {
+        reflectapi::rt::__request_impl(&self.client, &self.base_url, \"{{ path }}\", input, headers).await
     }",
         ext = "txt"
     )]
@@ -770,7 +569,7 @@ pub struct {{ name }};",
     #[derive(Template)]
     #[template(
         source = "
-impl<C: super::Client + Clone> {{ name }} {
+impl<C: reflectapi::rt::Client + Clone> {{ name }} {
     pub fn new(client: C, base_url: std::string::String) -> Self {
         Self {
             {%- for field in fields.iter() %}
@@ -878,7 +677,7 @@ fn __interface_types_from_function_group(
 
     let mut type_template = templates::__Struct {
         name: format!(
-            "{}Interface<C: super::Client + Clone>",
+            "{}Interface<C: reflectapi::rt::Client + Clone>",
             __struct_name_from_parent_name_and_name(&group.parent, &name)
         ),
         description: "".into(),

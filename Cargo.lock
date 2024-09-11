@@ -1469,6 +1469,7 @@ dependencies = [
  "indexmap",
  "reflectapi-derive",
  "reflectapi-schema",
+ "reqwest",
  "rmp-serde",
  "rust_decimal",
  "serde",
@@ -1526,12 +1527,8 @@ dependencies = [
 name = "reflectapi-demo-client-generated"
 version = "0.1.0"
 dependencies = [
- "bytes",
- "http 1.1.0",
  "reflectapi",
- "reqwest",
  "serde",
- "serde_json",
 ]
 
 [[package]]

@@ -6,9 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reflectapi-demo-client-generated = { path = "generated", features = [
-    "reqwest",
-] }
+reflectapi-demo-client-generated = { path = "generated" }
 
 tokio = { version = "1.38.0", features = ["full"] }
 reqwest = { version = "0.12.2" }

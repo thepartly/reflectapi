@@ -5,6 +5,12 @@ mod option;
 mod traits;
 mod validation;
 
+#[cfg(feature = "rt")]
+pub mod rt;
+
+#[cfg(any(feature = "builder", feature = "axum"))]
+pub use builder::*;
+
 #[cfg(any(feature = "builder", feature = "axum"))]
 mod builder;
 
@@ -18,9 +24,6 @@ pub use empty::*;
 #[allow(unused_imports)]
 pub use impls::*;
 pub use infallible::*;
-
-#[cfg(any(feature = "builder", feature = "axum"))]
-pub use builder::*;
 
 pub use option::*;
 pub use reflectapi_derive::*;

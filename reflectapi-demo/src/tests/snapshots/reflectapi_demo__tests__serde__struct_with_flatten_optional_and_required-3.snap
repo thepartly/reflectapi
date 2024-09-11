@@ -12,16 +12,17 @@ expression: "super::into_rust_code::<TestStructWithFlattenOptionalAndRequired>()
 #![allow(dead_code)]
 
 pub use interface::Interface;
+pub use reflectapi::rt::*;
 
 pub mod interface {
 
     #[derive(Debug)]
-    pub struct Interface<C: super::Client + Clone> {
+    pub struct Interface<C: reflectapi::rt::Client + Clone> {
         client: C,
         base_url: std::string::String,
     }
 
-    impl<C: super::Client + Clone> Interface<C> {
+    impl<C: reflectapi::rt::Client + Clone> Interface<C> {
         pub fn new(client: C, base_url: std::string::String) -> Self {
             Self { client, base_url }
         }
@@ -31,9 +32,16 @@ pub mod interface {
             headers: reflectapi::Empty,
         ) -> Result<
             super::types::reflectapi_demo::tests::serde::TestStructWithFlattenOptionalAndRequired,
-            super::Error<reflectapi::Empty, C::Error>,
+            reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
-            super::__request_impl(&self.client, &self.base_url, "/inout_test", input, headers).await
+            reflectapi::rt::__request_impl(
+                &self.client,
+                &self.base_url,
+                "/inout_test",
+                input,
+                headers,
+            )
+            .await
         }
     }
 }
