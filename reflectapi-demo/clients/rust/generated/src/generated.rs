@@ -31,11 +31,87 @@ pub enum Error<AE, NE> {
     Server(http::StatusCode, bytes::Bytes),
 }
 
+impl<AE: core::fmt::Debug, NE: core::fmt::Debug> core::fmt::Debug for Error<AE, NE> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Error::Application(err) => write!(f, "Application error: {err:?}"),
+            Error::Network(err) => write!(f, "Network error: {err:?}"),
+            Error::Protocol { info, stage } => write!(f, "Protocol error: {info} at {stage:?}"),
+            Error::Server(status, body) => write!(
+                f,
+                "Server error: {status} with body: {}",
+                String::from_utf8_lossy(body)
+            ),
+        }
+    }
+}
+
+impl<AE: core::fmt::Display, NE: core::fmt::Display> core::fmt::Display for Error<AE, NE> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Error::Application(err) => write!(f, "Application error: {err}"),
+            Error::Network(err) => write!(f, "Network error: {err}"),
+            Error::Protocol { info, stage } => write!(f, "Protocol error: {info} at {stage}"),
+            Error::Server(status, body) => write!(
+                f,
+                "Server error: {status} with body: {}",
+                String::from_utf8_lossy(body)
+            ),
+        }
+    }
+}
+
+// TODO change to core::error::Error when we upgrade rust
+impl<AE: std::error::Error, NE: std::error::Error> std::error::Error for Error<AE, NE> {}
+
 pub enum ProtocolErrorStage {
     SerializeRequestBody,
     SerializeRequestHeaders,
     DeserializeResponseBody(bytes::Bytes),
     DeserializeResponseError(http::StatusCode, bytes::Bytes),
+}
+
+impl core::fmt::Display for ProtocolErrorStage {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            ProtocolErrorStage::SerializeRequestBody => {
+                write!(f, "failed to serialize request body")
+            }
+            ProtocolErrorStage::SerializeRequestHeaders => {
+                write!(f, "failed to serialize request headers")
+            }
+            ProtocolErrorStage::DeserializeResponseBody(body) => write!(
+                f,
+                "failed to deserialize response body: {}",
+                String::from_utf8_lossy(body)
+            ),
+            ProtocolErrorStage::DeserializeResponseError(status, body) => write!(
+                f,
+                "failed to deserialize response error: {} with body: {}",
+                status,
+                String::from_utf8_lossy(body)
+            ),
+        }
+    }
+}
+
+impl core::fmt::Debug for ProtocolErrorStage {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            ProtocolErrorStage::SerializeRequestBody => write!(f, "SerializeRequestBody"),
+            ProtocolErrorStage::SerializeRequestHeaders => write!(f, "SerializeRequestHeaders"),
+            ProtocolErrorStage::DeserializeResponseBody(body) => write!(
+                f,
+                "DeserializeResponseBody({:?})",
+                String::from_utf8_lossy(body)
+            ),
+            ProtocolErrorStage::DeserializeResponseError(status, body) => write!(
+                f,
+                "DeserializeResponseError({status}, {:?})",
+                String::from_utf8_lossy(body)
+            ),
+        }
+    }
 }
 
 #[cfg(feature = "reqwest")]
