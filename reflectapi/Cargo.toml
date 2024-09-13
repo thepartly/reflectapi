@@ -55,7 +55,7 @@ serde_json = { version = "1.0.114" }
 
 [features]
 # feature for implementing schema builder
-builder = ["dep:serde_json", "dep:bytes", "http"]
+builder = ["dep:serde_json", "dep:bytes", "dep:http"]
 msgpack = ["dep:rmp-serde", "builder"]
 # features for implementing reflect traits for foreigh types
 uuid = ["dep:uuid"]
@@ -67,4 +67,4 @@ rust_decimal = ["dep:rust_decimal"]
 axum = ["dep:axum", "builder"]
 # feature flag for enabling codegen libraries
 codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep:serde_json"]
-rt = []
+rt = ["dep:http", "dep:serde_json", "dep:bytes"]
