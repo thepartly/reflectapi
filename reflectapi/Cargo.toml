@@ -64,7 +64,7 @@ url = ["dep:url"]
 rust_decimal = ["dep:rust_decimal"]
 # features for transforming reflect schema to runnable servers
 # based on dififerent web server frameworks
-axum = ["dep:axum"]
+axum = ["dep:axum", "builder"]
 # feature flag for enabling codegen libraries
 codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep:serde_json"]
 rt = []
