@@ -20,16 +20,23 @@ pub mod interface {
     pub struct Interface<C: reflectapi::rt::Client + Clone> {
         pub jobs_two: JobsTwoInterface<C>,
         client: C,
-        base_url: std::string::String,
+        base_url: reflectapi::rt::Url,
     }
 
     impl<C: reflectapi::rt::Client + Clone> Interface<C> {
-        pub fn new(client: C, base_url: std::string::String) -> Self {
-            Self {
-                jobs_two: JobsTwoInterface::new(client.clone(), base_url.clone()),
+        pub fn try_new(
+            client: C,
+            base_url: reflectapi::rt::Url,
+        ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
+            if base_url.cannot_be_a_base() {
+                return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);
+            }
+
+            Ok(Self {
+                jobs_two: JobsTwoInterface::try_new(client.clone(), base_url.clone())?,
                 client,
                 base_url,
-            }
+            })
         }
     }
 
@@ -37,28 +44,42 @@ pub mod interface {
     pub struct JobsTwoInterface<C: reflectapi::rt::Client + Clone> {
         pub pet_orders: JobsTwoPetOrdersInterface<C>,
         client: C,
-        base_url: std::string::String,
+        base_url: reflectapi::rt::Url,
     }
 
     impl<C: reflectapi::rt::Client + Clone> JobsTwoInterface<C> {
-        pub fn new(client: C, base_url: std::string::String) -> Self {
-            Self {
-                pet_orders: JobsTwoPetOrdersInterface::new(client.clone(), base_url.clone()),
+        pub fn try_new(
+            client: C,
+            base_url: reflectapi::rt::Url,
+        ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
+            if base_url.cannot_be_a_base() {
+                return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);
+            }
+
+            Ok(Self {
+                pet_orders: JobsTwoPetOrdersInterface::try_new(client.clone(), base_url.clone())?,
                 client,
                 base_url,
-            }
+            })
         }
     }
 
     #[derive(Debug)]
     pub struct JobsTwoPetOrdersInterface<C: reflectapi::rt::Client + Clone> {
         client: C,
-        base_url: std::string::String,
+        base_url: reflectapi::rt::Url,
     }
 
     impl<C: reflectapi::rt::Client + Clone> JobsTwoPetOrdersInterface<C> {
-        pub fn new(client: C, base_url: std::string::String) -> Self {
-            Self { client, base_url }
+        pub fn try_new(
+            client: C,
+            base_url: reflectapi::rt::Url,
+        ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
+            if base_url.cannot_be_a_base() {
+                return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);
+            }
+
+            Ok(Self { client, base_url })
         }
         /// desc
         pub async fn list_x(
@@ -68,8 +89,9 @@ pub mod interface {
         ) -> Result<reflectapi::Empty, reflectapi::rt::Error<reflectapi::Empty, C::Error>> {
             reflectapi::rt::__request_impl(
                 &self.client,
-                &self.base_url,
-                "/jobs-two.pet-orders.list-x",
+                self.base_url
+                    .join("/jobs-two.pet-orders.list-x")
+                    .expect("checked base_url already and path is valid"),
                 input,
                 headers,
             )

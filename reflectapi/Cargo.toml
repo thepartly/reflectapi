@@ -67,4 +67,4 @@ rust_decimal = ["dep:rust_decimal"]
 axum = ["dep:axum", "builder"]
 # feature flag for enabling codegen libraries
 codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep:serde_json"]
-rt = ["dep:http", "dep:serde_json", "dep:bytes"]
+rt = ["dep:http", "dep:serde_json", "dep:bytes", "dep:url"]
