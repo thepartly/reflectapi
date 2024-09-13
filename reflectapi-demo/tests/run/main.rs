@@ -1,6 +1,5 @@
 use core::fmt;
 
-use anyhow::anyhow;
 use axum::body::Body;
 use http_rest_file::model::WithDefault;
 use tower::Service as _;
@@ -102,7 +101,7 @@ fn rest_file_to_reqs(
     file: http_rest_file::model::HttpRestFile,
 ) -> anyhow::Result<Vec<http::Request<Body>>> {
     if !file.errs.is_empty() {
-        return Err(anyhow!("file has errors: {:?}", file.errs));
+        return Err(anyhow::anyhow!("file has errors: {:?}", file.errs));
     }
 
     Ok(file.requests.into_iter().map(req_to_http_req).collect())
