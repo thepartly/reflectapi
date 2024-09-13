@@ -8,10 +8,10 @@ mod validation;
 #[cfg(feature = "rt")]
 pub mod rt;
 
-#[cfg(any(feature = "builder"))]
+#[cfg(feature = "builder")]
 pub use builder::*;
 
-#[cfg(any(feature = "builder"))]
+#[cfg(feature = "builder")]
 mod builder;
 
 #[cfg(feature = "axum")]

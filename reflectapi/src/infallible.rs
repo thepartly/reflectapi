@@ -1,4 +1,4 @@
-#[cfg(any(feature = "builder", feature = "axum"))]
+#[cfg(feature = "builder")]
 use crate::StatusCode;
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -6,7 +6,7 @@ pub struct Infallible {
     marker: std::marker::PhantomData<()>,
 }
 
-#[cfg(any(feature = "builder", feature = "axum"))]
+#[cfg(feature = "builder")]
 impl StatusCode for Infallible {
     fn status_code(&self) -> http::StatusCode {
         http::StatusCode::INTERNAL_SERVER_ERROR
