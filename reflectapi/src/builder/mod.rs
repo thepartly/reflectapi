@@ -135,7 +135,7 @@ where
 
     pub fn build(
         mut self,
-    ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), Vec<crate::ValidationError>> {
+    ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), crate::ValidationErrors> {
         self.schema.input_types.sort_types();
         self.schema.output_types.sort_types();
 
@@ -144,7 +144,7 @@ where
             errors.extend(validator(&self.schema));
         }
         if !errors.is_empty() {
-            return Err(errors);
+            return Err(crate::ValidationErrors(errors));
         }
         let mut routers = vec![Router {
             name: self.schema.name.clone(),

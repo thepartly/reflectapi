@@ -1,18 +1,11 @@
+use std::error::Error;
+
 use axum::{response::Html, Json};
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn Error>> {
     let builder = reflectapi_demo::builder();
-    let (schema, routers) = match builder.build() {
-        Ok((schema, routers)) => (schema, routers),
-        Err(errors) => {
-            for error in errors {
-                eprintln!("{}", error);
-            }
-            return;
-        }
-    };
-
+    let (schema, routers) = builder.build()?;
     let openapi_spec = reflectapi::codegen::openapi::Spec::from(&schema);
 
     // write reflect schema to a file
@@ -20,8 +13,7 @@ async fn main() {
         format!("{}/{}", env!("CARGO_MANIFEST_DIR"), "reflectapi.json"),
         serde_json::to_string_pretty(&schema).unwrap(),
     )
-    .await
-    .unwrap();
+    .await?;
 
     // start the server based on axum web framework
     let app_state = Default::default();
@@ -44,7 +36,9 @@ async fn main() {
         axum::routing::get(|| async { Html(include_str!("./redoc.html")) }),
     );
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
     eprintln!("Listening on http://0.0.0.0:3000");
-    axum::serve(listener, axum_app).await.unwrap();
+    axum::serve(listener, axum_app).await?;
+
+    Ok(())
 }
