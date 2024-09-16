@@ -103,9 +103,16 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     let mut generated_code = generated_code.join("\n");
     if config.format {
         generated_code = format_with(
+            // In descending order of speed. The output should be the same.
             [
+                Command::new("biome").args([
+                    "format",
+                    "--indent-style",
+                    "space",
+                    "--stdin-file-path",
+                    "dummy.ts",
+                ]),
                 Command::new("prettier").args(["--parser", "typescript"]),
-                Command::new("npx").args(["prettier", "--parser", "typescript"]),
             ],
             generated_code,
         )?;

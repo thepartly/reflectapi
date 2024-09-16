@@ -13,9 +13,8 @@ jobs:
     name: Rust format, lint, and test
     runs-on: ubuntu-latest
     steps:
-      - run: npm install -g prettier
       - uses: actions/checkout@v4
-      # https://github.com/actions-rs/toolchain
+      - uses: biomejs/setup-biome@v2
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt

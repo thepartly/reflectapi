@@ -39,7 +39,8 @@ pub fn format_with<'a>(
         return Ok(String::from_utf8(output.stdout).expect("utf-8 output from formatter"));
     }
 
-    eprintln!("No formatter found, skipping formatting");
-
-    Ok(src)
+    Err(io::Error::new(
+        io::ErrorKind::NotFound,
+        "no formatters found",
+    ))
 }
