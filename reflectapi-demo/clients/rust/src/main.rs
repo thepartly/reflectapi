@@ -2,7 +2,11 @@ use reflectapi_demo_client_generated::{DemoServerClient, Error, ProtocolErrorSta
 
 #[tokio::main]
 async fn main() {
-    let client = DemoServerClient::new(reqwest::Client::new(), "http://localhost:3000".into());
+    let client = DemoServerClient::try_new(
+        reqwest::Client::new(),
+        "http://localhost:3000".parse().unwrap(),
+    )
+    .unwrap();
 
     let result = client
         .health

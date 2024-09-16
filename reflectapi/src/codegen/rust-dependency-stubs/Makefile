@@ -11,12 +11,14 @@ check: libreflectapi.rlib libserde.rlib generated.rs
 clean:
 	rm -f *.rlib *.rmeta *.so
 
-libreflectapi.rlib: libserde.rlib libserde_json.rlib libbytes.rlib libhttp.rlib
+# Make sure to edit `typecheck` in `codegen/rust.rs` to copy all the files into the right place
+libreflectapi.rlib: libserde.rlib libserde_json.rlib libbytes.rlib libhttp.rlib liburl.rlib
 	$(RUSTC) --edition 2021 --crate-type=rlib --crate-name=reflectapi --emit=metadata,link -L . \
 		--extern serde=libserde.rlib \
 		--extern serde_json=libserde_json.rlib \
 		--extern bytes=libbytes.rlib \
 		--extern http=libhttp.rlib \
+		--extern url=liburl.rlib \
 		reflectapi.rs
 
 libserde.rlib: libserde_derive.rmeta libserde_derive.so

@@ -17,29 +17,43 @@ pub mod interface {
         pub health: HealthInterface<C>,
         pub pets: PetsInterface<C>,
         client: C,
-        base_url: std::string::String,
+        base_url: reflectapi::rt::Url,
     }
 
     impl<C: reflectapi::rt::Client + Clone> Interface<C> {
-        pub fn new(client: C, base_url: std::string::String) -> Self {
-            Self {
-                health: HealthInterface::new(client.clone(), base_url.clone()),
-                pets: PetsInterface::new(client.clone(), base_url.clone()),
+        pub fn try_new(
+            client: C,
+            base_url: reflectapi::rt::Url,
+        ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
+            if base_url.cannot_be_a_base() {
+                return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);
+            }
+
+            Ok(Self {
+                health: HealthInterface::try_new(client.clone(), base_url.clone())?,
+                pets: PetsInterface::try_new(client.clone(), base_url.clone())?,
                 client,
                 base_url,
-            }
+            })
         }
     }
 
     #[derive(Debug)]
     pub struct HealthInterface<C: reflectapi::rt::Client + Clone> {
         client: C,
-        base_url: std::string::String,
+        base_url: reflectapi::rt::Url,
     }
 
     impl<C: reflectapi::rt::Client + Clone> HealthInterface<C> {
-        pub fn new(client: C, base_url: std::string::String) -> Self {
-            Self { client, base_url }
+        pub fn try_new(
+            client: C,
+            base_url: reflectapi::rt::Url,
+        ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
+            if base_url.cannot_be_a_base() {
+                return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);
+            }
+
+            Ok(Self { client, base_url })
         }
         /// Check the health of the service
         pub async fn check(
@@ -49,8 +63,9 @@ pub mod interface {
         ) -> Result<reflectapi::Empty, reflectapi::rt::Error<reflectapi::Empty, C::Error>> {
             reflectapi::rt::__request_impl(
                 &self.client,
-                &self.base_url,
-                "/health.check",
+                self.base_url
+                    .join("/health.check")
+                    .expect("checked base_url already and path is valid"),
                 input,
                 headers,
             )
@@ -61,12 +76,19 @@ pub mod interface {
     #[derive(Debug)]
     pub struct PetsInterface<C: reflectapi::rt::Client + Clone> {
         client: C,
-        base_url: std::string::String,
+        base_url: reflectapi::rt::Url,
     }
 
     impl<C: reflectapi::rt::Client + Clone> PetsInterface<C> {
-        pub fn new(client: C, base_url: std::string::String) -> Self {
-            Self { client, base_url }
+        pub fn try_new(
+            client: C,
+            base_url: reflectapi::rt::Url,
+        ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
+            if base_url.cannot_be_a_base() {
+                return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);
+            }
+
+            Ok(Self { client, base_url })
         }
         /// List available pets
         pub async fn list(
@@ -79,8 +101,9 @@ pub mod interface {
         > {
             reflectapi::rt::__request_impl(
                 &self.client,
-                &self.base_url,
-                "/pets.list",
+                self.base_url
+                    .join("/pets.list")
+                    .expect("checked base_url already and path is valid"),
                 input,
                 headers,
             )
@@ -97,8 +120,9 @@ pub mod interface {
         > {
             reflectapi::rt::__request_impl(
                 &self.client,
-                &self.base_url,
-                "/pets.create",
+                self.base_url
+                    .join("/pets.create")
+                    .expect("checked base_url already and path is valid"),
                 input,
                 headers,
             )
@@ -115,8 +139,9 @@ pub mod interface {
         > {
             reflectapi::rt::__request_impl(
                 &self.client,
-                &self.base_url,
-                "/pets.update",
+                self.base_url
+                    .join("/pets.update")
+                    .expect("checked base_url already and path is valid"),
                 input,
                 headers,
             )
@@ -133,8 +158,9 @@ pub mod interface {
         > {
             reflectapi::rt::__request_impl(
                 &self.client,
-                &self.base_url,
-                "/pets.remove",
+                self.base_url
+                    .join("/pets.remove")
+                    .expect("checked base_url already and path is valid"),
                 input,
                 headers,
             )
@@ -151,8 +177,9 @@ pub mod interface {
         > {
             reflectapi::rt::__request_impl(
                 &self.client,
-                &self.base_url,
-                "/pets.get-first",
+                self.base_url
+                    .join("/pets.get-first")
+                    .expect("checked base_url already and path is valid"),
                 input,
                 headers,
             )

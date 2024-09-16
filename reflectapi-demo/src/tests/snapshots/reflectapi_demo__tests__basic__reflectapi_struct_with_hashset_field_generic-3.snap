@@ -19,12 +19,19 @@ pub mod interface {
     #[derive(Debug)]
     pub struct Interface<C: reflectapi::rt::Client + Clone> {
         client: C,
-        base_url: std::string::String,
+        base_url: reflectapi::rt::Url,
     }
 
     impl<C: reflectapi::rt::Client + Clone> Interface<C> {
-        pub fn new(client: C, base_url: std::string::String) -> Self {
-            Self { client, base_url }
+        pub fn try_new(
+            client: C,
+            base_url: reflectapi::rt::Url,
+        ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
+            if base_url.cannot_be_a_base() {
+                return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);
+            }
+
+            Ok(Self { client, base_url })
         }
         pub async fn inout_test(
             &self,
@@ -40,8 +47,9 @@ pub mod interface {
         > {
             reflectapi::rt::__request_impl(
                 &self.client,
-                &self.base_url,
-                "/inout_test",
+                self.base_url
+                    .join("/inout_test")
+                    .expect("checked base_url already and path is valid"),
                 input,
                 headers,
             )

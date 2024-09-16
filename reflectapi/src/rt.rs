@@ -1,11 +1,12 @@
 use std::collections::HashMap;
+pub use url::{ParseError as UrlParseError, Url};
 
 pub trait Client {
     type Error;
 
     fn request(
         &self,
-        path: &str,
+        url: Url,
         body: bytes::Bytes,
         headers: HashMap<String, String>,
     ) -> impl std::future::Future<Output = Result<(http::StatusCode, bytes::Bytes), Self::Error>>;
@@ -24,12 +25,12 @@ pub enum Error<AE, NE> {
 impl<AE: core::fmt::Debug, NE: core::fmt::Debug> core::fmt::Debug for Error<AE, NE> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Error::Application(err) => write!(f, "Application error: {err:?}"),
-            Error::Network(err) => write!(f, "Network error: {err:?}"),
-            Error::Protocol { info, stage } => write!(f, "Protocol error: {info} at {stage:?}"),
+            Error::Application(err) => write!(f, "application error: {err:?}"),
+            Error::Network(err) => write!(f, "network error: {err:?}"),
+            Error::Protocol { info, stage } => write!(f, "protocol error: {info} at {stage:?}"),
             Error::Server(status, body) => write!(
                 f,
-                "Server error: {status} with body: {}",
+                "server error: {status} with body: {}",
                 String::from_utf8_lossy(body)
             ),
         }
@@ -39,12 +40,12 @@ impl<AE: core::fmt::Debug, NE: core::fmt::Debug> core::fmt::Debug for Error<AE, 
 impl<AE: core::fmt::Display, NE: core::fmt::Display> core::fmt::Display for Error<AE, NE> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Error::Application(err) => write!(f, "Application error: {err}"),
-            Error::Network(err) => write!(f, "Network error: {err}"),
-            Error::Protocol { info, stage } => write!(f, "Protocol error: {info} at {stage}"),
+            Error::Application(err) => write!(f, "application error: {err}"),
+            Error::Network(err) => write!(f, "network error: {err}"),
+            Error::Protocol { info, stage } => write!(f, "protocol error: {info} at {stage}"),
             Error::Server(status, body) => write!(
                 f,
-                "Server error: {status} with body: {}",
+                "server error: {status} with body: {}",
                 String::from_utf8_lossy(body)
             ),
         }
@@ -106,8 +107,7 @@ impl core::fmt::Debug for ProtocolErrorStage {
 #[doc(hidden)]
 pub async fn __request_impl<C, I, H, O, E>(
     client: &C,
-    base_url: &str,
-    path: &str,
+    url: Url,
     body: I,
     headers: H,
 ) -> Result<O, Error<E, C::Error>>
@@ -147,8 +147,9 @@ where
             });
         }
     }
+
     let (status, body) = client
-        .request(&format!("{}{}", base_url, path), body, headers_serialized)
+        .request(url, body, headers_serialized)
         .await
         .map_err(Error::Network)?;
     if status.is_success() {
@@ -174,7 +175,7 @@ impl Client for reqwest::Client {
 
     async fn request(
         &self,
-        path: &str,
+        path: Url,
         body: bytes::Bytes,
         headers: std::collections::HashMap<String, String>,
     ) -> Result<(http::StatusCode, bytes::Bytes), Self::Error> {

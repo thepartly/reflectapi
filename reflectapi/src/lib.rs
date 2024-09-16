@@ -5,6 +5,9 @@ mod option;
 mod traits;
 mod validation;
 
+#[cfg(feature = "url")]
+pub use url;
+
 #[cfg(feature = "rt")]
 pub mod rt;
 

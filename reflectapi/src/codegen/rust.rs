@@ -147,6 +147,7 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
             "reflectapi.rs",
             include_str!("rust-dependency-stubs/reflectapi.rs"),
         ),
+        ("url.rs", include_str!("rust-dependency-stubs/url.rs")),
         ("rt.rs", include_str!("../../../reflectapi/src/rt.rs")),
         ("Makefile", include_str!("rust-dependency-stubs/Makefile")),
     ];
@@ -550,10 +551,10 @@ pub struct {{ name }};",
 
     #[derive(Template)]
     #[template(
-        source = "{{description}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
+        source = r#"{{description}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
     -> Result<{{ output_type }}, reflectapi::rt::Error<{{ error_type }}, C::Error>> {
-        reflectapi::rt::__request_impl(&self.client, &self.base_url, \"{{ path }}\", input, headers).await
-    }",
+        reflectapi::rt::__request_impl(&self.client, self.base_url.join("{{ path }}").expect("checked base_url already and path is valid"), input, headers).await
+    }"#,
         ext = "txt"
     )]
     pub(super) struct __FunctionImplementationTemplate {
@@ -568,21 +569,25 @@ pub struct {{ name }};",
 
     #[derive(Template)]
     #[template(
-        source = "
+        source = r#"
 impl<C: reflectapi::rt::Client + Clone> {{ name }} {
-    pub fn new(client: C, base_url: std::string::String) -> Self {
-        Self {
+    pub fn try_new(client: C, base_url: reflectapi::rt::Url) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
+        if base_url.cannot_be_a_base() {
+            return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);
+        }
+
+        Ok(Self {
             {%- for field in fields.iter() %}
-            {{ field.name }}: {{ field.type_ }}::new(client.clone(), base_url.clone()),
+            {{ field.name }}: {{ field.type_ }}::try_new(client.clone(), base_url.clone())?,
             {%- endfor %}
             client,
             base_url,
-        }
+        })
     }
     {%- for func in functions.iter() %}
     {{ func }}
     {%- endfor %}
-}",
+}"#,
         ext = "txt"
     )]
     pub(super) struct __InterfaceImplementationTemplate {
@@ -721,7 +726,7 @@ fn __interface_types_from_function_group(
             public: true,
         });
     }
-    for field in [("client", "C"), ("base_url", "std::string::String")] {
+    for field in [("client", "C"), ("base_url", "reflectapi::rt::Url")] {
         type_template.fields.push(templates::__Field {
             name: field.0.into(),
             serde_name: field.0.into(),
