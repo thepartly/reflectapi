@@ -6,11 +6,14 @@ where
     unimplemented!() // should be never called
 }
 
-static CONFIG: reflectapi::codegen::Config = reflectapi::codegen::Config {
-    format: true,
-    typecheck: true,
-    shared_modules: vec![],
-};
+fn mk_config() -> reflectapi::codegen::Config {
+    reflectapi::codegen::Config {
+        format: true,
+        // Typechecking is too slow to run locally on every test
+        typecheck: std::env::var("CI").is_ok(),
+        shared_modules: vec![],
+    }
+}
 
 pub fn into_input_schema<I>() -> reflectapi::Schema
 where
@@ -56,13 +59,13 @@ where
 
 fn codegen_rust(schema: reflectapi::Schema) -> String {
     reflectapi::codegen::strip_boilerplate(
-        &reflectapi::codegen::rust::generate(schema, &CONFIG).unwrap(),
+        &reflectapi::codegen::rust::generate(schema, &mk_config()).unwrap(),
     )
 }
 
 fn codegen_typescript(schema: reflectapi::Schema) -> String {
     reflectapi::codegen::strip_boilerplate(
-        &reflectapi::codegen::typescript::generate(schema, &CONFIG).unwrap(),
+        &reflectapi::codegen::typescript::generate(schema, &mk_config()).unwrap(),
     )
 }
 
