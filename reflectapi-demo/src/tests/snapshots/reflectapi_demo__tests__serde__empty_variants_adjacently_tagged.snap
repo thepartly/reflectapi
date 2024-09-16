@@ -31,7 +31,7 @@ expression: schema
         "kind": "enum",
         "name": "reflectapi_demo::tests::serde::TestEmptyVariantsAdjacentlyTagged",
         "representation": {
-          "Adjacent": {
+          "adjacent": {
             "tag": "t",
             "content": "c"
           }
@@ -69,7 +69,7 @@ expression: schema
         "kind": "enum",
         "name": "reflectapi_demo::tests::serde::TestEmptyVariantsAdjacentlyTagged",
         "representation": {
-          "Adjacent": {
+          "adjacent": {
             "tag": "t",
             "content": "c"
           }

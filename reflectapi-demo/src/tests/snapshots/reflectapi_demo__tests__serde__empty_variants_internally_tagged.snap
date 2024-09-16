@@ -31,7 +31,7 @@ expression: schema
         "kind": "enum",
         "name": "reflectapi_demo::tests::serde::TestEmptyVariantsInterallyTagged",
         "representation": {
-          "Internal": {
+          "internal": {
             "tag": "type"
           }
         },
@@ -62,7 +62,7 @@ expression: schema
         "kind": "enum",
         "name": "reflectapi_demo::tests::serde::TestEmptyVariantsInterallyTagged",
         "representation": {
-          "Internal": {
+          "internal": {
             "tag": "type"
           }
         },

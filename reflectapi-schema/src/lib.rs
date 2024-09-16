@@ -1,5 +1,13 @@
 mod internal;
+mod rename;
 
+#[cfg(feature = "glob")]
+pub use self::rename::Glob;
+
+#[cfg(feature = "glob")]
+pub use glob::PatternError;
+
+pub use self::rename::*;
 use std::{collections::HashMap, ops::Index};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -122,11 +130,11 @@ impl Schema {
 
                 let mut type_name_parts = type_name.split("::").collect::<Vec<_>>();
                 type_name_parts.insert(type_name_parts.len() - 1, "input");
-                self.rename_input_type(type_name, &type_name_parts.join("::"));
+                self.rename_input_types(type_name.as_str(), &type_name_parts.join("::"));
 
                 let mut type_name_parts = type_name.split("::").collect::<Vec<_>>();
                 type_name_parts.insert(type_name_parts.len() - 1, "output");
-                self.rename_output_type(type_name, &type_name_parts.join("::"));
+                self.rename_output_types(type_name.as_str(), &type_name_parts.join("::"));
             }
         }
     }
@@ -141,23 +149,37 @@ impl Schema {
         None
     }
 
-    pub fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        self.rename_input_type(search_string, replacer);
-        self.rename_output_type(search_string, replacer);
+    #[cfg(feature = "glob")]
+    pub fn glob_rename_types(
+        &mut self,
+        glob: &str,
+        replacer: &str,
+    ) -> Result<(), glob::PatternError> {
+        let matcher = glob.parse::<Glob>()?;
+        self.rename_types(&matcher, replacer);
+        Ok(())
     }
 
-    pub fn rename_input_type(&mut self, search_string: &str, replacer: &str) {
-        self.input_types.rename_type(search_string, replacer);
-        for function in self.functions.iter_mut() {
-            function.rename_input_type(search_string, replacer);
-        }
+    pub fn rename_types(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
+        self.rename_input_types(matcher, replacer) + self.rename_output_types(matcher, replacer)
     }
 
-    pub fn rename_output_type(&mut self, search_string: &str, replacer: &str) {
-        self.output_types.rename_type(search_string, replacer);
-        for function in self.functions.iter_mut() {
-            function.rename_output_type(search_string, replacer);
-        }
+    pub fn rename_input_types(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
+        self.input_types.rename_types(matcher, replacer)
+            + self
+                .functions
+                .iter_mut()
+                .map(|f| f.rename_input_types(matcher, replacer))
+                .sum::<usize>()
+    }
+
+    pub fn rename_output_types(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
+        self.output_types.rename_types(matcher, replacer)
+            + self
+                .functions
+                .iter_mut()
+                .map(|f| f.rename_output_types(matcher, replacer))
+                .sum::<usize>()
     }
 
     pub fn fold_transparent_types(&mut self) {
@@ -172,7 +194,7 @@ impl Schema {
             .collect::<Vec<_>>();
         for (from, to) in transparent_types {
             self.input_types.remove_type(&from);
-            self.rename_input_type(&from, &to);
+            self.rename_input_types(from.as_str(), &to);
         }
 
         let transparent_types = self
@@ -186,7 +208,7 @@ impl Schema {
             .collect::<Vec<_>>();
         for (from, to) in transparent_types {
             self.output_types.remove_type(&from);
-            self.rename_output_type(&from, &to);
+            self.rename_output_types(from.as_str(), &to);
         }
     }
 }
@@ -266,11 +288,12 @@ impl Typespace {
         Some(self.types.remove(index))
     }
 
-    fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        for ty in self.types.iter_mut() {
-            ty.rename_type(search_string, replacer);
-        }
+    fn rename_types(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
         self.invalidate_types_map();
+        self.types
+            .iter_mut()
+            .map(|ty| ty.rename(pattern, replacer))
+            .sum()
     }
 
     pub fn sort_types(&mut self) {
@@ -401,22 +424,29 @@ impl Function {
         self.readonly
     }
 
-    fn rename_input_type(&mut self, search_string: &str, replacer: &str) {
+    fn rename_input_types(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
+        let mut count = 0;
         if let Some(input_type) = &mut self.input_type {
-            input_type.rename_type(search_string, replacer);
+            count += input_type.rename(matcher, replacer);
         }
+
         if let Some(input_headers) = &mut self.input_headers {
-            input_headers.rename_type(search_string, replacer);
+            count += input_headers.rename(matcher, replacer);
         }
+
+        count
     }
 
-    fn rename_output_type(&mut self, search_string: &str, replacer: &str) {
+    fn rename_output_types(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
+        let mut count = 0;
         if let Some(output_type) = &mut self.output_type {
-            output_type.rename_type(search_string, replacer);
+            count += output_type.rename(matcher, replacer);
         }
+
         if let Some(error_type) = &mut self.error_type {
-            error_type.rename_type(search_string, replacer);
+            count += error_type.rename(matcher, replacer);
         }
+        count
     }
 }
 
@@ -471,11 +501,15 @@ impl TypeReference {
         type_def.fallback_internal(self)
     }
 
-    fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        self.name = rename_type_or_module(&self.name, search_string, replacer);
-        for param in self.arguments.iter_mut() {
-            param.rename_type(search_string, replacer);
-        }
+    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
+        pattern.rename(&self.name, replacer).map_or(0, |new_name| {
+            self.name = new_name;
+            1
+        }) + self
+            .arguments
+            .iter_mut()
+            .map(|arg| arg.rename(pattern, replacer))
+            .sum::<usize>()
     }
 }
 
@@ -626,11 +660,11 @@ impl Type {
         }
     }
 
-    fn rename_type(&mut self, search_string: &str, replacer: &str) {
+    fn rename(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
         match self {
-            Type::Primitive(p) => p.rename_type(search_string, replacer),
-            Type::Struct(s) => s.rename_type(search_string, replacer),
-            Type::Enum(e) => e.rename_type(search_string, replacer),
+            Type::Primitive(p) => p.rename(matcher, replacer),
+            Type::Struct(s) => s.rename(matcher, replacer),
+            Type::Enum(e) => e.rename(matcher, replacer),
         }
     }
 
@@ -753,8 +787,11 @@ impl Primitive {
         })
     }
 
-    fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        self.name = rename_type_or_module(&self.name, search_string, replacer);
+    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
+        pattern.rename(&self.name, replacer).map_or(0, |new_name| {
+            self.name = new_name;
+            1
+        })
     }
 }
 
@@ -860,11 +897,15 @@ impl Struct {
                 .all(|f| f.name().parse::<usize>().is_ok())
     }
 
-    fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        self.name = rename_type_or_module(&self.name, search_string, replacer);
-        for field in self.fields.iter_mut() {
-            field.rename_type(search_string, replacer);
-        }
+    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
+        pattern.rename(&self.name, replacer).map_or(0, |new_name| {
+            self.name = new_name;
+            1
+        }) + self
+            .fields
+            .iter_mut()
+            .map(|f| f.rename(pattern, replacer))
+            .sum::<usize>()
     }
 }
 
@@ -1050,8 +1091,8 @@ impl Field {
         self.transform_callback_fn
     }
 
-    fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        self.type_ref.rename_type(search_string, replacer);
+    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
+        self.type_ref.rename(pattern, replacer)
     }
 }
 
@@ -1118,11 +1159,15 @@ impl Enum {
         self.variants.iter()
     }
 
-    fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        self.name = rename_type_or_module(&self.name, search_string, replacer);
-        for variant in self.variants.iter_mut() {
-            variant.rename_type(search_string, replacer);
-        }
+    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
+        pattern.rename(&self.name, replacer).map_or(0, |new_name| {
+            self.name = new_name;
+            1
+        }) + self
+            .variants
+            .iter_mut()
+            .map(|v| v.rename(pattern, replacer))
+            .sum::<usize>()
     }
 }
 
@@ -1189,14 +1234,16 @@ impl Variant {
         self.untagged
     }
 
-    fn rename_type(&mut self, search_string: &str, replacer: &str) {
-        for field in self.fields.iter_mut() {
-            field.rename_type(search_string, replacer);
-        }
+    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
+        self.fields
+            .iter_mut()
+            .map(|f| f.rename(pattern, replacer))
+            .sum::<usize>()
     }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash, Default)]
+#[serde(rename_all = "snake_case")]
 pub enum Representation {
     /// The default.
     ///
@@ -1251,23 +1298,5 @@ impl Representation {
 
     pub fn is_none(&self) -> bool {
         matches!(self, Representation::None)
-    }
-}
-
-fn rename_type_or_module(name: &str, search_string: &str, replacer: &str) -> String {
-    if search_string.ends_with("::") {
-        // replacing module name
-        if let Some(name) = name.strip_prefix(search_string) {
-            format!("{replacer}{name}")
-        } else {
-            name.into()
-        }
-    } else {
-        // replacing type name
-        if name == search_string {
-            replacer.into()
-        } else {
-            name.into()
-        }
     }
 }

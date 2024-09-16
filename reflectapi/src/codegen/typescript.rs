@@ -112,7 +112,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
                     "--stdin-file-path",
                     "dummy.ts",
                 ]),
-                Command::new("prettier").args(["--parser", "typescript"]),
+                Command::new("prettier").args(["--parser", "typescript", "--use-tabs"]),
             ],
             generated_code,
         )?;

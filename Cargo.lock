@@ -1547,6 +1547,7 @@ dependencies = [
 name = "reflectapi-schema"
 version = "0.6.6"
 dependencies = [
+ "glob",
  "serde",
 ]
 

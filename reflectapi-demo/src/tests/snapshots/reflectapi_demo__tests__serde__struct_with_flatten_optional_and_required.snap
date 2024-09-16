@@ -94,7 +94,7 @@ expression: schema
             "name": "T"
           }
         ],
-        "representation": "None",
+        "representation": "none",
         "variants": [
           {
             "name": "None",
@@ -199,7 +199,7 @@ expression: schema
             "name": "T"
           }
         ],
-        "representation": "None",
+        "representation": "none",
         "variants": [
           {
             "name": "None",
