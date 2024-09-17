@@ -7,7 +7,6 @@ pub use handler::*;
 use reflectapi_schema::Pattern;
 pub use result::*;
 
-#[derive(Debug)]
 pub struct Builder<S>
 where
     S: Send + 'static,
@@ -17,6 +16,20 @@ where
     handlers: Vec<crate::Handler<S>>,
     merged_handlers: Vec<(String, Vec<crate::Handler<S>>)>,
     validators: Vec<fn(&crate::Schema) -> Vec<crate::ValidationError>>,
+}
+
+impl<S> fmt::Debug for Builder<S>
+where
+    S: Send + 'static,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Builder")
+            .field("schema", &self.schema)
+            .field("path", &self.path)
+            .field("handlers", &self.handlers)
+            .field("merged_handlers", &self.merged_handlers)
+            .finish()
+    }
 }
 
 impl<S> Default for Builder<S>
