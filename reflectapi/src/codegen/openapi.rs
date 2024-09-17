@@ -389,7 +389,7 @@ impl Converter {
                 });
             };
 
-            panic!("{kind:?} type not found: {ty_ref:?}",)
+            panic!("{kind:?} type not found: {ty_ref:?}")
         });
 
         let stub = Schema::Flat(FlatSchema {

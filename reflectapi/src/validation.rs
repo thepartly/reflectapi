@@ -1,29 +1,6 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub struct ValidationErrors(pub Vec<ValidationError>);
-
-impl IntoIterator for ValidationErrors {
-    type Item = ValidationError;
-    type IntoIter = std::vec::IntoIter<ValidationError>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl fmt::Display for ValidationErrors {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for err in &self.0 {
-            writeln!(f, "{err}")?;
-        }
-        Ok(())
-    }
-}
-
-impl std::error::Error for ValidationErrors {}
-
-#[derive(Debug)]
 pub struct ValidationError {
     pub pointer: ValidationPointer,
     pub message: String,

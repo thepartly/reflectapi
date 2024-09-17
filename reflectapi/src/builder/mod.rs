@@ -2,6 +2,7 @@ mod handler;
 mod result;
 
 use core::fmt;
+use std::error::Error;
 
 pub use handler::*;
 use reflectapi_schema::Pattern;
@@ -16,6 +17,8 @@ where
     handlers: Vec<crate::Handler<S>>,
     merged_handlers: Vec<(String, Vec<crate::Handler<S>>)>,
     validators: Vec<fn(&crate::Schema) -> Vec<crate::ValidationError>>,
+    allow_redundant_renames: bool,
+    errors: Vec<BuildError>,
 }
 
 impl<S> fmt::Debug for Builder<S>
@@ -48,10 +51,12 @@ where
     pub fn new() -> Self {
         Self {
             schema: Default::default(),
-            path: String::from(""),
-            handlers: Vec::new(),
-            merged_handlers: Vec::new(),
-            validators: Vec::new(),
+            path: Default::default(),
+            handlers: Default::default(),
+            merged_handlers: Default::default(),
+            validators: Default::default(),
+            errors: Default::default(),
+            allow_redundant_renames: Default::default(),
         }
     }
 
@@ -68,6 +73,11 @@ where
         if !self.path.starts_with('/') && !self.path.is_empty() {
             self.path.insert(0, '/');
         }
+        self
+    }
+
+    pub fn allow_redundant_renames(mut self, allow: bool) -> Self {
+        self.allow_redundant_renames = allow;
         self
     }
 
@@ -127,18 +137,25 @@ where
     }
 
     #[cfg(feature = "glob")]
-    pub fn glob_rename_types(self, glob: &str, replacer: &str) -> Self {
-        let matcher = glob
-            .parse::<reflectapi_schema::Glob>()
-            .unwrap_or_else(|err| panic!("invalid glob pattern: {err}"));
-        self.rename_types(&matcher, replacer)
+    pub fn glob_rename_types(mut self, glob: &str, replacer: &str) -> Self {
+        match glob.parse::<reflectapi_schema::Glob>() {
+            Ok(pattern) => self.rename_types(&pattern, replacer),
+            Err(err) => {
+                self.errors.push(BuildError::Other(
+                    format!("invalid glob pattern: {err}").into(),
+                ));
+                self
+            }
+        }
     }
 
-    #[track_caller]
-    pub fn rename_types(mut self, pattern: impl Pattern + fmt::Debug, to: &str) -> Self {
-        if self.schema.rename_types(pattern, to) == 0 {
-            panic!("no types matched the pattern: {pattern:?}");
+    pub fn rename_types(mut self, pattern: impl Pattern + fmt::Display, to: &str) -> Self {
+        if self.schema.rename_types(pattern, to) == 0 && !self.allow_redundant_renames {
+            self.errors.push(BuildError::RedundantRename {
+                pattern: pattern.to_string(),
+            });
         }
+
         self
     }
 
@@ -162,21 +179,25 @@ where
 
     pub fn build(
         mut self,
-    ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), crate::ValidationErrors> {
+    ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), crate::BuildErrors> {
         self.schema.input_types.sort_types();
         self.schema.output_types.sort_types();
 
-        let mut errors = Vec::new();
         for validator in self.validators.iter() {
-            errors.extend(validator(&self.schema));
+            for err in validator(&self.schema) {
+                self.errors.push(BuildError::Validation(err));
+            }
         }
-        if !errors.is_empty() {
-            return Err(crate::ValidationErrors(errors));
+
+        if !self.errors.is_empty() {
+            return Err(crate::BuildErrors(self.errors));
         }
+
         let mut routers = vec![Router {
             name: self.schema.name.clone(),
             handlers: self.handlers,
         }];
+
         for (name, handlers) in self.merged_handlers {
             let router = Router {
                 name: name.clone(),
@@ -184,6 +205,7 @@ where
             };
             routers.push(router);
         }
+
         Ok((self.schema, routers))
     }
 }
@@ -245,3 +267,47 @@ impl RouteBuilder {
         self
     }
 }
+
+#[derive(Debug)]
+pub enum BuildError {
+    Validation(crate::ValidationError),
+    Other(Box<dyn Error + Send + Sync>),
+    RedundantRename { pattern: String },
+}
+
+impl fmt::Display for BuildError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Validation(err) => write!(f, "{err}"),
+            Self::RedundantRename { pattern } => {
+                write!(f, "pattern `{pattern}` did not match any types")
+            }
+            Self::Other(err) => write!(f, "{err}"),
+        }
+    }
+}
+
+impl std::error::Error for BuildError {}
+
+#[derive(Debug)]
+pub struct BuildErrors(pub Vec<BuildError>);
+
+impl IntoIterator for BuildErrors {
+    type Item = BuildError;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl fmt::Display for BuildErrors {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for err in &self.0 {
+            writeln!(f, "{err}")?;
+        }
+        Ok(())
+    }
+}
+
+impl std::error::Error for BuildErrors {}
