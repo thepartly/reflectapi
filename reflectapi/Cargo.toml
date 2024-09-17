@@ -54,6 +54,7 @@ reqwest = { version = "0.12", optional = true }
 serde_json = { version = "1.0.114" }
 
 [features]
+default = ["glob"]
 # feature for implementing schema builder
 builder = ["dep:serde_json", "dep:bytes", "dep:http"]
 msgpack = ["dep:rmp-serde", "builder"]
@@ -68,3 +69,4 @@ axum = ["dep:axum", "builder"]
 # feature flag for enabling codegen libraries
 codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep:serde_json"]
 rt = ["dep:http", "dep:serde_json", "dep:bytes", "dep:url"]
+glob = ["reflectapi-schema/glob"]

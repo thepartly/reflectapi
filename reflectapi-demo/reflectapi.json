@@ -385,7 +385,7 @@
             "name": "T"
           }
         ],
-        "representation": "None",
+        "representation": "none",
         "variants": [
           {
             "name": "Undefined",
@@ -422,7 +422,7 @@
             "name": "T"
           }
         ],
-        "representation": "None",
+        "representation": "none",
         "variants": [
           {
             "name": "None",
@@ -736,7 +736,7 @@
             "name": "T"
           }
         ],
-        "representation": "None",
+        "representation": "none",
         "variants": [
           {
             "name": "None",

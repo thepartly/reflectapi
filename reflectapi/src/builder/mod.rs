@@ -1,7 +1,10 @@
 mod handler;
 mod result;
 
+use core::fmt;
+
 pub use handler::*;
+use reflectapi_schema::Pattern;
 pub use result::*;
 
 #[derive(Debug)]
@@ -110,8 +113,19 @@ where
         self
     }
 
-    pub fn rename_type(mut self, from: &str, to: &str) -> Self {
-        self.schema.rename_type(from, to);
+    #[cfg(feature = "glob")]
+    pub fn glob_rename_types(self, glob: &str, replacer: &str) -> Self {
+        let matcher = glob
+            .parse::<reflectapi_schema::Glob>()
+            .unwrap_or_else(|err| panic!("invalid glob pattern: {err}"));
+        self.rename_types(&matcher, replacer)
+    }
+
+    #[track_caller]
+    pub fn rename_types(mut self, pattern: impl Pattern + fmt::Debug, to: &str) -> Self {
+        if self.schema.rename_types(pattern, to) == 0 {
+            panic!("no types matched the pattern: {pattern:?}");
+        }
         self
     }
 

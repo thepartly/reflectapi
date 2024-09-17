@@ -30,7 +30,7 @@ expression: schema
       {
         "kind": "enum",
         "name": "reflectapi_demo::tests::serde::TestEmptyVariantsUntagged",
-        "representation": "None",
+        "representation": "none",
         "variants": [
           {
             "name": "Empty",
@@ -63,7 +63,7 @@ expression: schema
       {
         "kind": "enum",
         "name": "reflectapi_demo::tests::serde::TestEmptyVariantsUntagged",
-        "representation": "None",
+        "representation": "none",
         "variants": [
           {
             "name": "Empty",

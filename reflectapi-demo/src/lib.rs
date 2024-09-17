@@ -37,7 +37,7 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
         })
         // some optional tuning
         .fold_transparent_types()
-        .rename_type("reflectapi_demo::", "myapi::")
+        .rename_types("reflectapi_demo::", "myapi::")
         // and some optional linting rules
         .validate(|schema| {
             let mut errors = Vec::new();

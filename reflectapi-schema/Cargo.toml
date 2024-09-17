@@ -21,4 +21,8 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 
 [dependencies]
 serde = { version = "1.0.197", features = ["derive"] }
+glob = { version = "0.3.0", optional = true }
+
+[features]
+default = ["glob"]
 
