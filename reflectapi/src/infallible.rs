@@ -2,9 +2,7 @@
 use crate::StatusCode;
 
 #[derive(serde::Deserialize, serde::Serialize)]
-pub struct Infallible {
-    marker: std::marker::PhantomData<()>,
-}
+pub enum Infallible {}
 
 #[cfg(feature = "builder")]
 impl StatusCode for Infallible {

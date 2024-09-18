@@ -61,6 +61,7 @@ async fn health_check(
     ().into()
 }
 
+#[derive(Debug)]
 pub struct AppState {
     pets: Mutex<Vec<model::Pet>>,
 }
@@ -75,7 +76,7 @@ impl Default for AppState {
 
 mod model {
     #[derive(
-        Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
     )]
     pub struct Pet {
         /// identity
@@ -91,7 +92,7 @@ mod model {
     }
 
     #[derive(
-        Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
     )]
     #[serde(rename_all = "snake_case")]
     pub enum Kind {
@@ -102,7 +103,7 @@ mod model {
     }
 
     #[derive(
-        Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
     )]
     pub enum Behavior {
         Calm,
