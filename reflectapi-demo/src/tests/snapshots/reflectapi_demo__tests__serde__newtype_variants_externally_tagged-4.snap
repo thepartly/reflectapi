@@ -1,0 +1,101 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestNewtypeVariantsExternallyTagged"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestNewtypeVariantsExternallyTagged"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "bool": {
+        "description": "Boolean value",
+        "type": "boolean"
+      },
+      "i32": {
+        "description": "32-bit signed integer",
+        "type": "integer"
+      },
+      "reflectapi_demo.tests.serde.TestNewtypeVariantsExternallyTagged": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "int",
+            "required": [
+              "int"
+            ],
+            "properties": {
+              "int": {
+                "$ref": "#/components/schemas/i32"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "string",
+            "required": [
+              "string"
+            ],
+            "properties": {
+              "string": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "bool",
+            "required": [
+              "bool"
+            ],
+            "properties": {
+              "bool": {
+                "$ref": "#/components/schemas/bool"
+              }
+            }
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      }
+    }
+  }
+}
