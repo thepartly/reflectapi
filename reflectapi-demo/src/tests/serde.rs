@@ -423,6 +423,20 @@ fn test_unit_tuple_struct() {
 }
 
 #[test]
+fn test_newtype_variants_externally_tagged() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(rename_all = "snake_case")]
+    enum TestNewtypeVariantsExternallyTagged {
+        Int(i32),
+        String(String),
+        Bool(bool),
+        Unit,
+    }
+
+    assert_snapshot!(TestNewtypeVariantsExternallyTagged);
+}
+
+#[test]
 fn test_empty_variants_externally_tagged() {
     #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
     enum TestEmptyVariantsExternallyTagged {

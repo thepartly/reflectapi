@@ -615,10 +615,6 @@ impl Converter {
 
         match repr {
             crate::Representation::External => {
-                if variant.fields.len() == 1 && !variant.fields[0].is_named() {
-                    return self.convert_type_ref(schema, kind, variant.fields[0].type_ref());
-                }
-
                 if variant.fields.is_empty() {
                     // ```rust
                     // #[derive(Serialize)]
@@ -658,16 +654,19 @@ impl Converter {
                     );
                 }
 
+                let field = if variant.fields.len() == 1 && !variant.fields[0].is_named() {
+                    self.convert_type_ref(schema, kind, variant.fields[0].type_ref())
+                } else {
+                    self.struct_to_schema(schema, kind, &type_ref, &strukt)
+                };
+
                 return InlineOrRef::Inline(
                     FlatSchema {
                         description: variant.description().to_owned(),
                         ty: Type::Object {
                             title: fmt_type_ref(&type_ref),
                             required: vec![variant.serde_name().to_owned()],
-                            properties: BTreeMap::from([(
-                                variant.serde_name().to_owned(),
-                                self.struct_to_schema(schema, kind, &type_ref, &strukt),
-                            )]),
+                            properties: BTreeMap::from([(variant.serde_name().to_owned(), field)]),
                         },
                     }
                     .into(),
