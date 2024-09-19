@@ -437,6 +437,21 @@ fn test_newtype_variants_externally_tagged() {
 }
 
 #[test]
+fn test_newtype_variants_adjacently_tagged() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(rename_all = "snake_case")]
+    #[serde(tag = "t", content = "c")]
+    enum TestNewtypeVariantsAdjacentlyTagged {
+        Int(i32),
+        String(String),
+        Bool(bool),
+        Unit,
+    }
+
+    assert_snapshot!(TestNewtypeVariantsAdjacentlyTagged);
+}
+
+#[test]
 fn test_empty_variants_externally_tagged() {
     #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
     enum TestEmptyVariantsExternallyTagged {

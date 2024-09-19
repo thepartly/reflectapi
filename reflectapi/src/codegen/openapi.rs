@@ -673,6 +673,11 @@ impl Converter {
                 );
             }
             crate::Representation::Adjacent { tag, content } => {
+                let data = if variant.fields.len() == 1 && !variant.fields[0].is_named() {
+                    self.convert_type_ref(schema, kind, variant.fields[0].type_ref())
+                } else {
+                    self.struct_to_schema(schema, kind, &type_ref, &strukt)
+                };
                 return InlineOrRef::Inline(
                     FlatSchema {
                         description: variant.description().to_owned(),
@@ -690,10 +695,7 @@ impl Converter {
                                         .into(),
                                     ),
                                 ),
-                                (
-                                    content.to_owned(),
-                                    self.struct_to_schema(schema, kind, &type_ref, &strukt),
-                                ),
+                                (content.to_owned(), data),
                             ]),
                         },
                     }
