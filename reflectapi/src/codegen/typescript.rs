@@ -105,14 +105,8 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
         generated_code = format_with(
             // In descending order of speed. The output should be the same.
             [
-                Command::new("biome").args([
-                    "format",
-                    "--indent-style",
-                    "space",
-                    "--stdin-file-path",
-                    "dummy.ts",
-                ]),
-                Command::new("prettier").args(["--parser", "typescript", "--use-tabs"]),
+                Command::new("biome").args(["format", "--stdin-file-path", "dummy.ts"]),
+                Command::new("prettier").args(["--parser", "typescript"]),
             ],
             generated_code,
         )?;
