@@ -18,20 +18,14 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "title": "reflectapi_demo.tests.serde.S<std.string.String, std.tuple.Tuple0>",
-                "required": [
-                  "payload",
-                  "additional"
-                ],
-                "properties": {
-                  "additional": {
-                    "$ref": "#/components/schemas/std.tuple.Tuple0"
-                  },
-                  "payload": {
+                "allOf": [
+                  {
                     "$ref": "#/components/schemas/std.string.String"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.tuple.Tuple0"
                   }
-                }
+                ]
               }
             }
           },
@@ -43,20 +37,14 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "title": "reflectapi_demo.tests.serde.S<std.string.String, std.tuple.Tuple0>",
-                  "required": [
-                    "payload",
-                    "additional"
-                  ],
-                  "properties": {
-                    "additional": {
-                      "$ref": "#/components/schemas/std.tuple.Tuple0"
-                    },
-                    "payload": {
+                  "allOf": [
+                    {
                       "$ref": "#/components/schemas/std.string.String"
+                    },
+                    {
+                      "$ref": "#/components/schemas/std.tuple.Tuple0"
                     }
-                  }
+                  ]
                 }
               }
             }
