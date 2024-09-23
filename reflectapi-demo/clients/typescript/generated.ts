@@ -8,7 +8,6 @@ export function client(base: string | Client): __definition.Interface {
   return __implementation.__client(base);
 }
 /* <----- */
-
 export interface Client {
   request(
     path: string,
@@ -16,6 +15,8 @@ export interface Client {
     headers: Record<string, string>,
   ): Promise<[number, string]>;
 }
+
+export type NullToEmptyObject<T> = T extends null ? {} : T;
 
 export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
 

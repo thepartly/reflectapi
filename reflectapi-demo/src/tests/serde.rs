@@ -541,3 +541,18 @@ fn test_adj_repr_enum_with_untagged_variant() {
     }
     assert_snapshot!(Test);
 }
+
+#[test]
+fn test_flatten_unit() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    pub(crate) struct S<Payload, Additional = ()> {
+        #[serde(flatten)]
+        pub payload: Payload,
+        #[serde(flatten)]
+        pub additional: Additional,
+    }
+
+    assert_snapshot!(S<String>);
+}

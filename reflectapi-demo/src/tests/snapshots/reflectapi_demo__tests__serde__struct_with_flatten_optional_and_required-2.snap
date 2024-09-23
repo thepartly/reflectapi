@@ -44,7 +44,7 @@ export namespace reflectapi_demo {
 
       export type TestStructWithFlattenOptionalAndRequired =
         {} & Partial<reflectapi_demo.tests.serde.TestStructWithFlattenNested> &
-          reflectapi_demo.tests.serde.TestStructRenameAll;
+          NullToEmptyObject<reflectapi_demo.tests.serde.TestStructRenameAll>;
     }
   }
 }

@@ -1,0 +1,142 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::S",
+        "arguments": [
+          {
+            "name": "std::string::String"
+          },
+          {
+            "name": "std::tuple::Tuple0"
+          }
+        ]
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::S",
+        "arguments": [
+          {
+            "name": "std::string::String"
+          },
+          {
+            "name": "std::tuple::Tuple0"
+          }
+        ]
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::S",
+        "parameters": [
+          {
+            "name": "Payload"
+          },
+          {
+            "name": "Additional"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "Payload"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "additional",
+              "type": {
+                "name": "Additional"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::S",
+        "parameters": [
+          {
+            "name": "Payload"
+          },
+          {
+            "name": "Additional"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "Payload"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "additional",
+              "type": {
+                "name": "Additional"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
+      }
+    ]
+  }
+}
