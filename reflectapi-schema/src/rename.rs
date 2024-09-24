@@ -1,5 +1,38 @@
+use std::ops::ControlFlow;
+
+use crate::Visitor;
+
 #[cfg(feature = "glob")]
 pub use self::glob::Glob;
+
+pub(crate) struct Renamer<'a, P> {
+    pattern: P,
+    replacer: &'a str,
+}
+
+impl<'a, P: Pattern> Renamer<'a, P> {
+    pub fn new(pattern: P, replacer: &'a str) -> Self {
+        Self { pattern, replacer }
+    }
+}
+
+impl<'a, P: Pattern> Visitor for Renamer<'a, P> {
+    type Output = usize;
+
+    fn visit_top_level_name(
+        &mut self,
+        name: &mut String,
+    ) -> ControlFlow<Self::Output, Self::Output> {
+        ControlFlow::Continue(
+            self.pattern
+                .rename(&name, self.replacer)
+                .map_or(0, |new_name| {
+                    *name = new_name;
+                    1
+                }),
+        )
+    }
+}
 
 #[allow(private_bounds)]
 pub trait Pattern: Sealed + Copy {
