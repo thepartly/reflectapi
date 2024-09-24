@@ -1096,9 +1096,9 @@ fn build_implemented_types() -> HashMap<String, String> {
     // warning: all generic type parameter names should match reflect defnition coming from
     // the implementation of reflect for standard types
 
-    implemented_types.insert("std::option::Option".into(), "T | null".into());
+    implemented_types.insert("std::option::Option".into(), "(T | null)".into());
     implemented_types.insert("std::array::Array".into(), "FixedSizeArray<T, N>".into());
-    implemented_types.insert("reflectapi::Option".into(), "T | null | undefined".into());
+    implemented_types.insert("reflectapi::Option".into(), "(T | null | undefined)".into());
 
     implemented_types.insert("std::vec::Vec".into(), "Array<T>".into());
     implemented_types.insert("std::collections::HashMap".into(), "Record<K, V>".into());
