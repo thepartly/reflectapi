@@ -42,16 +42,11 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   "components": {
     "schemas": {
       "reflectapi_demo.tests.serde.TestStructWithFlatten": {
-        "type": "object",
-        "title": "reflectapi_demo.tests.serde.TestStructWithFlatten",
-        "required": [
-          "g"
-        ],
-        "properties": {
-          "g": {
+        "allOf": [
+          {
             "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
           }
-        }
+        ]
       },
       "reflectapi_demo.tests.serde.TestStructWithFlattenNested": {
         "type": "object",

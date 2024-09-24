@@ -66,13 +66,8 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         }
       },
       "reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired": {
-        "type": "object",
-        "title": "reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired",
-        "required": [
-          "k"
-        ],
-        "properties": {
-          "g": {
+        "allOf": [
+          {
             "oneOf": [
               {
                 "description": "Null",
@@ -83,10 +78,10 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
               }
             ]
           },
-          "k": {
+          {
             "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAll"
           }
-        }
+        ]
       },
       "u8": {
         "description": "8-bit unsigned integer",

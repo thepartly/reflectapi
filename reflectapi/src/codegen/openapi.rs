@@ -145,6 +145,10 @@ pub enum Type {
 #[serde(untagged)]
 #[serde(rename_all = "camelCase")]
 pub enum Schema {
+    AllOf {
+        #[serde(rename = "allOf")]
+        subschemas: Vec<InlineOrRef<Schema>>,
+    },
     OneOf {
         #[serde(rename = "oneOf")]
         subschemas: Vec<InlineOrRef<Schema>>,
@@ -556,7 +560,7 @@ impl Converter {
                 subschemas
                     .iter()
                     .for_each(|s| match self.resolve_schema_ref(s) {
-                        Schema::OneOf { .. } => {
+                        Schema::OneOf { .. } | Schema::AllOf { .. } => {
                             unreachable!("not expecting nested schema for internal repr")
                         }
                         Schema::Flat(schema) => {
@@ -724,7 +728,7 @@ impl Converter {
                         let s = self.convert_type_ref(schema, kind, &field.type_ref);
                         let s = self.resolve_schema_ref(&s);
                         match s {
-                            Schema::OneOf {
+                            Schema::AllOf{..} | Schema::OneOf {
                                 subschemas: _,
                                 discriminator: _,
                             } => todo!(),
@@ -840,16 +844,18 @@ impl Converter {
             return self.convert_type_ref(schema, kind, strukt.fields[0].type_ref());
         }
 
-        let ty = if strukt.fields().all(|f| f.is_named()) {
+        let (flattened_fields, fields) = strukt.fields().partition::<Vec<_>, _>(|f| f.flattened);
+
+        let ty = if fields.iter().all(|f| f.is_named()) {
             Type::Object {
                 title: fmt_type_ref(type_ref),
-                required: strukt
-                    .fields()
+                required: fields
+                    .iter()
                     .filter(|f| f.required)
                     .map(|f| f.serde_name().to_owned())
                     .collect(),
-                properties: strukt
-                    .fields()
+                properties: fields
+                    .iter()
                     .map(|field| {
                         (field.serde_name().to_owned(), {
                             self.convert_type_ref(schema, kind, field.type_ref())
@@ -858,21 +864,36 @@ impl Converter {
                     .collect(),
             }
         } else {
+            assert!(
+                flattened_fields.is_empty(),
+                "tuple cannot have flattened fields"
+            );
             Type::Tuple {
-                prefix_items: strukt
-                    .fields()
+                prefix_items: fields
+                    .iter()
                     .map(|field| self.convert_type_ref(schema, kind, field.type_ref()))
                     .collect(),
             }
         };
 
-        InlineOrRef::Inline(
-            FlatSchema {
-                description: strukt.description().to_owned(),
-                ty,
+        let s = FlatSchema {
+            description: strukt.description().to_owned(),
+            ty,
+        }
+        .into();
+
+        let s = if flattened_fields.is_empty() {
+            s
+        } else {
+            Schema::AllOf {
+                subschemas: flattened_fields
+                    .into_iter()
+                    .map(|field| self.convert_type_ref(schema, kind, field.type_ref()))
+                    .collect::<Vec<_>>(),
             }
-            .into(),
-        )
+        };
+
+        InlineOrRef::Inline(s)
     }
 }
 
