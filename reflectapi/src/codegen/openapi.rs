@@ -556,20 +556,7 @@ impl Converter {
             .collect::<Vec<_>>();
 
         let schema = match adt.representation() {
-            crate::Representation::Internal { tag } => {
-                subschemas
-                    .iter()
-                    .for_each(|s| match self.resolve_schema_ref(s) {
-                        Schema::OneOf { .. } | Schema::AllOf { .. } => {
-                            unreachable!("not expecting nested schema for internal repr")
-                        }
-                        Schema::Flat(schema) => {
-                            if let Type::Object { properties, .. } = &schema.ty {
-                                assert!(properties.iter().any(|(name, _)| name == tag))
-                            }
-                        }
-                    });
-
+            crate::Representation::Internal { tag: _ } => {
                 Schema::OneOf {
                     subschemas,
                     discriminator: None,
@@ -726,12 +713,23 @@ impl Converter {
                     reflectapi_schema::Fields::Unnamed(fields) if fields.len() == 1 => {
                         let field = fields.pop().unwrap();
                         let s = self.convert_type_ref(schema, kind, &field.type_ref);
-                        let s = self.resolve_schema_ref(&s);
-                        match s {
-                            Schema::AllOf{..} | Schema::OneOf {
-                                subschemas: _,
-                                discriminator: _,
-                            } => todo!(),
+                        match self.resolve_schema_ref(&s) {
+                            Schema::AllOf { subschemas } => {
+                                let mut subschemas = subschemas.clone();
+                                subschemas.push(InlineOrRef::Inline(FlatSchema {
+                                    description: "tag object".to_owned(),
+                                    ty: Type::Object{
+                                        title: "tag".to_owned(),
+                                        required: vec![tag.to_owned()],
+                                        properties: BTreeMap::from([(tag.to_owned(), InlineOrRef::Inline(Schema::Flat(FlatSchema {
+                                            description: "tag".to_owned(),
+                                            ty: Type::String,
+                                        })))]),
+                                    },
+                                }.into()));
+                                return InlineOrRef::Inline(Schema::AllOf{subschemas})
+                            }
+                            s@Schema::OneOf { .. } => todo!("{s:?}"),
                             Schema::Flat(schema) => match &schema.ty {
                                 Type::Boolean
                                 | Type::Integer
@@ -885,11 +883,16 @@ impl Converter {
         let s = if flattened_fields.is_empty() {
             s
         } else {
-            Schema::AllOf {
-                subschemas: flattened_fields
-                    .into_iter()
-                    .map(|field| self.convert_type_ref(schema, kind, field.type_ref()))
-                    .collect::<Vec<_>>(),
+            let subschemas = flattened_fields
+                .into_iter()
+                .map(|field| self.convert_type_ref(schema, kind, field.type_ref()))
+                .chain(std::iter::once(InlineOrRef::Inline(s)))
+                .collect::<Vec<_>>();
+
+            if subschemas.len() == 1 {
+                return subschemas.into_iter().next().unwrap();
+            } else {
+                Schema::AllOf { subschemas }
             }
         };
 

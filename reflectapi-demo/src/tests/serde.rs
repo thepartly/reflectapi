@@ -554,5 +554,49 @@ fn test_flatten_unit() {
         pub additional: Additional,
     }
 
-    assert_snapshot!(S<String>);
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct K {
+        a: u8,
+    }
+
+    assert_snapshot!(S<K>);
+}
+
+#[test]
+fn test_flatten_internally_tagged() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    pub(crate) struct S<Payload, Additional = ()> {
+        #[serde(flatten)]
+        pub payload: Payload,
+        #[serde(flatten)]
+        pub additional: Additional,
+    }
+
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct A {
+        a: u8,
+    }
+
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct B {
+        b: u8,
+    }
+
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(tag = "type")]
+    enum Test {
+        S(S<A, B>),
+    }
+
+    assert_snapshot!(Test);
 }

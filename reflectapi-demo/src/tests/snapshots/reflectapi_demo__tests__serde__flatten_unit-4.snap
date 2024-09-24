@@ -20,10 +20,15 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
               "schema": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/std.string.String"
+                    "$ref": "#/components/schemas/reflectapi_demo.tests.serde.K"
                   },
                   {
                     "$ref": "#/components/schemas/std.tuple.Tuple0"
+                  },
+                  {
+                    "type": "object",
+                    "title": "reflectapi_demo.tests.serde.S<reflectapi_demo.tests.serde.K, std.tuple.Tuple0>",
+                    "properties": {}
                   }
                 ]
               }
@@ -39,10 +44,15 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "schema": {
                   "allOf": [
                     {
-                      "$ref": "#/components/schemas/std.string.String"
+                      "$ref": "#/components/schemas/reflectapi_demo.tests.serde.K"
                     },
                     {
                       "$ref": "#/components/schemas/std.tuple.Tuple0"
+                    },
+                    {
+                      "type": "object",
+                      "title": "reflectapi_demo.tests.serde.S<reflectapi_demo.tests.serde.K, std.tuple.Tuple0>",
+                      "properties": {}
                     }
                   ]
                 }
@@ -55,13 +65,25 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
+      "reflectapi_demo.tests.serde.K": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.K",
+        "required": [
+          "a"
+        ],
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/u8"
+          }
+        }
       },
       "std.tuple.Tuple0": {
         "description": "Unit type",
         "type": "null"
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
       }
     }
   }

@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Test"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Test"
                 }
               }
             }
@@ -41,50 +41,60 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestStructRenameAll": {
+      "reflectapi_demo.tests.serde.A": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.TestStructRenameAll",
+        "title": "reflectapi_demo.tests.serde.A",
         "required": [
-          "fieldName"
+          "a"
         ],
         "properties": {
-          "fieldName": {
+          "a": {
             "$ref": "#/components/schemas/u8"
           }
         }
       },
-      "reflectapi_demo.tests.serde.TestStructWithFlattenNested": {
+      "reflectapi_demo.tests.serde.B": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.TestStructWithFlattenNested",
+        "title": "reflectapi_demo.tests.serde.B",
         "required": [
-          "f"
+          "b"
         ],
         "properties": {
-          "f": {
+          "b": {
             "$ref": "#/components/schemas/u8"
           }
         }
       },
-      "reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired": {
-        "allOf": [
+      "reflectapi_demo.tests.serde.Test": {
+        "oneOf": [
           {
-            "oneOf": [
+            "allOf": [
               {
-                "description": "Null",
-                "type": "null"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.A"
               },
               {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.B"
+              },
+              {
+                "type": "object",
+                "title": "reflectapi_demo.tests.serde.S<reflectapi_demo.tests.serde.A, reflectapi_demo.tests.serde.B>",
+                "properties": {}
+              },
+              {
+                "description": "tag object",
+                "type": "object",
+                "title": "tag",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "description": "tag",
+                    "type": "string"
+                  }
+                }
               }
             ]
-          },
-          {
-            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameAll"
-          },
-          {
-            "type": "object",
-            "title": "reflectapi_demo.tests.serde.TestStructWithFlattenOptionalAndRequired",
-            "properties": {}
           }
         ]
       },

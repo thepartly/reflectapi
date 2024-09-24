@@ -9,26 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::S",
-        "arguments": [
-          {
-            "name": "reflectapi_demo::tests::serde::K"
-          },
-          {
-            "name": "std::tuple::Tuple0"
-          }
-        ]
+        "name": "reflectapi_demo::tests::serde::Test"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::S",
-        "arguments": [
-          {
-            "name": "reflectapi_demo::tests::serde::K"
-          },
-          {
-            "name": "std::tuple::Tuple0"
-          }
-        ]
+        "name": "reflectapi_demo::tests::serde::Test"
       },
       "serialization": [
         "json"
@@ -45,11 +29,26 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::K",
+        "name": "reflectapi_demo::tests::serde::A",
         "fields": {
           "named": [
             {
               "name": "a",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::B",
+        "fields": {
+          "named": [
+            {
+              "name": "b",
               "type": {
                 "name": "u8"
               },
@@ -91,9 +90,37 @@ expression: schema
         }
       },
       {
-        "kind": "primitive",
-        "name": "std::tuple::Tuple0",
-        "description": "Unit type"
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Test",
+        "representation": {
+          "internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "S",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::serde::S",
+                    "arguments": [
+                      {
+                        "name": "reflectapi_demo::tests::serde::A"
+                      },
+                      {
+                        "name": "reflectapi_demo::tests::serde::B"
+                      }
+                    ]
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
       },
       {
         "kind": "primitive",
@@ -112,11 +139,26 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::K",
+        "name": "reflectapi_demo::tests::serde::A",
         "fields": {
           "named": [
             {
               "name": "a",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::B",
+        "fields": {
+          "named": [
+            {
+              "name": "b",
               "type": {
                 "name": "u8"
               },
@@ -158,9 +200,37 @@ expression: schema
         }
       },
       {
-        "kind": "primitive",
-        "name": "std::tuple::Tuple0",
-        "description": "Unit type"
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Test",
+        "representation": {
+          "internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "S",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::serde::S",
+                    "arguments": [
+                      {
+                        "name": "reflectapi_demo::tests::serde::A"
+                      },
+                      {
+                        "name": "reflectapi_demo::tests::serde::B"
+                      }
+                    ]
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
       },
       {
         "kind": "primitive",
