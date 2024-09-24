@@ -35,10 +35,10 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::basic::input::TestStructWithAttributesInputOnly,
+            input: std::string::String,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::basic::output::TestStructWithAttributesInputOnly,
+            super::types::reflectapi_demo::tests::basic::TestStructWithAttributesInputOnly,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
             reflectapi::rt::__request_impl(
@@ -58,16 +58,10 @@ pub mod types {
     pub mod reflectapi_demo {
         pub mod tests {
             pub mod basic {
-                pub mod input {
 
-                    pub type TestStructWithAttributesInputOnly = std::string::String;
-                }
-                pub mod output {
-
-                    #[derive(Debug, serde::Deserialize)]
-                    pub struct TestStructWithAttributesInputOnly {
-                        pub _f: std::string::String,
-                    }
+                #[derive(Debug, serde::Deserialize)]
+                pub struct TestStructWithAttributesInputOnly {
+                    pub _f: std::string::String,
                 }
             }
         }

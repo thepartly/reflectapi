@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeSkipDeserialize"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipDeserialize"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeSkipDeserialize"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipDeserialize"
                 }
               }
             }
@@ -41,10 +41,26 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestStructWithSerdeSkipDeserialize": {
+      "reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipDeserialize": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.TestStructWithSerdeSkipDeserialize",
+        "title": "reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipDeserialize",
         "properties": {}
+      },
+      "reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipDeserialize": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipDeserialize",
+        "required": [
+          "f"
+        ],
+        "properties": {
+          "f": {
+            "$ref": "#/components/schemas/u8"
+          }
+        }
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
       }
     }
   }

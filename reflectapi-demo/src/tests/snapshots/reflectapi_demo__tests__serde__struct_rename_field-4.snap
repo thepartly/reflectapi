@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameField"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestStructRenameField"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructRenameField"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestStructRenameField"
                 }
               }
             }
@@ -41,14 +41,26 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestStructRenameField": {
+      "reflectapi_demo.tests.serde.input.TestStructRenameField": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.TestStructRenameField",
+        "title": "reflectapi_demo.tests.serde.input.TestStructRenameField",
         "required": [
           "fieldName"
         ],
         "properties": {
           "fieldName": {
+            "$ref": "#/components/schemas/u8"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.output.TestStructRenameField": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.output.TestStructRenameField",
+        "required": [
+          "field_name"
+        ],
+        "properties": {
+          "field_name": {
             "$ref": "#/components/schemas/u8"
           }
         }

@@ -23,6 +23,7 @@ where
         .route(handler::<I, reflectapi::Empty>, |b| {
             b.name("input_test".into())
         })
+        .fold_transparent_types()
         .build()
         .unwrap();
     eps.0
@@ -36,6 +37,7 @@ where
         .route(handler::<reflectapi::Empty, O>, |b| {
             b.name("output_test".into())
         })
+        .fold_transparent_types()
         .build()
         .unwrap();
     eps.0
@@ -52,6 +54,7 @@ where
 {
     let eps = reflectapi::Builder::new()
         .route(handler::<T, T>, |b| b.name("inout_test".into()))
+        .fold_transparent_types()
         .build()
         .unwrap();
     eps.0

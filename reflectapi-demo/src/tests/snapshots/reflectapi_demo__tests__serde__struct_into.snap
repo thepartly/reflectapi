@@ -12,7 +12,7 @@ expression: schema
         "name": "reflectapi_demo::tests::serde::TestStructIntoProxy"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::TestStructIntoProxy"
+        "name": "reflectapi_demo::tests::serde::TestStructInto"
       },
       "serialization": [
         "json"
@@ -71,21 +71,6 @@ expression: schema
             }
           ]
         }
-      },
-      {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestStructIntoProxy",
-        "fields": {
-          "unnamed": [
-            {
-              "name": "0",
-              "type": {
-                "name": "reflectapi_demo::tests::serde::TestStructInto"
-              }
-            }
-          ]
-        },
-        "transparent": true
       },
       {
         "kind": "primitive",

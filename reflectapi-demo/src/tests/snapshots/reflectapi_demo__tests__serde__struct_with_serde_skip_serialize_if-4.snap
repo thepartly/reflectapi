@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf"
                 }
               }
             }
@@ -41,12 +41,29 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf": {
+      "reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf",
+        "title": "reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf",
         "required": [
           "f"
         ],
+        "properties": {
+          "f": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/u8"
+              }
+            ]
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf",
         "properties": {
           "f": {
             "oneOf": [

@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithSkipFieldInput"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.input.TestStructWithSkipFieldInput"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithSkipFieldInput"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput"
                 }
               }
             }
@@ -41,10 +41,26 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructWithSkipFieldInput": {
+      "reflectapi_demo.tests.basic.input.TestStructWithSkipFieldInput": {
         "type": "object",
-        "title": "reflectapi_demo.tests.basic.TestStructWithSkipFieldInput",
+        "title": "reflectapi_demo.tests.basic.input.TestStructWithSkipFieldInput",
         "properties": {}
+      },
+      "reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput",
+        "required": [
+          "_f"
+        ],
+        "properties": {
+          "_f": {
+            "$ref": "#/components/schemas/u8"
+          }
+        }
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
       }
     }
   }

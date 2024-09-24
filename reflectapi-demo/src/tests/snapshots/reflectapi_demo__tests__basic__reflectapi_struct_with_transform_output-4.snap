@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithTransformOutput"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.input.TestStructWithTransformOutput"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithTransformOutput"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.output.TestStructWithTransformOutput"
                 }
               }
             }
@@ -41,9 +41,21 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructWithTransformOutput": {
+      "reflectapi_demo.tests.basic.input.TestStructWithTransformOutput": {
         "type": "object",
-        "title": "reflectapi_demo.tests.basic.TestStructWithTransformOutput",
+        "title": "reflectapi_demo.tests.basic.input.TestStructWithTransformOutput",
+        "required": [
+          "_f"
+        ],
+        "properties": {
+          "_f": {
+            "$ref": "#/components/schemas/u8"
+          }
+        }
+      },
+      "reflectapi_demo.tests.basic.output.TestStructWithTransformOutput": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.basic.output.TestStructWithTransformOutput",
         "required": [
           "_f"
         ],

@@ -9,7 +9,7 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::TestStructTryFormProxy"
+        "name": "reflectapi_demo::tests::serde::TestStructTryFrom"
       },
       "output_type": {
         "name": "reflectapi_demo::tests::serde::TestStructTryFormProxy"
@@ -26,21 +26,6 @@ expression: schema
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
-      },
-      {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestStructTryFormProxy",
-        "fields": {
-          "unnamed": [
-            {
-              "name": "0",
-              "type": {
-                "name": "reflectapi_demo::tests::serde::TestStructTryFrom"
-              }
-            }
-          ]
-        },
-        "transparent": true
       },
       {
         "kind": "struct",

@@ -35,12 +35,9 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::basic::TestStructWithAttributes,
+            input: u8,
             headers: reflectapi::Empty,
-        ) -> Result<
-            super::types::reflectapi_demo::tests::basic::TestStructWithAttributes,
-            reflectapi::rt::Error<reflectapi::Empty, C::Error>,
-        > {
+        ) -> Result<u8, reflectapi::rt::Error<reflectapi::Empty, C::Error>> {
             reflectapi::rt::__request_impl(
                 &self.client,
                 self.base_url
@@ -50,17 +47,6 @@ pub mod interface {
                 headers,
             )
             .await
-        }
-    }
-}
-pub mod types {
-
-    pub mod reflectapi_demo {
-        pub mod tests {
-            pub mod basic {
-
-                pub type TestStructWithAttributes = u8;
-            }
         }
     }
 }

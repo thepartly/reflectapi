@@ -15,12 +15,9 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.input.TestStructTryFormProxy,
+      input: reflectapi_demo.tests.serde.TestStructTryFrom,
       headers: {},
-    ) => AsyncResult<
-      reflectapi_demo.tests.serde.output.TestStructTryFormProxy,
-      {}
-    >;
+    ) => AsyncResult<reflectapi_demo.tests.serde.TestStructTryFormProxy, {}>;
   }
 }
 export namespace reflectapi {
@@ -34,19 +31,12 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
-      export interface TestStructTryFrom {
+      export interface TestStructTryFormProxy {
         f: number /* u8 */;
       }
 
-      export namespace input {
-        export type TestStructTryFormProxy =
-          reflectapi_demo.tests.serde.TestStructTryFrom;
-      }
-
-      export namespace output {
-        export interface TestStructTryFormProxy {
-          f: number /* u8 */;
-        }
+      export interface TestStructTryFrom {
+        f: number /* u8 */;
       }
     }
   }
@@ -56,13 +46,13 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.serde.input.TestStructTryFormProxy,
+      input: reflectapi_demo.tests.serde.TestStructTryFrom,
       headers: {},
     ) =>
       __request<
-        reflectapi_demo.tests.serde.input.TestStructTryFormProxy,
+        reflectapi_demo.tests.serde.TestStructTryFrom,
         {},
-        reflectapi_demo.tests.serde.output.TestStructTryFormProxy,
+        reflectapi_demo.tests.serde.TestStructTryFormProxy,
         {}
       >(client, "/inout_test", input, headers);
   }

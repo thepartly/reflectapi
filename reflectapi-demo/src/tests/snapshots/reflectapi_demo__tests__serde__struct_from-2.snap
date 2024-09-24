@@ -15,12 +15,9 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.input.TestStructFromProxy,
+      input: reflectapi_demo.tests.serde.TestStructFrom,
       headers: {},
-    ) => AsyncResult<
-      reflectapi_demo.tests.serde.output.TestStructFromProxy,
-      {}
-    >;
+    ) => AsyncResult<reflectapi_demo.tests.serde.TestStructFromProxy, {}>;
   }
 }
 export namespace reflectapi {
@@ -38,15 +35,8 @@ export namespace reflectapi_demo {
         f: number /* u8 */;
       }
 
-      export namespace input {
-        export type TestStructFromProxy =
-          reflectapi_demo.tests.serde.TestStructFrom;
-      }
-
-      export namespace output {
-        export interface TestStructFromProxy {
-          f: number /* u8 */;
-        }
+      export interface TestStructFromProxy {
+        f: number /* u8 */;
       }
     }
   }
@@ -55,14 +45,11 @@ export namespace reflectapi_demo {
 namespace __implementation {
 
   function inout_test(client: Client) {
-    return (
-      input: reflectapi_demo.tests.serde.input.TestStructFromProxy,
-      headers: {},
-    ) =>
+    return (input: reflectapi_demo.tests.serde.TestStructFrom, headers: {}) =>
       __request<
-        reflectapi_demo.tests.serde.input.TestStructFromProxy,
+        reflectapi_demo.tests.serde.TestStructFrom,
         {},
-        reflectapi_demo.tests.serde.output.TestStructFromProxy,
+        reflectapi_demo.tests.serde.TestStructFromProxy,
         {}
       >(client, "/inout_test", input, headers);
   }

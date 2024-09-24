@@ -15,12 +15,9 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.basic.input.TestStructWithAttributesOutputOnly,
+      input: reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly,
       headers: {},
-    ) => AsyncResult<
-      reflectapi_demo.tests.basic.output.TestStructWithAttributesOutputOnly,
-      {}
-    >;
+    ) => AsyncResult<string, {}>;
   }
 }
 export namespace reflectapi {
@@ -34,14 +31,8 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace basic {
-      export namespace input {
-        export interface TestStructWithAttributesOutputOnly {
-          _f: string;
-        }
-      }
-
-      export namespace output {
-        export type TestStructWithAttributesOutputOnly = string;
+      export interface TestStructWithAttributesOutputOnly {
+        _f: string;
       }
     }
   }
@@ -51,13 +42,13 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.basic.input.TestStructWithAttributesOutputOnly,
+      input: reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly,
       headers: {},
     ) =>
       __request<
-        reflectapi_demo.tests.basic.input.TestStructWithAttributesOutputOnly,
+        reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly,
         {},
-        reflectapi_demo.tests.basic.output.TestStructWithAttributesOutputOnly,
+        string,
         {}
       >(client, "/inout_test", input, headers);
   }

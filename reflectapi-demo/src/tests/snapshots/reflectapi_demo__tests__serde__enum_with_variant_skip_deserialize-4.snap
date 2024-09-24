@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumWithVariantSkipDeserialize"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestEnumWithVariantSkipDeserialize"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumWithVariantSkipDeserialize"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipDeserialize"
                 }
               }
             }
@@ -41,8 +41,15 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestEnumWithVariantSkipDeserialize": {
+      "reflectapi_demo.tests.serde.input.TestEnumWithVariantSkipDeserialize": {
         "oneOf": []
+      },
+      "reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipDeserialize": {
+        "oneOf": [
+          {
+            "type": "string"
+          }
+        ]
       }
     }
   }

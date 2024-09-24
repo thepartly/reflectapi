@@ -14,13 +14,7 @@ export function client(base: string | Client): __definition.Interface {
 
 export namespace __definition {
   export interface Interface {
-    inout_test: (
-      input: reflectapi_demo.tests.basic.TestStructWithAttributesTypeOnly,
-      headers: {},
-    ) => AsyncResult<
-      reflectapi_demo.tests.basic.TestStructWithAttributesTypeOnly,
-      {}
-    >;
+    inout_test: (input: string, headers: {}) => AsyncResult<string, {}>;
   }
 }
 export namespace reflectapi {
@@ -31,26 +25,10 @@ export namespace reflectapi {
   export interface Infallible {}
 }
 
-export namespace reflectapi_demo {
-  export namespace tests {
-    export namespace basic {
-      export type TestStructWithAttributesTypeOnly = string;
-    }
-  }
-}
-
 namespace __implementation {
 
   function inout_test(client: Client) {
-    return (
-      input: reflectapi_demo.tests.basic.TestStructWithAttributesTypeOnly,
-      headers: {},
-    ) =>
-      __request<
-        reflectapi_demo.tests.basic.TestStructWithAttributesTypeOnly,
-        {},
-        reflectapi_demo.tests.basic.TestStructWithAttributesTypeOnly,
-        {}
-      >(client, "/inout_test", input, headers);
+    return (input: string, headers: {}) =>
+      __request<string, {}, string, {}>(client, "/inout_test", input, headers);
   }
 }

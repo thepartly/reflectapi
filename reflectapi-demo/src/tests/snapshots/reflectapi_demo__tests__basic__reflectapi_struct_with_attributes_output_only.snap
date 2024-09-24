@@ -12,7 +12,7 @@ expression: schema
         "name": "reflectapi_demo::tests::basic::TestStructWithAttributesOutputOnly"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::basic::TestStructWithAttributesOutputOnly"
+        "name": "std::string::String"
       },
       "serialization": [
         "json"
@@ -56,21 +56,6 @@ expression: schema
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
-      },
-      {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::basic::TestStructWithAttributesOutputOnly",
-        "fields": {
-          "unnamed": [
-            {
-              "name": "0",
-              "type": {
-                "name": "std::string::String"
-              }
-            }
-          ]
-        },
-        "transparent": true
       },
       {
         "kind": "primitive",

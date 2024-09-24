@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumWithVariantOther"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestEnumWithVariantOther"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestEnumWithVariantOther"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestEnumWithVariantOther"
                 }
               }
             }
@@ -41,11 +41,39 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TestEnumWithVariantOther": {
+      "reflectapi_demo.tests.serde.input.TestEnumWithVariantOther": {
         "oneOf": [
           {
             "type": "object",
             "title": "V0",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.output.TestEnumWithVariantOther": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "V0",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Variant1",
             "required": [
               "type"
             ],

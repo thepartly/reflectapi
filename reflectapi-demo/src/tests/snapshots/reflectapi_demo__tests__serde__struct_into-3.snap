@@ -35,10 +35,10 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::serde::input::TestStructIntoProxy,
+            input: super::types::reflectapi_demo::tests::serde::TestStructIntoProxy,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::serde::output::TestStructIntoProxy,
+            super::types::reflectapi_demo::tests::serde::TestStructInto,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
             reflectapi::rt::__request_impl(
@@ -63,17 +63,10 @@ pub mod types {
                 pub struct TestStructInto {
                     pub f: u8,
                 }
-                pub mod input {
 
-                    #[derive(Debug, serde::Serialize)]
-                    pub struct TestStructIntoProxy {
-                        pub f: u8,
-                    }
-                }
-                pub mod output {
-
-                    pub type TestStructIntoProxy =
-                        super::super::super::super::reflectapi_demo::tests::serde::TestStructInto;
+                #[derive(Debug, serde::Serialize)]
+                pub struct TestStructIntoProxy {
+                    pub f: u8,
                 }
             }
         }
