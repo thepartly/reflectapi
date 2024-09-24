@@ -14,6 +14,7 @@ pub use self::rename::Glob;
 pub use glob::PatternError;
 
 pub use self::rename::*;
+use core::fmt;
 use std::{
     collections::HashMap,
     ops::{ControlFlow, Index},
@@ -175,15 +176,13 @@ impl Schema {
 
     fn rename_input_types(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
         match Renamer::new(pattern, replacer).visit_schema_inputs(self) {
-            ControlFlow::Continue(x) => x,
-            ControlFlow::Break(_) => unreachable!("renamer never breaks"),
+            ControlFlow::Continue(c) | ControlFlow::Break(c) => c,
         }
     }
 
     fn rename_output_types(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
         match Renamer::new(pattern, replacer).visit_schema_outputs(self) {
-            ControlFlow::Continue(x) => x,
-            ControlFlow::Break(_) => unreachable!("renamer never breaks"),
+            ControlFlow::Continue(c) | ControlFlow::Break(c) => c,
         }
     }
 
@@ -255,13 +254,21 @@ impl Schema {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, Default)]
 pub struct Typespace {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     types: Vec<Type>,
 
     #[serde(skip_serializing, default)]
     types_map: std::cell::RefCell<HashMap<String, usize>>,
+}
+
+impl fmt::Debug for Typespace {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_map()
+            .entries(self.types.iter().map(|t| (t.name().to_string(), t)))
+            .finish()
+    }
 }
 
 impl Typespace {

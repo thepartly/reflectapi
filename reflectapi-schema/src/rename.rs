@@ -25,7 +25,7 @@ impl<'a, P: Pattern> Visitor for Renamer<'a, P> {
     ) -> ControlFlow<Self::Output, Self::Output> {
         ControlFlow::Continue(
             self.pattern
-                .rename(&name, self.replacer)
+                .rename(name, self.replacer)
                 .map_or(0, |new_name| {
                     *name = new_name;
                     1

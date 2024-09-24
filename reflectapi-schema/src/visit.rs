@@ -24,9 +24,7 @@ impl Zero for () {
 }
 
 impl Combine for () {
-    fn combine(self, _other: Self) -> Self {
-        ()
-    }
+    fn combine(self, _other: Self) -> Self {}
 }
 
 /// Associative operation for combining two values.
