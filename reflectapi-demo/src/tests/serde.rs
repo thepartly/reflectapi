@@ -600,3 +600,26 @@ fn test_flatten_internally_tagged() {
 
     assert_snapshot!(Test);
 }
+
+#[test]
+fn test_struct_repr_transparent_generic_inner_type() {
+    #[derive(serde::Deserialize, serde::Serialize, reflectapi::Input, reflectapi::Output)]
+    #[serde(transparent)]
+    pub struct Inner(pub std::collections::HashSet<u8>);
+
+    #[derive(serde::Deserialize, serde::Serialize, reflectapi::Input, reflectapi::Output)]
+    pub struct Test {
+        pub inner: Inner,
+    }
+
+    assert_snapshot!(Test);
+}
+
+#[test]
+fn test_generic_struct_repr_transparent() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(transparent)]
+    struct TestStruct<T>(Vec<T>);
+
+    assert_snapshot!(TestStruct<u8>);
+}
