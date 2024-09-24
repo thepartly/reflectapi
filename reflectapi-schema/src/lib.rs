@@ -1,7 +1,10 @@
 mod internal;
 mod rename;
+mod subst;
 mod visit;
 
+pub use self::subst::Instantiate;
+use self::subst::Substitute;
 pub use self::visit::{VisitMut, Visitor};
 
 #[cfg(feature = "glob")]
@@ -185,13 +188,39 @@ impl Schema {
     }
 
     pub fn fold_transparent_types(&mut self) {
-        struct Subst {
-            from: String,
+        // Replace the transparent struct `strukt` with it's single field.
+        #[derive(Debug)]
+        struct SubstVisitor {
+            strukt: Struct,
             to: TypeReference,
         }
 
-        impl Visitor for Subst {
+        impl SubstVisitor {
+            fn new(strukt: Struct) -> Self {
+                assert!(strukt.transparent && strukt.fields.len() == 1);
+                Self {
+                    to: strukt.fields[0].type_ref.clone(),
+                    strukt,
+                }
+            }
+        }
+
+        impl Visitor for SubstVisitor {
             type Output = ();
+
+            fn visit_type_ref(
+                &mut self,
+                type_ref: &mut TypeReference,
+            ) -> ControlFlow<Self::Output, Self::Output> {
+                if type_ref.name == self.strukt.name {
+                    let subst = subst::mk_subst(&self.strukt.parameters, &type_ref.arguments);
+                    *type_ref = self.to.clone().subst(&subst);
+                }
+
+                type_ref.visit_mut(self)?;
+
+                ControlFlow::Continue(())
+            }
         }
 
         let transparent_types = self
@@ -200,12 +229,13 @@ impl Schema {
             .filter_map(|t| {
                 t.as_struct()
                     .filter(|i| i.transparent && i.fields.len() == 1)
-                    .map(|s| (s.name.clone(), s.fields[0].type_ref.name.clone()))
+                    .cloned()
             })
             .collect::<Vec<_>>();
-        for (from, to) in transparent_types {
-            self.input_types.remove_type(&from);
-            self.rename_input_types(from.as_str(), &to);
+
+        for strukt in transparent_types {
+            self.input_types.remove_type(strukt.name());
+            SubstVisitor::new(strukt).visit_schema_inputs(self);
         }
 
         let transparent_types = self
@@ -214,13 +244,13 @@ impl Schema {
             .filter_map(|t| {
                 t.as_struct()
                     .filter(|i| i.transparent && i.fields.len() == 1)
-                    .map(|s| (s.name.clone(), s.fields[0].type_ref.name.clone()))
+                    .cloned()
             })
             .collect::<Vec<_>>();
-        for (from, to) in transparent_types {
-            dbg!(&from, &to);
-            self.output_types.remove_type(&from);
-            self.rename_output_types(from.as_str(), &to);
+
+        for strukt in transparent_types {
+            self.output_types.remove_type(strukt.name());
+            SubstVisitor::new(strukt).visit_schema_outputs(self);
         }
     }
 }

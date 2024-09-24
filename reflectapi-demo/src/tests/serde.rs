@@ -623,3 +623,12 @@ fn test_generic_struct_repr_transparent() {
 
     assert_snapshot!(TestStruct<u8>);
 }
+
+#[test]
+fn test_generic_struct_repr_transparent_partially_generic() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(transparent)]
+    struct TestStruct<V>(std::collections::HashMap<String, V>);
+
+    assert_snapshot!(TestStruct<u8>);
+}

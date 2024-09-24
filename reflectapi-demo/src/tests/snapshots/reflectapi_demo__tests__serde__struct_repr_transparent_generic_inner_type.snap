@@ -35,7 +35,12 @@ expression: schema
             {
               "name": "inner",
               "type": {
-                "name": "std::collections::HashSet"
+                "name": "std::collections::HashSet",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
               },
               "required": true
             }
@@ -93,7 +98,12 @@ expression: schema
             {
               "name": "inner",
               "type": {
-                "name": "std::collections::HashSet"
+                "name": "std::collections::HashSet",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
               },
               "required": true
             }
