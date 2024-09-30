@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Hash)]
 pub enum Option<T> {
     #[default]
     Undefined,

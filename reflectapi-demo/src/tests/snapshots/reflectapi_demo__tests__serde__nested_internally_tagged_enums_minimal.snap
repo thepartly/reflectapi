@@ -1,0 +1,152 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::Test"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::Test"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Test",
+        "representation": {
+          "internal": {
+            "tag": "version"
+          }
+        },
+        "variants": [
+          {
+            "name": "v1",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::serde::V1"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::V1",
+        "representation": {
+          "internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "A",
+            "fields": {
+              "named": [
+                {
+                  "name": "a",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Test",
+        "representation": {
+          "internal": {
+            "tag": "version"
+          }
+        },
+        "variants": [
+          {
+            "name": "v1",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::serde::V1"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::V1",
+        "representation": {
+          "internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "A",
+            "fields": {
+              "named": [
+                {
+                  "name": "a",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}
