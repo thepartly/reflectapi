@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithSkipFieldOutput"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.input.TestStructWithSkipFieldOutput"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithSkipFieldOutput"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.output.TestStructWithSkipFieldOutput"
                 }
               }
             }
@@ -41,9 +41,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructWithSkipFieldOutput": {
+      "reflectapi_demo.tests.basic.input.TestStructWithSkipFieldOutput": {
         "type": "object",
-        "title": "reflectapi_demo.tests.basic.TestStructWithSkipFieldOutput",
+        "title": "reflectapi_demo.tests.basic.input.TestStructWithSkipFieldOutput",
         "required": [
           "_f"
         ],
@@ -52,6 +52,11 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "$ref": "#/components/schemas/u8"
           }
         }
+      },
+      "reflectapi_demo.tests.basic.output.TestStructWithSkipFieldOutput": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.basic.output.TestStructWithSkipFieldOutput",
+        "properties": {}
       },
       "u8": {
         "description": "8-bit unsigned integer",

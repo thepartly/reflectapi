@@ -9,10 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::TestEnumWithVariantOther"
+        "name": "reflectapi_demo::tests::serde::input::TestEnumWithVariantOther"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::TestEnumWithVariantOther"
+        "name": "reflectapi_demo::tests::serde::output::TestEnumWithVariantOther"
       },
       "serialization": [
         "json"
@@ -29,7 +29,7 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::serde::TestEnumWithVariantOther",
+        "name": "reflectapi_demo::tests::serde::input::TestEnumWithVariantOther",
         "representation": {
           "internal": {
             "tag": "type"
@@ -54,7 +54,7 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::serde::TestEnumWithVariantOther",
+        "name": "reflectapi_demo::tests::serde::output::TestEnumWithVariantOther",
         "representation": {
           "internal": {
             "tag": "type"

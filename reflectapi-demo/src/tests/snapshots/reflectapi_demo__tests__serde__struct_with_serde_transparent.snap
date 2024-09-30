@@ -9,10 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeTransparent"
+        "name": "u8"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeTransparent"
+        "name": "u8"
       },
       "serialization": [
         "json"
@@ -28,22 +28,6 @@ expression: schema
         "fields": "none"
       },
       {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeTransparent",
-        "fields": {
-          "named": [
-            {
-              "name": "_f",
-              "type": {
-                "name": "u8"
-              },
-              "required": true
-            }
-          ]
-        },
-        "transparent": true
-      },
-      {
         "kind": "primitive",
         "name": "u8",
         "description": "8-bit unsigned integer"
@@ -57,22 +41,6 @@ expression: schema
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
-      },
-      {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeTransparent",
-        "fields": {
-          "named": [
-            {
-              "name": "_f",
-              "type": {
-                "name": "u8"
-              },
-              "required": true
-            }
-          ]
-        },
-        "transparent": true
       },
       {
         "kind": "primitive",

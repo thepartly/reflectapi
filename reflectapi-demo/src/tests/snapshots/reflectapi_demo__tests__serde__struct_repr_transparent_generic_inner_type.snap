@@ -1,5 +1,5 @@
 ---
-source: reflectapi-demo/src/tests/basic.rs
+source: reflectapi-demo/src/tests/serde.rs
 expression: schema
 ---
 {
@@ -9,10 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::basic::input::TestStructWithTransformOutput"
+        "name": "reflectapi_demo::tests::serde::Test"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::basic::output::TestStructWithTransformOutput"
+        "name": "reflectapi_demo::tests::serde::Test"
       },
       "serialization": [
         "json"
@@ -29,18 +29,13 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::basic::input::TestStructWithTransformOutput",
+        "name": "reflectapi_demo::tests::serde::Test",
         "fields": {
           "named": [
             {
-              "name": "_f",
+              "name": "inner",
               "type": {
-                "name": "std::sync::Arc",
-                "arguments": [
-                  {
-                    "name": "u8"
-                  }
-                ]
+                "name": "std::collections::HashSet"
               },
               "required": true
             }
@@ -49,16 +44,31 @@ expression: schema
       },
       {
         "kind": "primitive",
-        "name": "std::sync::Arc",
-        "description": "std::sync::Arc pointer type",
+        "name": "std::collections::HashSet",
+        "description": "Value set type",
+        "parameters": [
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::vec::Vec",
+          "arguments": [
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
         "parameters": [
           {
             "name": "T"
           }
-        ],
-        "fallback": {
-          "name": "T"
-        }
+        ]
       },
       {
         "kind": "primitive",
@@ -77,13 +87,13 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::basic::output::TestStructWithTransformOutput",
+        "name": "reflectapi_demo::tests::serde::Test",
         "fields": {
           "named": [
             {
-              "name": "_f",
+              "name": "inner",
               "type": {
-                "name": "u8"
+                "name": "std::collections::HashSet"
               },
               "required": true
             }
@@ -92,16 +102,31 @@ expression: schema
       },
       {
         "kind": "primitive",
-        "name": "std::sync::Arc",
-        "description": "std::sync::Arc pointer type",
+        "name": "std::collections::HashSet",
+        "description": "Value set type",
+        "parameters": [
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::vec::Vec",
+          "arguments": [
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
         "parameters": [
           {
             "name": "T"
           }
-        ],
-        "fallback": {
-          "name": "T"
-        }
+        ]
       },
       {
         "kind": "primitive",

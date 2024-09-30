@@ -159,21 +159,16 @@ where
         self
     }
 
-    pub fn fold_transparent_types(mut self) -> Self {
-        self.schema.fold_transparent_types();
-        self
-    }
-
-    pub fn consolidate_types(mut self) -> Self {
-        self.schema.consolidate_types();
-        self
-    }
-
     pub fn validate(
         mut self,
         validation: fn(&crate::Schema) -> Vec<crate::ValidationError>,
     ) -> Self {
         self.validators.push(validation);
+        self
+    }
+
+    pub fn fold_transparent_types(mut self) -> Self {
+        self.schema.fold_transparent_types();
         self
     }
 
@@ -205,6 +200,8 @@ where
             };
             routers.push(router);
         }
+
+        self.schema.consolidate_types();
 
         Ok((self.schema, routers))
     }

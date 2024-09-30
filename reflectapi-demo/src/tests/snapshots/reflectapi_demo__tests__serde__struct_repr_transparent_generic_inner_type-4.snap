@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/u8"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Test"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/u8"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Test"
                 }
               }
             }
@@ -41,6 +41,26 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
+      "reflectapi_demo.tests.serde.Inner": {
+        "description": "Value set type",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/u8"
+        },
+        "uniqueItems": true
+      },
+      "reflectapi_demo.tests.serde.Test": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.Test",
+        "required": [
+          "inner"
+        ],
+        "properties": {
+          "inner": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Inner"
+          }
+        }
+      },
       "u8": {
         "description": "8-bit unsigned integer",
         "type": "integer"

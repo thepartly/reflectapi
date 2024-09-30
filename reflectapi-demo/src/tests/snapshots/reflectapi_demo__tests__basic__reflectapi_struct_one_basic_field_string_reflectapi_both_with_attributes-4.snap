@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothDifferently"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.input.TestStructOneBasicFieldStringReflectBothDifferently"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothDifferently"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently"
                 }
               }
             }
@@ -45,9 +45,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         "description": "32-bit signed integer",
         "type": "integer"
       },
-      "reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothDifferently": {
+      "reflectapi_demo.tests.basic.input.TestStructOneBasicFieldStringReflectBothDifferently": {
         "type": "object",
-        "title": "reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothDifferently",
+        "title": "reflectapi_demo.tests.basic.input.TestStructOneBasicFieldStringReflectBothDifferently",
         "required": [
           "_f"
         ],
@@ -56,6 +56,22 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "$ref": "#/components/schemas/i32"
           }
         }
+      },
+      "reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently",
+        "required": [
+          "_f"
+        ],
+        "properties": {
+          "_f": {
+            "$ref": "#/components/schemas/u32"
+          }
+        }
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
       }
     }
   }

@@ -35,8 +35,6 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
             b.name("pets.get-first".into())
                 .description("Fetch first pet, if any exists".into())
         })
-        // some optional tuning
-        .fold_transparent_types()
         .rename_types("reflectapi_demo::", "myapi::")
         // and some optional linting rules
         .validate(|schema| {

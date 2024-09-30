@@ -9,10 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothDifferently"
+        "name": "reflectapi_demo::tests::basic::input::TestStructOneBasicFieldStringReflectBothDifferently"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothDifferently"
+        "name": "reflectapi_demo::tests::basic::output::TestStructOneBasicFieldStringReflectBothDifferently"
       },
       "serialization": [
         "json"
@@ -34,7 +34,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothDifferently",
+        "name": "reflectapi_demo::tests::basic::input::TestStructOneBasicFieldStringReflectBothDifferently",
         "fields": {
           "named": [
             {
@@ -59,7 +59,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStringReflectBothDifferently",
+        "name": "reflectapi_demo::tests::basic::output::TestStructOneBasicFieldStringReflectBothDifferently",
         "fields": {
           "named": [
             {

@@ -9,10 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf"
+        "name": "reflectapi_demo::tests::serde::input::TestStructWithSerdeSkipSerializeIf"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf"
+        "name": "reflectapi_demo::tests::serde::output::TestStructWithSerdeSkipSerializeIf"
       },
       "serialization": [
         "json"
@@ -29,7 +29,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf",
+        "name": "reflectapi_demo::tests::serde::input::TestStructWithSerdeSkipSerializeIf",
         "fields": {
           "named": [
             {
@@ -96,7 +96,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf",
+        "name": "reflectapi_demo::tests::serde::output::TestStructWithSerdeSkipSerializeIf",
         "fields": {
           "named": [
             {

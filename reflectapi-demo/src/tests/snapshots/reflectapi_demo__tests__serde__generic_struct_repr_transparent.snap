@@ -9,10 +9,20 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::input::TestStructRenameAllDifferently"
+        "name": "std::vec::Vec",
+        "arguments": [
+          {
+            "name": "u8"
+          }
+        ]
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::output::TestStructRenameAllDifferently"
+        "name": "std::vec::Vec",
+        "arguments": [
+          {
+            "name": "u8"
+          }
+        ]
       },
       "serialization": [
         "json"
@@ -28,19 +38,14 @@ expression: schema
         "fields": "none"
       },
       {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::input::TestStructRenameAllDifferently",
-        "fields": {
-          "named": [
-            {
-              "name": "field_name",
-              "type": {
-                "name": "u8"
-              },
-              "required": true
-            }
-          ]
-        }
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
       },
       {
         "kind": "primitive",
@@ -58,19 +63,14 @@ expression: schema
         "fields": "none"
       },
       {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::output::TestStructRenameAllDifferently",
-        "fields": {
-          "named": [
-            {
-              "name": "fieldName",
-              "type": {
-                "name": "u8"
-              },
-              "required": true
-            }
-          ]
-        }
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
       },
       {
         "kind": "primitive",

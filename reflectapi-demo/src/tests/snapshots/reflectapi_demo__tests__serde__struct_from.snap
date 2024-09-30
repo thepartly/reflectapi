@@ -9,7 +9,7 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::TestStructFromProxy"
+        "name": "reflectapi_demo::tests::serde::TestStructFrom"
       },
       "output_type": {
         "name": "reflectapi_demo::tests::serde::TestStructFromProxy"
@@ -41,21 +41,6 @@ expression: schema
             }
           ]
         }
-      },
-      {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestStructFromProxy",
-        "fields": {
-          "unnamed": [
-            {
-              "name": "0",
-              "type": {
-                "name": "reflectapi_demo::tests::serde::TestStructFrom"
-              }
-            }
-          ]
-        },
-        "transparent": true
       },
       {
         "kind": "primitive",
