@@ -1,5 +1,11 @@
 mod internal;
 mod rename;
+mod subst;
+mod visit;
+
+pub use self::subst::Instantiate;
+use self::subst::Substitute;
+pub use self::visit::{VisitMut, Visitor};
 
 #[cfg(feature = "glob")]
 pub use self::rename::Glob;
@@ -8,7 +14,11 @@ pub use self::rename::Glob;
 pub use glob::PatternError;
 
 pub use self::rename::*;
-use std::{collections::HashMap, ops::Index};
+use core::fmt;
+use std::{
+    collections::HashMap,
+    ops::{ControlFlow, Index},
+};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Schema {
@@ -155,46 +165,76 @@ impl Schema {
         glob: &str,
         replacer: &str,
     ) -> Result<(), glob::PatternError> {
-        let matcher = glob.parse::<Glob>()?;
-        self.rename_types(&matcher, replacer);
+        let pattern = glob.parse::<Glob>()?;
+        self.rename_types(&pattern, replacer);
         Ok(())
     }
 
-    pub fn rename_types(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
-        self.rename_input_types(matcher, replacer) + self.rename_output_types(matcher, replacer)
+    pub fn rename_types(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
+        self.rename_input_types(pattern, replacer) + self.rename_output_types(pattern, replacer)
     }
 
-    pub fn rename_input_types(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
-        self.input_types.rename_types(matcher, replacer)
-            + self
-                .functions
-                .iter_mut()
-                .map(|f| f.rename_input_types(matcher, replacer))
-                .sum::<usize>()
+    fn rename_input_types(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
+        match Renamer::new(pattern, replacer).visit_schema_inputs(self) {
+            ControlFlow::Continue(c) | ControlFlow::Break(c) => c,
+        }
     }
 
-    pub fn rename_output_types(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
-        self.output_types.rename_types(matcher, replacer)
-            + self
-                .functions
-                .iter_mut()
-                .map(|f| f.rename_output_types(matcher, replacer))
-                .sum::<usize>()
+    fn rename_output_types(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
+        match Renamer::new(pattern, replacer).visit_schema_outputs(self) {
+            ControlFlow::Continue(c) | ControlFlow::Break(c) => c,
+        }
     }
 
     pub fn fold_transparent_types(&mut self) {
+        // Replace the transparent struct `strukt` with it's single field.
+        #[derive(Debug)]
+        struct SubstVisitor {
+            strukt: Struct,
+            to: TypeReference,
+        }
+
+        impl SubstVisitor {
+            fn new(strukt: Struct) -> Self {
+                assert!(strukt.transparent && strukt.fields.len() == 1);
+                Self {
+                    to: strukt.fields[0].type_ref.clone(),
+                    strukt,
+                }
+            }
+        }
+
+        impl Visitor for SubstVisitor {
+            type Output = ();
+
+            fn visit_type_ref(
+                &mut self,
+                type_ref: &mut TypeReference,
+            ) -> ControlFlow<Self::Output, Self::Output> {
+                if type_ref.name == self.strukt.name {
+                    let subst = subst::mk_subst(&self.strukt.parameters, &type_ref.arguments);
+                    *type_ref = self.to.clone().subst(&subst);
+                }
+
+                type_ref.visit_mut(self)?;
+
+                ControlFlow::Continue(())
+            }
+        }
+
         let transparent_types = self
             .input_types()
             .types()
             .filter_map(|t| {
                 t.as_struct()
                     .filter(|i| i.transparent && i.fields.len() == 1)
-                    .map(|s| (s.name.clone(), s.fields[0].type_ref.name.clone()))
+                    .cloned()
             })
             .collect::<Vec<_>>();
-        for (from, to) in transparent_types {
-            self.input_types.remove_type(&from);
-            self.rename_input_types(from.as_str(), &to);
+
+        for strukt in transparent_types {
+            self.input_types.remove_type(strukt.name());
+            SubstVisitor::new(strukt).visit_schema_inputs(self);
         }
 
         let transparent_types = self
@@ -203,23 +243,32 @@ impl Schema {
             .filter_map(|t| {
                 t.as_struct()
                     .filter(|i| i.transparent && i.fields.len() == 1)
-                    .map(|s| (s.name.clone(), s.fields[0].type_ref.name.clone()))
+                    .cloned()
             })
             .collect::<Vec<_>>();
-        for (from, to) in transparent_types {
-            self.output_types.remove_type(&from);
-            self.rename_output_types(from.as_str(), &to);
+
+        for strukt in transparent_types {
+            self.output_types.remove_type(strukt.name());
+            SubstVisitor::new(strukt).visit_schema_outputs(self);
         }
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, Default)]
 pub struct Typespace {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     types: Vec<Type>,
 
     #[serde(skip_serializing, default)]
     types_map: std::cell::RefCell<HashMap<String, usize>>,
+}
+
+impl fmt::Debug for Typespace {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_map()
+            .entries(self.types.iter().map(|t| (t.name().to_string(), t)))
+            .finish()
+    }
 }
 
 impl Typespace {
@@ -288,14 +337,6 @@ impl Typespace {
         Some(self.types.remove(index))
     }
 
-    fn rename_types(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
-        self.invalidate_types_map();
-        self.types
-            .iter_mut()
-            .map(|ty| ty.rename(pattern, replacer))
-            .sum()
-    }
-
     pub fn sort_types(&mut self) {
         self.types.sort_by(|a, b| a.name().cmp(b.name()));
         self.build_types_map();
@@ -317,7 +358,7 @@ impl Typespace {
     }
 
     fn invalidate_types_map(&self) {
-        *(self.types_map.borrow_mut()) = HashMap::new();
+        self.types_map.borrow_mut().clear()
     }
 
     fn ensure_types_map(&self) {
@@ -423,31 +464,6 @@ impl Function {
     pub fn readonly(&self) -> bool {
         self.readonly
     }
-
-    fn rename_input_types(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
-        let mut count = 0;
-        if let Some(input_type) = &mut self.input_type {
-            count += input_type.rename(matcher, replacer);
-        }
-
-        if let Some(input_headers) = &mut self.input_headers {
-            count += input_headers.rename(matcher, replacer);
-        }
-
-        count
-    }
-
-    fn rename_output_types(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
-        let mut count = 0;
-        if let Some(output_type) = &mut self.output_type {
-            count += output_type.rename(matcher, replacer);
-        }
-
-        if let Some(error_type) = &mut self.error_type {
-            count += error_type.rename(matcher, replacer);
-        }
-        count
-    }
 }
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
@@ -499,17 +515,6 @@ impl TypeReference {
     pub fn fallback_once(&self, schema: &Typespace) -> Option<TypeReference> {
         let type_def = schema.get_type(self.name())?;
         type_def.fallback_internal(self)
-    }
-
-    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
-        pattern.rename(&self.name, replacer).map_or(0, |new_name| {
-            self.name = new_name;
-            1
-        }) + self
-            .arguments
-            .iter_mut()
-            .map(|arg| arg.rename(pattern, replacer))
-            .sum::<usize>()
     }
 }
 
@@ -660,14 +665,6 @@ impl Type {
         }
     }
 
-    fn rename(&mut self, matcher: impl Pattern, replacer: &str) -> usize {
-        match self {
-            Type::Primitive(p) => p.rename(matcher, replacer),
-            Type::Struct(s) => s.rename(matcher, replacer),
-            Type::Enum(e) => e.rename(matcher, replacer),
-        }
-    }
-
     pub fn __internal_rename_current(&mut self, new_name: String) {
         match self {
             Type::Primitive(p) => p.name = new_name,
@@ -786,13 +783,6 @@ impl Primitive {
             arguments: new_arguments_for_origin,
         })
     }
-
-    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
-        pattern.rename(&self.name, replacer).map_or(0, |new_name| {
-            self.name = new_name;
-            1
-        })
-    }
 }
 
 impl From<Primitive> for Type {
@@ -895,17 +885,6 @@ impl Struct {
                 .fields
                 .iter()
                 .all(|f| f.name().parse::<usize>().is_ok())
-    }
-
-    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
-        pattern.rename(&self.name, replacer).map_or(0, |new_name| {
-            self.name = new_name;
-            1
-        }) + self
-            .fields
-            .iter_mut()
-            .map(|f| f.rename(pattern, replacer))
-            .sum::<usize>()
     }
 }
 
@@ -1090,10 +1069,6 @@ impl Field {
     pub fn transform_callback_fn(&self) -> Option<fn(&mut TypeReference, &Typespace)> {
         self.transform_callback_fn
     }
-
-    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
-        self.type_ref.rename(pattern, replacer)
-    }
 }
 
 fn is_false(b: &bool) -> bool {
@@ -1158,17 +1133,6 @@ impl Enum {
     pub fn variants(&self) -> std::slice::Iter<Variant> {
         self.variants.iter()
     }
-
-    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
-        pattern.rename(&self.name, replacer).map_or(0, |new_name| {
-            self.name = new_name;
-            1
-        }) + self
-            .variants
-            .iter_mut()
-            .map(|v| v.rename(pattern, replacer))
-            .sum::<usize>()
-    }
 }
 
 impl From<Enum> for Type {
@@ -1232,13 +1196,6 @@ impl Variant {
 
     pub fn untagged(&self) -> bool {
         self.untagged
-    }
-
-    fn rename(&mut self, pattern: impl Pattern, replacer: &str) -> usize {
-        self.fields
-            .iter_mut()
-            .map(|f| f.rename(pattern, replacer))
-            .sum::<usize>()
     }
 }
 

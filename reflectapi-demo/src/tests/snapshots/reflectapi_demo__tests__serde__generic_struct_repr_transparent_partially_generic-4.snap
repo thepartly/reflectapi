@@ -18,7 +18,11 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Test"
+                "description": "Key-value map type",
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/u8"
+                }
               }
             }
           },
@@ -30,7 +34,11 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Test"
+                  "description": "Key-value map type",
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/u8"
+                  }
                 }
               }
             }
@@ -41,23 +49,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.Test": {
-        "type": "object",
-        "title": "reflectapi_demo.tests.serde.Test",
-        "required": [
-          "inner"
-        ],
-        "properties": {
-          "inner": {
-            "description": "Value set type",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/u8"
-            },
-            "uniqueItems": true
-          }
-        }
-      },
       "u8": {
         "description": "8-bit unsigned integer",
         "type": "integer"

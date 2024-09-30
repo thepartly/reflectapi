@@ -14,9 +14,10 @@ use std::collections::BTreeMap;
 use std::marker::PhantomData;
 use std::sync::OnceLock;
 
+use reflectapi_schema::Instantiate;
 use serde::Serialize;
 
-use super::{Config, Instantiate};
+use super::Config;
 
 pub fn generate(schema: crate::Schema, _config: &Config) -> anyhow::Result<String> {
     let spec = Spec::from(&schema);
