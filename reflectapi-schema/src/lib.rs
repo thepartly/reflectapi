@@ -1,10 +1,11 @@
+mod codegen;
 mod internal;
 mod rename;
 mod subst;
 mod visit;
 
-pub use self::subst::Instantiate;
-use self::subst::Substitute;
+pub use self::codegen::*;
+pub use self::subst::{mk_subst, Instantiate, Substitute};
 pub use self::visit::{VisitMut, Visitor};
 
 #[cfg(feature = "glob")]
@@ -61,7 +62,7 @@ impl Schema {
         self.description.as_str()
     }
 
-    pub fn functions(&self) -> std::slice::Iter<Function> {
+    pub fn functions(&self) -> std::slice::Iter<'_, Function> {
         self.functions.iter()
     }
 
@@ -283,7 +284,7 @@ impl Typespace {
         self.types.is_empty()
     }
 
-    pub fn types(&self) -> std::slice::Iter<Type> {
+    pub fn types(&self) -> std::slice::Iter<'_, Type> {
         self.types.iter()
     }
 
@@ -457,7 +458,7 @@ impl Function {
         self.error_type.as_ref()
     }
 
-    pub fn serialization(&self) -> std::slice::Iter<SerializationMode> {
+    pub fn serialization(&self) -> std::slice::Iter<'_, SerializationMode> {
         self.serialization.iter()
     }
 
@@ -496,7 +497,7 @@ impl TypeReference {
         self.name.as_str()
     }
 
-    pub fn arguments(&self) -> std::slice::Iter<TypeReference> {
+    pub fn arguments(&self) -> std::slice::Iter<'_, TypeReference> {
         self.arguments.iter()
     }
 
@@ -616,7 +617,7 @@ impl Type {
         }
     }
 
-    pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
+    pub fn parameters(&self) -> std::slice::Iter<'_, TypeParameter> {
         match self {
             Type::Primitive(p) => p.parameters(),
             Type::Struct(s) => s.parameters(),
@@ -720,7 +721,7 @@ impl Primitive {
         self.description.as_str()
     }
 
-    pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
+    pub fn parameters(&self) -> std::slice::Iter<'_, TypeParameter> {
         self.parameters.iter()
     }
 
@@ -814,17 +815,21 @@ pub struct Struct {
     /// If serde transparent attribute is set on a struct
     #[serde(skip_serializing_if = "is_false", default)]
     pub transparent: bool,
+
+    #[serde(skip_serializing_if = "is_default", default)]
+    pub codegen_config: LanguageSpecificTypeCodegenConfig,
 }
 
 impl Struct {
     pub fn new(name: String) -> Self {
         Struct {
             name,
-            serde_name: String::new(),
-            description: String::new(),
-            parameters: Vec::new(),
-            fields: Fields::None,
-            transparent: false,
+            serde_name: Default::default(),
+            description: Default::default(),
+            parameters: Default::default(),
+            fields: Default::default(),
+            transparent: Default::default(),
+            codegen_config: Default::default(),
         }
     }
 
@@ -846,11 +851,11 @@ impl Struct {
         self.description.as_str()
     }
 
-    pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
+    pub fn parameters(&self) -> std::slice::Iter<'_, TypeParameter> {
         self.parameters.iter()
     }
 
-    pub fn fields(&self) -> std::slice::Iter<Field> {
+    pub fn fields(&self) -> std::slice::Iter<'_, Field> {
         self.fields.iter()
     }
 
@@ -894,7 +899,7 @@ impl From<Struct> for Type {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum Fields {
     /// Named struct or variant:
@@ -909,6 +914,7 @@ pub enum Fields {
     ///
     /// struct S;
     /// enum S { U }
+    #[default]
     None,
 }
 
@@ -927,14 +933,14 @@ impl Fields {
         }
     }
 
-    pub fn iter(&self) -> std::slice::Iter<Field> {
+    pub fn iter(&self) -> std::slice::Iter<'_, Field> {
         match self {
             Fields::Named(fields) | Fields::Unnamed(fields) => fields.iter(),
             Fields::None => [].iter(),
         }
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<Field> {
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, Field> {
         match self {
             Fields::Named(fields) | Fields::Unnamed(fields) => fields.iter_mut(),
             Fields::None => [].iter_mut(),
@@ -1075,6 +1081,10 @@ fn is_false(b: &bool) -> bool {
     !*b
 }
 
+fn is_default<T: Default + PartialEq>(t: &T) -> bool {
+    *t == Default::default()
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Enum {
     pub name: String,
@@ -1092,17 +1102,21 @@ pub struct Enum {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub variants: Vec<Variant>,
+
+    #[serde(skip_serializing_if = "is_default", default)]
+    pub codegen_config: LanguageSpecificTypeCodegenConfig,
 }
 
 impl Enum {
     pub fn new(name: String) -> Self {
         Enum {
             name,
-            serde_name: String::new(),
-            description: String::new(),
-            parameters: Vec::new(),
+            serde_name: Default::default(),
+            description: Default::default(),
+            parameters: Default::default(),
             representation: Default::default(),
-            variants: Vec::new(),
+            variants: Default::default(),
+            codegen_config: Default::default(),
         }
     }
 
@@ -1122,7 +1136,7 @@ impl Enum {
         self.description.as_str()
     }
 
-    pub fn parameters(&self) -> std::slice::Iter<TypeParameter> {
+    pub fn parameters(&self) -> std::slice::Iter<'_, TypeParameter> {
         self.parameters.iter()
     }
 
@@ -1130,7 +1144,7 @@ impl Enum {
         &self.representation
     }
 
-    pub fn variants(&self) -> std::slice::Iter<Variant> {
+    pub fn variants(&self) -> std::slice::Iter<'_, Variant> {
         self.variants.iter()
     }
 }
@@ -1186,7 +1200,7 @@ impl Variant {
         self.description.as_str()
     }
 
-    pub fn fields(&self) -> std::slice::Iter<Field> {
+    pub fn fields(&self) -> std::slice::Iter<'_, Field> {
         self.fields.iter()
     }
 

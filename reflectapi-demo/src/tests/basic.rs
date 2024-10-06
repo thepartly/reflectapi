@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 #[test]
 fn compiler_error_cases() {
@@ -520,4 +520,64 @@ struct TestStructWithSkipFieldOutput {
 #[test]
 fn test_reflectapi_struct_with_skip_field_output() {
     assert_snapshot!(TestStructWithSkipFieldOutput);
+}
+
+#[test]
+fn test_reflectapi_struct_with_additional_derives() {
+    #[derive(
+        reflectapi::Input,
+        reflectapi::Output,
+        serde::Deserialize,
+        serde::Serialize,
+        PartialOrd,
+        Ord,
+        PartialEq,
+        Eq,
+        Hash,
+    )]
+    #[reflectapi(derive(PartialOrd, Ord, Hash, Eq))]
+    struct X {}
+
+    #[derive(
+        reflectapi::Input,
+        reflectapi::Output,
+        serde::Deserialize,
+        serde::Serialize,
+        PartialOrd,
+        Ord,
+        PartialEq,
+        Eq,
+        Hash,
+    )]
+    #[reflectapi(derive(PartialOrd, Ord, Hash, Eq))]
+    enum Y {
+        Y,
+    }
+
+    #[derive(
+        reflectapi::Input,
+        reflectapi::Output,
+        serde::Deserialize,
+        serde::Serialize,
+        PartialEq,
+        Eq,
+        PartialOrd,
+        Ord,
+        Hash,
+        Default,
+    )]
+    #[reflectapi(derive(PartialOrd, Ord, Hash, Default))]
+    struct U;
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[reflectapi(derive(PartialOrd, Ord, Hash))]
+    struct Test {
+        us: BTreeSet<U>,
+        xs: BTreeSet<X>,
+        ys: HashSet<Y>,
+        u_to_x: BTreeMap<U, X>,
+        x_to_y: HashMap<X, Y>,
+    }
+
+    assert_snapshot!(Test);
 }

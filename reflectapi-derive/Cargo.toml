@@ -15,6 +15,9 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lints]
+workspace = true
+
 [lib]
 proc-macro = true
 
@@ -23,6 +26,6 @@ reflectapi-schema = { path = '../reflectapi-schema', version = "0.8.4" }
 
 proc-macro2 = "1.0"
 quote = "1.0"
-syn = { version = "2.0.52", features = ["extra-traits"] }
+syn = { version = "2.0.52", features = ["parsing", "extra-traits"] }
 serde_derive_internals = "0.29.0"
 proc-macro-error = "1.0.0"

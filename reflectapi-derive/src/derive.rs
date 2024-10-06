@@ -147,12 +147,23 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
     let (type_def_name, serde_name) =
         visit_name(cx, container.attrs.name(), Some(&container.original.ident));
     let type_def_description = parse_doc_attributes(&container.original.attrs);
+    let attrs = parse_type_attributes(cx, &container.original.attrs);
+    let codegen_config = reflectapi_schema::LanguageSpecificTypeCodegenConfig {
+        rust: reflectapi_schema::RustTypeCodegenConfig {
+            additional_derives: attrs
+                .derives
+                .iter()
+                .map(|d| d.to_token_stream().to_string())
+                .collect(),
+        },
+    };
 
     fn make_alias_type(
         type_def_name: String,
         type_def_description: String,
         serde_name: String,
         type_ref: reflectapi_schema::TypeReference,
+        codegen_config: reflectapi_schema::LanguageSpecificTypeCodegenConfig,
     ) -> Struct {
         Struct {
             name: type_def_name,
@@ -161,10 +172,10 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
             parameters: Vec::new(),
             fields: Fields::Unnamed(vec![Field::new("0".into(), type_ref)]),
             transparent: true,
+            codegen_config,
         }
     }
 
-    let attrs = parse_type_attributes(cx, &container.original.attrs);
     match cx.reflectapi_type() {
         ReflectType::Input => {
             if let Some(input_type_attribute) = attrs.input_type {
@@ -173,6 +184,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                     type_def_description,
                     serde_name,
                     visit_field_type(cx, &input_type_attribute),
+                    codegen_config,
                 )
                 .into();
             }
@@ -182,6 +194,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                     type_def_description,
                     serde_name,
                     visit_field_type(cx, a),
+                    codegen_config,
                 )
                 .into();
             }
@@ -191,6 +204,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                     type_def_description,
                     serde_name,
                     visit_field_type(cx, a),
+                    codegen_config,
                 )
                 .into();
             }
@@ -202,6 +216,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                     type_def_description,
                     serde_name,
                     visit_field_type(cx, &output_type_attribute),
+                    codegen_config,
                 )
                 .into();
             }
@@ -211,6 +226,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                     type_def_description,
                     serde_name,
                     visit_field_type(cx, a),
+                    codegen_config,
                 )
                 .into();
             }
@@ -222,6 +238,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
             let mut result = Enum::new(type_def_name);
             result.description = type_def_description;
             result.serde_name = serde_name;
+            result.codegen_config = codegen_config;
             match container.attrs.tag() {
                 serde_derive_internals::attr::TagType::External => {
                     result.representation = reflectapi_schema::Representation::External;
@@ -263,11 +280,13 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                     type_def_description,
                     serde_name,
                     visit_field_type(cx, &unit_type),
+                    codegen_config,
                 );
                 result.transparent = container.attrs.transparent();
                 result.into()
             } else {
                 let mut result = Struct::new(type_def_name);
+                result.codegen_config = codegen_config;
                 result.description = type_def_description;
                 let fields = fields
                     .iter()

@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use crate::{Enum, Field, Fields, Struct, TypeParameter, TypeReference, Variant};
 
-pub(crate) fn mk_subst(
+#[doc(hidden)]
+pub fn mk_subst(
     parameters: &[TypeParameter],
     args: &[TypeReference],
 ) -> HashMap<String, TypeReference> {
@@ -33,7 +34,8 @@ pub trait Instantiate {
     fn instantiate(self, args: &[TypeReference]) -> Self;
 }
 
-pub(crate) trait Substitute {
+#[doc(hidden)]
+pub trait Substitute {
     /// The important implementation of this is `impl Substitute for TypeReference`.
     /// All other implementations just recursively call `subst` on their relevant fields which
     /// contain `TypeReference`s.

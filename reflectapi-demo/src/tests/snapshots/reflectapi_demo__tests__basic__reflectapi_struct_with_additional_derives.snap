@@ -1,0 +1,506 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::Test"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::Test"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::Test",
+        "fields": {
+          "named": [
+            {
+              "name": "us",
+              "type": {
+                "name": "std::collections::BTreeSet",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::basic::U"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "xs",
+              "type": {
+                "name": "std::collections::BTreeSet",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::basic::X"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "ys",
+              "type": {
+                "name": "std::collections::HashSet",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::basic::Y"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "u_to_x",
+              "type": {
+                "name": "std::collections::BTreeMap",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::basic::U"
+                  },
+                  {
+                    "name": "reflectapi_demo::tests::basic::X"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "x_to_y",
+              "type": {
+                "name": "std::collections::HashMap",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::basic::X"
+                  },
+                  {
+                    "name": "reflectapi_demo::tests::basic::Y"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        },
+        "codegen_config": {
+          "rust": {
+            "additional_derives": [
+              "Hash",
+              "Ord",
+              "PartialOrd"
+            ]
+          }
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::U",
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::tuple::Tuple0"
+              }
+            }
+          ]
+        },
+        "codegen_config": {
+          "rust": {
+            "additional_derives": [
+              "Default",
+              "Hash",
+              "Ord",
+              "PartialOrd"
+            ]
+          }
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::X",
+        "fields": {
+          "named": []
+        },
+        "codegen_config": {
+          "rust": {
+            "additional_derives": [
+              "Eq",
+              "Hash",
+              "Ord",
+              "PartialOrd"
+            ]
+          }
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::Y",
+        "variants": [
+          {
+            "name": "Y",
+            "fields": "none"
+          }
+        ],
+        "codegen_config": {
+          "rust": {
+            "additional_derives": [
+              "Eq",
+              "Hash",
+              "Ord",
+              "PartialOrd"
+            ]
+          }
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::BTreeMap",
+        "description": "Ordered key-value map type",
+        "parameters": [
+          {
+            "name": "K"
+          },
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::collections::HashMap",
+          "arguments": [
+            {
+              "name": "K"
+            },
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::BTreeSet",
+        "description": "Ordered set type",
+        "parameters": [
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::collections::HashSet",
+          "arguments": [
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashMap",
+        "description": "Key-value map type",
+        "parameters": [
+          {
+            "name": "K"
+          },
+          {
+            "name": "V"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashSet",
+        "description": "Value set type",
+        "parameters": [
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::vec::Vec",
+          "arguments": [
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::Test",
+        "fields": {
+          "named": [
+            {
+              "name": "us",
+              "type": {
+                "name": "std::collections::BTreeSet",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::basic::U"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "xs",
+              "type": {
+                "name": "std::collections::BTreeSet",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::basic::X"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "ys",
+              "type": {
+                "name": "std::collections::HashSet",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::basic::Y"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "u_to_x",
+              "type": {
+                "name": "std::collections::BTreeMap",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::basic::U"
+                  },
+                  {
+                    "name": "reflectapi_demo::tests::basic::X"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "x_to_y",
+              "type": {
+                "name": "std::collections::HashMap",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::basic::X"
+                  },
+                  {
+                    "name": "reflectapi_demo::tests::basic::Y"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        },
+        "codegen_config": {
+          "rust": {
+            "additional_derives": [
+              "Hash",
+              "Ord",
+              "PartialOrd"
+            ]
+          }
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::U",
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::tuple::Tuple0"
+              }
+            }
+          ]
+        },
+        "codegen_config": {
+          "rust": {
+            "additional_derives": [
+              "Default",
+              "Hash",
+              "Ord",
+              "PartialOrd"
+            ]
+          }
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::X",
+        "fields": {
+          "named": []
+        },
+        "codegen_config": {
+          "rust": {
+            "additional_derives": [
+              "Eq",
+              "Hash",
+              "Ord",
+              "PartialOrd"
+            ]
+          }
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::Y",
+        "variants": [
+          {
+            "name": "Y",
+            "fields": "none"
+          }
+        ],
+        "codegen_config": {
+          "rust": {
+            "additional_derives": [
+              "Eq",
+              "Hash",
+              "Ord",
+              "PartialOrd"
+            ]
+          }
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::BTreeMap",
+        "description": "Ordered key-value map type",
+        "parameters": [
+          {
+            "name": "K"
+          },
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::collections::HashMap",
+          "arguments": [
+            {
+              "name": "K"
+            },
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::BTreeSet",
+        "description": "Ordered set type",
+        "parameters": [
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::collections::HashSet",
+          "arguments": [
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashMap",
+        "description": "Key-value map type",
+        "parameters": [
+          {
+            "name": "K"
+          },
+          {
+            "name": "V"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashSet",
+        "description": "Value set type",
+        "parameters": [
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::vec::Vec",
+          "arguments": [
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      }
+    ]
+  }
+}

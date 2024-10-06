@@ -1,5 +1,6 @@
 use quote::ToTokens;
 use reflectapi_schema::*;
+use syn::parse::Parse;
 
 use crate::{
     context::{Context, ReflectType},
@@ -121,6 +122,7 @@ pub(crate) struct ParsedTypeAttributes {
     pub input_type: Option<syn::Type>,
     pub output_type: Option<syn::Type>,
     pub discriminant: bool,
+    pub derives: Vec<syn::Meta>,
 }
 
 #[derive(Default)]
@@ -206,9 +208,16 @@ pub(crate) fn parse_type_attributes(
             } else if meta.path == DISCRIMINANT {
                 // #[reflectapi(discriminant)]
                 result.discriminant = true;
+            } else if meta.path == DERIVE {
+                // #[reflectapi(derive(...))]
+                let metas;
+                syn::parenthesized!(metas in meta.input);
+                result
+                    .derives
+                    .extend(metas.parse_terminated(syn::Meta::parse, syn::Token![,])?);
             } else {
                 let path = meta.path.to_token_stream().to_string();
-                return Err(meta.error(format_args!("unknown reflect field attribute `{}`", path)));
+                return Err(meta.error(format_args!("unknown reflect type attribute `{path}`")));
             }
             Ok(())
         }) {
@@ -298,7 +307,7 @@ pub(crate) fn parse_field_attributes(
                 result.output_skip = true;
             } else {
                 let path = meta.path.to_token_stream().to_string();
-                return Err(meta.error(format_args!("unknown reflect field attribute `{}`", path)));
+                return Err(meta.error(format_args!("unknown reflect field attribute `{path}`")));
             }
             Ok(())
         }) {
@@ -311,7 +320,7 @@ pub(crate) fn parse_field_attributes(
 fn parse_lit_into_expr_path(
     cx: &Context,
     attr_name: Symbol,
-    meta: &syn::meta::ParseNestedMeta,
+    meta: &syn::meta::ParseNestedMeta<'_>,
 ) -> syn::Result<Option<syn::ExprPath>> {
     let string = match parse_lit_str(cx, attr_name, attr_name, meta)? {
         Some(string) => string,
@@ -334,7 +343,7 @@ fn parse_lit_str(
     cx: &Context,
     attr_name: Symbol,
     meta_item_name: Symbol,
-    meta: &syn::meta::ParseNestedMeta,
+    meta: &syn::meta::ParseNestedMeta<'_>,
 ) -> syn::Result<Option<syn::LitStr>> {
     let expr: syn::Expr = meta.value()?.parse()?;
     let mut value = &expr;

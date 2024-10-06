@@ -1,4 +1,7 @@
-use std::{collections::HashMap, process::Command};
+use std::{
+    collections::{BTreeSet, HashMap},
+    process::Command,
+};
 
 use anyhow::Context;
 use askama::Template;
@@ -181,7 +184,9 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
 
 mod templates {
     use askama::Template;
-    use indexmap::IndexMap; // bring trait in scope
+    use indexmap::IndexMap;
+
+    use super::base_derives;
 
     #[derive(Template)]
     #[template(
@@ -269,6 +274,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         pub is_tuple: bool,
         pub is_input_type: bool,
         pub is_output_type: bool,
+        pub codegen_config: reflectapi_schema::RustTypeCodegenConfig,
     }
 
     impl __Struct {
@@ -281,7 +287,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         }
 
         fn render_attributes_derive(&self) -> String {
-            let mut attrs: Vec<String> = vec!["Debug".into()];
+            let mut attrs = base_derives(&self.codegen_config.additional_derives);
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
                 attrs.push("serde::Serialize".into());
@@ -316,11 +322,12 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         pub representation: crate::Representation,
         pub is_input_type: bool,
         pub is_output_type: bool,
+        pub codegen_config: reflectapi_schema::RustTypeCodegenConfig,
     }
 
     impl __Enum {
         fn render_attributes_derive(&self) -> String {
-            let mut attrs: Vec<String> = vec!["Debug".into()];
+            let mut attrs = base_derives(&self.codegen_config.additional_derives);
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
                 attrs.push("serde::Serialize".into());
@@ -531,11 +538,12 @@ pub struct {{ name }};",
         pub description: String,
         pub is_input_type: bool,
         pub is_output_type: bool,
+        pub codegen_config: reflectapi_schema::RustTypeCodegenConfig,
     }
 
     impl __Unit {
         fn render_attributes_derive(&self) -> String {
-            let mut attrs: Vec<String> = vec!["Debug".into()];
+            let mut attrs = base_derives(&self.codegen_config.additional_derives);
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
                 attrs.push("serde::Serialize".into());
@@ -693,6 +701,7 @@ fn __interface_types_from_function_group(
         is_tuple: false,
         is_input_type: false,
         is_output_type: false,
+        codegen_config: Default::default(),
     };
     let mut interface_implementation = templates::__InterfaceImplementationTemplate {
         name: format!(
@@ -829,6 +838,7 @@ fn __render_type(
                     description: __doc_to_ts_comments(&struct_def.description, 0),
                     is_input_type,
                     is_output_type,
+                    codegen_config: struct_def.codegen_config.rust.clone(),
                 };
                 unit_struct_template
                     .render()
@@ -855,6 +865,7 @@ fn __render_type(
                     is_tuple: struct_def.is_tuple(),
                     is_input_type,
                     is_output_type,
+                    codegen_config: struct_def.codegen_config.rust.clone(),
                     fields: struct_def
                         .fields
                         .iter()
@@ -886,6 +897,7 @@ fn __render_type(
                 representation: enum_def.representation.clone(),
                 is_input_type,
                 is_output_type,
+                codegen_config: enum_def.codegen_config.rust.clone(),
                 variants: enum_def
                     .variants
                     .iter()
@@ -1163,4 +1175,16 @@ fn __field_name_to_snake_case(name: &str) -> String {
     } else {
         result
     }
+}
+
+fn base_derives(additional_derives: &BTreeSet<String>) -> Vec<String> {
+    let mut base_derives = vec!["Debug".to_owned()];
+
+    for derive in additional_derives {
+        base_derives.push(derive.to_owned());
+    }
+
+    base_derives.sort();
+    base_derives.dedup();
+    base_derives
 }

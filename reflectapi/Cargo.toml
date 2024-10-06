@@ -15,6 +15,9 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lints]
+workspace = true
+
 [dependencies]
 # workspace dependencies
 reflectapi-derive = { path = "../reflectapi-derive", version = "0.8.4" }

@@ -273,7 +273,7 @@ pub enum BuildError {
 }
 
 impl fmt::Display for BuildError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Validation(err) => write!(f, "{err}"),
             Self::RedundantRename { pattern } => {
@@ -299,7 +299,7 @@ impl IntoIterator for BuildErrors {
 }
 
 impl fmt::Display for BuildErrors {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for err in &self.0 {
             writeln!(f, "{err}")?;
         }
