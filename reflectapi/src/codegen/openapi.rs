@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 use std::marker::PhantomData;
 use std::sync::OnceLock;
 
-use reflectapi_schema::Instantiate;
+use reflectapi_schema::{Instantiate, Substitute};
 use serde::Serialize;
 
 use super::Config;
@@ -473,18 +473,8 @@ impl Converter {
                                 kind,
                                 ty_ref.arguments().next().unwrap(),
                             )),
-                            unique_items: prim.name() == "std::collections::HashSet",
+                            unique_items: prim.name().ends_with("Set"),
                         }
-                    }
-                    // Treat these as transparent wrappers.
-                    "std::boxed::Box" | "std::cell::Cell" | "std::cell::RefCell"
-                    | "std::sync::Mutex" | "std::sync::RwLock" | "std::rc::Rc"
-                    | "std::rc::Weak" | "std::sync::Arc" | "std::sync::Weak" => {
-                        return self.convert_type_ref(
-                            schema,
-                            kind,
-                            ty_ref.arguments().next().unwrap(),
-                        )
                     }
                     // There is no way to specify the key type in OpenAPI, so we assume it's always a string (unenforced).
                     "std::collections::HashMap" => Type::Map {
@@ -513,7 +503,13 @@ impl Converter {
                     },
                     name => {
                         if let Some(fallback) = prim.fallback() {
-                            return self.convert_type_ref(schema, kind, fallback);
+                            let subst =
+                                reflectapi_schema::mk_subst(&prim.parameters, &ty_ref.arguments);
+                            return self.convert_type_ref(
+                                schema,
+                                kind,
+                                &fallback.clone().subst(&subst),
+                            );
                         } else {
                             unimplemented!("primitive with no fallback: {name}")
                         }
@@ -598,6 +594,7 @@ impl Converter {
             parameters: vec![],
             fields: variant.fields.clone(),
             transparent: false,
+            codegen_config: adt.codegen_config.clone(),
         };
 
         let repr = match variant.untagged {

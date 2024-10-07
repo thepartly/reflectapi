@@ -97,7 +97,7 @@ impl<'de, T: serde::de::Deserialize<'de>> serde::Deserialize<'de> for Option<T> 
         {
             type Value = Option<V>;
 
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 formatter.write_str("an option or undefined")
             }
 

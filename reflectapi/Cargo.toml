@@ -15,6 +15,9 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lints]
+workspace = true
+
 [dependencies]
 # workspace dependencies
 reflectapi-derive = { path = "../reflectapi-derive", version = "0.8.4" }
@@ -70,3 +73,4 @@ axum = ["dep:axum", "builder"]
 codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep:serde_json"]
 rt = ["dep:http", "dep:serde_json", "dep:bytes", "dep:url"]
 glob = ["reflectapi-schema/glob"]
+json = ["dep:serde_json"]

@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct Url {}
 
 impl Url {

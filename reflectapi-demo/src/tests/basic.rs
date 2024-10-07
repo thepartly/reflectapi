@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 #[test]
 fn compiler_error_cases() {
@@ -520,4 +520,65 @@ struct TestStructWithSkipFieldOutput {
 #[test]
 fn test_reflectapi_struct_with_skip_field_output() {
     assert_snapshot!(TestStructWithSkipFieldOutput);
+}
+
+#[test]
+fn test_reflectapi_struct_with_additional_derives() {
+    #[derive(
+        reflectapi::Input,
+        reflectapi::Output,
+        serde::Deserialize,
+        serde::Serialize,
+        Clone,
+        PartialOrd,
+        Ord,
+        PartialEq,
+        Eq,
+        Hash,
+    )]
+    #[reflectapi(derive(Clone, PartialOrd, Ord, Hash, PartialEq, Eq))]
+    struct X {}
+
+    #[derive(
+        reflectapi::Input,
+        reflectapi::Output,
+        serde::Deserialize,
+        serde::Serialize,
+        Clone,
+        PartialOrd,
+        Ord,
+        PartialEq,
+        Eq,
+        Hash,
+    )]
+    #[reflectapi(derive(Clone, PartialOrd, Ord, Hash, PartialEq, Eq))]
+    enum Y {
+        Y,
+    }
+
+    #[derive(
+        reflectapi::Input,
+        reflectapi::Output,
+        serde::Deserialize,
+        serde::Serialize,
+        Clone,
+        PartialEq,
+        Eq,
+        PartialOrd,
+        Ord,
+        Hash,
+        Default,
+    )]
+    #[reflectapi(derive(Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default))]
+    struct U;
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[reflectapi(derive(Clone))]
+    struct Test {
+        us: BTreeSet<U>,
+        xs: BTreeSet<X>,
+        ys: HashSet<Y>,
+    }
+
+    assert_snapshot!(Test);
 }

@@ -218,6 +218,47 @@ impl<T: Output> Output for Option<T> {
     }
 }
 
+fn reflectapi_type_btreemap(schema: &mut crate::Typespace) -> String {
+    let type_name = "std::collections::BTreeMap";
+    if schema.reserve_type(type_name) {
+        let type_def = crate::Primitive::new(
+            type_name.into(),
+            "Ordered key-value map type".into(),
+            vec!["K".into(), "V".into()],
+            Some(crate::TypeReference::new(
+                reflectapi_type_hashmap(schema),
+                vec!["K".into(), "V".into()],
+            )),
+        );
+        schema.insert_type(type_def.into());
+    }
+    type_name.into()
+}
+
+impl<K: Input, V: Input> Input for std::collections::BTreeMap<K, V> {
+    fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflectapi_type_btreemap(schema),
+            vec![
+                K::reflectapi_input_type(schema),
+                V::reflectapi_input_type(schema),
+            ],
+        )
+    }
+}
+
+impl<K: Output, V: Output> Output for std::collections::BTreeMap<K, V> {
+    fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflectapi_type_btreemap(schema),
+            vec![
+                K::reflectapi_output_type(schema),
+                V::reflectapi_output_type(schema),
+            ],
+        )
+    }
+}
+
 fn reflectapi_type_hashmap(schema: &mut crate::Typespace) -> String {
     let type_name = "std::collections::HashMap";
     if schema.reserve_type(type_name) {
@@ -282,6 +323,41 @@ impl<V: Output> Output for std::collections::HashSet<V> {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflectapi_type_hashset(schema),
+            vec![V::reflectapi_output_type(schema)],
+        )
+    }
+}
+
+fn reflectapi_type_btreeset(schema: &mut crate::Typespace) -> String {
+    let type_name = "std::collections::BTreeSet";
+    if schema.reserve_type(type_name) {
+        let type_def = crate::Primitive::new(
+            type_name.into(),
+            "Ordered set type".into(),
+            vec!["V".into()],
+            Some(crate::TypeReference::new(
+                reflectapi_type_hashset(schema),
+                vec!["V".into()],
+            )),
+        );
+        schema.insert_type(type_def.into());
+    }
+    type_name.into()
+}
+
+impl<V: Input> Input for std::collections::BTreeSet<V> {
+    fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflectapi_type_btreeset(schema),
+            vec![V::reflectapi_input_type(schema)],
+        )
+    }
+}
+
+impl<V: Output> Output for std::collections::BTreeSet<V> {
+    fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+        crate::TypeReference::new(
+            reflectapi_type_btreeset(schema),
             vec![V::reflectapi_output_type(schema)],
         )
     }
@@ -626,5 +702,30 @@ impl Output for std::path::Path {
             "File path type",
             Some("std::path::PathBuf".into()),
         )
+    }
+}
+
+#[cfg(feature = "json")]
+mod json {
+    impl crate::Input for serde_json::Value {
+        fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+            crate::TypeReference::new(reflectapi_type_json_value(schema), vec![])
+        }
+    }
+
+    impl crate::Output for serde_json::Value {
+        fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+            crate::TypeReference::new(reflectapi_type_json_value(schema), vec![])
+        }
+    }
+
+    fn reflectapi_type_json_value(schema: &mut crate::Typespace) -> String {
+        let type_name = "serde_json::Value";
+        if schema.reserve_type(type_name) {
+            let type_def =
+                crate::Primitive::new(type_name.into(), "JSON value type".into(), Vec::new(), None);
+            schema.insert_type(type_def.into());
+        }
+        type_name.into()
     }
 }

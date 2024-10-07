@@ -230,6 +230,8 @@ impl<'a> ToTokens for TokenizableEnum<'a> {
         let parameters = self.inner.parameters().map(TokenizableTypeParameter::new);
         let representation = TokenizableRepresentation::new(&self.inner.representation);
         let variants = self.inner.variants().map(TokenizableVariant::new);
+        let codegen_config =
+            TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
             reflectapi::Enum {
                 name: #name.into(),
@@ -238,6 +240,35 @@ impl<'a> ToTokens for TokenizableEnum<'a> {
                 parameters: vec![#(#parameters),*],
                 representation: #representation,
                 variants: vec![#(#variants),*],
+                codegen_config: #codegen_config,
+            }
+        });
+    }
+}
+
+pub(crate) struct TokenizableLanguageSpecificTypeCodegenConfig<'a>(
+    &'a reflectapi_schema::LanguageSpecificTypeCodegenConfig,
+);
+
+impl<'a> ToTokens for TokenizableLanguageSpecificTypeCodegenConfig<'a> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let rust = TokenizableRustTypeCodegenConfig(&self.0.rust);
+        tokens.extend(quote::quote! {
+            reflectapi::LanguageSpecificTypeCodegenConfig {
+                rust: #rust,
+            }
+        });
+    }
+}
+
+pub(crate) struct TokenizableRustTypeCodegenConfig<'a>(&'a RustTypeCodegenConfig);
+
+impl<'a> ToTokens for TokenizableRustTypeCodegenConfig<'a> {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let additional_derives = &self.0.additional_derives;
+        tokens.extend(quote::quote! {
+            reflectapi::RustTypeCodegenConfig {
+                additional_derives: std::collections::BTreeSet::from_iter([#(String::from(#additional_derives)),*]),
             }
         });
     }
@@ -273,6 +304,8 @@ impl<'a> ToTokens for TokenizableStruct<'a> {
         };
 
         let transparent = self.inner.transparent;
+        let codegen_config =
+            TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
             reflectapi::Struct {
                 name: #name.into(),
@@ -281,6 +314,7 @@ impl<'a> ToTokens for TokenizableStruct<'a> {
                 parameters: vec![#(#parameters),*],
                 fields: #fields,
                 transparent: #transparent,
+                codegen_config: #codegen_config,
             }
         });
     }

@@ -19,6 +19,8 @@ pub const SKIP: Symbol = Symbol("skip");
 pub const INPUT_SKIP: Symbol = Symbol("input_skip");
 pub const OUTPUT_SKIP: Symbol = Symbol("output_skip");
 
+pub const DERIVE: Symbol = Symbol("derive");
+
 pub const DISCRIMINANT: Symbol = Symbol("discriminant");
 
 impl PartialEq<Symbol> for Ident {
@@ -46,7 +48,7 @@ impl<'a> PartialEq<Symbol> for &'a Path {
 }
 
 impl Display for Symbol {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(self.0)
     }
 }

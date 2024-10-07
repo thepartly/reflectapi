@@ -146,7 +146,7 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
 
 mod templates {
     use askama::Template;
-    use indexmap::IndexMap; // bring trait in scope
+    use indexmap::IndexMap;
 
     #[derive(Template)]
     #[template(
