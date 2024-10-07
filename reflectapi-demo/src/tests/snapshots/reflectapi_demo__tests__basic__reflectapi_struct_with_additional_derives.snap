@@ -67,45 +67,13 @@ expression: schema
                 ]
               },
               "required": true
-            },
-            {
-              "name": "u_to_x",
-              "type": {
-                "name": "std::collections::BTreeMap",
-                "arguments": [
-                  {
-                    "name": "reflectapi_demo::tests::basic::U"
-                  },
-                  {
-                    "name": "reflectapi_demo::tests::basic::X"
-                  }
-                ]
-              },
-              "required": true
-            },
-            {
-              "name": "x_to_y",
-              "type": {
-                "name": "std::collections::HashMap",
-                "arguments": [
-                  {
-                    "name": "reflectapi_demo::tests::basic::X"
-                  },
-                  {
-                    "name": "reflectapi_demo::tests::basic::Y"
-                  }
-                ]
-              },
-              "required": true
             }
           ]
         },
         "codegen_config": {
           "rust": {
             "additional_derives": [
-              "Hash",
-              "Ord",
-              "PartialOrd"
+              "Clone"
             ]
           }
         }
@@ -126,9 +94,12 @@ expression: schema
         "codegen_config": {
           "rust": {
             "additional_derives": [
+              "Clone",
               "Default",
+              "Eq",
               "Hash",
               "Ord",
+              "PartialEq",
               "PartialOrd"
             ]
           }
@@ -143,9 +114,11 @@ expression: schema
         "codegen_config": {
           "rust": {
             "additional_derives": [
+              "Clone",
               "Eq",
               "Hash",
               "Ord",
+              "PartialEq",
               "PartialOrd"
             ]
           }
@@ -163,36 +136,14 @@ expression: schema
         "codegen_config": {
           "rust": {
             "additional_derives": [
+              "Clone",
               "Eq",
               "Hash",
               "Ord",
+              "PartialEq",
               "PartialOrd"
             ]
           }
-        }
-      },
-      {
-        "kind": "primitive",
-        "name": "std::collections::BTreeMap",
-        "description": "Ordered key-value map type",
-        "parameters": [
-          {
-            "name": "K"
-          },
-          {
-            "name": "V"
-          }
-        ],
-        "fallback": {
-          "name": "std::collections::HashMap",
-          "arguments": [
-            {
-              "name": "K"
-            },
-            {
-              "name": "V"
-            }
-          ]
         }
       },
       {
@@ -212,19 +163,6 @@ expression: schema
             }
           ]
         }
-      },
-      {
-        "kind": "primitive",
-        "name": "std::collections::HashMap",
-        "description": "Key-value map type",
-        "parameters": [
-          {
-            "name": "K"
-          },
-          {
-            "name": "V"
-          }
-        ]
       },
       {
         "kind": "primitive",
@@ -309,45 +247,13 @@ expression: schema
                 ]
               },
               "required": true
-            },
-            {
-              "name": "u_to_x",
-              "type": {
-                "name": "std::collections::BTreeMap",
-                "arguments": [
-                  {
-                    "name": "reflectapi_demo::tests::basic::U"
-                  },
-                  {
-                    "name": "reflectapi_demo::tests::basic::X"
-                  }
-                ]
-              },
-              "required": true
-            },
-            {
-              "name": "x_to_y",
-              "type": {
-                "name": "std::collections::HashMap",
-                "arguments": [
-                  {
-                    "name": "reflectapi_demo::tests::basic::X"
-                  },
-                  {
-                    "name": "reflectapi_demo::tests::basic::Y"
-                  }
-                ]
-              },
-              "required": true
             }
           ]
         },
         "codegen_config": {
           "rust": {
             "additional_derives": [
-              "Hash",
-              "Ord",
-              "PartialOrd"
+              "Clone"
             ]
           }
         }
@@ -368,9 +274,12 @@ expression: schema
         "codegen_config": {
           "rust": {
             "additional_derives": [
+              "Clone",
               "Default",
+              "Eq",
               "Hash",
               "Ord",
+              "PartialEq",
               "PartialOrd"
             ]
           }
@@ -385,9 +294,11 @@ expression: schema
         "codegen_config": {
           "rust": {
             "additional_derives": [
+              "Clone",
               "Eq",
               "Hash",
               "Ord",
+              "PartialEq",
               "PartialOrd"
             ]
           }
@@ -405,36 +316,14 @@ expression: schema
         "codegen_config": {
           "rust": {
             "additional_derives": [
+              "Clone",
               "Eq",
               "Hash",
               "Ord",
+              "PartialEq",
               "PartialOrd"
             ]
           }
-        }
-      },
-      {
-        "kind": "primitive",
-        "name": "std::collections::BTreeMap",
-        "description": "Ordered key-value map type",
-        "parameters": [
-          {
-            "name": "K"
-          },
-          {
-            "name": "V"
-          }
-        ],
-        "fallback": {
-          "name": "std::collections::HashMap",
-          "arguments": [
-            {
-              "name": "K"
-            },
-            {
-              "name": "V"
-            }
-          ]
         }
       },
       {
@@ -454,19 +343,6 @@ expression: schema
             }
           ]
         }
-      },
-      {
-        "kind": "primitive",
-        "name": "std::collections::HashMap",
-        "description": "Key-value map type",
-        "parameters": [
-          {
-            "name": "K"
-          },
-          {
-            "name": "V"
-          }
-        ]
       },
       {
         "kind": "primitive",

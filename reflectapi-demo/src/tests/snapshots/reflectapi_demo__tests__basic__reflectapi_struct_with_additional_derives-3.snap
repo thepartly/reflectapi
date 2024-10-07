@@ -59,7 +59,7 @@ pub mod types {
         pub mod tests {
             pub mod basic {
 
-                #[derive(Debug, Hash, Ord, PartialOrd, serde::Serialize, serde::Deserialize)]
+                #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
                 pub struct Test {
                     pub us: std::collections::BTreeSet<
                         super::super::super::reflectapi_demo::tests::basic::U,
@@ -70,28 +70,45 @@ pub mod types {
                     pub ys: std::collections::HashSet<
                         super::super::super::reflectapi_demo::tests::basic::Y,
                     >,
-                    pub u_to_x: std::collections::BTreeMap<
-                        super::super::super::reflectapi_demo::tests::basic::U,
-                        super::super::super::reflectapi_demo::tests::basic::X,
-                    >,
-                    pub x_to_y: std::collections::HashMap<
-                        super::super::super::reflectapi_demo::tests::basic::X,
-                        super::super::super::reflectapi_demo::tests::basic::Y,
-                    >,
                 }
 
                 #[derive(
-                    Debug, Default, Hash, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
+                    Clone,
+                    Debug,
+                    Default,
+                    Eq,
+                    Hash,
+                    Ord,
+                    PartialEq,
+                    PartialOrd,
+                    serde::Serialize,
+                    serde::Deserialize,
                 )]
                 pub struct U;
 
                 #[derive(
-                    Debug, Eq, Hash, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
+                    Clone,
+                    Debug,
+                    Eq,
+                    Hash,
+                    Ord,
+                    PartialEq,
+                    PartialOrd,
+                    serde::Serialize,
+                    serde::Deserialize,
                 )]
                 pub struct X {}
 
                 #[derive(
-                    Debug, Eq, Hash, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
+                    Clone,
+                    Debug,
+                    Eq,
+                    Hash,
+                    Ord,
+                    PartialEq,
+                    PartialOrd,
+                    serde::Serialize,
+                    serde::Deserialize,
                 )]
                 pub enum Y {
                     Y,

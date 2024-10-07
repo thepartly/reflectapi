@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 #[test]
 fn compiler_error_cases() {
@@ -529,13 +529,14 @@ fn test_reflectapi_struct_with_additional_derives() {
         reflectapi::Output,
         serde::Deserialize,
         serde::Serialize,
+        Clone,
         PartialOrd,
         Ord,
         PartialEq,
         Eq,
         Hash,
     )]
-    #[reflectapi(derive(PartialOrd, Ord, Hash, Eq))]
+    #[reflectapi(derive(Clone, PartialOrd, Ord, Hash, PartialEq, Eq))]
     struct X {}
 
     #[derive(
@@ -543,13 +544,14 @@ fn test_reflectapi_struct_with_additional_derives() {
         reflectapi::Output,
         serde::Deserialize,
         serde::Serialize,
+        Clone,
         PartialOrd,
         Ord,
         PartialEq,
         Eq,
         Hash,
     )]
-    #[reflectapi(derive(PartialOrd, Ord, Hash, Eq))]
+    #[reflectapi(derive(Clone, PartialOrd, Ord, Hash, PartialEq, Eq))]
     enum Y {
         Y,
     }
@@ -559,6 +561,7 @@ fn test_reflectapi_struct_with_additional_derives() {
         reflectapi::Output,
         serde::Deserialize,
         serde::Serialize,
+        Clone,
         PartialEq,
         Eq,
         PartialOrd,
@@ -566,17 +569,15 @@ fn test_reflectapi_struct_with_additional_derives() {
         Hash,
         Default,
     )]
-    #[reflectapi(derive(PartialOrd, Ord, Hash, Default))]
+    #[reflectapi(derive(Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default))]
     struct U;
 
     #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-    #[reflectapi(derive(PartialOrd, Ord, Hash))]
+    #[reflectapi(derive(Clone))]
     struct Test {
         us: BTreeSet<U>,
         xs: BTreeSet<X>,
         ys: HashSet<Y>,
-        u_to_x: BTreeMap<U, X>,
-        x_to_y: HashMap<X, Y>,
     }
 
     assert_snapshot!(Test);

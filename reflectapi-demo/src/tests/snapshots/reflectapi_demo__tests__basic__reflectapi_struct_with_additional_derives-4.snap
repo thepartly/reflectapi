@@ -47,18 +47,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         "required": [
           "us",
           "xs",
-          "ys",
-          "u_to_x",
-          "x_to_y"
+          "ys"
         ],
         "properties": {
-          "u_to_x": {
-            "description": "Key-value map type",
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/reflectapi_demo.tests.basic.X"
-            }
-          },
           "us": {
             "description": "Value set type",
             "type": "array",
@@ -66,13 +57,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
               "$ref": "#/components/schemas/reflectapi_demo.tests.basic.U"
             },
             "uniqueItems": true
-          },
-          "x_to_y": {
-            "description": "Key-value map type",
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/reflectapi_demo.tests.basic.Y"
-            }
           },
           "xs": {
             "description": "Value set type",

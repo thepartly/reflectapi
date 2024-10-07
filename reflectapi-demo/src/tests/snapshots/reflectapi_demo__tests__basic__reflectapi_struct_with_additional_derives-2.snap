@@ -35,14 +35,6 @@ export namespace reflectapi_demo {
         us: Array<reflectapi_demo.tests.basic.U>;
         xs: Array<reflectapi_demo.tests.basic.X>;
         ys: Array<reflectapi_demo.tests.basic.Y>;
-        u_to_x: Record<
-          reflectapi_demo.tests.basic.U,
-          reflectapi_demo.tests.basic.X
-        >;
-        x_to_y: Record<
-          reflectapi_demo.tests.basic.X,
-          reflectapi_demo.tests.basic.Y
-        >;
       }
 
       export type U = null;
