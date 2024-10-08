@@ -413,6 +413,10 @@ pub struct Function {
     /// If a function is readonly, it means it does not modify the state of an application
     #[serde(skip_serializing_if = "is_false", default)]
     pub readonly: bool,
+
+    /// If a function is hidden, it means it should not be displayed in the documentation
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub hidden: bool,
 }
 
 impl Function {
@@ -427,6 +431,7 @@ impl Function {
             error_type: None,
             serialization: Vec::new(),
             readonly: false,
+            hidden: false,
         }
     }
 

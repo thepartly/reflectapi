@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use crate::{Function, Schema, Struct};
 
+use super::RouteBuilder;
+
 pub struct HandlerInput {
     pub body: bytes::Bytes,
     pub headers: http::HeaderMap,
@@ -78,6 +80,7 @@ where
     pub name: String,
     pub path: String,
     pub readonly: bool,
+    pub hidden: bool,
     pub input_headers: Vec<String>,
     pub callback: Arc<HandlerCallback<S>>,
 }
@@ -91,6 +94,7 @@ where
             .field("name", &self.name)
             .field("path", &self.path)
             .field("readonly", &self.readonly)
+            .field("hidden", &self.hidden)
             .field("input_headers", &self.input_headers)
             .finish()
     }
@@ -101,10 +105,7 @@ where
     S: Send + 'static,
 {
     pub(crate) fn new<F, Fut, R, I, O, E, H>(
-        name: String,
-        path: String,
-        description: String,
-        readonly: bool,
+        rb: RouteBuilder,
         handler: F,
         schema: &mut Schema,
     ) -> Handler<S>
@@ -135,9 +136,9 @@ where
             .unwrap_or_default();
 
         let function_def = Function {
-            name: name.clone(),
-            path: path.clone(),
-            description,
+            name: rb.name.clone(),
+            path: rb.path.clone(),
+            description: rb.description.clone(),
             input_type: if input_type.name == "reflectapi::Empty" {
                 None
             } else {
@@ -159,7 +160,8 @@ where
                 Some(input_headers)
             },
             serialization: vec![crate::SerializationMode::Json],
-            readonly,
+            readonly: rb.readonly,
+            hidden: rb.hidden,
         };
         schema.functions.push(function_def);
 
@@ -168,9 +170,10 @@ where
         input_headers_names.push("traceparent".into());
 
         Handler {
-            name,
-            path,
-            readonly,
+            name: rb.name,
+            path: rb.path,
+            readonly: rb.readonly,
+            hidden: rb.hidden,
             input_headers: input_headers_names.clone(),
             callback: Arc::new(move |state: S, input: HandlerInput| {
                 Box::pin(Self::handler_wrap(state, input, handler)) as _
