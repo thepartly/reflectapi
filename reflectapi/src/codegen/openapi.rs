@@ -283,6 +283,7 @@ impl Converter {
             paths: schema
                 .functions
                 .iter()
+                .filter(|f| !f.hidden)
                 .map(|f| {
                     (
                         format!("{}/{}", f.path(), f.name()),
