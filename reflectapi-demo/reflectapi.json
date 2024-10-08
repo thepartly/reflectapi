@@ -9,7 +9,8 @@
       "serialization": [
         "json"
       ],
-      "readonly": true
+      "readonly": true,
+      "hidden": true
     },
     {
       "name": "pets.list",
