@@ -33,7 +33,6 @@ where
             readonly,
             input_headers,
             callback,
-            hidden: _,
         } = handler;
         let axum_handler = {
             let shared_state = app_state.clone();

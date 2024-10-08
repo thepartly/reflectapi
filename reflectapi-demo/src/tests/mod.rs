@@ -25,8 +25,15 @@ fn write_schema() {
 fn write_openapi_spec() {
     let (schema, _) = crate::builder().build().unwrap();
 
-    let spec = reflectapi::codegen::openapi::Spec::from(&schema);
-    let s = serde_json::to_string_pretty(&spec).unwrap();
+    let s = reflectapi::codegen::openapi::generate(
+        schema,
+        &reflectapi::codegen::Config {
+            format: true,
+            exclude_tags: vec!["internal".to_string()],
+            ..Default::default()
+        },
+    )
+    .unwrap();
 
     std::fs::write(format!("{}/openapi.json", env!("CARGO_MANIFEST_DIR")), &s).unwrap();
     insta::assert_snapshot!(s);
@@ -40,7 +47,7 @@ fn write_rust_client() {
         &reflectapi::codegen::Config {
             format: true,
             typecheck: false,
-            shared_modules: vec![],
+            ..Default::default()
         },
     )
     .unwrap();
@@ -62,8 +69,8 @@ fn write_typescript_client() {
         schema,
         &reflectapi::codegen::Config {
             format: true,
-            typecheck: false,
-            shared_modules: vec![],
+            typecheck: true,
+            ..Default::default()
         },
     )
     .unwrap();

@@ -69,7 +69,6 @@ where
     pub name: String,
     pub path: String,
     pub readonly: bool,
-    pub hidden: bool,
     pub input_headers: Vec<String>,
     pub callback: Arc<HandlerCallback<S>>,
 }
@@ -83,7 +82,6 @@ where
             .field("name", &self.name)
             .field("path", &self.path)
             .field("readonly", &self.readonly)
-            .field("hidden", &self.hidden)
             .field("input_headers", &self.input_headers)
             .finish()
     }
@@ -150,7 +148,7 @@ where
             },
             serialization: vec![crate::SerializationMode::Json],
             readonly: rb.readonly,
-            hidden: rb.hidden,
+            tags: rb.tags,
         };
         schema.functions.push(function_def);
 
@@ -162,7 +160,6 @@ where
             name: rb.name,
             path: rb.path,
             readonly: rb.readonly,
-            hidden: rb.hidden,
             input_headers: input_headers_names.clone(),
             callback: Arc::new(move |state: S, input: HandlerInput| {
                 Box::pin(Self::handler_wrap(state, input, handler)) as _

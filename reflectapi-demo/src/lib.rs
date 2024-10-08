@@ -12,6 +12,7 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
         .route(health_check, |b| {
             b.name("health.check".into())
                 .readonly(true)
+                .tag("internal")
                 .description("Check the health of the service".into())
         })
         .route(pets_list, |b| {
