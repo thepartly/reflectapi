@@ -17,6 +17,10 @@ pub struct Config {
     /// Typecheck the generated code. Will ignore if the typechecker is not available.
     pub typecheck: bool,
     pub shared_modules: Vec<String>,
+    /// Only include handlers with these tags (empty means include all).
+    pub include_tags: Vec<String>,
+    /// Exclude handlers with these tags (empty means exclude none).
+    pub exclude_tags: Vec<String>,
 }
 
 fn tmp_path(src: &str) -> PathBuf {

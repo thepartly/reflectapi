@@ -2,7 +2,7 @@ mod handler;
 mod result;
 
 use core::fmt;
-use std::error::Error;
+use std::{borrow::Borrow, collections::BTreeSet, error::Error};
 
 pub use handler::*;
 use reflectapi_schema::Pattern;
@@ -214,7 +214,7 @@ pub struct RouteBuilder {
     path: String,
     description: String,
     readonly: bool,
-    hidden: bool,
+    tags: BTreeSet<String>,
 }
 
 impl RouteBuilder {
@@ -248,8 +248,22 @@ impl RouteBuilder {
         self
     }
 
-    pub fn hidden(mut self, hidden: bool) -> Self {
-        self.hidden = hidden;
+    pub fn tag(mut self, tag: impl Into<String>) -> Self {
+        self.tags.insert(tag.into());
+        self
+    }
+
+    pub fn untag<Q>(mut self, tag: &Q) -> Self
+    where
+        String: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
+        self.tags.remove(tag);
+        self
+    }
+
+    pub fn tags(mut self, tags: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.tags.extend(tags.into_iter().map(Into::into));
         self
     }
 }

@@ -9,7 +9,10 @@
       "serialization": [
         "json"
       ],
-      "readonly": true
+      "readonly": true,
+      "tags": [
+        "internal"
+      ]
     },
     {
       "name": "pets.list",

@@ -11,7 +11,7 @@ fn mk_config() -> reflectapi::codegen::Config {
         format: true,
         // Typechecking is too slow to run locally on every test
         typecheck: std::env::var("CI").is_ok(),
-        shared_modules: vec![],
+        ..Default::default()
     }
 }
 
@@ -162,7 +162,7 @@ macro_rules! assert_builder_snapshot {
         let config = reflectapi::codegen::Config {
             format: true,
             typecheck: true,
-            shared_modules: vec![],
+            ..Default::default()
         };
         let rust = reflectapi::codegen::rust::generate(schema.clone(), &config).unwrap();
         let typescript =
