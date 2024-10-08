@@ -142,7 +142,7 @@ pub enum Type {
     Null,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 #[serde(rename_all = "camelCase")]
 pub enum Schema {
@@ -153,10 +153,24 @@ pub enum Schema {
     OneOf {
         #[serde(rename = "oneOf")]
         subschemas: Vec<InlineOrRef<Schema>>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        discriminator: Option<Discriminator>,
     },
     Flat(FlatSchema),
+}
+
+impl fmt::Debug for Schema {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Schema::AllOf { subschemas } => f
+                .debug_struct("AllOf")
+                .field("subschemas", subschemas)
+                .finish(),
+            Schema::OneOf { subschemas } => f
+                .debug_struct("OneOf")
+                .field("subschemas", subschemas)
+                .finish(),
+            Schema::Flat(schema) => schema.fmt(f),
+        }
+    }
 }
 
 impl From<FlatSchema> for Schema {
@@ -212,11 +226,20 @@ impl FlatSchema {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum InlineOrRef<T> {
     Inline(T),
     Ref(Ref<T>),
+}
+
+impl<T: fmt::Debug> fmt::Debug for InlineOrRef<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            InlineOrRef::Inline(inner) => inner.fmt(f),
+            InlineOrRef::Ref(r) => r.fmt(f),
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Serialize)]
@@ -418,10 +441,7 @@ impl Converter {
             ) {
                 InlineOrRef::Inline(schema) => schema,
                 InlineOrRef::Ref(r) => {
-                    assert!(
-                        self.components.schemas.remove(&name).is_some(),
-                        "remove stub"
-                    );
+                    self.components.schemas.remove(&name);
                     return InlineOrRef::Ref(r);
                 }
             },
@@ -436,7 +456,6 @@ impl Converter {
                             })),
                             self.convert_type_ref(schema, kind, ty_ref.arguments().next().unwrap()),
                         ],
-                        discriminator: None,
                     }
                 } else {
                     match self.enum_to_schema(
@@ -447,23 +466,29 @@ impl Converter {
                     ) {
                         InlineOrRef::Inline(schema) => schema,
                         InlineOrRef::Ref(r) => {
-                            assert!(
-                                self.components.schemas.remove(&name).is_some(),
-                                "remove stub"
-                            );
+                            self.components.schemas.remove(&name);
                             return InlineOrRef::Ref(r);
                         }
                     }
                 }
             }
             crate::Type::Primitive(prim) => {
-                assert_eq!(ty_ref.arguments.len(), prim.parameters.len());
+                assert_eq!(
+                    ty_ref.arguments.len(),
+                    prim.parameters.len(),
+                    "primitive type with wrong number of arguments: {ty_ref:?}"
+                );
                 let ty = match prim.name() {
                     "f32" | "f64" => Type::Number,
                     "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32"
                     | "u64" | "u128" | "usize" => Type::Integer,
                     "bool" => Type::Boolean,
-
+                    "serde_json::Value" => Type::Object {
+                        // Not sure if there is a better way to represent this
+                        title: "serde_json::Value".to_owned(),
+                        required: vec![],
+                        properties: BTreeMap::new(),
+                    },
                     "uuid::Uuid" | "char" | "std::string::String" => Type::String,
                     "std::marker::PhantomData" | "std::tuple::Tuple0" => Type::Null,
                     "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
@@ -553,22 +578,10 @@ impl Converter {
             .collect::<Vec<_>>();
 
         let schema = match adt.representation() {
-            crate::Representation::Internal { tag: _ } => {
-                Schema::OneOf {
-                    subschemas,
-                    discriminator: None,
-                    // Passing `Some` makes `redoc` render `any` for some reason. Seems to work fine without it.
-                    // discriminator: Some(Discriminator {
-                    //     property_name: tag.to_owned(),
-                    // }),
-                }
-            }
+            crate::Representation::Internal { tag: _ } => Schema::OneOf { subschemas },
             crate::Representation::External
             | crate::Representation::Adjacent { .. }
-            | crate::Representation::None => Schema::OneOf {
-                subschemas,
-                discriminator: None,
-            },
+            | crate::Representation::None => Schema::OneOf { subschemas },
         };
 
         InlineOrRef::Inline(schema)
@@ -711,67 +724,7 @@ impl Converter {
                     reflectapi_schema::Fields::Unnamed(fields) if fields.len() == 1 => {
                         let field = fields.pop().unwrap();
                         let s = self.convert_type_ref(schema, kind, &field.type_ref);
-                        match self.resolve_schema_ref(&s) {
-                            Schema::AllOf { subschemas } => {
-                                let mut subschemas = subschemas.clone();
-                                subschemas.push(InlineOrRef::Inline(FlatSchema {
-                                    description: "tag object".to_owned(),
-                                    ty: Type::Object{
-                                        title: "tag".to_owned(),
-                                        required: vec![tag.to_owned()],
-                                        properties: BTreeMap::from([(tag.to_owned(), InlineOrRef::Inline(Schema::Flat(FlatSchema {
-                                            description: "tag".to_owned(),
-                                            ty: Type::String,
-                                        })))]),
-                                    },
-                                }.into()));
-                                return InlineOrRef::Inline(Schema::AllOf{subschemas})
-                            }
-                            s@Schema::OneOf { .. } => todo!("{s:?}"),
-                            Schema::Flat(schema) => match &schema.ty {
-                                Type::Boolean
-                                | Type::Integer
-                                | Type::Number
-                                | Type::Null
-                                | Type::String
-                                | Type::Array { .. }
-                                | Type::Tuple { .. } => panic!(
-                                    "newtype variant containing `{:?}` will panic on serialization in `{}::{}`, either mark this variant as `untagged` or use a different repr",
-                                    schema.ty,
-                                    adt.name(),
-                                    variant.name()
-                                ),
-                                Type::Map { .. } => todo!("map within newtype variant in `{}::{}`", adt.name(), variant.name()),
-                                Type::Object {
-                                    title,
-                                    required,
-                                    properties,
-                                } => {
-                                    return InlineOrRef::Inline(Schema::Flat(FlatSchema {
-                                        description: schema.description.to_owned(),
-                                        ty: Type::Object {
-                                            title: title.to_owned(),
-                                            required: required
-                                                .iter()
-                                                .cloned()
-                                                .chain(std::iter::once(tag.to_owned()))
-                                                .collect(),
-                                            properties: properties
-                                                .iter()
-                                                .map(|(k, v)| (k.to_owned(), v.clone()))
-                                                .chain(std::iter::once((
-                                                    tag.to_owned(),
-                                                    InlineOrRef::Inline(Schema::Flat(FlatSchema {
-                                                        description: "tag".to_owned(),
-                                                        ty: Type::String,
-                                                    })),
-                                                )))
-                                                .collect(),
-                                        },
-                                    }))
-                                }
-                            },
-                        }
+                        return self.internally_tag(tag, &s);
                     }
                     reflectapi_schema::Fields::Unnamed(_) => {
                         panic!(
@@ -821,6 +774,70 @@ impl Converter {
         }
 
         self.struct_to_schema(schema, kind, &type_ref, &strukt)
+    }
+
+    fn internally_tag(&self, tag: &str, schema: &InlineOrRef<Schema>) -> InlineOrRef<Schema> {
+        match self.resolve_schema_ref(schema) {
+            Schema::AllOf { subschemas } => {
+                let mut subschemas = subschemas.clone();
+                subschemas.push(InlineOrRef::Inline(FlatSchema {
+                    description: "tag object".to_owned(),
+                    ty: Type::Object{
+                        title: "tag".to_owned(),
+                        required: vec![tag.to_owned()],
+                        properties: BTreeMap::from([(tag.to_owned(), InlineOrRef::Inline(Schema::Flat(FlatSchema {
+                            description: "tag".to_owned(),
+                            ty: Type::String,
+                        })))]),
+                    },
+                }.into()));
+                InlineOrRef::Inline(Schema::AllOf { subschemas })
+            }
+            Schema::OneOf { subschemas } => return InlineOrRef::Inline(Schema::OneOf {
+                subschemas: subschemas.iter().map(|subschema| self.internally_tag(tag, subschema)).collect()
+            }),
+            Schema::Flat(schema) => match &schema.ty {
+                Type::Boolean
+                | Type::Integer
+                | Type::Number
+                | Type::Null
+                | Type::String
+                | Type::Array { .. }
+                | Type::Tuple { .. } => panic!(
+                    "newtype variant containing `{:?}` will panic on serialization, either mark this variant as `untagged` or use a different repr",
+                    schema.ty,
+                ),
+                Type::Map { .. } => todo!("map within newtype variant"),
+                Type::Object {
+                    title,
+                    required,
+                    properties,
+                } => {
+                    return InlineOrRef::Inline(Schema::Flat(FlatSchema {
+                        description: schema.description.to_owned(),
+                        ty: Type::Object {
+                            title: title.to_owned(),
+                            required: required
+                                .iter()
+                                .cloned()
+                                .chain(std::iter::once(tag.to_owned()))
+                                .collect(),
+                            properties: properties
+                                .iter()
+                                .map(|(k, v)| (k.to_owned(), v.clone()))
+                                .chain(std::iter::once((
+                                    tag.to_owned(),
+                                    InlineOrRef::Inline(Schema::Flat(FlatSchema {
+                                        description: "tag".to_owned(),
+                                        ty: Type::String,
+                                    })),
+                                )))
+                                .collect(),
+                        },
+                    }))
+                }
+            },
+        }
     }
 
     fn struct_to_schema(

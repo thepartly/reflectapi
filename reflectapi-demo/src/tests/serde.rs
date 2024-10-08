@@ -632,3 +632,48 @@ fn test_generic_struct_repr_transparent_partially_generic() {
 
     assert_snapshot!(TestStruct<u8>);
 }
+
+#[test]
+fn test_nested_internally_tagged_enums_minimal() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "version")]
+    #[serde(rename_all = "snake_case")]
+    enum Test {
+        V1(V1),
+    }
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    enum V1 {
+        A { a: u8 },
+    }
+
+    assert_snapshot!(Test);
+}
+
+#[test]
+fn test_nested_internally_tagged_enums() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "version")]
+    #[serde(rename_all = "snake_case")]
+    enum Test {
+        V1(V1),
+        V2(V2),
+    }
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    enum V1 {
+        A { a: u8 },
+        B { b: u16 },
+    }
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    enum V2 {
+        C { c: u32 },
+        D { d: u64 },
+    }
+
+    assert_snapshot!(Test);
+}
