@@ -31,6 +31,14 @@ impl<T> Option<T> {
         }
     }
 
+    pub fn into_option(self) -> std::option::Option<T> {
+        match self {
+            Option::Undefined => None,
+            Option::None => None,
+            Option::Some(value) => Some(value),
+        }
+    }
+
     pub fn as_option(&self) -> std::option::Option<&T> {
         match self {
             Option::Undefined => None,
