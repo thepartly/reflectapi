@@ -62,6 +62,17 @@ impl<T> Option<T> {
             Some(Some(value)) => Option::Some(value),
         }
     }
+
+    pub fn map<U, F>(self, f: F) -> Option<U>
+    where
+        F: FnOnce(T) -> U,
+    {
+        match self {
+            Option::Undefined => Option::Undefined,
+            Option::None => Option::None,
+            Option::Some(value) => Option::Some(f(value)),
+        }
+    }
 }
 
 impl<T> From<std::option::Option<T>> for Option<T> {
