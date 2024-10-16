@@ -413,6 +413,9 @@ pub struct Function {
     /// If a function is readonly, it means it does not modify the state of an application
     #[serde(skip_serializing_if = "is_false", default)]
     pub readonly: bool,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub tags: Vec<String>,
 }
 
 impl Function {
@@ -425,8 +428,9 @@ impl Function {
             input_headers: None,
             output_type: None,
             error_type: None,
-            serialization: Vec::new(),
+            serialization: Default::default(),
             readonly: false,
+            tags: Default::default(),
         }
     }
 

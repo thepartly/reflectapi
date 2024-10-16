@@ -101,14 +101,7 @@ where
         E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
         let rb = builder(RouteBuilder::new().path(self.path.clone()));
-        let route = crate::Handler::new(
-            rb.name,
-            rb.path,
-            rb.description,
-            rb.readonly,
-            handler,
-            &mut self.schema,
-        );
+        let route = crate::Handler::new(rb, handler, &mut self.schema);
         self.handlers.push(route);
         self
     }
@@ -215,27 +208,18 @@ where
     pub handlers: Vec<crate::Handler<S>>,
 }
 
+#[derive(Default)]
 pub struct RouteBuilder {
     name: String,
     path: String,
     description: String,
     readonly: bool,
-}
-
-impl Default for RouteBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
+    tags: Vec<String>,
 }
 
 impl RouteBuilder {
     pub fn new() -> Self {
-        Self {
-            name: String::new(),
-            path: String::from(""),
-            description: String::new(),
-            readonly: false,
-        }
+        Default::default()
     }
 
     pub fn name(mut self, name: String) -> Self {
@@ -261,6 +245,16 @@ impl RouteBuilder {
 
     pub fn readonly(mut self, readonly: bool) -> Self {
         self.readonly = readonly;
+        self
+    }
+
+    pub fn tag(mut self, tag: impl Into<String>) -> Self {
+        self.tags.push(tag.into());
+        self
+    }
+
+    pub fn tags(mut self, tags: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.tags.extend(tags.into_iter().map(Into::into));
         self
     }
 }
