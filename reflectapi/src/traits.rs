@@ -741,7 +741,7 @@ mod json {
                 reflectapi_type_json_map(schema),
                 vec![
                     K::reflectapi_input_type(schema),
-                    V::reflectapi_input_type(schema)
+                    V::reflectapi_input_type(schema),
                 ],
             )
         }
@@ -757,7 +757,7 @@ mod json {
                 reflectapi_type_json_map(schema),
                 vec![
                     K::reflectapi_output_type(schema),
-                    V::reflectapi_output_type(schema)
+                    V::reflectapi_output_type(schema),
                 ],
             )
         }

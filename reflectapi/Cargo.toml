@@ -1,6 +1,6 @@
 [package]
 name = "reflectapi"
-version = "0.9.0"
+version = "0.8.9"
 edition = "2021"
 
 license = "MIT"
