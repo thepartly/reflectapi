@@ -738,7 +738,7 @@ mod json {
     {
         fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
             crate::TypeReference::new(
-                reflectapi_type_json_map(schema),
+                reflectapi_type_hashmap(schema),
                 vec![
                     K::reflectapi_input_type(schema),
                     V::reflectapi_input_type(schema),
@@ -754,29 +754,12 @@ mod json {
     {
         fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
             crate::TypeReference::new(
-                reflectapi_type_json_map(schema),
+                reflectapi_type_hashmap(schema),
                 vec![
                     K::reflectapi_output_type(schema),
                     V::reflectapi_output_type(schema),
                 ],
             )
         }
-    }
-
-    fn reflectapi_type_json_map(schema: &mut crate::Typespace) -> String {
-        let type_name = "serde_json::Map";
-        if schema.reserve_type(type_name) {
-            let type_def = crate::Primitive::new(
-                type_name.into(),
-                "JSON object type".into(),
-                vec!["K".into(), "V".into()],
-                Some(crate::TypeReference::new(
-                    reflectapi_type_hashmap(schema),
-                    vec!["K".into(), "V".into()],
-                )),
-            );
-            schema.insert_type(type_def.into());
-        }
-        type_name.into()
     }
 }
