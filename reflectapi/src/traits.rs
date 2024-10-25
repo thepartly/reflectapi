@@ -707,6 +707,8 @@ impl Output for std::path::Path {
 
 #[cfg(feature = "json")]
 mod json {
+    use super::reflectapi_type_hashmap;
+
     impl crate::Input for serde_json::Value {
         fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
             crate::TypeReference::new(reflectapi_type_json_value(schema), vec![])
@@ -724,6 +726,55 @@ mod json {
         if schema.reserve_type(type_name) {
             let type_def =
                 crate::Primitive::new(type_name.into(), "JSON value type".into(), Vec::new(), None);
+            schema.insert_type(type_def.into());
+        }
+        type_name.into()
+    }
+
+    impl<K, V> crate::Input for serde_json::Map<K, V>
+    where
+        K: crate::Input,
+        V: crate::Input,
+    {
+        fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+            crate::TypeReference::new(
+                reflectapi_type_json_map(schema),
+                vec![
+                    K::reflectapi_input_type(schema),
+                    V::reflectapi_input_type(schema)
+                ],
+            )
+        }
+    }
+
+    impl<K, V> crate::Output for serde_json::Map<K, V>
+    where
+        K: crate::Output,
+        V: crate::Output,
+    {
+        fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+            crate::TypeReference::new(
+                reflectapi_type_json_map(schema),
+                vec![
+                    K::reflectapi_output_type(schema),
+                    V::reflectapi_output_type(schema)
+                ],
+            )
+        }
+    }
+
+    fn reflectapi_type_json_map(schema: &mut crate::Typespace) -> String {
+        let type_name = "serde_json::Map";
+        if schema.reserve_type(type_name) {
+            let type_def = crate::Primitive::new(
+                type_name.into(),
+                "JSON object type".into(),
+                vec!["K".into(), "V".into()],
+                Some(crate::TypeReference::new(
+                    reflectapi_type_hashmap(schema),
+                    vec!["K".into(), "V".into()],
+                )),
+            );
             schema.insert_type(type_def.into());
         }
         type_name.into()
