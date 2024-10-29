@@ -52,7 +52,18 @@ impl<AE: core::fmt::Display, NE: core::fmt::Display> core::fmt::Display for Erro
     }
 }
 
-impl<AE: std::error::Error, NE: std::error::Error> std::error::Error for Error<AE, NE> {}
+impl<AE: std::error::Error + 'static, NE: std::error::Error + 'static> std::error::Error
+    for Error<AE, NE>
+{
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Error::Application(err) => Some(err),
+            Error::Network(err) => Some(err),
+            Error::Protocol { .. } => None,
+            Error::Server(_, _) => None,
+        }
+    }
+}
 
 pub enum ProtocolErrorStage {
     SerializeRequestBody,
