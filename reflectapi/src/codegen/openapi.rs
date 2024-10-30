@@ -113,7 +113,11 @@ pub enum Type {
     Boolean,
     Integer,
     Number,
-    String,
+    String {
+        /// `None` indicates an unrestricted string. `Some([])` indicates an empty type.
+        #[serde(rename = "enum", skip_serializing_if = "Option::is_none")]
+        enum_: Option<Vec<String>>,
+    },
     Array {
         items: Box<InlineOrRef<Schema>>,
         #[serde(rename = "uniqueItems")]
@@ -489,7 +493,7 @@ impl Converter {
                         required: vec![],
                         properties: BTreeMap::new(),
                     },
-                    "uuid::Uuid" | "char" | "std::string::String" => Type::String,
+                    "uuid::Uuid" | "char" | "std::string::String" => Type::String { enum_: None },
                     "std::marker::PhantomData" | "std::tuple::Tuple0" => Type::Null,
                     "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
                         Type::Array {
@@ -572,6 +576,20 @@ impl Converter {
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
+        // Special case enums that are all unit variants
+        if matches!(adt.representation(), crate::Representation::External)
+            && adt
+                .variants()
+                .all(|v| matches!(v.fields, crate::Fields::None))
+        {
+            return InlineOrRef::Inline(Schema::Flat(FlatSchema {
+                description: adt.description().to_owned(),
+                ty: Type::String {
+                    enum_: Some(adt.variants().map(|v| v.serde_name().to_owned()).collect()),
+                },
+            }));
+        }
+
         let subschemas = adt
             .variants()
             .map(|variant| self.variant_to_schema(schema, kind, type_ref, adt, variant))
@@ -644,7 +662,9 @@ impl Converter {
                                 InlineOrRef::Inline(Schema::empty_tuple()),
                             )]),
                         },
-                        reflectapi_schema::Fields::None => Type::String,
+                        reflectapi_schema::Fields::None => Type::String {
+                            enum_: Some(vec![variant.serde_name().to_owned()]),
+                        },
                     };
 
                     return InlineOrRef::Inline(
@@ -692,7 +712,7 @@ impl Converter {
                                     InlineOrRef::Inline(
                                         FlatSchema {
                                             description: variant.description().to_owned(),
-                                            ty: Type::String,
+                                            ty: Type::String { enum_: None },
                                         }
                                         .into(),
                                     ),
@@ -751,6 +771,7 @@ impl Converter {
                     // ```
 
                     let ty = match variant.fields {
+                        reflectapi_schema::Fields::None => Type::Null,
                         reflectapi_schema::Fields::Named(_) => Type::Object {
                             title: fmt_type_ref(&type_ref),
                             required: vec![],
@@ -759,7 +780,6 @@ impl Converter {
                         reflectapi_schema::Fields::Unnamed(_) => Type::Tuple {
                             prefix_items: vec![],
                         },
-                        reflectapi_schema::Fields::None => Type::String,
                     };
 
                     return InlineOrRef::Inline(
@@ -787,7 +807,9 @@ impl Converter {
                         required: vec![tag.to_owned()],
                         properties: BTreeMap::from([(tag.to_owned(), InlineOrRef::Inline(Schema::Flat(FlatSchema {
                             description: "tag".to_owned(),
-                            ty: Type::String,
+                            ty: Type::String {
+                                enum_: None
+                            },
                         })))]),
                     },
                 }.into()));
@@ -801,7 +823,7 @@ impl Converter {
                 | Type::Integer
                 | Type::Number
                 | Type::Null
-                | Type::String
+                | Type::String { .. }
                 | Type::Array { .. }
                 | Type::Tuple { .. } => panic!(
                     "newtype variant containing `{:?}` will panic on serialization, either mark this variant as `untagged` or use a different repr",
@@ -829,7 +851,9 @@ impl Converter {
                                     tag.to_owned(),
                                     InlineOrRef::Inline(Schema::Flat(FlatSchema {
                                         description: "tag".to_owned(),
-                                        ty: Type::String,
+                                        ty: Type::String {
+                                            enum_: None
+                                        },
                                     })),
                                 )))
                                 .collect(),

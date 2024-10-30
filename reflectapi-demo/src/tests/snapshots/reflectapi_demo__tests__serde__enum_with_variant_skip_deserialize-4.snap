@@ -42,13 +42,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   "components": {
     "schemas": {
       "reflectapi_demo.tests.serde.input.TestEnumWithVariantSkipDeserialize": {
-        "oneOf": []
+        "type": "string",
+        "enum": []
       },
       "reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipDeserialize": {
-        "oneOf": [
-          {
-            "type": "string"
-          }
+        "type": "string",
+        "enum": [
+          "_Variant1"
         ]
       }
     }

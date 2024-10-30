@@ -44,7 +44,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestEmptyVariantsUntagged": {
         "oneOf": [
           {
-            "type": "string"
+            "type": "null"
           },
           {
             "type": "array",
