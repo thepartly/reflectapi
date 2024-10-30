@@ -42,7 +42,8 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   "components": {
     "schemas": {
       "reflectapi_demo.tests.serde.TestEnumWithVariantSkip": {
-        "oneOf": []
+        "type": "string",
+        "enum": []
       }
     }
   }

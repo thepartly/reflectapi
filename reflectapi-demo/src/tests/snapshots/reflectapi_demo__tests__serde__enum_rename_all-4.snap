@@ -42,10 +42,9 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   "components": {
     "schemas": {
       "reflectapi_demo.tests.serde.TestEnumRenameAll": {
-        "oneOf": [
-          {
-            "type": "string"
-          }
+        "type": "string",
+        "enum": [
+          "fieldName"
         ]
       }
     }

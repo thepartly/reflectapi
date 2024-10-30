@@ -64,7 +64,11 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 }
               },
               "type": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "variant1",
+                  "variant2"
+                ]
               }
             }
           },
@@ -80,7 +84,11 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "variant1",
+                  "variant2"
+                ]
               }
             }
           }

@@ -1,9 +1,9 @@
 fn reflectapi_rust_decimal(schema: &mut crate::Typespace) -> String {
     let type_name = "rust_decimal::Decimal";
-    if schema.reserve_type(&type_name) {
+    if schema.reserve_type(type_name) {
         let type_def = crate::Primitive::new(
             type_name.into(),
-            format!("Decimal value type"),
+            "Decimal value type".into(),
             vec![],
             Some("std::string::String".into()),
         );

@@ -260,7 +260,10 @@
       "myapi.model.Behavior": {
         "oneOf": [
           {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Calm"
+            ]
           },
           {
             "type": "object",
@@ -309,15 +312,10 @@
         ]
       },
       "myapi.model.Kind": {
-        "oneOf": [
-          {
-            "description": " A dog",
-            "type": "string"
-          },
-          {
-            "description": " A cat",
-            "type": "string"
-          }
+        "type": "string",
+        "enum": [
+          "dog",
+          "cat"
         ]
       },
       "myapi.model.Pet": {

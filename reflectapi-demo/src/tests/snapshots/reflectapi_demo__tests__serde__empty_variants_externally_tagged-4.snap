@@ -44,7 +44,10 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
       "reflectapi_demo.tests.serde.TestEmptyVariantsExternallyTagged": {
         "oneOf": [
           {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Empty"
+            ]
           },
           {
             "type": "object",
