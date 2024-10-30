@@ -88,10 +88,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             }
           },
           {
-            "type": "string",
-            "enum": [
-              "unit"
-            ]
+            "const": "unit"
           }
         ]
       },

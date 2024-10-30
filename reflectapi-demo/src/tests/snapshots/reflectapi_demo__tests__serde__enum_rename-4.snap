@@ -42,10 +42,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   "components": {
     "schemas": {
       "reflectapi_demo.tests.serde.MyEnum": {
-        "type": "string",
-        "enum": [
-          "V1",
-          "V2"
+        "oneOf": [
+          {
+            "const": "V1"
+          },
+          {
+            "const": "V2"
+          }
         ]
       }
     }

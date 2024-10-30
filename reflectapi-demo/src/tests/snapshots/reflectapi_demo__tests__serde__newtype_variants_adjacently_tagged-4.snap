@@ -63,12 +63,19 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/i32"
               },
               "t": {
-                "type": "string",
-                "enum": [
-                  "int",
-                  "string",
-                  "bool",
-                  "unit"
+                "oneOf": [
+                  {
+                    "const": "int"
+                  },
+                  {
+                    "const": "string"
+                  },
+                  {
+                    "const": "bool"
+                  },
+                  {
+                    "const": "unit"
+                  }
                 ]
               }
             }
@@ -85,12 +92,19 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/std.string.String"
               },
               "t": {
-                "type": "string",
-                "enum": [
-                  "int",
-                  "string",
-                  "bool",
-                  "unit"
+                "oneOf": [
+                  {
+                    "const": "int"
+                  },
+                  {
+                    "const": "string"
+                  },
+                  {
+                    "const": "bool"
+                  },
+                  {
+                    "const": "unit"
+                  }
                 ]
               }
             }
@@ -107,12 +121,19 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/bool"
               },
               "t": {
-                "type": "string",
-                "enum": [
-                  "int",
-                  "string",
-                  "bool",
-                  "unit"
+                "oneOf": [
+                  {
+                    "const": "int"
+                  },
+                  {
+                    "const": "string"
+                  },
+                  {
+                    "const": "bool"
+                  },
+                  {
+                    "const": "unit"
+                  }
                 ]
               }
             }
@@ -131,12 +152,19 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "properties": {}
               },
               "t": {
-                "type": "string",
-                "enum": [
-                  "int",
-                  "string",
-                  "bool",
-                  "unit"
+                "oneOf": [
+                  {
+                    "const": "int"
+                  },
+                  {
+                    "const": "string"
+                  },
+                  {
+                    "const": "bool"
+                  },
+                  {
+                    "const": "unit"
+                  }
                 ]
               }
             }

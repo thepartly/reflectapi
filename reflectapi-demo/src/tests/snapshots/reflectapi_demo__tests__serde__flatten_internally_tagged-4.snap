@@ -89,10 +89,10 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 ],
                 "properties": {
                   "type": {
-                    "description": "tag",
-                    "type": "string",
-                    "enum": [
-                      "S"
+                    "oneOf": [
+                      {
+                        "const": "S"
+                      }
                     ]
                   }
                 }

@@ -42,10 +42,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   "components": {
     "schemas": {
       "reflectapi_demo.tests.enums.Nums": {
-        "type": "string",
-        "enum": [
-          "0",
-          "A"
+        "oneOf": [
+          {
+            "const": "0"
+          },
+          {
+            "const": "A"
+          }
         ]
       }
     }

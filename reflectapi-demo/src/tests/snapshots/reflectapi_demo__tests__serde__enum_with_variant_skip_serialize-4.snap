@@ -42,14 +42,14 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   "components": {
     "schemas": {
       "reflectapi_demo.tests.serde.input.TestEnumWithVariantSkipSerialize": {
-        "type": "string",
-        "enum": [
-          "Variant1"
+        "oneOf": [
+          {
+            "const": "Variant1"
+          }
         ]
       },
       "reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipSerialize": {
-        "type": "string",
-        "enum": []
+        "oneOf": []
       }
     }
   }

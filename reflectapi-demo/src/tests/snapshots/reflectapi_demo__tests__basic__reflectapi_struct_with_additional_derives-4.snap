@@ -90,9 +90,10 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         "properties": {}
       },
       "reflectapi_demo.tests.basic.Y": {
-        "type": "string",
-        "enum": [
-          "Y"
+        "oneOf": [
+          {
+            "const": "Y"
+          }
         ]
       },
       "std.tuple.Tuple0": {

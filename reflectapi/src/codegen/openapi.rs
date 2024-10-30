@@ -13,6 +13,7 @@ use core::fmt;
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
 use std::sync::OnceLock;
+use InlineOrRef::Inline;
 
 use reflectapi_schema::{Instantiate, Substitute};
 use serde::Serialize;
@@ -113,11 +114,7 @@ pub enum Type {
     Boolean,
     Integer,
     Number,
-    String {
-        /// `None` indicates an unrestricted string. `Some([])` indicates an empty type.
-        #[serde(rename = "enum", skip_serializing_if = "Option::is_none")]
-        values: Option<Vec<String>>,
-    },
+    String,
     Array {
         items: Box<InlineOrRef<Schema>>,
         #[serde(rename = "uniqueItems")]
@@ -158,6 +155,12 @@ pub enum Schema {
         #[serde(rename = "oneOf")]
         subschemas: Vec<InlineOrRef<Schema>>,
     },
+    Const {
+        #[serde(rename = "const")]
+        value: String,
+        #[serde(skip_serializing_if = "String::is_empty")]
+        description: String,
+    },
     Flat(FlatSchema),
 }
 
@@ -171,6 +174,11 @@ impl fmt::Debug for Schema {
             Schema::OneOf { subschemas } => f
                 .debug_struct("OneOf")
                 .field("subschemas", subschemas)
+                .finish(),
+            Schema::Const { value, description } => f
+                .debug_struct("Const")
+                .field("value", value)
+                .field("description", description)
                 .finish(),
             Schema::Flat(schema) => schema.fmt(f),
         }
@@ -324,7 +332,7 @@ impl Converter {
                         "application/json".to_owned(),
                         MediaType {
                             schema: f.output_type().map_or_else(
-                                || InlineOrRef::Inline(Schema::empty_object()),
+                                || Inline(Schema::empty_object()),
                                 |ty| self.convert_type_ref(schema, Kind::Output, ty),
                             ),
                         },
@@ -454,7 +462,7 @@ impl Converter {
                     // Special case `Option` to generate a nicer spec.
                     Schema::OneOf {
                         subschemas: vec![
-                            InlineOrRef::Inline(Schema::Flat(FlatSchema {
+                            Inline(Schema::Flat(FlatSchema {
                                 description: "Null".to_owned(),
                                 ty: Type::Null,
                             })),
@@ -468,7 +476,7 @@ impl Converter {
                         ty_ref,
                         &adt.clone().instantiate(&ty_ref.arguments),
                     ) {
-                        InlineOrRef::Inline(schema) => schema,
+                        Inline(schema) => schema,
                         InlineOrRef::Ref(r) => {
                             self.components.schemas.remove(&name);
                             return InlineOrRef::Ref(r);
@@ -493,7 +501,7 @@ impl Converter {
                         required: vec![],
                         properties: BTreeMap::new(),
                     },
-                    "uuid::Uuid" | "char" | "std::string::String" => Type::String { values: None },
+                    "uuid::Uuid" | "char" | "std::string::String" => Type::String,
                     "std::marker::PhantomData" | "std::tuple::Tuple0" => Type::Null,
                     "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
                         Type::Array {
@@ -563,7 +571,7 @@ impl Converter {
 
             InlineOrRef::Ref(schema_ref)
         } else {
-            InlineOrRef::Inline(schema)
+            Inline(schema)
         }
     }
 
@@ -576,33 +584,26 @@ impl Converter {
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
-        let tags = match adt.representation() {
+        let tags_schema = match adt.representation() {
             reflectapi_schema::Representation::External
             | reflectapi_schema::Representation::Internal { .. }
-            | reflectapi_schema::Representation::Adjacent { .. } => Some(
-                adt.variants()
-                    .map(|v| v.serde_name().to_owned())
+            | reflectapi_schema::Representation::Adjacent { .. } => Some(Schema::OneOf {
+                subschemas: adt
+                    .variants()
+                    .map(|v| Schema::Const {
+                        description: v.description().to_owned(),
+                        value: v.serde_name().to_owned(),
+                    })
+                    .map(Inline)
                     .collect::<Vec<_>>(),
-            ),
+            }),
             reflectapi_schema::Representation::None => None,
         };
-
-        // Special case enums that are all unit variants
-        if matches!(adt.representation(), crate::Representation::External)
-            && adt
-                .variants()
-                .all(|v| matches!(v.fields, crate::Fields::None))
-        {
-            return InlineOrRef::Inline(Schema::Flat(FlatSchema {
-                description: adt.description().to_owned(),
-                ty: Type::String { values: tags },
-            }));
-        }
 
         let subschemas = adt
             .variants()
             .map(|variant| {
-                self.variant_to_schema(schema, kind, type_ref, adt, tags.as_deref(), variant)
+                self.variant_to_schema(schema, kind, type_ref, adt, tags_schema.as_ref(), variant)
             })
             .collect::<Vec<_>>();
 
@@ -613,7 +614,7 @@ impl Converter {
             | crate::Representation::None => Schema::OneOf { subschemas },
         };
 
-        InlineOrRef::Inline(schema)
+        Inline(schema)
     }
 
     fn variant_to_schema(
@@ -622,7 +623,7 @@ impl Converter {
         kind: Kind,
         type_ref: &crate::TypeReference,
         adt: &crate::Enum,
-        all_tags: Option<&[String]>,
+        tags_schema: Option<&Schema>,
         variant: &crate::Variant,
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
@@ -663,7 +664,7 @@ impl Converter {
                             required: vec![],
                             properties: BTreeMap::from_iter([(
                                 variant.serde_name().to_owned(),
-                                InlineOrRef::Inline(Schema::empty_object()),
+                                Inline(Schema::empty_object()),
                             )]),
                         },
                         reflectapi_schema::Fields::Unnamed(_) => Type::Object {
@@ -671,15 +672,18 @@ impl Converter {
                             required: vec![],
                             properties: BTreeMap::from_iter([(
                                 variant.serde_name().to_owned(),
-                                InlineOrRef::Inline(Schema::empty_tuple()),
+                                Inline(Schema::empty_tuple()),
                             )]),
                         },
-                        reflectapi_schema::Fields::None => Type::String {
-                            values: Some(vec![variant.serde_name().to_owned()]),
-                        },
+                        reflectapi_schema::Fields::None => {
+                            return Inline(Schema::Const {
+                                description: variant.description().to_owned(),
+                                value: variant.serde_name().to_owned(),
+                            })
+                        }
                     };
 
-                    return InlineOrRef::Inline(
+                    return Inline(
                         FlatSchema {
                             description: variant.description().to_owned(),
                             ty,
@@ -694,7 +698,7 @@ impl Converter {
                     self.struct_to_schema(schema, kind, &type_ref, &strukt)
                 };
 
-                return InlineOrRef::Inline(
+                return Inline(
                     FlatSchema {
                         description: variant.description().to_owned(),
                         ty: Type::Object {
@@ -712,7 +716,7 @@ impl Converter {
                 } else {
                     self.struct_to_schema(schema, kind, &type_ref, &strukt)
                 };
-                return InlineOrRef::Inline(
+                return Inline(
                     FlatSchema {
                         description: variant.description().to_owned(),
                         ty: Type::Object {
@@ -721,14 +725,10 @@ impl Converter {
                             properties: BTreeMap::from([
                                 (
                                     tag.to_owned(),
-                                    InlineOrRef::Inline(
-                                        FlatSchema {
-                                            description: variant.description().to_owned(),
-                                            ty: Type::String {
-                                                values: all_tags.map(Vec::from),
-                                            },
-                                        }
-                                        .into(),
+                                    Inline(
+                                        tags_schema
+                                            .expect("expected some for adjacent tagged enum")
+                                            .clone(),
                                     ),
                                 ),
                                 (content.to_owned(), data),
@@ -759,7 +759,7 @@ impl Converter {
                         let field = fields.pop().unwrap();
                         let s = self.convert_type_ref(schema, kind, &field.type_ref);
                         return self.internally_tag(
-                            all_tags.expect("expected some for internally tagged enum"),
+                            tags_schema.expect("expected some for internally tagged enum"),
                             tag,
                             &s,
                         );
@@ -800,7 +800,7 @@ impl Converter {
                         },
                     };
 
-                    return InlineOrRef::Inline(
+                    return Inline(
                         FlatSchema {
                             description: variant.description().to_owned(),
                             ty,
@@ -816,31 +816,27 @@ impl Converter {
 
     fn internally_tag(
         &self,
-        all_tags: &[String],
+        tags_schema: &Schema,
         tag: &str,
         schema: &InlineOrRef<Schema>,
     ) -> InlineOrRef<Schema> {
         match self.resolve_schema_ref(schema) {
             Schema::AllOf { subschemas } => {
                 let mut subschemas = subschemas.clone();
-                subschemas.push(InlineOrRef::Inline(FlatSchema {
+                subschemas.push(Inline(FlatSchema {
                     description: "tag object".to_owned(),
                     ty: Type::Object{
                         title: "tag".to_owned(),
                         required: vec![tag.to_owned()],
-                        properties: BTreeMap::from([(tag.to_owned(), InlineOrRef::Inline(Schema::Flat(FlatSchema {
-                            description: "tag".to_owned(),
-                            ty: Type::String {
-                                values: Some(all_tags.to_vec()),
-                            },
-                        })))]),
+                        properties: BTreeMap::from([(tag.to_owned(), Inline(tags_schema.clone()))]),
                     },
                 }.into()));
-                InlineOrRef::Inline(Schema::AllOf { subschemas })
+                Inline(Schema::AllOf { subschemas })
             }
-            Schema::OneOf { subschemas } => return InlineOrRef::Inline(Schema::OneOf {
-                subschemas: subschemas.iter().map(|subschema| self.internally_tag(all_tags, tag, subschema)).collect()
+            Schema::OneOf { subschemas } => return Inline(Schema::OneOf {
+                subschemas: subschemas.iter().map(|subschema| self.internally_tag(tags_schema, tag, subschema)).collect()
             }),
+            Schema::Const { .. } => unreachable!("internally tagged const?"),
             Schema::Flat(schema) => match &schema.ty {
                 Type::Boolean
                 | Type::Integer
@@ -858,7 +854,7 @@ impl Converter {
                     required,
                     properties,
                 } => {
-                    return InlineOrRef::Inline(Schema::Flat(FlatSchema {
+                    return Inline(Schema::Flat(FlatSchema {
                         description: schema.description.to_owned(),
                         ty: Type::Object {
                             title: title.to_owned(),
@@ -872,11 +868,9 @@ impl Converter {
                                 .map(|(k, v)| (k.to_owned(), v.clone()))
                                 .chain(std::iter::once((
                                     tag.to_owned(),
-                                    InlineOrRef::Inline(Schema::Flat(FlatSchema {
+                                    Inline(Schema::Flat(FlatSchema {
                                         description: "tag".to_owned(),
-                                        ty: Type::String {
-                                            values: None
-                                        },
+                                        ty: Type::String,
                                     })),
                                 )))
                                 .collect(),
@@ -948,7 +942,7 @@ impl Converter {
             let subschemas = flattened_fields
                 .into_iter()
                 .map(|field| self.convert_type_ref(schema, kind, field.type_ref()))
-                .chain(std::iter::once(InlineOrRef::Inline(s)))
+                .chain(std::iter::once(Inline(s)))
                 .collect::<Vec<_>>();
 
             if subschemas.len() == 1 {
@@ -958,7 +952,7 @@ impl Converter {
             }
         };
 
-        InlineOrRef::Inline(s)
+        Inline(s)
     }
 }
 
