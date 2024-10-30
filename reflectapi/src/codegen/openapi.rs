@@ -116,7 +116,7 @@ pub enum Type {
     String {
         /// `None` indicates an unrestricted string. `Some([])` indicates an empty type.
         #[serde(rename = "enum", skip_serializing_if = "Option::is_none")]
-        enum_: Option<Vec<String>>,
+        values: Option<Vec<String>>,
     },
     Array {
         items: Box<InlineOrRef<Schema>>,
@@ -493,7 +493,7 @@ impl Converter {
                         required: vec![],
                         properties: BTreeMap::new(),
                     },
-                    "uuid::Uuid" | "char" | "std::string::String" => Type::String { enum_: None },
+                    "uuid::Uuid" | "char" | "std::string::String" => Type::String { values: None },
                     "std::marker::PhantomData" | "std::tuple::Tuple0" => Type::Null,
                     "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
                         Type::Array {
@@ -585,14 +585,14 @@ impl Converter {
             return InlineOrRef::Inline(Schema::Flat(FlatSchema {
                 description: adt.description().to_owned(),
                 ty: Type::String {
-                    enum_: Some(adt.variants().map(|v| v.serde_name().to_owned()).collect()),
+                    values: Some(adt.variants().map(|v| v.serde_name().to_owned()).collect()),
                 },
             }));
         }
 
         let subschemas = adt
             .variants()
-            .map(|variant| self.variant_to_schema(schema, kind, type_ref, adt, variant))
+            .map(|variant| self.variant_to_schema(schema, kind, type_ref, adt, None, variant))
             .collect::<Vec<_>>();
 
         let schema = match adt.representation() {
@@ -611,6 +611,7 @@ impl Converter {
         kind: Kind,
         type_ref: &crate::TypeReference,
         adt: &crate::Enum,
+        all_tags: Option<Vec<String>>,
         variant: &crate::Variant,
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
@@ -663,7 +664,7 @@ impl Converter {
                             )]),
                         },
                         reflectapi_schema::Fields::None => Type::String {
-                            enum_: Some(vec![variant.serde_name().to_owned()]),
+                            values: Some(vec![variant.serde_name().to_owned()]),
                         },
                     };
 
@@ -712,7 +713,7 @@ impl Converter {
                                     InlineOrRef::Inline(
                                         FlatSchema {
                                             description: variant.description().to_owned(),
-                                            ty: Type::String { enum_: None },
+                                            ty: Type::String { values: all_tags },
                                         }
                                         .into(),
                                     ),
@@ -744,7 +745,11 @@ impl Converter {
                     reflectapi_schema::Fields::Unnamed(fields) if fields.len() == 1 => {
                         let field = fields.pop().unwrap();
                         let s = self.convert_type_ref(schema, kind, &field.type_ref);
-                        return self.internally_tag(tag, &s);
+                        return self.internally_tag(
+                            all_tags.expect("expected some for internally tagged enum"),
+                            tag,
+                            &s,
+                        );
                     }
                     reflectapi_schema::Fields::Unnamed(_) => {
                         panic!(
@@ -796,7 +801,12 @@ impl Converter {
         self.struct_to_schema(schema, kind, &type_ref, &strukt)
     }
 
-    fn internally_tag(&self, tag: &str, schema: &InlineOrRef<Schema>) -> InlineOrRef<Schema> {
+    fn internally_tag(
+        &self,
+        all_tags: Vec<String>,
+        tag: &str,
+        schema: &InlineOrRef<Schema>,
+    ) -> InlineOrRef<Schema> {
         match self.resolve_schema_ref(schema) {
             Schema::AllOf { subschemas } => {
                 let mut subschemas = subschemas.clone();
@@ -808,7 +818,7 @@ impl Converter {
                         properties: BTreeMap::from([(tag.to_owned(), InlineOrRef::Inline(Schema::Flat(FlatSchema {
                             description: "tag".to_owned(),
                             ty: Type::String {
-                                enum_: None
+                                values: Some(all_tags),
                             },
                         })))]),
                     },
@@ -816,7 +826,7 @@ impl Converter {
                 InlineOrRef::Inline(Schema::AllOf { subschemas })
             }
             Schema::OneOf { subschemas } => return InlineOrRef::Inline(Schema::OneOf {
-                subschemas: subschemas.iter().map(|subschema| self.internally_tag(tag, subschema)).collect()
+                subschemas: subschemas.iter().map(|subschema| self.internally_tag(all_tags.clone(), tag, subschema)).collect()
             }),
             Schema::Flat(schema) => match &schema.ty {
                 Type::Boolean
@@ -852,7 +862,7 @@ impl Converter {
                                     InlineOrRef::Inline(Schema::Flat(FlatSchema {
                                         description: "tag".to_owned(),
                                         ty: Type::String {
-                                            enum_: None
+                                            values: None
                                         },
                                     })),
                                 )))
