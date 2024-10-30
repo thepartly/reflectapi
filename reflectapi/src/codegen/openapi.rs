@@ -576,6 +576,17 @@ impl Converter {
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
+        let tags = match adt.representation() {
+            reflectapi_schema::Representation::External
+            | reflectapi_schema::Representation::Internal { .. }
+            | reflectapi_schema::Representation::Adjacent { .. } => Some(
+                adt.variants()
+                    .map(|v| v.serde_name().to_owned())
+                    .collect::<Vec<_>>(),
+            ),
+            reflectapi_schema::Representation::None => None,
+        };
+
         // Special case enums that are all unit variants
         if matches!(adt.representation(), crate::Representation::External)
             && adt
@@ -584,15 +595,15 @@ impl Converter {
         {
             return InlineOrRef::Inline(Schema::Flat(FlatSchema {
                 description: adt.description().to_owned(),
-                ty: Type::String {
-                    values: Some(adt.variants().map(|v| v.serde_name().to_owned()).collect()),
-                },
+                ty: Type::String { values: tags },
             }));
         }
 
         let subschemas = adt
             .variants()
-            .map(|variant| self.variant_to_schema(schema, kind, type_ref, adt, None, variant))
+            .map(|variant| {
+                self.variant_to_schema(schema, kind, type_ref, adt, tags.as_deref(), variant)
+            })
             .collect::<Vec<_>>();
 
         let schema = match adt.representation() {
@@ -611,7 +622,7 @@ impl Converter {
         kind: Kind,
         type_ref: &crate::TypeReference,
         adt: &crate::Enum,
-        all_tags: Option<Vec<String>>,
+        all_tags: Option<&[String]>,
         variant: &crate::Variant,
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
@@ -713,7 +724,9 @@ impl Converter {
                                     InlineOrRef::Inline(
                                         FlatSchema {
                                             description: variant.description().to_owned(),
-                                            ty: Type::String { values: all_tags },
+                                            ty: Type::String {
+                                                values: all_tags.map(Vec::from),
+                                            },
                                         }
                                         .into(),
                                     ),
@@ -803,7 +816,7 @@ impl Converter {
 
     fn internally_tag(
         &self,
-        all_tags: Vec<String>,
+        all_tags: &[String],
         tag: &str,
         schema: &InlineOrRef<Schema>,
     ) -> InlineOrRef<Schema> {
@@ -818,7 +831,7 @@ impl Converter {
                         properties: BTreeMap::from([(tag.to_owned(), InlineOrRef::Inline(Schema::Flat(FlatSchema {
                             description: "tag".to_owned(),
                             ty: Type::String {
-                                values: Some(all_tags),
+                                values: Some(all_tags.to_vec()),
                             },
                         })))]),
                     },
@@ -826,7 +839,7 @@ impl Converter {
                 InlineOrRef::Inline(Schema::AllOf { subschemas })
             }
             Schema::OneOf { subschemas } => return InlineOrRef::Inline(Schema::OneOf {
-                subschemas: subschemas.iter().map(|subschema| self.internally_tag(all_tags.clone(), tag, subschema)).collect()
+                subschemas: subschemas.iter().map(|subschema| self.internally_tag(all_tags, tag, subschema)).collect()
             }),
             Schema::Flat(schema) => match &schema.ty {
                 Type::Boolean

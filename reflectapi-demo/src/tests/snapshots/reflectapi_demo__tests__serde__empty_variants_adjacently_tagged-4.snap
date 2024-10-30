@@ -57,7 +57,12 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "properties": {}
               },
               "t": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "Empty",
+                  "EmptyUnit",
+                  "EmptyStruct"
+                ]
               }
             }
           },
@@ -75,7 +80,12 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "properties": {}
               },
               "t": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "Empty",
+                  "EmptyUnit",
+                  "EmptyStruct"
+                ]
               }
             }
           },
@@ -93,7 +103,12 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "properties": {}
               },
               "t": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "Empty",
+                  "EmptyUnit",
+                  "EmptyStruct"
+                ]
               }
             }
           }

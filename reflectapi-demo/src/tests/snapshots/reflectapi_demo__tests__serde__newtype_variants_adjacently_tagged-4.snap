@@ -63,7 +63,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/i32"
               },
               "t": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "int",
+                  "string",
+                  "bool",
+                  "unit"
+                ]
               }
             }
           },
@@ -79,7 +85,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/std.string.String"
               },
               "t": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "int",
+                  "string",
+                  "bool",
+                  "unit"
+                ]
               }
             }
           },
@@ -95,7 +107,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/bool"
               },
               "t": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "int",
+                  "string",
+                  "bool",
+                  "unit"
+                ]
               }
             }
           },
@@ -113,7 +131,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "properties": {}
               },
               "t": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "int",
+                  "string",
+                  "bool",
+                  "unit"
+                ]
               }
             }
           }
