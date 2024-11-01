@@ -14,6 +14,8 @@ pub struct HandlerOutput {
     pub headers: http::HeaderMap,
 }
 
+// Not public API, currently exposed for tests only
+#[doc(hidden)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ContentType {
     Json,
@@ -22,25 +24,30 @@ pub enum ContentType {
 }
 
 impl TryFrom<&http::HeaderMap> for ContentType {
-    type Error = ();
+    type Error = anyhow::Error;
 
     fn try_from(value: &http::HeaderMap) -> Result<Self, Self::Error> {
         match value.get("content-type") {
-            Some(v) => ContentType::try_from(v),
+            Some(v) => {
+                let mime = v.to_str()?.parse::<mime::Mime>()?;
+                if let Some(charset) = mime.get_param(mime::CHARSET) {
+                    if charset != mime::UTF_8 {
+                        return Err(anyhow::anyhow!("unsupported charset: {charset}"));
+                    }
+                }
+
+                if mime.type_() != mime::APPLICATION {
+                    return Err(anyhow::anyhow!("unsupported media type: {mime}"));
+                }
+
+                match mime.subtype() {
+                    mime::JSON => Ok(ContentType::Json),
+                    #[cfg(feature = "msgpack")]
+                    mime::MSGPACK => Ok(ContentType::MessagePack),
+                    _ => anyhow::bail!("unsupported content-type: {mime}"),
+                }
+            }
             None => Ok(ContentType::Json),
-        }
-    }
-}
-
-impl TryFrom<&http::HeaderValue> for ContentType {
-    type Error = ();
-
-    fn try_from(v: &http::HeaderValue) -> Result<Self, Self::Error> {
-        match v.as_bytes() {
-            b"application/json" => Ok(ContentType::Json),
-            #[cfg(feature = "msgpack")]
-            b"application/msgpack" => Ok(ContentType::MessagePack),
-            _ => Err(()),
         }
     }
 }
