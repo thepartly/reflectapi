@@ -1467,6 +1467,7 @@ dependencies = [
  "chrono",
  "http 1.1.0",
  "indexmap",
+ "mime",
  "reflectapi-derive",
  "reflectapi-schema",
  "reqwest",
