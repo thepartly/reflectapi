@@ -14,6 +14,8 @@ use super::format_with;
 pub struct Config {
     /// Attempt to format the generated code. Will give up if no formatter is found.
     pub format: bool,
+    /// Include tracing in the generated code.
+    pub instrument: bool,
     /// Typecheck the generated code. Will ignore if the typechecker is not available.
     pub typecheck: bool,
     pub shared_modules: BTreeSet<String>,
@@ -110,6 +112,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
         &schema,
         &implemented_types,
         &functions_by_name,
+        config,
     );
     let module = templates::__Module {
         name: "interface".into(),
@@ -603,7 +606,7 @@ pub struct {{ name }};",
             #[deprecated(note = "{{ deprecation_note }}")]
             {%- endif -%}
         {%- endif -%}
-        {{description}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
+        {{description}}{{attributes}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
     -> Result<{{ output_type }}, reflectapi::rt::Error<{{ error_type }}, C::Error>> {
         reflectapi::rt::__request_impl(&self.client, self.base_url.join("{{ path }}").expect("checked base_url already and path is valid"), input, headers).await
     }"#,
@@ -613,6 +616,7 @@ pub struct {{ name }};",
         pub name: String,
         pub description: String,
         pub deprecation_note: Option<String>,
+        pub attributes: String,
         pub path: String,
         pub input_type: String,
         pub input_headers: String,
@@ -725,6 +729,7 @@ fn __interface_types_from_function_group(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     functions_by_name: &IndexMap<String, &Function>,
+    config: &Config,
 ) -> Vec<String> {
     fn __struct_name_from_parent_name_and_name(parent: &[String], name: &str) -> String {
         if parent.is_empty() {
@@ -807,6 +812,12 @@ fn __interface_types_from_function_group(
                 .unwrap_or_default()
                 .replace('-', "_"),
             deprecation_note: function.deprecation_note.to_owned(),
+            attributes: if config.instrument {
+                "#[tracing::instrument(skip(self))]"
+            } else {
+                ""
+            }
+            .into(),
             description: __doc_to_ts_comments(function.description.as_str(), 4),
             path: format!("{}/{}", function.path, function.name),
             input_type,
@@ -829,6 +840,7 @@ fn __interface_types_from_function_group(
             schema,
             implemented_types,
             functions_by_name,
+            config,
         ));
     }
     result

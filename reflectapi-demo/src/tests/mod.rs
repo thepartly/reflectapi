@@ -47,6 +47,7 @@ fn write_rust_client() {
         schema,
         &reflectapi::codegen::rust::Config {
             format: true,
+            instrument: true,
             typecheck: false,
             ..Default::default()
         },

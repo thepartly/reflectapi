@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 pub use url::{ParseError as UrlParseError, Url};
 
 pub trait Client {
@@ -8,7 +7,7 @@ pub trait Client {
         &self,
         url: Url,
         body: bytes::Bytes,
-        headers: HashMap<String, String>,
+        headers: http::HeaderMap,
     ) -> impl std::future::Future<Output = Result<(http::StatusCode, bytes::Bytes), Self::Error>>;
 }
 
@@ -139,7 +138,7 @@ where
         stage: ProtocolErrorStage::SerializeRequestHeaders,
     })?;
 
-    let mut headers_serialized = std::collections::HashMap::new();
+    let mut header_map = http::HeaderMap::new();
     match headers {
         serde_json::Value::Object(headers) => {
             for (k, v) in headers.into_iter() {
@@ -147,7 +146,10 @@ where
                     serde_json::Value::String(v) => v,
                     v => v.to_string(),
                 };
-                headers_serialized.insert(k, v_str);
+                header_map.insert(
+                    http::HeaderName::from_bytes(k.as_bytes()).unwrap(),
+                    http::HeaderValue::from_str(&v_str).unwrap(),
+                );
             }
         }
         serde_json::Value::Null => {}
@@ -160,9 +162,10 @@ where
     }
 
     let (status, body) = client
-        .request(url, body, headers_serialized)
+        .request(url, body, header_map)
         .await
         .map_err(Error::Network)?;
+
     if status.is_success() {
         let output = serde_json::from_slice(&body).map_err(|e| Error::Protocol {
             info: e.to_string(),
@@ -188,23 +191,28 @@ impl Client for reqwest::Client {
         &self,
         path: Url,
         body: bytes::Bytes,
-        headers: std::collections::HashMap<String, String>,
+        headers: http::HeaderMap,
     ) -> Result<(http::StatusCode, bytes::Bytes), Self::Error> {
-        let mut request = self.post(path);
-        for (k, v) in headers {
-            request = request.header(k, v);
-        }
-        let response = request.body(body).send().await;
-        let response = match response {
-            Ok(response) => response,
-            Err(e) => return Err(e),
-        };
+        let response = self.post(path).headers(headers).body(body).send().await?;
         let status = response.status();
-        let body = response.bytes().await;
-        let body = match body {
-            Ok(body) => body,
-            Err(e) => return Err(e),
-        };
+        let body = response.bytes().await?;
+        Ok((status, body))
+    }
+}
+
+#[cfg(feature = "reqwest-middleware")]
+impl Client for reqwest_middleware::ClientWithMiddleware {
+    type Error = reqwest_middleware::Error;
+
+    async fn request(
+        &self,
+        path: Url,
+        body: bytes::Bytes,
+        headers: http::HeaderMap,
+    ) -> Result<(http::StatusCode, bytes::Bytes), Self::Error> {
+        let response = self.post(path).headers(headers).body(body).send().await?;
+        let status = response.status();
+        let body = response.bytes().await?;
         Ok((status, body))
     }
 }

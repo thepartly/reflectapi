@@ -2,7 +2,7 @@
 pub struct Url {}
 
 impl Url {
-    pub fn join(&self, path: &str) -> Result<Url, ParseError> {
+    pub fn join(&self, _path: &str) -> Result<Url, ParseError> {
         todo!()
     }
 
@@ -12,7 +12,7 @@ impl Url {
 }
 
 impl std::fmt::Display for Url {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
@@ -23,7 +23,7 @@ pub enum ParseError {
 }
 
 impl std::fmt::Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
@@ -31,7 +31,7 @@ impl std::fmt::Display for ParseError {
 impl std::str::FromStr for Url {
     type Err = ParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
