@@ -23,28 +23,32 @@ pub enum ContentType {
     MessagePack,
 }
 
-impl TryFrom<&http::HeaderMap> for ContentType {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &http::HeaderMap) -> Result<Self, Self::Error> {
-        match value.get("content-type") {
+impl ContentType {
+    #[doc(hidden)]
+    // Used by tests currently
+    pub fn extract(headers: &http::HeaderMap) -> Result<Self, String> {
+        match headers.get("content-type") {
             Some(v) => {
-                let mime = v.to_str()?.parse::<mime::Mime>()?;
+                let mime = v
+                    .to_str()
+                    .map_err(|err| err.to_string())?
+                    .parse::<mime::Mime>()
+                    .map_err(|err| err.to_string())?;
                 if let Some(charset) = mime.get_param(mime::CHARSET) {
                     if charset != mime::UTF_8 {
-                        return Err(anyhow::anyhow!("unsupported charset: {charset}"));
+                        return Err(format!("unsupported charset: {charset}"));
                     }
                 }
 
                 if mime.type_() != mime::APPLICATION {
-                    return Err(anyhow::anyhow!("unsupported media type: {mime}"));
+                    return Err(format!("unsupported media type: {mime}"));
                 }
 
                 match mime.subtype() {
                     mime::JSON => Ok(ContentType::Json),
                     #[cfg(feature = "msgpack")]
                     mime::MSGPACK => Ok(ContentType::MessagePack),
-                    _ => anyhow::bail!("unsupported content-type: {mime}"),
+                    _ => Err(format!("unsupported content-type: {mime}")),
                 }
             }
             None => Ok(ContentType::Json),
@@ -190,12 +194,12 @@ where
     {
         let mut input_headers = input.headers;
 
-        let content_type = match ContentType::try_from(&input_headers) {
+        let content_type = match ContentType::extract(&input_headers) {
             Ok(t) => t,
-            Err(_) => {
+            Err(err) => {
                 return HandlerOutput {
                     code: http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
-                    body: "Unsupported content type".into(),
+                    body: err.into(),
                     headers: Default::default(),
                 };
             }

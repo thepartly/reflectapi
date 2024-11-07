@@ -15,7 +15,7 @@ async fn run(path: &datatest_stable::Utf8Path) -> datatest_stable::Result<()> {
 
     let mut pretty = String::new();
     for mut req in reqs {
-        let content_type = reflectapi::ContentType::try_from(req.headers()).unwrap();
+        let content_type = reflectapi::ContentType::extract(req.headers()).unwrap();
 
         match content_type {
             reflectapi::ContentType::Json => {}
