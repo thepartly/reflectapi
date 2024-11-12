@@ -136,7 +136,7 @@ async fn pets_list(
         .cursor
         .unwrap_or("0".into())
         .parse()
-        .map_err(|_| proto::PetsListError::InvalidCustor)?;
+        .map_err(|_| proto::PetsListError::InvalidCursor)?;
     let limit = request.limit.unwrap_or(u8::MAX) as usize;
     let result_items = pets
         .iter()
@@ -273,14 +273,14 @@ mod proto {
 
     #[derive(serde::Serialize, reflectapi::Output)]
     pub enum PetsListError {
-        InvalidCustor,
+        InvalidCursor,
         Unauthorized,
     }
 
     impl reflectapi::StatusCode for PetsListError {
         fn status_code(&self) -> http::StatusCode {
             match self {
-                PetsListError::InvalidCustor => http::StatusCode::BAD_REQUEST,
+                PetsListError::InvalidCursor => http::StatusCode::BAD_REQUEST,
                 PetsListError::Unauthorized => http::StatusCode::UNAUTHORIZED,
             }
         }

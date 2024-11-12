@@ -307,6 +307,34 @@ impl Converter {
     }
 
     fn convert_function(&mut self, schema: &crate::Schema, f: &crate::Function) -> PathItem {
+        let ok_response = Response {
+            description: "200 OK".to_owned(),
+            content: BTreeMap::from([(
+                "application/json".to_owned(),
+                MediaType {
+                    schema: f.output_type().map_or_else(
+                        || Inline(Schema::Flat(FlatSchema::empty_object())),
+                        |ty| self.convert_type_ref(schema, Kind::Output, ty),
+                    ),
+                },
+            )]),
+        };
+
+        let mut responses = BTreeMap::new();
+        responses.insert("200".to_owned(), ok_response);
+        if let Some(err) = f.error_type() {
+            let err_response = Response {
+                description: "Error cases".to_owned(),
+                content: BTreeMap::from([(
+                    "application/json".to_owned(),
+                    MediaType {
+                        schema: self.convert_type_ref(schema, Kind::Output, err),
+                    },
+                )]),
+            };
+            responses.insert("default".to_owned(), err_response);
+        }
+
         let operation = Operation {
             operation_id: f.name.clone(),
             description: f.description.clone(),
@@ -323,22 +351,7 @@ impl Converter {
                 )]),
                 required: true,
             }),
-            responses: BTreeMap::from([(
-                "200".into(),
-                Response {
-                    description: "200 OK".to_owned(),
-                    // TODO msgpack
-                    content: BTreeMap::from([(
-                        "application/json".to_owned(),
-                        MediaType {
-                            schema: f.output_type().map_or_else(
-                                || Inline(Schema::empty_object()),
-                                |ty| self.convert_type_ref(schema, Kind::Output, ty),
-                            ),
-                        },
-                    )]),
-                },
-            )]),
+            responses,
         };
 
         PathItem {

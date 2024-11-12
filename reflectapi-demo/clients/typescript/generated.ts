@@ -280,7 +280,7 @@ export namespace myapi {
 
     export type PetsCreateRequest = myapi.model.Pet;
 
-    export type PetsListError = "InvalidCustor" | "Unauthorized";
+    export type PetsListError = "InvalidCursor" | "Unauthorized";
 
     export interface PetsListRequest {
       limit?: number /* u8 */ | null;
