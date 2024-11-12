@@ -10,7 +10,7 @@
 // because they are stricter than the OpenAPI spec.
 
 use core::fmt;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
 use std::sync::OnceLock;
 use InlineOrRef::Inline;
@@ -70,6 +70,7 @@ pub struct PathItem {
 #[serde(rename_all = "camelCase")]
 pub struct Operation {
     operation_id: String,
+    tags: BTreeSet<String>,
     #[serde(skip_serializing_if = "String::is_empty")]
     description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -352,6 +353,7 @@ impl Converter<'_> {
 
         let operation = Operation {
             operation_id: f.name.clone(),
+            tags: f.tags.clone(),
             description: f.description.clone(),
             parameters: f
                 .input_headers()
