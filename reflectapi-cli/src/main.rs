@@ -60,7 +60,7 @@ enum Language {
     Openapi,
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
@@ -74,66 +74,67 @@ fn main() {
             typecheck,
             format,
         } => {
-            let config = reflectapi::codegen::Config {
-                format,
-                typecheck,
-                shared_modules: BTreeSet::from_iter(shared_modules.unwrap_or_default()),
-                include_tags: BTreeSet::from_iter(include_tags),
-                exclude_tags: BTreeSet::from_iter(exclude_tags),
+            let include_tags = BTreeSet::from_iter(include_tags);
+            let exclude_tags = BTreeSet::from_iter(exclude_tags);
+
+            let schema_path = schema.unwrap_or(std::path::PathBuf::from("reflectapi.json"));
+            let schema_as_json = std::fs::read_to_string(schema_path.clone())
+                .context(format!("Failed to read schema file: {:?}", schema_path))?;
+            let schema: reflectapi::Schema = serde_json::from_str(&schema_as_json)
+                .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
+
+            let (filename, generated_code) = match language {
+                Language::Typescript => (
+                    "generated.ts",
+                    reflectapi::codegen::typescript::generate(
+                        schema,
+                        &reflectapi::codegen::typescript::Config {
+                            format,
+                            typecheck,
+                            include_tags,
+                            exclude_tags,
+                        },
+                    )?,
+                ),
+                Language::Rust => (
+                    "generated.rs",
+                    reflectapi::codegen::rust::generate(
+                        schema,
+                        &reflectapi::codegen::rust::Config {
+                            format,
+                            typecheck,
+                            shared_modules: BTreeSet::from_iter(shared_modules.unwrap_or_default()),
+                            include_tags,
+                            exclude_tags,
+                        },
+                    )?,
+                ),
+                Language::Openapi => (
+                    "openapi.json",
+                    reflectapi::codegen::openapi::generate(
+                        &schema,
+                        &reflectapi::codegen::openapi::Config {
+                            tag_ordering: Default::default(),
+                            include_tags,
+                            exclude_tags,
+                        },
+                    )?,
+                ),
             };
-            handle_anyhow_result(generate(schema, output, language, config));
+
+            if output == Some(std::path::PathBuf::from("-")) {
+                println!("{generated_code}");
+                return Ok(());
+            }
+
+            let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
+            let output = output.join(filename);
+            let mut file = std::fs::File::create(output.clone())
+                .context(format!("Failed to create file: {:?}", output))?;
+            file.write(generated_code.as_bytes())
+                .context(format!("Failed to write to file: {:?}", output))?;
         }
     }
-}
-
-fn handle_anyhow_result(result: anyhow::Result<()>) {
-    match result {
-        Ok(_) => {}
-        Err(e) => {
-            eprintln!("{:?}", e);
-            std::process::exit(1);
-        }
-    }
-}
-
-fn generate(
-    schema: Option<std::path::PathBuf>,
-    output: Option<std::path::PathBuf>,
-    language: Language,
-    config: reflectapi::codegen::Config,
-) -> anyhow::Result<()> {
-    let schema_path = schema.unwrap_or(std::path::PathBuf::from("reflectapi.json"));
-    let schema_as_json = std::fs::read_to_string(schema_path.clone())
-        .context(format!("Failed to read schema file: {:?}", schema_path))?;
-    let schema: reflectapi::Schema = serde_json::from_str(&schema_as_json)
-        .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
-
-    let (filename, generated_code) = match language {
-        Language::Typescript => (
-            "generated.ts",
-            reflectapi::codegen::typescript::generate(schema, &config)?,
-        ),
-        Language::Rust => (
-            "generated.rs",
-            reflectapi::codegen::rust::generate(schema, &config)?,
-        ),
-        Language::Openapi => (
-            "openapi.json",
-            reflectapi::codegen::openapi::generate(&schema, &config)?,
-        ),
-    };
-
-    if output == Some(std::path::PathBuf::from("-")) {
-        println!("{generated_code}");
-        return Ok(());
-    }
-
-    let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
-    let output = output.join(filename);
-    let mut file = std::fs::File::create(output.clone())
-        .context(format!("Failed to create file: {:?}", output))?;
-    file.write(generated_code.as_bytes())
-        .context(format!("Failed to write to file: {:?}", output))?;
 
     Ok(())
 }

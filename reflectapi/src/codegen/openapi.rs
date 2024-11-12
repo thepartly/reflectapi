@@ -18,22 +18,25 @@ use InlineOrRef::Inline;
 use reflectapi_schema::{Instantiate, Substitute};
 use serde::Serialize;
 
-use super::Config;
+#[derive(Debug, Default)]
+pub struct Config {
+    /// This list of tags is used to control the ordering in documentation.
+    /// Tags that appear in a functions tags list but not in this list may be ordered arbitrarily.
+    pub tag_ordering: Vec<String>,
+    /// Only include handlers with these tags (empty means include all).
+    pub include_tags: BTreeSet<String>,
+    /// Exclude handlers with these tags (empty means exclude none).
+    pub exclude_tags: BTreeSet<String>,
+}
 
 pub fn generate(schema: &crate::Schema, config: &Config) -> anyhow::Result<String> {
-    let spec = Converter {
-        include_tags: &config.include_tags,
-        exclude_tags: &config.exclude_tags,
-        components: Default::default(),
-    }
-    .convert(schema);
+    let spec = generate_spec(schema, config);
     Ok(serde_json::to_string_pretty(&spec)?)
 }
 
 pub fn generate_spec(schema: &crate::Schema, config: &Config) -> Spec {
     Converter {
-        include_tags: &config.include_tags,
-        exclude_tags: &config.exclude_tags,
+        config,
         components: Default::default(),
     }
     .convert(schema)
@@ -42,8 +45,7 @@ pub fn generate_spec(schema: &crate::Schema, config: &Config) -> Spec {
 impl From<&crate::Schema> for Spec {
     fn from(schema: &crate::Schema) -> Self {
         Converter {
-            include_tags: &Default::default(),
-            exclude_tags: &Default::default(),
+            config: &Config::default(),
             components: Default::default(),
         }
         .convert(schema)
@@ -53,10 +55,19 @@ impl From<&crate::Schema> for Spec {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Spec {
     pub openapi: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<Tag>,
     pub info: Info,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub paths: BTreeMap<String, PathItem>,
     pub components: Components,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Tag {
+    pub name: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub description: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -302,14 +313,22 @@ impl<T> Ref<T> {
 #[derive(Debug)]
 struct Converter<'a> {
     components: Components,
-    include_tags: &'a BTreeSet<String>,
-    exclude_tags: &'a BTreeSet<String>,
+    config: &'a Config,
 }
 
 impl Converter<'_> {
     fn convert(mut self, schema: &crate::Schema) -> Spec {
         Spec {
             openapi: "3.1.0".into(),
+            tags: self
+                .config
+                .tag_ordering
+                .iter()
+                .map(|name| Tag {
+                    name: name.clone(),
+                    description: "".into(),
+                })
+                .collect(),
             info: Info {
                 title: schema.name.clone(),
                 description: schema.description.clone(),
@@ -319,12 +338,16 @@ impl Converter<'_> {
                 .functions
                 .iter()
                 .filter(|f| {
-                    self.include_tags.is_empty()
-                        || f.tags.iter().any(|tag| self.include_tags.contains(tag))
+                    self.config.include_tags.is_empty()
+                        || f.tags
+                            .iter()
+                            .any(|tag| self.config.include_tags.contains(tag))
                 })
                 .filter(|f| {
-                    self.exclude_tags.is_empty()
-                        || f.tags.iter().all(|tag| !self.exclude_tags.contains(tag))
+                    self.config.exclude_tags.is_empty()
+                        || f.tags
+                            .iter()
+                            .all(|tag| !self.config.exclude_tags.contains(tag))
                 })
                 .map(|f| {
                     (

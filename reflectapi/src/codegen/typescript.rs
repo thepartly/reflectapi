@@ -1,13 +1,25 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeSet, HashMap},
     process::{Command, Stdio},
 };
 
-use super::{format_with, Config, END_BOILERPLATE, START_BOILERPLATE};
+use super::{format_with, END_BOILERPLATE, START_BOILERPLATE};
 use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
 use reflectapi_schema::Function;
+
+#[derive(Debug, Default)]
+pub struct Config {
+    /// Attempt to format the generated code. Will give up if no formatter is found.
+    pub format: bool,
+    /// Typecheck the generated code. Will ignore if the typechecker is not available.
+    pub typecheck: bool,
+    /// Only include handlers with these tags (empty means include all).
+    pub include_tags: BTreeSet<String>,
+    /// Exclude handlers with these tags (empty means exclude none).
+    pub exclude_tags: BTreeSet<String>,
+}
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     let implemented_types = build_implemented_types();

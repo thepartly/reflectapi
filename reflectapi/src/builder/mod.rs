@@ -95,17 +95,17 @@ where
         self
     }
 
+    pub fn tags(mut self, tags: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.default_tags.extend(tags.into_iter().map(Into::into));
+        self
+    }
+
     pub fn untag<Q>(mut self, tag: &Q) -> Self
     where
         String: Borrow<Q>,
         Q: Ord + ?Sized,
     {
         self.default_tags.remove(tag);
-        self
-    }
-
-    pub fn tags(mut self, tags: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.default_tags.extend(tags.into_iter().map(Into::into));
         self
     }
 

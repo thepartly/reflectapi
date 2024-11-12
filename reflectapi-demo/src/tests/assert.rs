@@ -6,15 +6,6 @@ where
     unimplemented!() // should be never called
 }
 
-fn mk_config() -> reflectapi::codegen::Config {
-    reflectapi::codegen::Config {
-        format: true,
-        // Typechecking is too slow to run locally on every test
-        typecheck: std::env::var("CI").is_ok(),
-        ..Default::default()
-    }
-}
-
 pub fn into_input_schema<I>() -> reflectapi::Schema
 where
     I: reflectapi::Input + serde::de::DeserializeOwned + Send + 'static,
@@ -58,13 +49,29 @@ where
 
 fn codegen_rust(schema: reflectapi::Schema) -> String {
     reflectapi::codegen::strip_boilerplate(
-        &reflectapi::codegen::rust::generate(schema, &mk_config()).unwrap(),
+        &reflectapi::codegen::rust::generate(
+            schema,
+            &reflectapi::codegen::rust::Config {
+                format: true,
+                typecheck: std::env::var("CI").is_ok(),
+                ..Default::default()
+            },
+        )
+        .unwrap(),
     )
 }
 
 fn codegen_typescript(schema: reflectapi::Schema) -> String {
     reflectapi::codegen::strip_boilerplate(
-        &reflectapi::codegen::typescript::generate(schema, &mk_config()).unwrap(),
+        &reflectapi::codegen::typescript::generate(
+            schema,
+            &reflectapi::codegen::typescript::Config {
+                format: true,
+                typecheck: std::env::var("CI").is_ok(),
+                ..Default::default()
+            },
+        )
+        .unwrap(),
     )
 }
 
@@ -155,14 +162,24 @@ macro_rules! assert_snapshot {
 macro_rules! assert_builder_snapshot {
     ($builder:expr) => {{
         let (schema, _) = $builder.build().unwrap();
-        let config = reflectapi::codegen::Config {
-            format: true,
-            typecheck: true,
-            ..Default::default()
-        };
-        let rust = reflectapi::codegen::rust::generate(schema.clone(), &config).unwrap();
-        let typescript =
-            reflectapi::codegen::typescript::generate(schema.clone(), &config).unwrap();
+        let rust = reflectapi::codegen::rust::generate(
+            schema.clone(),
+            &reflectapi::codegen::rust::Config {
+                format: true,
+                typecheck: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let typescript = reflectapi::codegen::typescript::generate(
+            schema.clone(),
+            &reflectapi::codegen::typescript::Config {
+                format: true,
+                typecheck: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         insta::assert_json_snapshot!(schema);
         insta::assert_snapshot!(typescript);
         insta::assert_snapshot!(rust);

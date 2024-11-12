@@ -29,8 +29,7 @@ fn write_openapi_spec() {
 
     let s = reflectapi::codegen::openapi::generate(
         &schema,
-        &reflectapi::codegen::Config {
-            format: true,
+        &reflectapi::codegen::openapi::Config {
             exclude_tags: BTreeSet::from_iter(["internal".to_string()]),
             ..Default::default()
         },
@@ -46,7 +45,7 @@ fn write_rust_client() {
     let (schema, _) = crate::builder().build().unwrap();
     let src = reflectapi::codegen::rust::generate(
         schema,
-        &reflectapi::codegen::Config {
+        &reflectapi::codegen::rust::Config {
             format: true,
             typecheck: false,
             ..Default::default()
@@ -69,7 +68,7 @@ fn write_typescript_client() {
     let (schema, _) = crate::builder().build().unwrap();
     let src = reflectapi::codegen::typescript::generate(
         schema,
-        &reflectapi::codegen::Config {
+        &reflectapi::codegen::typescript::Config {
             format: true,
             typecheck: true,
             ..Default::default()

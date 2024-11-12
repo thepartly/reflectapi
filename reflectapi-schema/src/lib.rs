@@ -25,6 +25,7 @@ use std::{
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Schema {
     pub name: String,
+
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
@@ -88,7 +89,8 @@ impl Schema {
             functions,
             input_types,
             output_types,
-            ..
+            name: _,
+            description: _,
         } = other;
         self.functions.extend(functions);
         self.input_types.extend(input_types);

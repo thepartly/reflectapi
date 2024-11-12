@@ -8,7 +8,20 @@ use askama::Template;
 use indexmap::IndexMap;
 use reflectapi_schema::Function;
 
-use super::{format_with, Config};
+use super::format_with;
+
+#[derive(Debug, Default)]
+pub struct Config {
+    /// Attempt to format the generated code. Will give up if no formatter is found.
+    pub format: bool,
+    /// Typecheck the generated code. Will ignore if the typechecker is not available.
+    pub typecheck: bool,
+    pub shared_modules: BTreeSet<String>,
+    /// Only include handlers with these tags (empty means include all).
+    pub include_tags: BTreeSet<String>,
+    /// Exclude handlers with these tags (empty means exclude none).
+    pub exclude_tags: BTreeSet<String>,
+}
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     let mut implemented_types = __build_implemented_types();
