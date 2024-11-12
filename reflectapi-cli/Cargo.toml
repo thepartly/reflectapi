@@ -1,6 +1,6 @@
 [package]
 name = "reflectapi-cli"
-version = "0.8.13"
+version = "0.9.0"
 edition = "2021"
 
 license = "MIT"
@@ -19,7 +19,7 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 workspace = true
 
 [dependencies]
-reflectapi = { path = "../reflectapi", version = "0.8.13", features = ["codegen"] }
+reflectapi = { path = "../reflectapi", version = "0.9.0", features = ["codegen"] }
 
 clap = { version = "4.5.3", features = ["derive"] }
 clap_derive = "4.5.3"
