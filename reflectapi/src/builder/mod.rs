@@ -19,6 +19,7 @@ where
     validators: Vec<fn(&crate::Schema) -> Vec<crate::ValidationError>>,
     allow_redundant_renames: bool,
     errors: Vec<BuildError>,
+    default_tags: BTreeSet<String>,
 }
 
 impl<S> fmt::Debug for Builder<S>
@@ -31,6 +32,7 @@ where
             .field("path", &self.path)
             .field("handlers", &self.handlers)
             .field("merged_handlers", &self.merged_handlers)
+            .field("default_tags", &self.default_tags)
             .finish()
     }
 }
@@ -57,6 +59,7 @@ where
             validators: Default::default(),
             errors: Default::default(),
             allow_redundant_renames: Default::default(),
+            default_tags: Default::default(),
         }
     }
 
@@ -86,6 +89,25 @@ where
         self
     }
 
+    pub fn tag(mut self, tag: impl Into<String>) -> Self {
+        self.default_tags.insert(tag.into());
+        self
+    }
+
+    pub fn untag<Q>(mut self, tag: &Q) -> Self
+    where
+        String: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
+        self.default_tags.remove(tag);
+        self
+    }
+
+    pub fn tags(mut self, tags: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.default_tags.extend(tags.into_iter().map(Into::into));
+        self
+    }
+
     pub fn route<F, Fut, R, I, O, E, H>(
         mut self,
         handler: F,
@@ -100,7 +122,11 @@ where
         O: crate::Output + serde::ser::Serialize + Send + 'static,
         E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
-        let rb = builder(RouteBuilder::new().path(self.path.clone()));
+        let rb = builder(
+            RouteBuilder::new()
+                .tags(&self.default_tags)
+                .path(self.path.clone()),
+        );
         let route = crate::Handler::new(rb, handler, &mut self.schema);
         self.handlers.push(route);
         self

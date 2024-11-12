@@ -4,6 +4,7 @@ pub mod rust;
 pub mod typescript;
 
 use std::{
+    collections::BTreeSet,
     hash::{DefaultHasher, Hasher},
     path::PathBuf,
 };
@@ -16,11 +17,11 @@ pub struct Config {
     pub format: bool,
     /// Typecheck the generated code. Will ignore if the typechecker is not available.
     pub typecheck: bool,
-    pub shared_modules: Vec<String>,
+    pub shared_modules: BTreeSet<String>,
     /// Only include handlers with these tags (empty means include all).
-    pub include_tags: Vec<String>,
+    pub include_tags: BTreeSet<String>,
     /// Exclude handlers with these tags (empty means exclude none).
-    pub exclude_tags: Vec<String>,
+    pub exclude_tags: BTreeSet<String>,
 }
 
 fn tmp_path(src: &str) -> PathBuf {

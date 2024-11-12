@@ -1,5 +1,6 @@
 use anyhow::Context;
 use clap::{Parser, Subcommand, ValueEnum};
+use std::collections::BTreeSet;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -76,9 +77,9 @@ fn main() {
             let config = reflectapi::codegen::Config {
                 format,
                 typecheck,
-                shared_modules: shared_modules.unwrap_or_default(),
-                include_tags: Vec::from_iter(include_tags),
-                exclude_tags: Vec::from_iter(exclude_tags),
+                shared_modules: BTreeSet::from_iter(shared_modules.unwrap_or_default()),
+                include_tags: BTreeSet::from_iter(include_tags),
+                exclude_tags: BTreeSet::from_iter(exclude_tags),
             };
             handle_anyhow_result(generate(schema, output, language, config));
         }

@@ -8,6 +8,8 @@ mod serde;
 
 mod test_lib;
 
+use std::collections::BTreeSet;
+
 pub(crate) use assert::*;
 
 #[test]
@@ -29,7 +31,7 @@ fn write_openapi_spec() {
         schema,
         &reflectapi::codegen::Config {
             format: true,
-            exclude_tags: vec!["internal".to_string()],
+            exclude_tags: BTreeSet::from_iter(["internal".to_string()]),
             ..Default::default()
         },
     )

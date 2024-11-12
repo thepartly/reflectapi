@@ -24,7 +24,7 @@ pub fn generate(schema: crate::Schema, config: &Config) -> anyhow::Result<String
     let spec = Converter {
         include_tags: &config.include_tags,
         exclude_tags: &config.exclude_tags,
-        ..Default::default()
+        components: Default::default(),
     }
     .convert(&schema);
     Ok(serde_json::to_string_pretty(&spec)?)
@@ -32,7 +32,12 @@ pub fn generate(schema: crate::Schema, config: &Config) -> anyhow::Result<String
 
 impl From<&crate::Schema> for Spec {
     fn from(schema: &crate::Schema) -> Self {
-        Converter::default().convert(schema)
+        Converter {
+            include_tags: &Default::default(),
+            exclude_tags: &Default::default(),
+            components: Default::default(),
+        }
+        .convert(schema)
     }
 }
 
@@ -70,6 +75,7 @@ pub struct PathItem {
 #[serde(rename_all = "camelCase")]
 pub struct Operation {
     operation_id: String,
+    #[serde(skip_serializing_if = "BTreeSet::is_empty")]
     tags: BTreeSet<String>,
     #[serde(skip_serializing_if = "String::is_empty")]
     description: String,
@@ -284,11 +290,11 @@ impl<T> Ref<T> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Converter<'a> {
     components: Components,
-    include_tags: &'a [String],
-    exclude_tags: &'a [String],
+    include_tags: &'a BTreeSet<String>,
+    exclude_tags: &'a BTreeSet<String>,
 }
 
 impl Converter<'_> {
