@@ -22,7 +22,7 @@ use serde::Serialize;
 pub struct Config {
     /// This list of tags is used to control the ordering in documentation.
     /// Tags that appear in a functions tags list but not in this list may be ordered arbitrarily.
-    pub tag_ordering: Vec<String>,
+    pub tags: Vec<Tag>,
     /// Only include handlers with these tags (empty means include all).
     pub include_tags: BTreeSet<String>,
     /// Exclude handlers with these tags (empty means exclude none).
@@ -68,6 +68,22 @@ pub struct Tag {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty")]
     pub description: String,
+}
+
+impl Tag {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            description: String::new(),
+        }
+    }
+
+    pub fn with_description(name: impl Into<String>, description: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            description: description.into(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -320,15 +336,7 @@ impl Converter<'_> {
     fn convert(mut self, schema: &crate::Schema) -> Spec {
         Spec {
             openapi: "3.1.0".into(),
-            tags: self
-                .config
-                .tag_ordering
-                .iter()
-                .map(|name| Tag {
-                    name: name.clone(),
-                    description: "".into(),
-                })
-                .collect(),
+            tags: self.config.tags.clone(),
             info: Info {
                 title: schema.name.clone(),
                 description: schema.description.clone(),

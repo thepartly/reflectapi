@@ -114,7 +114,7 @@ fn main() -> anyhow::Result<()> {
                     reflectapi::codegen::openapi::generate(
                         &schema,
                         &reflectapi::codegen::openapi::Config {
-                            tag_ordering: Default::default(),
+                            tags: Default::default(),
                             include_tags,
                             exclude_tags,
                         },
