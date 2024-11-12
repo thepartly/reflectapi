@@ -7,34 +7,34 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
     // build an application, by providing pointers to handlers
     // and assigning those to named routes
     reflectapi::Builder::new()
-        .name("Demo application".to_string())
-        .description("This is a demo application".to_string())
+        .name("Demo application")
+        .description("This is a demo application")
         .route(health_check, |b| {
-            b.name("health.check".into())
+            b.name("health.check")
                 .readonly(true)
                 .tag("internal")
-                .description("Check the health of the service".into())
+                .description("Check the health of the service")
         })
         .route(pets_list, |b| {
-            b.name("pets.list".into())
+            b.name("pets.list")
                 .readonly(true)
-                .description("List available pets".into())
+                .description("List available pets")
         })
         .route(pets_create, |b| {
-            b.name("pets.create".into())
-                .description("Create a new pet".into())
+            b.name("pets.create")
+                .description("Create a new pet")
         })
         .route(pets_update, |b| {
-            b.name("pets.update".into())
-                .description("Update an existing pet".into())
+            b.name("pets.update")
+                .description("Update an existing pet")
         })
         .route(pets_remove, |b| {
-            b.name("pets.remove".into())
-                .description("Remove an existing pet".into())
+            b.name("pets.remove")
+                .description("Remove an existing pet")
         })
         .route(pets_get_first, |b| {
-            b.name("pets.get-first".into())
-                .description("Fetch first pet, if any exists".into())
+            b.name("pets.get-first")
+                .description("Fetch first pet, if any exists")
         })
         .rename_types("reflectapi_demo::", "myapi::")
         // and some optional linting rules

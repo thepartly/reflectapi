@@ -16,7 +16,7 @@ pub(crate) fn reflectapi_type_empty(
         type_def.description = description.into();
         schema.insert_type(type_def.into());
     }
-    crate::TypeReference::new(type_name.into(), Vec::new())
+    crate::TypeReference::new(type_name, Vec::new())
 }
 
 pub(crate) fn reflectapi_type_simple(
@@ -31,7 +31,7 @@ pub(crate) fn reflectapi_type_simple(
         type_def.fallback = fallback;
         schema.insert_type(type_def.into());
     }
-    crate::TypeReference::new(type_name.into(), Vec::new())
+    crate::TypeReference::new(type_name, Vec::new())
 }
 macro_rules! impl_reflectapi_simple {
     ($type:ty, $description:tt) => {

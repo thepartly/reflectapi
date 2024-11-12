@@ -112,17 +112,17 @@ mod tests {
     #[test]
     fn test_replace_specific_with_generic() {
         let mut resolved = TypeReference::new(
-            "Vec2".into(),
+            "Vec2",
             vec![
-                TypeReference::new("Vec".into(), vec!["u8".into()]),
-                TypeReference::new("Vec".into(), vec!["u16".into(), "u8".into()]),
+                TypeReference::new("Vec", vec!["u8".into()]),
+                TypeReference::new("Vec", vec!["u16".into(), "u8".into()]),
             ],
         );
         let unresolved = TypeReference::new(
-            "Vec".into(),
+            "Vec",
             vec![
-                TypeReference::new("Vec".into(), vec!["T".into()]),
-                TypeReference::new("Vec".into(), vec!["U".into(), "T".into()]),
+                TypeReference::new("Vec", vec!["T".into()]),
+                TypeReference::new("Vec", vec!["U".into(), "T".into()]),
             ],
         );
         let declaring_type_parameters = vec![TypeParameter::from("T"), TypeParameter::from("U")];
@@ -134,10 +134,10 @@ mod tests {
         assert_eq!(
             resolved,
             TypeReference::new(
-                "Vec2".into(),
+                "Vec2",
                 vec![
-                    TypeReference::new("Vec".into(), vec!["T".into()]),
-                    TypeReference::new("Vec".into(), vec!["U".into(), "T".into()])
+                    TypeReference::new("Vec", vec!["T".into()]),
+                    TypeReference::new("Vec", vec!["U".into(), "T".into()])
                 ]
             )
         );
@@ -146,21 +146,21 @@ mod tests {
     #[test]
     fn test_replace_specific_with_generic_more() {
         let mut resolved = TypeReference::new(
-            "Vec2".into(),
+            "Vec2",
             vec![
-                TypeReference::new("Vec".into(), vec!["u8".into()]),
-                TypeReference::new("Vec".into(), vec!["u16".into(), "u8".into()]),
+                TypeReference::new("Vec", vec!["u8".into()]),
+                TypeReference::new("Vec", vec!["u16".into(), "u8".into()]),
             ],
         );
         let unresolved = TypeReference::new(
-            "Vec".into(),
+            "Vec",
             vec![
-                TypeReference::new("T".into(), vec![]),
+                TypeReference::new("T", vec![]),
                 TypeReference::new(
-                    "Vec".into(),
+                    "Vec",
                     vec![
-                        TypeReference::new("U".into(), vec![]),
-                        TypeReference::new("X".into(), vec![]),
+                        TypeReference::new("U", vec![]),
+                        TypeReference::new("X", vec![]),
                     ],
                 ),
             ],
@@ -174,10 +174,10 @@ mod tests {
         assert_eq!(
             resolved,
             TypeReference::new(
-                "Vec2".into(),
+                "Vec2",
                 vec![
-                    TypeReference::new("T".into(), vec![]),
-                    TypeReference::new("Vec".into(), vec!["U".into(), "u8".into()])
+                    TypeReference::new("T", vec![]),
+                    TypeReference::new("Vec", vec!["U".into(), "u8".into()])
                 ]
             )
         );
@@ -185,13 +185,10 @@ mod tests {
 
     #[test]
     fn test_replace_circular_with_generic() {
-        let mut resolved = TypeReference::new("GenericStruct".into(), vec!["A".into()]);
+        let mut resolved = TypeReference::new("GenericStruct", vec!["A".into()]);
         let unresolved = TypeReference::new(
-            "GenericStruct".into(),
-            vec![TypeReference::new(
-                "GenericStruct".into(),
-                vec!["u8".into()],
-            )],
+            "GenericStruct",
+            vec![TypeReference::new("GenericStruct", vec!["u8".into()])],
         );
         let declaring_type_parameters = vec![TypeParameter::from("A")];
         replace_specific_type_ref_by_generic_for_type_ref(
@@ -201,7 +198,7 @@ mod tests {
         );
         assert_eq!(
             resolved,
-            TypeReference::new("GenericStruct".into(), vec!["A".into()])
+            TypeReference::new("GenericStruct", vec!["A".into()])
         );
     }
 }

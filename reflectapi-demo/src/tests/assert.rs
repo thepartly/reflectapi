@@ -20,9 +20,7 @@ where
     I: reflectapi::Input + serde::de::DeserializeOwned + Send + 'static,
 {
     let eps = reflectapi::Builder::new()
-        .route(handler::<I, reflectapi::Empty>, |b| {
-            b.name("input_test".into())
-        })
+        .route(handler::<I, reflectapi::Empty>, |b| b.name("input_test"))
         .fold_transparent_types()
         .build()
         .unwrap();
@@ -34,9 +32,7 @@ where
     O: reflectapi::Output + serde::ser::Serialize + Send + 'static,
 {
     let eps = reflectapi::Builder::new()
-        .route(handler::<reflectapi::Empty, O>, |b| {
-            b.name("output_test".into())
-        })
+        .route(handler::<reflectapi::Empty, O>, |b| b.name("output_test"))
         .fold_transparent_types()
         .build()
         .unwrap();
@@ -53,7 +49,7 @@ where
         + 'static,
 {
     let eps = reflectapi::Builder::new()
-        .route(handler::<T, T>, |b| b.name("inout_test".into()))
+        .route(handler::<T, T>, |b| b.name("inout_test"))
         .fold_transparent_types()
         .build()
         .unwrap();

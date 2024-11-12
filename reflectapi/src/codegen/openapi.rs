@@ -30,6 +30,15 @@ pub fn generate(schema: &crate::Schema, config: &Config) -> anyhow::Result<Strin
     Ok(serde_json::to_string_pretty(&spec)?)
 }
 
+pub fn generate_spec(schema: &crate::Schema, config: &Config) -> Spec {
+    Converter {
+        include_tags: &config.include_tags,
+        exclude_tags: &config.exclude_tags,
+        components: Default::default(),
+    }
+    .convert(schema)
+}
+
 impl From<&crate::Schema> for Spec {
     fn from(schema: &crate::Schema) -> Self {
         Converter {
@@ -779,7 +788,7 @@ impl Converter<'_> {
                     name: tag.to_owned(),
                     serde_name: tag.to_owned(),
                     description: "tag".to_owned(),
-                    type_ref: crate::TypeReference::new("std::string::String".into(), vec![]),
+                    type_ref: crate::TypeReference::new("std::string::String", vec![]),
                     required: true,
                     flattened: false,
                     transform_callback: String::new(),

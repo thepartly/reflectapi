@@ -46,7 +46,7 @@ pub(crate) fn naive_parse_as_type_reference(s: &str) -> TypeReference {
         }
     }
 
-    TypeReference::new(name.trim().into(), parameters)
+    TypeReference::new(name.trim(), parameters)
 }
 
 #[cfg(test)]
@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn test_naive_parse() {
         let t = naive_parse_as_type_reference("Vec<T>");
-        assert_eq!(t, TypeReference::new("Vec".into(), vec!["T".into()]));
+        assert_eq!(t, TypeReference::new("Vec", vec!["T".into()]));
     }
 
     #[test]
@@ -64,10 +64,7 @@ mod tests {
         let t = naive_parse_as_type_reference("Vec<Vec<T>>");
         assert_eq!(
             t,
-            TypeReference::new(
-                "Vec".into(),
-                vec![TypeReference::new("Vec".into(), vec!["T".into()])]
-            )
+            TypeReference::new("Vec", vec![TypeReference::new("Vec", vec!["T".into()])])
         );
     }
 
@@ -77,10 +74,10 @@ mod tests {
         assert_eq!(
             t,
             TypeReference::new(
-                "Vec".into(),
+                "Vec",
                 vec![
-                    TypeReference::new("Vec".into(), vec!["T".into()]),
-                    TypeReference::new("Vec".into(), vec!["T".into()])
+                    TypeReference::new("Vec", vec!["T".into()]),
+                    TypeReference::new("Vec", vec!["T".into()])
                 ]
             )
         );
@@ -92,10 +89,10 @@ mod tests {
         assert_eq!(
             t,
             TypeReference::new(
-                "Vec".into(),
+                "Vec",
                 vec![
-                    TypeReference::new("Vec".into(), vec!["T".into()]),
-                    TypeReference::new("Vec".into(), vec!["T".into(), "U".into()])
+                    TypeReference::new("Vec", vec!["T".into()]),
+                    TypeReference::new("Vec", vec!["T".into(), "U".into()])
                 ]
             )
         );
@@ -107,10 +104,10 @@ mod tests {
         assert_eq!(
             t,
             TypeReference::new(
-                "Vec".into(),
+                "Vec",
                 vec![
-                    TypeReference::new("Vec".into(), vec!["T".into(), "U".into()]),
-                    TypeReference::new("Vec".into(), vec!["T".into(), "U".into()])
+                    TypeReference::new("Vec", vec!["T".into(), "U".into()]),
+                    TypeReference::new("Vec", vec!["T".into(), "U".into()])
                 ]
             )
         );

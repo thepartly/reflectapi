@@ -63,12 +63,13 @@ where
         }
     }
 
-    pub fn name(mut self, name: String) -> Self {
-        self.schema.name = name;
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.schema.name = name.into();
         self
     }
 
-    pub fn path(mut self, path: String) -> Self {
+    pub fn path(mut self, path: impl Into<String>) -> Self {
+        let path = path.into();
         self.path = path;
         if self.path.ends_with('/') {
             self.path.pop();
@@ -84,8 +85,8 @@ where
         self
     }
 
-    pub fn description(mut self, description: String) -> Self {
-        self.schema.description = description;
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.schema.description = description.into();
         self
     }
 
@@ -248,13 +249,13 @@ impl RouteBuilder {
         Default::default()
     }
 
-    pub fn name(mut self, name: String) -> Self {
-        self.name = name;
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = name.into();
         self
     }
 
-    pub fn path(mut self, path: String) -> Self {
-        self.path = path;
+    pub fn path(mut self, path: impl Into<String>) -> Self {
+        self.path = path.into();
         if self.path.ends_with('/') {
             self.path.pop();
         }
@@ -264,8 +265,8 @@ impl RouteBuilder {
         self
     }
 
-    pub fn description(mut self, description: String) -> Self {
-        self.description = description;
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.description = description.into();
         self
     }
 

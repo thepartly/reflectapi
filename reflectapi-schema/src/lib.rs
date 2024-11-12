@@ -494,8 +494,11 @@ pub struct TypeReference {
 }
 
 impl TypeReference {
-    pub fn new(name: String, arguments: Vec<TypeReference>) -> Self {
-        TypeReference { name, arguments }
+    pub fn new(name: impl Into<String>, arguments: Vec<TypeReference>) -> Self {
+        TypeReference {
+            name: name.into(),
+            arguments,
+        }
     }
 
     pub fn name(&self) -> &str {
@@ -526,7 +529,7 @@ impl TypeReference {
 
 impl From<&str> for TypeReference {
     fn from(name: &str) -> Self {
-        TypeReference::new(name.into(), Vec::new())
+        TypeReference::new(name, Vec::new())
     }
 }
 
