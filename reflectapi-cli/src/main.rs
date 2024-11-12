@@ -119,7 +119,7 @@ fn generate(
         ),
         Language::Openapi => (
             "openapi.json",
-            reflectapi::codegen::openapi::generate(schema, &config)?,
+            reflectapi::codegen::openapi::generate(&schema, &config)?,
         ),
     };
 

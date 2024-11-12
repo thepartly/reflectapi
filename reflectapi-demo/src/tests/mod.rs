@@ -28,7 +28,7 @@ fn write_openapi_spec() {
     let (schema, _) = crate::builder().build().unwrap();
 
     let s = reflectapi::codegen::openapi::generate(
-        schema,
+        &schema,
         &reflectapi::codegen::Config {
             format: true,
             exclude_tags: BTreeSet::from_iter(["internal".to_string()]),

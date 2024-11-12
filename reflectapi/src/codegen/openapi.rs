@@ -20,13 +20,13 @@ use serde::Serialize;
 
 use super::Config;
 
-pub fn generate(schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
+pub fn generate(schema: &crate::Schema, config: &Config) -> anyhow::Result<String> {
     let spec = Converter {
         include_tags: &config.include_tags,
         exclude_tags: &config.exclude_tags,
         components: Default::default(),
     }
-    .convert(&schema);
+    .convert(schema);
     Ok(serde_json::to_string_pretty(&spec)?)
 }
 
