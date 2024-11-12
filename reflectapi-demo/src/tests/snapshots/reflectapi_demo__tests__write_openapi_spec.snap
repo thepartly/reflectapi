@@ -58,6 +58,16 @@ expression: s
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error cases",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/myapi.proto.PetsCreateError"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -92,6 +102,16 @@ expression: s
                       "$ref": "#/components/schemas/myapi.model.Pet"
                     }
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error cases",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/myapi.proto.UnauthorizedError"
                 }
               }
             }
@@ -158,6 +178,16 @@ expression: s
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error cases",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/myapi.proto.PetsListError"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -199,6 +229,16 @@ expression: s
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error cases",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/myapi.proto.PetsRemoveError"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -237,6 +277,16 @@ expression: s
                   "description": "empty object",
                   "type": "object",
                   "properties": {}
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error cases",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/myapi.proto.PetsUpdateError"
                 }
               }
             }
@@ -358,11 +408,52 @@ expression: s
           }
         }
       },
+      "myapi.proto.PetsCreateError": {
+        "oneOf": [
+          {
+            "const": "Conflict"
+          },
+          {
+            "const": "NotAuthorized"
+          },
+          {
+            "type": "object",
+            "title": "InvalidIdentity",
+            "required": [
+              "InvalidIdentity"
+            ],
+            "properties": {
+              "InvalidIdentity": {
+                "type": "object",
+                "title": "InvalidIdentity",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
       "myapi.proto.PetsCreateRequest": {
         "type": "array",
         "prefixItems": [
           {
             "$ref": "#/components/schemas/myapi.model.Pet"
+          }
+        ]
+      },
+      "myapi.proto.PetsListError": {
+        "oneOf": [
+          {
+            "const": "InvalidCursor"
+          },
+          {
+            "const": "Unauthorized"
           }
         ]
       },
@@ -394,6 +485,16 @@ expression: s
           }
         }
       },
+      "myapi.proto.PetsRemoveError": {
+        "oneOf": [
+          {
+            "const": "NotFound"
+          },
+          {
+            "const": "NotAuthorized"
+          }
+        ]
+      },
       "myapi.proto.PetsRemoveRequest": {
         "type": "object",
         "title": "myapi.proto.PetsRemoveRequest",
@@ -405,6 +506,16 @@ expression: s
             "$ref": "#/components/schemas/std.string.String"
           }
         }
+      },
+      "myapi.proto.PetsUpdateError": {
+        "oneOf": [
+          {
+            "const": "NotFound"
+          },
+          {
+            "const": "NotAuthorized"
+          }
+        ]
       },
       "myapi.proto.PetsUpdateRequest": {
         "type": "object",
@@ -455,9 +566,21 @@ expression: s
           }
         }
       },
+      "myapi.proto.UnauthorizedError": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/std.tuple.Tuple0"
+          }
+        ]
+      },
       "std.string.String": {
         "description": "UTF-8 encoded string",
         "type": "string"
+      },
+      "std.tuple.Tuple0": {
+        "description": "Unit type",
+        "type": "null"
       },
       "u8": {
         "description": "8-bit unsigned integer",

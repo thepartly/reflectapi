@@ -664,7 +664,7 @@
         "name": "myapi::proto::PetsListError",
         "variants": [
           {
-            "name": "InvalidCustor",
+            "name": "InvalidCursor",
             "fields": "none"
           },
           {

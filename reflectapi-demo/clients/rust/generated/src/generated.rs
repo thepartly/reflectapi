@@ -261,7 +261,7 @@ pub mod types {
 
             #[derive(Debug, serde::Deserialize)]
             pub enum PetsListError {
-                InvalidCustor,
+                InvalidCursor,
                 Unauthorized,
             }
 
