@@ -6,27 +6,6 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/health.check": {
-      "description": "Check the health of the service",
-      "post": {
-        "operationId": "health.check",
-        "description": "Check the health of the service",
-        "responses": {
-          "200": {
-            "description": "200 OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "empty object",
-                  "type": "object",
-                  "properties": {}
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/pets.create": {
       "description": "Create a new pet",
       "post": {

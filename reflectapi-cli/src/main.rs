@@ -35,8 +35,20 @@ enum Commands {
         /// because that module is a 3rd party or open source crate
         /// which can be used by the client code directly as a dependency.
         /// Multiple modules can be specified.
-        #[arg(long)]
-        shared_module: Option<Vec<String>>,
+        #[arg(long, value_delimiter = ',')]
+        shared_modules: Option<Vec<String>>,
+
+        #[arg(short, long, value_delimiter = ',')]
+        include_tags: Vec<String>,
+
+        #[arg(short, long, value_delimiter = ',')]
+        exclude_tags: Vec<String>,
+
+        #[arg(short, long, default_value = "false")]
+        typecheck: bool,
+
+        #[arg(short, long, default_value = "true")]
+        format: bool,
     },
 }
 
@@ -55,9 +67,20 @@ fn main() {
             schema,
             output,
             language,
-            shared_module,
+            shared_modules,
+            include_tags,
+            exclude_tags,
+            typecheck,
+            format,
         } => {
-            handle_anyhow_result(generate(schema, output, language, shared_module));
+            let config = reflectapi::codegen::Config {
+                format,
+                typecheck,
+                shared_modules: shared_modules.unwrap_or_default(),
+                include_tags: Vec::from_iter(include_tags),
+                exclude_tags: Vec::from_iter(exclude_tags),
+            };
+            handle_anyhow_result(generate(schema, output, language, config));
         }
     }
 }
@@ -76,19 +99,13 @@ fn generate(
     schema: Option<std::path::PathBuf>,
     output: Option<std::path::PathBuf>,
     language: Language,
-    shared_modules: Option<Vec<String>>,
+    config: reflectapi::codegen::Config,
 ) -> anyhow::Result<()> {
     let schema_path = schema.unwrap_or(std::path::PathBuf::from("reflectapi.json"));
     let schema_as_json = std::fs::read_to_string(schema_path.clone())
         .context(format!("Failed to read schema file: {:?}", schema_path))?;
     let schema: reflectapi::Schema = serde_json::from_str(&schema_as_json)
         .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
-
-    let config = reflectapi::codegen::Config {
-        format: true,
-        typecheck: true,
-        shared_modules: shared_modules.unwrap_or_default(),
-    };
 
     let (filename, generated_code) = match language {
         Language::Typescript => (
@@ -104,6 +121,11 @@ fn generate(
             reflectapi::codegen::openapi::generate(schema, &config)?,
         ),
     };
+
+    if output == Some(std::path::PathBuf::from("-")) {
+        println!("{generated_code}");
+        return Ok(());
+    }
 
     let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
     let output = output.join(filename);

@@ -16,6 +16,7 @@ pub use glob::PatternError;
 
 pub use self::rename::*;
 use core::fmt;
+use std::collections::BTreeSet;
 use std::{
     collections::HashMap,
     ops::{ControlFlow, Index},
@@ -413,6 +414,9 @@ pub struct Function {
     /// If a function is readonly, it means it does not modify the state of an application
     #[serde(skip_serializing_if = "is_false", default)]
     pub readonly: bool,
+
+    #[serde(skip_serializing_if = "BTreeSet::is_empty", default)]
+    pub tags: BTreeSet<String>,
 }
 
 impl Function {
@@ -425,8 +429,9 @@ impl Function {
             input_headers: None,
             output_type: None,
             error_type: None,
-            serialization: Vec::new(),
+            serialization: Default::default(),
             readonly: false,
+            tags: Default::default(),
         }
     }
 

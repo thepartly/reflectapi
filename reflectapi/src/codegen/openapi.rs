@@ -20,8 +20,13 @@ use serde::Serialize;
 
 use super::Config;
 
-pub fn generate(schema: crate::Schema, _config: &Config) -> anyhow::Result<String> {
-    let spec = Spec::from(&schema);
+pub fn generate(schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
+    let spec = Converter {
+        include_tags: &config.include_tags,
+        exclude_tags: &config.exclude_tags,
+        ..Default::default()
+    }
+    .convert(&schema);
     Ok(serde_json::to_string_pretty(&spec)?)
 }
 
@@ -279,11 +284,13 @@ impl<T> Ref<T> {
 }
 
 #[derive(Debug, Default)]
-struct Converter {
+struct Converter<'a> {
     components: Components,
+    include_tags: &'a [String],
+    exclude_tags: &'a [String],
 }
 
-impl Converter {
+impl Converter<'_> {
     fn convert(mut self, schema: &crate::Schema) -> Spec {
         Spec {
             openapi: "3.1.0".into(),
@@ -295,6 +302,14 @@ impl Converter {
             paths: schema
                 .functions
                 .iter()
+                .filter(|f| {
+                    self.include_tags.is_empty()
+                        || f.tags.iter().any(|tag| self.include_tags.contains(tag))
+                })
+                .filter(|f| {
+                    self.exclude_tags.is_empty()
+                        || f.tags.iter().all(|tag| !self.exclude_tags.contains(tag))
+                })
                 .map(|f| {
                     (
                         format!("{}/{}", f.path(), f.name()),
