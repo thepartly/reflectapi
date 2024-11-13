@@ -51,6 +51,16 @@ enum Commands {
         #[arg(short, long, default_value = "true")]
         format: bool,
     },
+    /// Serve documentation for the reflectapi schema
+    Serve {
+        /// Port to serve the docs on
+        #[arg(short, long, default_value = "8080")]
+        port: u16,
+
+        /// Path to the source reflectapi schema
+        #[arg(default_value = "reflectapi.json")]
+        schema: PathBuf,
+    },
 }
 
 #[derive(ValueEnum, Clone)]
@@ -64,6 +74,21 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Serve { schema, port } => {
+            let schema: reflectapi::Schema = serde_json::from_reader(std::fs::File::open(schema)?)
+                .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
+
+            let addr = format!("0.0.0.0:{port}");
+            eprintln!("Serving on http://{addr}");
+            let openapi = reflectapi::codegen::openapi::Spec::from(&schema);
+            rouille::start_server(addr, move |request| {
+                rouille::router!(request,
+                    (GET) (/) => { rouille::Response::html(include_str!("../redoc.html")) },
+                    (GET) (/openapi) => { rouille::Response::json(&openapi) },
+                    _ => rouille::Response::empty_404()
+                )
+            })
+        }
         Commands::Codegen {
             schema,
             output,
