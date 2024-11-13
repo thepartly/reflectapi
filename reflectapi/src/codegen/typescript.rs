@@ -128,30 +128,38 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
     let path = super::tmp_path(src).with_extension("ts");
     std::fs::write(&path, src)?;
 
-    let child = Command::new("tsc")
-        .arg("--noEmit")
-        .arg("--skipLibCheck")
-        .arg("--strict")
-        .args(["--lib", "esnext"])
-        .arg(&path)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .context("failed to spawn tsc")?;
+    for cmd in [&mut Command::new("tsc"), Command::new("npx").arg("tsc")] {
+        let child = match cmd
+            .arg("--noEmit")
+            .arg("--skipLibCheck")
+            .arg("--strict")
+            .args(["--lib", "esnext"])
+            .arg(&path)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+        {
+            Ok(child) => child,
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(err) => return Err(err.into()),
+        };
 
-    let output = child.wait_with_output()?;
+        let output = child.wait_with_output()?;
 
-    if !output.status.success() {
-        return Err(anyhow::anyhow!(
-            "tsc failed with exit code {:?}\n{}",
-            output.status.code(),
-            // tsc outputs to stdout
-            String::from_utf8_lossy(&output.stdout)
-        ));
+        if !output.status.success() {
+            return Err(anyhow::anyhow!(
+                "tsc failed with exit code {:?}\n{}",
+                output.status.code(),
+                // tsc outputs to stdout
+                String::from_utf8_lossy(&output.stdout)
+            ));
+        }
+
+        // Remove only after success check to keep file around for debugging
+        std::fs::remove_file(&path)?;
+
+        return Ok(());
     }
-
-    // Remove after success check to keep file around for debugging
-    std::fs::remove_file(&path)?;
 
     Ok(())
 }
