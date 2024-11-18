@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 #[derive(Debug, Clone, PartialEq, Eq, Default, Hash)]
 pub enum Option<T> {
     #[default]
@@ -71,6 +73,17 @@ impl<T> Option<T> {
             Option::Undefined => Option::Undefined,
             Option::None => Option::None,
             Option::Some(value) => Option::Some(f(value)),
+        }
+    }
+
+    pub fn as_deref(&self) -> Option<&T::Target>
+    where
+        T: Deref,
+    {
+        match self.as_ref() {
+            Option::Undefined => Option::Undefined,
+            Option::None => Option::None,
+            Option::Some(t) => Option::Some(t.deref()),
         }
     }
 }
