@@ -960,11 +960,13 @@ impl Converter<'_> {
                     reflectapi_schema::Fields::Unnamed(fields) if fields.len() == 1 => {
                         let field = fields.pop().unwrap();
                         let s = self.convert_type_ref(schema, kind, &field.type_ref);
-                        return self.internally_tag(
-                            tags_schema.expect("expected some for internally tagged enum"),
-                            tag,
-                            &s,
-                        );
+                        return self
+                            .internally_tag(
+                                tags_schema.expect("expected some for internally tagged enum"),
+                                tag,
+                                &s,
+                            )
+                            .unwrap_or_else(|err| panic!("{}: {err}", adt.name()));
                     }
                     reflectapi_schema::Fields::Unnamed(_) => {
                         panic!(
@@ -1021,29 +1023,36 @@ impl Converter<'_> {
         tags_schema: &Schema,
         tag: &str,
         schema: &InlineOrRef<Schema>,
-    ) -> InlineOrRef<Schema> {
+    ) -> Result<InlineOrRef<Schema>, InvalidInternalTagError> {
         match self.resolve_schema_ref(schema) {
             Schema::AllOf { subschemas } => {
                 let mut subschemas = subschemas.clone();
-                subschemas.push(Inline(FlatSchema {
-                    description: "tag object".to_owned(),
-                    ty: Type::Object{
-                        title: "tag".to_owned(),
-                        required: vec![tag.to_owned()],
-                        properties: BTreeMap::from([(tag.to_owned(),
-                            Property {
-                                description: String::new(),
-                                deprecated: false,
-                                schema: Inline(tags_schema.clone()),
-                            }
-                        )]),
-                    },
-                }.into()));
-                Inline(Schema::AllOf { subschemas })
+                subschemas.push(Inline(
+                    FlatSchema {
+                        description: "tag object".to_owned(),
+                        ty: Type::Object {
+                            title: "tag".to_owned(),
+                            required: vec![tag.to_owned()],
+                            properties: BTreeMap::from([(
+                                tag.to_owned(),
+                                Property {
+                                    description: String::new(),
+                                    deprecated: false,
+                                    schema: Inline(tags_schema.clone()),
+                                },
+                            )]),
+                        },
+                    }
+                    .into(),
+                ));
+                Ok(Inline(Schema::AllOf { subschemas }))
             }
-            Schema::OneOf { subschemas } => return Inline(Schema::OneOf {
-                subschemas: subschemas.iter().map(|subschema| self.internally_tag(tags_schema, tag, subschema)).collect()
-            }),
+            Schema::OneOf { subschemas } => Ok(Inline(Schema::OneOf {
+                subschemas: subschemas
+                    .iter()
+                    .map(|subschema| self.internally_tag(tags_schema, tag, subschema))
+                    .collect::<Result<_, _>>()?,
+            })),
             Schema::Const { .. } => unreachable!("internally tagged const?"),
             Schema::Flat(schema) => match &schema.ty {
                 Type::Boolean
@@ -1052,17 +1061,14 @@ impl Converter<'_> {
                 | Type::Null
                 | Type::String { .. }
                 | Type::Array { .. }
-                | Type::Tuple { .. } => panic!(
-                    "newtype variant containing `{:?}` will panic on serialization, either mark this variant as `untagged` or use a different repr",
-                    schema.ty,
-                ),
+                | Type::Tuple { .. } => Err(InvalidInternalTagError(schema.ty.clone())),
                 Type::Map { .. } => todo!("map within newtype variant"),
                 Type::Object {
                     title,
                     required,
                     properties,
                 } => {
-                    return Inline(Schema::Flat(FlatSchema {
+                    return Ok(Inline(Schema::Flat(FlatSchema {
                         description: schema.description.to_owned(),
                         ty: Type::Object {
                             title: title.to_owned(),
@@ -1083,11 +1089,11 @@ impl Converter<'_> {
                                             description: "tag".to_owned(),
                                             ty: Type::String { format: None },
                                         })),
-                                    }
+                                    },
                                 )))
                                 .collect(),
                         },
-                    }))
+                    })))
                 }
             },
         }
@@ -1194,3 +1200,19 @@ enum Kind {
     Input,
     Output,
 }
+
+struct InvalidInternalTagError(Type);
+
+impl fmt::Debug for InvalidInternalTagError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self, f)
+    }
+}
+
+impl fmt::Display for InvalidInternalTagError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "newtype variant containing `{:?}` will panic on serialization, either mark this variant as `untagged` or use a different repr", self.0)
+    }
+}
+
+impl std::error::Error for InvalidInternalTagError {}
