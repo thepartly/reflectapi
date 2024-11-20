@@ -13,7 +13,9 @@ readme = "README.md"
 keywords = ["reflectapi", "reflection", "cli", "codegen", "restapi-client"]
 categories = ["web-programming", "development-tools", "api-bindings"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "reflectapi"
+path = "src/main.rs"
 
 [lints]
 workspace = true
@@ -27,3 +29,4 @@ askama = "0.12.1"
 
 anyhow = "1.0.81"
 serde_json = "1.0.114"
+
