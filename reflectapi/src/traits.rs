@@ -33,6 +33,13 @@ pub(crate) fn reflectapi_type_simple(
     }
     crate::TypeReference::new(type_name, Vec::new())
 }
+
+impl Output for &'static str {
+    fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
+        reflectapi_type_simple(schema, "std::string::String", "UTF-8 encoded string", None)
+    }
+}
+
 macro_rules! impl_reflectapi_simple {
     ($type:ty, $description:tt) => {
         impl Input for $type {

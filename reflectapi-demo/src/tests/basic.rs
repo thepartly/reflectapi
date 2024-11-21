@@ -582,3 +582,12 @@ fn test_reflectapi_struct_with_additional_derives() {
 
     assert_snapshot!(Test);
 }
+
+#[derive(reflectapi::Output, serde::Serialize)]
+struct TestStructOneBasicFieldStaticStr {
+    _f: &'static str,
+}
+#[test]
+fn test_reflectapi_struct_one_basic_field_static_str() {
+    assert_output_snapshot!(TestStructOneBasicFieldStaticStr);
+}

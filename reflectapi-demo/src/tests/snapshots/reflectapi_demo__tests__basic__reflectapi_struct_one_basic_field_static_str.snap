@@ -1,0 +1,34 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: "super::into_output_schema::<TestStructOneBasicFieldStaticStr>().output_types"
+---
+{
+  "types": [
+    {
+      "kind": "struct",
+      "name": "reflectapi::Infallible",
+      "description": "Error object which is expected to be never returned",
+      "fields": "none"
+    },
+    {
+      "kind": "struct",
+      "name": "reflectapi_demo::tests::basic::TestStructOneBasicFieldStaticStr",
+      "fields": {
+        "named": [
+          {
+            "name": "_f",
+            "type": {
+              "name": "std::string::String"
+            },
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive",
+      "name": "std::string::String",
+      "description": "UTF-8 encoded string"
+    }
+  ]
+}
