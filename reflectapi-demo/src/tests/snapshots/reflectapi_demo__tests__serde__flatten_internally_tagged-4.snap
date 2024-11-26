@@ -90,7 +90,6 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "type": {
-                    "description": "tag",
                     "oneOf": [
                       {
                         "const": "S"

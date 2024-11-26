@@ -61,7 +61,6 @@ snapshot_kind: text
               },
               "type": {
                 "description": "tag",
-                "description": "tag",
                 "type": "string"
               }
             }
@@ -82,7 +81,6 @@ snapshot_kind: text
                 "$ref": "#/components/schemas/u64"
               },
               "type": {
-                "description": "tag",
                 "description": "tag",
                 "type": "string"
               }

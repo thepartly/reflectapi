@@ -64,7 +64,6 @@ snapshot_kind: text
                   },
                   "version": {
                     "description": "tag",
-                    "description": "tag",
                     "type": "string"
                   }
                 }

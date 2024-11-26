@@ -53,13 +53,11 @@ snapshot_kind: text
             ],
             "properties": {
               "c": {
-                "description": "content",
                 "type": "object",
                 "title": "Empty",
                 "properties": {}
               },
               "t": {
-                "description": "tag",
                 "oneOf": [
                   {
                     "const": "Empty"
@@ -83,13 +81,11 @@ snapshot_kind: text
             ],
             "properties": {
               "c": {
-                "description": "content",
                 "type": "object",
                 "title": "EmptyUnit",
                 "properties": {}
               },
               "t": {
-                "description": "tag",
                 "oneOf": [
                   {
                     "const": "Empty"
@@ -113,13 +109,11 @@ snapshot_kind: text
             ],
             "properties": {
               "c": {
-                "description": "content",
                 "type": "object",
                 "title": "EmptyStruct",
                 "properties": {}
               },
               "t": {
-                "description": "tag",
                 "oneOf": [
                   {
                     "const": "Empty"

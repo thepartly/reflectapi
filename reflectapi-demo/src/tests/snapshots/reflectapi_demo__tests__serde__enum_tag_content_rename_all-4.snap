@@ -53,7 +53,6 @@ snapshot_kind: text
             ],
             "properties": {
               "content": {
-                "description": "content",
                 "type": "object",
                 "title": "variant1",
                 "required": [
@@ -66,7 +65,6 @@ snapshot_kind: text
                 }
               },
               "type": {
-                "description": "tag",
                 "oneOf": [
                   {
                     "const": "variant1"
@@ -87,11 +85,9 @@ snapshot_kind: text
             ],
             "properties": {
               "content": {
-                "description": "content",
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
-                "description": "tag",
                 "oneOf": [
                   {
                     "const": "variant1"

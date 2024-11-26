@@ -858,7 +858,7 @@ impl Converter<'_> {
                                 (
                                     tag.to_owned(),
                                     Property {
-                                        description: "tag".to_owned(),
+                                        description: String::new(),
                                         deprecated: false,
                                         schema: Inline(
                                             tags_schema
@@ -870,7 +870,7 @@ impl Converter<'_> {
                                 (
                                     content.to_owned(),
                                     Property {
-                                        description: "content".to_owned(),
+                                        description: String::new(),
                                         deprecated: false,
                                         schema: data,
                                     },
@@ -974,7 +974,7 @@ impl Converter<'_> {
                         required: vec![tag.to_owned()],
                         properties: BTreeMap::from([(tag.to_owned(),
                             Property {
-                                description: "tag".to_owned(),
+                                description: String::new(),
                                 deprecated: false,
                                 schema: Inline(tags_schema.clone()),
                             }
@@ -1019,7 +1019,7 @@ impl Converter<'_> {
                                 .chain(std::iter::once((
                                     tag.to_owned(),
                                     Property {
-                                        description: "tag".to_owned(),
+                                        description: String::new(),
                                         deprecated: false,
                                         schema: Inline(Schema::Flat(FlatSchema {
                                             description: "tag".to_owned(),

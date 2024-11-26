@@ -64,7 +64,6 @@ snapshot_kind: text
                   },
                   "version": {
                     "description": "tag",
-                    "description": "tag",
                     "type": "string"
                   }
                 }
@@ -86,7 +85,6 @@ snapshot_kind: text
                     "$ref": "#/components/schemas/std.string.String"
                   },
                   "version": {
-                    "description": "tag",
                     "description": "tag",
                     "type": "string"
                   }
@@ -114,7 +112,6 @@ snapshot_kind: text
                   },
                   "version": {
                     "description": "tag",
-                    "description": "tag",
                     "type": "string"
                   }
                 }
@@ -136,7 +133,6 @@ snapshot_kind: text
                     "$ref": "#/components/schemas/std.string.String"
                   },
                   "version": {
-                    "description": "tag",
                     "description": "tag",
                     "type": "string"
                   }
