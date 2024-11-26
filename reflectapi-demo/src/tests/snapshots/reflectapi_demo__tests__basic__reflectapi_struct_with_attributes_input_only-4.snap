@@ -50,7 +50,7 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
-            "type": "string"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },

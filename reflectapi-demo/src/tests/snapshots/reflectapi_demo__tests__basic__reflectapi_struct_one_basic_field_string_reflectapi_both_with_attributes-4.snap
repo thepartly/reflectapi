@@ -54,7 +54,7 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
-            "type": "integer"
+            "$ref": "#/components/schemas/i32"
           }
         }
       },
@@ -66,7 +66,7 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u32"
           }
         }
       },

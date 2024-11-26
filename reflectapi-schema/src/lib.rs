@@ -454,6 +454,10 @@ impl Function {
         self.description.as_str()
     }
 
+    pub fn deprecated(&self) -> bool {
+        self.deprecation_note.is_some()
+    }
+
     pub fn input_type(&self) -> Option<&TypeReference> {
         self.input_type.as_ref()
     }
@@ -1075,6 +1079,10 @@ impl Field {
 
     pub fn description(&self) -> &str {
         self.description.as_str()
+    }
+
+    pub fn deprecated(&self) -> bool {
+        self.deprecation_note.is_some()
     }
 
     pub fn type_ref(&self) -> &TypeReference {

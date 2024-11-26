@@ -50,16 +50,7 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
-            "type": "object",
-            "title": "reflectapi_demo.tests.test_lib.TestStructNested",
-            "required": [
-              "_f"
-            ],
-            "properties": {
-              "_f": {
-                "type": "string"
-              }
-            }
+            "$ref": "#/components/schemas/reflectapi_demo.tests.test_lib.TestStructNested"
           }
         }
       },
@@ -71,7 +62,7 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
-            "type": "string"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },

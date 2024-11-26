@@ -50,6 +50,7 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
+            "description": "Fixed-size Array",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/u8"

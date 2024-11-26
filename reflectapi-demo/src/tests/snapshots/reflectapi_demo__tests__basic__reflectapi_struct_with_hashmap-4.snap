@@ -50,6 +50,7 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
+            "description": "Key-value map type",
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/std.string.String"

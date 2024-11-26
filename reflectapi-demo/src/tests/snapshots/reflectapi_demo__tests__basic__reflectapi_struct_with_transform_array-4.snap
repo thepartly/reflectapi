@@ -50,6 +50,7 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
+            "description": "Expandable array type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/u8"

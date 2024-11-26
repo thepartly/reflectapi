@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+snapshot_kind: text
 ---
 {
   "openapi": "3.1.0",
@@ -52,11 +53,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ],
             "properties": {
               "c": {
+                "description": "content",
                 "type": "object",
                 "title": "Empty",
                 "properties": {}
               },
               "t": {
+                "description": "tag",
                 "oneOf": [
                   {
                     "const": "Empty"
@@ -80,11 +83,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ],
             "properties": {
               "c": {
+                "description": "content",
                 "type": "object",
                 "title": "EmptyUnit",
                 "properties": {}
               },
               "t": {
+                "description": "tag",
                 "oneOf": [
                   {
                     "const": "Empty"
@@ -108,11 +113,13 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ],
             "properties": {
               "c": {
+                "description": "content",
                 "type": "object",
                 "title": "EmptyStruct",
                 "properties": {}
               },
               "t": {
+                "description": "tag",
                 "oneOf": [
                   {
                     "const": "Empty"

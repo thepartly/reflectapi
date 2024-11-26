@@ -47,7 +47,7 @@ snapshot_kind: text
         "title": "reflectapi_demo.tests.serde.input.TestStructWithSerdeDefault",
         "properties": {
           "f": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           }
         }
       },
@@ -59,7 +59,7 @@ snapshot_kind: text
         ],
         "properties": {
           "f": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           }
         }
       },

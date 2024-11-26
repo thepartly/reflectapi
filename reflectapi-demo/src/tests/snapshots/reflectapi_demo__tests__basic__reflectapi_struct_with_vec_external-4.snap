@@ -50,6 +50,7 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
+            "description": "Expandable array type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/reflectapi_demo.tests.test_lib.TestStructNested"
@@ -65,7 +66,7 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
-            "type": "string"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },

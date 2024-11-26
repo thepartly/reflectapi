@@ -55,7 +55,7 @@ snapshot_kind: text
             ],
             "properties": {
               "field_name": {
-                "type": "integer"
+                "$ref": "#/components/schemas/u8"
               }
             }
           }

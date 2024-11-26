@@ -50,7 +50,7 @@ snapshot_kind: text
         ],
         "properties": {
           "a": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           }
         }
       },
@@ -62,7 +62,7 @@ snapshot_kind: text
         ],
         "properties": {
           "b": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           }
         }
       },
@@ -90,6 +90,7 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "type": {
+                    "description": "tag",
                     "oneOf": [
                       {
                         "const": "S"

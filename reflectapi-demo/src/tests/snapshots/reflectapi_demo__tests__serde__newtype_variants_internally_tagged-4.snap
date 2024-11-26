@@ -54,12 +54,13 @@ snapshot_kind: text
             ],
             "properties": {
               "a": {
-                "type": "integer"
+                "$ref": "#/components/schemas/u8"
               },
               "b": {
-                "type": "integer"
+                "$ref": "#/components/schemas/u16"
               },
               "type": {
+                "description": "tag",
                 "description": "tag",
                 "type": "string"
               }
@@ -75,12 +76,13 @@ snapshot_kind: text
             ],
             "properties": {
               "c": {
-                "type": "integer"
+                "$ref": "#/components/schemas/u32"
               },
               "d": {
-                "type": "integer"
+                "$ref": "#/components/schemas/u64"
               },
               "type": {
+                "description": "tag",
                 "description": "tag",
                 "type": "string"
               }
@@ -97,10 +99,10 @@ snapshot_kind: text
         ],
         "properties": {
           "a": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           },
           "b": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u16"
           }
         }
       },
@@ -113,10 +115,10 @@ snapshot_kind: text
         ],
         "properties": {
           "c": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u32"
           },
           "d": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u64"
           }
         }
       },

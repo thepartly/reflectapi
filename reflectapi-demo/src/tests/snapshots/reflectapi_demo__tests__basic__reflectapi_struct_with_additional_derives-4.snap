@@ -52,6 +52,7 @@ snapshot_kind: text
         ],
         "properties": {
           "us": {
+            "description": "Value set type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/reflectapi_demo.tests.basic.U"
@@ -59,6 +60,7 @@ snapshot_kind: text
             "uniqueItems": true
           },
           "xs": {
+            "description": "Value set type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/reflectapi_demo.tests.basic.X"
@@ -66,6 +68,7 @@ snapshot_kind: text
             "uniqueItems": true
           },
           "ys": {
+            "description": "Value set type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/reflectapi_demo.tests.basic.Y"

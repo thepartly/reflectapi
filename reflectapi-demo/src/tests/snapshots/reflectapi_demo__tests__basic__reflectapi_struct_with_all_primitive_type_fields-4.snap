@@ -138,30 +138,33 @@ snapshot_kind: text
         ],
         "properties": {
           "_f_array": {
+            "description": "Fixed-size Array",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/u8"
             }
           },
           "_f_bool": {
-            "type": "boolean"
+            "$ref": "#/components/schemas/bool"
           },
           "_f_char": {
-            "type": "string"
+            "$ref": "#/components/schemas/char"
           },
           "_f_f32": {
-            "type": "number"
+            "$ref": "#/components/schemas/f32"
           },
           "_f_f64": {
-            "type": "number"
+            "$ref": "#/components/schemas/f64"
           },
           "_f_hashmap": {
+            "description": "Key-value map type",
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/std.string.String"
             }
           },
           "_f_hashset": {
+            "description": "Value set type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/u8"
@@ -169,27 +172,25 @@ snapshot_kind: text
             "uniqueItems": true
           },
           "_f_i128": {
-            "type": "integer"
+            "$ref": "#/components/schemas/i128"
           },
           "_f_i16": {
-            "type": "integer"
+            "$ref": "#/components/schemas/i16"
           },
           "_f_i32": {
-            "type": "integer"
+            "$ref": "#/components/schemas/i32"
           },
           "_f_i64": {
-            "type": "integer"
+            "$ref": "#/components/schemas/i64"
           },
           "_f_i8": {
-            "type": "integer"
+            "$ref": "#/components/schemas/i8"
           },
           "_f_infallible": {
-            "type": "object",
-            "title": "reflectapi.Infallible",
-            "properties": {}
+            "$ref": "#/components/schemas/reflectapi.Infallible"
           },
           "_f_isize": {
-            "type": "integer"
+            "$ref": "#/components/schemas/isize"
           },
           "_f_option": {
             "oneOf": [
@@ -203,33 +204,35 @@ snapshot_kind: text
             ]
           },
           "_f_phantomdata": {
+            "description": "Zero-sized phantom data",
             "type": "null"
           },
           "_f_pointer_arc": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           },
           "_f_pointer_box": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           },
           "_f_pointer_cell": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           },
           "_f_pointer_mutex": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           },
           "_f_pointer_refcell": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           },
           "_f_pointer_rwlock": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           },
           "_f_pointer_weak": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           },
           "_f_str": {
-            "type": "string"
+            "$ref": "#/components/schemas/std.string.String"
           },
           "_f_tuple": {
+            "description": "Tuple holding 2 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -241,6 +244,7 @@ snapshot_kind: text
             ]
           },
           "_f_tuple10": {
+            "description": "Tuple holding 10 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -276,6 +280,7 @@ snapshot_kind: text
             ]
           },
           "_f_tuple11": {
+            "description": "Tuple holding 11 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -314,6 +319,7 @@ snapshot_kind: text
             ]
           },
           "_f_tuple12": {
+            "description": "Tuple holding 12 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -355,6 +361,7 @@ snapshot_kind: text
             ]
           },
           "_f_tuple3": {
+            "description": "Tuple holding 3 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -369,6 +376,7 @@ snapshot_kind: text
             ]
           },
           "_f_tuple4": {
+            "description": "Tuple holding 4 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -386,6 +394,7 @@ snapshot_kind: text
             ]
           },
           "_f_tuple5": {
+            "description": "Tuple holding 5 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -406,6 +415,7 @@ snapshot_kind: text
             ]
           },
           "_f_tuple6": {
+            "description": "Tuple holding 6 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -429,6 +439,7 @@ snapshot_kind: text
             ]
           },
           "_f_tuple7": {
+            "description": "Tuple holding 7 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -455,6 +466,7 @@ snapshot_kind: text
             ]
           },
           "_f_tuple8": {
+            "description": "Tuple holding 8 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -484,6 +496,7 @@ snapshot_kind: text
             ]
           },
           "_f_tuple9": {
+            "description": "Tuple holding 9 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -516,27 +529,28 @@ snapshot_kind: text
             ]
           },
           "_f_u128": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u128"
           },
           "_f_u16": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u16"
           },
           "_f_u32": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u32"
           },
           "_f_u64": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u64"
           },
           "_f_u8": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           },
           "_f_unit": {
-            "type": "null"
+            "$ref": "#/components/schemas/std.tuple.Tuple0"
           },
           "_f_usize": {
-            "type": "integer"
+            "$ref": "#/components/schemas/usize"
           },
           "_f_vec": {
+            "description": "Expandable array type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/u8"

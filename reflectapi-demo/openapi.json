@@ -51,7 +51,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -102,7 +102,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ],
@@ -150,7 +150,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -184,6 +184,7 @@
                   ],
                   "properties": {
                     "cursor": {
+                      "description": " cursor for getting next page",
                       "oneOf": [
                         {
                           "description": "Null",
@@ -223,7 +224,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -274,7 +275,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -325,7 +326,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -379,11 +380,11 @@
                 "properties": {
                   "description": {
                     "description": " Custom provided description of a behavior",
-                    "type": "string"
+                    "$ref": "#/components/schemas/std.string.String"
                   },
                   "notes": {
                     "description": " Additional notes\n Up to a user to put free text here",
-                    "type": "string"
+                    "$ref": "#/components/schemas/std.string.String"
                   }
                 }
               }
@@ -412,6 +413,8 @@
         ],
         "properties": {
           "age": {
+            "description": " age of the pet",
+            "deprecated": true,
             "oneOf": [
               {
                 "description": "Null",
@@ -430,20 +433,12 @@
             }
           },
           "kind": {
-            "oneOf": [
-              {
-                "const": "dog",
-                "description": " A dog"
-              },
-              {
-                "const": "cat",
-                "description": " A cat"
-              }
-            ]
+            "description": " kind of pet",
+            "$ref": "#/components/schemas/myapi.model.Kind"
           },
           "name": {
             "description": " identity",
-            "type": "string"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },
@@ -470,7 +465,7 @@
                 ],
                 "properties": {
                   "message": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/std.string.String"
                   }
                 }
               }
@@ -543,7 +538,7 @@
         "properties": {
           "name": {
             "description": " identity",
-            "type": "string"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },
@@ -565,6 +560,7 @@
         ],
         "properties": {
           "age": {
+            "description": " age of the pet, nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -576,6 +572,7 @@
             ]
           },
           "behaviors": {
+            "description": " behaviors of the pet, nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -591,6 +588,7 @@
             ]
           },
           "kind": {
+            "description": " kind of pet, non nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -603,7 +601,7 @@
           },
           "name": {
             "description": " identity",
-            "type": "string"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },

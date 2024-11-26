@@ -26,6 +26,7 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "_f_hashset": {
+                    "description": "Value set type",
                     "type": "array",
                     "items": {
                       "$ref": "#/components/schemas/std.string.String"
@@ -51,6 +52,7 @@ snapshot_kind: text
                   ],
                   "properties": {
                     "_f_hashset": {
+                      "description": "Value set type",
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/std.string.String"

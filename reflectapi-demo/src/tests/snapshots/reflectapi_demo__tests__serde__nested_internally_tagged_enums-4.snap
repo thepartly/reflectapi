@@ -56,13 +56,14 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "a": {
-                    "type": "integer"
+                    "$ref": "#/components/schemas/u8"
                   },
                   "type": {
                     "description": "tag",
-                    "type": "string"
+                    "$ref": "#/components/schemas/std.string.String"
                   },
                   "version": {
+                    "description": "tag",
                     "description": "tag",
                     "type": "string"
                   }
@@ -78,13 +79,14 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "b": {
-                    "type": "integer"
+                    "$ref": "#/components/schemas/u16"
                   },
                   "type": {
                     "description": "tag",
-                    "type": "string"
+                    "$ref": "#/components/schemas/std.string.String"
                   },
                   "version": {
+                    "description": "tag",
                     "description": "tag",
                     "type": "string"
                   }
@@ -104,13 +106,14 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "c": {
-                    "type": "integer"
+                    "$ref": "#/components/schemas/u32"
                   },
                   "type": {
                     "description": "tag",
-                    "type": "string"
+                    "$ref": "#/components/schemas/std.string.String"
                   },
                   "version": {
+                    "description": "tag",
                     "description": "tag",
                     "type": "string"
                   }
@@ -126,13 +129,14 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "d": {
-                    "type": "integer"
+                    "$ref": "#/components/schemas/u64"
                   },
                   "type": {
                     "description": "tag",
-                    "type": "string"
+                    "$ref": "#/components/schemas/std.string.String"
                   },
                   "version": {
+                    "description": "tag",
                     "description": "tag",
                     "type": "string"
                   }
@@ -153,11 +157,11 @@ snapshot_kind: text
             ],
             "properties": {
               "a": {
-                "type": "integer"
+                "$ref": "#/components/schemas/u8"
               },
               "type": {
                 "description": "tag",
-                "type": "string"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           },
@@ -170,11 +174,11 @@ snapshot_kind: text
             ],
             "properties": {
               "b": {
-                "type": "integer"
+                "$ref": "#/components/schemas/u16"
               },
               "type": {
                 "description": "tag",
-                "type": "string"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           }
@@ -191,11 +195,11 @@ snapshot_kind: text
             ],
             "properties": {
               "c": {
-                "type": "integer"
+                "$ref": "#/components/schemas/u32"
               },
               "type": {
                 "description": "tag",
-                "type": "string"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           },
@@ -208,11 +212,11 @@ snapshot_kind: text
             ],
             "properties": {
               "d": {
-                "type": "integer"
+                "$ref": "#/components/schemas/u64"
               },
               "type": {
                 "description": "tag",
-                "type": "string"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           }

@@ -56,7 +56,7 @@ snapshot_kind: text
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -107,7 +107,7 @@ snapshot_kind: text
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ],
@@ -155,7 +155,7 @@ snapshot_kind: text
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -189,6 +189,7 @@ snapshot_kind: text
                   ],
                   "properties": {
                     "cursor": {
+                      "description": " cursor for getting next page",
                       "oneOf": [
                         {
                           "description": "Null",
@@ -228,7 +229,7 @@ snapshot_kind: text
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -279,7 +280,7 @@ snapshot_kind: text
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -330,7 +331,7 @@ snapshot_kind: text
             "in": "header",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/std.string.String"
             }
           }
         ]
@@ -384,11 +385,11 @@ snapshot_kind: text
                 "properties": {
                   "description": {
                     "description": " Custom provided description of a behavior",
-                    "type": "string"
+                    "$ref": "#/components/schemas/std.string.String"
                   },
                   "notes": {
                     "description": " Additional notes\n Up to a user to put free text here",
-                    "type": "string"
+                    "$ref": "#/components/schemas/std.string.String"
                   }
                 }
               }
@@ -417,6 +418,8 @@ snapshot_kind: text
         ],
         "properties": {
           "age": {
+            "description": " age of the pet",
+            "deprecated": true,
             "oneOf": [
               {
                 "description": "Null",
@@ -435,20 +438,12 @@ snapshot_kind: text
             }
           },
           "kind": {
-            "oneOf": [
-              {
-                "const": "dog",
-                "description": " A dog"
-              },
-              {
-                "const": "cat",
-                "description": " A cat"
-              }
-            ]
+            "description": " kind of pet",
+            "$ref": "#/components/schemas/myapi.model.Kind"
           },
           "name": {
             "description": " identity",
-            "type": "string"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },
@@ -475,7 +470,7 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "message": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/std.string.String"
                   }
                 }
               }
@@ -548,7 +543,7 @@ snapshot_kind: text
         "properties": {
           "name": {
             "description": " identity",
-            "type": "string"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },
@@ -570,6 +565,7 @@ snapshot_kind: text
         ],
         "properties": {
           "age": {
+            "description": " age of the pet, nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -581,6 +577,7 @@ snapshot_kind: text
             ]
           },
           "behaviors": {
+            "description": " behaviors of the pet, nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -596,6 +593,7 @@ snapshot_kind: text
             ]
           },
           "kind": {
+            "description": " kind of pet, non nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -608,7 +606,7 @@ snapshot_kind: text
           },
           "name": {
             "description": " identity",
-            "type": "string"
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },

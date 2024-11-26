@@ -59,7 +59,7 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "field-name&&": {
-                    "type": "integer"
+                    "$ref": "#/components/schemas/u8"
                   }
                 }
               }

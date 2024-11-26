@@ -53,15 +53,15 @@ snapshot_kind: text
         "properties": {
           "_f": {
             "deprecated": true,
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           },
           "_g": {
             "deprecated": true,
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           },
           "_h": {
             "deprecated": true,
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           }
         }
       },

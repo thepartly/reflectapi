@@ -53,6 +53,7 @@ snapshot_kind: text
             ],
             "properties": {
               "content": {
+                "description": "content",
                 "type": "object",
                 "title": "Variant1",
                 "required": [
@@ -60,11 +61,12 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "field_name": {
-                    "type": "integer"
+                    "$ref": "#/components/schemas/u8"
                   }
                 }
               },
               "type": {
+                "description": "tag",
                 "oneOf": [
                   {
                     "const": "Variant1"
@@ -85,9 +87,11 @@ snapshot_kind: text
             ],
             "properties": {
               "content": {
+                "description": "content",
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
+                "description": "tag",
                 "oneOf": [
                   {
                     "const": "Variant1"

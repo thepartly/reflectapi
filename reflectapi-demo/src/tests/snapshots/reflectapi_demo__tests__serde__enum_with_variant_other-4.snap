@@ -53,7 +53,7 @@ snapshot_kind: text
             "properties": {
               "type": {
                 "description": "tag",
-                "type": "string"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           }
@@ -70,7 +70,7 @@ snapshot_kind: text
             "properties": {
               "type": {
                 "description": "tag",
-                "type": "string"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           },
@@ -83,7 +83,7 @@ snapshot_kind: text
             "properties": {
               "type": {
                 "description": "tag",
-                "type": "string"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           }

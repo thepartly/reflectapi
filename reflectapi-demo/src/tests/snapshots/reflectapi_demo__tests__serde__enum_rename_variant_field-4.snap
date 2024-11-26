@@ -59,7 +59,7 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "variant2_field_name": {
-                    "type": "integer"
+                    "$ref": "#/components/schemas/u8"
                   }
                 }
               }

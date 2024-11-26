@@ -185,7 +185,7 @@ pub enum Type {
         title: String,
         #[serde(skip_serializing_if = "Vec::is_empty")]
         required: Vec<String>,
-        properties: BTreeMap<String, InlineOrRef<Schema>>,
+        properties: BTreeMap<String, Property>,
     },
     #[serde(rename = "object")]
     Map {
@@ -195,6 +195,18 @@ pub enum Type {
         additional_properties: Box<InlineOrRef<Schema>>,
     },
     Null,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Property {
+    // Note: this field may conflict with the `Schema::Flat` description field.
+    // Must ensure that only one of them is non-empty to avoid invalid serialization.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    description: String,
+    #[serde(skip_serializing_if = "is_false")]
+    deprecated: bool,
+    #[serde(flatten)]
+    schema: InlineOrRef<Schema>,
 }
 
 #[derive(Clone, PartialEq, Serialize)]
@@ -266,8 +278,6 @@ pub struct Discriminator {
 pub struct FlatSchema {
     #[serde(skip_serializing_if = "String::is_empty")]
     pub description: String,
-    #[serde(skip_serializing_if = "is_false")]
-    pub deprecated: bool,
     #[serde(flatten)]
     pub ty: Type,
 }
@@ -276,7 +286,6 @@ impl FlatSchema {
     pub fn empty_object() -> Self {
         Self {
             description: "empty object".to_owned(),
-            deprecated: false,
             ty: Type::Object {
                 title: "".to_owned(),
                 required: vec![],
@@ -288,7 +297,6 @@ impl FlatSchema {
     pub fn empty_tuple() -> Self {
         Self {
             description: "empty tuple".to_owned(),
-            deprecated: false,
             ty: Type::Tuple {
                 prefix_items: vec![],
             },
@@ -411,7 +419,7 @@ impl Converter<'_> {
             operation_id: f.name.clone(),
             tags: f.tags.clone(),
             description: f.description.clone(),
-            deprecated: f.deprecation_note.is_some(),
+            deprecated: f.deprecated(),
             parameters: f
                 .input_headers()
                 .map_or_else(Vec::new, |headers| self.convert_headers(schema, headers)),
@@ -472,13 +480,13 @@ impl Converter<'_> {
                 ..
             }) => properties
                 .into_iter()
-                .map(|(name, schema)| {
+                .map(|(name, property)| {
                     let required = required.contains(&name);
                     Parameter {
                         name,
                         location: In::Header,
                         required,
-                        schema,
+                        schema: property.schema,
                     }
                 })
                 .collect(),
@@ -491,23 +499,19 @@ impl Converter<'_> {
         schema: &crate::Schema,
         kind: Kind,
         field: &crate::Field,
-    ) -> Schema {
-        let r = self.convert_type_ref(schema, kind, field.type_ref());
-        match self.resolve_schema_ref(&r).clone() {
-            Schema::AllOf { subschemas } => Schema::AllOf { subschemas },
-            Schema::OneOf { subschemas } => Schema::OneOf { subschemas },
-            Schema::Const {
-                value,
-                description: _,
-            } => Schema::Const {
-                value,
-                description: field.description.clone(),
-            },
-            Schema::Flat(mut schema) => {
-                schema.description.clone_from(&field.description);
-                schema.deprecated = field.deprecation_note.is_some();
-                Schema::Flat(schema)
+    ) -> Property {
+        let mut schema = self.convert_type_ref(schema, kind, field.type_ref());
+        if let Inline(Schema::Flat(flat)) = &mut schema {
+            if !field.description().is_empty() {
+                // The field description is more specific than the type description.
+                // If we don't do this, there will be two description field which is invalid.
+                flat.description.clear();
             }
+        }
+        Property {
+            description: field.description().to_owned(),
+            deprecated: field.deprecated(),
+            schema,
         }
     }
 
@@ -546,7 +550,6 @@ impl Converter<'_> {
 
         let stub = Schema::Flat(FlatSchema {
             description: "stub".into(),
-            deprecated: false,
             ty: Type::Null,
         });
 
@@ -577,7 +580,6 @@ impl Converter<'_> {
                         subschemas: vec![
                             Inline(Schema::Flat(FlatSchema {
                                 description: "Null".to_owned(),
-                                deprecated: false,
                                 ty: Type::Null,
                             })),
                             self.convert_type_ref(schema, kind, ty_ref.arguments().next().unwrap()),
@@ -669,7 +671,6 @@ impl Converter<'_> {
 
                 Schema::Flat(FlatSchema {
                     description: reflect_ty.description().to_owned(),
-                    deprecated: false,
                     ty,
                 })
             }
@@ -779,7 +780,11 @@ impl Converter<'_> {
                             required: vec![],
                             properties: BTreeMap::from_iter([(
                                 variant.serde_name().to_owned(),
-                                Inline(Schema::empty_object()),
+                                Property {
+                                    description: variant.description().to_owned(),
+                                    deprecated: false,
+                                    schema: Inline(Schema::empty_object()),
+                                },
                             )]),
                         },
                         reflectapi_schema::Fields::Unnamed(_) => Type::Object {
@@ -787,7 +792,11 @@ impl Converter<'_> {
                             required: vec![],
                             properties: BTreeMap::from_iter([(
                                 variant.serde_name().to_owned(),
-                                Inline(Schema::empty_tuple()),
+                                Property {
+                                    description: variant.description().to_owned(),
+                                    deprecated: false,
+                                    schema: Inline(Schema::empty_tuple()),
+                                },
                             )]),
                         },
                         reflectapi_schema::Fields::None => {
@@ -801,14 +810,14 @@ impl Converter<'_> {
                     return Inline(
                         FlatSchema {
                             description: variant.description().to_owned(),
-                            deprecated: false,
                             ty,
                         }
                         .into(),
                     );
                 }
 
-                let field = if variant.fields.len() == 1 && !variant.fields[0].is_named() {
+                let property_schema = if variant.fields.len() == 1 && !variant.fields[0].is_named()
+                {
                     self.convert_type_ref(schema, kind, variant.fields[0].type_ref())
                 } else {
                     self.struct_to_schema(schema, kind, &type_ref, &strukt)
@@ -817,11 +826,17 @@ impl Converter<'_> {
                 return Inline(
                     FlatSchema {
                         description: variant.description().to_owned(),
-                        deprecated: false,
                         ty: Type::Object {
                             title: fmt_type_ref(&type_ref),
                             required: vec![variant.serde_name().to_owned()],
-                            properties: BTreeMap::from([(variant.serde_name().to_owned(), field)]),
+                            properties: BTreeMap::from([(
+                                variant.serde_name().to_owned(),
+                                Property {
+                                    deprecated: false,
+                                    description: String::new(),
+                                    schema: property_schema,
+                                },
+                            )]),
                         },
                     }
                     .into(),
@@ -836,20 +851,30 @@ impl Converter<'_> {
                 return Inline(
                     FlatSchema {
                         description: variant.description().to_owned(),
-                        deprecated: false,
                         ty: Type::Object {
                             title: fmt_type_ref(&type_ref),
                             required: vec![tag.to_owned(), content.to_owned()],
                             properties: BTreeMap::from([
                                 (
                                     tag.to_owned(),
-                                    Inline(
-                                        tags_schema
-                                            .expect("expected some for adjacent tagged enum")
-                                            .clone(),
-                                    ),
+                                    Property {
+                                        description: "tag".to_owned(),
+                                        deprecated: false,
+                                        schema: Inline(
+                                            tags_schema
+                                                .expect("expected some for adjacent tagged enum")
+                                                .clone(),
+                                        ),
+                                    },
                                 ),
-                                (content.to_owned(), data),
+                                (
+                                    content.to_owned(),
+                                    Property {
+                                        description: "content".to_owned(),
+                                        deprecated: false,
+                                        schema: data,
+                                    },
+                                ),
                             ]),
                         },
                     }
@@ -922,7 +947,6 @@ impl Converter<'_> {
                     return Inline(
                         FlatSchema {
                             description: variant.description().to_owned(),
-                            deprecated: false,
                             ty,
                         }
                         .into(),
@@ -945,11 +969,16 @@ impl Converter<'_> {
                 let mut subschemas = subschemas.clone();
                 subschemas.push(Inline(FlatSchema {
                     description: "tag object".to_owned(),
-                    deprecated: false,
                     ty: Type::Object{
                         title: "tag".to_owned(),
                         required: vec![tag.to_owned()],
-                        properties: BTreeMap::from([(tag.to_owned(), Inline(tags_schema.clone()))]),
+                        properties: BTreeMap::from([(tag.to_owned(),
+                            Property {
+                                description: "tag".to_owned(),
+                                deprecated: false,
+                                schema: Inline(tags_schema.clone()),
+                            }
+                        )]),
                     },
                 }.into()));
                 Inline(Schema::AllOf { subschemas })
@@ -977,7 +1006,6 @@ impl Converter<'_> {
                 } => {
                     return Inline(Schema::Flat(FlatSchema {
                         description: schema.description.to_owned(),
-                        deprecated: schema.deprecated,
                         ty: Type::Object {
                             title: title.to_owned(),
                             required: required
@@ -990,11 +1018,14 @@ impl Converter<'_> {
                                 .map(|(k, v)| (k.to_owned(), v.clone()))
                                 .chain(std::iter::once((
                                     tag.to_owned(),
-                                    Inline(Schema::Flat(FlatSchema {
+                                    Property {
                                         description: "tag".to_owned(),
                                         deprecated: false,
-                                        ty: Type::String,
-                                    })),
+                                        schema: Inline(Schema::Flat(FlatSchema {
+                                            description: "tag".to_owned(),
+                                            ty: Type::String,
+                                        })),
+                                    }
                                 )))
                                 .collect(),
                         },
@@ -1036,7 +1067,7 @@ impl Converter<'_> {
                     .map(|field| {
                         (
                             field.serde_name().to_owned(),
-                            Inline(self.convert_field(schema, kind, field)),
+                            self.convert_field(schema, kind, field),
                         )
                     })
                     .collect(),
@@ -1056,7 +1087,6 @@ impl Converter<'_> {
 
         let s = FlatSchema {
             description: strukt.description().to_owned(),
-            deprecated: false,
             ty,
         }
         .into();

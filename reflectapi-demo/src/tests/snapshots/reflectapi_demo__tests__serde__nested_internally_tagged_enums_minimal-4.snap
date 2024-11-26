@@ -56,13 +56,14 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "a": {
-                    "type": "integer"
+                    "$ref": "#/components/schemas/u8"
                   },
                   "type": {
                     "description": "tag",
-                    "type": "string"
+                    "$ref": "#/components/schemas/std.string.String"
                   },
                   "version": {
+                    "description": "tag",
                     "description": "tag",
                     "type": "string"
                   }
@@ -83,11 +84,11 @@ snapshot_kind: text
             ],
             "properties": {
               "a": {
-                "type": "integer"
+                "$ref": "#/components/schemas/u8"
               },
               "type": {
                 "description": "tag",
-                "type": "string"
+                "$ref": "#/components/schemas/std.string.String"
               }
             }
           }

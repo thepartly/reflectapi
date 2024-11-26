@@ -50,6 +50,7 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
+            "description": "Tuple holding 12 elements",
             "type": "array",
             "prefixItems": [
               {

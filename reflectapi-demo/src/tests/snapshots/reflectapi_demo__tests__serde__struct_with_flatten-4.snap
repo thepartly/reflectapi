@@ -62,7 +62,7 @@ snapshot_kind: text
         ],
         "properties": {
           "f": {
-            "type": "integer"
+            "$ref": "#/components/schemas/u8"
           }
         }
       },
