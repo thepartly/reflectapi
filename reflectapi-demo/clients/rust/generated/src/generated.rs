@@ -248,6 +248,7 @@ pub mod types {
                 pub kind: super::super::myapi::model::Kind,
                 /// age of the pet
                 #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                #[deprecated(note = "test deprecation")]
                 pub age: std::option::Option<u8>,
                 /// behaviors of the pet
                 #[serde(default, skip_serializing_if = "std::vec::Vec::is_empty")]
