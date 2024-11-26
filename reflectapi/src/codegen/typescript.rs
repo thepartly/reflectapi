@@ -1078,19 +1078,13 @@ fn doc_to_ts_comments(doc: &str, offset: u8) -> String {
         return "".into();
     }
 
-    let offset = " ".repeat(offset as usize);
-    let doc = doc.split('\n').collect::<Vec<_>>();
-    let sp = if doc.iter().all(|i| i.starts_with(' ')) {
-        ""
-    } else {
-        " "
-    };
-    let doc = doc
-        .iter()
-        .map(|line| format!("///{}{}", sp, line.trim_end()))
+    let padding = " ".repeat(offset as usize);
+
+    std::iter::once(format!("{padding}/**"))
+        .chain(doc.split('\n').map(|s| format!("{padding} * {s}")))
+        .chain(std::iter::once(format!("{padding} */\n")))
         .collect::<Vec<_>>()
-        .join(format!("\n{}", offset).as_str());
-    format!("{}\n{}", doc, offset)
+        .join("\n")
 }
 
 fn build_implemented_types() -> HashMap<String, String> {
