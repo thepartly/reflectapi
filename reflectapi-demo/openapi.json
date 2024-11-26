@@ -51,7 +51,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/std.string.String"
+              "type": "string"
             }
           }
         ]
@@ -102,7 +102,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/std.string.String"
+              "type": "string"
             }
           }
         ],
@@ -150,7 +150,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/std.string.String"
+              "type": "string"
             }
           }
         ]
@@ -195,7 +195,7 @@
                       ]
                     },
                     "items": {
-                      "description": "Expandable array type",
+                      "description": " slice of a collection",
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/myapi.model.Pet"
@@ -223,7 +223,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/std.string.String"
+              "type": "string"
             }
           }
         ]
@@ -274,7 +274,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/std.string.String"
+              "type": "string"
             }
           }
         ]
@@ -325,7 +325,7 @@
             "in": "header",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/std.string.String"
+              "type": "string"
             }
           }
         ]
@@ -378,10 +378,12 @@
                 ],
                 "properties": {
                   "description": {
-                    "$ref": "#/components/schemas/std.string.String"
+                    "description": " Custom provided description of a behavior",
+                    "type": "string"
                   },
                   "notes": {
-                    "$ref": "#/components/schemas/std.string.String"
+                    "description": " Additional notes\n Up to a user to put free text here",
+                    "type": "string"
                   }
                 }
               }
@@ -421,17 +423,27 @@
             ]
           },
           "behaviors": {
-            "description": "Expandable array type",
+            "description": " behaviors of the pet",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/myapi.model.Behavior"
             }
           },
           "kind": {
-            "$ref": "#/components/schemas/myapi.model.Kind"
+            "oneOf": [
+              {
+                "const": "dog",
+                "description": " A dog"
+              },
+              {
+                "const": "cat",
+                "description": " A cat"
+              }
+            ]
           },
           "name": {
-            "$ref": "#/components/schemas/std.string.String"
+            "description": " identity",
+            "type": "string"
           }
         }
       },
@@ -458,7 +470,7 @@
                 ],
                 "properties": {
                   "message": {
-                    "$ref": "#/components/schemas/std.string.String"
+                    "type": "string"
                   }
                 }
               }
@@ -530,7 +542,8 @@
         ],
         "properties": {
           "name": {
-            "$ref": "#/components/schemas/std.string.String"
+            "description": " identity",
+            "type": "string"
           }
         }
       },
@@ -589,7 +602,8 @@
             ]
           },
           "name": {
-            "$ref": "#/components/schemas/std.string.String"
+            "description": " identity",
+            "type": "string"
           }
         }
       },

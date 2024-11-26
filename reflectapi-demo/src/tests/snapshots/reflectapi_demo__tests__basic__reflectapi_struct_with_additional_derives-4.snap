@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+snapshot_kind: text
 ---
 {
   "openapi": "3.1.0",
@@ -51,7 +52,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         ],
         "properties": {
           "us": {
-            "description": "Value set type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/reflectapi_demo.tests.basic.U"
@@ -59,7 +59,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "uniqueItems": true
           },
           "xs": {
-            "description": "Value set type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/reflectapi_demo.tests.basic.X"
@@ -67,7 +66,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "uniqueItems": true
           },
           "ys": {
-            "description": "Value set type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/reflectapi_demo.tests.basic.Y"

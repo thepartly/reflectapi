@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+snapshot_kind: text
 ---
 {
   "openapi": "3.1.0",
@@ -49,7 +50,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         ],
         "properties": {
           "_f": {
-            "description": "Key-value map type",
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/std.string.String"

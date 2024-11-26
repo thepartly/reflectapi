@@ -89,6 +89,7 @@ mod model {
         pub kind: Kind,
         /// age of the pet
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[deprecated(note = "test deprecation")]
         pub age: Option<u8>,
         /// behaviors of the pet
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -202,6 +203,7 @@ async fn pets_update(
     if let Some(kind) = request.kind {
         pet.kind = kind;
     }
+    #[allow(deprecated)]
     if let Some(age) = request.age.unfold() {
         pet.age = age.cloned();
     }

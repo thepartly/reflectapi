@@ -234,6 +234,7 @@
             {
               "name": "age",
               "description": " age of the pet",
+              "deprecation_note": "test deprecation",
               "type": {
                 "name": "std::option::Option",
                 "arguments": [
@@ -590,6 +591,7 @@
             {
               "name": "age",
               "description": " age of the pet",
+              "deprecation_note": "test deprecation",
               "type": {
                 "name": "std::option::Option",
                 "arguments": [

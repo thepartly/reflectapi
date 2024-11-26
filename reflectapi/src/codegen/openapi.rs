@@ -266,6 +266,8 @@ pub struct Discriminator {
 pub struct FlatSchema {
     #[serde(skip_serializing_if = "String::is_empty")]
     pub description: String,
+    #[serde(skip_serializing_if = "is_false")]
+    pub deprecated: bool,
     #[serde(flatten)]
     pub ty: Type,
 }
@@ -274,6 +276,7 @@ impl FlatSchema {
     pub fn empty_object() -> Self {
         Self {
             description: "empty object".to_owned(),
+            deprecated: false,
             ty: Type::Object {
                 title: "".to_owned(),
                 required: vec![],
@@ -285,6 +288,7 @@ impl FlatSchema {
     pub fn empty_tuple() -> Self {
         Self {
             description: "empty tuple".to_owned(),
+            deprecated: false,
             ty: Type::Tuple {
                 prefix_items: vec![],
             },
@@ -482,6 +486,31 @@ impl Converter<'_> {
         }
     }
 
+    fn convert_field(
+        &mut self,
+        schema: &crate::Schema,
+        kind: Kind,
+        field: &crate::Field,
+    ) -> Schema {
+        let r = self.convert_type_ref(schema, kind, field.type_ref());
+        match self.resolve_schema_ref(&r).clone() {
+            Schema::AllOf { subschemas } => Schema::AllOf { subschemas },
+            Schema::OneOf { subschemas } => Schema::OneOf { subschemas },
+            Schema::Const {
+                value,
+                description: _,
+            } => Schema::Const {
+                value,
+                description: field.description.clone(),
+            },
+            Schema::Flat(mut schema) => {
+                schema.description.clone_from(&field.description);
+                schema.deprecated = field.deprecation_note.is_some();
+                Schema::Flat(schema)
+            }
+        }
+    }
+
     fn convert_type_ref(
         &mut self,
         schema: &crate::Schema,
@@ -517,6 +546,7 @@ impl Converter<'_> {
 
         let stub = Schema::Flat(FlatSchema {
             description: "stub".into(),
+            deprecated: false,
             ty: Type::Null,
         });
 
@@ -547,6 +577,7 @@ impl Converter<'_> {
                         subschemas: vec![
                             Inline(Schema::Flat(FlatSchema {
                                 description: "Null".to_owned(),
+                                deprecated: false,
                                 ty: Type::Null,
                             })),
                             self.convert_type_ref(schema, kind, ty_ref.arguments().next().unwrap()),
@@ -638,6 +669,7 @@ impl Converter<'_> {
 
                 Schema::Flat(FlatSchema {
                     description: reflect_ty.description().to_owned(),
+                    deprecated: false,
                     ty,
                 })
             }
@@ -769,6 +801,7 @@ impl Converter<'_> {
                     return Inline(
                         FlatSchema {
                             description: variant.description().to_owned(),
+                            deprecated: false,
                             ty,
                         }
                         .into(),
@@ -784,6 +817,7 @@ impl Converter<'_> {
                 return Inline(
                     FlatSchema {
                         description: variant.description().to_owned(),
+                        deprecated: false,
                         ty: Type::Object {
                             title: fmt_type_ref(&type_ref),
                             required: vec![variant.serde_name().to_owned()],
@@ -802,6 +836,7 @@ impl Converter<'_> {
                 return Inline(
                     FlatSchema {
                         description: variant.description().to_owned(),
+                        deprecated: false,
                         ty: Type::Object {
                             title: fmt_type_ref(&type_ref),
                             required: vec![tag.to_owned(), content.to_owned()],
@@ -887,6 +922,7 @@ impl Converter<'_> {
                     return Inline(
                         FlatSchema {
                             description: variant.description().to_owned(),
+                            deprecated: false,
                             ty,
                         }
                         .into(),
@@ -909,6 +945,7 @@ impl Converter<'_> {
                 let mut subschemas = subschemas.clone();
                 subschemas.push(Inline(FlatSchema {
                     description: "tag object".to_owned(),
+                    deprecated: false,
                     ty: Type::Object{
                         title: "tag".to_owned(),
                         required: vec![tag.to_owned()],
@@ -940,6 +977,7 @@ impl Converter<'_> {
                 } => {
                     return Inline(Schema::Flat(FlatSchema {
                         description: schema.description.to_owned(),
+                        deprecated: schema.deprecated,
                         ty: Type::Object {
                             title: title.to_owned(),
                             required: required
@@ -954,6 +992,7 @@ impl Converter<'_> {
                                     tag.to_owned(),
                                     Inline(Schema::Flat(FlatSchema {
                                         description: "tag".to_owned(),
+                                        deprecated: false,
                                         ty: Type::String,
                                     })),
                                 )))
@@ -995,9 +1034,10 @@ impl Converter<'_> {
                 properties: fields
                     .iter()
                     .map(|field| {
-                        (field.serde_name().to_owned(), {
-                            self.convert_type_ref(schema, kind, field.type_ref())
-                        })
+                        (
+                            field.serde_name().to_owned(),
+                            Inline(self.convert_field(schema, kind, field)),
+                        )
                     })
                     .collect(),
             }
@@ -1016,6 +1056,7 @@ impl Converter<'_> {
 
         let s = FlatSchema {
             description: strukt.description().to_owned(),
+            deprecated: false,
             ty,
         }
         .into();

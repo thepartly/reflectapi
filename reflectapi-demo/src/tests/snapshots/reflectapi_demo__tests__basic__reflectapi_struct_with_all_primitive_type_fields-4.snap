@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+snapshot_kind: text
 ---
 {
   "openapi": "3.1.0",
@@ -137,33 +138,30 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         ],
         "properties": {
           "_f_array": {
-            "description": "Fixed-size Array",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/u8"
             }
           },
           "_f_bool": {
-            "$ref": "#/components/schemas/bool"
+            "type": "boolean"
           },
           "_f_char": {
-            "$ref": "#/components/schemas/char"
+            "type": "string"
           },
           "_f_f32": {
-            "$ref": "#/components/schemas/f32"
+            "type": "number"
           },
           "_f_f64": {
-            "$ref": "#/components/schemas/f64"
+            "type": "number"
           },
           "_f_hashmap": {
-            "description": "Key-value map type",
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/std.string.String"
             }
           },
           "_f_hashset": {
-            "description": "Value set type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/u8"
@@ -171,25 +169,27 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "uniqueItems": true
           },
           "_f_i128": {
-            "$ref": "#/components/schemas/i128"
+            "type": "integer"
           },
           "_f_i16": {
-            "$ref": "#/components/schemas/i16"
+            "type": "integer"
           },
           "_f_i32": {
-            "$ref": "#/components/schemas/i32"
+            "type": "integer"
           },
           "_f_i64": {
-            "$ref": "#/components/schemas/i64"
+            "type": "integer"
           },
           "_f_i8": {
-            "$ref": "#/components/schemas/i8"
+            "type": "integer"
           },
           "_f_infallible": {
-            "$ref": "#/components/schemas/reflectapi.Infallible"
+            "type": "object",
+            "title": "reflectapi.Infallible",
+            "properties": {}
           },
           "_f_isize": {
-            "$ref": "#/components/schemas/isize"
+            "type": "integer"
           },
           "_f_option": {
             "oneOf": [
@@ -203,35 +203,33 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_phantomdata": {
-            "description": "Zero-sized phantom data",
             "type": "null"
           },
           "_f_pointer_arc": {
-            "$ref": "#/components/schemas/u8"
+            "type": "integer"
           },
           "_f_pointer_box": {
-            "$ref": "#/components/schemas/u8"
+            "type": "integer"
           },
           "_f_pointer_cell": {
-            "$ref": "#/components/schemas/u8"
+            "type": "integer"
           },
           "_f_pointer_mutex": {
-            "$ref": "#/components/schemas/u8"
+            "type": "integer"
           },
           "_f_pointer_refcell": {
-            "$ref": "#/components/schemas/u8"
+            "type": "integer"
           },
           "_f_pointer_rwlock": {
-            "$ref": "#/components/schemas/u8"
+            "type": "integer"
           },
           "_f_pointer_weak": {
-            "$ref": "#/components/schemas/u8"
+            "type": "integer"
           },
           "_f_str": {
-            "$ref": "#/components/schemas/std.string.String"
+            "type": "string"
           },
           "_f_tuple": {
-            "description": "Tuple holding 2 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -243,7 +241,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_tuple10": {
-            "description": "Tuple holding 10 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -279,7 +276,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_tuple11": {
-            "description": "Tuple holding 11 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -318,7 +314,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_tuple12": {
-            "description": "Tuple holding 12 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -360,7 +355,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_tuple3": {
-            "description": "Tuple holding 3 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -375,7 +369,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_tuple4": {
-            "description": "Tuple holding 4 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -393,7 +386,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_tuple5": {
-            "description": "Tuple holding 5 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -414,7 +406,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_tuple6": {
-            "description": "Tuple holding 6 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -438,7 +429,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_tuple7": {
-            "description": "Tuple holding 7 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -465,7 +455,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_tuple8": {
-            "description": "Tuple holding 8 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -495,7 +484,6 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_tuple9": {
-            "description": "Tuple holding 9 elements",
             "type": "array",
             "prefixItems": [
               {
@@ -528,28 +516,27 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ]
           },
           "_f_u128": {
-            "$ref": "#/components/schemas/u128"
+            "type": "integer"
           },
           "_f_u16": {
-            "$ref": "#/components/schemas/u16"
+            "type": "integer"
           },
           "_f_u32": {
-            "$ref": "#/components/schemas/u32"
+            "type": "integer"
           },
           "_f_u64": {
-            "$ref": "#/components/schemas/u64"
+            "type": "integer"
           },
           "_f_u8": {
-            "$ref": "#/components/schemas/u8"
+            "type": "integer"
           },
           "_f_unit": {
-            "$ref": "#/components/schemas/std.tuple.Tuple0"
+            "type": "null"
           },
           "_f_usize": {
-            "$ref": "#/components/schemas/usize"
+            "type": "integer"
           },
           "_f_vec": {
-            "description": "Expandable array type",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/u8"

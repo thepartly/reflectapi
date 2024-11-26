@@ -52,13 +52,16 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
-            "$ref": "#/components/schemas/u8"
+            "deprecated": true,
+            "type": "integer"
           },
           "_g": {
-            "$ref": "#/components/schemas/u8"
+            "deprecated": true,
+            "type": "integer"
           },
           "_h": {
-            "$ref": "#/components/schemas/u8"
+            "deprecated": true,
+            "type": "integer"
           }
         }
       },
