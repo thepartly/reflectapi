@@ -287,6 +287,7 @@ export namespace myapi {
        */
       kind: myapi.model.Kind;
       /**
+       * @deprecated test deprecation
        *  age of the pet
        */
       age?: number /* u8 */ | null;

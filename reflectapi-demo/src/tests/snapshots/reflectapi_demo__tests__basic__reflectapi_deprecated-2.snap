@@ -37,8 +37,17 @@ export namespace reflectapi_demo {
   export namespace tests {
     export namespace basic {
       export interface StructWithDeprecatedField {
+        /**
+         * @deprecated
+         */
         _f: number /* u8 */;
+        /**
+         * @deprecated g's deprecation note
+         */
         _g: number /* u8 */;
+        /**
+         * @deprecated h's deprecation note
+         */
         _h: number /* u8 */;
       }
     }

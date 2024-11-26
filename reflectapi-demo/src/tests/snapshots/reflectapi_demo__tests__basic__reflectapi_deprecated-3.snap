@@ -62,8 +62,11 @@ pub mod types {
 
                 #[derive(Debug, serde::Serialize, serde::Deserialize)]
                 pub struct StructWithDeprecatedField {
+                    #[deprecated]
                     pub _f: u8,
+                    #[deprecated(note = "g's deprecation note")]
                     pub _g: u8,
+                    #[deprecated(note = "h's deprecation note")]
                     pub _h: u8,
                 }
             }
