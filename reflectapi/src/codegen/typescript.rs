@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::{BTreeSet, HashMap},
     process::{Command, Stdio},
 };
@@ -747,9 +748,17 @@ fn modules_from_function_group(
         let function = functions_by_name.get(function_name).unwrap();
         let (input_type, input_headers, output_type, error_type) =
             function_signature(function, schema, implemented_types);
+        let description = if function.deprecation_note.is_empty() {
+            Cow::Borrowed(&function.description)
+        } else {
+            Cow::Owned(format!(
+                "@deprecated {}\n{}",
+                function.deprecation_note, function.description,
+            ))
+        };
         type_template.fields.push(templates::Field {
             name: function_name.split('.').last().unwrap().replace('-', "_"),
-            description: doc_to_ts_comments(function.description.as_str(), 4),
+            description: doc_to_ts_comments(&description, 4),
             type_: format!(
                 "(input: {}, headers: {})\n        => AsyncResult<{}, {}>",
                 input_type, input_headers, output_type, error_type
