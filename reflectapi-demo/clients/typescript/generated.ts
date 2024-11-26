@@ -12,7 +12,7 @@ export interface Client {
   request(
     path: string,
     body: string,
-    headers: Record<string, string>
+    headers: Record<string, string>,
   ): Promise<[number, string]>;
 }
 
@@ -65,7 +65,7 @@ export class Result<T, E> {
       return this.value.ok;
     }
     throw new Error(
-      `called \`unwrap_ok\` on an \`err\` value: ${this.value.err}`
+      `called \`unwrap_ok\` on an \`err\` value: ${this.value.err}`,
     );
   }
   public unwrap_err(): E {
@@ -193,7 +193,7 @@ export namespace __definition {
        */
       list: (
         input: myapi.proto.PetsListRequest,
-        headers: myapi.proto.Headers
+        headers: myapi.proto.Headers,
       ) => AsyncResult<
         myapi.proto.Paginated<myapi.model.Pet>,
         myapi.proto.PetsListError
@@ -203,21 +203,21 @@ export namespace __definition {
        */
       create: (
         input: myapi.proto.PetsCreateRequest,
-        headers: myapi.proto.Headers
+        headers: myapi.proto.Headers,
       ) => AsyncResult<{}, myapi.proto.PetsCreateError>;
       /**
        * Update an existing pet
        */
       update: (
         input: myapi.proto.PetsUpdateRequest,
-        headers: myapi.proto.Headers
+        headers: myapi.proto.Headers,
       ) => AsyncResult<{}, myapi.proto.PetsUpdateError>;
       /**
        * Remove an existing pet
        */
       remove: (
         input: myapi.proto.PetsRemoveRequest,
-        headers: myapi.proto.Headers
+        headers: myapi.proto.Headers,
       ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
       /**
        * @deprecated Use pets.remove instead
@@ -225,14 +225,14 @@ export namespace __definition {
        */
       delete: (
         input: myapi.proto.PetsRemoveRequest,
-        headers: myapi.proto.Headers
+        headers: myapi.proto.Headers,
       ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
       /**
        * Fetch first pet, if any exists
        */
       get_first: (
         input: {},
-        headers: myapi.proto.Headers
+        headers: myapi.proto.Headers,
       ) => AsyncResult<myapi.model.Pet | null, myapi.proto.UnauthorizedError>;
     }
   }
@@ -250,7 +250,7 @@ export namespace myapi {
             /**
              *  some notes
              */
-            string
+            string,
           ];
         }
       | {
@@ -404,7 +404,7 @@ namespace __implementation {
     client: Client,
     path: string,
     input: I | undefined,
-    headers: H | undefined
+    headers: H | undefined,
   ): AsyncResult<O, E> {
     let hdrs: Record<string, string> = {
       "content-type": "application/json",
@@ -456,7 +456,7 @@ namespace __implementation {
     public request(
       path: string,
       body: string,
-      headers: Record<string, string>
+      headers: Record<string, string>,
     ): Promise<[number, string]> {
       return (globalThis as any)
         .fetch(`${this.base}${path}`, {
@@ -490,7 +490,7 @@ namespace __implementation {
   function pets__create(client: Client) {
     return (
       input: myapi.proto.PetsCreateRequest,
-      headers: myapi.proto.Headers
+      headers: myapi.proto.Headers,
     ) =>
       __request<
         myapi.proto.PetsCreateRequest,
@@ -502,7 +502,7 @@ namespace __implementation {
   function pets__update(client: Client) {
     return (
       input: myapi.proto.PetsUpdateRequest,
-      headers: myapi.proto.Headers
+      headers: myapi.proto.Headers,
     ) =>
       __request<
         myapi.proto.PetsUpdateRequest,
@@ -514,7 +514,7 @@ namespace __implementation {
   function pets__remove(client: Client) {
     return (
       input: myapi.proto.PetsRemoveRequest,
-      headers: myapi.proto.Headers
+      headers: myapi.proto.Headers,
     ) =>
       __request<
         myapi.proto.PetsRemoveRequest,
@@ -526,7 +526,7 @@ namespace __implementation {
   function pets__delete(client: Client) {
     return (
       input: myapi.proto.PetsRemoveRequest,
-      headers: myapi.proto.Headers
+      headers: myapi.proto.Headers,
     ) =>
       __request<
         myapi.proto.PetsRemoveRequest,

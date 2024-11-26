@@ -389,9 +389,10 @@ pub struct Function {
     /// Description of the call
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
-    /// Deprecation note. If empty, function is not deprecated
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub deprecation_note: String,
+    /// Deprecation note. If none, function is not deprecated.
+    /// If present as empty string, function is deprecated without a note.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub deprecation_note: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub input_type: Option<TypeReference>,
@@ -998,6 +999,11 @@ pub struct Field {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
+    /// Deprecation note. If none, field is not deprecated.
+    /// If present as empty string, field is deprecated without a note.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub deprecation_note: Option<String>,
+
     /// Type of a field
     #[serde(rename = "type")]
     pub type_ref: TypeReference,
@@ -1033,16 +1039,17 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn new(name: String, ty: TypeReference) -> Self {
+    pub fn new(name: String, type_ref: TypeReference) -> Self {
         Field {
             name,
-            serde_name: String::new(),
-            description: String::new(),
-            type_ref: ty,
-            required: false,
-            flattened: false,
-            transform_callback: String::new(),
-            transform_callback_fn: None,
+            type_ref,
+            serde_name: Default::default(),
+            description: Default::default(),
+            deprecation_note: Default::default(),
+            required: Default::default(),
+            flattened: Default::default(),
+            transform_callback: Default::default(),
+            transform_callback_fn: Default::default(),
         }
     }
 

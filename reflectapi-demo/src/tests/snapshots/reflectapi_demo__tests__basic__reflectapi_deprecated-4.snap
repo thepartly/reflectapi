@@ -1,0 +1,71 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+snapshot_kind: text
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.StructWithDeprecatedField"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.StructWithDeprecatedField"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.basic.StructWithDeprecatedField": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.basic.StructWithDeprecatedField",
+        "required": [
+          "_f",
+          "_g",
+          "_h"
+        ],
+        "properties": {
+          "_f": {
+            "$ref": "#/components/schemas/u8"
+          },
+          "_g": {
+            "$ref": "#/components/schemas/u8"
+          },
+          "_h": {
+            "$ref": "#/components/schemas/u8"
+          }
+        }
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

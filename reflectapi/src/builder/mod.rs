@@ -242,7 +242,7 @@ pub struct RouteBuilder {
     description: String,
     readonly: bool,
     tags: BTreeSet<String>,
-    deprecation_note: String,
+    deprecation_note: Option<String>,
 }
 
 impl RouteBuilder {
@@ -272,9 +272,9 @@ impl RouteBuilder {
     }
 
     /// Set the deprecation note for this route.
-    /// An empty string means the route is not deprecated.
+    /// An empty string the route is deprecated but no note is provided.
     pub fn deprecation_note(mut self, deprecated: impl Into<String>) -> Self {
-        self.deprecation_note = deprecated.into();
+        self.deprecation_note = Some(deprecated.into());
         self
     }
 

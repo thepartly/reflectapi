@@ -407,7 +407,7 @@ impl Converter<'_> {
             operation_id: f.name.clone(),
             tags: f.tags.clone(),
             description: f.description.clone(),
-            deprecated: !f.deprecation_note.is_empty(),
+            deprecated: f.deprecation_note.is_some(),
             parameters: f
                 .input_headers()
                 .map_or_else(Vec::new, |headers| self.convert_headers(schema, headers)),
@@ -829,6 +829,7 @@ impl Converter<'_> {
                     type_ref: crate::TypeReference::new("std::string::String", vec![]),
                     required: true,
                     flattened: false,
+                    deprecation_note: Default::default(),
                     transform_callback: String::new(),
                     transform_callback_fn: None,
                 };

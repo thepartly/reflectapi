@@ -748,13 +748,10 @@ fn modules_from_function_group(
         let function = functions_by_name.get(function_name).unwrap();
         let (input_type, input_headers, output_type, error_type) =
             function_signature(function, schema, implemented_types);
-        let description = if function.deprecation_note.is_empty() {
-            Cow::Borrowed(&function.description)
+        let description = if let Some(note) = &function.deprecation_note {
+            Cow::Owned(format!("@deprecated {note}\n{}", function.description,))
         } else {
-            Cow::Owned(format!(
-                "@deprecated {}\n{}",
-                function.deprecation_note, function.description,
-            ))
+            Cow::Borrowed(&function.description)
         };
         type_template.fields.push(templates::Field {
             name: function_name.split('.').last().unwrap().replace('-', "_"),

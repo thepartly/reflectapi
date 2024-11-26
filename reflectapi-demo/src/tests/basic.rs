@@ -591,3 +591,17 @@ struct TestStructOneBasicFieldStaticStr {
 fn test_reflectapi_struct_one_basic_field_static_str() {
     assert_output_snapshot!(TestStructOneBasicFieldStaticStr);
 }
+
+#[test]
+fn test_reflectapi_deprecated() {
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    struct StructWithDeprecatedField {
+        #[deprecated]
+        _f: u8,
+        #[deprecated = "g's deprecation note"]
+        _g: u8,
+        #[deprecated(note = "h's deprecation note")]
+        _h: u8,
+    }
+    assert_snapshot!(StructWithDeprecatedField);
+}
