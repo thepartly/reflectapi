@@ -389,6 +389,9 @@ pub struct Function {
     /// Description of the call
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
+    /// Deprecation note. If empty, function is not deprecated
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub deprecation_note: String,
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub input_type: Option<TypeReference>,
@@ -425,14 +428,15 @@ impl Function {
     pub fn new(name: String) -> Self {
         Function {
             name,
-            path: String::new(),
-            description: String::new(),
+            deprecation_note: Default::default(),
+            path: Default::default(),
+            description: Default::default(),
             input_type: None,
             input_headers: None,
             output_type: None,
             error_type: None,
             serialization: Default::default(),
-            readonly: false,
+            readonly: Default::default(),
             tags: Default::default(),
         }
     }

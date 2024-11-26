@@ -575,7 +575,10 @@ pub struct {{ name }};",
 
     #[derive(Template)]
     #[template(
-        source = r#"{{description}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
+        source = r#"{%- if !deprecation_note.is_empty() -%}
+        #[deprecated(note = "{{ deprecation_note }}")]
+        {%- endif -%}
+        {{description}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
     -> Result<{{ output_type }}, reflectapi::rt::Error<{{ error_type }}, C::Error>> {
         reflectapi::rt::__request_impl(&self.client, self.base_url.join("{{ path }}").expect("checked base_url already and path is valid"), input, headers).await
     }"#,
@@ -584,6 +587,7 @@ pub struct {{ name }};",
     pub(super) struct __FunctionImplementationTemplate {
         pub name: String,
         pub description: String,
+        pub deprecation_note: String,
         pub path: String,
         pub input_type: String,
         pub input_headers: String,
@@ -774,6 +778,7 @@ fn __interface_types_from_function_group(
                 .last()
                 .unwrap_or_default()
                 .replace('-', "_"),
+            deprecation_note: function.deprecation_note.to_owned(),
             description: __doc_to_ts_comments(function.description.as_str(), 4),
             path: format!("{}/{}", function.path, function.name),
             input_type,

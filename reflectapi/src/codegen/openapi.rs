@@ -120,6 +120,12 @@ pub struct Operation {
     responses: BTreeMap<String, Response>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     parameters: Vec<Parameter>,
+    #[serde(skip_serializing_if = "is_false")]
+    deprecated: bool,
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -401,6 +407,7 @@ impl Converter<'_> {
             operation_id: f.name.clone(),
             tags: f.tags.clone(),
             description: f.description.clone(),
+            deprecated: !f.deprecation_note.is_empty(),
             parameters: f
                 .input_headers()
                 .map_or_else(Vec::new, |headers| self.convert_headers(schema, headers)),

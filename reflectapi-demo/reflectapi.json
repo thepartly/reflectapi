@@ -92,6 +92,24 @@
       ]
     },
     {
+      "name": "pets.delete",
+      "path": "",
+      "description": "Remove an existing pet",
+      "deprecation_note": "Use pets.remove instead",
+      "input_type": {
+        "name": "myapi::proto::PetsRemoveRequest"
+      },
+      "input_headers": {
+        "name": "myapi::proto::Headers"
+      },
+      "error_type": {
+        "name": "myapi::proto::PetsRemoveError"
+      },
+      "serialization": [
+        "json"
+      ]
+    },
+    {
       "name": "pets.get-first",
       "path": "",
       "description": "Fetch first pet, if any exists",

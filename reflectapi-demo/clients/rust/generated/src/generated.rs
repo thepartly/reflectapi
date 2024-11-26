@@ -166,6 +166,26 @@ pub mod interface {
             )
             .await
         }
+        #[deprecated(note = "Use pets.remove instead")]
+        /// Remove an existing pet
+        pub async fn delete(
+            &self,
+            input: super::types::myapi::proto::PetsRemoveRequest,
+            headers: super::types::myapi::proto::Headers,
+        ) -> Result<
+            reflectapi::Empty,
+            reflectapi::rt::Error<super::types::myapi::proto::PetsRemoveError, C::Error>,
+        > {
+            reflectapi::rt::__request_impl(
+                &self.client,
+                self.base_url
+                    .join("/pets.delete")
+                    .expect("checked base_url already and path is valid"),
+                input,
+                headers,
+            )
+            .await
+        }
         /// Fetch first pet, if any exists
         pub async fn get_first(
             &self,

@@ -32,6 +32,11 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
             b.name("pets.remove")
                 .description("Remove an existing pet")
         })
+        .route(pets_remove, |b| {
+            b.name("pets.delete")
+                .description("Remove an existing pet")
+                .deprecation_note("Use pets.remove instead")
+        })
         .route(pets_get_first, |b| {
             b.name("pets.get-first")
                 .description("Fetch first pet, if any exists")

@@ -209,6 +209,11 @@ export namespace __definition {
         input: myapi.proto.PetsRemoveRequest,
         headers: myapi.proto.Headers,
       ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
+      /// Remove an existing pet
+      delete: (
+        input: myapi.proto.PetsRemoveRequest,
+        headers: myapi.proto.Headers,
+      ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
       /// Fetch first pet, if any exists
       get_first: (
         input: {},
@@ -335,6 +340,7 @@ namespace __implementation {
           create: pets__create(client_instance),
           update: pets__update(client_instance),
           remove: pets__remove(client_instance),
+          delete: pets__delete(client_instance),
           get_first: pets__get_first(client_instance),
         },
       },
@@ -463,6 +469,18 @@ namespace __implementation {
         {},
         myapi.proto.PetsRemoveError
       >(client, "/pets.remove", input, headers);
+  }
+  function pets__delete(client: Client) {
+    return (
+      input: myapi.proto.PetsRemoveRequest,
+      headers: myapi.proto.Headers,
+    ) =>
+      __request<
+        myapi.proto.PetsRemoveRequest,
+        myapi.proto.Headers,
+        {},
+        myapi.proto.PetsRemoveError
+      >(client, "/pets.delete", input, headers);
   }
   function pets__get_first(client: Client) {
     return (input: {}, headers: myapi.proto.Headers) =>

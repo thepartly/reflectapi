@@ -136,6 +136,7 @@ where
         let function_def = Function {
             name: rb.name.clone(),
             path: rb.path.clone(),
+            deprecation_note: rb.deprecation_note,
             description: rb.description.clone(),
             input_type: if input_type.name == "reflectapi::Empty" {
                 None
