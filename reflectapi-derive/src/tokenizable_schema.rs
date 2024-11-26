@@ -97,6 +97,10 @@ impl<'a> ToTokens for TokenizableField<'a> {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
+        let deprecation_note = self.inner.deprecation_note.as_ref().map_or_else(
+            || quote::quote! { None },
+            |d| quote::quote! { Some(#d.into()) },
+        );
         let type_ref = TokenizableTypeReference::new(&self.inner.type_ref);
         let required = self.inner.required;
         let flattened = self.inner.flattened;
@@ -116,6 +120,7 @@ impl<'a> ToTokens for TokenizableField<'a> {
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
+                deprecation_note: #deprecation_note.into(),
                 type_ref: #type_ref,
                 required: #required,
                 flattened: #flattened,

@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+snapshot_kind: text
 ---
 {
   "openapi": "3.1.0",
@@ -58,6 +59,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                     "$ref": "#/components/schemas/u8"
                   },
                   "type": {
+                    "description": "tag",
                     "$ref": "#/components/schemas/std.string.String"
                   },
                   "version": {
@@ -84,6 +86,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
+                "description": "tag",
                 "$ref": "#/components/schemas/std.string.String"
               }
             }

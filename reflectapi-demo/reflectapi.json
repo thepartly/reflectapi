@@ -92,6 +92,24 @@
       ]
     },
     {
+      "name": "pets.delete",
+      "path": "",
+      "description": "Remove an existing pet",
+      "deprecation_note": "Use pets.remove instead",
+      "input_type": {
+        "name": "myapi::proto::PetsRemoveRequest"
+      },
+      "input_headers": {
+        "name": "myapi::proto::Headers"
+      },
+      "error_type": {
+        "name": "myapi::proto::PetsRemoveError"
+      },
+      "serialization": [
+        "json"
+      ]
+    },
+    {
       "name": "pets.get-first",
       "path": "",
       "description": "Fetch first pet, if any exists",
@@ -216,6 +234,7 @@
             {
               "name": "age",
               "description": " age of the pet",
+              "deprecation_note": "test deprecation",
               "type": {
                 "name": "std::option::Option",
                 "arguments": [
@@ -572,6 +591,7 @@
             {
               "name": "age",
               "description": " age of the pet",
+              "deprecation_note": "test deprecation",
               "type": {
                 "name": "std::option::Option",
                 "arguments": [

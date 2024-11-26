@@ -462,6 +462,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
     pub(super) struct __Field {
         pub name: String,
         pub serde_name: String,
+        pub deprecation_note: Option<String>,
         pub description: String,
         pub type_: String,
         pub optional: bool,
@@ -483,47 +484,66 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         }
 
         fn render_attributes(&self) -> String {
-            let mut attrs = vec![];
+            let mut serde_attrs = vec![];
             if self.serde_name != self.name {
-                attrs.push(format!("rename = \"{}\"", self.serde_name));
+                serde_attrs.push(format!("rename = \"{}\"", self.serde_name));
             }
+
             if self.optional {
-                attrs.push("default".into());
+                serde_attrs.push("default".into());
 
                 // this one is important to not serialize undefined values
                 // as this is the special built-in type which allows to differentiate between undefined and null
                 if self.type_.starts_with("reflectapi::Option<") {
-                    attrs.push("skip_serializing_if = \"reflectapi::Option::is_undefined\"".into());
+                    serde_attrs
+                        .push("skip_serializing_if = \"reflectapi::Option::is_undefined\"".into());
                 }
                 // the rest are nice to have, we enumerate only commonly used std types
                 if self.type_.starts_with("std::option::Option<") {
-                    attrs.push("skip_serializing_if = \"std::option::Option::is_none\"".into());
+                    serde_attrs
+                        .push("skip_serializing_if = \"std::option::Option::is_none\"".into());
                 }
                 if self.type_ == "std::tuple::Tuple0" {
-                    attrs.push("skip_serializing".into());
+                    serde_attrs.push("skip_serializing".into());
                 }
                 if self.type_.starts_with("std::string::String") {
-                    attrs.push("skip_serializing_if = \"std::string::String::is_empty\"".into());
+                    serde_attrs
+                        .push("skip_serializing_if = \"std::string::String::is_empty\"".into());
                 }
                 if self.type_.starts_with("std::vec::Vec<") {
-                    attrs.push("skip_serializing_if = \"std::vec::Vec::is_empty\"".into());
+                    serde_attrs.push("skip_serializing_if = \"std::vec::Vec::is_empty\"".into());
                 }
                 if self.type_.starts_with("std::collections::") {
                     let type_without_generics = self.type_.split('<').next().unwrap();
-                    attrs.push(format!(
+                    serde_attrs.push(format!(
                         "skip_serializing_if = \"{}::is_empty\"",
                         type_without_generics
                     ));
                 }
             }
             if self.flatten {
-                attrs.push("flatten".into());
+                serde_attrs.push("flatten".into());
             }
-            if attrs.is_empty() {
-                "".into()
-            } else {
-                format!("#[serde({})]\n    ", attrs.join(", "))
+
+            let mut out = String::new();
+            if !serde_attrs.is_empty() {
+                out.push_str("#[serde(");
+                out.push_str(&serde_attrs.join(", "));
+                out.push_str(")]\n    ");
             }
+
+            if let Some(deprecation_note) = &self.deprecation_note {
+                if deprecation_note.is_empty() {
+                    out.push_str("#[deprecated]\n    ");
+                } else {
+                    out.push_str(&format!(
+                        "#[deprecated(note = \"{}\")]\n    ",
+                        deprecation_note
+                    ));
+                }
+            }
+
+            out
         }
     }
 
@@ -575,7 +595,15 @@ pub struct {{ name }};",
 
     #[derive(Template)]
     #[template(
-        source = r#"{{description}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
+        source = r#"
+        {%- if let Some(deprecation_note) = deprecation_note -%}
+            {%- if deprecation_note.is_empty() -%}
+            #[deprecated]
+            {%- else -%}
+            #[deprecated(note = "{{ deprecation_note }}")]
+            {%- endif -%}
+        {%- endif -%}
+        {{description}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
     -> Result<{{ output_type }}, reflectapi::rt::Error<{{ error_type }}, C::Error>> {
         reflectapi::rt::__request_impl(&self.client, self.base_url.join("{{ path }}").expect("checked base_url already and path is valid"), input, headers).await
     }"#,
@@ -584,6 +612,7 @@ pub struct {{ name }};",
     pub(super) struct __FunctionImplementationTemplate {
         pub name: String,
         pub description: String,
+        pub deprecation_note: Option<String>,
         pub path: String,
         pub input_type: String,
         pub input_headers: String,
@@ -729,6 +758,7 @@ fn __interface_types_from_function_group(
         type_template.fields.push(templates::__Field {
             name: __function_name_for_field_name(subgroup_name),
             serde_name: __function_name_for_field_name(subgroup_name),
+            deprecation_note: None,
             description: "".into(),
             type_: format!(
                 "{}Interface<C>",
@@ -741,6 +771,7 @@ fn __interface_types_from_function_group(
         interface_implementation.fields.push(templates::__Field {
             name: __function_name_for_field_name(subgroup_name),
             serde_name: __function_name_for_field_name(subgroup_name),
+            deprecation_note: None,
             description: "".into(),
             type_: format!(
                 "{}Interface",
@@ -754,6 +785,7 @@ fn __interface_types_from_function_group(
     for field in [("client", "C"), ("base_url", "reflectapi::rt::Url")] {
         type_template.fields.push(templates::__Field {
             name: field.0.into(),
+            deprecation_note: None,
             serde_name: field.0.into(),
             description: "".into(),
             type_: field.1.into(),
@@ -774,6 +806,7 @@ fn __interface_types_from_function_group(
                 .last()
                 .unwrap_or_default()
                 .replace('-', "_"),
+            deprecation_note: function.deprecation_note.to_owned(),
             description: __doc_to_ts_comments(function.description.as_str(), 4),
             path: format!("{}/{}", function.path, function.name),
             input_type,
@@ -886,6 +919,7 @@ fn __render_type(
                             name: __field_name_to_snake_case(field.name()),
                             serde_name: field.serde_name().into(),
                             description: __doc_to_ts_comments(&field.description, 4),
+                            deprecation_note: field.deprecation_note.clone(),
                             type_: __type_ref_to_ts_ref(
                                 &field.type_ref,
                                 schema,
@@ -925,6 +959,7 @@ fn __render_type(
                                 name: __field_name_to_snake_case(field.name()),
                                 serde_name: field.serde_name().into(),
                                 description: __doc_to_ts_comments(&field.description, 12),
+                                deprecation_note: field.deprecation_note.clone(),
                                 type_: __type_ref_to_ts_ref(
                                     &field.type_ref,
                                     schema,

@@ -19,7 +19,7 @@ snapshot_kind: text
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithTransformArray"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.StructWithDeprecatedField"
               }
             }
           },
@@ -31,7 +31,7 @@ snapshot_kind: text
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.TestStructWithTransformArray"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.StructWithDeprecatedField"
                 }
               }
             }
@@ -42,19 +42,26 @@ snapshot_kind: text
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.basic.TestStructWithTransformArray": {
+      "reflectapi_demo.tests.basic.StructWithDeprecatedField": {
         "type": "object",
-        "title": "reflectapi_demo.tests.basic.TestStructWithTransformArray",
+        "title": "reflectapi_demo.tests.basic.StructWithDeprecatedField",
         "required": [
-          "_f"
+          "_f",
+          "_g",
+          "_h"
         ],
         "properties": {
           "_f": {
-            "description": "Expandable array type",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/u8"
-            }
+            "deprecated": true,
+            "$ref": "#/components/schemas/u8"
+          },
+          "_g": {
+            "deprecated": true,
+            "$ref": "#/components/schemas/u8"
+          },
+          "_h": {
+            "deprecated": true,
+            "$ref": "#/components/schemas/u8"
           }
         }
       },

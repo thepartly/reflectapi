@@ -124,6 +124,7 @@ pub(crate) struct ParsedTypeAttributes {
 
 #[derive(Default)]
 pub(crate) struct ParsedFieldAttributes {
+    pub deprecation_note: Option<String>,
     pub input_type: Option<syn::Type>,
     pub output_type: Option<syn::Type>,
     pub input_transform: String,
@@ -224,6 +225,30 @@ pub(crate) fn parse_type_attributes(
     result
 }
 
+fn parse_deprecated_attr(attr: &syn::Attribute) -> syn::Result<String> {
+    assert!(attr.path().is_ident("deprecated"));
+    match &attr.meta {
+        syn::Meta::Path(_) => Ok("".to_string()),
+        syn::Meta::NameValue(nv) => match &nv.value {
+            syn::Expr::Lit(lit) => match &lit.lit {
+                syn::Lit::Str(s) => Ok(s.value()),
+                _ => panic!("expected string literal for deprecation note"),
+            },
+            _ => panic!("expected string literal for deprecation note"),
+        },
+        syn::Meta::List(list) => {
+            let mut s = String::new();
+            list.parse_nested_meta(|meta| {
+                if meta.path.is_ident("note") {
+                    s = meta.value()?.parse::<syn::LitStr>()?.value();
+                }
+                Ok(())
+            })?;
+            Ok(s)
+        }
+    }
+}
+
 pub(crate) fn parse_field_attributes(
     cx: &Context,
     attributes: &[syn::Attribute],
@@ -231,6 +256,13 @@ pub(crate) fn parse_field_attributes(
     let mut result = ParsedFieldAttributes::default();
 
     for attr in attributes.iter() {
+        if attr.path() == DEPRECATED {
+            match parse_deprecated_attr(attr) {
+                Ok(note) => result.deprecation_note = Some(note),
+                Err(err) => cx.syn_error(err),
+            }
+        }
+
         if attr.path() != REFLECT {
             continue;
         }

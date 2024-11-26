@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::{BTreeSet, HashMap},
     process::{Command, Stdio},
 };
@@ -749,7 +750,11 @@ fn modules_from_function_group(
             function_signature(function, schema, implemented_types);
         type_template.fields.push(templates::Field {
             name: function_name.split('.').last().unwrap().replace('-', "_"),
-            description: doc_to_ts_comments(function.description.as_str(), 4),
+            description: doc_to_ts_comments(
+                &function.description,
+                function.deprecation_note.as_deref(),
+                4,
+            ),
             type_: format!(
                 "(input: {}, headers: {})\n        => AsyncResult<{}, {}>",
                 input_type, input_headers, output_type, error_type
@@ -849,7 +854,7 @@ fn render_type(
                 let field_type_ref = struct_def.fields.iter().next().unwrap().type_ref.clone();
                 let alias_template = templates::Alias {
                     name: type_name,
-                    description: doc_to_ts_comments(&struct_def.description, 0),
+                    description: doc_to_ts_comments(&struct_def.description, None, 0),
                     type_: type_ref_to_ts_ref(&field_type_ref, schema, implemented_types),
                 };
                 alias_template
@@ -858,18 +863,13 @@ fn render_type(
             } else {
                 let interface_template = templates::Interface {
                     name: type_name,
-                    description: doc_to_ts_comments(&struct_def.description, 0),
+                    description: doc_to_ts_comments(&struct_def.description, None, 0),
                     is_tuple: struct_def.is_tuple(),
                     fields: struct_def
                         .fields
                         .iter()
                         .filter(|f| !f.flattened)
-                        .map(|field| templates::Field {
-                            name: field.serde_name().into(),
-                            description: doc_to_ts_comments(&field.description, 4),
-                            type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
-                            optional: !field.required,
-                        })
+                        .map(|f| field_to_ts_field(f, schema, implemented_types))
                         .collect::<Vec<_>>(),
                     flattened_types: struct_def
                         .fields
@@ -894,7 +894,7 @@ fn render_type(
             }
         }
         crate::Type::Enum(enum_def) => {
-            let description = doc_to_ts_comments(&enum_def.description, 0);
+            let description = doc_to_ts_comments(&enum_def.description, None, 0);
 
             // An empty enum requires special handling.
             // This is isomorphic to the never type as a value of this type does not exist.
@@ -910,7 +910,7 @@ fn render_type(
                     .iter()
                     .map(|variant| templates::Variant {
                         name: variant.serde_name().into(),
-                        description: doc_to_ts_comments(&variant.description, 4),
+                        description: doc_to_ts_comments(&variant.description, None, 4),
                         representation: enum_def.representation.clone(),
                         fields: fields_to_ts_fields(&variant.fields, schema, implemented_types),
                         discriminant: variant.discriminant,
@@ -929,7 +929,7 @@ fn render_type(
             );
             let alias_template = templates::Alias {
                 name: type_name,
-                description: doc_to_ts_comments(&type_def.description, 0),
+                description: doc_to_ts_comments(&type_def.description, None, 0),
                 type_: format!(
                     "any /* fallback to any for unimplemented type: {} */",
                     type_def.name
@@ -971,7 +971,7 @@ fn field_to_ts_field(
 ) -> templates::Field {
     templates::Field {
         name: field.serde_name().into(),
-        description: doc_to_ts_comments(&field.description, 4),
+        description: doc_to_ts_comments(&field.description, field.deprecation_note.as_deref(), 4),
         type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
         optional: !field.required,
     }
@@ -1073,24 +1073,28 @@ fn resolve_type_ref(
     Some(implementation)
 }
 
-fn doc_to_ts_comments(doc: &str, offset: u8) -> String {
+fn doc_to_ts_comments(doc: &str, deprecation_note: Option<&str>, offset: u8) -> String {
+    let doc = if let Some(note) = deprecation_note {
+        if doc.is_empty() {
+            Cow::Owned(format!("@deprecated {note}"))
+        } else {
+            Cow::Owned(format!("@deprecated {note}\n{doc}"))
+        }
+    } else {
+        Cow::Borrowed(doc)
+    };
+
     if doc.is_empty() {
         return "".into();
     }
 
-    let offset = " ".repeat(offset as usize);
-    let doc = doc.split('\n').collect::<Vec<_>>();
-    let sp = if doc.iter().all(|i| i.starts_with(' ')) {
-        ""
-    } else {
-        " "
-    };
-    let doc = doc
-        .iter()
-        .map(|line| format!("///{}{}", sp, line.trim_end()))
+    let padding = " ".repeat(offset as usize);
+
+    std::iter::once(format!("{padding}/**"))
+        .chain(doc.split('\n').map(|s| format!("{padding} * {s}")))
+        .chain(std::iter::once(format!("{padding} */\n")))
         .collect::<Vec<_>>()
-        .join(format!("\n{}", offset).as_str());
-    format!("{}\n{}", doc, offset)
+        .join("\n")
 }
 
 fn build_implemented_types() -> HashMap<String, String> {

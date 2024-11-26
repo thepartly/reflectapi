@@ -404,6 +404,7 @@ fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema
     };
 
     let mut field_def = Field::new(field_name, field_type);
+    field_def.deprecation_note = attrs.deprecation_note;
     field_def.transform_callback = field_transform;
     field_def.description = parse_doc_attributes(&field.original.attrs);
     field_def.serde_name = serde_name;

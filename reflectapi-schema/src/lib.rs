@@ -389,6 +389,10 @@ pub struct Function {
     /// Description of the call
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
+    /// Deprecation note. If none, function is not deprecated.
+    /// If present as empty string, function is deprecated without a note.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub deprecation_note: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub input_type: Option<TypeReference>,
@@ -425,14 +429,15 @@ impl Function {
     pub fn new(name: String) -> Self {
         Function {
             name,
-            path: String::new(),
-            description: String::new(),
+            deprecation_note: Default::default(),
+            path: Default::default(),
+            description: Default::default(),
             input_type: None,
             input_headers: None,
             output_type: None,
             error_type: None,
             serialization: Default::default(),
-            readonly: false,
+            readonly: Default::default(),
             tags: Default::default(),
         }
     }
@@ -447,6 +452,10 @@ impl Function {
 
     pub fn description(&self) -> &str {
         self.description.as_str()
+    }
+
+    pub fn deprecated(&self) -> bool {
+        self.deprecation_note.is_some()
     }
 
     pub fn input_type(&self) -> Option<&TypeReference> {
@@ -994,6 +1003,11 @@ pub struct Field {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
+    /// Deprecation note. If none, field is not deprecated.
+    /// If present as empty string, field is deprecated without a note.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub deprecation_note: Option<String>,
+
     /// Type of a field
     #[serde(rename = "type")]
     pub type_ref: TypeReference,
@@ -1029,16 +1043,17 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn new(name: String, ty: TypeReference) -> Self {
+    pub fn new(name: String, type_ref: TypeReference) -> Self {
         Field {
             name,
-            serde_name: String::new(),
-            description: String::new(),
-            type_ref: ty,
-            required: false,
-            flattened: false,
-            transform_callback: String::new(),
-            transform_callback_fn: None,
+            type_ref,
+            serde_name: Default::default(),
+            description: Default::default(),
+            deprecation_note: Default::default(),
+            required: Default::default(),
+            flattened: Default::default(),
+            transform_callback: Default::default(),
+            transform_callback_fn: Default::default(),
         }
     }
 
@@ -1064,6 +1079,10 @@ impl Field {
 
     pub fn description(&self) -> &str {
         self.description.as_str()
+    }
+
+    pub fn deprecated(&self) -> bool {
+        self.deprecation_note.is_some()
     }
 
     pub fn type_ref(&self) -> &TypeReference {

@@ -179,14 +179,18 @@ export namespace __definition {
 
   export namespace health {
     export interface Interface {
-      /// Check the health of the service
+      /**
+       * Check the health of the service
+       */
       check: (input: {}, headers: {}) => AsyncResult<{}, {}>;
     }
   }
 
   export namespace pets {
     export interface Interface {
-      /// List available pets
+      /**
+       * List available pets
+       */
       list: (
         input: myapi.proto.PetsListRequest,
         headers: myapi.proto.Headers,
@@ -194,22 +198,38 @@ export namespace __definition {
         myapi.proto.Paginated<myapi.model.Pet>,
         myapi.proto.PetsListError
       >;
-      /// Create a new pet
+      /**
+       * Create a new pet
+       */
       create: (
         input: myapi.proto.PetsCreateRequest,
         headers: myapi.proto.Headers,
       ) => AsyncResult<{}, myapi.proto.PetsCreateError>;
-      /// Update an existing pet
+      /**
+       * Update an existing pet
+       */
       update: (
         input: myapi.proto.PetsUpdateRequest,
         headers: myapi.proto.Headers,
       ) => AsyncResult<{}, myapi.proto.PetsUpdateError>;
-      /// Remove an existing pet
+      /**
+       * Remove an existing pet
+       */
       remove: (
         input: myapi.proto.PetsRemoveRequest,
         headers: myapi.proto.Headers,
       ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
-      /// Fetch first pet, if any exists
+      /**
+       * @deprecated Use pets.remove instead
+       * Remove an existing pet
+       */
+      delete: (
+        input: myapi.proto.PetsRemoveRequest,
+        headers: myapi.proto.Headers,
+      ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
+      /**
+       * Fetch first pet, if any exists
+       */
       get_first: (
         input: {},
         headers: myapi.proto.Headers,
@@ -223,36 +243,57 @@ export namespace myapi {
       | "Calm"
       | {
           Aggressive: [
-            /// aggressiveness level
+            /**
+             *  aggressiveness level
+             */
             number /* f64 */,
-            /// some notes
+            /**
+             *  some notes
+             */
             string,
           ];
         }
       | {
           Other: {
-            /// Custom provided description of a behavior
+            /**
+             *  Custom provided description of a behavior
+             */
             description: string;
-            /// Additional notes
-            /// Up to a user to put free text here
+            /**
+             *  Additional notes
+             *  Up to a user to put free text here
+             */
             notes?: string;
           };
         };
 
     export type Kind =
-      /// A dog
+      /**
+       *  A dog
+       */
       | "dog"
-      /// A cat
+      /**
+       *  A cat
+       */
       | "cat";
 
     export interface Pet {
-      /// identity
+      /**
+       *  identity
+       */
       name: string;
-      /// kind of pet
+      /**
+       *  kind of pet
+       */
       kind: myapi.model.Kind;
-      /// age of the pet
+      /**
+       * @deprecated test deprecation
+       *  age of the pet
+       */
       age?: number /* u8 */ | null;
-      /// behaviors of the pet
+      /**
+       *  behaviors of the pet
+       */
       behaviors?: Array<myapi.model.Behavior>;
     }
   }
@@ -263,9 +304,13 @@ export namespace myapi {
     }
 
     export interface Paginated<T> {
-      /// slice of a collection
+      /**
+       *  slice of a collection
+       */
       items: Array<T>;
-      /// cursor for getting next page
+      /**
+       *  cursor for getting next page
+       */
       cursor?: string | null;
     }
 
@@ -290,20 +335,30 @@ export namespace myapi {
     export type PetsRemoveError = "NotFound" | "NotAuthorized";
 
     export interface PetsRemoveRequest {
-      /// identity
+      /**
+       *  identity
+       */
       name: string;
     }
 
     export type PetsUpdateError = "NotFound" | "NotAuthorized";
 
     export interface PetsUpdateRequest {
-      /// identity
+      /**
+       *  identity
+       */
       name: string;
-      /// kind of pet, non nullable in the model
+      /**
+       *  kind of pet, non nullable in the model
+       */
       kind?: myapi.model.Kind | null;
-      /// age of the pet, nullable in the model
+      /**
+       *  age of the pet, nullable in the model
+       */
       age?: number /* u8 */ | null | undefined;
-      /// behaviors of the pet, nullable in the model
+      /**
+       *  behaviors of the pet, nullable in the model
+       */
       behaviors?: Array<myapi.model.Behavior> | null | undefined;
     }
 
@@ -312,10 +367,14 @@ export namespace myapi {
 }
 
 export namespace reflectapi {
-  /// Struct object with no fields
+  /**
+   * Struct object with no fields
+   */
   export interface Empty {}
 
-  /// Error object which is expected to be never returned
+  /**
+   * Error object which is expected to be never returned
+   */
   export interface Infallible {}
 }
 
@@ -335,6 +394,7 @@ namespace __implementation {
           create: pets__create(client_instance),
           update: pets__update(client_instance),
           remove: pets__remove(client_instance),
+          delete: pets__delete(client_instance),
           get_first: pets__get_first(client_instance),
         },
       },
@@ -463,6 +523,18 @@ namespace __implementation {
         {},
         myapi.proto.PetsRemoveError
       >(client, "/pets.remove", input, headers);
+  }
+  function pets__delete(client: Client) {
+    return (
+      input: myapi.proto.PetsRemoveRequest,
+      headers: myapi.proto.Headers,
+    ) =>
+      __request<
+        myapi.proto.PetsRemoveRequest,
+        myapi.proto.Headers,
+        {},
+        myapi.proto.PetsRemoveError
+      >(client, "/pets.delete", input, headers);
   }
   function pets__get_first(client: Client) {
     return (input: {}, headers: myapi.proto.Headers) =>

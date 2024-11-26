@@ -32,6 +32,11 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
             b.name("pets.remove")
                 .description("Remove an existing pet")
         })
+        .route(pets_remove, |b| {
+            b.name("pets.delete")
+                .description("Remove an existing pet")
+                .deprecation_note("Use pets.remove instead")
+        })
         .route(pets_get_first, |b| {
             b.name("pets.get-first")
                 .description("Fetch first pet, if any exists")
@@ -84,6 +89,7 @@ mod model {
         pub kind: Kind,
         /// age of the pet
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[deprecated(note = "test deprecation")]
         pub age: Option<u8>,
         /// behaviors of the pet
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -197,6 +203,7 @@ async fn pets_update(
     if let Some(kind) = request.kind {
         pet.kind = kind;
     }
+    #[allow(deprecated)]
     if let Some(age) = request.age.unfold() {
         pet.age = age.cloned();
     }

@@ -57,6 +57,58 @@
         ]
       }
     },
+    "/pets.delete": {
+      "description": "Remove an existing pet",
+      "post": {
+        "operationId": "pets.delete",
+        "description": "Remove an existing pet",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/myapi.proto.PetsRemoveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error cases",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/myapi.proto.PetsRemoveError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/std.string.String"
+            }
+          }
+        ],
+        "deprecated": true
+      }
+    },
     "/pets.get-first": {
       "description": "Fetch first pet, if any exists",
       "post": {
@@ -132,6 +184,7 @@
                   ],
                   "properties": {
                     "cursor": {
+                      "description": " cursor for getting next page",
                       "oneOf": [
                         {
                           "description": "Null",
@@ -143,7 +196,7 @@
                       ]
                     },
                     "items": {
-                      "description": "Expandable array type",
+                      "description": " slice of a collection",
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/myapi.model.Pet"
@@ -326,9 +379,11 @@
                 ],
                 "properties": {
                   "description": {
+                    "description": " Custom provided description of a behavior",
                     "$ref": "#/components/schemas/std.string.String"
                   },
                   "notes": {
+                    "description": " Additional notes\n Up to a user to put free text here",
                     "$ref": "#/components/schemas/std.string.String"
                   }
                 }
@@ -358,6 +413,8 @@
         ],
         "properties": {
           "age": {
+            "description": " age of the pet",
+            "deprecated": true,
             "oneOf": [
               {
                 "description": "Null",
@@ -369,16 +426,18 @@
             ]
           },
           "behaviors": {
-            "description": "Expandable array type",
+            "description": " behaviors of the pet",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/myapi.model.Behavior"
             }
           },
           "kind": {
+            "description": " kind of pet",
             "$ref": "#/components/schemas/myapi.model.Kind"
           },
           "name": {
+            "description": " identity",
             "$ref": "#/components/schemas/std.string.String"
           }
         }
@@ -478,6 +537,7 @@
         ],
         "properties": {
           "name": {
+            "description": " identity",
             "$ref": "#/components/schemas/std.string.String"
           }
         }
@@ -500,6 +560,7 @@
         ],
         "properties": {
           "age": {
+            "description": " age of the pet, nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -511,6 +572,7 @@
             ]
           },
           "behaviors": {
+            "description": " behaviors of the pet, nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -526,6 +588,7 @@
             ]
           },
           "kind": {
+            "description": " kind of pet, non nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -537,6 +600,7 @@
             ]
           },
           "name": {
+            "description": " identity",
             "$ref": "#/components/schemas/std.string.String"
           }
         }

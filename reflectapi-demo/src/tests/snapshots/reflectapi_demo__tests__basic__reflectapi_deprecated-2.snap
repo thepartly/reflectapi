@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "super::into_typescript_code::<TestStructWithSkipField>()"
+expression: "super::into_typescript_code::<StructWithDeprecatedField>()"
 snapshot_kind: text
 ---
 // DO NOT MODIFY THIS FILE MANUALLY
@@ -16,9 +16,9 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.basic.TestStructWithSkipField,
+      input: reflectapi_demo.tests.basic.StructWithDeprecatedField,
       headers: {},
-    ) => AsyncResult<reflectapi_demo.tests.basic.TestStructWithSkipField, {}>;
+    ) => AsyncResult<reflectapi_demo.tests.basic.StructWithDeprecatedField, {}>;
   }
 }
 export namespace reflectapi {
@@ -36,7 +36,20 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace basic {
-      export interface TestStructWithSkipField {}
+      export interface StructWithDeprecatedField {
+        /**
+         * @deprecated
+         */
+        _f: number /* u8 */;
+        /**
+         * @deprecated g's deprecation note
+         */
+        _g: number /* u8 */;
+        /**
+         * @deprecated h's deprecation note
+         */
+        _h: number /* u8 */;
+      }
     }
   }
 }
@@ -45,13 +58,13 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.basic.TestStructWithSkipField,
+      input: reflectapi_demo.tests.basic.StructWithDeprecatedField,
       headers: {},
     ) =>
       __request<
-        reflectapi_demo.tests.basic.TestStructWithSkipField,
+        reflectapi_demo.tests.basic.StructWithDeprecatedField,
         {},
-        reflectapi_demo.tests.basic.TestStructWithSkipField,
+        reflectapi_demo.tests.basic.StructWithDeprecatedField,
         {}
       >(client, "/inout_test", input, headers);
   }
