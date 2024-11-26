@@ -22,6 +22,7 @@ workspace = true
 
 [dependencies]
 reflectapi = { path = "../reflectapi", version = "0.9.3", features = ["codegen"] }
+rouille = "3"
 
 clap = { version = "4.5.3", features = ["derive"] }
 clap_derive = "4.5.3"

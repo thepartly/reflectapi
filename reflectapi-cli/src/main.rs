@@ -17,7 +17,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Generates code for typescript
+    /// Generates code for typescript, rust or openapi from a reflectapi schema
     Codegen {
         /// Path to the source reflect schema
         #[arg(short, long, value_name = "FILE")]
@@ -51,6 +51,23 @@ enum Commands {
         #[arg(short, long, default_value = "true")]
         format: bool,
     },
+    /// Documentation subcommands
+    #[command(subcommand)]
+    Doc(DocSubcommand),
+}
+
+#[derive(Subcommand)]
+enum DocSubcommand {
+    /// Serve documentation for the reflectapi schema
+    Open {
+        /// Port to serve the docs on
+        #[arg(short, long, default_value = "8080")]
+        port: u16,
+
+        /// Path to the source reflectapi schema
+        #[arg(default_value = "reflectapi.json")]
+        path: PathBuf,
+    },
 }
 
 #[derive(ValueEnum, Clone)]
@@ -64,6 +81,30 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Doc(doc) => match doc {
+            DocSubcommand::Open { port, path } => {
+                let mut path = path.canonicalize()?;
+                if path.is_dir() {
+                    path.push("reflectapi.json");
+                }
+
+                let schema: reflectapi::Schema = serde_json::from_reader(std::fs::File::open(
+                    &path,
+                )?)
+                .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
+
+                let addr = format!("0.0.0.0:{port}");
+                eprintln!("Serving {} on http://{addr}", path.display());
+                let openapi = reflectapi::codegen::openapi::Spec::from(&schema);
+                rouille::start_server(addr, move |request| {
+                    rouille::router!(request,
+                        (GET) (/) => { rouille::Response::html(include_str!("../redoc.html")) },
+                        (GET) (/openapi) => { rouille::Response::json(&openapi) },
+                        _ => rouille::Response::empty_404()
+                    )
+                })
+            }
+        },
         Commands::Codegen {
             schema,
             output,
