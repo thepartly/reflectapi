@@ -75,3 +75,4 @@ codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep
 rt = ["dep:http", "dep:serde_json", "dep:bytes", "dep:url"]
 glob = ["reflectapi-schema/glob"]
 json = ["dep:serde_json"]
+indexmap = ["dep:indexmap"]
