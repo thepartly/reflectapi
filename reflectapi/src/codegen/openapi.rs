@@ -10,6 +10,7 @@
 // because they are stricter than the OpenAPI spec.
 
 use core::fmt;
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
 use std::sync::OnceLock;
@@ -197,16 +198,57 @@ pub enum Type {
     Null,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Property {
-    // Note: this field may conflict with the `Schema::Flat` description field.
-    // Must ensure that only one of them is non-empty to avoid invalid serialization.
-    #[serde(skip_serializing_if = "String::is_empty")]
+    // This `description` overrides the description of the type.
     description: String,
-    #[serde(skip_serializing_if = "is_false")]
     deprecated: bool,
-    #[serde(flatten)]
     schema: InlineOrRef<Schema>,
+}
+
+impl serde::Serialize for Property {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        #[derive(Debug, Clone, PartialEq, Serialize)]
+        pub struct P<'a> {
+            #[serde(skip_serializing_if = "str::is_empty")]
+            description: &'a str,
+            #[serde(skip_serializing_if = "is_false")]
+            deprecated: bool,
+            #[serde(flatten)]
+            schema: &'a InlineOrRef<Schema>,
+        }
+
+        // Remove the description of the type if the field has a description.
+        // serde_json will serialize both and generate invalid JSON.
+        let schema = match &self.schema {
+            Inline(schema) if !self.description.is_empty() => match schema {
+                Schema::Const { value, description } if !description.is_empty() => {
+                    Cow::Owned(Inline(Schema::Const {
+                        value: value.clone(),
+                        description: String::new(),
+                    }))
+                }
+                Schema::Flat(flat) if !flat.description.is_empty() => {
+                    Cow::Owned(Inline(Schema::Flat(FlatSchema {
+                        description: String::new(),
+                        ty: flat.ty.clone(),
+                    })))
+                }
+                _ => Cow::Borrowed(&self.schema),
+            },
+            _ => Cow::Borrowed(&self.schema),
+        };
+
+        P {
+            description: &self.description,
+            deprecated: self.deprecated,
+            schema: &schema,
+        }
+        .serialize(serializer)
+    }
 }
 
 #[derive(Clone, PartialEq, Serialize)]
@@ -500,18 +542,10 @@ impl Converter<'_> {
         kind: Kind,
         field: &crate::Field,
     ) -> Property {
-        let mut schema = self.convert_type_ref(schema, kind, field.type_ref());
-        if let Inline(Schema::Flat(flat)) = &mut schema {
-            if !field.description().is_empty() {
-                // The field description is more specific than the type description.
-                // If we don't do this, there will be two description field which is invalid.
-                flat.description.clear();
-            }
-        }
         Property {
             description: field.description().to_owned(),
             deprecated: field.deprecated(),
-            schema,
+            schema: self.convert_type_ref(schema, kind, field.type_ref()),
         }
     }
 
