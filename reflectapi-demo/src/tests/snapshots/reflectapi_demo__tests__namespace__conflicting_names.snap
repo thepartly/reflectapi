@@ -1,0 +1,63 @@
+---
+source: reflectapi-demo/src/tests/namespace.rs
+expression: schema
+snapshot_kind: text
+---
+{
+  "name": "foos",
+  "functions": [
+    {
+      "name": "foos.get",
+      "path": "",
+      "input_type": {
+        "name": "usize"
+      },
+      "output_type": {
+        "name": "foos::Foo"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "primitive",
+        "name": "u64",
+        "description": "64-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "usize",
+        "description": "Machine-specific-bit unsigned integer",
+        "fallback": {
+          "name": "u64"
+        }
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "foos::Foo",
+        "fields": {
+          "named": []
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      }
+    ]
+  }
+}

@@ -1,0 +1,56 @@
+---
+source: reflectapi-demo/src/tests/namespace.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+snapshot_kind: text
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "foos",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/foos.get": {
+      "description": "",
+      "post": {
+        "operationId": "foos.get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/usize"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/foos.Foo"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "foos.Foo": {
+        "type": "object",
+        "title": "foos.Foo",
+        "properties": {}
+      },
+      "usize": {
+        "description": "Machine-specific-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}
