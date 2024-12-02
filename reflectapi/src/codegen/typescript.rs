@@ -70,13 +70,22 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     generated_code.push(include_str!("./lib.ts").to_owned());
     generated_code.push(END_BOILERPLATE.into());
 
-    let module = modules_from_function_group(
-        "__definition".into(),
+    let mut types = vec![];
+    interfaces_from_function_grouop(
+        "",
+        &mut types,
         &function_groups,
         &schema,
         &implemented_types,
         &functions_by_name,
     );
+
+    let module = templates::Module {
+        name: "__definition".into(),
+        types: types.iter().map(|t| t.render().unwrap()).collect(),
+        submodules: Default::default(),
+    };
+
     generated_code.push(module.render().context("Failed to render template")?);
 
     let module = modules_from_rendered_types(schema.consolidate_types(), rendered_types);
@@ -669,27 +678,23 @@ fn function_signature(
     (input_type, input_headers, output_type, error_type)
 }
 
-fn modules_from_function_group(
-    name: String,
+fn interfaces_from_function_grouop(
+    prefix: &str,
+    interfaces: &mut Vec<templates::Interface>,
     group: &FunctionGroup,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     functions_by_name: &IndexMap<String, &Function>,
-) -> templates::Module {
-    let mut module = templates::Module {
-        name,
-        types: vec![],
-        submodules: IndexMap::new(),
-    };
+) {
     let mut type_template = templates::Interface {
-        name: "Interface".into(),
+        name: format!("{}Interface", camelcase(prefix)),
         description: "".into(),
         fields: Default::default(),
         is_tuple: false,
         flattened_types: vec![],
     };
 
-    for function_name in group.functions.iter() {
+    for function_name in &group.functions {
         let function = functions_by_name.get(function_name).unwrap();
         let (input_type, input_headers, output_type, error_type) =
             function_signature(function, schema, implemented_types);
@@ -713,25 +718,22 @@ fn modules_from_function_group(
         .extend(group.subgroups.keys().map(|f| templates::Field {
             name: f.clone(),
             description: "".into(),
-            type_: format!("{}.Interface", f.replace('-', "_")),
+            type_: format!("{}Interface", camelcase(f)),
             optional: false,
         }));
 
-    module.types.push(type_template.render().unwrap());
+    interfaces.push(type_template);
 
-    for (subgroup_name, subgroup) in group.subgroups.iter() {
-        module.submodules.insert(
-            subgroup_name.clone(),
-            modules_from_function_group(
-                subgroup_name.clone(),
-                subgroup,
-                schema,
-                implemented_types,
-                functions_by_name,
-            ),
-        );
+    for (name, group) in &group.subgroups {
+        interfaces_from_function_grouop(
+            name,
+            interfaces,
+            group,
+            schema,
+            implemented_types,
+            functions_by_name,
+        )
     }
-    module
 }
 
 fn modules_from_rendered_types(
@@ -1040,6 +1042,25 @@ fn doc_to_ts_comments(doc: &str, deprecation_note: Option<&str>, offset: u8) -> 
         .chain(std::iter::once(format!("{padding} */\n")))
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn camelcase(name: &str) -> String {
+    let mut result = String::new();
+    let mut capitalize = true;
+    for c in name.chars() {
+        if c == '-' || c == '_' {
+            capitalize = true;
+        } else if c == '.' {
+            result.push('_');
+            capitalize = true;
+        } else if capitalize {
+            result.push(c.to_ascii_uppercase());
+            capitalize = false;
+        } else {
+            result.push(c);
+        }
+    }
+    result
 }
 
 fn build_implemented_types() -> HashMap<String, String> {

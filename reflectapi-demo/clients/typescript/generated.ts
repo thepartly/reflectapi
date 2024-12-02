@@ -245,68 +245,64 @@ class ClientInstance {
 
 export namespace __definition {
   export interface Interface {
-    health: health.Interface;
-    pets: pets.Interface;
+    health: HealthInterface;
+    pets: PetsInterface;
   }
 
-  export namespace health {
-    export interface Interface {
-      /**
-       * Check the health of the service
-       */
-      check: (input: {}, headers: {}) => AsyncResult<{}, {}>;
-    }
+  export interface HealthInterface {
+    /**
+     * Check the health of the service
+     */
+    check: (input: {}, headers: {}) => AsyncResult<{}, {}>;
   }
 
-  export namespace pets {
-    export interface Interface {
-      /**
-       * List available pets
-       */
-      list: (
-        input: myapi.proto.PetsListRequest,
-        headers: myapi.proto.Headers,
-      ) => AsyncResult<
-        myapi.proto.Paginated<myapi.model.Pet>,
-        myapi.proto.PetsListError
-      >;
-      /**
-       * Create a new pet
-       */
-      create: (
-        input: myapi.proto.PetsCreateRequest,
-        headers: myapi.proto.Headers,
-      ) => AsyncResult<{}, myapi.proto.PetsCreateError>;
-      /**
-       * Update an existing pet
-       */
-      update: (
-        input: myapi.proto.PetsUpdateRequest,
-        headers: myapi.proto.Headers,
-      ) => AsyncResult<{}, myapi.proto.PetsUpdateError>;
-      /**
-       * Remove an existing pet
-       */
-      remove: (
-        input: myapi.proto.PetsRemoveRequest,
-        headers: myapi.proto.Headers,
-      ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
-      /**
-       * @deprecated Use pets.remove instead
-       * Remove an existing pet
-       */
-      delete: (
-        input: myapi.proto.PetsRemoveRequest,
-        headers: myapi.proto.Headers,
-      ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
-      /**
-       * Fetch first pet, if any exists
-       */
-      get_first: (
-        input: {},
-        headers: myapi.proto.Headers,
-      ) => AsyncResult<myapi.model.Pet | null, myapi.proto.UnauthorizedError>;
-    }
+  export interface PetsInterface {
+    /**
+     * List available pets
+     */
+    list: (
+      input: myapi.proto.PetsListRequest,
+      headers: myapi.proto.Headers,
+    ) => AsyncResult<
+      myapi.proto.Paginated<myapi.model.Pet>,
+      myapi.proto.PetsListError
+    >;
+    /**
+     * Create a new pet
+     */
+    create: (
+      input: myapi.proto.PetsCreateRequest,
+      headers: myapi.proto.Headers,
+    ) => AsyncResult<{}, myapi.proto.PetsCreateError>;
+    /**
+     * Update an existing pet
+     */
+    update: (
+      input: myapi.proto.PetsUpdateRequest,
+      headers: myapi.proto.Headers,
+    ) => AsyncResult<{}, myapi.proto.PetsUpdateError>;
+    /**
+     * Remove an existing pet
+     */
+    remove: (
+      input: myapi.proto.PetsRemoveRequest,
+      headers: myapi.proto.Headers,
+    ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
+    /**
+     * @deprecated Use pets.remove instead
+     * Remove an existing pet
+     */
+    delete: (
+      input: myapi.proto.PetsRemoveRequest,
+      headers: myapi.proto.Headers,
+    ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
+    /**
+     * Fetch first pet, if any exists
+     */
+    get_first: (
+      input: {},
+      headers: myapi.proto.Headers,
+    ) => AsyncResult<myapi.model.Pet | null, myapi.proto.UnauthorizedError>;
   }
 }
 export namespace myapi {
