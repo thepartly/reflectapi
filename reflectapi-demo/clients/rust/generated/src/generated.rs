@@ -173,6 +173,7 @@ pub mod interface {
         }
         #[deprecated(note = "Use pets.remove instead")]
         /// Remove an existing pet
+        #[tracing::instrument(skip(self))]
         pub async fn delete(
             &self,
             input: super::types::myapi::proto::PetsRemoveRequest,
