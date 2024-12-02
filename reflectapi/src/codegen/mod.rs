@@ -10,6 +10,17 @@ use std::{
 
 use self::format::format_with;
 
+#[derive(Debug, Default)]
+pub struct Config {
+    /// Attempt to format the generated code. Will give up if no formatter is found.
+    pub format: bool,
+    /// Typecheck the generated code. Will ignore if the typechecker is not available.
+    pub typecheck: bool,
+    /// Include tracing in the generated code.
+    pub tracing: bool,
+    pub shared_modules: Vec<String>,
+}
+
 fn tmp_path(src: &str) -> PathBuf {
     let mut hasher = DefaultHasher::new();
     hasher.write(src.as_bytes());

@@ -45,11 +45,17 @@ enum Commands {
         #[arg(short, long, value_delimiter = ',')]
         exclude_tags: Vec<String>,
 
+        /// Typecheck the generated code
         #[arg(short, long, default_value = "false")]
         typecheck: bool,
 
+        /// Format the generated code
         #[arg(short, long, default_value = "true")]
         format: bool,
+
+        /// Instrument the generated code with tracing
+        #[arg(short, long, default_value = "false")]
+        instrument: bool,
     },
     /// Documentation subcommands
     #[command(subcommand)]
@@ -114,6 +120,7 @@ fn main() -> anyhow::Result<()> {
             exclude_tags,
             typecheck,
             format,
+            instrument,
         } => {
             let include_tags = BTreeSet::from_iter(include_tags);
             let exclude_tags = BTreeSet::from_iter(exclude_tags);
@@ -144,9 +151,10 @@ fn main() -> anyhow::Result<()> {
                         &reflectapi::codegen::rust::Config {
                             format,
                             typecheck,
-                            shared_modules: BTreeSet::from_iter(shared_modules.unwrap_or_default()),
+                            instrument,
                             include_tags,
                             exclude_tags,
+                            shared_modules: BTreeSet::from_iter(shared_modules.unwrap_or_default()),
                         },
                     )?,
                 ),
@@ -174,8 +182,7 @@ fn main() -> anyhow::Result<()> {
                 .context(format!("Failed to create file: {:?}", output))?;
             file.write(generated_code.as_bytes())
                 .context(format!("Failed to write to file: {:?}", output))?;
+            Ok(())
         }
     }
-
-    Ok(())
 }

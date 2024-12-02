@@ -53,6 +53,7 @@ check_keyword = { version = "0.2.0", optional = true }
 
 # optional 3rd party dependencies for client runtime
 reqwest = { version = "0.12", optional = true }
+reqwest-middleware = { version = "0.3", optional = true }
 
 [dev-dependencies]
 serde_json = { version = "1.0.114" }
@@ -76,3 +77,5 @@ rt = ["dep:http", "dep:serde_json", "dep:bytes", "dep:url"]
 glob = ["reflectapi-schema/glob"]
 json = ["dep:serde_json"]
 indexmap = ["dep:indexmap"]
+reqwest = ["dep:reqwest"]
+reqwest-middleware = ["dep:reqwest-middleware"]
