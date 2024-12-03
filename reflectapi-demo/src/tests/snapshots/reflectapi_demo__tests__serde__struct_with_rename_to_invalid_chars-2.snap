@@ -40,7 +40,7 @@ export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
       export interface TestStructWithRenameToInvalidChars {
-        "field-name&&": number /* u8 */;
+        "field_name&&": number /* u8 */;
       }
     }
   }
