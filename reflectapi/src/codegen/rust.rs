@@ -1096,11 +1096,7 @@ fn __resolve_type_ref(
     let type_def = schema.get_type(type_ref.name())?;
 
     if let Some(parent) = parent {
-        if type_ref.arguments.is_empty()
-            && parent
-                .parameters()
-                .any(|p| p.name() == type_ref.name)
-        {
+        if type_ref.arguments.is_empty() && parent.parameters().any(|p| p.name() == type_ref.name) {
             // This is a reference to a type parameter of the containing type
             return Some(type_ref.name.clone());
         }
