@@ -1,0 +1,153 @@
+---
+source: reflectapi-demo/src/tests/namespace.rs
+expression: schema
+snapshot_kind: text
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "get",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::namespace::K",
+        "arguments": [
+          {
+            "name": "T",
+            "arguments": [
+              {
+                "name": "std::tuple::Tuple0"
+              }
+            ]
+          }
+        ]
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::namespace::K",
+        "arguments": [
+          {
+            "name": "T",
+            "arguments": [
+              {
+                "name": "std::tuple::Tuple0"
+              }
+            ]
+          }
+        ]
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "T",
+        "parameters": [
+          {
+            "name": "I"
+          }
+        ],
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "I"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::namespace::K",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "t",
+              "type": {
+                "name": "T"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "T",
+        "parameters": [
+          {
+            "name": "I"
+          }
+        ],
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "I"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::namespace::K",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "t",
+              "type": {
+                "name": "T"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
+      }
+    ]
+  }
+}

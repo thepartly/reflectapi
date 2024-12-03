@@ -693,22 +693,22 @@ fn __function_signature(
     implemented_types: &HashMap<String, String>,
 ) -> (String, String, String, String) {
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
-        __type_ref_to_ts_ref(input_type, schema, implemented_types, 1)
+        __type_ref_to_ts_ref(input_type, schema, implemented_types, 1, None)
     } else {
         "reflectapi::Empty".into()
     };
     let input_headers = if let Some(input_headers) = function.input_headers.as_ref() {
-        __type_ref_to_ts_ref(input_headers, schema, implemented_types, 1)
+        __type_ref_to_ts_ref(input_headers, schema, implemented_types, 1, None)
     } else {
         "reflectapi::Empty".into()
     };
     let output_type = if let Some(output_type) = function.output_type.as_ref() {
-        __type_ref_to_ts_ref(output_type, schema, implemented_types, 1)
+        __type_ref_to_ts_ref(output_type, schema, implemented_types, 1, None)
     } else {
         "reflectapi::Empty".into()
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
-        __type_ref_to_ts_ref(error_type, schema, implemented_types, 1)
+        __type_ref_to_ts_ref(error_type, schema, implemented_types, 1, None)
     } else {
         "reflectapi::Empty".into()
     };
@@ -911,6 +911,7 @@ fn __render_type(
                         schema,
                         implemented_types,
                         type_name_depth,
+                        Some(type_def),
                     ),
                 };
                 alias_template
@@ -937,6 +938,7 @@ fn __render_type(
                                 schema,
                                 implemented_types,
                                 type_name_depth,
+                                Some(type_def),
                             ),
                             optional: !field.required,
                             flatten: field.flattened,
@@ -977,6 +979,7 @@ fn __render_type(
                                     schema,
                                     implemented_types,
                                     type_name_depth,
+                                    Some(type_def),
                                 ),
                                 optional: !field.required,
                                 flatten: field.flattened,
@@ -1004,12 +1007,13 @@ fn __type_ref_to_ts_ref(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     type_name_depth: usize,
+    parent: Option<&crate::Type>,
 ) -> String {
     let with_super_prefix =
         |name: &str| -> String { format!("{}{}", "super::".repeat(type_name_depth), name) };
 
     if let Some(resolved_type) =
-        __resolve_type_ref(type_ref, schema, implemented_types, type_name_depth)
+        __resolve_type_ref(type_ref, schema, implemented_types, type_name_depth, parent)
     {
         return resolved_type;
     }
@@ -1032,7 +1036,8 @@ fn __type_ref_to_ts_ref(
             &type_ref.arguments,
             schema,
             implemented_types,
-            type_name_depth
+            type_name_depth,
+            parent
         )
     )
 }
@@ -1042,10 +1047,13 @@ fn __type_args_to_ts_ref(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     type_name_depth: usize,
+    parent: Option<&crate::Type>,
 ) -> String {
     let p = type_params
         .iter()
-        .map(|type_ref| __type_ref_to_ts_ref(type_ref, schema, implemented_types, type_name_depth))
+        .map(|type_ref| {
+            __type_ref_to_ts_ref(type_ref, schema, implemented_types, type_name_depth, parent)
+        })
         .collect::<Vec<_>>()
         .join(", ");
     if p.is_empty() {
@@ -1083,16 +1091,35 @@ fn __resolve_type_ref(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     type_name_depth: usize,
+    parent: Option<&crate::Type>,
 ) -> Option<String> {
-    let mut implementation = implemented_types.get(type_ref.name.as_str()).cloned()?;
     let type_def = schema.get_type(type_ref.name())?;
 
+    if let Some(parent) = parent {
+        if type_ref.arguments.is_empty()
+            && parent
+                .parameters()
+                .find(|p| p.name() == type_ref.name)
+                .is_some()
+        {
+            // This is a reference to a type parameter of the containing type
+            return Some(type_ref.name.clone());
+        }
+    }
+
+    let mut implementation = implemented_types.get(type_ref.name.as_str()).cloned()?;
     for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.arguments.iter()) {
         if implementation.contains(type_def_param.name.as_str()) {
             implementation = implementation.replacen(
                 type_def_param.name.as_str(),
-                __type_ref_to_ts_ref(type_ref_param, schema, implemented_types, type_name_depth)
-                    .as_str(),
+                __type_ref_to_ts_ref(
+                    type_ref_param,
+                    schema,
+                    implemented_types,
+                    type_name_depth,
+                    parent,
+                )
+                .as_str(),
                 1,
             );
         }
