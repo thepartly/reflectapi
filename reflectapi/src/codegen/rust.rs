@@ -1099,8 +1099,7 @@ fn __resolve_type_ref(
         if type_ref.arguments.is_empty()
             && parent
                 .parameters()
-                .find(|p| p.name() == type_ref.name)
-                .is_some()
+                .any(|p| p.name() == type_ref.name)
         {
             // This is a reference to a type parameter of the containing type
             return Some(type_ref.name.clone());
