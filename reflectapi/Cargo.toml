@@ -1,6 +1,6 @@
 [package]
 name = "reflectapi"
-version = "0.11.1"
+version = "0.12.0"
 edition = "2021"
 
 license = "MIT"
@@ -20,8 +20,8 @@ workspace = true
 
 [dependencies]
 # workspace dependencies
-reflectapi-derive = { path = "../reflectapi-derive", version = "0.11.1" }
-reflectapi-schema = { path = "../reflectapi-schema", version = "0.11.1" }
+reflectapi-derive = { path = "../reflectapi-derive", version = "0.12.0" }
+reflectapi-schema = { path = "../reflectapi-schema", version = "0.12.0" }
 
 # mandatory 3rd party dependencies
 serde = { version = "1.0.197", features = ["derive"] }
