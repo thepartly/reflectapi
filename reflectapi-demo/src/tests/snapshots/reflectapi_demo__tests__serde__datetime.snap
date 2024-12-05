@@ -1,0 +1,217 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+snapshot_kind: text
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::TestStruct"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::TestStruct"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "chrono::DateTime",
+        "description": "DateTime at a given timezone",
+        "parameters": [
+          {
+            "name": "Tz"
+          }
+        ],
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "chrono::NaiveDate",
+        "description": "Date without timezone",
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "chrono::NaiveDateTime",
+        "description": "Date time without timezone",
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStruct",
+        "fields": {
+          "named": [
+            {
+              "name": "naive_date",
+              "type": {
+                "name": "chrono::NaiveDate"
+              },
+              "required": true
+            },
+            {
+              "name": "naive_datetime",
+              "type": {
+                "name": "chrono::NaiveDateTime"
+              },
+              "required": true
+            },
+            {
+              "name": "date_time_fixed_offset",
+              "type": {
+                "name": "chrono::DateTime",
+                "arguments": [
+                  {
+                    "name": "chrono::FixedOffset"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "date_time_utc",
+              "type": {
+                "name": "chrono::DateTime",
+                "arguments": [
+                  {
+                    "name": "chrono::Utc"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "date_time_local",
+              "type": {
+                "name": "chrono::DateTime",
+                "arguments": [
+                  {
+                    "name": "chrono::Local"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "chrono::DateTime",
+        "description": "DateTime at a given timezone",
+        "parameters": [
+          {
+            "name": "Tz"
+          }
+        ],
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "chrono::NaiveDate",
+        "description": "Date without timezone",
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "chrono::NaiveDateTime",
+        "description": "Date time without timezone",
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStruct",
+        "fields": {
+          "named": [
+            {
+              "name": "naive_date",
+              "type": {
+                "name": "chrono::NaiveDate"
+              },
+              "required": true
+            },
+            {
+              "name": "naive_datetime",
+              "type": {
+                "name": "chrono::NaiveDateTime"
+              },
+              "required": true
+            },
+            {
+              "name": "date_time_fixed_offset",
+              "type": {
+                "name": "chrono::DateTime",
+                "arguments": [
+                  {
+                    "name": "chrono::FixedOffset"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "date_time_utc",
+              "type": {
+                "name": "chrono::DateTime",
+                "arguments": [
+                  {
+                    "name": "chrono::Utc"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "date_time_local",
+              "type": {
+                "name": "chrono::DateTime",
+                "arguments": [
+                  {
+                    "name": "chrono::Local"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

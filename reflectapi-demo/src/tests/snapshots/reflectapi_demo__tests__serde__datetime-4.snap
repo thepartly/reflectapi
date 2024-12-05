@@ -1,0 +1,91 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+snapshot_kind: text
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStruct"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStruct"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "chrono.NaiveDate": {
+        "description": "Date without timezone",
+        "type": "string",
+        "format": "date"
+      },
+      "chrono.NaiveDateTime": {
+        "description": "Date time without timezone",
+        "type": "string",
+        "format": "date-time"
+      },
+      "reflectapi_demo.tests.serde.TestStruct": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestStruct",
+        "required": [
+          "naive_date",
+          "naive_datetime",
+          "date_time_fixed_offset",
+          "date_time_utc",
+          "date_time_local"
+        ],
+        "properties": {
+          "date_time_fixed_offset": {
+            "description": "DateTime at a given timezone",
+            "type": "string",
+            "format": "date-time"
+          },
+          "date_time_local": {
+            "description": "DateTime at a given timezone",
+            "type": "string",
+            "format": "date-time"
+          },
+          "date_time_utc": {
+            "description": "DateTime at a given timezone",
+            "type": "string",
+            "format": "date-time"
+          },
+          "naive_date": {
+            "$ref": "#/components/schemas/chrono.NaiveDate"
+          },
+          "naive_datetime": {
+            "$ref": "#/components/schemas/chrono.NaiveDateTime"
+          }
+        }
+      }
+    }
+  }
+}
