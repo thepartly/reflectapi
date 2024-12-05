@@ -28,7 +28,7 @@
         "name": "myapi::proto::Paginated",
         "arguments": [
           {
-            "name": "myapi::model::Pet"
+            "name": "myapi::model::output::Pet"
           }
         ]
       },
@@ -120,7 +120,7 @@
         "name": "std::option::Option",
         "arguments": [
           {
-            "name": "myapi::model::Pet"
+            "name": "myapi::model::output::Pet"
           }
         ]
       },
@@ -134,6 +134,19 @@
   ],
   "input_types": {
     "types": [
+      {
+        "kind": "primitive",
+        "name": "chrono::DateTime",
+        "description": "DateTime at a given timezone (RFC3339 format)",
+        "parameters": [
+          {
+            "name": "Tz"
+          }
+        ],
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
       {
         "kind": "primitive",
         "name": "f64",
@@ -212,7 +225,7 @@
       },
       {
         "kind": "struct",
-        "name": "myapi::model::Pet",
+        "name": "myapi::model::input::Pet",
         "fields": {
           "named": [
             {
@@ -240,6 +253,17 @@
                 "arguments": [
                   {
                     "name": "u8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "updated_at",
+              "type": {
+                "name": "chrono::DateTime",
+                "arguments": [
+                  {
+                    "name": "chrono::Utc"
                   }
                 ]
               }
@@ -282,7 +306,7 @@
             {
               "name": "0",
               "type": {
-                "name": "myapi::model::Pet"
+                "name": "myapi::model::input::Pet"
               },
               "required": true
             }
@@ -493,6 +517,19 @@
     "types": [
       {
         "kind": "primitive",
+        "name": "chrono::DateTime",
+        "description": "DateTime at a given timezone (RFC3339 format)",
+        "parameters": [
+          {
+            "name": "Tz"
+          }
+        ],
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
+        "kind": "primitive",
         "name": "f64",
         "description": "64-bit floating point number"
       },
@@ -569,7 +606,7 @@
       },
       {
         "kind": "struct",
-        "name": "myapi::model::Pet",
+        "name": "myapi::model::output::Pet",
         "fields": {
           "named": [
             {
@@ -600,6 +637,18 @@
                   }
                 ]
               }
+            },
+            {
+              "name": "updated_at",
+              "type": {
+                "name": "chrono::DateTime",
+                "arguments": [
+                  {
+                    "name": "chrono::Utc"
+                  }
+                ]
+              },
+              "required": true
             },
             {
               "name": "behaviors",

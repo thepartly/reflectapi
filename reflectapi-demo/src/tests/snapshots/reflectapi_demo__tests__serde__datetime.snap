@@ -10,10 +10,10 @@ snapshot_kind: text
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::TestStruct"
+        "name": "reflectapi_demo::tests::serde::input::TestStruct"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::TestStruct"
+        "name": "reflectapi_demo::tests::serde::output::TestStruct"
       },
       "serialization": [
         "json"
@@ -25,7 +25,7 @@ snapshot_kind: text
       {
         "kind": "primitive",
         "name": "chrono::DateTime",
-        "description": "DateTime at a given timezone",
+        "description": "DateTime at a given timezone (RFC3339 format)",
         "parameters": [
           {
             "name": "Tz"
@@ -37,16 +37,16 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
-        "name": "chrono::NaiveDate",
-        "description": "Date without timezone",
+        "name": "chrono::input::NaiveDate",
+        "description": "Date without timezone (%Y-%m-%d)",
         "fallback": {
           "name": "std::string::String"
         }
       },
       {
         "kind": "primitive",
-        "name": "chrono::NaiveDateTime",
-        "description": "Date time without timezone",
+        "name": "chrono::input::NaiveDateTime",
+        "description": "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
         "fallback": {
           "name": "std::string::String"
         }
@@ -59,20 +59,20 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestStruct",
+        "name": "reflectapi_demo::tests::serde::input::TestStruct",
         "fields": {
           "named": [
             {
               "name": "naive_date",
               "type": {
-                "name": "chrono::NaiveDate"
+                "name": "chrono::input::NaiveDate"
               },
               "required": true
             },
             {
               "name": "naive_datetime",
               "type": {
-                "name": "chrono::NaiveDateTime"
+                "name": "chrono::input::NaiveDateTime"
               },
               "required": true
             },
@@ -122,7 +122,7 @@ snapshot_kind: text
       {
         "kind": "primitive",
         "name": "chrono::DateTime",
-        "description": "DateTime at a given timezone",
+        "description": "DateTime at a given timezone (RFC3339 format)",
         "parameters": [
           {
             "name": "Tz"
@@ -134,7 +134,7 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
-        "name": "chrono::NaiveDate",
+        "name": "chrono::output::NaiveDate",
         "description": "Date without timezone",
         "fallback": {
           "name": "std::string::String"
@@ -142,7 +142,7 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
-        "name": "chrono::NaiveDateTime",
+        "name": "chrono::output::NaiveDateTime",
         "description": "Date time without timezone",
         "fallback": {
           "name": "std::string::String"
@@ -156,20 +156,20 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestStruct",
+        "name": "reflectapi_demo::tests::serde::output::TestStruct",
         "fields": {
           "named": [
             {
               "name": "naive_date",
               "type": {
-                "name": "chrono::NaiveDate"
+                "name": "chrono::output::NaiveDate"
               },
               "required": true
             },
             {
               "name": "naive_datetime",
               "type": {
-                "name": "chrono::NaiveDateTime"
+                "name": "chrono::output::NaiveDateTime"
               },
               "required": true
             },

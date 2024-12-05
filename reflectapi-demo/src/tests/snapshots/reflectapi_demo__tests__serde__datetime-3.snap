@@ -36,10 +36,10 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::serde::TestStruct,
+            input: super::types::reflectapi_demo::tests::serde::input::TestStruct,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::serde::TestStruct,
+            super::types::reflectapi_demo::tests::serde::output::TestStruct,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
             reflectapi::rt::__request_impl(
@@ -59,14 +59,27 @@ pub mod types {
     pub mod reflectapi_demo {
         pub mod tests {
             pub mod serde {
+                pub mod input {
 
-                #[derive(Debug, serde::Serialize, serde::Deserialize)]
-                pub struct TestStruct {
-                    pub naive_date: chrono::NaiveDate,
-                    pub naive_datetime: chrono::NaiveDateTime,
-                    pub date_time_fixed_offset: chrono::DateTime<chrono::FixedOffset>,
-                    pub date_time_utc: chrono::DateTime<chrono::Utc>,
-                    pub date_time_local: chrono::DateTime<chrono::Local>,
+                    #[derive(Debug, serde::Serialize)]
+                    pub struct TestStruct {
+                        pub naive_date: chrono::input::NaiveDate,
+                        pub naive_datetime: chrono::input::NaiveDateTime,
+                        pub date_time_fixed_offset: chrono::DateTime<chrono::FixedOffset>,
+                        pub date_time_utc: chrono::DateTime<chrono::Utc>,
+                        pub date_time_local: chrono::DateTime<chrono::Local>,
+                    }
+                }
+                pub mod output {
+
+                    #[derive(Debug, serde::Deserialize)]
+                    pub struct TestStruct {
+                        pub naive_date: chrono::output::NaiveDate,
+                        pub naive_datetime: chrono::output::NaiveDateTime,
+                        pub date_time_fixed_offset: chrono::DateTime<chrono::FixedOffset>,
+                        pub date_time_utc: chrono::DateTime<chrono::Utc>,
+                        pub date_time_local: chrono::DateTime<chrono::Local>,
+                    }
                 }
             }
         }

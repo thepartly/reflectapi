@@ -98,7 +98,7 @@ pub mod interface {
             input: super::types::myapi::proto::PetsListRequest,
             headers: super::types::myapi::proto::Headers,
         ) -> Result<
-            super::types::myapi::proto::Paginated<super::types::myapi::model::Pet>,
+            super::types::myapi::proto::Paginated<super::types::myapi::model::output::Pet>,
             reflectapi::rt::Error<super::types::myapi::proto::PetsListError, C::Error>,
         > {
             reflectapi::rt::__request_impl(
@@ -199,7 +199,7 @@ pub mod interface {
             input: reflectapi::Empty,
             headers: super::types::myapi::proto::Headers,
         ) -> Result<
-            std::option::Option<super::types::myapi::model::Pet>,
+            std::option::Option<super::types::myapi::model::output::Pet>,
             reflectapi::rt::Error<super::types::myapi::proto::UnauthorizedError, C::Error>,
         > {
             reflectapi::rt::__request_impl(
@@ -215,6 +215,7 @@ pub mod interface {
     }
 }
 pub mod types {
+
     pub mod myapi {
         pub mod model {
 
@@ -246,20 +247,42 @@ pub mod types {
                 #[serde(rename = "cat")]
                 Cat,
             }
+            pub mod input {
 
-            #[derive(Debug, serde::Serialize, serde::Deserialize)]
-            pub struct Pet {
-                /// identity
-                pub name: std::string::String,
-                /// kind of pet
-                pub kind: super::super::myapi::model::Kind,
-                /// age of the pet
-                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
-                #[deprecated(note = "test deprecation")]
-                pub age: std::option::Option<u8>,
-                /// behaviors of the pet
-                #[serde(default, skip_serializing_if = "std::vec::Vec::is_empty")]
-                pub behaviors: std::vec::Vec<super::super::myapi::model::Behavior>,
+                #[derive(Debug, serde::Serialize)]
+                pub struct Pet {
+                    /// identity
+                    pub name: std::string::String,
+                    /// kind of pet
+                    pub kind: super::super::super::myapi::model::Kind,
+                    /// age of the pet
+                    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                    #[deprecated(note = "test deprecation")]
+                    pub age: std::option::Option<u8>,
+                    #[serde(default)]
+                    pub updated_at: chrono::DateTime<chrono::Utc>,
+                    /// behaviors of the pet
+                    #[serde(default, skip_serializing_if = "std::vec::Vec::is_empty")]
+                    pub behaviors: std::vec::Vec<super::super::super::myapi::model::Behavior>,
+                }
+            }
+            pub mod output {
+
+                #[derive(Debug, serde::Deserialize)]
+                pub struct Pet {
+                    /// identity
+                    pub name: std::string::String,
+                    /// kind of pet
+                    pub kind: super::super::super::myapi::model::Kind,
+                    /// age of the pet
+                    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                    #[deprecated(note = "test deprecation")]
+                    pub age: std::option::Option<u8>,
+                    pub updated_at: chrono::DateTime<chrono::Utc>,
+                    /// behaviors of the pet
+                    #[serde(default, skip_serializing_if = "std::vec::Vec::is_empty")]
+                    pub behaviors: std::vec::Vec<super::super::super::myapi::model::Behavior>,
+                }
             }
         }
         pub mod proto {
@@ -285,7 +308,7 @@ pub mod types {
                 InvalidIdentity { message: std::string::String },
             }
 
-            pub type PetsCreateRequest = super::super::myapi::model::Pet;
+            pub type PetsCreateRequest = super::super::myapi::model::input::Pet;
 
             #[derive(Debug, serde::Deserialize)]
             pub enum PetsListError {

@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/tests/run/main.rs
 expression: pretty
+snapshot_kind: text
 ---
 HTTP/1.1 200 OK
 
@@ -13,7 +14,7 @@ traceparent: blah
 
 HTTP/1.1 200 OK
 
-content-length: 110
+content-length: 154
 content-type: application/json
 traceparent: blah
 
@@ -23,7 +24,8 @@ traceparent: blah
     {
       "age": 1,
       "kind": "dog",
-      "name": "Bobby"
+      "name": "Bobby",
+      "updated_at": "2024-01-01T00:00:00Z"
     }
   ]
 }
