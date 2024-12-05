@@ -13,7 +13,6 @@ resolver = "2"
 [workspace.dependencies]
 reflectapi = { path = "reflectapi" }
 
-
 [workspace.lints.rust]
 rust_2018_idioms = "deny"
 
