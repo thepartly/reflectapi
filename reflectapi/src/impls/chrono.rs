@@ -3,7 +3,7 @@ fn reflectapi_date_time(schema: &mut crate::Typespace) -> String {
     if schema.reserve_type(type_name) {
         let type_def = crate::Primitive::new(
             type_name.into(),
-            "DateTime at a given timezone".into(),
+            "DateTime at a given timezone (RFC3339 format)".into(),
             vec!["Tz".into()],
             Some("std::string::String".into()),
         );
@@ -53,7 +53,7 @@ impl crate::Input for chrono::NaiveDateTime {
         crate::reflectapi_type_simple(
             schema,
             "chrono::NaiveDateTime",
-            "Date time without timezone",
+            "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
             Some("std::string::String".into()),
         )
     }
@@ -74,7 +74,7 @@ impl crate::Input for chrono::NaiveDate {
         crate::reflectapi_type_simple(
             schema,
             "chrono::NaiveDate",
-            "Date without timezone",
+            "Date without timezone (%Y-%m-%d)",
             Some("std::string::String".into()),
         )
     }

@@ -264,7 +264,7 @@ export namespace __definition {
       input: myapi.proto.PetsListRequest,
       headers: myapi.proto.Headers,
     ) => AsyncResult<
-      myapi.proto.Paginated<myapi.model.Pet>,
+      myapi.proto.Paginated<myapi.model.output.Pet>,
       myapi.proto.PetsListError
     >;
     /**
@@ -302,7 +302,10 @@ export namespace __definition {
     get_first: (
       input: {},
       headers: myapi.proto.Headers,
-    ) => AsyncResult<myapi.model.Pet | null, myapi.proto.UnauthorizedError>;
+    ) => AsyncResult<
+      myapi.model.output.Pet | null,
+      myapi.proto.UnauthorizedError
+    >;
   }
 }
 export namespace myapi {
@@ -345,24 +348,50 @@ export namespace myapi {
        */
       | "cat";
 
-    export interface Pet {
-      /**
-       *  identity
-       */
-      name: string;
-      /**
-       *  kind of pet
-       */
-      kind: myapi.model.Kind;
-      /**
-       * @deprecated test deprecation
-       *  age of the pet
-       */
-      age?: number /* u8 */ | null;
-      /**
-       *  behaviors of the pet
-       */
-      behaviors?: Array<myapi.model.Behavior>;
+    export namespace input {
+      export interface Pet {
+        /**
+         *  identity
+         */
+        name: string;
+        /**
+         *  kind of pet
+         */
+        kind: myapi.model.Kind;
+        /**
+         * @deprecated test deprecation
+         *  age of the pet
+         */
+        age?: number /* u8 */ | null;
+        updated_at?: string;
+        /**
+         *  behaviors of the pet
+         */
+        behaviors?: Array<myapi.model.Behavior>;
+      }
+    }
+
+    export namespace output {
+      export interface Pet {
+        /**
+         *  identity
+         */
+        name: string;
+        /**
+         *  kind of pet
+         */
+        kind: myapi.model.Kind;
+        /**
+         * @deprecated test deprecation
+         *  age of the pet
+         */
+        age?: number /* u8 */ | null;
+        updated_at: string;
+        /**
+         *  behaviors of the pet
+         */
+        behaviors?: Array<myapi.model.Behavior>;
+      }
     }
   }
 
@@ -391,7 +420,7 @@ export namespace myapi {
           };
         };
 
-    export type PetsCreateRequest = myapi.model.Pet;
+    export type PetsCreateRequest = myapi.model.input.Pet;
 
     export type PetsListError = "InvalidCursor" | "Unauthorized";
 
@@ -480,7 +509,7 @@ namespace __implementation {
       __request<
         myapi.proto.PetsListRequest,
         myapi.proto.Headers,
-        myapi.proto.Paginated<myapi.model.Pet>,
+        myapi.proto.Paginated<myapi.model.output.Pet>,
         myapi.proto.PetsListError
       >(client, "/pets.list", input, headers);
   }
@@ -537,7 +566,7 @@ namespace __implementation {
       __request<
         {},
         myapi.proto.Headers,
-        myapi.model.Pet | null,
+        myapi.model.output.Pet | null,
         myapi.proto.UnauthorizedError
       >(client, "/pets.get-first", input, headers);
   }
