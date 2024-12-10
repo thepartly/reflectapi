@@ -173,6 +173,10 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
             "rt.rs",
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/rt.rs")),
         ),
+        (
+            "indexmap.rs",
+            include_str!("rust-dependency-stubs/indexmap.rs"),
+        ),
         ("Makefile", include_str!("rust-dependency-stubs/Makefile")),
     ];
 
