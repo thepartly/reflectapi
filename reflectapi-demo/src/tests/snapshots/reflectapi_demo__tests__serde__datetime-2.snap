@@ -38,21 +38,21 @@ export namespace reflectapi_demo {
     export namespace serde {
       export namespace input {
         export interface TestStruct {
-          naive_date: std.string.String;
-          naive_datetime: std.string.String;
-          date_time_fixed_offset: std.string.String;
-          date_time_utc: std.string.String;
-          date_time_local: std.string.String;
+          naive_date: string;
+          naive_datetime: string;
+          date_time_fixed_offset: string;
+          date_time_utc: string;
+          date_time_local: string;
         }
       }
 
       export namespace output {
         export interface TestStruct {
-          naive_date: std.string.String;
-          naive_datetime: std.string.String;
-          date_time_fixed_offset: std.string.String;
-          date_time_utc: std.string.String;
-          date_time_local: std.string.String;
+          naive_date: string;
+          naive_datetime: string;
+          date_time_fixed_offset: string;
+          date_time_utc: string;
+          date_time_local: string;
         }
       }
     }

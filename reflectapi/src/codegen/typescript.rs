@@ -1007,6 +1007,10 @@ fn resolve_type_ref(
         ));
     };
 
+    if type_ref.arguments.is_empty() {
+        return Some(implementation);
+    }
+
     let type_def = schema.get_type(type_ref.name())?;
 
     assert_eq!(type_def.parameters().len(), type_ref.arguments().len());
