@@ -4,7 +4,7 @@ use core::fmt;
 pub struct StatusCode {}
 
 impl core::fmt::Display for StatusCode {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+    fn fmt(&self, _f: &mut core::fmt::Formatter) -> core::fmt::Result {
         unimplemented!()
     }
 }

@@ -11,11 +11,13 @@ fn reflectapi_rust_decimal(schema: &mut crate::Typespace) -> String {
     }
     type_name.into()
 }
+
 impl crate::Input for rust_decimal::Decimal {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         reflectapi_rust_decimal(schema).into()
     }
 }
+
 impl crate::Output for rust_decimal::Decimal {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         reflectapi_rust_decimal(schema).into()

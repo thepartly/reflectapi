@@ -10,10 +10,10 @@ snapshot_kind: text
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::input::TestStruct"
+        "name": "reflectapi_demo::tests::serde::TestStruct"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::output::TestStruct"
+        "name": "reflectapi_demo::tests::serde::TestStruct"
       },
       "serialization": [
         "json"
@@ -37,7 +37,7 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
-        "name": "chrono::input::NaiveDate",
+        "name": "chrono::NaiveDate",
         "description": "Date without timezone (%Y-%m-%d)",
         "fallback": {
           "name": "std::string::String"
@@ -45,8 +45,16 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
-        "name": "chrono::input::NaiveDateTime",
+        "name": "chrono::NaiveDateTime",
         "description": "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "chrono::NaiveTime",
+        "description": "Time without timezone (%H:%M:%S%.f)",
         "fallback": {
           "name": "std::string::String"
         }
@@ -59,20 +67,27 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::input::TestStruct",
+        "name": "reflectapi_demo::tests::serde::TestStruct",
         "fields": {
           "named": [
             {
+              "name": "naive_time",
+              "type": {
+                "name": "chrono::NaiveTime"
+              },
+              "required": true
+            },
+            {
               "name": "naive_date",
               "type": {
-                "name": "chrono::input::NaiveDate"
+                "name": "chrono::NaiveDate"
               },
               "required": true
             },
             {
               "name": "naive_datetime",
               "type": {
-                "name": "chrono::input::NaiveDateTime"
+                "name": "chrono::NaiveDateTime"
               },
               "required": true
             },
@@ -134,16 +149,24 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
-        "name": "chrono::output::NaiveDate",
-        "description": "Date without timezone",
+        "name": "chrono::NaiveDate",
+        "description": "Date without timezone (%Y-%m-%d)",
         "fallback": {
           "name": "std::string::String"
         }
       },
       {
         "kind": "primitive",
-        "name": "chrono::output::NaiveDateTime",
-        "description": "Date time without timezone",
+        "name": "chrono::NaiveDateTime",
+        "description": "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "chrono::NaiveTime",
+        "description": "Time without timezone (%H:%M:%S%.f)",
         "fallback": {
           "name": "std::string::String"
         }
@@ -156,20 +179,27 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::output::TestStruct",
+        "name": "reflectapi_demo::tests::serde::TestStruct",
         "fields": {
           "named": [
             {
+              "name": "naive_time",
+              "type": {
+                "name": "chrono::NaiveTime"
+              },
+              "required": true
+            },
+            {
               "name": "naive_date",
               "type": {
-                "name": "chrono::output::NaiveDate"
+                "name": "chrono::NaiveDate"
               },
               "required": true
             },
             {
               "name": "naive_datetime",
               "type": {
-                "name": "chrono::output::NaiveDateTime"
+                "name": "chrono::NaiveDateTime"
               },
               "required": true
             },

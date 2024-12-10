@@ -16,9 +16,9 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.input.TestStruct,
+      input: reflectapi_demo.tests.serde.TestStruct,
       headers: {},
-    ) => AsyncResult<reflectapi_demo.tests.serde.output.TestStruct, {}>;
+    ) => AsyncResult<reflectapi_demo.tests.serde.TestStruct, {}>;
   }
 }
 export namespace reflectapi {
@@ -36,24 +36,13 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
-      export namespace input {
-        export interface TestStruct {
-          naive_date: string;
-          naive_datetime: string;
-          date_time_fixed_offset: string;
-          date_time_utc: string;
-          date_time_local: string;
-        }
-      }
-
-      export namespace output {
-        export interface TestStruct {
-          naive_date: string;
-          naive_datetime: string;
-          date_time_fixed_offset: string;
-          date_time_utc: string;
-          date_time_local: string;
-        }
+      export interface TestStruct {
+        naive_time: string;
+        naive_date: string;
+        naive_datetime: string;
+        date_time_fixed_offset: string;
+        date_time_utc: string;
+        date_time_local: string;
       }
     }
   }
@@ -62,11 +51,11 @@ export namespace reflectapi_demo {
 namespace __implementation {
 
   function inout_test(client: Client) {
-    return (input: reflectapi_demo.tests.serde.input.TestStruct, headers: {}) =>
+    return (input: reflectapi_demo.tests.serde.TestStruct, headers: {}) =>
       __request<
-        reflectapi_demo.tests.serde.input.TestStruct,
+        reflectapi_demo.tests.serde.TestStruct,
         {},
-        reflectapi_demo.tests.serde.output.TestStruct,
+        reflectapi_demo.tests.serde.TestStruct,
         {}
       >(client, "/inout_test", input, headers);
   }

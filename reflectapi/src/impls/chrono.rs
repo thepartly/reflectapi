@@ -48,66 +48,79 @@ impl crate::Output for chrono::DateTime<chrono::FixedOffset> {
     }
 }
 
+fn reflectapi_naive_datetime(schema: &mut crate::Typespace) -> String {
+    let type_name = "chrono::NaiveDateTime";
+    if schema.reserve_type(type_name) {
+        let type_def = crate::Primitive::new(
+            type_name.into(),
+            "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)".into(),
+            vec![],
+            Some("std::string::String".into()),
+        );
+        schema.insert_type(type_def.into());
+    }
+    type_name.into()
+}
+
 impl crate::Input for chrono::NaiveDateTime {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        crate::reflectapi_type_simple(
-            schema,
-            "chrono::NaiveDateTime",
-            "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
-            Some("std::string::String".into()),
-        )
+        crate::TypeReference::new(reflectapi_naive_datetime(schema), vec![])
     }
 }
 impl crate::Output for chrono::NaiveDateTime {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        crate::reflectapi_type_simple(
-            schema,
-            "chrono::NaiveDateTime",
-            "Date time without timezone",
-            Some("std::string::String".into()),
-        )
+        crate::TypeReference::new(reflectapi_naive_datetime(schema), vec![])
     }
+}
+
+fn reflectapi_naive_date(schema: &mut crate::Typespace) -> String {
+    let type_name = "chrono::NaiveDate";
+    if schema.reserve_type(type_name) {
+        let type_def = crate::Primitive::new(
+            type_name.into(),
+            "Date without timezone (%Y-%m-%d)".into(),
+            vec![],
+            Some("std::string::String".into()),
+        );
+        schema.insert_type(type_def.into());
+    }
+    type_name.into()
 }
 
 impl crate::Input for chrono::NaiveDate {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        crate::reflectapi_type_simple(
-            schema,
-            "chrono::NaiveDate",
-            "Date without timezone (%Y-%m-%d)",
-            Some("std::string::String".into()),
-        )
+        crate::TypeReference::new(reflectapi_naive_date(schema), vec![])
     }
 }
+
 impl crate::Output for chrono::NaiveDate {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        crate::reflectapi_type_simple(
-            schema,
-            "chrono::NaiveDate",
-            "Date without timezone",
-            Some("std::string::String".into()),
-        )
+        crate::TypeReference::new(reflectapi_naive_date(schema), vec![])
     }
+}
+
+fn reflectapi_naive_time(schema: &mut crate::Typespace) -> String {
+    let type_name = "chrono::NaiveTime";
+    if schema.reserve_type(type_name) {
+        let type_def = crate::Primitive::new(
+            type_name.into(),
+            "Time without timezone (%H:%M:%S%.f)".into(),
+            vec![],
+            Some("std::string::String".into()),
+        );
+        schema.insert_type(type_def.into());
+    }
+    type_name.into()
 }
 
 impl crate::Input for chrono::NaiveTime {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        crate::reflectapi_type_simple(
-            schema,
-            "chrono::NaiveTime",
-            "Time without timezone",
-            Some("std::string::String".into()),
-        )
+        crate::TypeReference::new(reflectapi_naive_time(schema), vec![])
     }
 }
 impl crate::Output for chrono::NaiveTime {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-        crate::reflectapi_type_simple(
-            schema,
-            "chrono::NaiveTime",
-            "Time without timezone",
-            Some("std::string::String".into()),
-        )
+        crate::TypeReference::new(reflectapi_naive_time(schema), vec![])
     }
 }
 

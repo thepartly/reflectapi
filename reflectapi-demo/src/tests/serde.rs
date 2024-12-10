@@ -682,6 +682,7 @@ fn test_nested_internally_tagged_enums() {
 fn test_datetime() {
     #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
     struct TestStruct {
+        naive_time: chrono::NaiveTime,
         naive_date: chrono::NaiveDate,
         naive_datetime: chrono::NaiveDateTime,
         date_time_fixed_offset: chrono::DateTime<chrono::FixedOffset>,

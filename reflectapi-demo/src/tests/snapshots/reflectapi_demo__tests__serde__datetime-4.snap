@@ -19,7 +19,7 @@ snapshot_kind: text
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestStruct"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStruct"
               }
             }
           },
@@ -31,7 +31,7 @@ snapshot_kind: text
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestStruct"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStruct"
                 }
               }
             }
@@ -42,44 +42,21 @@ snapshot_kind: text
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.input.TestStruct": {
-        "type": "object",
-        "title": "reflectapi_demo.tests.serde.input.TestStruct",
-        "required": [
-          "naive_date",
-          "naive_datetime",
-          "date_time_fixed_offset",
-          "date_time_utc",
-          "date_time_local"
-        ],
-        "properties": {
-          "date_time_fixed_offset": {
-            "description": "DateTime at a given timezone (RFC3339 format)",
-            "type": "string",
-            "format": "date-time"
-          },
-          "date_time_local": {
-            "description": "DateTime at a given timezone (RFC3339 format)",
-            "type": "string",
-            "format": "date-time"
-          },
-          "date_time_utc": {
-            "description": "DateTime at a given timezone (RFC3339 format)",
-            "type": "string",
-            "format": "date-time"
-          },
-          "naive_date": {
-            "$ref": "#/components/schemas/std.string.String"
-          },
-          "naive_datetime": {
-            "$ref": "#/components/schemas/std.string.String"
-          }
-        }
+      "chrono.NaiveDate": {
+        "description": "Date without timezone (%Y-%m-%d)",
+        "type": "string",
+        "format": "date"
       },
-      "reflectapi_demo.tests.serde.output.TestStruct": {
+      "chrono.NaiveDateTime": {
+        "description": "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
+        "type": "string",
+        "format": "date-time"
+      },
+      "reflectapi_demo.tests.serde.TestStruct": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.output.TestStruct",
+        "title": "reflectapi_demo.tests.serde.TestStruct",
         "required": [
+          "naive_time",
           "naive_date",
           "naive_datetime",
           "date_time_fixed_offset",
@@ -103,9 +80,12 @@ snapshot_kind: text
             "format": "date-time"
           },
           "naive_date": {
-            "$ref": "#/components/schemas/std.string.String"
+            "$ref": "#/components/schemas/chrono.NaiveDate"
           },
           "naive_datetime": {
+            "$ref": "#/components/schemas/chrono.NaiveDateTime"
+          },
+          "naive_time": {
             "$ref": "#/components/schemas/std.string.String"
           }
         }

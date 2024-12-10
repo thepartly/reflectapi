@@ -150,6 +150,7 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
     // To avoid pulling and compiling expensive dependencies, there are stubs with the relevant type definitions.
     // These are compiled into `rlib` files are used as dependencies for the typechecking process.
 
+    // Make sure the `Makefile` is also kept in sync
     const SOURCES: &[(&str, &str)] = &[
         (
             "serde_derive.rs",
@@ -162,6 +163,7 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
         ("serde.rs", include_str!("rust-dependency-stubs/serde.rs")),
         ("bytes.rs", include_str!("rust-dependency-stubs/bytes.rs")),
         ("http.rs", include_str!("rust-dependency-stubs/http.rs")),
+        ("chrono.rs", include_str!("rust-dependency-stubs/chrono.rs")),
         (
             "reflectapi.rs",
             include_str!("rust-dependency-stubs/reflectapi.rs"),
@@ -190,7 +192,7 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("rustc typecheck failed: {stderr}");
+        anyhow::bail!("rustc typecheck failed (see {}):\n{stderr}", path.display());
     }
 
     std::fs::remove_dir_all(&path)?;

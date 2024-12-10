@@ -649,9 +649,11 @@ impl Converter<'_> {
             }
             crate::Type::Primitive(prim) => {
                 assert_eq!(
-                    ty_ref.arguments.len(),
                     prim.parameters.len(),
-                    "primitive type with wrong number of arguments: {ty_ref:?}"
+                    ty_ref.arguments.len(),
+                    "primitive type with wrong number of arguments: {ty_ref:?}, expected {}, got {}",
+                    prim.parameters.len(),
+                    ty_ref.arguments.len()
                 );
                 let ty = match prim.name() {
                     "f32" | "f64" => Type::Number,
