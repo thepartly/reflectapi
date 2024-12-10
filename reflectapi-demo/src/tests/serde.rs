@@ -677,3 +677,16 @@ fn test_nested_internally_tagged_enums() {
 
     assert_snapshot!(Test);
 }
+
+#[test]
+fn test_external_impls() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct Test {
+        index_map: reflectapi::indexmap::IndexMap<u8, u32>,
+        index_set: reflectapi::indexmap::IndexSet<String>,
+        url: reflectapi::url::Url,
+        json: reflectapi::serde_json::Value,
+    }
+
+    assert_snapshot!(Test);
+}

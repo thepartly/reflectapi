@@ -266,7 +266,7 @@ impl<K: Output, V: Output> Output for std::collections::BTreeMap<K, V> {
     }
 }
 
-fn reflectapi_type_hashmap(schema: &mut crate::Typespace) -> String {
+pub(super) fn reflectapi_type_hashmap(schema: &mut crate::Typespace) -> String {
     let type_name = "std::collections::HashMap";
     if schema.reserve_type(type_name) {
         let type_def = crate::Primitive::new(
@@ -279,6 +279,7 @@ fn reflectapi_type_hashmap(schema: &mut crate::Typespace) -> String {
     }
     type_name.into()
 }
+
 impl<K: Input, V: Input> Input for std::collections::HashMap<K, V> {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
@@ -302,7 +303,7 @@ impl<K: Output, V: Output> Output for std::collections::HashMap<K, V> {
     }
 }
 
-fn reflectapi_type_hashset(schema: &mut crate::Typespace) -> String {
+pub(crate) fn reflectapi_type_hashset(schema: &mut crate::Typespace) -> String {
     let type_name = "std::collections::HashSet";
     if schema.reserve_type(type_name) {
         let type_def = crate::Primitive::new(
@@ -709,130 +710,5 @@ impl Output for std::path::Path {
             "File path type",
             Some("std::path::PathBuf".into()),
         )
-    }
-}
-
-#[cfg(feature = "json")]
-mod json {
-    use super::reflectapi_type_hashmap;
-
-    impl crate::Input for serde_json::Value {
-        fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-            crate::TypeReference::new(reflectapi_type_json_value(schema), vec![])
-        }
-    }
-
-    impl crate::Output for serde_json::Value {
-        fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-            crate::TypeReference::new(reflectapi_type_json_value(schema), vec![])
-        }
-    }
-
-    fn reflectapi_type_json_value(schema: &mut crate::Typespace) -> String {
-        let type_name = "serde_json::Value";
-        if schema.reserve_type(type_name) {
-            let type_def =
-                crate::Primitive::new(type_name.into(), "JSON value type".into(), Vec::new(), None);
-            schema.insert_type(type_def.into());
-        }
-        type_name.into()
-    }
-
-    impl<K, V> crate::Input for serde_json::Map<K, V>
-    where
-        K: crate::Input,
-        V: crate::Input,
-    {
-        fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-            crate::TypeReference::new(
-                reflectapi_type_hashmap(schema),
-                vec![
-                    K::reflectapi_input_type(schema),
-                    V::reflectapi_input_type(schema),
-                ],
-            )
-        }
-    }
-
-    impl<K, V> crate::Output for serde_json::Map<K, V>
-    where
-        K: crate::Output,
-        V: crate::Output,
-    {
-        fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-            crate::TypeReference::new(
-                reflectapi_type_hashmap(schema),
-                vec![
-                    K::reflectapi_output_type(schema),
-                    V::reflectapi_output_type(schema),
-                ],
-            )
-        }
-    }
-}
-
-#[cfg(feature = "indexmap")]
-mod indexmap {
-    use super::{reflectapi_type_hashmap, reflectapi_type_hashset};
-    use indexmap::{IndexMap, IndexSet};
-
-    impl<K, V, S> crate::Input for IndexMap<K, V, S>
-    where
-        K: crate::Input,
-        V: crate::Input,
-        S: std::hash::BuildHasher,
-    {
-        fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-            crate::TypeReference::new(
-                reflectapi_type_hashmap(schema),
-                vec![
-                    K::reflectapi_input_type(schema),
-                    V::reflectapi_input_type(schema),
-                ],
-            )
-        }
-    }
-
-    impl<K, V, S> crate::Output for IndexMap<K, V, S>
-    where
-        K: crate::Output,
-        V: crate::Output,
-        S: std::hash::BuildHasher,
-    {
-        fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-            crate::TypeReference::new(
-                reflectapi_type_hashmap(schema),
-                vec![
-                    K::reflectapi_output_type(schema),
-                    V::reflectapi_output_type(schema),
-                ],
-            )
-        }
-    }
-
-    impl<V, S> crate::Input for IndexSet<V, S>
-    where
-        V: crate::Input,
-        S: std::hash::BuildHasher,
-    {
-        fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-            crate::TypeReference::new(
-                reflectapi_type_hashset(schema),
-                vec![V::reflectapi_input_type(schema)],
-            )
-        }
-    }
-
-    impl<V, S> crate::Output for IndexSet<V, S>
-    where
-        V: crate::Output,
-        S: std::hash::BuildHasher,
-    {
-        fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-            crate::TypeReference::new(
-                reflectapi_type_hashset(schema),
-                vec![V::reflectapi_output_type(schema)],
-            )
-        }
     }
 }
