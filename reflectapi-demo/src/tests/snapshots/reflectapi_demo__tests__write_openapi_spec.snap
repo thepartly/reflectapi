@@ -131,7 +131,7 @@ snapshot_kind: text
                       "type": "null"
                     },
                     {
-                      "$ref": "#/components/schemas/myapi.model.Pet"
+                      "$ref": "#/components/schemas/myapi.model.output.Pet"
                     }
                   ]
                 }
@@ -183,7 +183,7 @@ snapshot_kind: text
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "title": "myapi.proto.Paginated<myapi.model.Pet>",
+                  "title": "myapi.proto.Paginated<myapi.model.output.Pet>",
                   "required": [
                     "items"
                   ],
@@ -204,7 +204,7 @@ snapshot_kind: text
                       "description": " slice of a collection",
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/myapi.model.Pet"
+                        "$ref": "#/components/schemas/myapi.model.output.Pet"
                       }
                     }
                   }
@@ -409,9 +409,9 @@ snapshot_kind: text
           }
         ]
       },
-      "myapi.model.Pet": {
+      "myapi.model.input.Pet": {
         "type": "object",
-        "title": "myapi.model.Pet",
+        "title": "myapi.model.input.Pet",
         "required": [
           "name",
           "kind"
@@ -444,6 +444,55 @@ snapshot_kind: text
           "name": {
             "description": " identity",
             "$ref": "#/components/schemas/std.string.String"
+          },
+          "updated_at": {
+            "description": "DateTime at a given timezone (RFC3339 format)",
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "myapi.model.output.Pet": {
+        "type": "object",
+        "title": "myapi.model.output.Pet",
+        "required": [
+          "name",
+          "kind",
+          "updated_at"
+        ],
+        "properties": {
+          "age": {
+            "description": " age of the pet",
+            "deprecated": true,
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/u8"
+              }
+            ]
+          },
+          "behaviors": {
+            "description": " behaviors of the pet",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/myapi.model.Behavior"
+            }
+          },
+          "kind": {
+            "description": " kind of pet",
+            "$ref": "#/components/schemas/myapi.model.Kind"
+          },
+          "name": {
+            "description": " identity",
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "updated_at": {
+            "description": "DateTime at a given timezone (RFC3339 format)",
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -482,7 +531,7 @@ snapshot_kind: text
         "type": "array",
         "prefixItems": [
           {
-            "$ref": "#/components/schemas/myapi.model.Pet"
+            "$ref": "#/components/schemas/myapi.model.input.Pet"
           }
         ]
       },
