@@ -18,6 +18,7 @@ pub fn to_value<T>(_value: &T) -> Result<Value, Error> {
     unimplemented!()
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Value {
     Null,
     String(String),

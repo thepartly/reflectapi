@@ -5,9 +5,6 @@ mod option;
 mod traits;
 mod validation;
 
-#[cfg(feature = "url")]
-pub use url;
-
 #[cfg(feature = "rt")]
 pub mod rt;
 
@@ -23,9 +20,25 @@ pub mod axum;
 #[cfg(feature = "codegen")]
 pub mod codegen;
 
+#[cfg(feature = "uuid")]
+pub use uuid;
+
+#[cfg(feature = "chrono")]
+pub use chrono;
+
+#[cfg(feature = "url")]
+pub use url;
+
+#[cfg(feature = "indexmap")]
+pub use indexmap;
+
+#[cfg(feature = "rust_decimal")]
+pub use rust_decimal;
+
+#[cfg(feature = "json")]
+pub use serde_json;
+
 pub use empty::*;
-#[allow(unused_imports)]
-pub use impls::*;
 pub use infallible::*;
 
 pub use option::*;

@@ -5,11 +5,16 @@ RUSTC = rustc
 check: libreflectapi.rlib \
 	libserde.rlib \
 	libchrono.rlib \
+	libserde_json.rlib \
+	libindexmap.rlib \
 	generated.rs
 	$(RUSTC) --edition 2021 --crate-type=lib --emit=mir=/dev/null -L . \
 		--extern reflectapi=libreflectapi.rlib \
 		--extern serde=libserde.rlib \
+		--extern serde_json=libserde_json.rlib \
+		--extern indexmap=libindexmap.rlib \
 		--extern chrono=libchrono.rlib \
+		--extern url=liburl.rlib \
 		generated.rs
 
 clean:
