@@ -1,0 +1,94 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+snapshot_kind: text
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Test"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Test"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.Test": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.Test",
+        "required": [
+          "index_map",
+          "index_set",
+          "url",
+          "json"
+        ],
+        "properties": {
+          "index_map": {
+            "description": "Key-value map type",
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/u32"
+            }
+          },
+          "index_set": {
+            "description": "Value set type",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/std.string.String"
+            },
+            "uniqueItems": true
+          },
+          "json": {
+            "$ref": "#/components/schemas/serde_json.Value"
+          },
+          "url": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "serde_json.Value": {
+        "description": "JSON value type",
+        "type": "object",
+        "title": "serde_json::Value",
+        "properties": {}
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}
