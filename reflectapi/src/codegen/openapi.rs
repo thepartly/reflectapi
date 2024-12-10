@@ -163,13 +163,26 @@ pub struct MediaType {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum StringFormat {
+    /// full-date notation as defined by RFC 3339, section 5.6, for example, 2017-07-21
+    Date,
+    /// date-time notation as defined by RFC 3339, section 5.6, for example, 2017-07-21T17:32:28Z
+    DateTime,
+    Uuid,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
 pub enum Type {
     Boolean,
     Integer,
     Number,
-    String,
+    String {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        format: Option<StringFormat>,
+    },
     Array {
         items: Box<InlineOrRef<Schema>>,
         #[serde(rename = "uniqueItems")]
@@ -636,9 +649,11 @@ impl Converter<'_> {
             }
             crate::Type::Primitive(prim) => {
                 assert_eq!(
-                    ty_ref.arguments.len(),
                     prim.parameters.len(),
-                    "primitive type with wrong number of arguments: {ty_ref:?}"
+                    ty_ref.arguments.len(),
+                    "primitive type with wrong number of arguments: {ty_ref:?}, expected {}, got {}",
+                    prim.parameters.len(),
+                    ty_ref.arguments.len()
                 );
                 let ty = match prim.name() {
                     "f32" | "f64" => Type::Number,
@@ -651,7 +666,16 @@ impl Converter<'_> {
                         required: vec![],
                         properties: BTreeMap::new(),
                     },
-                    "uuid::Uuid" | "char" | "std::string::String" => Type::String,
+                    "uuid::Uuid" => Type::String {
+                        format: Some(StringFormat::Uuid),
+                    },
+                    "chrono::NaiveDate" => Type::String {
+                        format: Some(StringFormat::Date),
+                    },
+                    "chrono::NaiveDateTime" | "chrono::DateTime" => Type::String {
+                        format: Some(StringFormat::DateTime),
+                    },
+                    "char" | "std::string::String" => Type::String { format: None },
                     "std::marker::PhantomData" | "std::tuple::Tuple0" => Type::Null,
                     "std::vec::Vec" | "std::array::Array" | "std::collections::HashSet" => {
                         Type::Array {
@@ -1057,7 +1081,7 @@ impl Converter<'_> {
                                         deprecated: false,
                                         schema: Inline(Schema::Flat(FlatSchema {
                                             description: "tag".to_owned(),
-                                            ty: Type::String,
+                                            ty: Type::String { format: None },
                                         })),
                                     }
                                 )))

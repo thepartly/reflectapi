@@ -91,6 +91,8 @@ mod model {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[deprecated(note = "test deprecation")]
         pub age: Option<u8>,
+        #[serde(default = "super::some_datetime")]
+        pub updated_at: chrono::DateTime<chrono::Utc>,
         /// behaviors of the pet
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         pub behaviors: Vec<Behavior>,
@@ -207,9 +209,12 @@ async fn pets_update(
     if let Some(age) = request.age.unfold() {
         pet.age = age.cloned();
     }
+
     if let Some(behaviors) = request.behaviors.unfold() {
         pet.behaviors = behaviors.cloned().unwrap_or_default();
     }
+
+    pet.updated_at = some_datetime();
 
     Ok(().into())
 }
@@ -229,6 +234,13 @@ async fn pets_remove(
     pets.remove(possition);
 
     Ok(().into())
+}
+
+fn some_datetime() -> chrono::DateTime<chrono::Utc> {
+    // Some fixed date for the sake of example
+    chrono::DateTime::parse_from_rfc3339("2024-01-01T00:00:00.000000000Z")
+        .unwrap()
+        .with_timezone(&chrono::Utc)
 }
 
 async fn pets_get_first(

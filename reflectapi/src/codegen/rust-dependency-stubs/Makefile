@@ -2,17 +2,26 @@ RUSTC = rustc
 
 .PHONY: check deps clean
 
-check: libreflectapi.rlib libserde.rlib generated.rs
+check: libreflectapi.rlib \
+	libserde.rlib \
+	libchrono.rlib \
+	generated.rs
 	$(RUSTC) --edition 2021 --crate-type=lib --emit=mir=/dev/null -L . \
 		--extern reflectapi=libreflectapi.rlib \
 		--extern serde=libserde.rlib \
+		--extern chrono=libchrono.rlib \
 		generated.rs
 
 clean:
 	rm -f *.rlib *.rmeta *.so
 
 # Make sure to edit `typecheck` in `codegen/rust.rs` to copy all the files into the right place
-libreflectapi.rlib: libserde.rlib libserde_json.rlib libbytes.rlib libhttp.rlib liburl.rlib
+libreflectapi.rlib: libserde.rlib \
+	libserde_json.rlib \
+	libbytes.rlib \
+	libhttp.rlib \
+	liburl.rlib \
+	reflectapi.rs
 	$(RUSTC) --edition 2021 --crate-type=rlib --crate-name=reflectapi --emit=metadata,link -L . \
 		--extern serde=libserde.rlib \
 		--extern serde_json=libserde_json.rlib \
