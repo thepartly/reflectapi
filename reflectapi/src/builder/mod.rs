@@ -2,11 +2,21 @@ mod handler;
 mod result;
 
 use core::fmt;
-use std::{borrow::Borrow, collections::BTreeSet, error::Error};
+use std::{borrow::Borrow, collections::BTreeSet, error::Error, sync::Arc};
 
 pub use handler::*;
 use reflectapi_schema::Pattern;
 pub use result::*;
+
+pub trait Hooks<O, E>: Send + Sync {
+    fn on_success(&self, code: http::StatusCode, output: &O) {
+        let _ = (code, output);
+    }
+
+    fn on_error(&self, code: http::StatusCode, err: &E) {
+        let _ = (code, err);
+    }
+}
 
 pub struct Builder<S>
 where
@@ -112,7 +122,7 @@ where
     pub fn route<F, Fut, R, I, O, E, H>(
         mut self,
         handler: F,
-        builder: fn(RouteBuilder) -> RouteBuilder,
+        builder: fn(RouteBuilder<O, E>) -> RouteBuilder<O, E>,
     ) -> Self
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
@@ -235,17 +245,31 @@ where
     pub handlers: Vec<crate::Handler<S>>,
 }
 
-#[derive(Default)]
-pub struct RouteBuilder {
+pub struct RouteBuilder<O, E> {
     name: String,
     path: String,
     description: String,
     readonly: bool,
     tags: BTreeSet<String>,
     deprecation_note: Option<String>,
+    hooks: Vec<Arc<dyn Hooks<O, E>>>,
 }
 
-impl RouteBuilder {
+impl<O, E> Default for RouteBuilder<O, E> {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            path: Default::default(),
+            description: Default::default(),
+            readonly: Default::default(),
+            tags: Default::default(),
+            deprecation_note: Default::default(),
+            hooks: Default::default(),
+        }
+    }
+}
+
+impl<O, E> RouteBuilder<O, E> {
     pub fn new() -> Self {
         Default::default()
     }

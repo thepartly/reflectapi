@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::{Function, Schema, Struct};
 
-use super::RouteBuilder;
+use super::{Hooks, RouteBuilder};
 
 pub struct HandlerInput {
     pub body: bytes::Bytes,
@@ -103,7 +103,7 @@ where
     S: Send + 'static,
 {
     pub(crate) fn new<F, Fut, R, I, O, E, H>(
-        rb: RouteBuilder,
+        rb: RouteBuilder<O, E>,
         handler: F,
         schema: &mut Schema,
     ) -> Handler<S>
@@ -168,13 +168,20 @@ where
         input_headers_names.push("content-type".into());
         input_headers_names.push("traceparent".into());
 
+        let hooks = rb.hooks.into();
+
         Handler {
             name: rb.name,
             path: rb.path,
             readonly: rb.readonly,
             input_headers: input_headers_names.clone(),
             callback: Arc::new(move |state: S, input: HandlerInput| {
-                Box::pin(Self::handler_wrap(state, input, handler)) as _
+                Box::pin(Self::handler_wrap(
+                    state,
+                    input,
+                    handler,
+                    Arc::clone(&hooks),
+                )) as _
             }),
         }
     }
@@ -183,6 +190,7 @@ where
         state: S,
         input: HandlerInput,
         handler: F,
+        hooks: Arc<[Arc<dyn Hooks<O, E>>]>,
     ) -> HandlerOutput
     where
         I: crate::Input + serde::de::DeserializeOwned,
@@ -305,7 +313,7 @@ where
             }
         };
 
-        let code = match output {
+        let code = match &output {
             UntaggedResult::Ok(_) => http::StatusCode::OK,
             UntaggedResult::Err(err) => {
                 let custom_error = err.status_code();
@@ -321,6 +329,13 @@ where
                 }
             }
         };
+
+        for hook in hooks.iter() {
+            match &output {
+                UntaggedResult::Ok(ok) => hook.on_success(code, ok),
+                UntaggedResult::Err(err) => hook.on_error(code, err),
+            }
+        }
 
         HandlerOutput {
             code,
