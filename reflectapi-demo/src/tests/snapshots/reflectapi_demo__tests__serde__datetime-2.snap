@@ -37,7 +37,7 @@ export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
       export interface TestStruct {
-        duration: string;
+        duration: std.time.Duration;
         naive_time: string;
         naive_date: string;
         naive_datetime: string;
@@ -45,6 +45,18 @@ export namespace reflectapi_demo {
         date_time_utc: string;
         date_time_local: string;
       }
+    }
+  }
+}
+
+export namespace std {
+  export namespace time {
+    /**
+     * Time duration type
+     */
+    export interface Duration {
+      secs: number /* u64 */;
+      nanos: number /* u32 */;
     }
   }
 }

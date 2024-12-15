@@ -138,12 +138,37 @@ snapshot_kind: text
         }
       },
       {
-        "kind": "primitive",
+        "kind": "struct",
         "name": "std::time::Duration",
         "description": "Time duration type",
-        "fallback": {
-          "name": "std::string::String"
+        "fields": {
+          "named": [
+            {
+              "name": "secs",
+              "type": {
+                "name": "u64"
+              },
+              "required": true
+            },
+            {
+              "name": "nanos",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            }
+          ]
         }
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u64",
+        "description": "64-bit unsigned integer"
       }
     ]
   },
@@ -265,12 +290,37 @@ snapshot_kind: text
         }
       },
       {
-        "kind": "primitive",
+        "kind": "struct",
         "name": "std::time::Duration",
         "description": "Time duration type",
-        "fallback": {
-          "name": "std::string::String"
+        "fields": {
+          "named": [
+            {
+              "name": "secs",
+              "type": {
+                "name": "u64"
+              },
+              "required": true
+            },
+            {
+              "name": "nanos",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            }
+          ]
         }
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u64",
+        "description": "64-bit unsigned integer"
       }
     ]
   }

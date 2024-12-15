@@ -81,7 +81,7 @@ snapshot_kind: text
             "format": "date-time"
           },
           "duration": {
-            "$ref": "#/components/schemas/std.string.String"
+            "$ref": "#/components/schemas/std.time.Duration"
           },
           "naive_date": {
             "$ref": "#/components/schemas/chrono.NaiveDate"
@@ -97,6 +97,31 @@ snapshot_kind: text
       "std.string.String": {
         "description": "UTF-8 encoded string",
         "type": "string"
+      },
+      "std.time.Duration": {
+        "description": "Time duration type",
+        "type": "object",
+        "title": "std.time.Duration",
+        "required": [
+          "secs",
+          "nanos"
+        ],
+        "properties": {
+          "nanos": {
+            "$ref": "#/components/schemas/u32"
+          },
+          "secs": {
+            "$ref": "#/components/schemas/u64"
+          }
+        }
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      },
+      "u64": {
+        "description": "64-bit unsigned integer",
+        "type": "integer"
       }
     }
   }

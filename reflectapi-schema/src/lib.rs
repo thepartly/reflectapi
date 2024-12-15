@@ -840,9 +840,9 @@ pub struct Struct {
 }
 
 impl Struct {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: impl Into<String>) -> Self {
         Struct {
-            name,
+            name: name.into(),
             serde_name: Default::default(),
             description: Default::default(),
             parameters: Default::default(),
@@ -1055,6 +1055,11 @@ impl Field {
             transform_callback: Default::default(),
             transform_callback_fn: Default::default(),
         }
+    }
+
+    pub fn with_required(mut self, required: bool) -> Self {
+        self.required = required;
+        self
     }
 
     pub fn name(&self) -> &str {
