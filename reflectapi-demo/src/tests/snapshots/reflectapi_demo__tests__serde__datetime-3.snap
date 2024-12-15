@@ -62,6 +62,7 @@ pub mod types {
 
                 #[derive(Debug, serde::Serialize, serde::Deserialize)]
                 pub struct TestStruct {
+                    pub duration: std::time::Duration,
                     pub naive_time: chrono::NaiveTime,
                     pub naive_date: chrono::NaiveDate,
                     pub naive_datetime: chrono::NaiveDateTime,

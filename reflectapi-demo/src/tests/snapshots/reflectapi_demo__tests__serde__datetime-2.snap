@@ -37,6 +37,7 @@ export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
       export interface TestStruct {
+        duration: string;
         naive_time: string;
         naive_date: string;
         naive_datetime: string;

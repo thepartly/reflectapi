@@ -56,6 +56,7 @@ snapshot_kind: text
         "type": "object",
         "title": "reflectapi_demo.tests.serde.TestStruct",
         "required": [
+          "duration",
           "naive_time",
           "naive_date",
           "naive_datetime",
@@ -78,6 +79,9 @@ snapshot_kind: text
             "description": "DateTime at a given timezone (RFC3339 format)",
             "type": "string",
             "format": "date-time"
+          },
+          "duration": {
+            "$ref": "#/components/schemas/std.string.String"
           },
           "naive_date": {
             "$ref": "#/components/schemas/chrono.NaiveDate"

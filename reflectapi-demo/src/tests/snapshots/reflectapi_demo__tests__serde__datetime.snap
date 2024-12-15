@@ -71,6 +71,13 @@ snapshot_kind: text
         "fields": {
           "named": [
             {
+              "name": "duration",
+              "type": {
+                "name": "std::time::Duration"
+              },
+              "required": true
+            },
+            {
               "name": "naive_time",
               "type": {
                 "name": "chrono::NaiveTime"
@@ -128,6 +135,14 @@ snapshot_kind: text
               "required": true
             }
           ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::time::Duration",
+        "description": "Time duration type",
+        "fallback": {
+          "name": "std::string::String"
         }
       }
     ]
@@ -183,6 +198,13 @@ snapshot_kind: text
         "fields": {
           "named": [
             {
+              "name": "duration",
+              "type": {
+                "name": "std::time::Duration"
+              },
+              "required": true
+            },
+            {
               "name": "naive_time",
               "type": {
                 "name": "chrono::NaiveTime"
@@ -240,6 +262,14 @@ snapshot_kind: text
               "required": true
             }
           ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::time::Duration",
+        "description": "Time duration type",
+        "fallback": {
+          "name": "std::string::String"
         }
       }
     ]

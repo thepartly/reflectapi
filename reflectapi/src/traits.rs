@@ -653,8 +653,8 @@ fn reflectapi_duration(schema: &mut crate::Typespace, type_name: &str) -> crate:
         let type_def = crate::Primitive::new(
             type_name.into(),
             "Time duration type".into(),
-            vec!["secs".into(), "nanos".into()],
-            None,
+            vec![],
+            Some("std::string::String".into()),
         );
         schema.insert_type(type_def.into());
     }
