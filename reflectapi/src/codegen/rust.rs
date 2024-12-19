@@ -818,8 +818,9 @@ fn __interface_types_from_function_group(
                 .unwrap_or_default()
                 .replace('-', "_"),
             deprecation_note: function.deprecation_note.to_owned(),
+            // Headers may contain sensitive information, so we skip them
             attributes: if config.instrument {
-                "#[tracing::instrument(skip(self))]"
+                "#[tracing::instrument(skip(self, headers))]"
             } else {
                 ""
             }

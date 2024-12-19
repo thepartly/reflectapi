@@ -56,7 +56,7 @@ pub mod interface {
             Ok(Self { client, base_url })
         }
         /// Check the health of the service
-        #[tracing::instrument(skip(self))]
+        #[tracing::instrument(skip(self, headers))]
         pub async fn check(
             &self,
             input: reflectapi::Empty,
@@ -92,7 +92,7 @@ pub mod interface {
             Ok(Self { client, base_url })
         }
         /// List available pets
-        #[tracing::instrument(skip(self))]
+        #[tracing::instrument(skip(self, headers))]
         pub async fn list(
             &self,
             input: super::types::myapi::proto::PetsListRequest,
@@ -112,7 +112,7 @@ pub mod interface {
             .await
         }
         /// Create a new pet
-        #[tracing::instrument(skip(self))]
+        #[tracing::instrument(skip(self, headers))]
         pub async fn create(
             &self,
             input: super::types::myapi::proto::PetsCreateRequest,
@@ -132,7 +132,7 @@ pub mod interface {
             .await
         }
         /// Update an existing pet
-        #[tracing::instrument(skip(self))]
+        #[tracing::instrument(skip(self, headers))]
         pub async fn update(
             &self,
             input: super::types::myapi::proto::PetsUpdateRequest,
@@ -152,7 +152,7 @@ pub mod interface {
             .await
         }
         /// Remove an existing pet
-        #[tracing::instrument(skip(self))]
+        #[tracing::instrument(skip(self, headers))]
         pub async fn remove(
             &self,
             input: super::types::myapi::proto::PetsRemoveRequest,
@@ -173,7 +173,7 @@ pub mod interface {
         }
         #[deprecated(note = "Use pets.remove instead")]
         /// Remove an existing pet
-        #[tracing::instrument(skip(self))]
+        #[tracing::instrument(skip(self, headers))]
         pub async fn delete(
             &self,
             input: super::types::myapi::proto::PetsRemoveRequest,
@@ -193,7 +193,7 @@ pub mod interface {
             .await
         }
         /// Fetch first pet, if any exists
-        #[tracing::instrument(skip(self))]
+        #[tracing::instrument(skip(self, headers))]
         pub async fn get_first(
             &self,
             input: reflectapi::Empty,
