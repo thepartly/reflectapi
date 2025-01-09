@@ -101,12 +101,18 @@ mod model {
     #[derive(
         Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
     )]
-    #[serde(rename_all = "snake_case")]
+    #[serde(tag = "type", rename_all = "snake_case")]
     pub enum Kind {
         /// A dog
-        Dog,
+        Dog {
+            /// breed of the dog
+            breed: String,
+        },
         /// A cat
-        Cat,
+        Cat {
+            /// lives left
+            lives: u8,
+        },
     }
 
     #[derive(

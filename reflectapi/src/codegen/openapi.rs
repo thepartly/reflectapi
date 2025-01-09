@@ -197,8 +197,8 @@ pub enum Type {
     Object {
         #[serde(skip_serializing_if = "String::is_empty")]
         title: String,
-        #[serde(skip_serializing_if = "Vec::is_empty")]
-        required: Vec<String>,
+        #[serde(skip_serializing_if = "BTreeSet::is_empty")]
+        required: BTreeSet<String>,
         properties: BTreeMap<String, Property>,
     },
     #[serde(rename = "object")]
@@ -342,9 +342,9 @@ impl FlatSchema {
         Self {
             description: "empty object".to_owned(),
             ty: Type::Object {
-                title: "".to_owned(),
-                required: vec![],
-                properties: BTreeMap::new(),
+                title: Default::default(),
+                required: Default::default(),
+                properties: Default::default(),
             },
         }
     }
@@ -580,7 +580,7 @@ impl Converter<'_> {
         }
         .unwrap_or_else(|| {
             if ty_ref.name == "std::string::String" {
-                // HACK: string type is used for the tag type, but may not exist in the schema.
+                // HACK: string type is often used as a fallback type.
                 static STRING_TYPE: OnceLock<crate::Type> = OnceLock::new();
                 return STRING_TYPE.get_or_init(|| {
                     crate::Type::Primitive(crate::Primitive {
@@ -663,8 +663,8 @@ impl Converter<'_> {
                     "serde_json::Value" => Type::Object {
                         // Not sure if there is a better way to represent this
                         title: "serde_json::Value".to_owned(),
-                        required: vec![],
-                        properties: BTreeMap::new(),
+                        required: Default::default(),
+                        properties: Default::default(),
                     },
                     "uuid::Uuid" => Type::String {
                         format: Some(StringFormat::Uuid),
@@ -758,27 +758,9 @@ impl Converter<'_> {
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
-        let tags_schema = match adt.representation() {
-            reflectapi_schema::Representation::External
-            | reflectapi_schema::Representation::Internal { .. }
-            | reflectapi_schema::Representation::Adjacent { .. } => Some(Schema::OneOf {
-                subschemas: adt
-                    .variants()
-                    .map(|v| Schema::Const {
-                        description: v.description().to_owned(),
-                        value: v.serde_name().to_owned(),
-                    })
-                    .map(Inline)
-                    .collect::<Vec<_>>(),
-            }),
-            reflectapi_schema::Representation::None => None,
-        };
-
         let subschemas = adt
             .variants()
-            .map(|variant| {
-                self.variant_to_schema(schema, kind, type_ref, adt, tags_schema.as_ref(), variant)
-            })
+            .map(|variant| self.variant_to_schema(schema, kind, type_ref, adt, variant))
             .collect::<Vec<_>>();
 
         let schema = match adt.representation() {
@@ -797,10 +779,16 @@ impl Converter<'_> {
         kind: Kind,
         type_ref: &crate::TypeReference,
         adt: &crate::Enum,
-        tags_schema: Option<&Schema>,
         variant: &crate::Variant,
     ) -> InlineOrRef<Schema> {
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
+
+        fn mk_tag(tag: impl Into<String>) -> InlineOrRef<Schema> {
+            Inline(Schema::Const {
+                value: tag.into(),
+                description: String::new(),
+            })
+        }
 
         let type_ref =
             crate::TypeReference::new(variant.name().to_owned(), type_ref.arguments.clone());
@@ -835,7 +823,7 @@ impl Converter<'_> {
                     let ty = match variant.fields {
                         reflectapi_schema::Fields::Named(_) => Type::Object {
                             title: fmt_type_ref(&type_ref),
-                            required: vec![],
+                            required: Default::default(),
                             properties: BTreeMap::from_iter([(
                                 variant.serde_name().to_owned(),
                                 Property {
@@ -847,7 +835,7 @@ impl Converter<'_> {
                         },
                         reflectapi_schema::Fields::Unnamed(_) => Type::Object {
                             title: fmt_type_ref(&type_ref),
-                            required: vec![],
+                            required: Default::default(),
                             properties: BTreeMap::from_iter([(
                                 variant.serde_name().to_owned(),
                                 Property {
@@ -886,7 +874,7 @@ impl Converter<'_> {
                         description: variant.description().to_owned(),
                         ty: Type::Object {
                             title: fmt_type_ref(&type_ref),
-                            required: vec![variant.serde_name().to_owned()],
+                            required: [variant.serde_name().to_owned()].into(),
                             properties: BTreeMap::from([(
                                 variant.serde_name().to_owned(),
                                 Property {
@@ -911,18 +899,14 @@ impl Converter<'_> {
                         description: variant.description().to_owned(),
                         ty: Type::Object {
                             title: fmt_type_ref(&type_ref),
-                            required: vec![tag.to_owned(), content.to_owned()],
+                            required: [tag.to_owned(), content.to_owned()].into(),
                             properties: BTreeMap::from([
                                 (
                                     tag.to_owned(),
                                     Property {
                                         description: String::new(),
                                         deprecated: false,
-                                        schema: Inline(
-                                            tags_schema
-                                                .expect("expected some for adjacent tagged enum")
-                                                .clone(),
-                                        ),
+                                        schema: mk_tag(&variant.name),
                                     },
                                 ),
                                 (
@@ -940,33 +924,29 @@ impl Converter<'_> {
                 );
             }
             crate::Representation::Internal { tag } => {
-                let tag_field = crate::Field {
-                    name: tag.to_owned(),
-                    serde_name: tag.to_owned(),
-                    description: "tag".to_owned(),
-                    type_ref: crate::TypeReference::new("std::string::String", vec![]),
-                    required: true,
-                    flattened: false,
-                    deprecation_note: Default::default(),
-                    transform_callback: String::new(),
-                    transform_callback_fn: None,
-                };
-
-                match &mut strukt.fields {
-                    reflectapi_schema::Fields::Named(fields) => fields.push(tag_field),
-                    reflectapi_schema::Fields::None => {
-                        strukt.fields = reflectapi_schema::Fields::Named(vec![tag_field])
+                let s = match &mut strukt.fields {
+                    reflectapi_schema::Fields::Named(_) => {
+                        self.struct_to_schema(schema, kind, &type_ref, &strukt)
                     }
+                    reflectapi_schema::Fields::None => Inline(Schema::Flat(FlatSchema {
+                        description: String::new(),
+                        ty: Type::Object {
+                            title: String::new(),
+                            required: [tag.to_owned()].into(),
+                            properties: [(
+                                tag.to_owned(),
+                                Property {
+                                    description: String::new(),
+                                    deprecated: false,
+                                    schema: mk_tag(&variant.name),
+                                },
+                            )]
+                            .into(),
+                        },
+                    })),
                     reflectapi_schema::Fields::Unnamed(fields) if fields.len() == 1 => {
                         let field = fields.pop().unwrap();
-                        let s = self.convert_type_ref(schema, kind, &field.type_ref);
-                        return self
-                            .internally_tag(
-                                tags_schema.expect("expected some for internally tagged enum"),
-                                tag,
-                                &s,
-                            )
-                            .unwrap_or_else(|err| panic!("{}: {err}", adt.name()));
+                        self.convert_type_ref(schema, kind, &field.type_ref)
                     }
                     reflectapi_schema::Fields::Unnamed(_) => {
                         panic!(
@@ -974,7 +954,11 @@ impl Converter<'_> {
                             adt.name()
                         )
                     }
-                }
+                };
+
+                return self
+                    .internally_tag(tag, mk_tag(&variant.name), &s)
+                    .unwrap_or_else(|err| panic!("{}: {err}", adt.name()));
             }
             crate::Representation::None => {
                 if variant.fields.len() == 1 && !variant.fields[0].is_named() {
@@ -996,7 +980,7 @@ impl Converter<'_> {
                         reflectapi_schema::Fields::None => Type::Null,
                         reflectapi_schema::Fields::Named(_) => Type::Object {
                             title: fmt_type_ref(&type_ref),
-                            required: vec![],
+                            required: Default::default(),
                             properties: BTreeMap::new(),
                         },
                         reflectapi_schema::Fields::Unnamed(_) => Type::Tuple {
@@ -1020,8 +1004,8 @@ impl Converter<'_> {
 
     fn internally_tag(
         &self,
-        tags_schema: &Schema,
-        tag: &str,
+        tag_name: &str,
+        tag_schema: InlineOrRef<Schema>,
         schema: &InlineOrRef<Schema>,
     ) -> Result<InlineOrRef<Schema>, InvalidInternalTagError> {
         match self.resolve_schema_ref(schema) {
@@ -1032,13 +1016,13 @@ impl Converter<'_> {
                         description: "tag object".to_owned(),
                         ty: Type::Object {
                             title: "tag".to_owned(),
-                            required: vec![tag.to_owned()],
+                            required: [tag_name.to_owned()].into(),
                             properties: BTreeMap::from([(
-                                tag.to_owned(),
+                                tag_name.to_owned(),
                                 Property {
                                     description: String::new(),
                                     deprecated: false,
-                                    schema: Inline(tags_schema.clone()),
+                                    schema: tag_schema,
                                 },
                             )]),
                         },
@@ -1050,7 +1034,7 @@ impl Converter<'_> {
             Schema::OneOf { subschemas } => Ok(Inline(Schema::OneOf {
                 subschemas: subschemas
                     .iter()
-                    .map(|subschema| self.internally_tag(tags_schema, tag, subschema))
+                    .map(|subschema| self.internally_tag(tag_name, tag_schema.clone(), subschema))
                     .collect::<Result<_, _>>()?,
             })),
             Schema::Const { .. } => unreachable!("internally tagged const?"),
@@ -1075,20 +1059,17 @@ impl Converter<'_> {
                             required: required
                                 .iter()
                                 .cloned()
-                                .chain(std::iter::once(tag.to_owned()))
+                                .chain(std::iter::once(tag_name.to_owned()))
                                 .collect(),
                             properties: properties
                                 .iter()
                                 .map(|(k, v)| (k.to_owned(), v.clone()))
                                 .chain(std::iter::once((
-                                    tag.to_owned(),
+                                    tag_name.to_owned(),
                                     Property {
                                         description: String::new(),
                                         deprecated: false,
-                                        schema: Inline(Schema::Flat(FlatSchema {
-                                            description: "tag".to_owned(),
-                                            ty: Type::String { format: None },
-                                        })),
+                                        schema: tag_schema,
                                     },
                                 )))
                                 .collect(),

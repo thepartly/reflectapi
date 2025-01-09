@@ -210,16 +210,43 @@
       {
         "kind": "enum",
         "name": "myapi::model::Kind",
+        "representation": {
+          "internal": {
+            "tag": "type"
+          }
+        },
         "variants": [
           {
             "name": "dog",
             "description": " A dog",
-            "fields": "none"
+            "fields": {
+              "named": [
+                {
+                  "name": "breed",
+                  "description": " breed of the dog",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            }
           },
           {
             "name": "cat",
             "description": " A cat",
-            "fields": "none"
+            "fields": {
+              "named": [
+                {
+                  "name": "lives",
+                  "description": " lives left",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
       },
@@ -591,16 +618,43 @@
       {
         "kind": "enum",
         "name": "myapi::model::Kind",
+        "representation": {
+          "internal": {
+            "tag": "type"
+          }
+        },
         "variants": [
           {
             "name": "dog",
             "description": " A dog",
-            "fields": "none"
+            "fields": {
+              "named": [
+                {
+                  "name": "breed",
+                  "description": " breed of the dog",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            }
           },
           {
             "name": "cat",
             "description": " A cat",
-            "fields": "none"
+            "fields": {
+              "named": [
+                {
+                  "name": "lives",
+                  "description": " lives left",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
       },

@@ -56,13 +56,13 @@ snapshot_kind: text
         "type": "object",
         "title": "reflectapi_demo.tests.serde.TestStruct",
         "required": [
+          "date_time_fixed_offset",
+          "date_time_local",
+          "date_time_utc",
           "duration",
-          "naive_time",
           "naive_date",
           "naive_datetime",
-          "date_time_fixed_offset",
-          "date_time_utc",
-          "date_time_local"
+          "naive_time"
         ],
         "properties": {
           "date_time_fixed_offset": {
@@ -103,8 +103,8 @@ snapshot_kind: text
         "type": "object",
         "title": "std.time.Duration",
         "required": [
-          "secs",
-          "nanos"
+          "nanos",
+          "secs"
         ],
         "properties": {
           "nanos": {

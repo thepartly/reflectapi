@@ -56,8 +56,7 @@ snapshot_kind: text
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "Variant1"
               }
             }
           },
@@ -73,16 +72,11 @@ snapshot_kind: text
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "Variant2"
               }
             }
           }
         ]
-      },
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
       },
       "u8": {
         "description": "8-bit unsigned integer",

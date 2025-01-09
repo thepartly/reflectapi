@@ -56,28 +56,15 @@ snapshot_kind: text
             "type": "object",
             "title": "int",
             "required": [
-              "t",
-              "c"
+              "c",
+              "t"
             ],
             "properties": {
               "c": {
                 "$ref": "#/components/schemas/i32"
               },
               "t": {
-                "oneOf": [
-                  {
-                    "const": "int"
-                  },
-                  {
-                    "const": "string"
-                  },
-                  {
-                    "const": "bool"
-                  },
-                  {
-                    "const": "unit"
-                  }
-                ]
+                "const": "int"
               }
             }
           },
@@ -85,28 +72,15 @@ snapshot_kind: text
             "type": "object",
             "title": "string",
             "required": [
-              "t",
-              "c"
+              "c",
+              "t"
             ],
             "properties": {
               "c": {
                 "$ref": "#/components/schemas/std.string.String"
               },
               "t": {
-                "oneOf": [
-                  {
-                    "const": "int"
-                  },
-                  {
-                    "const": "string"
-                  },
-                  {
-                    "const": "bool"
-                  },
-                  {
-                    "const": "unit"
-                  }
-                ]
+                "const": "string"
               }
             }
           },
@@ -114,28 +88,15 @@ snapshot_kind: text
             "type": "object",
             "title": "bool",
             "required": [
-              "t",
-              "c"
+              "c",
+              "t"
             ],
             "properties": {
               "c": {
                 "$ref": "#/components/schemas/bool"
               },
               "t": {
-                "oneOf": [
-                  {
-                    "const": "int"
-                  },
-                  {
-                    "const": "string"
-                  },
-                  {
-                    "const": "bool"
-                  },
-                  {
-                    "const": "unit"
-                  }
-                ]
+                "const": "bool"
               }
             }
           },
@@ -143,8 +104,8 @@ snapshot_kind: text
             "type": "object",
             "title": "unit",
             "required": [
-              "t",
-              "c"
+              "c",
+              "t"
             ],
             "properties": {
               "c": {
@@ -153,20 +114,7 @@ snapshot_kind: text
                 "properties": {}
               },
               "t": {
-                "oneOf": [
-                  {
-                    "const": "int"
-                  },
-                  {
-                    "const": "string"
-                  },
-                  {
-                    "const": "bool"
-                  },
-                  {
-                    "const": "unit"
-                  }
-                ]
+                "const": "unit"
               }
             }
           }

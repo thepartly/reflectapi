@@ -60,8 +60,7 @@ snapshot_kind: text
                 "$ref": "#/components/schemas/u16"
               },
               "type": {
-                "description": "tag",
-                "type": "string"
+                "const": "a"
               }
             }
           },
@@ -81,8 +80,7 @@ snapshot_kind: text
                 "$ref": "#/components/schemas/u64"
               },
               "type": {
-                "description": "tag",
-                "type": "string"
+                "const": "b"
               }
             }
           }

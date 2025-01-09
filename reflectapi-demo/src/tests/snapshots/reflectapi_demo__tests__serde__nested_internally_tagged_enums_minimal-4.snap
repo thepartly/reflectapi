@@ -59,12 +59,10 @@ snapshot_kind: text
                     "$ref": "#/components/schemas/u8"
                   },
                   "type": {
-                    "description": "tag",
-                    "$ref": "#/components/schemas/std.string.String"
+                    "const": "A"
                   },
                   "version": {
-                    "description": "tag",
-                    "type": "string"
+                    "const": "v1"
                   }
                 }
               }
@@ -86,16 +84,11 @@ snapshot_kind: text
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "A"
               }
             }
           }
         ]
-      },
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
       },
       "u8": {
         "description": "8-bit unsigned integer",

@@ -46,14 +46,12 @@ snapshot_kind: text
         "oneOf": [
           {
             "type": "object",
-            "title": "V0",
             "required": [
               "type"
             ],
             "properties": {
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "V0"
               }
             }
           }
@@ -63,35 +61,27 @@ snapshot_kind: text
         "oneOf": [
           {
             "type": "object",
-            "title": "V0",
             "required": [
               "type"
             ],
             "properties": {
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "V0"
               }
             }
           },
           {
             "type": "object",
-            "title": "Variant1",
             "required": [
               "type"
             ],
             "properties": {
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "Variant1"
               }
             }
           }
         ]
-      },
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
       }
     }
   }

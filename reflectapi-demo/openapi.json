@@ -395,12 +395,40 @@
       "myapi.model.Kind": {
         "oneOf": [
           {
-            "const": "dog",
-            "description": " A dog"
+            "description": " A dog",
+            "type": "object",
+            "title": "dog",
+            "required": [
+              "breed",
+              "type"
+            ],
+            "properties": {
+              "breed": {
+                "description": " breed of the dog",
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "type": {
+                "const": "dog"
+              }
+            }
           },
           {
-            "const": "cat",
-            "description": " A cat"
+            "description": " A cat",
+            "type": "object",
+            "title": "cat",
+            "required": [
+              "lives",
+              "type"
+            ],
+            "properties": {
+              "lives": {
+                "description": " lives left",
+                "$ref": "#/components/schemas/u8"
+              },
+              "type": {
+                "const": "cat"
+              }
+            }
           }
         ]
       },
@@ -408,8 +436,8 @@
         "type": "object",
         "title": "myapi.model.input.Pet",
         "required": [
-          "name",
-          "kind"
+          "kind",
+          "name"
         ],
         "properties": {
           "age": {
@@ -451,8 +479,8 @@
         "type": "object",
         "title": "myapi.model.output.Pet",
         "required": [
-          "name",
           "kind",
+          "name",
           "updated_at"
         ],
         "properties": {

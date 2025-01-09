@@ -90,11 +90,7 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "type": {
-                    "oneOf": [
-                      {
-                        "const": "S"
-                      }
-                    ]
+                    "const": "S"
                   }
                 }
               }

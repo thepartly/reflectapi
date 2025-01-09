@@ -342,11 +342,23 @@ export namespace myapi {
       /**
        *  A dog
        */
-      | "dog"
+      | {
+          type: "dog";
+          /**
+           *  breed of the dog
+           */
+          breed: string;
+        }
       /**
        *  A cat
        */
-      | "cat";
+      | {
+          type: "cat";
+          /**
+           *  lives left
+           */
+          lives: number /* u8 */;
+        };
 
     export namespace input {
       export interface Pet {

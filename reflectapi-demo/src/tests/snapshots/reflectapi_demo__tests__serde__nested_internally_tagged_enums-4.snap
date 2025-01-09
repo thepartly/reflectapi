@@ -59,12 +59,10 @@ snapshot_kind: text
                     "$ref": "#/components/schemas/u8"
                   },
                   "type": {
-                    "description": "tag",
-                    "$ref": "#/components/schemas/std.string.String"
+                    "const": "A"
                   },
                   "version": {
-                    "description": "tag",
-                    "type": "string"
+                    "const": "v1"
                   }
                 }
               },
@@ -81,12 +79,10 @@ snapshot_kind: text
                     "$ref": "#/components/schemas/u16"
                   },
                   "type": {
-                    "description": "tag",
-                    "$ref": "#/components/schemas/std.string.String"
+                    "const": "B"
                   },
                   "version": {
-                    "description": "tag",
-                    "type": "string"
+                    "const": "v1"
                   }
                 }
               }
@@ -107,12 +103,10 @@ snapshot_kind: text
                     "$ref": "#/components/schemas/u32"
                   },
                   "type": {
-                    "description": "tag",
-                    "$ref": "#/components/schemas/std.string.String"
+                    "const": "C"
                   },
                   "version": {
-                    "description": "tag",
-                    "type": "string"
+                    "const": "v2"
                   }
                 }
               },
@@ -129,12 +123,10 @@ snapshot_kind: text
                     "$ref": "#/components/schemas/u64"
                   },
                   "type": {
-                    "description": "tag",
-                    "$ref": "#/components/schemas/std.string.String"
+                    "const": "D"
                   },
                   "version": {
-                    "description": "tag",
-                    "type": "string"
+                    "const": "v2"
                   }
                 }
               }
@@ -156,8 +148,7 @@ snapshot_kind: text
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "A"
               }
             }
           },
@@ -173,8 +164,7 @@ snapshot_kind: text
                 "$ref": "#/components/schemas/u16"
               },
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "B"
               }
             }
           }
@@ -194,8 +184,7 @@ snapshot_kind: text
                 "$ref": "#/components/schemas/u32"
               },
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "C"
               }
             }
           },
@@ -211,16 +200,11 @@ snapshot_kind: text
                 "$ref": "#/components/schemas/u64"
               },
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "D"
               }
             }
           }
         ]
-      },
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
       },
       "u16": {
         "description": "16-bit unsigned integer",

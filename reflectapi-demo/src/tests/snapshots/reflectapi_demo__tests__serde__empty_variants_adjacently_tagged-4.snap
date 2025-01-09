@@ -48,8 +48,8 @@ snapshot_kind: text
             "type": "object",
             "title": "Empty",
             "required": [
-              "t",
-              "c"
+              "c",
+              "t"
             ],
             "properties": {
               "c": {
@@ -58,17 +58,7 @@ snapshot_kind: text
                 "properties": {}
               },
               "t": {
-                "oneOf": [
-                  {
-                    "const": "Empty"
-                  },
-                  {
-                    "const": "EmptyUnit"
-                  },
-                  {
-                    "const": "EmptyStruct"
-                  }
-                ]
+                "const": "Empty"
               }
             }
           },
@@ -76,8 +66,8 @@ snapshot_kind: text
             "type": "object",
             "title": "EmptyUnit",
             "required": [
-              "t",
-              "c"
+              "c",
+              "t"
             ],
             "properties": {
               "c": {
@@ -86,17 +76,7 @@ snapshot_kind: text
                 "properties": {}
               },
               "t": {
-                "oneOf": [
-                  {
-                    "const": "Empty"
-                  },
-                  {
-                    "const": "EmptyUnit"
-                  },
-                  {
-                    "const": "EmptyStruct"
-                  }
-                ]
+                "const": "EmptyUnit"
               }
             }
           },
@@ -104,8 +84,8 @@ snapshot_kind: text
             "type": "object",
             "title": "EmptyStruct",
             "required": [
-              "t",
-              "c"
+              "c",
+              "t"
             ],
             "properties": {
               "c": {
@@ -114,17 +94,7 @@ snapshot_kind: text
                 "properties": {}
               },
               "t": {
-                "oneOf": [
-                  {
-                    "const": "Empty"
-                  },
-                  {
-                    "const": "EmptyUnit"
-                  },
-                  {
-                    "const": "EmptyStruct"
-                  }
-                ]
+                "const": "EmptyStruct"
               }
             }
           }

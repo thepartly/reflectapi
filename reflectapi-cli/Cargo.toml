@@ -2,6 +2,7 @@
 name = "reflectapi-cli"
 version = "0.13.4"
 edition = "2021"
+default-run = "reflectapi"
 
 license = "MIT"
 description = "CLI for reflectapi"

@@ -46,14 +46,12 @@ snapshot_kind: text
         "oneOf": [
           {
             "type": "object",
-            "title": "Empty",
             "required": [
               "type"
             ],
             "properties": {
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "Empty"
               }
             }
           },
@@ -65,16 +63,11 @@ snapshot_kind: text
             ],
             "properties": {
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "EmptyStruct"
               }
             }
           }
         ]
-      },
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
       }
     }
   }

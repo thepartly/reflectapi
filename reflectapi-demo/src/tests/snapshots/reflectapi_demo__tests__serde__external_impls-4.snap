@@ -48,8 +48,8 @@ snapshot_kind: text
         "required": [
           "index_map",
           "index_set",
-          "url",
-          "json"
+          "json",
+          "url"
         ],
         "properties": {
           "index_map": {

@@ -239,13 +239,20 @@ pub mod types {
             }
 
             #[derive(Debug, serde::Serialize, serde::Deserialize)]
+            #[serde(tag = "type")]
             pub enum Kind {
                 /// A dog
                 #[serde(rename = "dog")]
-                Dog,
+                Dog {
+                    /// breed of the dog
+                    breed: std::string::String,
+                },
                 /// A cat
                 #[serde(rename = "cat")]
-                Cat,
+                Cat {
+                    /// lives left
+                    lives: u8,
+                },
             }
             pub mod input {
 

@@ -48,8 +48,8 @@ snapshot_kind: text
             "type": "object",
             "title": "variant1",
             "required": [
-              "type",
-              "content"
+              "content",
+              "type"
             ],
             "properties": {
               "content": {
@@ -65,14 +65,7 @@ snapshot_kind: text
                 }
               },
               "type": {
-                "oneOf": [
-                  {
-                    "const": "variant1"
-                  },
-                  {
-                    "const": "variant2"
-                  }
-                ]
+                "const": "variant1"
               }
             }
           },
@@ -80,22 +73,15 @@ snapshot_kind: text
             "type": "object",
             "title": "variant2",
             "required": [
-              "type",
-              "content"
+              "content",
+              "type"
             ],
             "properties": {
               "content": {
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
-                "oneOf": [
-                  {
-                    "const": "variant1"
-                  },
-                  {
-                    "const": "variant2"
-                  }
-                ]
+                "const": "variant2"
               }
             }
           }

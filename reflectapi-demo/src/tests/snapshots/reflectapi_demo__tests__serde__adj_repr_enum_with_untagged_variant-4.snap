@@ -56,8 +56,7 @@ snapshot_kind: text
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
-                "description": "tag",
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "Variant1"
               }
             }
           },
