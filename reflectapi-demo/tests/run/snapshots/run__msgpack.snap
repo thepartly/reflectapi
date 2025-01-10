@@ -22,7 +22,7 @@ traceparent: blah
 
 HTTP/1.1 200 OK
 
-content-length: 77
+content-length: 98
 content-type: application/msgpack
 traceparent: blah
 
@@ -31,7 +31,10 @@ traceparent: blah
   "items": [
     {
       "age": 1,
-      "kind": "dog",
+      "kind": {
+        "breed": "labrador",
+        "type": "dog"
+      },
       "name": "Bobby",
       "updated_at": "2024-01-01T00:00:00Z"
     }

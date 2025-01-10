@@ -4,7 +4,7 @@ Authorization: password
 traceparent:   blah
 name: 1
 
-{"name":"Bobby","kind":"dog","age":1,"behaviors":[]}
+{"name":"Bobby","kind":{"type":"dog", "breed":"labrador"},"age":1,"behaviors":[]}
 
 ###
 

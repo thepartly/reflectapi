@@ -8,7 +8,7 @@ Content-Type:  application/msgpack
 Authorization: password
 traceparent:   blah
 
-{"name":"Bobby","kind":"dog","age":1,"behaviors":[]}
+{"name":"Bobby","kind":{"type":"dog", "breed":"labrador"},"age":1,"behaviors":[]}
 
 ###
 
