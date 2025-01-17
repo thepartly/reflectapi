@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Hash, Copy)]
 pub enum Option<T> {
     #[default]
     Undefined,
