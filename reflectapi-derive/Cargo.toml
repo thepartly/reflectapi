@@ -1,6 +1,6 @@
 [package]
 name = "reflectapi-derive"
-version = "0.13.5"
+version = "0.13.6"
 edition = "2021"
 
 license = "MIT"
@@ -22,7 +22,7 @@ workspace = true
 proc-macro = true
 
 [dependencies]
-reflectapi-schema = { path = '../reflectapi-schema', version = "0.13.5" }
+reflectapi-schema = { path = '../reflectapi-schema', version = "0.13.6" }
 
 proc-macro2 = "1.0"
 quote = "1.0"
