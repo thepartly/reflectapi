@@ -283,7 +283,7 @@ where
         let output = UntaggedResult::from(output.into_result());
 
         let output_serialized = match content_type {
-            ContentType::Json => serde_json::to_vec_pretty(&output).map_err(|err| err.to_string()),
+            ContentType::Json => serde_json::to_vec(&output).map_err(|err| err.to_string()),
             #[cfg(feature = "msgpack")]
             ContentType::MessagePack => {
                 rmp_serde::to_vec_named(&output).map_err(|err| err.to_string())
