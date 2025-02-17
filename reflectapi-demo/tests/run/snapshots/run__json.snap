@@ -14,7 +14,7 @@ traceparent: blah
 
 HTTP/1.1 200 OK
 
-content-length: 209
+content-length: 128
 content-type: application/json
 traceparent: blah
 
