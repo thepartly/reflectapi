@@ -810,6 +810,7 @@ fn __interface_types_from_function_group(
         let function = functions_by_name.get(function_name).unwrap();
         let (input_type, input_headers, output_type, error_type) =
             __function_signature(function, schema, implemented_types);
+        let path = format!("{}/{}", function.path, function.name);
         let func_impl = templates::__FunctionImplementationTemplate {
             name: function
                 .name
@@ -820,13 +821,12 @@ fn __interface_types_from_function_group(
             deprecation_note: function.deprecation_note.to_owned(),
             // Headers may contain sensitive information, so we skip them
             attributes: if config.instrument {
-                "#[tracing::instrument(skip(self, headers))]"
+                format!(r#"#[tracing::instrument(name = "{path}", skip(self, headers))]"#)
             } else {
-                ""
-            }
-            .into(),
+                String::new()
+            },
             description: __doc_to_ts_comments(function.description.as_str(), 4),
-            path: format!("{}/{}", function.path, function.name),
+            path,
             input_type,
             input_headers,
             output_type,
