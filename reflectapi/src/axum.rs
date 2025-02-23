@@ -9,7 +9,7 @@ use crate::{Handler, HandlerInput, HandlerOutput};
 
 pub fn into_router<S, F>(app_state: S, router: Vec<crate::Router<S>>, cb: F) -> Router
 where
-    S: Send + Clone + 'static,
+    S: Send + Clone + Sync + 'static,
     F: Fn(String, Router) -> Router,
 {
     let mut app = Router::new();
@@ -22,7 +22,7 @@ where
 }
 fn into_router_one<S>(app_state: S, router: crate::Router<S>) -> (String, Router)
 where
-    S: Send + Clone + 'static,
+    S: Send + Clone + Sync + 'static,
 {
     let mut app = Router::new();
     let crate::Router { name, handlers } = router;
