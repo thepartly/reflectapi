@@ -526,8 +526,7 @@ export function __client(base: string | Client): __definition.Interface {
 
         fn normalized_name(&self) -> String {
             if self.name.chars().enumerate().any(|(ind, c)| {
-                ind == 0 && !c.is_alphabetic() && !matches!(c, '_')
-                    || !c.is_alphanumeric() && !matches!(c, '_')
+                ind == 0 && !c.is_alphabetic() && c != '_' || !c.is_alphanumeric() && c != '_'
             }) {
                 format!("\"{}\"", self.name)
             } else {
@@ -646,12 +645,7 @@ fn client_impl_from_function_group(
         subgroups: group
             .subgroups
             .iter()
-            .map(|(n, g)| {
-                (
-                    n.replace('-', "_"),
-                    client_impl_from_function_group(offset + 4, g),
-                )
-            })
+            .map(|(n, g)| (n.to_owned(), client_impl_from_function_group(offset + 4, g)))
             .collect(),
     }
 }

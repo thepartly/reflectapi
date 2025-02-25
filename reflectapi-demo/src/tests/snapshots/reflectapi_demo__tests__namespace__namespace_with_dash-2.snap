@@ -250,11 +250,11 @@ class ClientInstance {
 
 export namespace __definition {
   export interface Interface {
-    jobs_two: JobsTwoInterface;
+    "jobs-two": JobsTwoInterface;
   }
 
   export interface JobsTwoInterface {
-    pet_orders: PetOrdersInterface;
+    "pet-orders": PetOrdersInterface;
   }
 
   export interface PetOrdersInterface {
@@ -284,8 +284,8 @@ namespace __implementation {
       typeof base === "string" ? new ClientInstance(base) : base;
     return {
       impl: {
-        jobs_two: {
-          pet_orders: {
+        "jobs-two": {
+          "pet-orders": {
             list_x: jobs_two__pet_orders__list_x(client_instance),
           },
         },
