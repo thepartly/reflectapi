@@ -526,12 +526,12 @@ export function __client(base: string | Client): __definition.Interface {
 
         fn normalized_name(&self) -> String {
             if self.name.chars().enumerate().any(|(ind, c)| {
-                ind == 0 && !c.is_alphabetic() && !matches!(c, '_' | '-')
-                    || !c.is_alphanumeric() && !matches!(c, '_' | '-')
+                ind == 0 && !c.is_alphabetic() && !matches!(c, '_')
+                    || !c.is_alphanumeric() && !matches!(c, '_')
             }) {
                 format!("\"{}\"", self.name)
             } else {
-                self.name.replace('-', "_")
+                self.name.clone()
             }
         }
     }
