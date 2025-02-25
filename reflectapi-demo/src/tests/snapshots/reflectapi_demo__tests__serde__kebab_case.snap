@@ -1,0 +1,85 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+snapshot_kind: text
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::Test"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::Test"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Test",
+        "fields": {
+          "named": [
+            {
+              "name": "field_name",
+              "serde_name": "field-name",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Test",
+        "fields": {
+          "named": [
+            {
+              "name": "field_name",
+              "serde_name": "field-name",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

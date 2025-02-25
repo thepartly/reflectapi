@@ -14,6 +14,17 @@ fn test_struct_rename_differently() {
     assert_snapshot!(TestStructRenameDifferently);
 }
 
+#[test]
+fn test_kebab_case() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(rename_all = "kebab-case")]
+    struct Test {
+        field_name: u8,
+    }
+
+    assert_snapshot!(Test);
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct TestStructRenameAll {

@@ -37,7 +37,7 @@ export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
       export interface struct_name {
-        field_name: number /* u8 */;
+        "field-name": number /* u8 */;
       }
     }
   }

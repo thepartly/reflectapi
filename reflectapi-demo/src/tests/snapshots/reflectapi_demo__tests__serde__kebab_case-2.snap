@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super::into_typescript_code::<TestEnumWithRenameToInvalidChars>()"
+expression: "super::into_typescript_code::<Test>()"
 snapshot_kind: text
 ---
 // DO NOT MODIFY THIS FILE MANUALLY
@@ -16,12 +16,9 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.TestEnumWithRenameToInvalidChars,
+      input: reflectapi_demo.tests.serde.Test,
       headers: {},
-    ) => AsyncResult<
-      reflectapi_demo.tests.serde.TestEnumWithRenameToInvalidChars,
-      {}
-    >;
+    ) => AsyncResult<reflectapi_demo.tests.serde.Test, {}>;
   }
 }
 export namespace reflectapi {
@@ -39,11 +36,9 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
-      export type TestEnumWithRenameToInvalidChars = {
-        "variant-name&&": {
-          "field-name&&": number /* u8 */;
-        };
-      };
+      export interface Test {
+        "field-name": number /* u8 */;
+      }
     }
   }
 }
@@ -51,14 +46,11 @@ export namespace reflectapi_demo {
 namespace __implementation {
 
   function inout_test(client: Client) {
-    return (
-      input: reflectapi_demo.tests.serde.TestEnumWithRenameToInvalidChars,
-      headers: {},
-    ) =>
+    return (input: reflectapi_demo.tests.serde.Test, headers: {}) =>
       __request<
-        reflectapi_demo.tests.serde.TestEnumWithRenameToInvalidChars,
+        reflectapi_demo.tests.serde.Test,
         {},
-        reflectapi_demo.tests.serde.TestEnumWithRenameToInvalidChars,
+        reflectapi_demo.tests.serde.Test,
         {}
       >(client, "/inout_test", input, headers);
   }

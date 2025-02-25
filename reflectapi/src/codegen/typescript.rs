@@ -526,12 +526,11 @@ export function __client(base: string | Client): __definition.Interface {
 
         fn normalized_name(&self) -> String {
             if self.name.chars().enumerate().any(|(ind, c)| {
-                ind == 0 && !c.is_alphabetic() && !matches!(c, '_' | '-')
-                    || !c.is_alphanumeric() && !matches!(c, '_' | '-')
+                ind == 0 && !c.is_alphabetic() && c != '_' || !c.is_alphanumeric() && c != '_'
             }) {
-                format!("\"{}\"", self.name.replace('-', "_"))
+                format!("\"{}\"", self.name)
             } else {
-                self.name.replace('-', "_")
+                self.name.clone()
             }
         }
     }
@@ -722,7 +721,7 @@ fn interfaces_from_function_grouop(
     type_template
         .fields
         .extend(group.subgroups.keys().map(|f| templates::Field {
-            name: f.clone(),
+            name: f.replace('-', "_"),
             description: "".into(),
             type_: format!("{}Interface", camelcase(f)),
             optional: false,
