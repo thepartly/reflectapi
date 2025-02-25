@@ -529,7 +529,7 @@ export function __client(base: string | Client): __definition.Interface {
                 ind == 0 && !c.is_alphabetic() && !matches!(c, '_' | '-')
                     || !c.is_alphanumeric() && !matches!(c, '_' | '-')
             }) {
-                format!("\"{}\"", self.name.replace('-', "_"))
+                format!("\"{}\"", self.name)
             } else {
                 self.name.replace('-', "_")
             }
