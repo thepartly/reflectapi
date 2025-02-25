@@ -645,7 +645,12 @@ fn client_impl_from_function_group(
         subgroups: group
             .subgroups
             .iter()
-            .map(|(n, g)| (n.to_owned(), client_impl_from_function_group(offset + 4, g)))
+            .map(|(n, g)| {
+                (
+                    n.replace('-', "_"),
+                    client_impl_from_function_group(offset + 4, g),
+                )
+            })
             .collect(),
     }
 }
@@ -716,7 +721,7 @@ fn interfaces_from_function_grouop(
     type_template
         .fields
         .extend(group.subgroups.keys().map(|f| templates::Field {
-            name: f.clone(),
+            name: f.replace('-', "_"),
             description: "".into(),
             type_: format!("{}Interface", camelcase(f)),
             optional: false,
