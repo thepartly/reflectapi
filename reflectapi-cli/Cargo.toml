@@ -1,6 +1,6 @@
 [package]
 name = "reflectapi-cli"
-version = "0.14.2"
+version = "0.14.3"
 edition = "2021"
 default-run = "reflectapi"
 
@@ -22,7 +22,7 @@ path = "src/main.rs"
 workspace = true
 
 [dependencies]
-reflectapi = { path = "../reflectapi", version = "0.14.2", features = ["codegen"] }
+reflectapi = { path = "../reflectapi", version = "0.14.3", features = ["codegen"] }
 rouille = "3"
 
 clap = { version = "4.5.3", features = ["derive"] }
