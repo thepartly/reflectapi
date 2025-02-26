@@ -1,0 +1,58 @@
+---
+source: reflectapi-demo/src/tests/namespace.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+snapshot_kind: text
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "pet-orders",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/x.foo.get": {
+      "description": "",
+      "post": {
+        "operationId": "x.foo.get",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/y.foo.get": {
+      "description": "",
+      "post": {
+        "operationId": "y.foo.get",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}
