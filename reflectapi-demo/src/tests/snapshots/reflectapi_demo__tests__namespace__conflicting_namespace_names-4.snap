@@ -6,7 +6,7 @@ snapshot_kind: text
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "pet-orders",
+    "title": "foo",
     "description": "",
     "version": "1.0.0"
   },
@@ -41,9 +41,7 @@ snapshot_kind: text
             "content": {
               "application/json": {
                 "schema": {
-                  "description": "empty object",
-                  "type": "object",
-                  "properties": {}
+                  "$ref": "#/components/schemas/std.tuple.Tuple0"
                 }
               }
             }
@@ -53,6 +51,11 @@ snapshot_kind: text
     }
   },
   "components": {
-    "schemas": {}
+    "schemas": {
+      "std.tuple.Tuple0": {
+        "description": "Unit type",
+        "type": "null"
+      }
+    }
   }
 }

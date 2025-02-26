@@ -71,7 +71,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     generated_code.push(END_BOILERPLATE.into());
 
     let mut types = vec![];
-    interfaces_from_function_grouop(
+    interfaces_from_function_group(
         "",
         &mut types,
         &function_groups,
@@ -683,7 +683,7 @@ fn function_signature(
     (input_type, input_headers, output_type, error_type)
 }
 
-fn interfaces_from_function_grouop(
+fn interfaces_from_function_group(
     prefix: &str,
     interfaces: &mut Vec<templates::Interface>,
     group: &FunctionGroup,
@@ -692,7 +692,7 @@ fn interfaces_from_function_grouop(
     functions_by_name: &IndexMap<String, &Function>,
 ) {
     let mut type_template = templates::Interface {
-        name: format!("{}Interface", camelcase(prefix)),
+        name: format!("{prefix}Interface"),
         description: "".into(),
         fields: Default::default(),
         is_tuple: false,
@@ -723,15 +723,15 @@ fn interfaces_from_function_grouop(
         .extend(group.subgroups.keys().map(|f| templates::Field {
             name: f.replace('-', "_"),
             description: "".into(),
-            type_: format!("{}Interface", camelcase(f)),
+            type_: format!("{}{}Interface", camelcase(prefix), camelcase(f)),
             optional: false,
         }));
 
     interfaces.push(type_template);
 
     for (name, group) in &group.subgroups {
-        interfaces_from_function_grouop(
-            name,
+        interfaces_from_function_group(
+            &format!("{}{}", camelcase(prefix), camelcase(name)),
             interfaces,
             group,
             schema,

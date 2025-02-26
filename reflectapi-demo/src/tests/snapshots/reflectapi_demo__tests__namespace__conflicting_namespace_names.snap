@@ -4,7 +4,7 @@ expression: schema
 snapshot_kind: text
 ---
 {
-  "name": "pet-orders",
+  "name": "foo",
   "functions": [
     {
       "name": "x.foo.get",
@@ -16,6 +16,9 @@ snapshot_kind: text
     {
       "name": "y.foo.get",
       "path": "",
+      "output_type": {
+        "name": "std::tuple::Tuple0"
+      },
       "serialization": [
         "json"
       ]
@@ -44,6 +47,11 @@ snapshot_kind: text
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
       }
     ]
   }
