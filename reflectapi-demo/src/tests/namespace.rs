@@ -12,6 +12,21 @@ fn test_namespace_with_dash() {
 }
 
 #[test]
+fn test_conflicting_namespace_names() {
+    // Make sure the two handlers have incompatible types for this test to be valid.
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("foo")
+        .route(
+            |_, _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("x.foo.get")
+        )
+        .route(
+            |_, _: reflectapi::Empty, _: reflectapi::Empty| async {},
+            |b| b.name("y.foo.get")
+        ))
+}
+
+#[test]
 fn test_conflicting_names() {
     #[derive(Debug, serde::Serialize, reflectapi::Output)]
     struct Foo {}

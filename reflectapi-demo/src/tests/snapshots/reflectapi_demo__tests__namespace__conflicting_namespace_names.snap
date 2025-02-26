@@ -1,0 +1,58 @@
+---
+source: reflectapi-demo/src/tests/namespace.rs
+expression: schema
+snapshot_kind: text
+---
+{
+  "name": "foo",
+  "functions": [
+    {
+      "name": "x.foo.get",
+      "path": "",
+      "serialization": [
+        "json"
+      ]
+    },
+    {
+      "name": "y.foo.get",
+      "path": "",
+      "output_type": {
+        "name": "std::tuple::Tuple0"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
+      }
+    ]
+  }
+}

@@ -162,24 +162,28 @@ macro_rules! assert_snapshot {
 macro_rules! assert_builder_snapshot {
     ($builder:expr) => {{
         let (schema, _) = $builder.build().unwrap();
-        let rust = reflectapi::codegen::rust::generate(
-            schema.clone(),
-            &reflectapi::codegen::rust::Config {
-                format: true,
-                typecheck: true,
-                ..Default::default()
-            },
-        )
-        .unwrap();
-        let typescript = reflectapi::codegen::typescript::generate(
-            schema.clone(),
-            &reflectapi::codegen::typescript::Config {
-                format: true,
-                typecheck: true,
-                ..Default::default()
-            },
-        )
-        .unwrap();
+        let rust = reflectapi::codegen::strip_boilerplate(
+            &reflectapi::codegen::rust::generate(
+                schema.clone(),
+                &reflectapi::codegen::rust::Config {
+                    format: true,
+                    typecheck: true,
+                    ..Default::default()
+                },
+            )
+            .unwrap(),
+        );
+        let typescript = reflectapi::codegen::strip_boilerplate(
+            &reflectapi::codegen::typescript::generate(
+                schema.clone(),
+                &reflectapi::codegen::typescript::Config {
+                    format: true,
+                    typecheck: true,
+                    ..Default::default()
+                },
+            )
+            .unwrap(),
+        );
         insta::assert_json_snapshot!(schema);
         insta::assert_snapshot!(typescript);
         insta::assert_snapshot!(rust);
