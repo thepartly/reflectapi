@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_input_schema::<TestEnumDocumented<u8>>().input_types"
+snapshot_kind: text
 ---
 {
   "types": [
@@ -13,22 +14,22 @@ expression: "super::into_input_schema::<TestEnumDocumented<u8>>().input_types"
     {
       "kind": "enum",
       "name": "reflectapi_demo::tests::basic::TestEnumDocumented",
-      "description": " Some Enum docs\n more",
+      "description": "Some Enum docs\nmore",
       "parameters": [
         {
           "name": "T",
-          "description": " some generic param docs\n multiline"
+          "description": "some generic param docs\nmultiline"
         }
       ],
       "variants": [
         {
           "name": "Variant1",
-          "description": " Variant1 docs",
+          "description": "Variant1 docs",
           "fields": {
             "unnamed": [
               {
                 "name": "0",
-                "description": " variant1 field docs",
+                "description": "variant1 field docs",
                 "type": {
                   "name": "T"
                 },
@@ -39,12 +40,12 @@ expression: "super::into_input_schema::<TestEnumDocumented<u8>>().input_types"
         },
         {
           "name": "Variant2",
-          "description": " Variant2 docs\n multiline\n more\n more",
+          "description": "Variant2 docs\nmultiline\nmore\nmore",
           "fields": {
             "named": [
               {
                 "name": "named_field",
-                "description": " named field variant2 field docs",
+                "description": "named field variant2 field docs",
                 "type": {
                   "name": "T"
                 },

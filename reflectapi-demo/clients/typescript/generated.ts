@@ -315,11 +315,11 @@ export namespace myapi {
       | {
           Aggressive: [
             /**
-             *  aggressiveness level
+             * aggressiveness level
              */
             number /* f64 */,
             /**
-             *  some notes
+             * some notes
              */
             string,
           ];
@@ -327,12 +327,12 @@ export namespace myapi {
       | {
           Other: {
             /**
-             *  Custom provided description of a behavior
+             * Custom provided description of a behavior
              */
             description: string;
             /**
-             *  Additional notes
-             *  Up to a user to put free text here
+             * Additional notes
+             * Up to a user to put free text here
              */
             notes?: string;
           };
@@ -340,22 +340,22 @@ export namespace myapi {
 
     export type Kind =
       /**
-       *  A dog
+       * A dog
        */
       | {
           type: "dog";
           /**
-           *  breed of the dog
+           * breed of the dog
            */
           breed: string;
         }
       /**
-       *  A cat
+       * A cat
        */
       | {
           type: "cat";
           /**
-           *  lives left
+           * lives left
            */
           lives: number /* u8 */;
         };
@@ -363,21 +363,21 @@ export namespace myapi {
     export namespace input {
       export interface Pet {
         /**
-         *  identity
+         * identity
          */
         name: string;
         /**
-         *  kind of pet
+         * kind of pet
          */
         kind: myapi.model.Kind;
         /**
          * @deprecated test deprecation
-         *  age of the pet
+         * age of the pet
          */
         age?: number /* u8 */ | null;
         updated_at?: string;
         /**
-         *  behaviors of the pet
+         * behaviors of the pet
          */
         behaviors?: Array<myapi.model.Behavior>;
       }
@@ -386,21 +386,21 @@ export namespace myapi {
     export namespace output {
       export interface Pet {
         /**
-         *  identity
+         * identity
          */
         name: string;
         /**
-         *  kind of pet
+         * kind of pet
          */
         kind: myapi.model.Kind;
         /**
          * @deprecated test deprecation
-         *  age of the pet
+         * age of the pet
          */
         age?: number /* u8 */ | null;
         updated_at: string;
         /**
-         *  behaviors of the pet
+         * behaviors of the pet
          */
         behaviors?: Array<myapi.model.Behavior>;
       }
@@ -414,11 +414,11 @@ export namespace myapi {
 
     export interface Paginated<T> {
       /**
-       *  slice of a collection
+       * slice of a collection
        */
       items: Array<T>;
       /**
-       *  cursor for getting next page
+       * cursor for getting next page
        */
       cursor?: string | null;
     }
@@ -445,7 +445,7 @@ export namespace myapi {
 
     export interface PetsRemoveRequest {
       /**
-       *  identity
+       * identity
        */
       name: string;
     }
@@ -454,19 +454,19 @@ export namespace myapi {
 
     export interface PetsUpdateRequest {
       /**
-       *  identity
+       * identity
        */
       name: string;
       /**
-       *  kind of pet, non nullable in the model
+       * kind of pet, non nullable in the model
        */
       kind?: myapi.model.Kind | null;
       /**
-       *  age of the pet, nullable in the model
+       * age of the pet, nullable in the model
        */
       age?: number /* u8 */ | null | undefined;
       /**
-       *  behaviors of the pet, nullable in the model
+       * behaviors of the pet, nullable in the model
        */
       behaviors?: Array<myapi.model.Behavior> | null | undefined;
     }

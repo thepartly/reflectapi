@@ -184,7 +184,7 @@
                   ],
                   "properties": {
                     "cursor": {
-                      "description": " cursor for getting next page",
+                      "description": "cursor for getting next page",
                       "oneOf": [
                         {
                           "description": "Null",
@@ -196,7 +196,7 @@
                       ]
                     },
                     "items": {
-                      "description": " slice of a collection",
+                      "description": "slice of a collection",
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/myapi.model.output.Pet"
@@ -379,11 +379,11 @@
                 ],
                 "properties": {
                   "description": {
-                    "description": " Custom provided description of a behavior",
+                    "description": "Custom provided description of a behavior",
                     "$ref": "#/components/schemas/std.string.String"
                   },
                   "notes": {
-                    "description": " Additional notes\n Up to a user to put free text here",
+                    "description": "Additional notes\nUp to a user to put free text here",
                     "$ref": "#/components/schemas/std.string.String"
                   }
                 }
@@ -395,7 +395,7 @@
       "myapi.model.Kind": {
         "oneOf": [
           {
-            "description": " A dog",
+            "description": "A dog",
             "type": "object",
             "title": "dog",
             "required": [
@@ -404,7 +404,7 @@
             ],
             "properties": {
               "breed": {
-                "description": " breed of the dog",
+                "description": "breed of the dog",
                 "$ref": "#/components/schemas/std.string.String"
               },
               "type": {
@@ -413,7 +413,7 @@
             }
           },
           {
-            "description": " A cat",
+            "description": "A cat",
             "type": "object",
             "title": "cat",
             "required": [
@@ -422,7 +422,7 @@
             ],
             "properties": {
               "lives": {
-                "description": " lives left",
+                "description": "lives left",
                 "$ref": "#/components/schemas/u8"
               },
               "type": {
@@ -441,7 +441,7 @@
         ],
         "properties": {
           "age": {
-            "description": " age of the pet",
+            "description": "age of the pet",
             "deprecated": true,
             "oneOf": [
               {
@@ -454,18 +454,18 @@
             ]
           },
           "behaviors": {
-            "description": " behaviors of the pet",
+            "description": "behaviors of the pet",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/myapi.model.Behavior"
             }
           },
           "kind": {
-            "description": " kind of pet",
+            "description": "kind of pet",
             "$ref": "#/components/schemas/myapi.model.Kind"
           },
           "name": {
-            "description": " identity",
+            "description": "identity",
             "$ref": "#/components/schemas/std.string.String"
           },
           "updated_at": {
@@ -485,7 +485,7 @@
         ],
         "properties": {
           "age": {
-            "description": " age of the pet",
+            "description": "age of the pet",
             "deprecated": true,
             "oneOf": [
               {
@@ -498,18 +498,18 @@
             ]
           },
           "behaviors": {
-            "description": " behaviors of the pet",
+            "description": "behaviors of the pet",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/myapi.model.Behavior"
             }
           },
           "kind": {
-            "description": " kind of pet",
+            "description": "kind of pet",
             "$ref": "#/components/schemas/myapi.model.Kind"
           },
           "name": {
-            "description": " identity",
+            "description": "identity",
             "$ref": "#/components/schemas/std.string.String"
           },
           "updated_at": {
@@ -614,7 +614,7 @@
         ],
         "properties": {
           "name": {
-            "description": " identity",
+            "description": "identity",
             "$ref": "#/components/schemas/std.string.String"
           }
         }
@@ -637,7 +637,7 @@
         ],
         "properties": {
           "age": {
-            "description": " age of the pet, nullable in the model",
+            "description": "age of the pet, nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -649,7 +649,7 @@
             ]
           },
           "behaviors": {
-            "description": " behaviors of the pet, nullable in the model",
+            "description": "behaviors of the pet, nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -665,7 +665,7 @@
             ]
           },
           "kind": {
-            "description": " kind of pet, non nullable in the model",
+            "description": "kind of pet, non nullable in the model",
             "oneOf": [
               {
                 "description": "Null",
@@ -677,7 +677,7 @@
             ]
           },
           "name": {
-            "description": " identity",
+            "description": "identity",
             "$ref": "#/components/schemas/std.string.String"
           }
         }

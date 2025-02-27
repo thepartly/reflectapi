@@ -147,6 +147,7 @@ pub(crate) fn parse_doc_attributes(attrs: &Vec<syn::Attribute>) -> String {
                     .to_string()
                     .as_str()
                     .trim_matches('"')
+                    .trim()
                     .to_string(),
             );
         }

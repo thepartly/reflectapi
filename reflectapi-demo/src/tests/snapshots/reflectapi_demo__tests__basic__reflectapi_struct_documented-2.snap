@@ -37,14 +37,14 @@ export namespace reflectapi_demo {
   export namespace tests {
     export namespace basic {
       /**
-       *  Some Struct docs
-       *  more
-       *  more
+       * Some Struct docs
+       * more
+       * more
        */
       export interface TestStructDocumented {
         /**
-         *  field docs
-         *  multiline
+         * field docs
+         * multiline
          */
         f: number /* u8 */;
       }

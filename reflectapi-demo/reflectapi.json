@@ -166,7 +166,7 @@
               "unnamed": [
                 {
                   "name": "0",
-                  "description": " aggressiveness level ",
+                  "description": "aggressiveness level",
                   "type": {
                     "name": "f64"
                   },
@@ -174,7 +174,7 @@
                 },
                 {
                   "name": "1",
-                  "description": " some notes ",
+                  "description": "some notes",
                   "type": {
                     "name": "std::string::String"
                   },
@@ -189,7 +189,7 @@
               "named": [
                 {
                   "name": "description",
-                  "description": " Custom provided description of a behavior",
+                  "description": "Custom provided description of a behavior",
                   "type": {
                     "name": "std::string::String"
                   },
@@ -197,7 +197,7 @@
                 },
                 {
                   "name": "notes",
-                  "description": " Additional notes\n Up to a user to put free text here",
+                  "description": "Additional notes\nUp to a user to put free text here",
                   "type": {
                     "name": "std::string::String"
                   }
@@ -218,12 +218,12 @@
         "variants": [
           {
             "name": "dog",
-            "description": " A dog",
+            "description": "A dog",
             "fields": {
               "named": [
                 {
                   "name": "breed",
-                  "description": " breed of the dog",
+                  "description": "breed of the dog",
                   "type": {
                     "name": "std::string::String"
                   },
@@ -234,12 +234,12 @@
           },
           {
             "name": "cat",
-            "description": " A cat",
+            "description": "A cat",
             "fields": {
               "named": [
                 {
                   "name": "lives",
-                  "description": " lives left",
+                  "description": "lives left",
                   "type": {
                     "name": "u8"
                   },
@@ -257,7 +257,7 @@
           "named": [
             {
               "name": "name",
-              "description": " identity",
+              "description": "identity",
               "type": {
                 "name": "std::string::String"
               },
@@ -265,7 +265,7 @@
             },
             {
               "name": "kind",
-              "description": " kind of pet",
+              "description": "kind of pet",
               "type": {
                 "name": "myapi::model::Kind"
               },
@@ -273,7 +273,7 @@
             },
             {
               "name": "age",
-              "description": " age of the pet",
+              "description": "age of the pet",
               "deprecation_note": "test deprecation",
               "type": {
                 "name": "std::option::Option",
@@ -297,7 +297,7 @@
             },
             {
               "name": "behaviors",
-              "description": " behaviors of the pet",
+              "description": "behaviors of the pet",
               "type": {
                 "name": "std::vec::Vec",
                 "arguments": [
@@ -377,7 +377,7 @@
           "named": [
             {
               "name": "name",
-              "description": " identity",
+              "description": "identity",
               "type": {
                 "name": "std::string::String"
               },
@@ -393,7 +393,7 @@
           "named": [
             {
               "name": "name",
-              "description": " identity",
+              "description": "identity",
               "type": {
                 "name": "std::string::String"
               },
@@ -401,7 +401,7 @@
             },
             {
               "name": "kind",
-              "description": " kind of pet, non nullable in the model",
+              "description": "kind of pet, non nullable in the model",
               "type": {
                 "name": "std::option::Option",
                 "arguments": [
@@ -413,7 +413,7 @@
             },
             {
               "name": "age",
-              "description": " age of the pet, nullable in the model",
+              "description": "age of the pet, nullable in the model",
               "type": {
                 "name": "reflectapi::Option",
                 "arguments": [
@@ -425,7 +425,7 @@
             },
             {
               "name": "behaviors",
-              "description": " behaviors of the pet, nullable in the model",
+              "description": "behaviors of the pet, nullable in the model",
               "type": {
                 "name": "reflectapi::Option",
                 "arguments": [
@@ -574,7 +574,7 @@
               "unnamed": [
                 {
                   "name": "0",
-                  "description": " aggressiveness level ",
+                  "description": "aggressiveness level",
                   "type": {
                     "name": "f64"
                   },
@@ -582,7 +582,7 @@
                 },
                 {
                   "name": "1",
-                  "description": " some notes ",
+                  "description": "some notes",
                   "type": {
                     "name": "std::string::String"
                   },
@@ -597,7 +597,7 @@
               "named": [
                 {
                   "name": "description",
-                  "description": " Custom provided description of a behavior",
+                  "description": "Custom provided description of a behavior",
                   "type": {
                     "name": "std::string::String"
                   },
@@ -605,7 +605,7 @@
                 },
                 {
                   "name": "notes",
-                  "description": " Additional notes\n Up to a user to put free text here",
+                  "description": "Additional notes\nUp to a user to put free text here",
                   "type": {
                     "name": "std::string::String"
                   }
@@ -626,12 +626,12 @@
         "variants": [
           {
             "name": "dog",
-            "description": " A dog",
+            "description": "A dog",
             "fields": {
               "named": [
                 {
                   "name": "breed",
-                  "description": " breed of the dog",
+                  "description": "breed of the dog",
                   "type": {
                     "name": "std::string::String"
                   },
@@ -642,12 +642,12 @@
           },
           {
             "name": "cat",
-            "description": " A cat",
+            "description": "A cat",
             "fields": {
               "named": [
                 {
                   "name": "lives",
-                  "description": " lives left",
+                  "description": "lives left",
                   "type": {
                     "name": "u8"
                   },
@@ -665,7 +665,7 @@
           "named": [
             {
               "name": "name",
-              "description": " identity",
+              "description": "identity",
               "type": {
                 "name": "std::string::String"
               },
@@ -673,7 +673,7 @@
             },
             {
               "name": "kind",
-              "description": " kind of pet",
+              "description": "kind of pet",
               "type": {
                 "name": "myapi::model::Kind"
               },
@@ -681,7 +681,7 @@
             },
             {
               "name": "age",
-              "description": " age of the pet",
+              "description": "age of the pet",
               "deprecation_note": "test deprecation",
               "type": {
                 "name": "std::option::Option",
@@ -706,7 +706,7 @@
             },
             {
               "name": "behaviors",
-              "description": " behaviors of the pet",
+              "description": "behaviors of the pet",
               "type": {
                 "name": "std::vec::Vec",
                 "arguments": [
@@ -731,7 +731,7 @@
           "named": [
             {
               "name": "items",
-              "description": " slice of a collection",
+              "description": "slice of a collection",
               "type": {
                 "name": "std::vec::Vec",
                 "arguments": [
@@ -744,7 +744,7 @@
             },
             {
               "name": "cursor",
-              "description": " cursor for getting next page",
+              "description": "cursor for getting next page",
               "type": {
                 "name": "std::option::Option",
                 "arguments": [

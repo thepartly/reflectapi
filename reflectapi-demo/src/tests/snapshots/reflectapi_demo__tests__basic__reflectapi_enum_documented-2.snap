@@ -37,29 +37,29 @@ export namespace reflectapi_demo {
   export namespace tests {
     export namespace basic {
       /**
-       *  Some Enum docs
-       *  more
+       * Some Enum docs
+       * more
        */
       export type TestEnumDocumented<T> =
         /**
-         *  Variant1 docs
+         * Variant1 docs
          */
         | {
             Variant1: /**
-             *  variant1 field docs
+             * variant1 field docs
              */
             T;
           }
         /**
-         *  Variant2 docs
-         *  multiline
-         *  more
-         *  more
+         * Variant2 docs
+         * multiline
+         * more
+         * more
          */
         | {
             Variant2: {
               /**
-               *  named field variant2 field docs
+               * named field variant2 field docs
                */
               named_field: T;
             };
