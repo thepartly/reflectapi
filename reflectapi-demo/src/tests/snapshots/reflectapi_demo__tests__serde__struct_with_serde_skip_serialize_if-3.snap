@@ -69,7 +69,10 @@ pub mod types {
 
                     #[derive(Debug, serde::Deserialize)]
                     pub struct TestStructWithSerdeSkipSerializeIf {
-                        #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "std::option::Option::is_none"
+                        )]
                         pub f: std::option::Option<u8>,
                     }
                 }
