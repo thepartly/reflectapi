@@ -501,7 +501,6 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
             if self.optional {
                 serde_attrs.push("default = \"Default::default\"".into());
 
-
                 // this one is important to not serialize undefined values
                 // as this is the special built-in type which allows to differentiate between undefined and null
                 if self.type_.starts_with("reflectapi::Option<") {
