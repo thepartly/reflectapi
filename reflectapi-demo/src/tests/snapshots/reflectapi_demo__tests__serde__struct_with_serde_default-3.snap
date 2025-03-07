@@ -62,7 +62,7 @@ pub mod types {
 
                     #[derive(Debug, serde::Serialize)]
                     pub struct TestStructWithSerdeDefault {
-                        #[serde(default)]
+                        #[serde(default = "Default::default")]
                         pub f: u8,
                     }
                 }

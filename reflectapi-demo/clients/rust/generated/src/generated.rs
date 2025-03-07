@@ -233,7 +233,10 @@ pub mod types {
                     description: std::string::String,
                     /// Additional notes
                     /// Up to a user to put free text here
-                    #[serde(default, skip_serializing_if = "std::string::String::is_empty")]
+                    #[serde(
+                        default = "Default::default",
+                        skip_serializing_if = "std::string::String::is_empty"
+                    )]
                     notes: std::string::String,
                 },
             }
@@ -263,13 +266,19 @@ pub mod types {
                     /// kind of pet
                     pub kind: super::super::super::myapi::model::Kind,
                     /// age of the pet
-                    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                    #[serde(
+                        default = "Default::default",
+                        skip_serializing_if = "std::option::Option::is_none"
+                    )]
                     #[deprecated(note = "test deprecation")]
                     pub age: std::option::Option<u8>,
-                    #[serde(default)]
+                    #[serde(default = "Default::default")]
                     pub updated_at: chrono::DateTime<chrono::Utc>,
                     /// behaviors of the pet
-                    #[serde(default, skip_serializing_if = "std::vec::Vec::is_empty")]
+                    #[serde(
+                        default = "Default::default",
+                        skip_serializing_if = "std::vec::Vec::is_empty"
+                    )]
                     pub behaviors: std::vec::Vec<super::super::super::myapi::model::Behavior>,
                 }
             }
@@ -282,12 +291,18 @@ pub mod types {
                     /// kind of pet
                     pub kind: super::super::super::myapi::model::Kind,
                     /// age of the pet
-                    #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                    #[serde(
+                        default = "Default::default",
+                        skip_serializing_if = "std::option::Option::is_none"
+                    )]
                     #[deprecated(note = "test deprecation")]
                     pub age: std::option::Option<u8>,
                     pub updated_at: chrono::DateTime<chrono::Utc>,
                     /// behaviors of the pet
-                    #[serde(default, skip_serializing_if = "std::vec::Vec::is_empty")]
+                    #[serde(
+                        default = "Default::default",
+                        skip_serializing_if = "std::vec::Vec::is_empty"
+                    )]
                     pub behaviors: std::vec::Vec<super::super::super::myapi::model::Behavior>,
                 }
             }
@@ -304,7 +319,10 @@ pub mod types {
                 /// slice of a collection
                 pub items: std::vec::Vec<T>,
                 /// cursor for getting next page
-                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                #[serde(
+                    default = "Default::default",
+                    skip_serializing_if = "std::option::Option::is_none"
+                )]
                 pub cursor: std::option::Option<std::string::String>,
             }
 
@@ -325,9 +343,15 @@ pub mod types {
 
             #[derive(Debug, serde::Serialize)]
             pub struct PetsListRequest {
-                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                #[serde(
+                    default = "Default::default",
+                    skip_serializing_if = "std::option::Option::is_none"
+                )]
                 pub limit: std::option::Option<u8>,
-                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                #[serde(
+                    default = "Default::default",
+                    skip_serializing_if = "std::option::Option::is_none"
+                )]
                 pub cursor: std::option::Option<std::string::String>,
             }
 
@@ -354,13 +378,22 @@ pub mod types {
                 /// identity
                 pub name: std::string::String,
                 /// kind of pet, non nullable in the model
-                #[serde(default, skip_serializing_if = "std::option::Option::is_none")]
+                #[serde(
+                    default = "Default::default",
+                    skip_serializing_if = "std::option::Option::is_none"
+                )]
                 pub kind: std::option::Option<super::super::myapi::model::Kind>,
                 /// age of the pet, nullable in the model
-                #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+                #[serde(
+                    default = "Default::default",
+                    skip_serializing_if = "reflectapi::Option::is_undefined"
+                )]
                 pub age: reflectapi::Option<u8>,
                 /// behaviors of the pet, nullable in the model
-                #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+                #[serde(
+                    default = "Default::default",
+                    skip_serializing_if = "reflectapi::Option::is_undefined"
+                )]
                 pub behaviors:
                     reflectapi::Option<std::vec::Vec<super::super::myapi::model::Behavior>>,
             }
