@@ -122,7 +122,7 @@ pub(crate) struct ParsedTypeAttributes {
     pub derives: Vec<syn::Meta>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub(crate) struct ParsedFieldAttributes {
     pub deprecation_note: Option<String>,
     pub input_type: Option<syn::Type>,
