@@ -492,11 +492,27 @@ fn test_reflectapi_struct_unit_type() {
     assert_snapshot!(TestStructUnitType);
 }
 
+#[test]
+fn test_reflectapi_enum_with_skip_variant() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    enum TestEnumWithSkipVariant {
+        A,
+        #[reflectapi(skip)]
+        B,
+        #[reflectapi(output_skip)]
+        I,
+        #[reflectapi(input_skip)]
+        O,
+    }
+    assert_snapshot!(TestEnumWithSkipVariant);
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSkipField {
     #[reflectapi(skip)]
     _f: u8,
 }
+
 #[test]
 fn test_reflectapi_struct_with_skip_field() {
     assert_snapshot!(TestStructWithSkipField);

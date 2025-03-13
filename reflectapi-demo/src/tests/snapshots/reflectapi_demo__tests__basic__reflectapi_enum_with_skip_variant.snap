@@ -1,0 +1,71 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: schema
+snapshot_kind: text
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::input::TestEnumWithSkipVariant"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::output::TestEnumWithSkipVariant"
+      },
+      "serialization": [
+        "json"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::input::TestEnumWithSkipVariant",
+        "variants": [
+          {
+            "name": "A",
+            "fields": "none"
+          },
+          {
+            "name": "I",
+            "fields": "none"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::output::TestEnumWithSkipVariant",
+        "variants": [
+          {
+            "name": "A",
+            "fields": "none"
+          },
+          {
+            "name": "O",
+            "fields": "none"
+          }
+        ]
+      }
+    ]
+  }
+}

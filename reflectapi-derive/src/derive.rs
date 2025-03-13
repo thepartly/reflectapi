@@ -8,7 +8,7 @@ use crate::{
     context::{Context, ReflectType},
     parser::{
         naive_parse_as_type_reference, parse_doc_attributes, parse_field_attributes,
-        parse_type_attributes,
+        parse_type_attributes, parse_variant_attributes,
     },
 };
 
@@ -258,11 +258,17 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                 }
             }
             for variant in variants {
+                let variant_attrs = parse_variant_attributes(cx, &variant.original.attrs);
+
                 if !match cx.reflectapi_type() {
                     ReflectType::Input => {
-                        variant.attrs.skip_deserializing() || variant.attrs.other()
+                        variant.attrs.skip_deserializing()
+                            || variant.attrs.other()
+                            || variant_attrs.input_skip
                     }
-                    ReflectType::Output => variant.attrs.skip_serializing(),
+                    ReflectType::Output => {
+                        variant.attrs.skip_serializing() || variant_attrs.output_skip
+                    }
                 } {
                     result
                         .variants
