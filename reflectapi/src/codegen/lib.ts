@@ -13,7 +13,7 @@ export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
 export type FixedSizeArray<T, N extends number> = Array<T> & { length: N };
 
 export class Result<T, E> {
-  constructor(private value: { ok: T } | { err: E }) {}
+  constructor(private value: { ok: T } | { err: E }) { }
 
   public ok(): T | undefined {
     if ("ok" in this.value) {
@@ -55,7 +55,7 @@ export class Result<T, E> {
       return this.value.ok;
     }
     throw new Error(
-      `called \`unwrap_ok\` on an \`err\` value: ${this.value.err}`,
+      `called \`unwrap_ok\` on an \`err\` value: ${JSON.stringify(this.value.err)}`,
     );
   }
   public unwrap_err(): E {
@@ -93,15 +93,15 @@ export class Result<T, E> {
 
   public toString(): string {
     if ("ok" in this.value) {
-      return `Ok { ok: ${this.value.ok} }`;
+      return `Ok { ok: ${JSON.stringify(this.value.ok)} }`;
     } else {
-      return `Err { err: ${this.value.err} }`;
+      return `Err { err: ${JSON.stringify(this.value.err)} }`;
     }
   }
 }
 
 export class Err<E> {
-  constructor(private value: { application_err: E } | { other_err: any }) {}
+  constructor(private value: { application_err: E } | { other_err: any }) { }
 
   public err(): E | undefined {
     if ("application_err" in this.value) {
@@ -152,9 +152,9 @@ export class Err<E> {
 
   public toString(): string {
     if ("application_err" in this.value) {
-      return `Application Error: ${this.value.application_err}`;
+      return `Application Error: ${JSON.stringify(this.value.application_err)}`;
     } else {
-      return `Other Error: ${this.value.other_err}`;
+      return `Other Error: ${JSON.stringify(this.value.other_err)}`;
     }
   }
 }
@@ -210,7 +210,7 @@ export function __request<I, H, O, E>(
 }
 
 class ClientInstance {
-  constructor(private base: string) {}
+  constructor(private base: string) { }
 
   public request(
     path: string,

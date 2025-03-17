@@ -65,7 +65,7 @@ export class Result<T, E> {
       return this.value.ok;
     }
     throw new Error(
-      `called \`unwrap_ok\` on an \`err\` value: ${this.value.err}`,
+      `called \`unwrap_ok\` on an \`err\` value: ${JSON.stringify(this.value.err)}`,
     );
   }
   public unwrap_err(): E {
@@ -103,9 +103,9 @@ export class Result<T, E> {
 
   public toString(): string {
     if ("ok" in this.value) {
-      return `Ok { ok: ${this.value.ok} }`;
+      return `Ok { ok: ${JSON.stringify(this.value.ok)} }`;
     } else {
-      return `Err { err: ${this.value.err} }`;
+      return `Err { err: ${JSON.stringify(this.value.err)} }`;
     }
   }
 }
@@ -162,9 +162,9 @@ export class Err<E> {
 
   public toString(): string {
     if ("application_err" in this.value) {
-      return `Application Error: ${this.value.application_err}`;
+      return `Application Error: ${JSON.stringify(this.value.application_err)}`;
     } else {
-      return `Other Error: ${this.value.other_err}`;
+      return `Other Error: ${JSON.stringify(this.value.other_err)}`;
     }
   }
 }
