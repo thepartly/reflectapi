@@ -14,6 +14,10 @@ impl StatusCode {
         unimplemented!()
     }
 
+    pub fn is_server_error(&self) -> bool {
+        unimplemented!()
+    }
+
     pub fn is_success(&self) -> bool {
         unimplemented!()
     }
