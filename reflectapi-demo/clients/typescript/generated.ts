@@ -186,33 +186,33 @@ export function __request<I, H, O, E>(
   return client
     .request(path, JSON.stringify(input), hdrs)
     .then(([status, response_body]) => {
-      if (status < 200 || status >= 300) {
-        let parsed_response_body;
+      if (status >= 200 && status < 300) {
         try {
-          parsed_response_body = JSON.parse(response_body);
+          return new Result<O, Err<E>>({ ok: JSON.parse(response_body) as O });
+        } catch (e) {
+          return new Result<O, Err<E>>({
+            err: new Err({
+              other_err:
+                "internal error: failure to parse response body as json on successful status code: " +
+                response_body,
+            }),
+          });
+        }
+      } else if (status >= 500) {
+        return new Result<O, Err<E>>({
+          err: new Err({ other_err: `[${status}] ${response_body}` }),
+        });
+      } else {
+        try {
+          return new Result<O, Err<E>>({
+            err: new Err({ application_err: JSON.parse(response_body) as E }),
+          });
         } catch (e) {
           return new Result<O, Err<E>>({
             err: new Err({ other_err: `[${status}] ${response_body}` }),
           });
         }
-        return new Result<O, Err<E>>({
-          err: new Err({ application_err: parsed_response_body as E }),
-        });
       }
-
-      let parsed_response_body;
-      try {
-        parsed_response_body = JSON.parse(response_body);
-      } catch (e) {
-        return new Result<O, Err<E>>({
-          err: new Err({
-            other_err:
-              "internal error: failure to parse response body as json on successful status code: " +
-              response_body,
-          }),
-        });
-      }
-      return new Result<O, Err<E>>({ ok: parsed_response_body as O });
     })
     .catch((e) => {
       return new Result<O, Err<E>>({ err: new Err({ other_err: e }) });
