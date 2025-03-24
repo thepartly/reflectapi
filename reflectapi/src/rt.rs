@@ -174,12 +174,12 @@ where
         return Ok(output);
     }
     match serde_json::from_slice::<E>(&body) {
-        Ok(error) => Err(Error::Application(error)),
+        Ok(error) if !status.is_server_error() => Err(Error::Application(error)),
         Err(e) if status.is_client_error() => Err(Error::Protocol {
             info: e.to_string(),
             stage: ProtocolErrorStage::DeserializeResponseError(status, body),
         }),
-        Err(_) => Err(Error::Server(status, body)),
+        _ => Err(Error::Server(status, body)),
     }
 }
 
