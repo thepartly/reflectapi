@@ -43,7 +43,7 @@ impl fmt::Display for ValidationPointer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ValidationPointer::Field { type_name, name } => write!(f, "{}.{}", type_name, name),
-            ValidationPointer::Variant { type_name, name } => write!(f, "{}.{}", type_name, name),
+            ValidationPointer::Variant { type_name, name } => write!(f, "{}::{}", type_name, name),
             ValidationPointer::VariantField {
                 type_name,
                 variant_name,
