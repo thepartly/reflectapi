@@ -122,13 +122,19 @@ pub(crate) struct ParsedTypeAttributes {
     pub derives: Vec<syn::Meta>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub(crate) struct ParsedFieldAttributes {
     pub deprecation_note: Option<String>,
     pub input_type: Option<syn::Type>,
     pub output_type: Option<syn::Type>,
     pub input_transform: String,
     pub output_transform: String,
+    pub input_skip: bool,
+    pub output_skip: bool,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct ParsedVariantAttributes {
     pub input_skip: bool,
     pub output_skip: bool,
 }
@@ -247,6 +253,51 @@ fn parse_deprecated_attr(attr: &syn::Attribute) -> syn::Result<String> {
             })?;
             Ok(s)
         }
+    }
+}
+
+pub(crate) fn parse_variant_attributes(
+    cx: &Context,
+    attributes: &[syn::Attribute],
+) -> ParsedVariantAttributes {
+    let mut input_skip = false;
+    let mut output_skip = false;
+
+    for attr in attributes.iter() {
+        if attr.path() != REFLECT {
+            continue;
+        }
+
+        if let syn::Meta::List(meta) = &attr.meta {
+            if meta.tokens.is_empty() {
+                continue;
+            }
+        }
+
+        if let Err(err) = attr.parse_nested_meta(|meta| {
+            if meta.path == INPUT_SKIP {
+                // #[reflectapi(input_skip)]
+                input_skip = true;
+            } else if meta.path == OUTPUT_SKIP {
+                // #[reflectapi(output_skip)]
+                output_skip = true;
+            } else if meta.path == SKIP {
+                // #[reflectapi(skip)]
+                input_skip = true;
+                output_skip = true;
+            } else {
+                let path = meta.path.to_token_stream().to_string();
+                return Err(meta.error(format_args!("unknown reflect variant attribute `{path}`")));
+            }
+            Ok(())
+        }) {
+            cx.syn_error(err);
+        }
+    }
+
+    ParsedVariantAttributes {
+        input_skip,
+        output_skip,
     }
 }
 
