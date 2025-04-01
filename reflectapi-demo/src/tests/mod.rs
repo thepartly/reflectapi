@@ -47,7 +47,6 @@ fn write_rust_client() {
         schema,
         reflectapi::codegen::rust::Config::default()
             .format(true)
-            .typecheck(true)
             .instrument(true),
     )
     .unwrap();

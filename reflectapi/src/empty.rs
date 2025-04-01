@@ -1,4 +1,6 @@
-#[derive(Debug, Default, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(
+    Debug, Default, Clone, PartialEq, Eq, Ord, PartialOrd, serde::Deserialize, serde::Serialize,
+)]
 pub struct Empty {}
 
 impl Empty {
