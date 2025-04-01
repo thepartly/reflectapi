@@ -60,7 +60,7 @@ pub mod types {
         pub mod tests {
             pub mod serde {
 
-                #[derive(Debug, serde::Serialize, serde::Deserialize)]
+                #[derive(Debug, serde::Deserialize, serde::Serialize)]
                 pub struct Test {
                     pub index_map: indexmap::IndexMap<u8, u32>,
                     pub index_set: indexmap::IndexSet<std::string::String>,

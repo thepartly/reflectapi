@@ -60,7 +60,7 @@ pub mod types {
         pub mod tests {
             pub mod basic {
 
-                #[derive(Debug, serde::Serialize, serde::Deserialize)]
+                #[derive(Debug, serde::Deserialize, serde::Serialize)]
                 pub struct TestStructWithAllPrimitiveTypeFields {
                     pub _f_u8: u8,
                     pub _f_u16: u16,

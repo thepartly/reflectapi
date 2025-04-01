@@ -309,19 +309,25 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         }
 
         fn render_attributes_derive(&self) -> String {
-            let mut attrs = base_derives(&self.codegen_config.additional_derives);
+            let mut attrs = self.codegen_config.additional_derives.clone();
+            base_derives(&mut attrs);
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
-                attrs.push("serde::Serialize".into());
+                attrs.insert("serde::Serialize".into());
             }
+
             if self.is_output_type {
                 // for client it is the inverse, output types are incoming types
-                attrs.push("serde::Deserialize".into());
+                attrs.insert("serde::Deserialize".into());
             }
+
             if attrs.is_empty() {
                 "".into()
             } else {
-                format!("#[derive({})]", attrs.join(", "))
+                format!(
+                    "#[derive({})]",
+                    attrs.into_iter().collect::<Vec<_>>().join(", ")
+                )
             }
         }
     }
@@ -349,19 +355,23 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
 
     impl __Enum {
         fn render_attributes_derive(&self) -> String {
-            let mut attrs = base_derives(&self.codegen_config.additional_derives);
+            let mut attrs = self.codegen_config.additional_derives.clone();
+            base_derives(&mut attrs);
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
-                attrs.push("serde::Serialize".into());
+                attrs.insert("serde::Serialize".into());
             }
             if self.is_output_type {
                 // for client it is the inverse, output types are incoming types
-                attrs.push("serde::Deserialize".into());
+                attrs.insert("serde::Deserialize".into());
             }
             if attrs.is_empty() {
                 "".into()
             } else {
-                format!("#[derive({})]", attrs.join(", "))
+                format!(
+                    "#[derive({})]",
+                    attrs.into_iter().collect::<Vec<_>>().join(", ")
+                )
             }
         }
 
@@ -585,19 +595,23 @@ pub struct {{ name }};",
 
     impl __Unit {
         fn render_attributes_derive(&self) -> String {
-            let mut attrs = base_derives(&self.codegen_config.additional_derives);
+            let mut attrs = self.codegen_config.additional_derives.clone();
+            base_derives(&mut attrs);
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
-                attrs.push("serde::Serialize".into());
+                attrs.insert("serde::Serialize".into());
             }
             if self.is_output_type {
                 // for client it is the inverse, output types are incoming types
-                attrs.push("serde::Deserialize".into());
+                attrs.insert("serde::Deserialize".into());
             }
             if attrs.is_empty() {
                 "".into()
             } else {
-                format!("#[derive({})]", attrs.join(", "))
+                format!(
+                    "#[derive({})]",
+                    attrs.into_iter().collect::<Vec<_>>().join(", ")
+                )
             }
         }
     }
@@ -1268,14 +1282,6 @@ fn __field_name_to_snake_case(name: &str) -> String {
     }
 }
 
-fn base_derives(additional_derives: &BTreeSet<String>) -> Vec<String> {
-    let mut base_derives = vec!["Debug".to_owned()];
-
-    for derive in additional_derives {
-        base_derives.push(derive.to_owned());
-    }
-
-    base_derives.sort();
-    base_derives.dedup();
-    base_derives
+fn base_derives(additional_derives: &mut BTreeSet<String>) {
+    additional_derives.insert("Debug".to_owned());
 }

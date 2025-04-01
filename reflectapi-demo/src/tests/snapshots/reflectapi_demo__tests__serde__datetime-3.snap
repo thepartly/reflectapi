@@ -60,7 +60,7 @@ pub mod types {
         pub mod tests {
             pub mod serde {
 
-                #[derive(Debug, serde::Serialize, serde::Deserialize)]
+                #[derive(Debug, serde::Deserialize, serde::Serialize)]
                 pub struct TestStruct {
                     pub duration: std::time::Duration,
                     pub naive_time: chrono::NaiveTime,
