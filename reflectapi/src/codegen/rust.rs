@@ -13,16 +13,48 @@ use super::format_with;
 #[derive(Debug, Default)]
 pub struct Config {
     /// Attempt to format the generated code. Will give up if no formatter is found.
-    pub format: bool,
+    format: bool,
     /// Include tracing in the generated code.
-    pub instrument: bool,
+    instrument: bool,
     /// Typecheck the generated code. Will ignore if the typechecker is not available.
-    pub typecheck: bool,
-    pub shared_modules: BTreeSet<String>,
+    typecheck: bool,
+    shared_modules: BTreeSet<String>,
     /// Only include handlers with these tags (empty means include all).
-    pub include_tags: BTreeSet<String>,
+    include_tags: BTreeSet<String>,
     /// Exclude handlers with these tags (empty means exclude none).
-    pub exclude_tags: BTreeSet<String>,
+    exclude_tags: BTreeSet<String>,
+}
+
+impl Config {
+    pub fn format(&mut self, format: bool) -> &mut Self {
+        self.format = format;
+        self
+    }
+
+    pub fn instrument(&mut self, instrument: bool) -> &mut Self {
+        self.instrument = instrument;
+        self
+    }
+
+    pub fn typecheck(&mut self, typecheck: bool) -> &mut Self {
+        self.typecheck = typecheck;
+        self
+    }
+
+    pub fn shared_modules(&mut self, shared_modules: BTreeSet<String>) -> &mut Self {
+        self.shared_modules = shared_modules;
+        self
+    }
+
+    pub fn include_tags(&mut self, include_tags: BTreeSet<String>) -> &mut Self {
+        self.include_tags = include_tags;
+        self
+    }
+
+    pub fn exclude_tags(&mut self, exclude_tags: BTreeSet<String>) -> &mut Self {
+        self.exclude_tags = exclude_tags;
+        self
+    }
 }
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {

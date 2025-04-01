@@ -136,26 +136,26 @@ fn main() -> anyhow::Result<()> {
                     "generated.ts",
                     reflectapi::codegen::typescript::generate(
                         schema,
-                        &reflectapi::codegen::typescript::Config {
-                            format,
-                            typecheck,
-                            include_tags,
-                            exclude_tags,
-                        },
+                        reflectapi::codegen::typescript::Config::default()
+                            .format(format)
+                            .typecheck(typecheck)
+                            .include_tags(include_tags)
+                            .exclude_tags(exclude_tags),
                     )?,
                 ),
                 Language::Rust => (
                     "generated.rs",
                     reflectapi::codegen::rust::generate(
                         schema,
-                        &reflectapi::codegen::rust::Config {
-                            format,
-                            typecheck,
-                            instrument,
-                            include_tags,
-                            exclude_tags,
-                            shared_modules: BTreeSet::from_iter(shared_modules.unwrap_or_default()),
-                        },
+                        reflectapi::codegen::rust::Config::default()
+                            .format(format)
+                            .typecheck(typecheck)
+                            .instrument(instrument)
+                            .include_tags(include_tags)
+                            .exclude_tags(exclude_tags)
+                            .shared_modules(
+                                shared_modules.unwrap_or_default().into_iter().collect(),
+                            ),
                     )?,
                 ),
                 Language::Openapi => (

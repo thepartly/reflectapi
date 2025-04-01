@@ -45,12 +45,10 @@ fn write_rust_client() {
     let (schema, _) = crate::builder().build().unwrap();
     let src = reflectapi::codegen::rust::generate(
         schema,
-        &reflectapi::codegen::rust::Config {
-            format: true,
-            instrument: true,
-            typecheck: false,
-            ..Default::default()
-        },
+        reflectapi::codegen::rust::Config::default()
+            .format(true)
+            .typecheck(true)
+            .instrument(true),
     )
     .unwrap();
 
@@ -69,11 +67,9 @@ fn write_typescript_client() {
     let (schema, _) = crate::builder().build().unwrap();
     let src = reflectapi::codegen::typescript::generate(
         schema,
-        &reflectapi::codegen::typescript::Config {
-            format: true,
-            typecheck: true,
-            ..Default::default()
-        },
+        reflectapi::codegen::typescript::Config::default()
+            .format(true)
+            .typecheck(true),
     )
     .unwrap();
 
