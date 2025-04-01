@@ -219,7 +219,7 @@ pub mod types {
     pub mod myapi {
         pub mod model {
 
-            #[derive(Debug, serde::Serialize, serde::Deserialize)]
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
             pub enum Behavior {
                 Calm,
                 Aggressive(
@@ -241,7 +241,7 @@ pub mod types {
                 },
             }
 
-            #[derive(Debug, serde::Serialize, serde::Deserialize)]
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
             #[serde(tag = "type")]
             pub enum Kind {
                 /// A dog

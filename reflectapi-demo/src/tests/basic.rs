@@ -585,7 +585,18 @@ fn test_reflectapi_struct_with_additional_derives() {
         Hash,
         Default,
     )]
-    #[reflectapi(derive(Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default))]
+    #[reflectapi(derive(
+        Clone,
+        PartialOrd,
+        Ord,
+        PartialEq,
+        Eq,
+        Hash,
+        Default,
+        serde::Serialize,
+        // Test dedup
+        serde::Serialize
+    ))]
     struct U;
 
     #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]

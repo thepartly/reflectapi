@@ -60,7 +60,7 @@ pub mod types {
         pub mod tests {
             pub mod basic {
 
-                #[derive(Debug, serde::Serialize, serde::Deserialize)]
+                #[derive(Debug, serde::Deserialize, serde::Serialize)]
                 pub struct StructWithDeprecatedField {
                     #[deprecated]
                     pub _f: u8,

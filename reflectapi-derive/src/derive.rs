@@ -153,7 +153,11 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
             additional_derives: attrs
                 .derives
                 .iter()
-                .map(|d| d.to_token_stream().to_string())
+                .map(|d| {
+                    let mut s = d.to_token_stream().to_string();
+                    s.retain(|c| !c.is_whitespace());
+                    s
+                })
                 .collect(),
         },
     };
