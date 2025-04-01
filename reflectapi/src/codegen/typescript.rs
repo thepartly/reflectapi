@@ -13,13 +13,35 @@ use reflectapi_schema::Function;
 #[derive(Debug, Default)]
 pub struct Config {
     /// Attempt to format the generated code. Will give up if no formatter is found.
-    pub format: bool,
+    format: bool,
     /// Typecheck the generated code. Will ignore if the typechecker is not available.
-    pub typecheck: bool,
+    typecheck: bool,
     /// Only include handlers with these tags (empty means include all).
-    pub include_tags: BTreeSet<String>,
+    include_tags: BTreeSet<String>,
     /// Exclude handlers with these tags (empty means exclude none).
-    pub exclude_tags: BTreeSet<String>,
+    exclude_tags: BTreeSet<String>,
+}
+
+impl Config {
+    pub fn format(&mut self, format: bool) -> &mut Self {
+        self.format = format;
+        self
+    }
+
+    pub fn typecheck(&mut self, typecheck: bool) -> &mut Self {
+        self.typecheck = typecheck;
+        self
+    }
+
+    pub fn include_tags(&mut self, include_tags: BTreeSet<String>) -> &mut Self {
+        self.include_tags = include_tags;
+        self
+    }
+
+    pub fn exclude_tags(&mut self, exclude_tags: BTreeSet<String>) -> &mut Self {
+        self.exclude_tags = exclude_tags;
+        self
+    }
 }
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {

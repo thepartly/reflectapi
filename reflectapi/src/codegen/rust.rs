@@ -10,19 +10,72 @@ use reflectapi_schema::Function;
 
 use super::format_with;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Config {
     /// Attempt to format the generated code. Will give up if no formatter is found.
-    pub format: bool,
+    format: bool,
     /// Include tracing in the generated code.
-    pub instrument: bool,
+    instrument: bool,
     /// Typecheck the generated code. Will ignore if the typechecker is not available.
-    pub typecheck: bool,
-    pub shared_modules: BTreeSet<String>,
+    typecheck: bool,
+    shared_modules: BTreeSet<String>,
     /// Only include handlers with these tags (empty means include all).
-    pub include_tags: BTreeSet<String>,
+    include_tags: BTreeSet<String>,
     /// Exclude handlers with these tags (empty means exclude none).
-    pub exclude_tags: BTreeSet<String>,
+    exclude_tags: BTreeSet<String>,
+    /// Derives to add to all types.
+    base_derives: BTreeSet<String>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            format: false,
+            instrument: false,
+            typecheck: false,
+            shared_modules: Default::default(),
+            include_tags: Default::default(),
+            exclude_tags: Default::default(),
+            base_derives: BTreeSet::from_iter(["Debug".into()]),
+        }
+    }
+}
+
+impl Config {
+    pub fn format(&mut self, format: bool) -> &mut Self {
+        self.format = format;
+        self
+    }
+
+    pub fn instrument(&mut self, instrument: bool) -> &mut Self {
+        self.instrument = instrument;
+        self
+    }
+
+    pub fn typecheck(&mut self, typecheck: bool) -> &mut Self {
+        self.typecheck = typecheck;
+        self
+    }
+
+    pub fn shared_modules(&mut self, shared_modules: BTreeSet<String>) -> &mut Self {
+        self.shared_modules = shared_modules;
+        self
+    }
+
+    pub fn include_tags(&mut self, include_tags: BTreeSet<String>) -> &mut Self {
+        self.include_tags = include_tags;
+        self
+    }
+
+    pub fn exclude_tags(&mut self, exclude_tags: BTreeSet<String>) -> &mut Self {
+        self.exclude_tags = exclude_tags;
+        self
+    }
+
+    pub fn base_derives(&mut self, base_derives: BTreeSet<String>) -> &mut Self {
+        self.base_derives = base_derives;
+        self
+    }
 }
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
@@ -74,6 +127,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
         rendered_types.insert(
             original_type_name.clone(),
             __render_type(
+                config,
                 type_def,
                 &schema,
                 &implemented_types,
@@ -205,10 +259,10 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
 }
 
 mod templates {
+    use std::collections::BTreeSet;
+
     use askama::Template;
     use indexmap::IndexMap;
-
-    use super::base_derives;
 
     #[derive(Template)]
     #[template(
@@ -296,6 +350,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         pub is_tuple: bool,
         pub is_input_type: bool,
         pub is_output_type: bool,
+        pub base_derives: BTreeSet<String>,
         pub codegen_config: reflectapi_schema::RustTypeCodegenConfig,
     }
 
@@ -310,7 +365,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
 
         fn render_attributes_derive(&self) -> String {
             let mut attrs = self.codegen_config.additional_derives.clone();
-            base_derives(&mut attrs);
+            attrs.extend(self.base_derives.iter().cloned());
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
                 attrs.insert("serde::Serialize".into());
@@ -351,12 +406,13 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         pub is_input_type: bool,
         pub is_output_type: bool,
         pub codegen_config: reflectapi_schema::RustTypeCodegenConfig,
+        pub base_derives: BTreeSet<String>,
     }
 
     impl __Enum {
         fn render_attributes_derive(&self) -> String {
             let mut attrs = self.codegen_config.additional_derives.clone();
-            base_derives(&mut attrs);
+            attrs.extend(self.base_derives.iter().cloned());
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
                 attrs.insert("serde::Serialize".into());
@@ -591,12 +647,13 @@ pub struct {{ name }};",
         pub is_input_type: bool,
         pub is_output_type: bool,
         pub codegen_config: reflectapi_schema::RustTypeCodegenConfig,
+        pub base_derives: BTreeSet<String>,
     }
 
     impl __Unit {
         fn render_attributes_derive(&self) -> String {
             let mut attrs = self.codegen_config.additional_derives.clone();
-            base_derives(&mut attrs);
+            attrs.extend(self.base_derives.iter().cloned());
             if self.is_input_type {
                 // for client it is the inverse, input types are outgoing types
                 attrs.insert("serde::Serialize".into());
@@ -769,6 +826,7 @@ fn __interface_types_from_function_group(
         is_input_type: false,
         is_output_type: false,
         codegen_config: Default::default(),
+        base_derives: BTreeSet::from_iter(["Debug".into()]),
     };
     let mut interface_implementation = templates::__InterfaceImplementationTemplate {
         name: format!(
@@ -900,6 +958,7 @@ fn __modules_from_rendered_types(
 }
 
 fn __render_type(
+    config: &Config,
     type_def: &crate::Type,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
@@ -918,6 +977,7 @@ fn __render_type(
                     is_input_type,
                     is_output_type,
                     codegen_config: struct_def.codegen_config.rust.clone(),
+                    base_derives: config.base_derives.clone(),
                 };
                 unit_struct_template
                     .render()
@@ -946,6 +1006,7 @@ fn __render_type(
                     is_input_type,
                     is_output_type,
                     codegen_config: struct_def.codegen_config.rust.clone(),
+                    base_derives: config.base_derives.clone(),
                     fields: struct_def
                         .fields
                         .iter()
@@ -980,6 +1041,7 @@ fn __render_type(
                 is_input_type,
                 is_output_type,
                 codegen_config: enum_def.codegen_config.rust.clone(),
+                base_derives: config.base_derives.clone(),
                 variants: enum_def
                     .variants
                     .iter()
@@ -1280,8 +1342,4 @@ fn __field_name_to_snake_case(name: &str) -> String {
     } else {
         result
     }
-}
-
-fn base_derives(additional_derives: &mut BTreeSet<String>) {
-    additional_derives.insert("Debug".to_owned());
 }

@@ -51,11 +51,9 @@ fn codegen_rust(schema: reflectapi::Schema) -> String {
     reflectapi::codegen::strip_boilerplate(
         &reflectapi::codegen::rust::generate(
             schema,
-            &reflectapi::codegen::rust::Config {
-                format: true,
-                typecheck: std::env::var("CI").is_ok(),
-                ..Default::default()
-            },
+            reflectapi::codegen::rust::Config::default()
+                .format(true)
+                .typecheck(std::env::var("CI").is_ok()),
         )
         .unwrap(),
     )
@@ -65,11 +63,9 @@ fn codegen_typescript(schema: reflectapi::Schema) -> String {
     reflectapi::codegen::strip_boilerplate(
         &reflectapi::codegen::typescript::generate(
             schema,
-            &reflectapi::codegen::typescript::Config {
-                format: true,
-                typecheck: std::env::var("CI").is_ok(),
-                ..Default::default()
-            },
+            reflectapi::codegen::typescript::Config::default()
+                .format(true)
+                .typecheck(std::env::var("CI").is_ok()),
         )
         .unwrap(),
     )
@@ -165,22 +161,18 @@ macro_rules! assert_builder_snapshot {
         let rust = reflectapi::codegen::strip_boilerplate(
             &reflectapi::codegen::rust::generate(
                 schema.clone(),
-                &reflectapi::codegen::rust::Config {
-                    format: true,
-                    typecheck: true,
-                    ..Default::default()
-                },
+                &reflectapi::codegen::rust::Config::default()
+                    .format(true)
+                    .typecheck(true),
             )
             .unwrap(),
         );
         let typescript = reflectapi::codegen::strip_boilerplate(
             &reflectapi::codegen::typescript::generate(
                 schema.clone(),
-                &reflectapi::codegen::typescript::Config {
-                    format: true,
-                    typecheck: true,
-                    ..Default::default()
-                },
+                reflectapi::codegen::typescript::Config::default()
+                    .format(true)
+                    .typecheck(true),
             )
             .unwrap(),
         );

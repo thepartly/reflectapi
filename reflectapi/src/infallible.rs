@@ -1,7 +1,9 @@
 #[cfg(feature = "builder")]
 use crate::StatusCode;
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize,
+)]
 pub enum Infallible {}
 
 #[cfg(feature = "builder")]
