@@ -29,10 +29,8 @@ fn write_openapi_spec() {
 
     let s = reflectapi::codegen::openapi::generate(
         &schema,
-        &reflectapi::codegen::openapi::Config {
-            exclude_tags: BTreeSet::from_iter(["internal".to_string()]),
-            ..Default::default()
-        },
+        reflectapi::codegen::openapi::Config::default()
+            .exclude_tags(BTreeSet::from_iter(["internal".to_string()])),
     )
     .unwrap();
 

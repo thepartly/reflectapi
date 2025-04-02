@@ -23,11 +23,28 @@ use serde::Serialize;
 pub struct Config {
     /// This list of tags is used to control the ordering in documentation.
     /// Tags that appear in a functions tags list but not in this list may be ordered arbitrarily.
-    pub tags: Vec<Tag>,
+    tags: Vec<Tag>,
     /// Only include handlers with these tags (empty means include all).
-    pub include_tags: BTreeSet<String>,
+    include_tags: BTreeSet<String>,
     /// Exclude handlers with these tags (empty means exclude none).
-    pub exclude_tags: BTreeSet<String>,
+    exclude_tags: BTreeSet<String>,
+}
+
+impl Config {
+    pub fn tags(&mut self, tags: Vec<Tag>) -> &mut Self {
+        self.tags = tags;
+        self
+    }
+
+    pub fn include_tags(&mut self, tags: BTreeSet<String>) -> &mut Self {
+        self.include_tags = tags;
+        self
+    }
+
+    pub fn exclude_tags(&mut self, tags: BTreeSet<String>) -> &mut Self {
+        self.exclude_tags = tags;
+        self
+    }
 }
 
 pub fn generate(schema: &crate::Schema, config: &Config) -> anyhow::Result<String> {

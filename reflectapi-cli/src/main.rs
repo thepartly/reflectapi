@@ -162,11 +162,9 @@ fn main() -> anyhow::Result<()> {
                     "openapi.json",
                     reflectapi::codegen::openapi::generate(
                         &schema,
-                        &reflectapi::codegen::openapi::Config {
-                            tags: Default::default(),
-                            include_tags,
-                            exclude_tags,
-                        },
+                        reflectapi::codegen::openapi::Config::default()
+                            .include_tags(include_tags)
+                            .exclude_tags(exclude_tags),
                     )?,
                 ),
             };
