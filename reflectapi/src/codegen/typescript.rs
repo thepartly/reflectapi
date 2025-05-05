@@ -144,6 +144,9 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             [
                 Command::new("biome").args(["format", "--stdin-file-path", "dummy.ts"]),
                 Command::new("prettier").args(["--parser", "typescript"]),
+                Command::new("npx")
+                    .arg("prettier")
+                    .args(["--parser", "typescript"]),
             ],
             generated_code,
         )?;
