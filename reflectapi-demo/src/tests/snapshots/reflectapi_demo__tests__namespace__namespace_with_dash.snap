@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/namespace.rs
 expression: schema
+snapshot_kind: text
 ---
 {
   "name": "pet-orders",
@@ -10,7 +11,8 @@ expression: schema
       "path": "",
       "description": "desc",
       "serialization": [
-        "json"
+        "json",
+        "msgpack"
       ]
     }
   ],

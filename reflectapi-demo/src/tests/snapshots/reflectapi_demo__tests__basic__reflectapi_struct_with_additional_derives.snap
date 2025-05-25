@@ -16,7 +16,8 @@ snapshot_kind: text
         "name": "reflectapi_demo::tests::basic::Test"
       },
       "serialization": [
-        "json"
+        "json",
+        "msgpack"
       ]
     }
   ],

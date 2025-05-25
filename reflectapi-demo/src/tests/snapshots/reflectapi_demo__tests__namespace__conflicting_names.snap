@@ -16,7 +16,8 @@ snapshot_kind: text
         "name": "foos::Foo"
       },
       "serialization": [
-        "json"
+        "json",
+        "msgpack"
       ]
     }
   ],

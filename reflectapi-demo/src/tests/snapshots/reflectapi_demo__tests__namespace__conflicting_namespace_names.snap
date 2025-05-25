@@ -10,7 +10,8 @@ snapshot_kind: text
       "name": "x.foo.get",
       "path": "",
       "serialization": [
-        "json"
+        "json",
+        "msgpack"
       ]
     },
     {
@@ -20,7 +21,8 @@ snapshot_kind: text
         "name": "std::tuple::Tuple0"
       },
       "serialization": [
-        "json"
+        "json",
+        "msgpack"
       ]
     }
   ],
