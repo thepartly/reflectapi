@@ -36,7 +36,8 @@ snapshot_kind: text
         ]
       },
       "serialization": [
-        "json"
+        "json",
+        "msgpack"
       ]
     }
   ],

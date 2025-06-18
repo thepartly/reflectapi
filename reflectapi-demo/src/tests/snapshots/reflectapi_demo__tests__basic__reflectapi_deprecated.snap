@@ -16,7 +16,8 @@ snapshot_kind: text
         "name": "reflectapi_demo::tests::basic::StructWithDeprecatedField"
       },
       "serialization": [
-        "json"
+        "json",
+        "msgpack"
       ]
     }
   ],

@@ -158,7 +158,11 @@ where
             } else {
                 Some(input_headers)
             },
-            serialization: vec![crate::SerializationMode::Json],
+            serialization: vec![
+                crate::SerializationMode::Json,
+                #[cfg(feature = "msgpack")]
+                crate::SerializationMode::Msgpack,
+            ],
             readonly: rb.readonly,
             tags: rb.tags,
         };

@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
+snapshot_kind: text
 ---
 {
   "name": "",
@@ -31,7 +32,8 @@ expression: schema
         ]
       },
       "serialization": [
-        "json"
+        "json",
+        "msgpack"
       ]
     }
   ],

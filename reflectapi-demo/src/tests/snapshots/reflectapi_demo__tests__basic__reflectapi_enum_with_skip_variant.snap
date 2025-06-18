@@ -16,7 +16,8 @@ snapshot_kind: text
         "name": "reflectapi_demo::tests::basic::output::TestEnumWithSkipVariant"
       },
       "serialization": [
-        "json"
+        "json",
+        "msgpack"
       ]
     }
   ],

@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
+snapshot_kind: text
 ---
 {
   "name": "",
@@ -15,7 +16,8 @@ expression: schema
         "name": "reflectapi_demo::tests::serde::output::TestStructRenameField"
       },
       "serialization": [
-        "json"
+        "json",
+        "msgpack"
       ]
     }
   ],
