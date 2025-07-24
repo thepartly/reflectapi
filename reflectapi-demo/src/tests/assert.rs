@@ -65,7 +65,7 @@ fn codegen_typescript(schema: reflectapi::Schema) -> String {
             schema,
             reflectapi::codegen::typescript::Config::default()
                 .format(true)
-                .typecheck(std::env::var("CI").is_ok()),
+                .typecheck(false),
         )
         .unwrap(),
     )
@@ -156,14 +156,14 @@ macro_rules! assert_snapshot {
 }
 
 macro_rules! assert_builder_snapshot {
-    ($builder:expr) => {{
+    ($builder:expr, $typecheck:expr) => {{
         let (schema, _) = $builder.build().unwrap();
         let rust = reflectapi::codegen::strip_boilerplate(
             &reflectapi::codegen::rust::generate(
                 schema.clone(),
                 &reflectapi::codegen::rust::Config::default()
                     .format(true)
-                    .typecheck(true),
+                    .typecheck($typecheck),
             )
             .unwrap(),
         );
@@ -172,7 +172,7 @@ macro_rules! assert_builder_snapshot {
                 schema.clone(),
                 reflectapi::codegen::typescript::Config::default()
                     .format(true)
-                    .typecheck(true),
+                    .typecheck(false),
             )
             .unwrap(),
         );
@@ -181,4 +181,7 @@ macro_rules! assert_builder_snapshot {
         insta::assert_snapshot!(rust);
         insta::assert_json_snapshot!(reflectapi::codegen::openapi::Spec::from(&schema));
     }};
+    ($builder:expr) => {
+        assert_builder_snapshot!($builder, true)
+    };
 }

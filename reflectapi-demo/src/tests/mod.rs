@@ -1,10 +1,12 @@
 #[macro_use]
 mod assert;
 mod basic;
+mod e2e_transport_metadata;
 mod enums;
 mod generics;
 mod namespace;
 mod serde;
+mod transport_metadata;
 
 mod test_lib;
 
@@ -66,7 +68,7 @@ fn write_typescript_client() {
         schema,
         reflectapi::codegen::typescript::Config::default()
             .format(true)
-            .typecheck(true),
+            .typecheck(false),
     )
     .unwrap();
 

@@ -39,7 +39,7 @@ enum Commands {
         #[arg(long, value_delimiter = ',')]
         shared_modules: Option<Vec<String>>,
 
-        #[arg(short, long, value_delimiter = ',')]
+        #[arg(short = 'i', long, value_delimiter = ',')]
         include_tags: Vec<String>,
 
         #[arg(short, long, value_delimiter = ',')]
@@ -54,7 +54,7 @@ enum Commands {
         format: bool,
 
         /// Instrument the generated code with tracing
-        #[arg(short, long, default_value = "false")]
+        #[arg(short = 'n', long, default_value = "false")]
         instrument: bool,
     },
     /// Documentation subcommands

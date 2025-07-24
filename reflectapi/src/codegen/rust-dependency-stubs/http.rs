@@ -1,6 +1,6 @@
 use core::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct StatusCode {}
 
 impl core::fmt::Display for StatusCode {
@@ -10,6 +10,8 @@ impl core::fmt::Display for StatusCode {
 }
 
 impl StatusCode {
+    pub const BAD_REQUEST: StatusCode = StatusCode {};
+
     pub fn is_client_error(&self) -> bool {
         unimplemented!()
     }
@@ -23,7 +25,7 @@ impl StatusCode {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct HeaderMap<T = HeaderValue> {
     _phantom: core::marker::PhantomData<T>,
 }
@@ -57,6 +59,7 @@ impl fmt::Display for InvalidHeaderName {
 
 impl std::error::Error for InvalidHeaderName {}
 
+#[derive(Debug, Clone)]
 pub struct HeaderValue(());
 
 impl HeaderValue {

@@ -61,7 +61,10 @@ pub mod interface {
             &self,
             input: reflectapi::Empty,
             headers: reflectapi::Empty,
-        ) -> Result<reflectapi::Empty, reflectapi::rt::Error<reflectapi::Empty, C::Error>> {
+        ) -> Result<
+            reflectapi::rt::ApiResult<reflectapi::Empty>,
+            reflectapi::rt::Error<reflectapi::Empty, C::Error>,
+        > {
             reflectapi::rt::__request_impl(
                 &self.client,
                 self.base_url
@@ -98,7 +101,9 @@ pub mod interface {
             input: super::types::myapi::proto::PetsListRequest,
             headers: super::types::myapi::proto::Headers,
         ) -> Result<
-            super::types::myapi::proto::Paginated<super::types::myapi::model::output::Pet>,
+            reflectapi::rt::ApiResult<
+                super::types::myapi::proto::Paginated<super::types::myapi::model::output::Pet>,
+            >,
             reflectapi::rt::Error<super::types::myapi::proto::PetsListError, C::Error>,
         > {
             reflectapi::rt::__request_impl(
@@ -118,7 +123,7 @@ pub mod interface {
             input: super::types::myapi::proto::PetsCreateRequest,
             headers: super::types::myapi::proto::Headers,
         ) -> Result<
-            reflectapi::Empty,
+            reflectapi::rt::ApiResult<reflectapi::Empty>,
             reflectapi::rt::Error<super::types::myapi::proto::PetsCreateError, C::Error>,
         > {
             reflectapi::rt::__request_impl(
@@ -138,7 +143,7 @@ pub mod interface {
             input: super::types::myapi::proto::PetsUpdateRequest,
             headers: super::types::myapi::proto::Headers,
         ) -> Result<
-            reflectapi::Empty,
+            reflectapi::rt::ApiResult<reflectapi::Empty>,
             reflectapi::rt::Error<super::types::myapi::proto::PetsUpdateError, C::Error>,
         > {
             reflectapi::rt::__request_impl(
@@ -158,7 +163,7 @@ pub mod interface {
             input: super::types::myapi::proto::PetsRemoveRequest,
             headers: super::types::myapi::proto::Headers,
         ) -> Result<
-            reflectapi::Empty,
+            reflectapi::rt::ApiResult<reflectapi::Empty>,
             reflectapi::rt::Error<super::types::myapi::proto::PetsRemoveError, C::Error>,
         > {
             reflectapi::rt::__request_impl(
@@ -179,7 +184,7 @@ pub mod interface {
             input: super::types::myapi::proto::PetsRemoveRequest,
             headers: super::types::myapi::proto::Headers,
         ) -> Result<
-            reflectapi::Empty,
+            reflectapi::rt::ApiResult<reflectapi::Empty>,
             reflectapi::rt::Error<super::types::myapi::proto::PetsRemoveError, C::Error>,
         > {
             reflectapi::rt::__request_impl(
@@ -199,7 +204,7 @@ pub mod interface {
             input: reflectapi::Empty,
             headers: super::types::myapi::proto::Headers,
         ) -> Result<
-            std::option::Option<super::types::myapi::model::output::Pet>,
+            reflectapi::rt::ApiResult<std::option::Option<super::types::myapi::model::output::Pet>>,
             reflectapi::rt::Error<super::types::myapi::proto::UnauthorizedError, C::Error>,
         > {
             reflectapi::rt::__request_impl(

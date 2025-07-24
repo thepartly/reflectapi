@@ -1,19 +1,52 @@
+// The TypeScript equivalent of the core metadata struct
+export interface TransportMetadata {
+  status: number;
+  headers: Record<string, string>;
+  timing?: {
+    startedAt: number; // Unix timestamp (ms)
+    completedAt: number; // Unix timestamp (ms)
+    duration: number; // Milliseconds
+  };
+  raw?: any; // For the raw fetch Response object
+}
+
+// The new success wrapper
+export class ApiResult<T> {
+  constructor(
+    public readonly value: T,
+    public readonly metadata: TransportMetadata,
+  ) {}
+}
+
 export interface Client {
   request(
     path: string,
     body: string,
     headers: Record<string, string>,
-  ): Promise<[number, string]>;
+  ): Promise<TransportResponse>;
+}
+
+// The new standard return type for the underlying client trait
+export interface TransportResponse {
+  status: number;
+  body: string;
+  headers: Record<string, string>;
+  timing: {
+    startedAt: number;
+    completedAt: number;
+    duration: number;
+  };
+  raw?: any;
 }
 
 export type NullToEmptyObject<T> = T extends null ? {} : T;
 
-export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
+export type AsyncResult<T, E> = Promise<Result<ApiResult<T>, Err<E>>>;
 
 export type FixedSizeArray<T, N extends number> = Array<T> & { length: N };
 
 export class Result<T, E> {
-  constructor(private value: { ok: T } | { err: E }) { }
+  constructor(private value: { ok: T } | { err: E }) {}
 
   public ok(): T | undefined {
     if ("ok" in this.value) {
@@ -55,7 +88,9 @@ export class Result<T, E> {
       return this.value.ok;
     }
     throw new Error(
-      `called \`unwrap_ok\` on an \`err\` value: ${JSON.stringify(this.value.err)}`,
+      `called \`unwrap_ok\` on an \`err\` value: ${JSON.stringify(
+        this.value.err,
+      )}`,
     );
   }
   public unwrap_err(): E {
@@ -100,8 +135,13 @@ export class Result<T, E> {
   }
 }
 
+// The error wrapper, updated but backward-compatible
 export class Err<E> {
-  constructor(private value: { application_err: E } | { other_err: any }) { }
+  constructor(
+    private value:
+      | { application_err: E; metadata: TransportMetadata }
+      | { other_err: any; metadata: TransportMetadata },
+  ) {}
 
   public err(): E | undefined {
     if ("application_err" in this.value) {
@@ -123,11 +163,27 @@ export class Err<E> {
     return "other_err" in this.value;
   }
 
+  // PRESERVED FOR BACKWARD COMPATIBILITY
+  public status(): number {
+    return this.value.metadata.status;
+  }
+
+  // New method for accessing all metadata
+  public transport_metadata(): TransportMetadata {
+    return this.value.metadata;
+  }
+
   public map<U>(f: (r: E) => U): Err<U> {
     if ("application_err" in this.value) {
-      return new Err({ application_err: f(this.value.application_err) });
+      return new Err({
+        application_err: f(this.value.application_err),
+        metadata: this.value.metadata,
+      });
     } else {
-      return new Err({ other_err: this.value.other_err });
+      return new Err({
+        other_err: this.value.other_err,
+        metadata: this.value.metadata,
+      });
     }
   }
   public unwrap(): E {
@@ -175,48 +231,75 @@ export function __request<I, H, O, E>(
   }
   return client
     .request(path, JSON.stringify(input), hdrs)
-    .then(([status, response_body]) => {
-      if (status >= 200 && status < 300) {
+    .then((transport_response) => {
+      const metadata: TransportMetadata = {
+        status: transport_response.status,
+        headers: transport_response.headers,
+        timing: transport_response.timing,
+        raw: transport_response.raw,
+      };
+
+      if (transport_response.status >= 200 && transport_response.status < 300) {
         try {
-          return new Result<O, Err<E>>({ ok: JSON.parse(response_body) as O });
+          const value = JSON.parse(transport_response.body) as O;
+          return new Result<ApiResult<O>, Err<E>>({
+            ok: new ApiResult(value, metadata),
+          });
         } catch (e) {
-          return new Result<O, Err<E>>({
+          return new Result<ApiResult<O>, Err<E>>({
             err: new Err({
               other_err:
                 "internal error: failure to parse response body as json on successful status code: " +
-                response_body,
+                transport_response.body,
+              metadata: metadata,
             }),
           });
         }
-      } else if (status >= 500) {
-        return new Result<O, Err<E>>({
-          err: new Err({ other_err: `[${status}] ${response_body}` }),
-        })
+      } else if (transport_response.status >= 500) {
+        return new Result<ApiResult<O>, Err<E>>({
+          err: new Err({
+            other_err: `[${transport_response.status}] ${transport_response.body}`,
+            metadata: metadata,
+          }),
+        });
       } else {
         try {
-          return new Result<O, Err<E>>({
-            err: new Err({ application_err: JSON.parse(response_body) as E }),
+          const error = JSON.parse(transport_response.body) as E;
+          return new Result<ApiResult<O>, Err<E>>({
+            err: new Err({ application_err: error, metadata: metadata }),
           });
         } catch (e) {
-          return new Result<O, Err<E>>({
-            err: new Err({ other_err: `[${status}] ${response_body}` }),
+          return new Result<ApiResult<O>, Err<E>>({
+            err: new Err({
+              other_err: `[${transport_response.status}] ${transport_response.body}`,
+              metadata: metadata,
+            }),
           });
         }
       }
     })
     .catch((e) => {
-      return new Result<O, Err<E>>({ err: new Err({ other_err: e }) });
+      const metadata: TransportMetadata = {
+        status: 0,
+        headers: {},
+        timing: undefined,
+        raw: e,
+      };
+      return new Result<ApiResult<O>, Err<E>>({
+        err: new Err({ other_err: e, metadata: metadata }),
+      });
     });
 }
 
 class ClientInstance {
-  constructor(private base: string) { }
+  constructor(private base: string) {}
 
   public request(
     path: string,
     body: string,
     headers: Record<string, string>,
-  ): Promise<[number, string]> {
+  ): Promise<TransportResponse> {
+    const startedAt = Date.now();
     return (globalThis as any)
       .fetch(`${this.base}${path}`, {
         method: "POST",
@@ -224,8 +307,23 @@ class ClientInstance {
         body: body,
       })
       .then((response: any) => {
+        const completedAt = Date.now();
         return response.text().then((text: string) => {
-          return [response.status, text];
+          const responseHeaders: Record<string, string> = {};
+          response.headers.forEach((value: string, key: string) => {
+            responseHeaders[key] = value;
+          });
+          return {
+            status: response.status,
+            body: text,
+            headers: responseHeaders,
+            timing: {
+              startedAt,
+              completedAt,
+              duration: completedAt - startedAt,
+            },
+            raw: response,
+          };
         });
       });
   }

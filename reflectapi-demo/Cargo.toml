@@ -18,7 +18,8 @@ reflectapi = { workspace = true, features = [
     "codegen",
     "msgpack",
     "json",
-    "indexmap"
+    "indexmap",
+    "rt"
 ] }
 
 tokio = { version = "1.5.0", features = ["full"] }
