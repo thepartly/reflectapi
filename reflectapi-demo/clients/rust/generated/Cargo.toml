@@ -10,5 +10,5 @@ workspace = true
 reflectapi = { workspace = true, features = ["rt", "reqwest", "chrono"] }
 chrono = { version = "0.4.37", features = ["serde"] }
 tracing = "0.1"
-serde = { version = "1.0.197", features = ["derive"] }
+serde = { version = "1.0.218", features = ["derive"] }
 
