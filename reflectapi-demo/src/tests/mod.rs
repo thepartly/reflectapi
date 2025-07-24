@@ -79,3 +79,19 @@ fn write_typescript_client() {
     )
     .unwrap();
 }
+
+#[test]
+fn write_python_client() {
+    let (schema, _) = crate::builder().build().unwrap();
+    let src = reflectapi::codegen::python::generate(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+
+    std::fs::write(
+        format!("{}/clients/python/generated.py", env!("CARGO_MANIFEST_DIR"),),
+        src,
+    )
+    .unwrap();
+}
