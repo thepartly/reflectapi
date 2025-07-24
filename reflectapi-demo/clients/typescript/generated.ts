@@ -20,13 +20,8 @@ export interface TransportMetadata {
   raw?: any; // For the raw fetch Response object
 }
 
-// The new success wrapper
-export class ApiResult<T> {
-  constructor(
-    public readonly value: T,
-    public readonly metadata: TransportMetadata,
-  ) {}
-}
+// Note: ApiResult<T> wrapper removed for backward compatibility
+// Metadata is now attached directly to Result<T, E>
 
 export interface Client {
   request(
@@ -51,11 +46,13 @@ export interface TransportResponse {
 
 export type NullToEmptyObject<T> = T extends null ? {} : T;
 
-export type AsyncResult<T, E> = Promise<Result<ApiResult<T>, Err<E>>>;
+export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
 
 export type FixedSizeArray<T, N extends number> = Array<T> & { length: N };
 
 export class Result<T, E> {
+  public metadata?: TransportMetadata; // Optional metadata attached to successful results
+
   constructor(private value: { ok: T } | { err: E }) {}
 
   public ok(): T | undefined {
@@ -252,11 +249,11 @@ export function __request<I, H, O, E>(
       if (transport_response.status >= 200 && transport_response.status < 300) {
         try {
           const value = JSON.parse(transport_response.body) as O;
-          return new Result<ApiResult<O>, Err<E>>({
-            ok: new ApiResult(value, metadata),
-          });
+          const result = new Result<O, Err<E>>({ ok: value });
+          result.metadata = metadata; // Attach metadata to successful result
+          return result;
         } catch (e) {
-          return new Result<ApiResult<O>, Err<E>>({
+          return new Result<O, Err<E>>({
             err: new Err({
               other_err:
                 "internal error: failure to parse response body as json on successful status code: " +
@@ -266,7 +263,7 @@ export function __request<I, H, O, E>(
           });
         }
       } else if (transport_response.status >= 500) {
-        return new Result<ApiResult<O>, Err<E>>({
+        return new Result<O, Err<E>>({
           err: new Err({
             other_err: `[${transport_response.status}] ${transport_response.body}`,
             metadata: metadata,
@@ -275,11 +272,11 @@ export function __request<I, H, O, E>(
       } else {
         try {
           const error = JSON.parse(transport_response.body) as E;
-          return new Result<ApiResult<O>, Err<E>>({
+          return new Result<O, Err<E>>({
             err: new Err({ application_err: error, metadata: metadata }),
           });
         } catch (e) {
-          return new Result<ApiResult<O>, Err<E>>({
+          return new Result<O, Err<E>>({
             err: new Err({
               other_err: `[${transport_response.status}] ${transport_response.body}`,
               metadata: metadata,
@@ -295,7 +292,7 @@ export function __request<I, H, O, E>(
         timing: undefined,
         raw: e,
       };
-      return new Result<ApiResult<O>, Err<E>>({
+      return new Result<O, Err<E>>({
         err: new Err({ other_err: e, metadata: metadata }),
       });
     });
@@ -350,10 +347,7 @@ export namespace __definition {
     /**
      * Check the health of the service
      */
-    check: (
-      input: {},
-      headers: {},
-    ) => AsyncResult<__definition.ApiResult<{}>, {}>;
+    check: (input: {}, headers: {}) => AsyncResult<{}, {}>;
   }
 
   export interface PetsInterface {
@@ -364,7 +358,7 @@ export namespace __definition {
       input: myapi.proto.PetsListRequest,
       headers: {},
     ) => AsyncResult<
-      __definition.ApiResult<myapi.proto.Paginated<myapi.model.output.Pet>>,
+      myapi.proto.Paginated<myapi.model.output.Pet>,
       myapi.proto.PetsListError
     >;
     /**
@@ -373,21 +367,21 @@ export namespace __definition {
     create: (
       input: myapi.proto.PetsCreateRequest,
       headers: {},
-    ) => AsyncResult<__definition.ApiResult<{}>, myapi.proto.PetsCreateError>;
+    ) => AsyncResult<{}, myapi.proto.PetsCreateError>;
     /**
      * Update an existing pet
      */
     update: (
       input: myapi.proto.PetsUpdateRequest,
       headers: {},
-    ) => AsyncResult<__definition.ApiResult<{}>, myapi.proto.PetsUpdateError>;
+    ) => AsyncResult<{}, myapi.proto.PetsUpdateError>;
     /**
      * Remove an existing pet
      */
     remove: (
       input: myapi.proto.PetsRemoveRequest,
       headers: {},
-    ) => AsyncResult<__definition.ApiResult<{}>, myapi.proto.PetsRemoveError>;
+    ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
     /**
      * @deprecated Use pets.remove instead
      * Remove an existing pet
@@ -395,7 +389,7 @@ export namespace __definition {
     delete: (
       input: myapi.proto.PetsRemoveRequest,
       headers: {},
-    ) => AsyncResult<__definition.ApiResult<{}>, myapi.proto.PetsRemoveError>;
+    ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
     /**
      * Fetch first pet, if any exists
      */
@@ -403,7 +397,7 @@ export namespace __definition {
       input: {},
       headers: {},
     ) => AsyncResult<
-      __definition.ApiResult<myapi.model.output.Pet | null>,
+      myapi.model.output.Pet | null,
       myapi.proto.UnauthorizedError
     >;
   }

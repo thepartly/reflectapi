@@ -737,7 +737,7 @@ fn interfaces_from_function_group(
             ),
             type_: format!(
                 "(input: {}, headers: {{}})
-        => AsyncResult<__definition.ApiResult<{}>, {}>",
+        => AsyncResult<{}, {}>",
                 input_type, output_type, error_type
             ),
             optional: false,

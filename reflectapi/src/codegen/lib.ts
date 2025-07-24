@@ -10,13 +10,8 @@ export interface TransportMetadata {
   raw?: any; // For the raw fetch Response object
 }
 
-// The new success wrapper
-export class ApiResult<T> {
-  constructor(
-    public readonly value: T,
-    public readonly metadata: TransportMetadata,
-  ) {}
-}
+// Note: ApiResult<T> wrapper removed for backward compatibility
+// Metadata is now attached directly to Result<T, E>
 
 export interface Client {
   request(
@@ -41,11 +36,13 @@ export interface TransportResponse {
 
 export type NullToEmptyObject<T> = T extends null ? {} : T;
 
-export type AsyncResult<T, E> = Promise<Result<ApiResult<T>, Err<E>>>;
+export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
 
 export type FixedSizeArray<T, N extends number> = Array<T> & { length: N };
 
 export class Result<T, E> {
+  public metadata?: TransportMetadata; // Optional metadata attached to successful results
+
   constructor(private value: { ok: T } | { err: E }) {}
 
   public ok(): T | undefined {
@@ -242,11 +239,11 @@ export function __request<I, H, O, E>(
       if (transport_response.status >= 200 && transport_response.status < 300) {
         try {
           const value = JSON.parse(transport_response.body) as O;
-          return new Result<ApiResult<O>, Err<E>>({
-            ok: new ApiResult(value, metadata),
-          });
+          const result = new Result<O, Err<E>>({ ok: value });
+          result.metadata = metadata; // Attach metadata to successful result
+          return result;
         } catch (e) {
-          return new Result<ApiResult<O>, Err<E>>({
+          return new Result<O, Err<E>>({
             err: new Err({
               other_err:
                 "internal error: failure to parse response body as json on successful status code: " +
@@ -256,7 +253,7 @@ export function __request<I, H, O, E>(
           });
         }
       } else if (transport_response.status >= 500) {
-        return new Result<ApiResult<O>, Err<E>>({
+        return new Result<O, Err<E>>({
           err: new Err({
             other_err: `[${transport_response.status}] ${transport_response.body}`,
             metadata: metadata,
@@ -265,11 +262,11 @@ export function __request<I, H, O, E>(
       } else {
         try {
           const error = JSON.parse(transport_response.body) as E;
-          return new Result<ApiResult<O>, Err<E>>({
+          return new Result<O, Err<E>>({
             err: new Err({ application_err: error, metadata: metadata }),
           });
         } catch (e) {
-          return new Result<ApiResult<O>, Err<E>>({
+          return new Result<O, Err<E>>({
             err: new Err({
               other_err: `[${transport_response.status}] ${transport_response.body}`,
               metadata: metadata,
@@ -285,7 +282,7 @@ export function __request<I, H, O, E>(
         timing: undefined,
         raw: e,
       };
-      return new Result<ApiResult<O>, Err<E>>({
+      return new Result<O, Err<E>>({
         err: new Err({ other_err: e, metadata: metadata }),
       });
     });
