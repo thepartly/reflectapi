@@ -632,3 +632,14 @@ fn test_reflectapi_deprecated() {
     }
     assert_snapshot!(StructWithDeprecatedField);
 }
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithExternalGenericTypeFallback {
+    #[reflectapi(transform = "reflectapi::TypeReference::fallback_recursively")]
+    data: std::sync::Arc<std::collections::HashMap<String, i32>>,
+}
+
+#[test]
+fn test_reflectapi_struct_with_external_generic_type_fallback() {
+    assert_snapshot!(TestStructWithExternalGenericTypeFallback);
+}

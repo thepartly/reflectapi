@@ -17,30 +17,65 @@ cargo run --bin reflectapi-demo
 To generate client in Typescript for demo server:
 
 ```
-cargo run --bin reflectapi-cli -- codegen --language typescript --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/typescript
+cargo run --bin reflectapi -- codegen --language typescript --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/typescript
 ```
 
 To run the Typescript generated client. Note: requires the demo server running
 
 ```
 cd reflectapi-demo/clients/typescript/
-pnpm install
-pnpm run start
+npm install
+npm run start
 ```
 
 To generate client in Rust for demo server:
 
 ```
-cargo run --bin reflectapi-cli -- codegen --language rust --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/rust/generated/src/
+cargo run --bin reflectapi -- codegen --language rust --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/rust/generated/src/
 ```
 
 To run the Rust generated client. Note: requires the demo server running
 
 ```
-cargo run --bin reflectapi-demo-client --all-features
+cd reflectapi-demo/clients/rust/
+cargo run --all-features
 ```
 
-To release
+To generate client in Python for demo server:
+
+```
+cargo run --bin reflectapi -- codegen --language python --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/python/ --python-async --python-sync --python-testing
+```
+
+To run the Python generated client. Note: requires the demo server running
+
+```
+cd reflectapi-demo/clients/python/
+uv run python test_client.py
+```
+
+### Updating Snapshots
+
+This project uses `insta` for snapshot testing to ensure code generation output is correct and stable. When tests fail due to snapshot mismatches:
+
+1. Review the changes first to ensure they are expected
+2. Update snapshots using one of these commands:
+
+```bash
+# Interactive review (recommended)
+cargo insta review
+
+# Auto-accept all changes (use with caution)
+cargo insta accept
+```
+
+3. Re-run tests to verify they pass:
+
+```bash
+cargo test
+```
+
+### Release
 
 ```
 cargo release --exclude reflectapi-demo --exclude reflectapi-demo-client --exclude reflectapi-demo-client-generated minor --execute
