@@ -726,7 +726,7 @@ fn interfaces_from_function_group(
 
     for function_name in &group.functions {
         let function = functions_by_name.get(function_name).unwrap();
-        let (input_type, input_headers, output_type, error_type) =
+        let (input_type, _input_headers, output_type, error_type) =
             function_signature(function, schema, implemented_types);
         type_template.fields.push(templates::Field {
             name: function_name.split('.').last().unwrap().replace('-', "_"),
@@ -736,8 +736,9 @@ fn interfaces_from_function_group(
                 4,
             ),
             type_: format!(
-                "(input: {}, headers: {})\n        => AsyncResult<{}, {}>",
-                input_type, input_headers, output_type, error_type
+                "(input: {}, headers: {{}})
+        => AsyncResult<{}, {}>",
+                input_type, output_type, error_type
             ),
             optional: false,
         });

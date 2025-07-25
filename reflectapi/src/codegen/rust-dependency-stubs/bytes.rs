@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct Bytes {}
 
 impl std::ops::Deref for Bytes {

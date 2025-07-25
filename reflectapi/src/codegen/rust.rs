@@ -684,7 +684,7 @@ pub struct {{ name }};",
             {%- endif -%}
         {%- endif -%}
         {{description}}{{attributes}}pub async fn {{ name }}(&self, input: {{ input_type }}, headers: {{ input_headers }})
-    -> Result<{{ output_type }}, reflectapi::rt::Error<{{ error_type }}, C::Error>> {
+    -> Result<reflectapi::rt::ApiResult<{{ output_type }}>, reflectapi::rt::Error<{{ error_type }}, C::Error>> {
         reflectapi::rt::__request_impl(&self.client, self.base_url.join("{{ path }}").expect("checked base_url already and path is valid"), input, headers).await
     }"#,
         ext = "txt"
