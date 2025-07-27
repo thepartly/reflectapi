@@ -80,6 +80,7 @@ enum DocSubcommand {
 enum Language {
     Typescript,
     Rust,
+    Python,
     Openapi,
 }
 
@@ -156,6 +157,13 @@ fn main() -> anyhow::Result<()> {
                             .shared_modules(
                                 shared_modules.unwrap_or_default().into_iter().collect(),
                             ),
+                    )?,
+                ),
+                Language::Python => (
+                    "generated.py",
+                    reflectapi::codegen::python::generate(
+                        schema,
+                        &reflectapi::codegen::python::Config::default(),
                     )?,
                 ),
                 Language::Openapi => (
