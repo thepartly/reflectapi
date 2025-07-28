@@ -280,8 +280,14 @@ class ClientBase(ABC):
             )
         else:
             # Handle JSON data with Option types
-            if json_data:
-                processed_json_data = serialize_option_dict(json_data)
+            if json_data is not None:
+                # Only serialize Option types for dictionaries (complex types)
+                # Primitive types (int, str, bool, etc.) should be passed directly
+                if isinstance(json_data, dict):
+                    processed_json_data = serialize_option_dict(json_data)
+                else:
+                    # Primitive types - pass through directly
+                    processed_json_data = json_data
             else:
                 processed_json_data = json_data
 
@@ -651,8 +657,14 @@ class AsyncClientBase(ABC):
             )
         else:
             # Handle JSON data with Option types
-            if json_data:
-                processed_json_data = serialize_option_dict(json_data)
+            if json_data is not None:
+                # Only serialize Option types for dictionaries (complex types)
+                # Primitive types (int, str, bool, etc.) should be passed directly
+                if isinstance(json_data, dict):
+                    processed_json_data = serialize_option_dict(json_data)
+                else:
+                    # Primitive types - pass through directly
+                    processed_json_data = json_data
             else:
                 processed_json_data = json_data
 

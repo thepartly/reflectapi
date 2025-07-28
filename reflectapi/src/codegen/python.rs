@@ -6,6 +6,35 @@ use askama::Template;
 use crate::{Schema, TypeReference};
 use reflectapi_schema::{Function, Type};
 
+fn to_valid_python_identifier(name: &str) -> String {
+    let cleaned = name.replace('.', "_")
+        .replace('-', "_")
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' })
+        .collect::<String>();
+    
+    // Handle Python keywords by appending underscore
+    const PYTHON_KEYWORDS: &[&str] = &[
+        "and", "as", "assert", "break", "class", "continue", "def", "del", "elif", "else",
+        "except", "exec", "finally", "for", "from", "global", "if", "import", "in", "is",
+        "lambda", "not", "or", "pass", "print", "raise", "return", "try", "while", "with",
+        "yield", "async", "await", "nonlocal"
+    ];
+    
+    let mut result = if PYTHON_KEYWORDS.contains(&cleaned.as_str()) {
+        format!("{}_", cleaned)
+    } else {
+        cleaned
+    };
+    
+    // If the identifier starts with a digit, prefix it with "field_"
+    if result.chars().next().map_or(false, |c| c.is_ascii_digit()) {
+        result = format!("field_{}", result);
+    }
+    
+    result
+}
+
 /// Configuration for Python client generation
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -114,11 +143,11 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
             // Create a modified function with the shortened name for nested access
             let mut nested_function = rendered_function.clone();
-            nested_function.name = method_name.to_string();
+            nested_function.name = to_valid_python_identifier(method_name);
             nested_function.original_name = Some(rendered_function.name.clone());
 
             function_groups
-                .entry(group_name.to_string())
+                .entry(to_valid_python_identifier(group_name))
                 .or_default()
                 .push(nested_function);
         } else {
@@ -575,18 +604,7 @@ fn to_screaming_snake_case(s: &str) -> String {
 }
 
 fn sanitize_field_name(s: &str) -> String {
-    let snake_case = to_snake_case(s);
-
-    // If the field name starts with a digit, prefix it with "field_"
-    if snake_case
-        .chars()
-        .next()
-        .map_or(false, |c| c.is_ascii_digit())
-    {
-        format!("field_{}", snake_case)
-    } else {
-        snake_case
-    }
+    to_valid_python_identifier(&to_snake_case(s))
 }
 
 // Type substitution function - handles TypeReference to Python type conversion
@@ -868,10 +886,14 @@ T = TypeVar('T')
 {% for variant in variants %}        {{ variant.name }}: {{ variant.description.as_deref().unwrap_or("") }}
 {% endfor %}    """
 {% endif %}    
+{% if variants.is_empty() %}
+    pass
+{% else %}
 {% for variant in variants %}
     {{ variant.name }} = "{{ variant.value }}"
-{% if variant.description.is_some() && !variant.description.as_deref().unwrap().is_empty() %}    """{{ variant.description.as_deref().unwrap() }}"""
-{% endif %}{% endfor %}
+
+{% endfor %}
+{% endif %}
 "#,
         ext = "txt"
     )]
