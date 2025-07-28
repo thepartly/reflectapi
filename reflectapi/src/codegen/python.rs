@@ -93,14 +93,20 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
     // Check if we need ReflectapiOption import
     let has_reflectapi_option = schema_uses_reflectapi_option(&schema, &all_type_names);
+    
+    // Check if we need warnings import (for deprecated functions)
+    let has_warnings = schema.functions().any(|f| f.deprecation_note.is_some());
 
-    // Generate imports
+    // Generate imports  
     let imports = templates::Imports {
         has_async: config.generate_async,
         has_sync: config.generate_sync,
         has_testing: config.generate_testing,
         has_enums,
         has_reflectapi_option,
+        has_warnings,
+        has_generics: true,
+        has_annotated: true, // Always include for external type fallbacks
     };
     generated_code.push(imports.render().context("Failed to render imports")?);
 
@@ -181,6 +187,31 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
             .context("Failed to render client class")?,
     );
 
+    // Add external type definitions and model rebuilds for Pydantic forward references
+    let mut external_types_and_rebuilds = vec![];
+    
+    // Define external types that weren't generated but are referenced
+    external_types_and_rebuilds.push("# External type definitions".to_string());
+    external_types_and_rebuilds.push("StdNumNonZeroU32 = Annotated[int, \"Rust NonZero u32 type\"]".to_string());
+    external_types_and_rebuilds.push("StdNumNonZeroU64 = Annotated[int, \"Rust NonZero u64 type\"]".to_string());
+    external_types_and_rebuilds.push("StdNumNonZeroI32 = Annotated[int, \"Rust NonZero i32 type\"]".to_string());
+    external_types_and_rebuilds.push("StdNumNonZeroI64 = Annotated[int, \"Rust NonZero i64 type\"]".to_string());
+    
+    // Add model rebuilds for Pydantic forward references
+    external_types_and_rebuilds.push("".to_string());
+    external_types_and_rebuilds.push("# Rebuild models to resolve forward references".to_string());
+    external_types_and_rebuilds.push("try:".to_string());
+    for type_name in rendered_types.keys() {
+        if !type_name.starts_with("std::") && !type_name.starts_with("reflectapi::") {
+            external_types_and_rebuilds.push(format!("    {}.model_rebuild()", type_name));
+        }
+    }
+    external_types_and_rebuilds.push("except AttributeError:".to_string());
+    external_types_and_rebuilds.push("    # Some types may not have model_rebuild method".to_string());
+    external_types_and_rebuilds.push("    pass".to_string());
+    
+    generated_code.push(external_types_and_rebuilds.join("\n"));
+
     // Generate testing utilities if requested
     if config.generate_testing {
         // Only include user-defined types, not primitive types that are mapped to built-ins
@@ -250,17 +281,32 @@ fn render_struct(
         return Ok(String::new());
     }
 
+    // Collect active generic parameter names for this struct
+    let active_generics: Vec<String> = struct_def.parameters().map(|p| p.name.clone()).collect();
+
     let fields = struct_def
         .fields
         .iter()
         .map(|field| {
-            let field_type = type_ref_to_python_type(&field.type_ref, schema, implemented_types)?;
+            let base_field_type = type_ref_to_python_type(&field.type_ref, schema, implemented_types, &active_generics)?;
 
+            // Check if field type is Option<T> (which gets converted to T | None automatically)
+            let is_option_type = field.type_ref.name == "std::option::Option";
+            
             // Fix default value handling for optional fields
-            let (optional, default_value) = if !field.required {
-                (true, Some("None".to_string()))
+            let (optional, default_value, field_type) = if !field.required {
+                // Field is not required - add | None if not already an Option type
+                if is_option_type {
+                    (true, Some("None".to_string()), base_field_type) // Already has | None
+                } else {
+                    (true, Some("None".to_string()), format!("{} | None", base_field_type))
+                }
+            } else if is_option_type {
+                // Field is required but Option type - still needs default None
+                (true, Some("None".to_string()), base_field_type) // Already has | None
             } else {
-                (false, None)
+                // Required non-Option field
+                (false, None, base_field_type)
             };
 
             Ok(templates::Field {
@@ -284,6 +330,7 @@ fn render_struct(
         fields,
         is_tuple: false,
         is_generic: has_generics,
+        generic_params: active_generics.clone(),
     };
 
     class_template.render().context("Failed to render struct")
@@ -321,13 +368,13 @@ fn render_function(
     implemented_types: &HashMap<String, String>,
 ) -> anyhow::Result<templates::Function> {
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
-        type_ref_to_python_type(input_type, schema, implemented_types)?
+        type_ref_to_python_type(input_type, schema, implemented_types, &[])?
     } else {
         "None".to_string()
     };
 
     let output_type = if let Some(output_type) = function.output_type.as_ref() {
-        type_ref_to_python_type(output_type, schema, implemented_types)?
+        type_ref_to_python_type(output_type, schema, implemented_types, &[])?
     } else {
         "Any".to_string()
     };
@@ -337,6 +384,7 @@ fn render_function(
             error_type,
             schema,
             implemented_types,
+            &[],
         )?)
     } else {
         None
@@ -345,11 +393,11 @@ fn render_function(
     // Extract path and query parameters from input type
     let (path_params, query_params) = extract_parameters(schema, function, &input_type)?;
 
-    // Use function name as path if path is empty (like TypeScript generator does)
+    // Combine base path with function name (like TypeScript and Rust generators do)
     let path = if function.path.is_empty() {
         format!("/{}", function.name)
     } else {
-        function.path.clone()
+        format!("{}/{}", function.path, function.name)
     };
 
     // Check if input type is a primitive type
@@ -451,6 +499,7 @@ fn extract_parameters(
                             &field.type_ref,
                             schema,
                             &build_implemented_types(),
+                            &[],
                         )?;
                         query_params.push(templates::Parameter {
                             name: field_name,
@@ -607,12 +656,55 @@ fn sanitize_field_name(s: &str) -> String {
     to_valid_python_identifier(&to_snake_case(s))
 }
 
+/// Map external/undefined types to sensible Python equivalents
+/// Uses typing.Annotated to provide rich metadata like TypeScript comments
+fn map_external_type_to_python(type_name: &str) -> String {
+    match type_name {
+        // Rust std library numeric types
+        name if name.contains("NonZero") && (name.contains("U32") || name.contains("U64") || name.contains("I32") || name.contains("I64")) => {
+            format!("Annotated[int, \"Rust NonZero integer type: {}\"]", name)
+        },
+        
+        // Decimal types (often used for financial data) - JSON serialized as strings
+        name if name.contains("Decimal") => {
+            format!("Annotated[str, \"Rust Decimal type (JSON string): {}\"]", name)
+        },
+        
+        // Common domain-specific types that are typically strings
+        name if name.contains("Mpn") || name.contains("MPN") => {
+            format!("Annotated[str, \"Manufacturer Part Number: {}\"]", name)
+        },
+        name if name.contains("Uuid") || name.contains("UUID") => {
+            format!("Annotated[str, \"UUID type: {}\"]", name)
+        },
+        name if name.contains("Id") || name.ends_with("ID") => {
+            format!("Annotated[str, \"ID type: {}\"]", name)
+        },
+        
+        // Duration and time types - typically serialized as numbers
+        name if name.contains("Duration") => {
+            format!("Annotated[int, \"Duration type (milliseconds): {}\"]", name)
+        },
+        name if name.contains("Instant") => {
+            format!("Annotated[int, \"Instant type (timestamp): {}\"]", name)
+        },
+        
+        // For completely unmapped types, use Annotated[Any, ...] with metadata
+        _ => format!("Annotated[Any, \"External type: {}\"]", type_name),
+    }
+}
+
 // Type substitution function - handles TypeReference to Python type conversion
 fn type_ref_to_python_type(
     type_ref: &TypeReference,
     schema: &Schema,
     implemented_types: &HashMap<String, String>,
+    active_generics: &[String],
 ) -> anyhow::Result<String> {
+    // Check if this is an active generic parameter first
+    if active_generics.contains(&type_ref.name) {
+        return Ok(type_ref.name.clone());
+    }
     // Check if this type has a direct mapping
     if let Some(python_type) = implemented_types.get(&type_ref.name) {
         if type_ref.arguments.is_empty() {
@@ -626,7 +718,7 @@ fn type_ref_to_python_type(
         let type_params = get_type_parameters(&type_ref.name);
 
         for (param, arg) in type_params.iter().zip(type_ref.arguments.iter()) {
-            let resolved_arg = type_ref_to_python_type(arg, schema, implemented_types)?;
+            let resolved_arg = type_ref_to_python_type(arg, schema, implemented_types, active_generics)?;
             result = result.replace(param, &resolved_arg);
         }
 
@@ -640,17 +732,59 @@ fn type_ref_to_python_type(
             if struct_def.is_tuple() && struct_def.fields.len() == 1 {
                 // Return the inner type instead of the wrapper
                 let inner_field = &struct_def.fields[0];
-                return type_ref_to_python_type(&inner_field.type_ref, schema, implemented_types);
+                return type_ref_to_python_type(&inner_field.type_ref, schema, implemented_types, active_generics);
             }
         }
-        return Ok(improve_class_name(&type_ref.name));
+        
+        let base_type = improve_class_name(&type_ref.name);
+        
+        // Handle generic types with arguments - follow TypeScript pattern
+        if !type_ref.arguments.is_empty() {
+            // Collect type parameters from the schema definition
+            let type_params: Vec<_> = type_def.parameters().collect();
+            
+            // Ensure we have the same number of arguments as parameters
+            if type_params.len() == type_ref.arguments.len() {
+                let mut result = base_type.clone();
+                
+                // Substitute type parameters with actual arguments
+                for (type_param, type_arg) in type_params.iter().zip(type_ref.arguments.iter()) {
+                    if result.contains(&type_param.name) {
+                        let resolved_arg = type_ref_to_python_type(type_arg, schema, implemented_types, active_generics)?;
+                        result = result.replacen(&type_param.name, &resolved_arg, 1);
+                    }
+                }
+                
+                // If no substitutions were made, add generic arguments
+                if result == base_type {
+                    let arg_types: Result<Vec<String>, _> = type_ref.arguments
+                        .iter()
+                        .map(|arg| type_ref_to_python_type(arg, schema, implemented_types, active_generics))
+                        .collect();
+                    let arg_types = arg_types?;
+                    result = format!("{}[{}]", base_type, arg_types.join(", "));
+                }
+                
+                return Ok(result);
+            }
+        }
+        
+        return Ok(base_type);
     }
 
-    // Fallback - use the original name
-    Ok(improve_class_name(&type_ref.name))
-}
+    // Try schema-based fallback first (like TypeScript codegen does)
+    if let Some(fallback_type_ref) = type_ref.fallback_once(schema.input_types()) {
+        return type_ref_to_python_type(&fallback_type_ref, schema, implemented_types, active_generics);
+    }
+    
+    if let Some(fallback_type_ref) = type_ref.fallback_once(schema.output_types()) {
+        return type_ref_to_python_type(&fallback_type_ref, schema, implemented_types, active_generics);
+    }
 
-// Note: substitute_type function removed as it's no longer needed
+    // Final fallback for undefined external types - try to map to sensible Python types
+    let fallback_type = map_external_type_to_python(&type_ref.name);
+    Ok(fallback_type)
+}
 
 // Get type parameter names for a given type
 fn get_type_parameters(type_name: &str) -> Vec<&'static str> {
@@ -760,6 +894,14 @@ fn build_implemented_types() -> HashMap<String, String> {
 
     // Common serde types
     types.insert("serde_json::Value".to_string(), "Any".to_string());
+    
+    // External Rust types commonly found in ReflectAPI schemas
+    types.insert("StdNumNonZeroU32".to_string(), "int".to_string());
+    types.insert("StdNumNonZeroU64".to_string(), "int".to_string());
+    types.insert("StdNumNonZeroI32".to_string(), "int".to_string());
+    types.insert("StdNumNonZeroI64".to_string(), "int".to_string());
+    types.insert("RustDecimalDecimal".to_string(), "str".to_string());  // JSON representation
+    types.insert("MpnMpn".to_string(), "str".to_string());  // Manufacturer Part Number
 
     types
 }
@@ -817,22 +959,19 @@ from __future__ import annotations
 
     #[derive(Template)]
     #[template(
-        source = r#"from __future__ import annotations
-
+        source = r#"
 from datetime import datetime
-from typing import Any, Optional, TypeVar, Generic
+from typing import Any, Optional, TypeVar, Generic{% if has_annotated %}, Annotated{% endif %}
+from uuid import UUID
+{% if has_warnings %}
 import warnings
+{% endif %}
 {% if has_enums %}
 from enum import Enum
 {% endif %}
 
 from pydantic import BaseModel, ConfigDict
-{% if has_async %}
-from reflectapi_runtime import AsyncClientBase, ApiResponse
-{% endif %}
-{% if has_sync %}
-from reflectapi_runtime import ClientBase
-{% endif %}
+{% if has_async %}{% if has_sync %}from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse{% else %}from reflectapi_runtime import AsyncClientBase, ApiResponse{% endif %}{% else %}{% if has_sync %}from reflectapi_runtime import ClientBase, ApiResponse{% endif %}{% endif %}
 {% if has_testing %}
 from reflectapi_runtime.testing import MockClient, create_api_response
 {% endif %}
@@ -840,7 +979,14 @@ from reflectapi_runtime.testing import MockClient, create_api_response
 from reflectapi_runtime import ReflectapiOption
 {% endif %}
 
+{% if has_generics %}
 T = TypeVar('T')
+D = TypeVar('D')
+I = TypeVar('I')
+C = TypeVar('C')
+{% else %}
+T = TypeVar('T')
+{% endif %}
 "#,
         ext = "txt"
     )]
@@ -850,11 +996,14 @@ T = TypeVar('T')
         pub has_testing: bool,
         pub has_enums: bool,
         pub has_reflectapi_option: bool,
+        pub has_warnings: bool,
+        pub has_generics: bool,
+        pub has_annotated: bool,
     }
 
     #[derive(Template)]
     #[template(
-        source = r#"class {{ name }}(BaseModel{% if is_generic %}, Generic[T]{% endif %}):
+        source = r#"class {{ name }}(BaseModel{% if is_generic %}, Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]{% endif %}):
 {% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
 {% endif %}    
     model_config = ConfigDict(extra="ignore")
@@ -875,6 +1024,7 @@ T = TypeVar('T')
         pub fields: Vec<Field>,
         pub is_tuple: bool,
         pub is_generic: bool,
+        pub generic_params: Vec<String>,
     }
 
     #[derive(Template)]
@@ -1058,7 +1208,7 @@ class {{ async_class_name }}(AsyncClientBase):
 {% if function.is_input_primitive %}
             json_data=data,
 {% else %}
-            json_data=data.model_dump() if data else None,
+            json_model=data,
 {% endif %}
 {% endif %}
             response_model={{ function.output_type }},
@@ -1206,7 +1356,7 @@ class {{ class_name }}(ClientBase):
 {% if function.is_input_primitive %}
             json_data=data,
 {% else %}
-            json_data=data.model_dump() if data else None,
+            json_model=data,
 {% endif %}
 {% endif %}
             response_model={{ function.output_type }},
