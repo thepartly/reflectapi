@@ -56,6 +56,27 @@ enum Commands {
         /// Instrument the generated code with tracing
         #[arg(short = 'n', long, default_value = "false")]
         instrument: bool,
+
+        // Python-specific options
+        /// Package name for the generated Python client
+        #[arg(long, default_value = "api_client")]
+        python_package_name: String,
+
+        /// Generate async client for Python (default: true)
+        #[arg(long, default_value = "true")]
+        python_async: bool,
+
+        /// Generate sync client for Python (default: true) 
+        #[arg(long, default_value = "true")]
+        python_sync: bool,
+
+        /// Generate testing utilities for Python (default: true)
+        #[arg(long, default_value = "true")]
+        python_testing: bool,
+
+        /// Base URL for the Python client (optional)
+        #[arg(long)]
+        python_base_url: Option<String>,
     },
     /// Documentation subcommands
     #[command(subcommand)]
@@ -122,6 +143,11 @@ fn main() -> anyhow::Result<()> {
             typecheck,
             format,
             instrument,
+            python_package_name,
+            python_async,
+            python_sync,
+            python_testing,
+            python_base_url,
         } => {
             let include_tags = BTreeSet::from_iter(include_tags);
             let exclude_tags = BTreeSet::from_iter(exclude_tags);
@@ -163,7 +189,13 @@ fn main() -> anyhow::Result<()> {
                     "generated.py",
                     reflectapi::codegen::python::generate(
                         schema,
-                        &reflectapi::codegen::python::Config::default(),
+                        &reflectapi::codegen::python::Config {
+                            package_name: python_package_name,
+                            generate_async: python_async,
+                            generate_sync: python_sync,
+                            generate_testing: python_testing,
+                            base_url: python_base_url,
+                        },
                     )?,
                 ),
                 Language::Openapi => (

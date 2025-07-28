@@ -100,17 +100,17 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let functions_by_name: HashMap<String, &Function> =
         schema.functions().map(|f| (f.name.clone(), f)).collect();
 
-    // Group functions by their prefix (e.g., pets_, health_)
+    // Group functions by their prefix and separate top-level functions
     let mut function_groups: HashMap<String, Vec<templates::Function>> = HashMap::new();
-    let mut ungrouped_functions: Vec<templates::Function> = Vec::new();
+    let mut top_level_functions: Vec<templates::Function> = Vec::new();
 
     for function_schema in functions_by_name.values() {
         let rendered_function = render_function(function_schema, &schema, &implemented_types)?;
 
-        // Extract group name from function name (everything before first underscore)
-        if let Some(underscore_pos) = function_schema.name.find('_') {
-            let group_name = &function_schema.name[..underscore_pos];
-            let method_name = &function_schema.name[underscore_pos + 1..];
+        // Check for grouping patterns: underscore or dot notation
+        if let Some(separator_pos) = function_schema.name.find('_').or_else(|| function_schema.name.find('.')) {
+            let group_name = &function_schema.name[..separator_pos];
+            let method_name = &function_schema.name[separator_pos + 1..];
 
             // Create a modified function with the shortened name for nested access
             let mut nested_function = rendered_function.clone();
@@ -122,16 +122,26 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
                 .or_default()
                 .push(nested_function);
         } else {
-            // Functions without underscore remain ungrouped
-            ungrouped_functions.push(rendered_function);
+            // Functions without separators remain as top-level methods
+            top_level_functions.push(rendered_function);
         }
     }
+
+    // Convert function groups to structured format
+    let structured_function_groups: Vec<templates::FunctionGroup> = function_groups
+        .into_iter()
+        .map(|(group_name, functions)| templates::FunctionGroup {
+            name: group_name.clone(),
+            class_name: format!("{}Client", to_pascal_case(&group_name)),
+            functions,
+        })
+        .collect();
 
     let client_template = templates::ClientClass {
         class_name: "Client".to_string(),
         async_class_name: "AsyncClient".to_string(),
-        functions: ungrouped_functions,
-        function_groups,
+        top_level_functions,
+        function_groups: structured_function_groups,
         generate_async: config.generate_async,
         generate_sync: config.generate_sync,
         base_url: config.base_url.clone(),
@@ -313,6 +323,13 @@ fn render_function(
         function.path.clone()
     };
 
+    // Check if input type is a primitive type
+    let is_input_primitive = if let Some(input_type_ref) = &function.input_type {
+        is_primitive_type(&input_type_ref.name)
+    } else {
+        false
+    };
+
     // Determine if we need a body parameter
     // For GET requests, body is not needed as all parameters become path/query params
     // For POST requests, we use the body if there are fields not covered by path params
@@ -340,6 +357,7 @@ fn render_function(
         path_params,
         query_params,
         has_body,
+        is_input_primitive,
         deprecation_note: function.deprecation_note.clone(),
     })
 }
@@ -417,6 +435,19 @@ fn extract_parameters(
     }
 
     Ok((path_params, query_params))
+}
+
+// Check if a type name represents a primitive type
+fn is_primitive_type(type_name: &str) -> bool {
+    matches!(
+        type_name,
+        "u8" | "u16" | "u32" | "u64" | "u128" | "usize"
+        | "i8" | "i16" | "i32" | "i64" | "i128" | "isize"
+        | "f32" | "f64"
+        | "bool"
+        | "String" | "str"
+        | "char"
+    )
 }
 
 // Utility functions for string case conversion
@@ -868,18 +899,15 @@ T = TypeVar('T')
     #[derive(Template)]
     #[template(
         source = r#"{% if generate_async %}
-class {{ async_class_name }}(AsyncClientBase):
-    """Async client for the API."""
+{% for group in function_groups %}
+class Async{{ group.class_name }}:
+    """Async client for {{ group.name }} operations."""
     
-    def __init__(
-        self,
-        base_url: str{% if base_url.is_some() %} = "{{ base_url.as_ref().unwrap() }}"{% endif %},
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(base_url, **kwargs)
+    def __init__(self, client: AsyncClientBase) -> None:
+        self._client = client
     
-{% for function in functions %}
-        async def {{ function.name }}(
+{% for function in group.functions %}
+    async def {{ function.name }}(
             self,
 {% for param in function.path_params %}
             {{ param.name }}: {{ param.type_annotation }},
@@ -929,17 +957,20 @@ class {{ async_class_name }}(AsyncClientBase):
                 path,
                 params=params if params else None,
 {% if function.has_body %}
+{% if function.is_input_primitive %}
+                json_data=data,
+{% else %}
                 json_model=data,
+{% endif %}
 {% endif %}
                 response_model={{ function.output_type }},
             )
         
 {% endfor %}
-{% endif %}
 
-{% if generate_sync %}
-class {{ class_name }}(ClientBase):
-    """Synchronous client for the API."""
+{% endfor %}
+class {{ async_class_name }}(AsyncClientBase):
+    """Async client for the API."""
     
     def __init__(
         self,
@@ -947,9 +978,84 @@ class {{ class_name }}(ClientBase):
         **kwargs: Any,
     ) -> None:
         super().__init__(base_url, **kwargs)
+{% for group in function_groups %}
+        self.{{ group.name }} = Async{{ group.class_name }}(self)
+{% endfor %}
     
-{% for function in functions %}
-        def {{ function.name }}(
+{% for function in top_level_functions %}
+    async def {{ function.name }}(
+        self,
+{% for param in function.path_params %}
+        {{ param.name }}: {{ param.type_annotation }},
+{% endfor %}
+{% for param in function.query_params %}
+        {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
+{% endfor %}
+{% if function.has_body %}
+        data: Optional[{{ function.input_type }}] = None,
+{% endif %}
+    ) -> ApiResponse[{{ function.output_type }}]:
+        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
+        
+        Args:
+            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
+{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
+{% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
+{% for param in function.query_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
+{% endfor %}{% endif %}
+        
+        Returns:
+            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
+        
+        .. deprecated::
+           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
+        """
+        {% if function.deprecation_note.is_some() %}
+        warnings.warn(
+            "{{ function.name }} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        {% endif %}
+        path = "{{ function.path }}"
+{% for param in function.path_params %}
+        path = path.replace("{" + "{{ param.name }}" + "}", str({{ param.name }}))
+{% endfor %}
+        
+        params: dict[str, Any] = {}
+{% for param in function.query_params %}
+        if {{ param.name }} is not None:
+            params["{{ param.name }}"] = {{ param.name }}
+{% endfor %}
+        
+        return await self._make_request(
+            "{{ function.method }}",
+            path,
+            params=params if params else None,
+{% if function.has_body %}
+{% if function.is_input_primitive %}
+            json_data=data,
+{% else %}
+            json_data=data.model_dump() if data else None,
+{% endif %}
+{% endif %}
+            response_model={{ function.output_type }},
+        )
+    
+{% endfor %}
+
+{% endif %}
+
+{% if generate_sync %}
+{% for group in function_groups %}
+class {{ group.class_name }}:
+    """Synchronous client for {{ group.name }} operations."""
+    
+    def __init__(self, client: ClientBase) -> None:
+        self._client = client
+    
+{% for function in group.functions %}
+    def {{ function.name }}(
             self,
 {% for param in function.path_params %}
             {{ param.name }}: {{ param.type_annotation }},
@@ -999,12 +1105,93 @@ class {{ class_name }}(ClientBase):
                 path,
                 params=params if params else None,
 {% if function.has_body %}
+{% if function.is_input_primitive %}
+                json_data=data,
+{% else %}
                 json_model=data,
+{% endif %}
 {% endif %}
                 response_model={{ function.output_type }},
             )
         
 {% endfor %}
+
+{% endfor %}
+class {{ class_name }}(ClientBase):
+    """Synchronous client for the API."""
+    
+    def __init__(
+        self,
+        base_url: str{% if base_url.is_some() %} = "{{ base_url.as_ref().unwrap() }}"{% endif %},
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(base_url, **kwargs)
+{% for group in function_groups %}
+        self.{{ group.name }} = {{ group.class_name }}(self)
+{% endfor %}
+    
+{% for function in top_level_functions %}
+    def {{ function.name }}(
+        self,
+{% for param in function.path_params %}
+        {{ param.name }}: {{ param.type_annotation }},
+{% endfor %}
+{% for param in function.query_params %}
+        {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
+{% endfor %}
+{% if function.has_body %}
+        data: Optional[{{ function.input_type }}] = None,
+{% endif %}
+    ) -> ApiResponse[{{ function.output_type }}]:
+        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
+        
+        Args:
+            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
+{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
+{% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
+{% for param in function.query_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
+{% endfor %}{% endif %}
+        
+        Returns:
+            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
+        
+        .. deprecated::
+           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
+        """
+        {% if function.deprecation_note.is_some() %}
+        warnings.warn(
+            "{{ function.name }} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        {% endif %}
+        path = "{{ function.path }}"
+{% for param in function.path_params %}
+        path = path.replace("{" + "{{ param.name }}" + "}", str({{ param.name }}))
+{% endfor %}
+        
+        params: dict[str, Any] = {}
+{% for param in function.query_params %}
+        if {{ param.name }} is not None:
+            params["{{ param.name }}"] = {{ param.name }}
+{% endfor %}
+        
+        return self._make_request(
+            "{{ function.method }}",
+            path,
+            params=params if params else None,
+{% if function.has_body %}
+{% if function.is_input_primitive %}
+            json_data=data,
+{% else %}
+            json_data=data.model_dump() if data else None,
+{% endif %}
+{% endif %}
+            response_model={{ function.output_type }},
+        )
+    
+{% endfor %}
+
 {% endif %}
 "#,
         ext = "txt"
@@ -1012,8 +1199,8 @@ class {{ class_name }}(ClientBase):
     pub struct ClientClass {
         pub class_name: String,
         pub async_class_name: String,
-        pub functions: Vec<Function>,
-        pub function_groups: HashMap<String, Vec<Function>>,
+        pub top_level_functions: Vec<Function>,
+        pub function_groups: Vec<FunctionGroup>,
         pub generate_async: bool,
         pub generate_sync: bool,
         pub base_url: Option<String>,
@@ -1074,7 +1261,15 @@ def create_mock_client() -> MockClient:
         pub path_params: Vec<Parameter>,
         pub query_params: Vec<Parameter>,
         pub has_body: bool,
+        pub is_input_primitive: bool,
         pub deprecation_note: Option<String>,
+    }
+
+    #[derive(Clone)]
+    pub struct FunctionGroup {
+        pub name: String,
+        pub class_name: String,
+        pub functions: Vec<Function>,
     }
 
     #[derive(Clone)]
