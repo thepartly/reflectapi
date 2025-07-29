@@ -5,58 +5,106 @@ from datetime import datetime
 from pydantic import ValidationError
 
 from generated import (
-    Pet, PetDetails, PetKind, Behavior, 
-    PetsListRequest, PetsUpdateRequest, PetsRemoveRequest,
-    Headers, Paginated, Option
+    MyapiModelInputPet as Pet,
+    MyapiModelOutputPet as PetDetails,
+    MyapiModelKind as PetKind,
+    MyapiModelKindDog as PetKindDog,
+    MyapiModelKindCat as PetKindCat,
+    MyapiModelBehavior as Behavior,
+    MyapiProtoPetsListRequest as PetsListRequest,
+    MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
+    MyapiProtoPetsRemoveRequest as PetsRemoveRequest,
+    MyapiProtoHeaders as Headers,
+    MyapiProtoPaginated as Paginated,
+    MyapiProtoOption as Option
 )
 from reflectapi_runtime import ReflectapiOption, Undefined
+# Import test helpers - conftest.py is automatically imported by pytest
+# from ..conftest import (
+#     assert_petkind_cat, assert_petkind_dog,
+#     assert_reflectapi_option_some, TestDataFactory
+# )
 
 
 class TestBasicModels:
     """Test basic model creation and validation."""
     
-    def test_pet_creation(self):
-        """Test creating a Pet model."""
+    def test_pet_creation_with_fixture(self, sample_pet: Pet):
+        """Test creating a Pet model using fixture."""
+        assert sample_pet.name == "Buddy"
+        assert isinstance(sample_pet.kind, PetKindDog)
+        assert sample_pet.kind.type == 'dog'
+        assert sample_pet.kind.breed == "Golden Retriever"
+        assert sample_pet.age == 3
+        assert Behavior.CALM in sample_pet.behaviors
+        assert Behavior.AGGRESSIVE in sample_pet.behaviors
+    
+    def test_pet_creation_manual(self, sample_cat: PetKindCat):
+        """Test creating a Pet model manually."""
         pet = Pet(
             name="fluffy",
-            kind=PetKind.CAT,
+            kind=sample_cat,
             age=3,
             updated_at=datetime.now(),
             behaviors=[Behavior.CALM]
         )
         assert pet.name == "fluffy"
-        assert pet.kind == PetKind.CAT
+        assert isinstance(pet.kind, PetKindCat)
+        assert pet.kind.type == 'cat'
+        assert pet.kind.lives == 9
         assert pet.age == 3
         assert pet.behaviors == [Behavior.CALM]
     
     def test_pet_optional_fields(self):
         """Test Pet with optional fields."""
+        dog_kind = PetKindDog(type="dog", breed="Golden Retriever")
         pet = Pet(
             name="buddy",
-            kind=PetKind.DOG
+            kind=dog_kind
         )
         assert pet.name == "buddy"
-        assert pet.kind == PetKind.DOG
+        assert pet.kind.type == "dog"
+        assert pet.kind.breed == "Golden Retriever"
         assert pet.age is None
         assert pet.behaviors is None
     
     def test_pet_details_required_updated_at(self):
         """Test PetDetails requires updated_at field."""
+        dog_kind = PetKindDog(type="dog", breed="German Shepherd")
         pet_details = PetDetails(
             name="rex",
-            kind=PetKind.DOG,
+            kind=dog_kind,
             updated_at=datetime.now()
         )
         assert pet_details.updated_at is not None
 
 
-class TestEnums:
-    """Test enum models."""
+class TestDiscriminatedUnions:
+    """Test discriminated union models."""
     
-    def test_pet_kind_values(self):
-        """Test PetKind enum values."""
-        assert PetKind.DOG == "dog"
-        assert PetKind.CAT == "cat"
+    def test_pet_kind_dog_creation(self):
+        """Test PetKind dog variant creation."""
+        dog = PetKindDog(type="dog", breed="Labrador")
+        assert dog.type == "dog"
+        assert dog.breed == "Labrador"
+    
+    def test_pet_kind_cat_creation(self):
+        """Test PetKind cat variant creation."""
+        cat = PetKindCat(type="cat", lives=7)
+        assert cat.type == "cat"
+        assert cat.lives == 7
+    
+    def test_pet_kind_union_usage(self):
+        """Test PetKind union type usage."""
+        dog = PetKindDog(type="dog", breed="Poodle")
+        cat = PetKindCat(type="cat", lives=9)
+        
+        # Both should be valid PetKind instances
+        pet_dog = Pet(name="Buddy", kind=dog)
+        pet_cat = Pet(name="Whiskers", kind=cat)
+        
+        assert pet_dog.kind.type == "dog"
+        assert pet_cat.kind.type == "cat"
     
     def test_behavior_values(self):
         """Test Behavior enum values."""
@@ -106,9 +154,11 @@ class TestGenericModels:
     
     def test_paginated_creation(self):
         """Test creating a Paginated model."""
+        cat = PetKindCat(type="cat", lives=9)
+        dog = PetKindDog(type="dog", breed="Beagle")
         pets = [
-            PetDetails(name="pet1", kind=PetKind.CAT, updated_at=datetime.now()),
-            PetDetails(name="pet2", kind=PetKind.DOG, updated_at=datetime.now())
+            PetDetails(name="pet1", kind=cat, updated_at=datetime.now()),
+            PetDetails(name="pet2", kind=dog, updated_at=datetime.now())
         ]
         paginated = Paginated[PetDetails](
             items=pets,
@@ -127,24 +177,31 @@ class TestGenericModels:
 class TestValidation:
     """Test Pydantic validation."""
     
-    def test_invalid_pet_kind(self):
-        """Test validation error for invalid pet kind."""
+    def test_invalid_pet_kind_discriminator(self):
+        """Test validation error for invalid pet kind discriminator."""
         with pytest.raises(ValidationError):
-            Pet(name="test", kind="invalid_kind")
+            # Invalid type field
+            PetKindDog(type="cat", breed="Labrador")
+        
+        with pytest.raises(ValidationError):
+            # Missing required field
+            PetKindCat(type="cat")  # Missing 'lives' field
     
     def test_invalid_behavior(self):
         """Test validation error for invalid behavior."""
+        cat = PetKindCat(type="cat", lives=9)
         with pytest.raises(ValidationError):
             Pet(
                 name="test", 
-                kind=PetKind.CAT,
+                kind=cat,
                 behaviors=["invalid_behavior"]
             )
     
     def test_missing_required_field(self):
         """Test validation error for missing required field."""
         with pytest.raises(ValidationError):
-            Pet(kind=PetKind.CAT)  # Missing required 'name' field
+            cat = PetKindCat(type="cat", lives=9)
+            Pet(kind=cat)  # Missing required 'name' field
 
 
 class TestSerialization:
@@ -152,26 +209,32 @@ class TestSerialization:
     
     def test_pet_serialization(self):
         """Test Pet model serialization."""
+        cat = PetKindCat(type="cat", lives=9)
         pet = Pet(
             name="fluffy",
-            kind=PetKind.CAT,
+            kind=cat,
             age=3
         )
         data = pet.model_dump()
         assert data["name"] == "fluffy"
-        assert data["kind"] == "cat"
+        assert data["kind"]["type"] == "cat"
+        assert data["kind"]["lives"] == 9
         assert data["age"] == 3
     
     def test_pet_deserialization(self):
         """Test Pet model deserialization."""
         data = {
             "name": "buddy",
-            "kind": "dog",
+            "kind": {
+                "type": "dog",
+                "breed": "Golden Retriever"
+            },
             "age": 2
         }
         pet = Pet.model_validate(data)
         assert pet.name == "buddy"
-        assert pet.kind == PetKind.DOG
+        assert pet.kind.type == "dog"
+        assert pet.kind.breed == "Golden Retriever"
         assert pet.age == 2
     
     def test_reflectapi_option_serialization(self):

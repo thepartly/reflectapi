@@ -227,18 +227,24 @@ class ClientBase(ABC):
 
     def _serialize_request_body(self, json_model: BaseModel) -> tuple[bytes, dict[str, str]]:
         """Serialize request body from Pydantic model."""
-        # Use Pydantic with improved ReflectapiOption serialization
-        model_dict = json_model.model_dump(exclude_none=False)  # Keep explicit None
+        # Process each field manually to handle ReflectapiOption properly
+        model_dict = {}
+        from .option import ReflectapiOption, Undefined
         
-        # Filter out Undefined values (ReflectapiOption serializer returns Undefined sentinel)
-        from .option import Undefined
-        final_dict = {
-            k: v for k, v in model_dict.items() 
-            if not (hasattr(v, '__class__') and v is Undefined)
-        }
+        # Get the raw model data without triggering ReflectapiOption serialization
+        raw_data = json_model.model_dump(exclude_none=False)
+        
+        for field_name, field_value in raw_data.items():
+            if isinstance(field_value, ReflectapiOption):
+                if not field_value.is_undefined:
+                    # Include the unwrapped value (including None for explicit null)
+                    model_dict[field_name] = field_value._value
+                # Skip undefined fields entirely
+            else:
+                model_dict[field_name] = field_value
         
         import json
-        content = json.dumps(final_dict, separators=(',', ':')).encode('utf-8')
+        content = json.dumps(model_dict, separators=(',', ':')).encode('utf-8')
         headers = {"Content-Type": "application/json"}
         
         return content, headers
@@ -604,18 +610,24 @@ class AsyncClientBase(ABC):
 
     def _serialize_request_body(self, json_model: BaseModel) -> tuple[bytes, dict[str, str]]:
         """Serialize request body from Pydantic model."""
-        # Use Pydantic with improved ReflectapiOption serialization
-        model_dict = json_model.model_dump(exclude_none=False)  # Keep explicit None
+        # Process each field manually to handle ReflectapiOption properly
+        model_dict = {}
+        from .option import ReflectapiOption, Undefined
         
-        # Filter out Undefined values (ReflectapiOption serializer returns Undefined sentinel)
-        from .option import Undefined
-        final_dict = {
-            k: v for k, v in model_dict.items() 
-            if not (hasattr(v, '__class__') and v is Undefined)
-        }
+        # Get the raw model data without triggering ReflectapiOption serialization
+        raw_data = json_model.model_dump(exclude_none=False)
+        
+        for field_name, field_value in raw_data.items():
+            if isinstance(field_value, ReflectapiOption):
+                if not field_value.is_undefined:
+                    # Include the unwrapped value (including None for explicit null)
+                    model_dict[field_name] = field_value._value
+                # Skip undefined fields entirely
+            else:
+                model_dict[field_name] = field_value
         
         import json
-        content = json.dumps(final_dict, separators=(',', ':')).encode('utf-8')
+        content = json.dumps(model_dict, separators=(',', ':')).encode('utf-8')
         headers = {"Content-Type": "application/json"}
         
         return content, headers

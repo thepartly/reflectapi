@@ -4,7 +4,14 @@ import pytest
 import warnings
 from unittest.mock import Mock, AsyncMock, patch
 
-from generated import AsyncClient, Client, Pet, PetKind, PetsListRequest, PetsRemoveRequest
+from generated import (
+    AsyncClient, 
+    Client,
+    MyapiModelInputPet as Pet,
+    MyapiModelKind as PetKind,
+    MyapiProtoPetsListRequest as PetsListRequest,
+    MyapiProtoPetsRemoveRequest as PetsRemoveRequest
+)
 from reflectapi_runtime import ApiResponse
 
 
@@ -20,20 +27,26 @@ class TestAsyncClient:
         """Test AsyncClient has all expected methods."""
         client = AsyncClient("http://test.example")
         
-        # Check all expected methods exist
-        assert hasattr(client, 'pets_create')
-        assert hasattr(client, 'pets_list')
-        assert hasattr(client, 'pets_update')
-        assert hasattr(client, 'pets_remove')
-        assert hasattr(client, 'pets_delete')  # deprecated
-        assert hasattr(client, 'pets_get_first')
-        assert hasattr(client, 'health_check')
+        # Check namespace structure exists
+        assert hasattr(client, 'pets')
+        assert hasattr(client, 'health')
+        
+        # Check all expected pets methods exist
+        assert hasattr(client.pets, 'create')
+        assert hasattr(client.pets, 'list')
+        assert hasattr(client.pets, 'update')
+        assert hasattr(client.pets, 'remove')
+        assert hasattr(client.pets, 'delete')  # deprecated
+        assert hasattr(client.pets, 'get_first')
+        
+        # Check health methods exist
+        assert hasattr(client.health, 'check')
     
     @pytest.mark.asyncio
     async def test_async_client_pets_create_docstring(self):
-        """Test pets_create has proper docstring."""
+        """Test pets.create has proper docstring."""
         client = AsyncClient("http://test.example")
-        docstring = client.pets_create.__doc__
+        docstring = client.pets.create.__doc__
         
         assert "Create a new pet" in docstring
         assert "Args:" in docstring
@@ -48,7 +61,7 @@ class TestAsyncClient:
         with patch.object(client, '_make_request', return_value=Mock()) as mock_request:
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
-                await client.pets_delete(PetsRemoveRequest(name="test"))
+                await client.pets.delete(PetsRemoveRequest(name="test"))
                 
                 # Check deprecation warning was raised
                 assert len(w) == 1
@@ -68,24 +81,29 @@ class TestSyncClient:
         """Test sync Client has all expected methods."""
         client = Client("http://test.example")
         
-        # Check all expected methods exist
-        assert hasattr(client, 'pets_create')
-        assert hasattr(client, 'pets_list')
-        assert hasattr(client, 'pets_update')
-        assert hasattr(client, 'pets_remove')
-        assert hasattr(client, 'pets_delete')  # deprecated
-        assert hasattr(client, 'pets_get_first')
-        assert hasattr(client, 'health_check')
+        # Check namespace structure exists
+        assert hasattr(client, 'pets')
+        assert hasattr(client, 'health')
+        
+        # Check all expected pets methods exist
+        assert hasattr(client.pets, 'create')
+        assert hasattr(client.pets, 'list')
+        assert hasattr(client.pets, 'update')
+        assert hasattr(client.pets, 'remove')
+        assert hasattr(client.pets, 'delete')  # deprecated
+        assert hasattr(client.pets, 'get_first')
+        
+        # Check health methods exist
+        assert hasattr(client.health, 'check')
     
     def test_sync_client_pets_list_docstring(self):
-        """Test pets_list has proper docstring."""
+        """Test pets.list has proper docstring."""
         client = Client("http://test.example")
-        docstring = client.pets_list.__doc__
+        docstring = client.pets.list.__doc__
         
         assert "List available pets" in docstring
-        assert "Args:" in docstring
         assert "Returns:" in docstring
-        assert "ApiResponse[Paginated]" in docstring
+        assert "ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]" in docstring
     
     def test_deprecated_method_warning_sync(self):
         """Test deprecated method shows warning in sync client."""
@@ -94,7 +112,7 @@ class TestSyncClient:
         with patch.object(client, '_make_request', return_value=Mock()) as mock_request:
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
-                client.pets_delete(PetsRemoveRequest(name="test"))
+                client.pets.delete(PetsRemoveRequest(name="test"))
                 
                 # Check deprecation warning was raised
                 assert len(w) == 1
@@ -106,34 +124,34 @@ class TestClientMethodSignatures:
     """Test client method signatures are correct."""
     
     def test_pets_create_signature(self):
-        """Test pets_create method signature."""
+        """Test pets.create method signature."""
         client = AsyncClient("http://test.example")
         
         # Should accept Pet as data parameter
         import inspect
-        sig = inspect.signature(client.pets_create)
+        sig = inspect.signature(client.pets.create)
         params = list(sig.parameters.keys())
         
         # Note: inspect.signature on bound methods doesn't include 'self'
         assert 'data' in params
     
     def test_pets_get_first_no_params(self):
-        """Test pets_get_first has no data parameter."""
+        """Test pets.get_first has no data parameter."""
         client = AsyncClient("http://test.example")
         
         import inspect
-        sig = inspect.signature(client.pets_get_first)
+        sig = inspect.signature(client.pets.get_first)
         params = list(sig.parameters.keys())
         
         # Should have no parameters (no data)
         assert params == []
     
     def test_health_check_no_params(self):
-        """Test health_check has no data parameter."""
+        """Test health.check has no data parameter."""
         client = Client("http://test.example")
         
         import inspect
-        sig = inspect.signature(client.health_check)
+        sig = inspect.signature(client.health.check)
         params = list(sig.parameters.keys())
         
         # Should have no parameters (no data)

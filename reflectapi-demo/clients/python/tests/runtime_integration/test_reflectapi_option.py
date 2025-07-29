@@ -4,7 +4,10 @@ import pytest
 import json
 from pydantic import ValidationError
 
-from generated import PetsUpdateRequest, Behavior
+from generated import (
+    MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
+    MyapiModelBehavior as Behavior
+)
 from reflectapi_runtime import ReflectapiOption, Undefined
 
 

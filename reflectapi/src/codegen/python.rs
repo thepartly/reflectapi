@@ -7,31 +7,37 @@ use crate::{Schema, TypeReference};
 use reflectapi_schema::{Function, Type};
 
 fn to_valid_python_identifier(name: &str) -> String {
-    let cleaned = name.replace('.', "_")
-        .replace('-', "_")
+    let cleaned = name
+        .replace(['.', '-'], "_")
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect::<String>();
-    
+
     // Handle Python keywords by appending underscore
     const PYTHON_KEYWORDS: &[&str] = &[
         "and", "as", "assert", "break", "class", "continue", "def", "del", "elif", "else",
-        "except", "exec", "finally", "for", "from", "global", "if", "import", "in", "is",
-        "lambda", "not", "or", "pass", "print", "raise", "return", "try", "while", "with",
-        "yield", "async", "await", "nonlocal"
+        "except", "exec", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda",
+        "not", "or", "pass", "print", "raise", "return", "try", "while", "with", "yield", "async",
+        "await", "nonlocal",
     ];
-    
+
     let mut result = if PYTHON_KEYWORDS.contains(&cleaned.as_str()) {
         format!("{}_", cleaned)
     } else {
         cleaned
     };
-    
+
     // If the identifier starts with a digit, prefix it with "field_"
     if result.chars().next().map_or(false, |c| c.is_ascii_digit()) {
         result = format!("field_{}", result);
     }
-    
+
     result
 }
 
@@ -91,13 +97,32 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         }
     });
 
+    // Check if we need Literal import and Field discriminator (for tagged enums)
+    let (has_literal, has_discriminated_unions) = {
+        let mut has_literal = false;
+        let mut has_discriminated_unions = false;
+
+        for name in &all_type_names {
+            if let Some(reflectapi_schema::Type::Enum(enum_def)) = schema.get_type(name) {
+                if matches!(
+                    enum_def.representation,
+                    reflectapi_schema::Representation::Internal { .. }
+                ) {
+                    has_literal = true;
+                    has_discriminated_unions = true;
+                }
+            }
+        }
+        (has_literal, has_discriminated_unions)
+    };
+
     // Check if we need ReflectapiOption import
     let has_reflectapi_option = schema_uses_reflectapi_option(&schema, &all_type_names);
-    
+
     // Check if we need warnings import (for deprecated functions)
     let has_warnings = schema.functions().any(|f| f.deprecation_note.is_some());
 
-    // Generate imports  
+    // Generate imports
     let imports = templates::Imports {
         has_async: config.generate_async,
         has_sync: config.generate_sync,
@@ -107,6 +132,8 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         has_warnings,
         has_generics: true,
         has_annotated: true, // Always include for external type fallbacks
+        has_literal,
+        has_discriminated_unions,
     };
     generated_code.push(imports.render().context("Failed to render imports")?);
 
@@ -143,7 +170,11 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         let rendered_function = render_function(function_schema, &schema, &implemented_types)?;
 
         // Check for grouping patterns: underscore or dot notation
-        if let Some(separator_pos) = function_schema.name.find('_').or_else(|| function_schema.name.find('.')) {
+        if let Some(separator_pos) = function_schema
+            .name
+            .find('_')
+            .or_else(|| function_schema.name.find('.'))
+        {
             let group_name = &function_schema.name[..separator_pos];
             let method_name = &function_schema.name[separator_pos + 1..];
 
@@ -188,28 +219,26 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     );
 
     // Add external type definitions and model rebuilds for Pydantic forward references
-    let mut external_types_and_rebuilds = vec![];
-    
-    // Define external types that weren't generated but are referenced
-    external_types_and_rebuilds.push("# External type definitions".to_string());
-    external_types_and_rebuilds.push("StdNumNonZeroU32 = Annotated[int, \"Rust NonZero u32 type\"]".to_string());
-    external_types_and_rebuilds.push("StdNumNonZeroU64 = Annotated[int, \"Rust NonZero u64 type\"]".to_string());
-    external_types_and_rebuilds.push("StdNumNonZeroI32 = Annotated[int, \"Rust NonZero i32 type\"]".to_string());
-    external_types_and_rebuilds.push("StdNumNonZeroI64 = Annotated[int, \"Rust NonZero i64 type\"]".to_string());
-    
-    // Add model rebuilds for Pydantic forward references
-    external_types_and_rebuilds.push("".to_string());
-    external_types_and_rebuilds.push("# Rebuild models to resolve forward references".to_string());
-    external_types_and_rebuilds.push("try:".to_string());
+    let mut external_types_and_rebuilds = vec![
+        "# External type definitions".to_string(),
+        "StdNumNonZeroU32 = Annotated[int, \"Rust NonZero u32 type\"]".to_string(),
+        "StdNumNonZeroU64 = Annotated[int, \"Rust NonZero u64 type\"]".to_string(),
+        "StdNumNonZeroI32 = Annotated[int, \"Rust NonZero i32 type\"]".to_string(),
+        "StdNumNonZeroI64 = Annotated[int, \"Rust NonZero i64 type\"]".to_string(),
+        "".to_string(),
+        "# Rebuild models to resolve forward references".to_string(),
+        "try:".to_string(),
+    ];
     for type_name in rendered_types.keys() {
         if !type_name.starts_with("std::") && !type_name.starts_with("reflectapi::") {
             external_types_and_rebuilds.push(format!("    {}.model_rebuild()", type_name));
         }
     }
     external_types_and_rebuilds.push("except AttributeError:".to_string());
-    external_types_and_rebuilds.push("    # Some types may not have model_rebuild method".to_string());
+    external_types_and_rebuilds
+        .push("    # Some types may not have model_rebuild method".to_string());
     external_types_and_rebuilds.push("    pass".to_string());
-    
+
     generated_code.push(external_types_and_rebuilds.join("\n"));
 
     // Generate testing utilities if requested
@@ -284,22 +313,33 @@ fn render_struct(
     // Collect active generic parameter names for this struct
     let active_generics: Vec<String> = struct_def.parameters().map(|p| p.name.clone()).collect();
 
-    let fields = struct_def
+    // Separate regular fields from flattened fields
+    let regular_fields = struct_def
         .fields
         .iter()
+        .filter(|field| !field.flattened())
         .map(|field| {
-            let base_field_type = type_ref_to_python_type(&field.type_ref, schema, implemented_types, &active_generics)?;
+            let base_field_type = type_ref_to_python_type(
+                &field.type_ref,
+                schema,
+                implemented_types,
+                &active_generics,
+            )?;
 
             // Check if field type is Option<T> (which gets converted to T | None automatically)
             let is_option_type = field.type_ref.name == "std::option::Option";
-            
+
             // Fix default value handling for optional fields
             let (optional, default_value, field_type) = if !field.required {
                 // Field is not required - add | None if not already an Option type
                 if is_option_type {
                     (true, Some("None".to_string()), base_field_type) // Already has | None
                 } else {
-                    (true, Some("None".to_string()), format!("{} | None", base_field_type))
+                    (
+                        true,
+                        Some("None".to_string()),
+                        format!("{} | None", base_field_type),
+                    )
                 }
             } else if is_option_type {
                 // Field is required but Option type - still needs default None
@@ -320,6 +360,97 @@ fn render_struct(
         })
         .collect::<Result<Vec<_>, anyhow::Error>>()?;
 
+    // Collect flattened fields by expanding them from their type definitions
+    let mut flattened_fields: Vec<templates::Field> = Vec::new();
+    for field in struct_def.fields.iter().filter(|f| f.flattened()) {
+        // Try to get the type definition and expand its fields
+        if let Some(flattened_type) = schema.get_type(&field.type_ref.name) {
+            match flattened_type {
+                reflectapi_schema::Type::Struct(flattened_struct) => {
+                    // Recursively get fields from the flattened struct
+                    for flattened_field in flattened_struct.fields.iter() {
+                        let field_type = type_ref_to_python_type(
+                            &flattened_field.type_ref,
+                            schema,
+                            implemented_types,
+                            &active_generics,
+                        )?;
+
+                        // Check if field type is Option<T>
+                        let is_option_type = flattened_field.type_ref.name == "std::option::Option";
+
+                        // Handle optionality - flattened fields inherit parent field's optionality
+                        let (optional, default_value, final_field_type) =
+                            if !flattened_field.required || !field.required {
+                                if is_option_type {
+                                    (true, Some("None".to_string()), field_type)
+                                } else {
+                                    (
+                                        true,
+                                        Some("None".to_string()),
+                                        format!("{} | None", field_type),
+                                    )
+                                }
+                            } else if is_option_type {
+                                (true, Some("None".to_string()), field_type)
+                            } else {
+                                (false, None, field_type)
+                            };
+
+                        flattened_fields.push(templates::Field {
+                            name: sanitize_field_name(flattened_field.name()),
+                            type_annotation: final_field_type,
+                            description: Some(format!(
+                                "(flattened) {}",
+                                flattened_field.description()
+                            )),
+                            deprecation_note: flattened_field.deprecation_note.clone(),
+                            optional,
+                            default_value,
+                        });
+                    }
+                }
+                _ => {
+                    // For non-struct flattened types, add a comment field
+                    let field_type = type_ref_to_python_type(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        &active_generics,
+                    )?;
+                    flattened_fields.push(templates::Field {
+                        name: format!(
+                            "# Flattened {} (non-struct type not fully supported)",
+                            field.name()
+                        ),
+                        type_annotation: field_type,
+                        description: Some(format!("Flattened from non-struct: {}", field.name())),
+                        deprecation_note: None,
+                        optional: false,
+                        default_value: None,
+                    });
+                }
+            }
+        } else {
+            // Unknown type - add a comment
+            flattened_fields.push(templates::Field {
+                name: format!("# Flattened {} (unknown type)", field.name()),
+                type_annotation: "Any".to_string(),
+                description: Some(format!(
+                    "Flattened field from unknown type: {}",
+                    field.name()
+                )),
+                deprecation_note: None,
+                optional: true,
+                default_value: Some("None".to_string()),
+            });
+        }
+    }
+
+    // Combine regular fields with flattened field information
+    let mut all_fields = regular_fields;
+    all_fields.extend(flattened_fields);
+
     // Check if this is a generic struct (has type parameters)
     let has_generics = !struct_def.parameters.is_empty();
     let class_name = improve_class_name(&struct_def.name);
@@ -327,7 +458,7 @@ fn render_struct(
     let class_template = templates::DataClass {
         name: class_name,
         description: Some(struct_def.description().to_string()),
-        fields,
+        fields: all_fields,
         is_tuple: false,
         is_generic: has_generics,
         generic_params: active_generics.clone(),
@@ -338,26 +469,341 @@ fn render_struct(
 
 fn render_enum(
     enum_def: &reflectapi_schema::Enum,
-    _schema: &Schema,
-    _implemented_types: &HashMap<String, String>,
+    schema: &Schema,
+    implemented_types: &HashMap<String, String>,
 ) -> anyhow::Result<String> {
-    let variants = enum_def
-        .variants
-        .iter()
-        .map(|variant| templates::EnumVariant {
-            name: to_screaming_snake_case(variant.name()),
-            value: variant.serde_name().to_string(),
-            description: Some(variant.description().to_string()),
-        })
-        .collect();
+    use reflectapi_schema::Representation;
 
-    let enum_template = templates::EnumClass {
+    // Check if this is a tagged enum (internally tagged)
+    match &enum_def.representation {
+        Representation::Internal { tag } => {
+            // This is a tagged enum - generate Pydantic discriminated union
+            render_tagged_enum(enum_def, tag, schema, implemented_types)
+        }
+        Representation::None => {
+            // This is an untagged enum - generate Union without discriminator
+            render_untagged_enum(enum_def, schema, implemented_types)
+        }
+        _ => {
+            // Check if this is a primitive-represented enum (has discriminant values)
+            let has_discriminants = enum_def.variants.iter().any(|v| v.discriminant.is_some());
+
+            if has_discriminants {
+                // This is a primitive enum - use IntEnum or similar
+                render_primitive_enum(enum_def)
+            } else {
+                // This is a simple string enum - use the existing approach
+                let variants = enum_def
+                    .variants
+                    .iter()
+                    .map(|variant| templates::EnumVariant {
+                        name: to_screaming_snake_case(variant.name()),
+                        value: variant.serde_name().to_string(),
+                        description: Some(variant.description().to_string()),
+                    })
+                    .collect();
+
+                let enum_template = templates::EnumClass {
+                    name: improve_class_name(&enum_def.name),
+                    description: Some(enum_def.description().to_string()),
+                    variants,
+                };
+
+                enum_template.render().context("Failed to render enum")
+            }
+        }
+    }
+}
+
+fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<String> {
+    // Determine if this is an integer or float enum
+    let is_float_enum = false;
+    let mut enum_variants = Vec::new();
+
+    for variant in &enum_def.variants {
+        if let Some(discriminant) = variant.discriminant {
+            // Check if any discriminant suggests this should be a float enum
+            // For now, we'll treat all as integers unless we find a way to detect floats
+            enum_variants.push(templates::PrimitiveEnumVariant {
+                name: to_screaming_snake_case(variant.name()),
+                value: discriminant.to_string(),
+                description: Some(variant.description().to_string()),
+            });
+        } else {
+            // If a variant doesn't have a discriminant, this shouldn't be a primitive enum
+            return Err(anyhow::anyhow!(
+                "Primitive enum {} has variant {} without discriminant",
+                enum_def.name,
+                variant.name()
+            ));
+        }
+    }
+
+    let enum_template = templates::PrimitiveEnumClass {
         name: improve_class_name(&enum_def.name),
         description: Some(enum_def.description().to_string()),
-        variants,
+        variants: enum_variants,
+        is_int_enum: !is_float_enum,
     };
 
-    enum_template.render().context("Failed to render enum")
+    enum_template
+        .render()
+        .context("Failed to render primitive enum")
+}
+
+fn render_tagged_enum(
+    enum_def: &reflectapi_schema::Enum,
+    tag: &str,
+    schema: &Schema,
+    implemented_types: &HashMap<String, String>,
+) -> anyhow::Result<String> {
+    use reflectapi_schema::Fields;
+
+    let enum_name = improve_class_name(&enum_def.name);
+    let mut variant_classes = Vec::new();
+    let mut union_variants = Vec::new();
+
+    // Generate individual classes for each variant
+    for variant in &enum_def.variants {
+        let variant_class_name = format!("{}{}", enum_name, to_pascal_case(variant.name()));
+        let variant_serde_name = variant.serde_name();
+
+        // Build fields for this variant
+        let mut fields = vec![
+            // Add the discriminator field
+            templates::Field {
+                name: tag.to_string(),
+                type_annotation: format!("Literal['{}']", variant_serde_name),
+                description: Some("Discriminator field".to_string()),
+                deprecation_note: None,
+                optional: false,
+                default_value: None,
+            },
+        ];
+
+        // Add variant-specific fields
+        match &variant.fields {
+            Fields::Named(named_fields) => {
+                for field in named_fields {
+                    let field_type =
+                        type_ref_to_python_type(&field.type_ref, schema, implemented_types, &[])?;
+
+                    // Check if field type is Option<T> (which gets converted to T | None automatically)
+                    let is_option_type = field.type_ref.name == "std::option::Option";
+
+                    // Fix default value handling for optional fields
+                    let (optional, default_value, final_field_type) = if !field.required {
+                        // Field is not required - add | None if not already an Option type
+                        if is_option_type {
+                            (true, Some("None".to_string()), field_type) // Already has | None
+                        } else {
+                            (
+                                true,
+                                Some("None".to_string()),
+                                format!("{} | None", field_type),
+                            )
+                        }
+                    } else if is_option_type {
+                        // Field is required but Option type - still needs default None
+                        (true, Some("None".to_string()), field_type) // Already has | None
+                    } else {
+                        // Required non-Option field
+                        (false, None, field_type)
+                    };
+
+                    fields.push(templates::Field {
+                        name: sanitize_field_name(field.name()),
+                        type_annotation: final_field_type,
+                        description: Some(field.description().to_string()),
+                        deprecation_note: field.deprecation_note.clone(),
+                        optional,
+                        default_value,
+                    });
+                }
+            }
+            Fields::Unnamed(_) => {
+                // Tuple variants are not supported for internally tagged enums in serde
+                return Err(anyhow::anyhow!(
+                    "Tuple variants are not supported for internally tagged enums: {}",
+                    variant.name()
+                ));
+            }
+            Fields::None => {
+                // Unit variant - no additional fields needed
+            }
+        }
+
+        // Generate the variant class
+        let variant_template = templates::DataClass {
+            name: variant_class_name.clone(),
+            description: Some(variant.description().to_string()),
+            fields,
+            is_tuple: false,
+            is_generic: false,
+            generic_params: vec![],
+        };
+
+        variant_classes.push(
+            variant_template
+                .render()
+                .context("Failed to render variant class")?,
+        );
+        union_variants.push(templates::UnionVariant {
+            name: variant.name().to_string(),
+            type_annotation: variant_class_name.clone(),
+            description: Some(variant.description().to_string()),
+        });
+    }
+
+    // Generate the union type alias
+    let union_template = templates::UnionClass {
+        name: enum_name,
+        description: Some(enum_def.description().to_string()),
+        variants: union_variants,
+        discriminator_field: tag.to_string(),
+    };
+
+    let union_definition = union_template.render().context("Failed to render union")?;
+
+    // Combine all parts
+    let mut result = variant_classes.join("\n\n");
+    if !result.is_empty() {
+        result.push_str("\n\n");
+    }
+    result.push_str(&union_definition);
+
+    Ok(result)
+}
+
+fn render_untagged_enum(
+    enum_def: &reflectapi_schema::Enum,
+    schema: &Schema,
+    implemented_types: &HashMap<String, String>,
+) -> anyhow::Result<String> {
+    use reflectapi_schema::Fields;
+
+    let enum_name = improve_class_name(&enum_def.name);
+    let mut variant_classes = Vec::new();
+    let mut union_variants = Vec::new();
+
+    // Process each variant to create separate classes (without discriminator fields)
+    for variant in &enum_def.variants {
+        let variant_class_name = format!("{}{}", enum_name, variant.name());
+        let mut fields = Vec::new();
+
+        // Add variant-specific fields (no discriminator field for untagged)
+        match &variant.fields {
+            Fields::Named(named_fields) => {
+                for field in named_fields {
+                    let field_type =
+                        type_ref_to_python_type(&field.type_ref, schema, implemented_types, &[])?;
+                    // Check if field type is Option<T>
+                    let is_option_type = field.type_ref.name == "std::option::Option";
+                    // Handle optionality
+                    let (optional, default_value, final_field_type) = if !field.required {
+                        if is_option_type {
+                            (true, Some("None".to_string()), field_type)
+                        } else {
+                            (
+                                true,
+                                Some("None".to_string()),
+                                format!("{} | None", field_type),
+                            )
+                        }
+                    } else if is_option_type {
+                        (true, Some("None".to_string()), field_type)
+                    } else {
+                        (false, None, field_type)
+                    };
+
+                    fields.push(templates::Field {
+                        name: sanitize_field_name(field.name()),
+                        type_annotation: final_field_type,
+                        description: Some(field.description().to_string()),
+                        deprecation_note: field.deprecation_note.clone(),
+                        optional,
+                        default_value,
+                    });
+                }
+            }
+            Fields::Unnamed(unnamed_fields) => {
+                // Handle tuple-like variants for untagged enums
+                for (i, field) in unnamed_fields.iter().enumerate() {
+                    let field_type =
+                        type_ref_to_python_type(&field.type_ref, schema, implemented_types, &[])?;
+                    let is_option_type = field.type_ref.name == "std::option::Option";
+                    let (optional, default_value, final_field_type) = if !field.required {
+                        if is_option_type {
+                            (true, Some("None".to_string()), field_type)
+                        } else {
+                            (
+                                true,
+                                Some("None".to_string()),
+                                format!("{} | None", field_type),
+                            )
+                        }
+                    } else if is_option_type {
+                        (true, Some("None".to_string()), field_type)
+                    } else {
+                        (false, None, field_type)
+                    };
+
+                    fields.push(templates::Field {
+                        name: format!("field_{}", i),
+                        type_annotation: final_field_type,
+                        description: Some(field.description().to_string()),
+                        deprecation_note: field.deprecation_note.clone(),
+                        optional,
+                        default_value,
+                    });
+                }
+            }
+            Fields::None => {
+                // Unit variant - create an empty class
+                // No fields needed
+            }
+        }
+
+        // Generate the variant class (without discriminator)
+        let variant_template = templates::DataClass {
+            name: variant_class_name.clone(),
+            description: Some(variant.description().to_string()),
+            fields,
+            is_tuple: false,
+            is_generic: false,
+            generic_params: vec![],
+        };
+
+        variant_classes.push(
+            variant_template
+                .render()
+                .context("Failed to render untagged variant class")?,
+        );
+        union_variants.push(templates::UnionVariant {
+            name: variant.name().to_string(),
+            type_annotation: variant_class_name.clone(),
+            description: Some(variant.description().to_string()),
+        });
+    }
+
+    // Generate the union type alias (without Field discriminator)
+    let union_template = templates::UntaggedUnionClass {
+        name: enum_name,
+        description: Some(enum_def.description().to_string()),
+        variants: union_variants,
+    };
+    let union_definition = union_template
+        .render()
+        .context("Failed to render untagged union")?;
+
+    // Combine all parts
+    let mut result = variant_classes.join("\n\n");
+    if !result.is_empty() {
+        result.push_str("\n\n");
+    }
+    result.push_str(&union_definition);
+
+    Ok(result)
 }
 
 // OneOf types don't exist in the current schema - this was removed
@@ -519,12 +965,23 @@ fn extract_parameters(
 fn is_primitive_type(type_name: &str) -> bool {
     matches!(
         type_name,
-        "u8" | "u16" | "u32" | "u64" | "u128" | "usize"
-        | "i8" | "i16" | "i32" | "i64" | "i128" | "isize"
-        | "f32" | "f64"
-        | "bool"
-        | "String" | "str"
-        | "char"
+        "u8" | "u16"
+            | "u32"
+            | "u64"
+            | "u128"
+            | "usize"
+            | "i8"
+            | "i16"
+            | "i32"
+            | "i64"
+            | "i128"
+            | "isize"
+            | "f32"
+            | "f64"
+            | "bool"
+            | "String"
+            | "str"
+            | "char"
     )
 }
 
@@ -568,9 +1025,7 @@ fn improve_class_name(original_name: &str) -> String {
 
     // Define transformation rules as patterns
     let transformations = [
-        // Remove common module prefixes
-        ("MyapiModel", ""),
-        ("MyapiProto", ""),
+        // Remove common Rust std prefixes to make Python names cleaner
         ("StdOption", ""),
         ("StdVec", ""),
         ("StdResult", "Result"),
@@ -609,11 +1064,8 @@ fn improve_class_name(original_name: &str) -> String {
         }
     }
 
-    // Apply domain-specific improvements
-    let domain_improvements = [
-        ("Kind", "PetKind"),
-        ("InputPet", "Pet"),
-        ("OutputPet", "PetDetails"),
+    // Apply generic improvements for common patterns
+    let generic_improvements = [
         ("Input", "Request"),
         ("Output", "Response"),
         ("Error", "Error"),
@@ -622,15 +1074,10 @@ fn improve_class_name(original_name: &str) -> String {
         ("Metadata", "Metadata"),
     ];
 
-    for (pattern, replacement) in &domain_improvements {
+    for (pattern, replacement) in &generic_improvements {
         if improved == *pattern {
             return replacement.to_string();
         }
-    }
-
-    // Handle prefix preservation for certain patterns
-    if improved.starts_with("Pets") || improved.starts_with("User") || improved.starts_with("Api") {
-        return improved;
     }
 
     // Clean up any remaining double patterns
@@ -661,34 +1108,55 @@ fn sanitize_field_name(s: &str) -> String {
 fn map_external_type_to_python(type_name: &str) -> String {
     match type_name {
         // Rust std library numeric types
-        name if name.contains("NonZero") && (name.contains("U32") || name.contains("U64") || name.contains("I32") || name.contains("I64")) => {
+        name if name.contains("NonZero")
+            && (name.contains("U32")
+                || name.contains("U64")
+                || name.contains("I32")
+                || name.contains("I64")) =>
+        {
             format!("Annotated[int, \"Rust NonZero integer type: {}\"]", name)
-        },
-        
+        }
+
         // Decimal types (often used for financial data) - JSON serialized as strings
         name if name.contains("Decimal") => {
-            format!("Annotated[str, \"Rust Decimal type (JSON string): {}\"]", name)
-        },
-        
+            format!(
+                "Annotated[str, \"Rust Decimal type (JSON string): {}\"]",
+                name
+            )
+        }
+
         // Common domain-specific types that are typically strings
-        name if name.contains("Mpn") || name.contains("MPN") => {
-            format!("Annotated[str, \"Manufacturer Part Number: {}\"]", name)
-        },
         name if name.contains("Uuid") || name.contains("UUID") => {
             format!("Annotated[str, \"UUID type: {}\"]", name)
-        },
+        }
         name if name.contains("Id") || name.ends_with("ID") => {
             format!("Annotated[str, \"ID type: {}\"]", name)
-        },
-        
-        // Duration and time types - typically serialized as numbers
+        }
+
+        // Duration and time types - properly mapped to Python equivalents
         name if name.contains("Duration") => {
-            format!("Annotated[int, \"Duration type (milliseconds): {}\"]", name)
-        },
+            format!("Annotated[timedelta, \"Rust Duration type: {}\"]", name)
+        }
         name if name.contains("Instant") => {
-            format!("Annotated[int, \"Instant type (timestamp): {}\"]", name)
-        },
-        
+            format!("Annotated[datetime, \"Rust Instant type: {}\"]", name)
+        }
+
+        // Path types - mapped to pathlib.Path
+        name if name.contains("PathBuf") || name.contains("Path") => {
+            format!("Annotated[Path, \"Rust Path type: {}\"]", name)
+        }
+
+        // IP address types - mapped to ipaddress module
+        name if name.contains("IpAddr")
+            || name.contains("Ipv4Addr")
+            || name.contains("Ipv6Addr") =>
+        {
+            format!(
+                "Annotated[IPv4Address | IPv6Address, \"Rust IP address type: {}\"]",
+                name
+            )
+        }
+
         // For completely unmapped types, use Annotated[Any, ...] with metadata
         _ => format!("Annotated[Any, \"External type: {}\"]", type_name),
     }
@@ -711,6 +1179,14 @@ fn type_ref_to_python_type(
             return Ok(python_type.clone());
         }
 
+        // Special case: Vec<u8> should be bytes in Python
+        if type_ref.name == "std::vec::Vec" && type_ref.arguments.len() == 1 {
+            let arg = &type_ref.arguments[0];
+            if arg.name == "u8" {
+                return Ok("bytes".to_string());
+            }
+        }
+
         // Handle generic types with arguments
         let mut result = python_type.clone();
 
@@ -718,7 +1194,8 @@ fn type_ref_to_python_type(
         let type_params = get_type_parameters(&type_ref.name);
 
         for (param, arg) in type_params.iter().zip(type_ref.arguments.iter()) {
-            let resolved_arg = type_ref_to_python_type(arg, schema, implemented_types, active_generics)?;
+            let resolved_arg =
+                type_ref_to_python_type(arg, schema, implemented_types, active_generics)?;
             result = result.replace(param, &resolved_arg);
         }
 
@@ -732,53 +1209,76 @@ fn type_ref_to_python_type(
             if struct_def.is_tuple() && struct_def.fields.len() == 1 {
                 // Return the inner type instead of the wrapper
                 let inner_field = &struct_def.fields[0];
-                return type_ref_to_python_type(&inner_field.type_ref, schema, implemented_types, active_generics);
+                return type_ref_to_python_type(
+                    &inner_field.type_ref,
+                    schema,
+                    implemented_types,
+                    active_generics,
+                );
             }
         }
-        
+
         let base_type = improve_class_name(&type_ref.name);
-        
+
         // Handle generic types with arguments - follow TypeScript pattern
         if !type_ref.arguments.is_empty() {
             // Collect type parameters from the schema definition
             let type_params: Vec<_> = type_def.parameters().collect();
-            
+
             // Ensure we have the same number of arguments as parameters
             if type_params.len() == type_ref.arguments.len() {
                 let mut result = base_type.clone();
-                
+
                 // Substitute type parameters with actual arguments
                 for (type_param, type_arg) in type_params.iter().zip(type_ref.arguments.iter()) {
                     if result.contains(&type_param.name) {
-                        let resolved_arg = type_ref_to_python_type(type_arg, schema, implemented_types, active_generics)?;
+                        let resolved_arg = type_ref_to_python_type(
+                            type_arg,
+                            schema,
+                            implemented_types,
+                            active_generics,
+                        )?;
                         result = result.replacen(&type_param.name, &resolved_arg, 1);
                     }
                 }
-                
+
                 // If no substitutions were made, add generic arguments
                 if result == base_type {
-                    let arg_types: Result<Vec<String>, _> = type_ref.arguments
+                    let arg_types: Result<Vec<String>, _> = type_ref
+                        .arguments
                         .iter()
-                        .map(|arg| type_ref_to_python_type(arg, schema, implemented_types, active_generics))
+                        .map(|arg| {
+                            type_ref_to_python_type(arg, schema, implemented_types, active_generics)
+                        })
                         .collect();
                     let arg_types = arg_types?;
                     result = format!("{}[{}]", base_type, arg_types.join(", "));
                 }
-                
+
                 return Ok(result);
             }
         }
-        
+
         return Ok(base_type);
     }
 
     // Try schema-based fallback first (like TypeScript codegen does)
     if let Some(fallback_type_ref) = type_ref.fallback_once(schema.input_types()) {
-        return type_ref_to_python_type(&fallback_type_ref, schema, implemented_types, active_generics);
+        return type_ref_to_python_type(
+            &fallback_type_ref,
+            schema,
+            implemented_types,
+            active_generics,
+        );
     }
-    
+
     if let Some(fallback_type_ref) = type_ref.fallback_once(schema.output_types()) {
-        return type_ref_to_python_type(&fallback_type_ref, schema, implemented_types, active_generics);
+        return type_ref_to_python_type(
+            &fallback_type_ref,
+            schema,
+            implemented_types,
+            active_generics,
+        );
     }
 
     // Final fallback for undefined external types - try to map to sensible Python types
@@ -889,19 +1389,34 @@ fn build_implemented_types() -> HashMap<String, String> {
     types.insert("chrono::NaiveDate".to_string(), "date".to_string());
     types.insert("uuid::Uuid".to_string(), "UUID".to_string());
 
+    // Rust std library types that need proper Python equivalents
+    types.insert("std::time::Duration".to_string(), "timedelta".to_string());
+    types.insert("std::path::PathBuf".to_string(), "Path".to_string());
+    types.insert("std::path::Path".to_string(), "Path".to_string());
+    types.insert(
+        "std::net::IpAddr".to_string(),
+        "IPv4Address | IPv6Address".to_string(),
+    );
+    types.insert("std::net::Ipv4Addr".to_string(), "IPv4Address".to_string());
+    types.insert("std::net::Ipv6Addr".to_string(), "IPv6Address".to_string());
+
     // Special tuple/unit types
     types.insert("std::tuple::Tuple0".to_string(), "None".to_string());
 
     // Common serde types
     types.insert("serde_json::Value".to_string(), "Any".to_string());
-    
+
+    // Smart pointer types (transparent - map to their inner type)
+    types.insert("std::boxed::Box".to_string(), "T".to_string());
+    types.insert("std::sync::Arc".to_string(), "T".to_string());
+    types.insert("std::rc::Rc".to_string(), "T".to_string());
+
     // External Rust types commonly found in ReflectAPI schemas
     types.insert("StdNumNonZeroU32".to_string(), "int".to_string());
     types.insert("StdNumNonZeroU64".to_string(), "int".to_string());
     types.insert("StdNumNonZeroI32".to_string(), "int".to_string());
     types.insert("StdNumNonZeroI64".to_string(), "int".to_string());
-    types.insert("RustDecimalDecimal".to_string(), "str".to_string());  // JSON representation
-    types.insert("MpnMpn".to_string(), "str".to_string());  // Manufacturer Part Number
+    types.insert("RustDecimalDecimal".to_string(), "str".to_string()); // JSON representation
 
     types
 }
@@ -909,32 +1424,71 @@ fn build_implemented_types() -> HashMap<String, String> {
 // Note: format_default_value function removed as it's no longer needed
 
 fn format_python_code(code: &str) -> anyhow::Result<String> {
-    // Try to format with black if available
+    // Try to format with ruff format if available
     use std::process::{Command, Stdio};
 
-    let child = Command::new("black")
-        .arg("--code")
-        .arg(code)
+    let child = Command::new("ruff")
+        .args(["format", "--stdin-filename", "generated.py", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn();
 
     match child {
-        Ok(process) => {
+        Ok(mut process) => {
+            if let Some(stdin) = process.stdin.take() {
+                use std::io::Write;
+                let mut stdin = stdin;
+                let _ = stdin.write_all(code.as_bytes());
+            }
             let output = process.wait_with_output()?;
             if output.status.success() {
-                Ok(String::from_utf8_lossy(&output.stdout).to_string())
+                let formatted = String::from_utf8_lossy(&output.stdout).to_string();
+                Ok(ensure_final_newline(formatted))
             } else {
-                // Fall back to original code if black fails
-                Ok(code.to_string())
+                // Fall back to basic formatting if ruff fails
+                Ok(basic_python_format(code))
             }
         }
         Err(_) => {
-            // black not available, return original code
-            Ok(code.to_string())
+            // ruff not available, apply basic formatting
+            Ok(basic_python_format(code))
         }
     }
+}
+
+fn basic_python_format(code: &str) -> String {
+    let mut lines: Vec<String> = code.lines().map(|s| s.to_string()).collect();
+
+    // Remove trailing whitespace from each line
+    for line in &mut lines {
+        *line = line.trim_end().to_string();
+    }
+
+    // Remove excessive blank lines (more than 2 consecutive)
+    let mut formatted_lines = Vec::new();
+    let mut blank_count = 0;
+
+    for line in lines {
+        if line.trim().is_empty() {
+            blank_count += 1;
+            if blank_count <= 2 {
+                formatted_lines.push(line);
+            }
+        } else {
+            blank_count = 0;
+            formatted_lines.push(line);
+        }
+    }
+
+    ensure_final_newline(formatted_lines.join("\n"))
+}
+
+fn ensure_final_newline(mut code: String) -> String {
+    if !code.ends_with('\n') {
+        code.push('\n');
+    }
+    code
 }
 
 pub mod templates {
@@ -960,30 +1514,26 @@ from __future__ import annotations
     #[derive(Template)]
     #[template(
         source = r#"
-from datetime import datetime
-from typing import Any, Optional, TypeVar, Generic{% if has_annotated %}, Annotated{% endif %}
-from uuid import UUID
-{% if has_warnings %}
-import warnings
-{% endif %}
-{% if has_enums %}
-from enum import Enum
+# Standard library imports
+{% if has_enums %}from enum import Enum
+{% endif %}from typing import Any, Optional, TypeVar, Generic, Union{% if has_annotated %}, Annotated{% endif %}{% if has_literal %}, Literal{% endif %}
+{% if has_warnings %}import warnings
 {% endif %}
 
-from pydantic import BaseModel, ConfigDict
+# Third-party imports
+from pydantic import BaseModel, ConfigDict{% if has_discriminated_unions %}, Field{% endif %}
+
+# Runtime imports
 {% if has_async %}{% if has_sync %}from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse{% else %}from reflectapi_runtime import AsyncClientBase, ApiResponse{% endif %}{% else %}{% if has_sync %}from reflectapi_runtime import ClientBase, ApiResponse{% endif %}{% endif %}
-{% if has_testing %}
-from reflectapi_runtime.testing import MockClient, create_api_response
-{% endif %}
-{% if has_reflectapi_option %}
-from reflectapi_runtime import ReflectapiOption
+{% if has_reflectapi_option %}from reflectapi_runtime import ReflectapiOption
+{% endif %}{% if has_testing %}from reflectapi_runtime.testing import MockClient, create_api_response
 {% endif %}
 
 {% if has_generics %}
 T = TypeVar('T')
 D = TypeVar('D')
-I = TypeVar('I')
-C = TypeVar('C')
+Input = TypeVar('Input')  # More descriptive than 'I'
+ClientType = TypeVar('ClientType')  # More descriptive than 'C'
 {% else %}
 T = TypeVar('T')
 {% endif %}
@@ -999,22 +1549,20 @@ T = TypeVar('T')
         pub has_warnings: bool,
         pub has_generics: bool,
         pub has_annotated: bool,
+        pub has_literal: bool,
+        pub has_discriminated_unions: bool,
     }
 
     #[derive(Template)]
     #[template(
         source = r#"class {{ name }}(BaseModel{% if is_generic %}, Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]{% endif %}):
 {% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
-{% endif %}    
+{% else %}    """Generated data model."""
+{% endif %}
     model_config = ConfigDict(extra="ignore")
-    
-{% for field in fields %}
-    {{ field.name }}: {{ field.type_annotation }}{% if field.optional %} = None{% else %}{% if field.default_value.is_some() %} = {{ field.default_value.as_ref().unwrap() }}{% endif %}{% endif %}
-{% if field.description.is_some() && !field.description.as_deref().unwrap().is_empty() %}    """{{ field.description.as_deref().unwrap() }}{% if field.deprecation_note.is_some() %}
-    
-    .. deprecated::
-       {{ field.deprecation_note.as_deref().unwrap() }}{% endif %}"""
-{% endif %}{% endfor %}
+
+{% for field in fields %}    {{ field.name }}: {{ field.type_annotation }}{% if field.optional %} = None{% else %}{% if field.default_value.is_some() %} = {{ field.default_value.as_ref().unwrap() }}{% endif %}{% endif %}
+{% endfor %}
 "#,
         ext = "txt"
     )]
@@ -1030,20 +1578,13 @@ T = TypeVar('T')
     #[derive(Template)]
     #[template(
         source = r#"class {{ name }}(str, Enum):
-{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}
-    
-    Attributes:
-{% for variant in variants %}        {{ variant.name }}: {{ variant.description.as_deref().unwrap_or("") }}
-{% endfor %}    """
-{% endif %}    
-{% if variants.is_empty() %}
-    pass
-{% else %}
-{% for variant in variants %}
-    {{ variant.name }} = "{{ variant.value }}"
-
-{% endfor %}
+{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
+{% else %}    """Generated enum."""
 {% endif %}
+
+{% if variants.is_empty() %}    pass
+{% else %}{% for variant in variants %}    {{ variant.name }} = "{{ variant.value }}"
+{% endfor %}{% endif %}
 "#,
         ext = "txt"
     )]
@@ -1055,14 +1596,48 @@ T = TypeVar('T')
 
     #[derive(Template)]
     #[template(
-        source = r#"from typing import Union
+        source = r#"{% if is_int_enum %}from enum import IntEnum{% else %}from enum import Enum{% endif %}
 
-{{ name }} = Union[{% for variant in variants %}{{ variant.type_annotation }}{% if !loop.last %}, {% endif %}{% endfor %}]
+class {{ name }}({% if is_int_enum %}IntEnum{% else %}Enum{% endif %}):
+{% if description.is_some() %}    """{{ description.as_deref().unwrap() }}"""
+    
+{% endif %}{% for variant in variants %}
+    {{ variant.name }} = {{ variant.value }}
+{% if variant.description.is_some() %}    """{{ variant.description.as_deref().unwrap() }}"""
+{% endif %}
+{% endfor %}
+"#,
+        ext = "txt"
+    )]
+    pub struct PrimitiveEnumClass {
+        pub name: String,
+        pub description: Option<String>,
+        pub variants: Vec<PrimitiveEnumVariant>,
+        pub is_int_enum: bool,
+    }
+
+    #[derive(Template)]
+    #[template(
+        source = r#"{{ name }} = Annotated[Union[{% for variant in variants %}{{ variant.type_annotation }}{% if !loop.last %}, {% endif %}{% endfor %}], Field(discriminator='{{ discriminator_field }}')]
 """{{ description.as_deref().unwrap_or("") }}"""
 "#,
         ext = "txt"
     )]
     pub struct UnionClass {
+        pub name: String,
+        pub description: Option<String>,
+        pub variants: Vec<UnionVariant>,
+        pub discriminator_field: String,
+    }
+
+    #[derive(Template)]
+    #[template(
+        source = r#"{{ name }} = Union[{% for variant in variants %}{{ variant.type_annotation }}{% if !loop.last %}, {% endif %}{% endfor %}]
+"""{{ description.as_deref().unwrap_or("") }}"""
+"#,
+        ext = "txt"
+    )]
+    pub struct UntaggedUnionClass {
         pub name: String,
         pub description: Option<String>,
         pub variants: Vec<UnionVariant>,
@@ -1409,6 +1984,12 @@ def create_mock_client() -> MockClient:
     }
 
     pub struct EnumVariant {
+        pub name: String,
+        pub value: String,
+        pub description: Option<String>,
+    }
+
+    pub struct PrimitiveEnumVariant {
         pub name: String,
         pub value: String,
         pub description: Option<String>,
