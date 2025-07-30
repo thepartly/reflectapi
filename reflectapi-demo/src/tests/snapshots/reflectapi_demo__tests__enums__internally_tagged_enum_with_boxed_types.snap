@@ -1,0 +1,229 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::enums::BoxedContent"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::enums::BoxedContent"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::BoxedContent",
+        "representation": {
+          "internal": {
+            "tag": "content_type"
+          }
+        },
+        "variants": [
+          {
+            "name": "boxed",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "std::boxed::Box",
+                    "arguments": [
+                      {
+                        "name": "reflectapi_demo::tests::enums::BoxedData"
+                      }
+                    ]
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "raw",
+            "fields": {
+              "named": [
+                {
+                  "name": "content",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "empty",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::enums::BoxedData",
+        "fields": {
+          "named": [
+            {
+              "name": "id",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "description",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::boxed::Box",
+        "description": "std::boxed::Box pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::BoxedContent",
+        "representation": {
+          "internal": {
+            "tag": "content_type"
+          }
+        },
+        "variants": [
+          {
+            "name": "boxed",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "std::boxed::Box",
+                    "arguments": [
+                      {
+                        "name": "reflectapi_demo::tests::enums::BoxedData"
+                      }
+                    ]
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "raw",
+            "fields": {
+              "named": [
+                {
+                  "name": "content",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "empty",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::enums::BoxedData",
+        "fields": {
+          "named": [
+            {
+              "name": "id",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "description",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::boxed::Box",
+        "description": "std::boxed::Box pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  }
+}

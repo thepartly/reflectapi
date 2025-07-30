@@ -1,0 +1,218 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.input.Vehicle"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.output.Vehicle"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.enums.input.CarData": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.enums.input.CarData",
+        "required": [
+          "mileage",
+          "vin"
+        ],
+        "properties": {
+          "mileage": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/u32"
+              }
+            ]
+          },
+          "vin": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "reflectapi_demo.tests.enums.input.Vehicle": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.enums.input.CarData",
+            "required": [
+              "mileage",
+              "type",
+              "vin"
+            ],
+            "properties": {
+              "mileage": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/u32"
+                  }
+                ]
+              },
+              "type": {
+                "const": "car"
+              },
+              "vin": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "truck",
+            "required": [
+              "license_plate",
+              "type"
+            ],
+            "properties": {
+              "license_plate": {
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "type": {
+                "const": "truck"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "bicycle"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.enums.output.CarData": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.enums.output.CarData",
+        "required": [
+          "vin"
+        ],
+        "properties": {
+          "mileage": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/u32"
+              }
+            ]
+          },
+          "vin": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "reflectapi_demo.tests.enums.output.Vehicle": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.enums.output.CarData",
+            "required": [
+              "type",
+              "vin"
+            ],
+            "properties": {
+              "mileage": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/u32"
+                  }
+                ]
+              },
+              "type": {
+                "const": "car"
+              },
+              "vin": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "truck",
+            "required": [
+              "license_plate",
+              "type"
+            ],
+            "properties": {
+              "license_plate": {
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "type": {
+                "const": "truck"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "bicycle"
+              }
+            }
+          }
+        ]
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

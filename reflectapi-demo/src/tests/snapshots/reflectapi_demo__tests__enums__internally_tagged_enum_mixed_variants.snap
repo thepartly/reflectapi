@@ -1,0 +1,363 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::enums::Media"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::enums::Media"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::enums::ImageData",
+        "fields": {
+          "named": [
+            {
+              "name": "width",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "height",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::Media",
+        "representation": {
+          "internal": {
+            "tag": "media_type"
+          }
+        },
+        "variants": [
+          {
+            "name": "image",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::enums::ImageData"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "video",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::enums::VideoData"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "audio",
+            "fields": {
+              "named": [
+                {
+                  "name": "url",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                },
+                {
+                  "name": "format",
+                  "type": {
+                    "name": "std::option::Option",
+                    "arguments": [
+                      {
+                        "name": "std::string::String"
+                      }
+                    ]
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "text",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::enums::VideoData",
+        "fields": {
+          "named": [
+            {
+              "name": "duration",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "resolution",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::enums::ImageData",
+        "fields": {
+          "named": [
+            {
+              "name": "width",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "height",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::Media",
+        "representation": {
+          "internal": {
+            "tag": "media_type"
+          }
+        },
+        "variants": [
+          {
+            "name": "image",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::enums::ImageData"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "video",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::enums::VideoData"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "audio",
+            "fields": {
+              "named": [
+                {
+                  "name": "url",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                },
+                {
+                  "name": "format",
+                  "type": {
+                    "name": "std::option::Option",
+                    "arguments": [
+                      {
+                        "name": "std::string::String"
+                      }
+                    ]
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "text",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::enums::VideoData",
+        "fields": {
+          "named": [
+            {
+              "name": "duration",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "resolution",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  }
+}

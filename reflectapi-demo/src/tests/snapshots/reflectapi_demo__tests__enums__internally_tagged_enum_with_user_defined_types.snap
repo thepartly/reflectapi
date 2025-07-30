@@ -1,0 +1,301 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::enums::ShopItem"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::enums::ShopItem"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "f64",
+        "description": "64-bit floating point number"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::Color",
+        "variants": [
+          {
+            "name": "Red",
+            "fields": "none"
+          },
+          {
+            "name": "Green",
+            "fields": "none"
+          },
+          {
+            "name": "Blue",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::enums::ProductInfo",
+        "fields": {
+          "named": [
+            {
+              "name": "name",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "price",
+              "type": {
+                "name": "f64"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::ShopItem",
+        "representation": {
+          "internal": {
+            "tag": "item_type"
+          }
+        },
+        "variants": [
+          {
+            "name": "product",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::enums::ProductInfo"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "colored_item",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::enums::Color"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "bundle",
+            "fields": {
+              "named": [
+                {
+                  "name": "items",
+                  "type": {
+                    "name": "std::vec::Vec",
+                    "arguments": [
+                      {
+                        "name": "std::string::String"
+                      }
+                    ]
+                  },
+                  "required": true
+                },
+                {
+                  "name": "discount",
+                  "type": {
+                    "name": "f64"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "gift_card",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "f64",
+        "description": "64-bit floating point number"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::Color",
+        "variants": [
+          {
+            "name": "Red",
+            "fields": "none"
+          },
+          {
+            "name": "Green",
+            "fields": "none"
+          },
+          {
+            "name": "Blue",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::enums::ProductInfo",
+        "fields": {
+          "named": [
+            {
+              "name": "name",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "price",
+              "type": {
+                "name": "f64"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::ShopItem",
+        "representation": {
+          "internal": {
+            "tag": "item_type"
+          }
+        },
+        "variants": [
+          {
+            "name": "product",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::enums::ProductInfo"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "colored_item",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "reflectapi_demo::tests::enums::Color"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "bundle",
+            "fields": {
+              "named": [
+                {
+                  "name": "items",
+                  "type": {
+                    "name": "std::vec::Vec",
+                    "arguments": [
+                      {
+                        "name": "std::string::String"
+                      }
+                    ]
+                  },
+                  "required": true
+                },
+                {
+                  "name": "discount",
+                  "type": {
+                    "name": "f64"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "gift_card",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      }
+    ]
+  }
+}

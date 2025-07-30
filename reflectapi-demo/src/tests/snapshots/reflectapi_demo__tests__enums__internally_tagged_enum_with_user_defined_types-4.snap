@@ -1,0 +1,191 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.ShopItem"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.ShopItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "f64": {
+        "description": "64-bit floating point number",
+        "type": "number"
+      },
+      "reflectapi_demo.tests.enums.Color": {
+        "oneOf": [
+          {
+            "const": "Red"
+          },
+          {
+            "const": "Green"
+          },
+          {
+            "const": "Blue"
+          }
+        ]
+      },
+      "reflectapi_demo.tests.enums.ProductInfo": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.enums.ProductInfo",
+        "required": [
+          "name",
+          "price"
+        ],
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "price": {
+            "$ref": "#/components/schemas/f64"
+          }
+        }
+      },
+      "reflectapi_demo.tests.enums.ShopItem": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.enums.ProductInfo",
+            "required": [
+              "item_type",
+              "name",
+              "price"
+            ],
+            "properties": {
+              "item_type": {
+                "const": "product"
+              },
+              "name": {
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "price": {
+                "$ref": "#/components/schemas/f64"
+              }
+            }
+          },
+          {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "Red",
+                  "item_type"
+                ],
+                "properties": {
+                  "Red": {
+                    "type": "null"
+                  },
+                  "item_type": {
+                    "const": "colored_item"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "Green",
+                  "item_type"
+                ],
+                "properties": {
+                  "Green": {
+                    "type": "null"
+                  },
+                  "item_type": {
+                    "const": "colored_item"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "Blue",
+                  "item_type"
+                ],
+                "properties": {
+                  "Blue": {
+                    "type": "null"
+                  },
+                  "item_type": {
+                    "const": "colored_item"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "title": "bundle",
+            "required": [
+              "discount",
+              "item_type",
+              "items"
+            ],
+            "properties": {
+              "discount": {
+                "$ref": "#/components/schemas/f64"
+              },
+              "item_type": {
+                "const": "bundle"
+              },
+              "items": {
+                "description": "Expandable array type",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "item_type"
+            ],
+            "properties": {
+              "item_type": {
+                "const": "gift_card"
+              }
+            }
+          }
+        ]
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      }
+    }
+  }
+}
