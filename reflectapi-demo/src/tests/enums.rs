@@ -135,3 +135,125 @@ pub enum Nums {
 fn test_enum_rename_num() {
     assert_snapshot!(Nums);
 }
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct CarData {
+    vin: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mileage: Option<u32>,
+}
+
+#[allow(dead_code)]
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "type")]
+enum Vehicle {
+    #[serde(rename = "car")]
+    Car(CarData), // Tuple variant to flatten
+
+    #[serde(rename = "truck")]
+    Truck { license_plate: String },
+
+    #[serde(rename = "bicycle")]
+    Bicycle, // Unit variant
+}
+
+#[test]
+fn test_internally_tagged_enum_with_tuple_variants() {
+    assert_snapshot!(Vehicle);
+}
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct ImageData {
+    width: u32,
+    height: u32,
+}
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct VideoData {
+    duration: u32,
+    resolution: Option<String>,
+}
+
+#[allow(dead_code)]
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "media_type")]
+enum Media {
+    #[serde(rename = "image")]
+    Image(ImageData), // Tuple variant
+
+    #[serde(rename = "video")]
+    Video(VideoData), // Another tuple variant
+
+    #[serde(rename = "audio")]
+    Audio { url: String, format: Option<String> }, // Struct variant
+
+    #[serde(rename = "text")]
+    Text, // Unit variant
+}
+
+#[test]
+fn test_internally_tagged_enum_mixed_variants() {
+    assert_snapshot!(Media);
+}
+
+// Test tuple variants with user-defined enum types
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct ProductInfo {
+    name: String,
+    price: f64,
+}
+
+#[allow(dead_code)]
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "item_type")]
+enum ShopItem {
+    #[serde(rename = "product")]
+    Product(ProductInfo), // Tuple variant with user-defined struct
+
+    #[serde(rename = "colored_item")]
+    ColoredItem(Color), // Tuple variant with user-defined enum
+
+    #[serde(rename = "bundle")]
+    Bundle { items: Vec<String>, discount: f64 }, // Struct variant
+
+    #[serde(rename = "gift_card")]
+    GiftCard, // Unit variant
+}
+
+#[test]
+fn test_internally_tagged_enum_with_user_defined_types() {
+    assert_snapshot!(ShopItem);
+}
+
+// Test tuple variants with boxed types (common pattern for recursive structures)
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct BoxedData {
+    id: u32,
+    description: String,
+}
+
+#[allow(dead_code)]
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "content_type")]
+enum BoxedContent {
+    #[serde(rename = "boxed")]
+    Boxed(Box<BoxedData>), // Tuple variant with boxed struct
+
+    #[serde(rename = "raw")]
+    Raw { content: String }, // Struct variant
+
+    #[serde(rename = "empty")]
+    Empty, // Unit variant
+}
+
+#[test]
+fn test_internally_tagged_enum_with_boxed_types() {
+    assert_snapshot!(BoxedContent);
+}
