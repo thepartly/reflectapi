@@ -19,7 +19,7 @@ import warnings
 from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
-from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
+from reflectapi_runtime import AsyncClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiOption
 
 
@@ -199,23 +199,18 @@ class AsyncPetsClient:
         self._client = client
 
 
-    async def remove(
+    async def get_first(
             self,
 
 
-            data: Optional[MyapiProtoPetsRemoveRequest] = None,
-
-        ) -> ApiResponse[Any]:
-            """Remove an existing pet
-
-            Args:
-                data: Request data for the remove operation.
+        ) -> ApiResponse[MyapiModelOutputPet | None]:
+            """Fetch first pet, if any exists
 
             Returns:
-                ApiResponse[Any]: Response containing Any data
+                ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
             """
 
-            path = "/pets.remove"
+            path = "/pets.get-first"
 
 
             params: dict[str, Any] = {}
@@ -226,11 +221,47 @@ class AsyncPetsClient:
                 path,
                 params=params if params else None,
 
+                response_model=MyapiModelOutputPet | None,
+            )
 
-                json_model=data,
+
+    async def list(
+            self,
 
 
-                response_model=Any,
+            limit: Optional[int | None] = None,
+
+            cursor: Optional[str | None] = None,
+
+
+        ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
+            """List available pets
+                limit: Query parameter: limit (optional)
+                cursor: Query parameter: cursor (optional)
+
+
+            Returns:
+                ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
+            """
+
+            path = "/pets.list"
+
+
+            params: dict[str, Any] = {}
+
+            if limit is not None:
+                params["limit"] = limit
+
+            if cursor is not None:
+                params["cursor"] = cursor
+
+
+            return await self._client._make_request(
+                "GET",
+                path,
+                params=params if params else None,
+
+                response_model=MyapiProtoPaginated[MyapiModelOutputPet],
             )
 
 
@@ -251,6 +282,41 @@ class AsyncPetsClient:
             """
 
             path = "/pets.create"
+
+
+            params: dict[str, Any] = {}
+
+
+            return await self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+                json_model=data,
+
+
+                response_model=Any,
+            )
+
+
+    async def update(
+            self,
+
+
+            data: Optional[MyapiProtoPetsUpdateRequest] = None,
+
+        ) -> ApiResponse[Any]:
+            """Update an existing pet
+
+            Args:
+                data: Request data for the update operation.
+
+            Returns:
+                ApiResponse[Any]: Response containing Any data
+            """
+
+            path = "/pets.update"
 
 
             params: dict[str, Any] = {}
@@ -313,49 +379,23 @@ class AsyncPetsClient:
             )
 
 
-    async def get_first(
+    async def remove(
             self,
 
 
-        ) -> ApiResponse[MyapiModelOutputPet | None]:
-            """Fetch first pet, if any exists
-
-            Returns:
-                ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
-            """
-
-            path = "/pets.get-first"
-
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-                response_model=MyapiModelOutputPet | None,
-            )
-
-
-    async def update(
-            self,
-
-
-            data: Optional[MyapiProtoPetsUpdateRequest] = None,
+            data: Optional[MyapiProtoPetsRemoveRequest] = None,
 
         ) -> ApiResponse[Any]:
-            """Update an existing pet
+            """Remove an existing pet
 
             Args:
-                data: Request data for the update operation.
+                data: Request data for the remove operation.
 
             Returns:
                 ApiResponse[Any]: Response containing Any data
             """
 
-            path = "/pets.update"
+            path = "/pets.remove"
 
 
             params: dict[str, Any] = {}
@@ -371,46 +411,6 @@ class AsyncPetsClient:
 
 
                 response_model=Any,
-            )
-
-
-    async def list(
-            self,
-
-
-            limit: Optional[int | None] = None,
-
-            cursor: Optional[str | None] = None,
-
-
-        ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
-            """List available pets
-                limit: Query parameter: limit (optional)
-                cursor: Query parameter: cursor (optional)
-
-
-            Returns:
-                ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
-            """
-
-            path = "/pets.list"
-
-
-            params: dict[str, Any] = {}
-
-            if limit is not None:
-                params["limit"] = limit
-
-            if cursor is not None:
-                params["cursor"] = cursor
-
-
-            return await self._client._make_request(
-                "GET",
-                path,
-                params=params if params else None,
-
-                response_model=MyapiProtoPaginated[MyapiModelOutputPet],
             )
 
 
@@ -462,274 +462,18 @@ class AsyncClient(AsyncClientBase):
         self.health = AsyncHealthClient(self)
 
 
-class PetsClient:
-    """Synchronous client for pets operations."""
-
-    def __init__(self, client: ClientBase) -> None:
-        self._client = client
-
-
-    def remove(
-            self,
-
-
-            data: Optional[MyapiProtoPetsRemoveRequest] = None,
-
-        ) -> ApiResponse[Any]:
-            """Remove an existing pet
-
-            Args:
-                data: Request data for the remove operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/pets.remove"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=Any,
-            )
-
-
-    def create(
-            self,
-
-
-            data: Optional[MyapiModelInputPet] = None,
-
-        ) -> ApiResponse[Any]:
-            """Create a new pet
-
-            Args:
-                data: Request data for the create operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/pets.create"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=Any,
-            )
-
-
-    def delete(
-            self,
-
-
-            data: Optional[MyapiProtoPetsRemoveRequest] = None,
-
-        ) -> ApiResponse[Any]:
-            """Remove an existing pet
-
-            Args:
-                data: Request data for the delete operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-
-            .. deprecated::
-               Use pets.remove instead
-            """
-
-            warnings.warn(
-                "pets_delete is deprecated: Use pets.remove instead",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-            path = "/pets.delete"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=Any,
-            )
-
-
-    def get_first(
-            self,
-
-
-        ) -> ApiResponse[MyapiModelOutputPet | None]:
-            """Fetch first pet, if any exists
-
-            Returns:
-                ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
-            """
-
-            path = "/pets.get-first"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-                response_model=MyapiModelOutputPet | None,
-            )
-
-
-    def update(
-            self,
-
-
-            data: Optional[MyapiProtoPetsUpdateRequest] = None,
-
-        ) -> ApiResponse[Any]:
-            """Update an existing pet
-
-            Args:
-                data: Request data for the update operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/pets.update"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=Any,
-            )
-
-
-    def list(
-            self,
-
-
-            limit: Optional[int | None] = None,
-
-            cursor: Optional[str | None] = None,
-
-
-        ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
-            """List available pets
-                limit: Query parameter: limit (optional)
-                cursor: Query parameter: cursor (optional)
-
-
-            Returns:
-                ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
-            """
-
-            path = "/pets.list"
-
-
-            params: dict[str, Any] = {}
-
-            if limit is not None:
-                params["limit"] = limit
-
-            if cursor is not None:
-                params["cursor"] = cursor
-
-
-            return self._client._make_request(
-                "GET",
-                path,
-                params=params if params else None,
-
-                response_model=MyapiProtoPaginated[MyapiModelOutputPet],
-            )
-
-
-class HealthClient:
-    """Synchronous client for health operations."""
-
-    def __init__(self, client: ClientBase) -> None:
-        self._client = client
-
-
-    def check(
-            self,
-
-
-        ) -> ApiResponse[Any]:
-            """Check the health of the service
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/health.check"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "GET",
-                path,
-                params=params if params else None,
-
-                response_model=Any,
-            )
-
-
-class Client(ClientBase):
-    """Synchronous client for the API."""
-
-    def __init__(
-        self,
-        base_url: str,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(base_url, **kwargs)
-
-        self.pets = PetsClient(self)
-
-        self.health = HealthClient(self)
+# Nested class definitions for better organization
+
+class Pet:
+    """Grouped types for better organization."""
+    Input = MyapiModelInputPet
+    Output = MyapiModelOutputPet
+
+    class Kind:
+        """Kind variants for this type."""
+        Union = MyapiModelKind
+        Dog = MyapiModelKindDog
+        Cat = MyapiModelKindCat
 
 
 # External type definitions
@@ -741,21 +485,21 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     MyapiModelBehavior.model_rebuild()
-    MyapiModelOutputPet.model_rebuild()
-    MyapiProtoPetsCreateError.model_rebuild()
-    ReflectapiInfallible.model_rebuild()
     MyapiModelInputPet.model_rebuild()
-    MyapiProtoPetsRemoveError.model_rebuild()
-    MyapiProtoPetsUpdateRequest.model_rebuild()
     MyapiModelKind.model_rebuild()
-    MyapiProtoPetsRemoveRequest.model_rebuild()
+    MyapiModelOutputPet.model_rebuild()
     MyapiProtoHeaders.model_rebuild()
-    MyapiProtoPetsListRequest.model_rebuild()
-    MyapiProtoPetsUpdateError.model_rebuild()
     MyapiProtoPaginated.model_rebuild()
-    ReflectapiEmpty.model_rebuild()
+    MyapiProtoPetsCreateError.model_rebuild()
     MyapiProtoPetsListError.model_rebuild()
+    MyapiProtoPetsListRequest.model_rebuild()
+    MyapiProtoPetsRemoveError.model_rebuild()
+    MyapiProtoPetsRemoveRequest.model_rebuild()
+    MyapiProtoPetsUpdateError.model_rebuild()
+    MyapiProtoPetsUpdateRequest.model_rebuild()
     Option.model_rebuild()
+    ReflectapiEmpty.model_rebuild()
+    ReflectapiInfallible.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass

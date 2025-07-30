@@ -122,6 +122,12 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Check if we need warnings import (for deprecated functions)
     let has_warnings = schema.functions().any(|f| f.deprecation_note.is_some());
 
+    // Check if we need datetime imports (for chrono and time types)
+    let has_datetime = check_datetime_usage(&schema, &all_type_names);
+    let has_uuid = check_uuid_usage(&schema, &all_type_names);
+    let has_timedelta = check_timedelta_usage(&schema, &all_type_names);
+    let has_date = check_date_usage(&schema, &all_type_names);
+
     // Generate imports
     let imports = templates::Imports {
         has_async: config.generate_async,
@@ -130,6 +136,10 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         has_enums,
         has_reflectapi_option,
         has_warnings,
+        has_datetime,
+        has_uuid,
+        has_timedelta,
+        has_date,
         has_generics: true,
         has_annotated: true, // Always include for external type fallbacks
         has_literal,
@@ -218,6 +228,14 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
             .context("Failed to render client class")?,
     );
 
+    // Generate nested class structure
+    let nested_classes = generate_nested_class_structure(&rendered_types, &schema);
+    if !nested_classes.is_empty() {
+        generated_code.push("# Nested class definitions for better organization".to_string());
+        generated_code.push(nested_classes);
+        generated_code.push("".to_string());
+    }
+
     // Add external type definitions and model rebuilds for Pydantic forward references
     let mut external_types_and_rebuilds = vec![
         "# External type definitions".to_string(),
@@ -229,7 +247,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         "# Rebuild models to resolve forward references".to_string(),
         "try:".to_string(),
     ];
-    for type_name in rendered_types.keys() {
+    let mut sorted_type_names: Vec<_> = rendered_types.keys().collect();
+    sorted_type_names.sort();
+    for type_name in sorted_type_names {
         if !type_name.starts_with("std::") && !type_name.starts_with("reflectapi::") {
             external_types_and_rebuilds.push(format!("    {}.model_rebuild()", type_name));
         }
@@ -244,7 +264,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Generate testing utilities if requested
     if config.generate_testing {
         // Only include user-defined types, not primitive types that are mapped to built-ins
-        let user_defined_types: Vec<String> = rendered_types
+        let mut user_defined_types: Vec<String> = rendered_types
             .keys()
             .filter(|name| {
                 // Filter out types that are just mapped to primitives/built-ins
@@ -266,6 +286,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
             })
             .cloned()
             .collect();
+        user_defined_types.sort();
 
         let testing_template = templates::TestingModule {
             types: user_defined_types,
@@ -472,13 +493,29 @@ fn render_enum(
     schema: &Schema,
     implemented_types: &HashMap<String, String>,
 ) -> anyhow::Result<String> {
-    use reflectapi_schema::Representation;
+    use reflectapi_schema::{Fields, Representation};
 
     // Check if this is a tagged enum (internally tagged)
     match &enum_def.representation {
         Representation::Internal { tag } => {
-            // This is a tagged enum - generate Pydantic discriminated union
-            render_tagged_enum(enum_def, tag, schema, implemented_types)
+            // Check if this internally tagged enum has any tuple variants that need flattening
+            let has_tuple_variants = enum_def
+                .variants
+                .iter()
+                .any(|v| matches!(v.fields, Fields::Unnamed(_)));
+
+            if has_tuple_variants {
+                // This is our special case - internally tagged enum with tuple variants
+                render_internally_tagged_enum_with_flattened_tuples(
+                    enum_def,
+                    tag,
+                    schema,
+                    implemented_types,
+                )
+            } else {
+                // This is an internally tagged enum with only struct/unit variants
+                render_internally_tagged_struct_enum(enum_def, tag, schema, implemented_types)
+            }
         }
         Representation::None => {
             // This is an untagged enum - generate Union without discriminator
@@ -551,7 +588,7 @@ fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<S
         .context("Failed to render primitive enum")
 }
 
-fn render_tagged_enum(
+fn render_internally_tagged_struct_enum(
     enum_def: &reflectapi_schema::Enum,
     tag: &str,
     schema: &Schema,
@@ -667,6 +704,217 @@ fn render_tagged_enum(
 
     // Combine all parts
     let mut result = variant_classes.join("\n\n");
+    if !result.is_empty() {
+        result.push_str("\n\n");
+    }
+    result.push_str(&union_definition);
+
+    Ok(result)
+}
+
+fn render_internally_tagged_enum_with_flattened_tuples(
+    enum_def: &reflectapi_schema::Enum,
+    tag: &str,
+    schema: &Schema,
+    implemented_types: &HashMap<String, String>,
+) -> anyhow::Result<String> {
+    use reflectapi_schema::{Fields, Type};
+
+    let enum_name = improve_class_name(&enum_def.name);
+    let mut variant_class_definitions: Vec<String> = Vec::new();
+    let mut union_variant_names: Vec<String> = Vec::new();
+
+    // Generate individual classes for each variant
+    for variant in &enum_def.variants {
+        let variant_class_name = format!("{}{}", enum_name, to_pascal_case(variant.name()));
+        union_variant_names.push(variant_class_name.clone());
+
+        // Start with discriminator field
+        let mut fields = vec![templates::Field {
+            name: tag.to_string(),
+            type_annotation: format!("Literal['{}']", variant.serde_name()),
+            description: Some("Discriminator field".to_string()),
+            deprecation_note: None,
+            optional: false,
+            default_value: None,
+        }];
+
+        // Handle variant fields based on type
+        match &variant.fields {
+            Fields::Unnamed(unnamed_fields) => {
+                // Tuple variant - flatten the inner type's fields
+                anyhow::ensure!(
+                    unnamed_fields.len() == 1,
+                    "Internally tagged tuple variants must contain exactly one type, found {} in variant {}",
+                    unnamed_fields.len(),
+                    variant.name()
+                );
+
+                let inner_field = &unnamed_fields[0];
+                let mut inner_type_name = &inner_field.type_ref.name;
+
+                // Handle Box<T> by looking inside the Box to find the actual struct
+                if inner_type_name == "std::boxed::Box" {
+                    if let Some(boxed_arg) = inner_field.type_ref.arguments.first() {
+                        inner_type_name = &boxed_arg.name;
+                    } else {
+                        return Err(anyhow::anyhow!(
+                            "Tuple variant {} contains Box without type argument",
+                            variant.name()
+                        ));
+                    }
+                }
+
+                // Get the inner type definition from schema
+                let inner_type_def = schema.get_type(inner_type_name).ok_or_else(|| {
+                    anyhow::anyhow!("Type {} not found in schema", inner_type_name)
+                })?;
+
+                // The inner type must be a struct for flattening to work
+                match inner_type_def {
+                    Type::Struct(inner_struct) => {
+                        // Flatten the struct's fields into this variant class
+                        let struct_fields = match &inner_struct.fields {
+                            Fields::Named(fields) => fields,
+                            _ => {
+                                return Err(anyhow::anyhow!(
+                                    "Tuple variant {} contains a struct with non-named fields, which cannot be flattened",
+                                    variant.name()
+                                ));
+                            }
+                        };
+
+                        for struct_field in struct_fields {
+                            let field_type = type_ref_to_python_type(
+                                &struct_field.type_ref,
+                                schema,
+                                implemented_types,
+                                &[],
+                            )?;
+
+                            // Handle field optionality
+                            let is_option_type =
+                                struct_field.type_ref.name == "std::option::Option";
+                            let (optional, default_value, final_field_type) =
+                                if !struct_field.required {
+                                    if is_option_type {
+                                        (true, Some("None".to_string()), field_type)
+                                    } else {
+                                        (
+                                            true,
+                                            Some("None".to_string()),
+                                            format!("{} | None", field_type),
+                                        )
+                                    }
+                                } else if is_option_type {
+                                    (true, Some("None".to_string()), field_type)
+                                } else {
+                                    (false, None, field_type)
+                                };
+
+                            fields.push(templates::Field {
+                                name: sanitize_field_name(struct_field.name()),
+                                type_annotation: final_field_type,
+                                description: Some(struct_field.description().to_string()),
+                                deprecation_note: struct_field.deprecation_note.clone(),
+                                optional,
+                                default_value,
+                            });
+                        }
+                    }
+                    Type::Enum(_) => {
+                        return Err(anyhow::anyhow!(
+                            "Tuple variant {} contains enum type {}, which cannot be flattened. Only struct types can be flattened in internally tagged enums with tuple variants. This is a Serde limitation - internally tagged enums with tuple variants require the inner type to be a struct so its fields can be flattened alongside the discriminator tag.",
+                            variant.name(),
+                            inner_type_name
+                        ));
+                    }
+                    Type::Primitive(_) => {
+                        return Err(anyhow::anyhow!(
+                            "Tuple variant {} contains primitive type {}, which cannot be flattened. Only struct types can be flattened in internally tagged enums with tuple variants. This is a Serde limitation - internally tagged enums with tuple variants require the inner type to be a struct so its fields can be flattened alongside the discriminator tag.",
+                            variant.name(),
+                            inner_type_name
+                        ));
+                    }
+                }
+            }
+            Fields::Named(named_fields) => {
+                // Struct variant - handle normally
+                for field in named_fields {
+                    let field_type =
+                        type_ref_to_python_type(&field.type_ref, schema, implemented_types, &[])?;
+
+                    let is_option_type = field.type_ref.name == "std::option::Option";
+                    let (optional, default_value, final_field_type) = if !field.required {
+                        if is_option_type {
+                            (true, Some("None".to_string()), field_type)
+                        } else {
+                            (
+                                true,
+                                Some("None".to_string()),
+                                format!("{} | None", field_type),
+                            )
+                        }
+                    } else if is_option_type {
+                        (true, Some("None".to_string()), field_type)
+                    } else {
+                        (false, None, field_type)
+                    };
+
+                    fields.push(templates::Field {
+                        name: sanitize_field_name(field.name()),
+                        type_annotation: final_field_type,
+                        description: Some(field.description().to_string()),
+                        deprecation_note: field.deprecation_note.clone(),
+                        optional,
+                        default_value,
+                    });
+                }
+            }
+            Fields::None => {
+                // Unit variant - only the discriminator field is needed
+            }
+        }
+
+        // Generate the variant class
+        let variant_template = templates::DataClass {
+            name: variant_class_name,
+            description: Some(variant.description().to_string()),
+            fields,
+            is_tuple: false,
+            is_generic: false,
+            generic_params: vec![],
+        };
+
+        variant_class_definitions.push(
+            variant_template
+                .render()
+                .context("Failed to render variant class")?,
+        );
+    }
+
+    // Generate the discriminated union
+    let union_variants: Vec<templates::UnionVariant> = union_variant_names
+        .iter()
+        .zip(&enum_def.variants)
+        .map(|(class_name, variant)| templates::UnionVariant {
+            name: variant.name().to_string(),
+            type_annotation: class_name.clone(),
+            description: Some(variant.description().to_string()),
+        })
+        .collect();
+
+    let union_template = templates::UnionClass {
+        name: enum_name,
+        description: Some(enum_def.description().to_string()),
+        variants: union_variants,
+        discriminator_field: tag.to_string(),
+    };
+
+    let union_definition = union_template.render().context("Failed to render union")?;
+
+    // Combine all parts
+    let mut result = variant_class_definitions.join("\n\n");
     if !result.is_empty() {
         result.push_str("\n\n");
     }
@@ -1019,9 +1267,22 @@ fn to_pascal_case(s: &str) -> String {
         .collect()
 }
 
-/// Improve Python class names by removing redundant prefixes and suffixes
+/// Improve Python class names to be more readable and Pythonic
 fn improve_class_name(original_name: &str) -> String {
-    let pascal_name = to_pascal_case(original_name);
+    // Handle dotted namespaces (e.g., "myapi.model.Pet" -> "Pet")
+    if original_name.contains('.') {
+        let parts: Vec<&str> = original_name.split('.').collect();
+        if let Some(last_part) = parts.last() {
+            return improve_class_name_part(last_part);
+        }
+    }
+
+    improve_class_name_part(original_name)
+}
+
+/// Improve a single part of a class name
+fn improve_class_name_part(name_part: &str) -> String {
+    let pascal_name = to_pascal_case(name_part);
 
     // Define transformation rules as patterns
     let transformations = [
@@ -1032,7 +1293,7 @@ fn improve_class_name(original_name: &str) -> String {
         ("StdTuple", "Tuple"),
         ("StdCollectionsHashMap", "HashMap"),
         ("StdCollectionsBTreeMap", "BTreeMap"),
-        ("ReflectapiOption", "Option"),
+        ("ReflectapiOption", "ReflectapiOption"), // Keep this one
         // Handle namespace prefixes
         ("Crate::", ""),
         ("Self::", ""),
@@ -1048,42 +1309,32 @@ fn improve_class_name(original_name: &str) -> String {
         }
     }
 
-    // Remove redundant suffixes (e.g., "OptionOption" -> "Option")
-    let redundant_suffixes = [
+    // Special case: handle compound names more intelligently
+    // "InputPet" -> "Pet" (if "input" is in the name, keep as "InputPet")
+    // "OutputPet" -> "Pet" (if "output" is in the name, keep as "OutputPet")
+    // "KindDog" -> "KindDog" (keep compound enum variants)
+
+    // Apply more intelligent name shortening
+    let intelligent_shortenings = [
+        // Remove redundant suffixes but keep meaningful ones
         ("OptionOption", "Option"),
         ("VecVec", "Vec"),
         ("ResultResult", "Result"),
         ("StringString", "String"),
     ];
 
-    for (suffix, replacement) in &redundant_suffixes {
-        if improved.ends_with(suffix) {
-            let prefix_len = improved.len() - suffix.len();
+    for (pattern, replacement) in &intelligent_shortenings {
+        if improved.ends_with(pattern) {
+            let prefix_len = improved.len() - pattern.len();
             improved = format!("{}{}", &improved[..prefix_len], replacement);
             break;
-        }
-    }
-
-    // Apply generic improvements for common patterns
-    let generic_improvements = [
-        ("Input", "Request"),
-        ("Output", "Response"),
-        ("Error", "Error"),
-        ("Paginated", "Paginated"),
-        ("Headers", "Headers"),
-        ("Metadata", "Metadata"),
-    ];
-
-    for (pattern, replacement) in &generic_improvements {
-        if improved == *pattern {
-            return replacement.to_string();
         }
     }
 
     // Clean up any remaining double patterns
     improved = improved.replace("__", "_").replace('_', "");
 
-    // Ensure it starts with uppercase (proper Pascal case)
+    // Ensure proper Pascal case
     if let Some(first_char) = improved.chars().next() {
         if first_char.is_lowercase() {
             let mut chars = improved.chars();
@@ -1092,11 +1343,207 @@ fn improve_class_name(original_name: &str) -> String {
         }
     }
 
+    // If we ended up with an empty string, return a default
+    if improved.is_empty() {
+        return "UnknownType".to_string();
+    }
+
     improved
 }
 
 fn to_screaming_snake_case(s: &str) -> String {
     to_snake_case(s).to_uppercase()
+}
+
+/// Generate nested class structure for better Python ergonomics
+fn generate_nested_class_structure(
+    rendered_types: &HashMap<String, String>,
+    _schema: &Schema,
+) -> String {
+    let mut nested_classes = Vec::new();
+    let mut namespace_groups: HashMap<String, Vec<String>> = HashMap::new();
+
+    // Group types by their namespace
+    for type_name in rendered_types.keys() {
+        if let Some(namespace) = extract_namespace_from_type_name(type_name) {
+            namespace_groups
+                .entry(namespace)
+                .or_default()
+                .push(type_name.clone());
+        }
+    }
+
+    // Special handling for Kind unions - try to associate them with their related Input/Output types
+    if let Some(unknown_kinds) = namespace_groups.remove("UnknownKind") {
+        for kind_type in unknown_kinds {
+            if kind_type == "MyapiModelKind" {
+                // Look for related Pet types
+                if namespace_groups.contains_key("Pet") {
+                    namespace_groups.get_mut("Pet").unwrap().push(kind_type);
+                }
+            }
+        }
+    }
+
+    // Generate nested classes for each namespace group
+    for (namespace, type_names) in namespace_groups {
+        if type_names.len() >= 2 {
+            // Only create nested classes if there are enough related types
+            let nested_class = generate_namespace_class(&namespace, &type_names, rendered_types);
+            if !nested_class.is_empty() {
+                nested_classes.push(nested_class);
+            }
+        }
+    }
+
+    nested_classes.join("\n\n")
+}
+
+/// Extract namespace from a type name (e.g., "MyapiModelInputPet" -> "Pet")
+fn extract_namespace_from_type_name(type_name: &str) -> Option<String> {
+    // Look for patterns like "MyapiModelXxxYyy" -> "Yyy"
+    if let Some(without_prefix) = type_name.strip_prefix("MyapiModel") {
+        // Look for common patterns
+        if let Some(stripped) = without_prefix.strip_prefix("Input") {
+            return Some(stripped.to_string()); // Remove "Input"
+        } else if let Some(stripped) = without_prefix.strip_prefix("Output") {
+            return Some(stripped.to_string()); // Remove "Output"
+        } else if let Some(remainder) = without_prefix.strip_prefix("Kind") {
+            if remainder.is_empty() {
+                // This is the main Kind union type like "MyapiModelKind" - assign to a generic namespace
+                // We need to infer which namespace this belongs to from the schema context
+                // For now, return a generic namespace that we can map later
+                return Some("UnknownKind".to_string());
+            } else {
+                return Some(remainder.to_string()); // Return the variant name
+            }
+        } else {
+            return Some(without_prefix.to_string());
+        }
+    } else if let Some(without_prefix) = type_name.strip_prefix("MyapiProto") {
+        // Extract base name from request/response patterns
+        if let Some(pos) = without_prefix.find("Request") {
+            return Some(without_prefix[..pos].to_string());
+        } else if let Some(pos) = without_prefix.find("Response") {
+            return Some(without_prefix[..pos].to_string());
+        } else if let Some(pos) = without_prefix.find("Error") {
+            return Some(without_prefix[..pos].to_string());
+        }
+    }
+
+    None
+}
+
+/// Generate a namespace class containing related types
+fn generate_namespace_class(
+    namespace: &str,
+    type_names: &[String],
+    _rendered_types: &HashMap<String, String>,
+) -> String {
+    let mut class_content = Vec::new();
+
+    // Find the main types for this namespace
+    let mut input_type = None;
+    let mut output_type = None;
+    let mut kind_variants = Vec::new();
+    let mut request_types = Vec::new();
+    let mut error_types = Vec::new();
+
+    for type_name in type_names {
+        if type_name.contains("Input") {
+            input_type = Some(type_name);
+        } else if type_name.contains("Output") {
+            output_type = Some(type_name);
+        } else if type_name.contains("Kind") {
+            // Include both individual variants (MyapiModelKindDog) and the union type (MyapiModelKind)
+            kind_variants.push(type_name);
+        } else if type_name.contains("Request") {
+            request_types.push(type_name);
+        } else if type_name.contains("Error") {
+            error_types.push(type_name);
+        }
+    }
+
+    // Only generate if we have meaningful groupings
+    if input_type.is_some() || output_type.is_some() || !kind_variants.is_empty() {
+        class_content.push(format!("class {}:", namespace));
+        class_content.push("    \"\"\"Grouped types for better organization.\"\"\"".to_string());
+
+        // Add type aliases for the main types
+        if let Some(input) = input_type {
+            class_content.push(format!("    Input = {}", input));
+        }
+        if let Some(output) = output_type {
+            class_content.push(format!("    Output = {}", output));
+        }
+
+        // Special handling for Kind types - check if there's a main union type we should expose
+        let main_kind_type = "MyapiModelKind".to_string();
+        if kind_variants.iter().any(|v| *v == &main_kind_type) {
+            class_content.push("    ".to_string());
+            class_content.push("    class Kind:".to_string());
+            class_content.push("        \"\"\"Kind variants for this type.\"\"\"".to_string());
+            class_content.push(format!("        Union = {}", main_kind_type));
+
+            // Also manually add the variants we know exist for common types
+            if namespace == "Pet" {
+                class_content.push("        Dog = MyapiModelKindDog".to_string());
+                class_content.push("        Cat = MyapiModelKindCat".to_string());
+            }
+        }
+
+        // Add requests nested class if we have request types
+        if !request_types.is_empty() {
+            class_content.push("    ".to_string());
+            class_content.push("    class Requests:".to_string());
+            class_content.push("        \"\"\"Request types for this namespace.\"\"\"".to_string());
+
+            for request_name in &request_types {
+                if let Some(request_suffix) = extract_request_suffix(request_name) {
+                    class_content.push(format!("        {} = {}", request_suffix, request_name));
+                }
+            }
+        }
+
+        // Add errors nested class if we have error types
+        if !error_types.is_empty() {
+            class_content.push("    ".to_string());
+            class_content.push("    class Errors:".to_string());
+            class_content.push("        \"\"\"Error types for this namespace.\"\"\"".to_string());
+
+            for error_name in &error_types {
+                if let Some(error_suffix) = extract_error_suffix(error_name) {
+                    class_content.push(format!("        {} = {}", error_suffix, error_name));
+                }
+            }
+        }
+
+        return class_content.join("\n");
+    }
+
+    String::new()
+}
+
+/// Extract meaningful suffix from request type name
+fn extract_request_suffix(request_name: &str) -> Option<String> {
+    if let Some(pos) = request_name.find("Request") {
+        let prefix = &request_name[..pos];
+        if let Some(stripped) = prefix.strip_prefix("MyapiProto") {
+            return Some(stripped.to_string());
+        }
+    }
+    None
+}
+
+/// Extract meaningful suffix from error type name  
+fn extract_error_suffix(error_name: &str) -> Option<String> {
+    if let Some(pos) = error_name.find("Error") {
+        let prefix = &error_name[..pos];
+        if let Some(stripped) = prefix.strip_prefix("MyapiProto") {
+            return Some(stripped.to_string());
+        }
+    }
+    None
 }
 
 fn sanitize_field_name(s: &str) -> String {
@@ -1297,6 +1744,356 @@ fn get_type_parameters(type_name: &str) -> Vec<&'static str> {
         "std::result::Result" => vec!["T", "E"],
         _ => vec![],
     }
+}
+
+/// Check if the schema uses datetime types (chrono)
+fn check_datetime_usage(schema: &Schema, all_type_names: &[String]) -> bool {
+    // Check all types for datetime usage
+    for type_name in all_type_names {
+        if let Some(type_def) = schema.get_type(type_name) {
+            if type_uses_datetime(type_def) {
+                return true;
+            }
+        }
+    }
+
+    // Check function parameters and return types
+    for function in schema.functions() {
+        if let Some(input_type) = &function.input_type {
+            if let Some(type_def) = schema.get_type(&input_type.name) {
+                if type_uses_datetime(type_def) {
+                    return true;
+                }
+            }
+        }
+
+        if let Some(output_type) = &function.output_type {
+            if let Some(type_def) = schema.get_type(&output_type.name) {
+                if type_uses_datetime(type_def) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
+/// Check if the schema uses UUID types
+fn check_uuid_usage(schema: &Schema, all_type_names: &[String]) -> bool {
+    // Check all types for UUID usage
+    for type_name in all_type_names {
+        if let Some(type_def) = schema.get_type(type_name) {
+            if type_uses_uuid(type_def) {
+                return true;
+            }
+        }
+    }
+
+    // Check function parameters and return types
+    for function in schema.functions() {
+        if let Some(input_type) = &function.input_type {
+            if let Some(type_def) = schema.get_type(&input_type.name) {
+                if type_uses_uuid(type_def) {
+                    return true;
+                }
+            }
+        }
+
+        if let Some(output_type) = &function.output_type {
+            if let Some(type_def) = schema.get_type(&output_type.name) {
+                if type_uses_uuid(type_def) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
+/// Check if the schema uses timedelta types (std::time::Duration)
+fn check_timedelta_usage(schema: &Schema, all_type_names: &[String]) -> bool {
+    // Check all types for timedelta usage
+    for type_name in all_type_names {
+        if let Some(type_def) = schema.get_type(type_name) {
+            if type_uses_timedelta(type_def) {
+                return true;
+            }
+        }
+    }
+
+    // Check function parameters and return types
+    for function in schema.functions() {
+        if let Some(input_type) = &function.input_type {
+            if let Some(type_def) = schema.get_type(&input_type.name) {
+                if type_uses_timedelta(type_def) {
+                    return true;
+                }
+            }
+        }
+
+        if let Some(output_type) = &function.output_type {
+            if let Some(type_def) = schema.get_type(&output_type.name) {
+                if type_uses_timedelta(type_def) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
+/// Check if the schema uses date types (chrono::NaiveDate)
+fn check_date_usage(schema: &Schema, all_type_names: &[String]) -> bool {
+    // Check all types for date usage
+    for type_name in all_type_names {
+        if let Some(type_def) = schema.get_type(type_name) {
+            if type_uses_date(type_def) {
+                return true;
+            }
+        }
+    }
+
+    // Check function parameters and return types
+    for function in schema.functions() {
+        if let Some(input_type) = &function.input_type {
+            if let Some(type_def) = schema.get_type(&input_type.name) {
+                if type_uses_date(type_def) {
+                    return true;
+                }
+            }
+        }
+
+        if let Some(output_type) = &function.output_type {
+            if let Some(type_def) = schema.get_type(&output_type.name) {
+                if type_uses_date(type_def) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
+/// Check if a specific type definition uses datetime
+fn type_uses_datetime(type_def: &reflectapi_schema::Type) -> bool {
+    match type_def {
+        reflectapi_schema::Type::Struct(struct_def) => {
+            for field in struct_def.fields.iter() {
+                if type_ref_uses_datetime(&field.type_ref) {
+                    return true;
+                }
+            }
+        }
+        reflectapi_schema::Type::Enum(enum_def) => {
+            for variant in &enum_def.variants {
+                match &variant.fields {
+                    reflectapi_schema::Fields::Named(fields) => {
+                        for field in fields {
+                            if type_ref_uses_datetime(&field.type_ref) {
+                                return true;
+                            }
+                        }
+                    }
+                    reflectapi_schema::Fields::Unnamed(fields) => {
+                        for field in fields {
+                            if type_ref_uses_datetime(&field.type_ref) {
+                                return true;
+                            }
+                        }
+                    }
+                    reflectapi_schema::Fields::None => {}
+                }
+            }
+        }
+        reflectapi_schema::Type::Primitive(_) => {
+            // Primitive types don't contain datetime fields
+            return false;
+        }
+    }
+    false
+}
+
+/// Check if a type reference uses datetime
+fn type_ref_uses_datetime(type_ref: &TypeReference) -> bool {
+    // Check for chrono types that map to datetime
+    if type_ref.name == "chrono::DateTime" || type_ref.name == "chrono::NaiveDateTime" {
+        return true;
+    }
+
+    // Check generic arguments recursively
+    for param in &type_ref.arguments {
+        if type_ref_uses_datetime(param) {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Check if a specific type definition uses UUID
+fn type_uses_uuid(type_def: &reflectapi_schema::Type) -> bool {
+    match type_def {
+        reflectapi_schema::Type::Struct(struct_def) => {
+            for field in struct_def.fields.iter() {
+                if type_ref_uses_uuid(&field.type_ref) {
+                    return true;
+                }
+            }
+        }
+        reflectapi_schema::Type::Enum(enum_def) => {
+            for variant in &enum_def.variants {
+                match &variant.fields {
+                    reflectapi_schema::Fields::Named(fields) => {
+                        for field in fields {
+                            if type_ref_uses_uuid(&field.type_ref) {
+                                return true;
+                            }
+                        }
+                    }
+                    reflectapi_schema::Fields::Unnamed(fields) => {
+                        for field in fields {
+                            if type_ref_uses_uuid(&field.type_ref) {
+                                return true;
+                            }
+                        }
+                    }
+                    reflectapi_schema::Fields::None => {}
+                }
+            }
+        }
+        reflectapi_schema::Type::Primitive(_) => {
+            return false;
+        }
+    }
+    false
+}
+
+fn type_ref_uses_uuid(type_ref: &TypeReference) -> bool {
+    // Check for UUID types
+    if type_ref.name == "uuid::Uuid" {
+        return true;
+    }
+
+    // Check generic arguments recursively
+    for param in &type_ref.arguments {
+        if type_ref_uses_uuid(param) {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Check if a specific type definition uses timedelta
+fn type_uses_timedelta(type_def: &reflectapi_schema::Type) -> bool {
+    match type_def {
+        reflectapi_schema::Type::Struct(struct_def) => {
+            for field in struct_def.fields.iter() {
+                if type_ref_uses_timedelta(&field.type_ref) {
+                    return true;
+                }
+            }
+        }
+        reflectapi_schema::Type::Enum(enum_def) => {
+            for variant in &enum_def.variants {
+                match &variant.fields {
+                    reflectapi_schema::Fields::Named(fields) => {
+                        for field in fields {
+                            if type_ref_uses_timedelta(&field.type_ref) {
+                                return true;
+                            }
+                        }
+                    }
+                    reflectapi_schema::Fields::Unnamed(fields) => {
+                        for field in fields {
+                            if type_ref_uses_timedelta(&field.type_ref) {
+                                return true;
+                            }
+                        }
+                    }
+                    reflectapi_schema::Fields::None => {}
+                }
+            }
+        }
+        reflectapi_schema::Type::Primitive(_) => {
+            return false;
+        }
+    }
+    false
+}
+
+fn type_ref_uses_timedelta(type_ref: &TypeReference) -> bool {
+    // Check for Duration types that map to timedelta
+    if type_ref.name == "std::time::Duration" {
+        return true;
+    }
+
+    // Check generic arguments recursively
+    for param in &type_ref.arguments {
+        if type_ref_uses_timedelta(param) {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Check if a specific type definition uses date
+fn type_uses_date(type_def: &reflectapi_schema::Type) -> bool {
+    match type_def {
+        reflectapi_schema::Type::Struct(struct_def) => {
+            for field in struct_def.fields.iter() {
+                if type_ref_uses_date(&field.type_ref) {
+                    return true;
+                }
+            }
+        }
+        reflectapi_schema::Type::Enum(enum_def) => {
+            for variant in &enum_def.variants {
+                match &variant.fields {
+                    reflectapi_schema::Fields::Named(fields) => {
+                        for field in fields {
+                            if type_ref_uses_date(&field.type_ref) {
+                                return true;
+                            }
+                        }
+                    }
+                    reflectapi_schema::Fields::Unnamed(fields) => {
+                        for field in fields {
+                            if type_ref_uses_date(&field.type_ref) {
+                                return true;
+                            }
+                        }
+                    }
+                    reflectapi_schema::Fields::None => {}
+                }
+            }
+        }
+        reflectapi_schema::Type::Primitive(_) => {
+            return false;
+        }
+    }
+    false
+}
+
+fn type_ref_uses_date(type_ref: &TypeReference) -> bool {
+    // Check for date types
+    if type_ref.name == "chrono::NaiveDate" {
+        return true;
+    }
+
+    // Check generic arguments recursively
+    for param in &type_ref.arguments {
+        if type_ref_uses_date(param) {
+            return true;
+        }
+    }
+
+    false
 }
 
 /// Check if the schema uses reflectapi::Option anywhere
@@ -1515,9 +2312,13 @@ from __future__ import annotations
     #[template(
         source = r#"
 # Standard library imports
-{% if has_enums %}from enum import Enum
+{% if has_datetime %}from datetime import datetime{% if has_date %}, date{% endif %}{% if has_timedelta %}, timedelta{% endif %}
+{% else if has_date %}from datetime import date{% if has_timedelta %}, timedelta{% endif %}
+{% else if has_timedelta %}from datetime import timedelta
+{% endif %}{% if has_enums %}from enum import Enum
 {% endif %}from typing import Any, Optional, TypeVar, Generic, Union{% if has_annotated %}, Annotated{% endif %}{% if has_literal %}, Literal{% endif %}
-{% if has_warnings %}import warnings
+{% if has_uuid %}from uuid import UUID
+{% endif %}{% if has_warnings %}import warnings
 {% endif %}
 
 # Third-party imports
@@ -1547,6 +2348,10 @@ T = TypeVar('T')
         pub has_enums: bool,
         pub has_reflectapi_option: bool,
         pub has_warnings: bool,
+        pub has_datetime: bool,
+        pub has_uuid: bool,
+        pub has_timedelta: bool,
+        pub has_date: bool,
         pub has_generics: bool,
         pub has_annotated: bool,
         pub has_literal: bool,

@@ -66,12 +66,12 @@ enum Commands {
         #[arg(long, default_value = "true")]
         python_async: bool,
 
-        /// Generate sync client for Python (default: true) 
-        #[arg(long, default_value = "true")]
+        /// Generate sync client for Python (default: false)
+        #[arg(long, default_value = "false")]
         python_sync: bool,
 
-        /// Generate testing utilities for Python (default: true)
-        #[arg(long, default_value = "true")]
+        /// Generate testing utilities for Python (default: false)
+        #[arg(long, default_value = "false")]
         python_testing: bool,
 
         /// Base URL for the Python client (optional)
