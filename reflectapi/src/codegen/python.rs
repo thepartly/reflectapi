@@ -498,24 +498,40 @@ fn render_enum(
     // Check if this is a tagged enum (internally tagged)
     match &enum_def.representation {
         Representation::Internal { tag } => {
-            // Check if this internally tagged enum has any tuple variants that need flattening
-            let has_tuple_variants = enum_def
-                .variants
-                .iter()
-                .any(|v| matches!(v.fields, Fields::Unnamed(_)));
+            // Check if this internally tagged enum has tuple variants with struct types that can be flattened
+            let _has_flattenable_tuple_variants = enum_def.variants.iter().any(|v| {
+                if let Fields::Unnamed(fields) = &v.fields {
+                    if fields.len() == 1 {
+                        // Check if the tuple variant contains a struct type that can be flattened
+                        let field = &fields[0];
+                        let type_name = &field.type_ref.name;
 
-            if has_tuple_variants {
-                // This is our special case - internally tagged enum with tuple variants
-                render_internally_tagged_enum_with_flattened_tuples(
-                    enum_def,
-                    tag,
-                    schema,
-                    implemented_types,
-                )
-            } else {
-                // This is an internally tagged enum with only struct/unit variants
-                render_internally_tagged_struct_enum(enum_def, tag, schema, implemented_types)
-            }
+                        // Handle Box<T> by looking at the first type argument
+                        let actual_type_name = if type_name == "std::boxed::Box" {
+                            if let Some(boxed_arg) = field.type_ref.arguments.first() {
+                                &boxed_arg.name
+                            } else {
+                                type_name
+                            }
+                        } else {
+                            type_name
+                        };
+
+                        if let Some(inner_type) = schema.get_type(actual_type_name) {
+                            matches!(inner_type, Type::Struct(_))
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            });
+
+            // Use the improved internally tagged enum renderer
+            render_internally_tagged_enum_improved(enum_def, tag, schema, implemented_types)
         }
         Representation::None => {
             // This is an untagged enum - generate Union without discriminator
@@ -588,131 +604,7 @@ fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<S
         .context("Failed to render primitive enum")
 }
 
-fn render_internally_tagged_struct_enum(
-    enum_def: &reflectapi_schema::Enum,
-    tag: &str,
-    schema: &Schema,
-    implemented_types: &HashMap<String, String>,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
-    let enum_name = improve_class_name(&enum_def.name);
-    let mut variant_classes = Vec::new();
-    let mut union_variants = Vec::new();
-
-    // Generate individual classes for each variant
-    for variant in &enum_def.variants {
-        let variant_class_name = format!("{}{}", enum_name, to_pascal_case(variant.name()));
-        let variant_serde_name = variant.serde_name();
-
-        // Build fields for this variant
-        let mut fields = vec![
-            // Add the discriminator field
-            templates::Field {
-                name: tag.to_string(),
-                type_annotation: format!("Literal['{}']", variant_serde_name),
-                description: Some("Discriminator field".to_string()),
-                deprecation_note: None,
-                optional: false,
-                default_value: None,
-            },
-        ];
-
-        // Add variant-specific fields
-        match &variant.fields {
-            Fields::Named(named_fields) => {
-                for field in named_fields {
-                    let field_type =
-                        type_ref_to_python_type(&field.type_ref, schema, implemented_types, &[])?;
-
-                    // Check if field type is Option<T> (which gets converted to T | None automatically)
-                    let is_option_type = field.type_ref.name == "std::option::Option";
-
-                    // Fix default value handling for optional fields
-                    let (optional, default_value, final_field_type) = if !field.required {
-                        // Field is not required - add | None if not already an Option type
-                        if is_option_type {
-                            (true, Some("None".to_string()), field_type) // Already has | None
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{} | None", field_type),
-                            )
-                        }
-                    } else if is_option_type {
-                        // Field is required but Option type - still needs default None
-                        (true, Some("None".to_string()), field_type) // Already has | None
-                    } else {
-                        // Required non-Option field
-                        (false, None, field_type)
-                    };
-
-                    fields.push(templates::Field {
-                        name: sanitize_field_name(field.name()),
-                        type_annotation: final_field_type,
-                        description: Some(field.description().to_string()),
-                        deprecation_note: field.deprecation_note.clone(),
-                        optional,
-                        default_value,
-                    });
-                }
-            }
-            Fields::Unnamed(_) => {
-                // Tuple variants are not supported for internally tagged enums in serde
-                return Err(anyhow::anyhow!(
-                    "Tuple variants are not supported for internally tagged enums: {}",
-                    variant.name()
-                ));
-            }
-            Fields::None => {
-                // Unit variant - no additional fields needed
-            }
-        }
-
-        // Generate the variant class
-        let variant_template = templates::DataClass {
-            name: variant_class_name.clone(),
-            description: Some(variant.description().to_string()),
-            fields,
-            is_tuple: false,
-            is_generic: false,
-            generic_params: vec![],
-        };
-
-        variant_classes.push(
-            variant_template
-                .render()
-                .context("Failed to render variant class")?,
-        );
-        union_variants.push(templates::UnionVariant {
-            name: variant.name().to_string(),
-            type_annotation: variant_class_name.clone(),
-            description: Some(variant.description().to_string()),
-        });
-    }
-
-    // Generate the union type alias
-    let union_template = templates::UnionClass {
-        name: enum_name,
-        description: Some(enum_def.description().to_string()),
-        variants: union_variants,
-        discriminator_field: tag.to_string(),
-    };
-
-    let union_definition = union_template.render().context("Failed to render union")?;
-
-    // Combine all parts
-    let mut result = variant_classes.join("\n\n");
-    if !result.is_empty() {
-        result.push_str("\n\n");
-    }
-    result.push_str(&union_definition);
-
-    Ok(result)
-}
-
-fn render_internally_tagged_enum_with_flattened_tuples(
+fn render_internally_tagged_enum_improved(
     enum_def: &reflectapi_schema::Enum,
     tag: &str,
     schema: &Schema,
@@ -822,19 +714,24 @@ fn render_internally_tagged_enum_with_flattened_tuples(
                             });
                         }
                     }
-                    Type::Enum(_) => {
-                        return Err(anyhow::anyhow!(
-                            "Tuple variant {} contains enum type {}, which cannot be flattened. Only struct types can be flattened in internally tagged enums with tuple variants. This is a Serde limitation - internally tagged enums with tuple variants require the inner type to be a struct so its fields can be flattened alongside the discriminator tag.",
-                            variant.name(),
-                            inner_type_name
-                        ));
-                    }
-                    Type::Primitive(_) => {
-                        return Err(anyhow::anyhow!(
-                            "Tuple variant {} contains primitive type {}, which cannot be flattened. Only struct types can be flattened in internally tagged enums with tuple variants. This is a Serde limitation - internally tagged enums with tuple variants require the inner type to be a struct so its fields can be flattened alongside the discriminator tag.",
-                            variant.name(),
-                            inner_type_name
-                        ));
+                    Type::Enum(_) | Type::Primitive(_) => {
+                        // For non-struct tuple variants, handle them like regular internally tagged enum variants
+                        // Add a single field with the inner type
+                        let field_type = type_ref_to_python_type(
+                            &inner_field.type_ref,
+                            schema,
+                            implemented_types,
+                            &[],
+                        )?;
+
+                        fields.push(templates::Field {
+                            name: "value".to_string(), // Use generic field name since it's not a struct
+                            type_annotation: field_type,
+                            description: Some("Tuple variant value".to_string()),
+                            deprecation_note: None,
+                            optional: false,
+                            default_value: None,
+                        });
                     }
                 }
             }

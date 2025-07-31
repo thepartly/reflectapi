@@ -71,6 +71,11 @@ fn codegen_typescript(schema: reflectapi::Schema) -> String {
     )
 }
 
+fn codegen_python(schema: reflectapi::Schema) -> String {
+    reflectapi::codegen::python::generate(schema, &reflectapi::codegen::python::Config::default())
+        .unwrap()
+}
+
 pub fn into_input_typescript_code<I>() -> String
 where
     I: reflectapi::Input + serde::de::DeserializeOwned + Send + 'static,
@@ -129,11 +134,41 @@ where
     codegen_rust(eps)
 }
 
+pub fn into_input_python_code<I>() -> String
+where
+    I: reflectapi::Input + serde::de::DeserializeOwned + Send + 'static,
+{
+    let eps = into_input_schema::<I>();
+    codegen_python(eps)
+}
+
+pub fn into_output_python_code<O>() -> String
+where
+    O: reflectapi::Output + serde::ser::Serialize + Send + 'static,
+{
+    let eps = into_output_schema::<O>();
+    codegen_python(eps)
+}
+
+pub fn into_python_code<T>() -> String
+where
+    T: reflectapi::Input
+        + serde::de::DeserializeOwned
+        + reflectapi::Output
+        + serde::ser::Serialize
+        + Send
+        + 'static,
+{
+    let eps = into_schema::<T>();
+    codegen_python(eps)
+}
+
 macro_rules! assert_input_snapshot {
     ($I:ty) => {
         insta::assert_json_snapshot!(super::into_input_schema::<$I>().input_types);
         insta::assert_snapshot!(super::into_input_typescript_code::<$I>());
         insta::assert_snapshot!(super::into_input_rust_code::<$I>());
+        insta::assert_snapshot!(super::into_input_python_code::<$I>());
     };
 }
 
@@ -142,6 +177,7 @@ macro_rules! assert_output_snapshot {
         insta::assert_json_snapshot!(super::into_output_schema::<$O>().output_types);
         insta::assert_snapshot!(super::into_output_typescript_code::<$O>());
         insta::assert_snapshot!(super::into_output_rust_code::<$O>());
+        insta::assert_snapshot!(super::into_output_python_code::<$O>());
     };
 }
 
@@ -152,6 +188,7 @@ macro_rules! assert_snapshot {
         insta::assert_snapshot!(super::into_typescript_code::<$T>());
         insta::assert_snapshot!(super::into_rust_code::<$T>());
         insta::assert_json_snapshot!(reflectapi::codegen::openapi::Spec::from(&schema));
+        insta::assert_snapshot!(super::into_python_code::<$T>());
     }};
 }
 
