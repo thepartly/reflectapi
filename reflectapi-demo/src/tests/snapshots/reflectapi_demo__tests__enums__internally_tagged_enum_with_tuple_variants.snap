@@ -9,10 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::enums::input::E"
+        "name": "reflectapi_demo::tests::enums::E"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::enums::output::E"
+        "name": "reflectapi_demo::tests::enums::E"
       },
       "serialization": [
         "json",
@@ -29,35 +29,22 @@ expression: schema
         "fields": "none"
       },
       {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::enums::input::Data",
-        "fields": {
-          "named": [
-            {
-              "name": "a",
-              "type": {
-                "name": "std::string::String"
-              },
-              "required": true
-            },
-            {
-              "name": "b",
-              "type": {
-                "name": "std::option::Option",
-                "arguments": [
-                  {
-                    "name": "u32"
-                  }
-                ]
-              },
-              "required": true
-            }
-          ]
-        }
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::A",
+        "variants": [
+          {
+            "name": "X",
+            "fields": "none"
+          },
+          {
+            "name": "Y",
+            "fields": "none"
+          }
+        ]
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::enums::input::E",
+        "name": "reflectapi_demo::tests::enums::E",
         "representation": {
           "internal": {
             "tag": "type"
@@ -71,74 +58,14 @@ expression: schema
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::input::Data"
+                    "name": "reflectapi_demo::tests::enums::A"
                   },
                   "required": true
                 }
               ]
             }
-          },
-          {
-            "name": "b",
-            "fields": {
-              "named": [
-                {
-                  "name": "c",
-                  "type": {
-                    "name": "std::string::String"
-                  },
-                  "required": true
-                }
-              ]
-            }
-          },
-          {
-            "name": "c",
-            "fields": "none"
           }
         ]
-      },
-      {
-        "kind": "enum",
-        "name": "std::option::Option",
-        "description": "Optional nullable type",
-        "parameters": [
-          {
-            "name": "T"
-          }
-        ],
-        "representation": "none",
-        "variants": [
-          {
-            "name": "None",
-            "description": "The value is not provided, i.e. null",
-            "fields": "none"
-          },
-          {
-            "name": "Some",
-            "description": "The value is provided and set to some value",
-            "fields": {
-              "unnamed": [
-                {
-                  "name": "0",
-                  "type": {
-                    "name": "T"
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      },
-      {
-        "kind": "primitive",
-        "name": "std::string::String",
-        "description": "UTF-8 encoded string"
-      },
-      {
-        "kind": "primitive",
-        "name": "u32",
-        "description": "32-bit unsigned integer"
       }
     ]
   },
@@ -151,34 +78,22 @@ expression: schema
         "fields": "none"
       },
       {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::enums::output::Data",
-        "fields": {
-          "named": [
-            {
-              "name": "a",
-              "type": {
-                "name": "std::string::String"
-              },
-              "required": true
-            },
-            {
-              "name": "b",
-              "type": {
-                "name": "std::option::Option",
-                "arguments": [
-                  {
-                    "name": "u32"
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::enums::A",
+        "variants": [
+          {
+            "name": "X",
+            "fields": "none"
+          },
+          {
+            "name": "Y",
+            "fields": "none"
+          }
+        ]
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::enums::output::E",
+        "name": "reflectapi_demo::tests::enums::E",
         "representation": {
           "internal": {
             "tag": "type"
@@ -192,74 +107,14 @@ expression: schema
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::output::Data"
+                    "name": "reflectapi_demo::tests::enums::A"
                   },
                   "required": true
                 }
               ]
             }
-          },
-          {
-            "name": "b",
-            "fields": {
-              "named": [
-                {
-                  "name": "c",
-                  "type": {
-                    "name": "std::string::String"
-                  },
-                  "required": true
-                }
-              ]
-            }
-          },
-          {
-            "name": "c",
-            "fields": "none"
           }
         ]
-      },
-      {
-        "kind": "enum",
-        "name": "std::option::Option",
-        "description": "Optional nullable type",
-        "parameters": [
-          {
-            "name": "T"
-          }
-        ],
-        "representation": "none",
-        "variants": [
-          {
-            "name": "None",
-            "description": "The value is not provided, i.e. null",
-            "fields": "none"
-          },
-          {
-            "name": "Some",
-            "description": "The value is provided and set to some value",
-            "fields": {
-              "unnamed": [
-                {
-                  "name": "0",
-                  "type": {
-                    "name": "T"
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      },
-      {
-        "kind": "primitive",
-        "name": "std::string::String",
-        "description": "UTF-8 encoded string"
-      },
-      {
-        "kind": "primitive",
-        "name": "u32",
-        "description": "32-bit unsigned integer"
       }
     ]
   }

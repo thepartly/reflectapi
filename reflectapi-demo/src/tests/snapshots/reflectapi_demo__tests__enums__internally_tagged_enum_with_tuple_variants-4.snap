@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.input.E"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.E"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.output.E"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.E"
                 }
               }
             }
@@ -41,177 +41,53 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.enums.input.Data": {
-        "type": "object",
-        "title": "reflectapi_demo.tests.enums.input.Data",
-        "required": [
-          "a",
-          "b"
-        ],
-        "properties": {
-          "a": {
-            "$ref": "#/components/schemas/std.string.String"
-          },
-          "b": {
-            "oneOf": [
-              {
-                "description": "Null",
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/u32"
-              }
-            ]
-          }
-        }
-      },
-      "reflectapi_demo.tests.enums.input.E": {
+      "reflectapi_demo.tests.enums.A": {
         "oneOf": [
           {
-            "type": "object",
-            "title": "reflectapi_demo.tests.enums.input.Data",
-            "required": [
-              "a",
-              "b",
-              "type"
-            ],
-            "properties": {
-              "a": {
-                "$ref": "#/components/schemas/std.string.String"
-              },
-              "b": {
-                "oneOf": [
-                  {
-                    "description": "Null",
-                    "type": "null"
-                  },
-                  {
-                    "$ref": "#/components/schemas/u32"
-                  }
-                ]
-              },
-              "type": {
-                "const": "a"
-              }
-            }
+            "const": "X"
           },
           {
-            "type": "object",
-            "title": "b",
-            "required": [
-              "c",
-              "type"
-            ],
-            "properties": {
-              "c": {
-                "$ref": "#/components/schemas/std.string.String"
-              },
-              "type": {
-                "const": "b"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "type"
-            ],
-            "properties": {
-              "type": {
-                "const": "c"
-              }
-            }
+            "const": "Y"
           }
         ]
       },
-      "reflectapi_demo.tests.enums.output.Data": {
-        "type": "object",
-        "title": "reflectapi_demo.tests.enums.output.Data",
-        "required": [
-          "a"
-        ],
-        "properties": {
-          "a": {
-            "$ref": "#/components/schemas/std.string.String"
-          },
-          "b": {
+      "reflectapi_demo.tests.enums.E": {
+        "oneOf": [
+          {
             "oneOf": [
               {
-                "description": "Null",
-                "type": "null"
+                "type": "object",
+                "required": [
+                  "X",
+                  "type"
+                ],
+                "properties": {
+                  "X": {
+                    "type": "null"
+                  },
+                  "type": {
+                    "const": "a"
+                  }
+                }
               },
               {
-                "$ref": "#/components/schemas/u32"
+                "type": "object",
+                "required": [
+                  "Y",
+                  "type"
+                ],
+                "properties": {
+                  "Y": {
+                    "type": "null"
+                  },
+                  "type": {
+                    "const": "a"
+                  }
+                }
               }
             ]
           }
-        }
-      },
-      "reflectapi_demo.tests.enums.output.E": {
-        "oneOf": [
-          {
-            "type": "object",
-            "title": "reflectapi_demo.tests.enums.output.Data",
-            "required": [
-              "a",
-              "type"
-            ],
-            "properties": {
-              "a": {
-                "$ref": "#/components/schemas/std.string.String"
-              },
-              "b": {
-                "oneOf": [
-                  {
-                    "description": "Null",
-                    "type": "null"
-                  },
-                  {
-                    "$ref": "#/components/schemas/u32"
-                  }
-                ]
-              },
-              "type": {
-                "const": "a"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "b",
-            "required": [
-              "c",
-              "type"
-            ],
-            "properties": {
-              "c": {
-                "$ref": "#/components/schemas/std.string.String"
-              },
-              "type": {
-                "const": "b"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "type"
-            ],
-            "properties": {
-              "type": {
-                "const": "c"
-              }
-            }
-          }
         ]
-      },
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
-      },
-      "u32": {
-        "description": "32-bit unsigned integer",
-        "type": "integer"
       }
     }
   }

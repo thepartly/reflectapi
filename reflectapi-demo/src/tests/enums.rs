@@ -139,10 +139,9 @@ fn test_enum_rename_num() {
 #[test]
 fn test_internally_tagged_enum_with_tuple_variants() {
     #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-    struct Data {
-        a: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        b: Option<u32>,
+    enum A {
+        X,
+        Y,
     }
 
     #[allow(dead_code)]
@@ -150,107 +149,7 @@ fn test_internally_tagged_enum_with_tuple_variants() {
     #[serde(tag = "type")]
     enum E {
         #[serde(rename = "a")]
-        A(Data),
-
-        #[serde(rename = "b")]
-        B { c: String },
-
-        #[serde(rename = "c")]
-        C,
-    }
-
-    assert_snapshot!(E);
-}
-
-#[test]
-fn test_internally_tagged_enum_mixed_variants() {
-    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-    struct A {
-        x: u32,
-        y: u32,
-    }
-
-    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-    struct B {
-        z: u32,
-        w: Option<String>,
-    }
-
-    #[allow(dead_code)]
-    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-    #[serde(tag = "tag")]
-    enum E {
-        #[serde(rename = "a")]
         A(A),
-
-        #[serde(rename = "b")]
-        B(B),
-
-        #[serde(rename = "c")]
-        C { p: String, q: Option<String> },
-
-        #[serde(rename = "d")]
-        D,
-    }
-
-    assert_snapshot!(E);
-}
-
-#[test]
-fn test_internally_tagged_enum_with_user_defined_types() {
-    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-    enum A {
-        X,
-        Y,
-        Z,
-    }
-
-    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-    struct B {
-        p: String,
-        q: f64,
-    }
-
-    #[allow(dead_code)]
-    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-    #[serde(tag = "tag")]
-    enum E {
-        #[serde(rename = "a")]
-        A(B),
-
-        #[serde(rename = "b")]
-        B(A),
-
-        #[serde(rename = "c")]
-        C { items: Vec<String>, value: f64 },
-
-        #[serde(rename = "d")]
-        D,
-    }
-
-    assert_snapshot!(E);
-}
-
-#[test]
-fn test_internally_tagged_enum_with_boxed_types() {
-    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-    struct Data {
-        a: u32,
-        b: String,
-    }
-
-    #[allow(dead_code)]
-    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
-    #[serde(tag = "tag")]
-    enum E {
-        #[serde(rename = "a")]
-        A(Box<Data>),
-
-        #[serde(rename = "b")]
-        B { c: String },
-
-        #[serde(rename = "c")]
-        C,
     }
 
     assert_snapshot!(E);

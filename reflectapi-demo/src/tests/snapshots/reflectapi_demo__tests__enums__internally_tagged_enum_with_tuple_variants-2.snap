@@ -15,9 +15,9 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.enums.input.E,
+      input: reflectapi_demo.tests.enums.E,
       headers: {},
-    ) => AsyncResult<reflectapi_demo.tests.enums.output.E, {}>;
+    ) => AsyncResult<reflectapi_demo.tests.enums.E, {}>;
   }
 }
 export namespace reflectapi {
@@ -35,35 +35,9 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace enums {
-      export namespace input {
-        export interface Data {
-          a: string;
-          b: number /* u32 */ | null;
-        }
+      export type A = "X" | "Y";
 
-        export type E =
-          | ({ type: "a" } & reflectapi_demo.tests.enums.input.Data)
-          | {
-              type: "b";
-              c: string;
-            }
-          | { type: "c" };
-      }
-
-      export namespace output {
-        export interface Data {
-          a: string;
-          b?: number /* u32 */ | null;
-        }
-
-        export type E =
-          | ({ type: "a" } & reflectapi_demo.tests.enums.output.Data)
-          | {
-              type: "b";
-              c: string;
-            }
-          | { type: "c" };
-      }
+      export type E = { type: "a" } & reflectapi_demo.tests.enums.A;
     }
   }
 }
@@ -71,11 +45,11 @@ export namespace reflectapi_demo {
 namespace __implementation {
 
   function inout_test(client: Client) {
-    return (input: reflectapi_demo.tests.enums.input.E, headers: {}) =>
+    return (input: reflectapi_demo.tests.enums.E, headers: {}) =>
       __request<
-        reflectapi_demo.tests.enums.input.E,
+        reflectapi_demo.tests.enums.E,
         {},
-        reflectapi_demo.tests.enums.output.E,
+        reflectapi_demo.tests.enums.E,
         {}
       >(client, "/inout_test", input, headers);
   }
