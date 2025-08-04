@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.ShopItem"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.E"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.ShopItem"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.E"
                 }
               }
             }
@@ -45,54 +45,54 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
         "description": "64-bit floating point number",
         "type": "number"
       },
-      "reflectapi_demo.tests.enums.Color": {
+      "reflectapi_demo.tests.enums.A": {
         "oneOf": [
           {
-            "const": "Red"
+            "const": "X"
           },
           {
-            "const": "Green"
+            "const": "Y"
           },
           {
-            "const": "Blue"
+            "const": "Z"
           }
         ]
       },
-      "reflectapi_demo.tests.enums.ProductInfo": {
+      "reflectapi_demo.tests.enums.B": {
         "type": "object",
-        "title": "reflectapi_demo.tests.enums.ProductInfo",
+        "title": "reflectapi_demo.tests.enums.B",
         "required": [
-          "name",
-          "price"
+          "p",
+          "q"
         ],
         "properties": {
-          "name": {
+          "p": {
             "$ref": "#/components/schemas/std.string.String"
           },
-          "price": {
+          "q": {
             "$ref": "#/components/schemas/f64"
           }
         }
       },
-      "reflectapi_demo.tests.enums.ShopItem": {
+      "reflectapi_demo.tests.enums.E": {
         "oneOf": [
           {
             "type": "object",
-            "title": "reflectapi_demo.tests.enums.ProductInfo",
+            "title": "reflectapi_demo.tests.enums.B",
             "required": [
-              "item_type",
-              "name",
-              "price"
+              "p",
+              "q",
+              "tag"
             ],
             "properties": {
-              "item_type": {
-                "const": "product"
-              },
-              "name": {
+              "p": {
                 "$ref": "#/components/schemas/std.string.String"
               },
-              "price": {
+              "q": {
                 "$ref": "#/components/schemas/f64"
+              },
+              "tag": {
+                "const": "a"
               }
             }
           },
@@ -101,45 +101,45 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
               {
                 "type": "object",
                 "required": [
-                  "Red",
-                  "item_type"
+                  "X",
+                  "tag"
                 ],
                 "properties": {
-                  "Red": {
+                  "X": {
                     "type": "null"
                   },
-                  "item_type": {
-                    "const": "colored_item"
+                  "tag": {
+                    "const": "b"
                   }
                 }
               },
               {
                 "type": "object",
                 "required": [
-                  "Green",
-                  "item_type"
+                  "Y",
+                  "tag"
                 ],
                 "properties": {
-                  "Green": {
+                  "Y": {
                     "type": "null"
                   },
-                  "item_type": {
-                    "const": "colored_item"
+                  "tag": {
+                    "const": "b"
                   }
                 }
               },
               {
                 "type": "object",
                 "required": [
-                  "Blue",
-                  "item_type"
+                  "Z",
+                  "tag"
                 ],
                 "properties": {
-                  "Blue": {
+                  "Z": {
                     "type": "null"
                   },
-                  "item_type": {
-                    "const": "colored_item"
+                  "tag": {
+                    "const": "b"
                   }
                 }
               }
@@ -147,36 +147,36 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           },
           {
             "type": "object",
-            "title": "bundle",
+            "title": "c",
             "required": [
-              "discount",
-              "item_type",
-              "items"
+              "items",
+              "tag",
+              "value"
             ],
             "properties": {
-              "discount": {
-                "$ref": "#/components/schemas/f64"
-              },
-              "item_type": {
-                "const": "bundle"
-              },
               "items": {
                 "description": "Expandable array type",
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/std.string.String"
                 }
+              },
+              "tag": {
+                "const": "c"
+              },
+              "value": {
+                "$ref": "#/components/schemas/f64"
               }
             }
           },
           {
             "type": "object",
             "required": [
-              "item_type"
+              "tag"
             ],
             "properties": {
-              "item_type": {
-                "const": "gift_card"
+              "tag": {
+                "const": "d"
               }
             }
           }

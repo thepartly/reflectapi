@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.Media"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.E"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.Media"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.E"
                 }
               }
             }
@@ -41,125 +41,31 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.enums.ImageData": {
+      "reflectapi_demo.tests.enums.A": {
         "type": "object",
-        "title": "reflectapi_demo.tests.enums.ImageData",
+        "title": "reflectapi_demo.tests.enums.A",
         "required": [
-          "height",
-          "width"
+          "x",
+          "y"
         ],
         "properties": {
-          "height": {
+          "x": {
             "$ref": "#/components/schemas/u32"
           },
-          "width": {
+          "y": {
             "$ref": "#/components/schemas/u32"
           }
         }
       },
-      "reflectapi_demo.tests.enums.Media": {
-        "oneOf": [
-          {
-            "type": "object",
-            "title": "reflectapi_demo.tests.enums.ImageData",
-            "required": [
-              "height",
-              "media_type",
-              "width"
-            ],
-            "properties": {
-              "height": {
-                "$ref": "#/components/schemas/u32"
-              },
-              "media_type": {
-                "const": "image"
-              },
-              "width": {
-                "$ref": "#/components/schemas/u32"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "reflectapi_demo.tests.enums.VideoData",
-            "required": [
-              "duration",
-              "media_type",
-              "resolution"
-            ],
-            "properties": {
-              "duration": {
-                "$ref": "#/components/schemas/u32"
-              },
-              "media_type": {
-                "const": "video"
-              },
-              "resolution": {
-                "oneOf": [
-                  {
-                    "description": "Null",
-                    "type": "null"
-                  },
-                  {
-                    "$ref": "#/components/schemas/std.string.String"
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "audio",
-            "required": [
-              "format",
-              "media_type",
-              "url"
-            ],
-            "properties": {
-              "format": {
-                "oneOf": [
-                  {
-                    "description": "Null",
-                    "type": "null"
-                  },
-                  {
-                    "$ref": "#/components/schemas/std.string.String"
-                  }
-                ]
-              },
-              "media_type": {
-                "const": "audio"
-              },
-              "url": {
-                "$ref": "#/components/schemas/std.string.String"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "media_type"
-            ],
-            "properties": {
-              "media_type": {
-                "const": "text"
-              }
-            }
-          }
-        ]
-      },
-      "reflectapi_demo.tests.enums.VideoData": {
+      "reflectapi_demo.tests.enums.B": {
         "type": "object",
-        "title": "reflectapi_demo.tests.enums.VideoData",
+        "title": "reflectapi_demo.tests.enums.B",
         "required": [
-          "duration",
-          "resolution"
+          "w",
+          "z"
         ],
         "properties": {
-          "duration": {
-            "$ref": "#/components/schemas/u32"
-          },
-          "resolution": {
+          "w": {
             "oneOf": [
               {
                 "description": "Null",
@@ -169,8 +75,102 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/std.string.String"
               }
             ]
+          },
+          "z": {
+            "$ref": "#/components/schemas/u32"
           }
         }
+      },
+      "reflectapi_demo.tests.enums.E": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.enums.A",
+            "required": [
+              "tag",
+              "x",
+              "y"
+            ],
+            "properties": {
+              "tag": {
+                "const": "a"
+              },
+              "x": {
+                "$ref": "#/components/schemas/u32"
+              },
+              "y": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.enums.B",
+            "required": [
+              "tag",
+              "w",
+              "z"
+            ],
+            "properties": {
+              "tag": {
+                "const": "b"
+              },
+              "w": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              },
+              "z": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "c",
+            "required": [
+              "p",
+              "q",
+              "tag"
+            ],
+            "properties": {
+              "p": {
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "q": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              },
+              "tag": {
+                "const": "c"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "tag"
+            ],
+            "properties": {
+              "tag": {
+                "const": "d"
+              }
+            }
+          }
+        ]
       },
       "std.string.String": {
         "description": "UTF-8 encoded string",

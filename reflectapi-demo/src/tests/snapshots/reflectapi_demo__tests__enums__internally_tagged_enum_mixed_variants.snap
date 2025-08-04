@@ -9,10 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::enums::Media"
+        "name": "reflectapi_demo::tests::enums::E"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::enums::Media"
+        "name": "reflectapi_demo::tests::enums::E"
       },
       "serialization": [
         "json",
@@ -30,18 +30,18 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::enums::ImageData",
+        "name": "reflectapi_demo::tests::enums::A",
         "fields": {
           "named": [
             {
-              "name": "width",
+              "name": "x",
               "type": {
                 "name": "u32"
               },
               "required": true
             },
             {
-              "name": "height",
+              "name": "y",
               "type": {
                 "name": "u32"
               },
@@ -51,22 +51,49 @@ expression: schema
         }
       },
       {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::enums::B",
+        "fields": {
+          "named": [
+            {
+              "name": "z",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "w",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::enums::Media",
+        "name": "reflectapi_demo::tests::enums::E",
         "representation": {
           "internal": {
-            "tag": "media_type"
+            "tag": "tag"
           }
         },
         "variants": [
           {
-            "name": "image",
+            "name": "a",
             "fields": {
               "unnamed": [
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::ImageData"
+                    "name": "reflectapi_demo::tests::enums::A"
                   },
                   "required": true
                 }
@@ -74,13 +101,13 @@ expression: schema
             }
           },
           {
-            "name": "video",
+            "name": "b",
             "fields": {
               "unnamed": [
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::VideoData"
+                    "name": "reflectapi_demo::tests::enums::B"
                   },
                   "required": true
                 }
@@ -88,18 +115,18 @@ expression: schema
             }
           },
           {
-            "name": "audio",
+            "name": "c",
             "fields": {
               "named": [
                 {
-                  "name": "url",
+                  "name": "p",
                   "type": {
                     "name": "std::string::String"
                   },
                   "required": true
                 },
                 {
-                  "name": "format",
+                  "name": "q",
                   "type": {
                     "name": "std::option::Option",
                     "arguments": [
@@ -114,37 +141,10 @@ expression: schema
             }
           },
           {
-            "name": "text",
+            "name": "d",
             "fields": "none"
           }
         ]
-      },
-      {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::enums::VideoData",
-        "fields": {
-          "named": [
-            {
-              "name": "duration",
-              "type": {
-                "name": "u32"
-              },
-              "required": true
-            },
-            {
-              "name": "resolution",
-              "type": {
-                "name": "std::option::Option",
-                "arguments": [
-                  {
-                    "name": "std::string::String"
-                  }
-                ]
-              },
-              "required": true
-            }
-          ]
-        }
       },
       {
         "kind": "enum",
@@ -200,18 +200,18 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::enums::ImageData",
+        "name": "reflectapi_demo::tests::enums::A",
         "fields": {
           "named": [
             {
-              "name": "width",
+              "name": "x",
               "type": {
                 "name": "u32"
               },
               "required": true
             },
             {
-              "name": "height",
+              "name": "y",
               "type": {
                 "name": "u32"
               },
@@ -221,22 +221,49 @@ expression: schema
         }
       },
       {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::enums::B",
+        "fields": {
+          "named": [
+            {
+              "name": "z",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "w",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::enums::Media",
+        "name": "reflectapi_demo::tests::enums::E",
         "representation": {
           "internal": {
-            "tag": "media_type"
+            "tag": "tag"
           }
         },
         "variants": [
           {
-            "name": "image",
+            "name": "a",
             "fields": {
               "unnamed": [
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::ImageData"
+                    "name": "reflectapi_demo::tests::enums::A"
                   },
                   "required": true
                 }
@@ -244,13 +271,13 @@ expression: schema
             }
           },
           {
-            "name": "video",
+            "name": "b",
             "fields": {
               "unnamed": [
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::VideoData"
+                    "name": "reflectapi_demo::tests::enums::B"
                   },
                   "required": true
                 }
@@ -258,18 +285,18 @@ expression: schema
             }
           },
           {
-            "name": "audio",
+            "name": "c",
             "fields": {
               "named": [
                 {
-                  "name": "url",
+                  "name": "p",
                   "type": {
                     "name": "std::string::String"
                   },
                   "required": true
                 },
                 {
-                  "name": "format",
+                  "name": "q",
                   "type": {
                     "name": "std::option::Option",
                     "arguments": [
@@ -284,37 +311,10 @@ expression: schema
             }
           },
           {
-            "name": "text",
+            "name": "d",
             "fields": "none"
           }
         ]
-      },
-      {
-        "kind": "struct",
-        "name": "reflectapi_demo::tests::enums::VideoData",
-        "fields": {
-          "named": [
-            {
-              "name": "duration",
-              "type": {
-                "name": "u32"
-              },
-              "required": true
-            },
-            {
-              "name": "resolution",
-              "type": {
-                "name": "std::option::Option",
-                "arguments": [
-                  {
-                    "name": "std::string::String"
-                  }
-                ]
-              },
-              "required": true
-            }
-          ]
-        }
       },
       {
         "kind": "enum",

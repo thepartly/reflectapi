@@ -9,10 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::enums::ShopItem"
+        "name": "reflectapi_demo::tests::enums::E"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::enums::ShopItem"
+        "name": "reflectapi_demo::tests::enums::E"
       },
       "serialization": [
         "json",
@@ -35,36 +35,36 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::enums::Color",
+        "name": "reflectapi_demo::tests::enums::A",
         "variants": [
           {
-            "name": "Red",
+            "name": "X",
             "fields": "none"
           },
           {
-            "name": "Green",
+            "name": "Y",
             "fields": "none"
           },
           {
-            "name": "Blue",
+            "name": "Z",
             "fields": "none"
           }
         ]
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::enums::ProductInfo",
+        "name": "reflectapi_demo::tests::enums::B",
         "fields": {
           "named": [
             {
-              "name": "name",
+              "name": "p",
               "type": {
                 "name": "std::string::String"
               },
               "required": true
             },
             {
-              "name": "price",
+              "name": "q",
               "type": {
                 "name": "f64"
               },
@@ -75,21 +75,21 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::enums::ShopItem",
+        "name": "reflectapi_demo::tests::enums::E",
         "representation": {
           "internal": {
-            "tag": "item_type"
+            "tag": "tag"
           }
         },
         "variants": [
           {
-            "name": "product",
+            "name": "a",
             "fields": {
               "unnamed": [
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::ProductInfo"
+                    "name": "reflectapi_demo::tests::enums::B"
                   },
                   "required": true
                 }
@@ -97,13 +97,13 @@ expression: schema
             }
           },
           {
-            "name": "colored_item",
+            "name": "b",
             "fields": {
               "unnamed": [
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::Color"
+                    "name": "reflectapi_demo::tests::enums::A"
                   },
                   "required": true
                 }
@@ -111,7 +111,7 @@ expression: schema
             }
           },
           {
-            "name": "bundle",
+            "name": "c",
             "fields": {
               "named": [
                 {
@@ -127,7 +127,7 @@ expression: schema
                   "required": true
                 },
                 {
-                  "name": "discount",
+                  "name": "value",
                   "type": {
                     "name": "f64"
                   },
@@ -137,7 +137,7 @@ expression: schema
             }
           },
           {
-            "name": "gift_card",
+            "name": "d",
             "fields": "none"
           }
         ]
@@ -174,36 +174,36 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::enums::Color",
+        "name": "reflectapi_demo::tests::enums::A",
         "variants": [
           {
-            "name": "Red",
+            "name": "X",
             "fields": "none"
           },
           {
-            "name": "Green",
+            "name": "Y",
             "fields": "none"
           },
           {
-            "name": "Blue",
+            "name": "Z",
             "fields": "none"
           }
         ]
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::enums::ProductInfo",
+        "name": "reflectapi_demo::tests::enums::B",
         "fields": {
           "named": [
             {
-              "name": "name",
+              "name": "p",
               "type": {
                 "name": "std::string::String"
               },
               "required": true
             },
             {
-              "name": "price",
+              "name": "q",
               "type": {
                 "name": "f64"
               },
@@ -214,21 +214,21 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::enums::ShopItem",
+        "name": "reflectapi_demo::tests::enums::E",
         "representation": {
           "internal": {
-            "tag": "item_type"
+            "tag": "tag"
           }
         },
         "variants": [
           {
-            "name": "product",
+            "name": "a",
             "fields": {
               "unnamed": [
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::ProductInfo"
+                    "name": "reflectapi_demo::tests::enums::B"
                   },
                   "required": true
                 }
@@ -236,13 +236,13 @@ expression: schema
             }
           },
           {
-            "name": "colored_item",
+            "name": "b",
             "fields": {
               "unnamed": [
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::Color"
+                    "name": "reflectapi_demo::tests::enums::A"
                   },
                   "required": true
                 }
@@ -250,7 +250,7 @@ expression: schema
             }
           },
           {
-            "name": "bundle",
+            "name": "c",
             "fields": {
               "named": [
                 {
@@ -266,7 +266,7 @@ expression: schema
                   "required": true
                 },
                 {
-                  "name": "discount",
+                  "name": "value",
                   "type": {
                     "name": "f64"
                   },
@@ -276,7 +276,7 @@ expression: schema
             }
           },
           {
-            "name": "gift_card",
+            "name": "d",
             "fields": "none"
           }
         ]

@@ -9,10 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::enums::input::Vehicle"
+        "name": "reflectapi_demo::tests::enums::input::E"
       },
       "output_type": {
-        "name": "reflectapi_demo::tests::enums::output::Vehicle"
+        "name": "reflectapi_demo::tests::enums::output::E"
       },
       "serialization": [
         "json",
@@ -30,18 +30,18 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::enums::input::CarData",
+        "name": "reflectapi_demo::tests::enums::input::Data",
         "fields": {
           "named": [
             {
-              "name": "vin",
+              "name": "a",
               "type": {
                 "name": "std::string::String"
               },
               "required": true
             },
             {
-              "name": "mileage",
+              "name": "b",
               "type": {
                 "name": "std::option::Option",
                 "arguments": [
@@ -57,7 +57,7 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::enums::input::Vehicle",
+        "name": "reflectapi_demo::tests::enums::input::E",
         "representation": {
           "internal": {
             "tag": "type"
@@ -65,13 +65,13 @@ expression: schema
         },
         "variants": [
           {
-            "name": "car",
+            "name": "a",
             "fields": {
               "unnamed": [
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::input::CarData"
+                    "name": "reflectapi_demo::tests::enums::input::Data"
                   },
                   "required": true
                 }
@@ -79,11 +79,11 @@ expression: schema
             }
           },
           {
-            "name": "truck",
+            "name": "b",
             "fields": {
               "named": [
                 {
-                  "name": "license_plate",
+                  "name": "c",
                   "type": {
                     "name": "std::string::String"
                   },
@@ -93,7 +93,7 @@ expression: schema
             }
           },
           {
-            "name": "bicycle",
+            "name": "c",
             "fields": "none"
           }
         ]
@@ -152,18 +152,18 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::enums::output::CarData",
+        "name": "reflectapi_demo::tests::enums::output::Data",
         "fields": {
           "named": [
             {
-              "name": "vin",
+              "name": "a",
               "type": {
                 "name": "std::string::String"
               },
               "required": true
             },
             {
-              "name": "mileage",
+              "name": "b",
               "type": {
                 "name": "std::option::Option",
                 "arguments": [
@@ -178,7 +178,7 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::enums::output::Vehicle",
+        "name": "reflectapi_demo::tests::enums::output::E",
         "representation": {
           "internal": {
             "tag": "type"
@@ -186,13 +186,13 @@ expression: schema
         },
         "variants": [
           {
-            "name": "car",
+            "name": "a",
             "fields": {
               "unnamed": [
                 {
                   "name": "0",
                   "type": {
-                    "name": "reflectapi_demo::tests::enums::output::CarData"
+                    "name": "reflectapi_demo::tests::enums::output::Data"
                   },
                   "required": true
                 }
@@ -200,11 +200,11 @@ expression: schema
             }
           },
           {
-            "name": "truck",
+            "name": "b",
             "fields": {
               "named": [
                 {
-                  "name": "license_plate",
+                  "name": "c",
                   "type": {
                     "name": "std::string::String"
                   },
@@ -214,7 +214,7 @@ expression: schema
             }
           },
           {
-            "name": "bicycle",
+            "name": "c",
             "fields": "none"
           }
         ]

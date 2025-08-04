@@ -18,7 +18,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.input.Vehicle"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.input.E"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.output.Vehicle"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.output.E"
                 }
               }
             }
@@ -41,15 +41,18 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.enums.input.CarData": {
+      "reflectapi_demo.tests.enums.input.Data": {
         "type": "object",
-        "title": "reflectapi_demo.tests.enums.input.CarData",
+        "title": "reflectapi_demo.tests.enums.input.Data",
         "required": [
-          "mileage",
-          "vin"
+          "a",
+          "b"
         ],
         "properties": {
-          "mileage": {
+          "a": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "b": {
             "oneOf": [
               {
                 "description": "Null",
@@ -59,24 +62,24 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u32"
               }
             ]
-          },
-          "vin": {
-            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },
-      "reflectapi_demo.tests.enums.input.Vehicle": {
+      "reflectapi_demo.tests.enums.input.E": {
         "oneOf": [
           {
             "type": "object",
-            "title": "reflectapi_demo.tests.enums.input.CarData",
+            "title": "reflectapi_demo.tests.enums.input.Data",
             "required": [
-              "mileage",
-              "type",
-              "vin"
+              "a",
+              "b",
+              "type"
             ],
             "properties": {
-              "mileage": {
+              "a": {
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "b": {
                 "oneOf": [
                   {
                     "description": "Null",
@@ -88,26 +91,23 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 ]
               },
               "type": {
-                "const": "car"
-              },
-              "vin": {
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "a"
               }
             }
           },
           {
             "type": "object",
-            "title": "truck",
+            "title": "b",
             "required": [
-              "license_plate",
+              "c",
               "type"
             ],
             "properties": {
-              "license_plate": {
+              "c": {
                 "$ref": "#/components/schemas/std.string.String"
               },
               "type": {
-                "const": "truck"
+                "const": "b"
               }
             }
           },
@@ -118,20 +118,23 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ],
             "properties": {
               "type": {
-                "const": "bicycle"
+                "const": "c"
               }
             }
           }
         ]
       },
-      "reflectapi_demo.tests.enums.output.CarData": {
+      "reflectapi_demo.tests.enums.output.Data": {
         "type": "object",
-        "title": "reflectapi_demo.tests.enums.output.CarData",
+        "title": "reflectapi_demo.tests.enums.output.Data",
         "required": [
-          "vin"
+          "a"
         ],
         "properties": {
-          "mileage": {
+          "a": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "b": {
             "oneOf": [
               {
                 "description": "Null",
@@ -141,23 +144,23 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 "$ref": "#/components/schemas/u32"
               }
             ]
-          },
-          "vin": {
-            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },
-      "reflectapi_demo.tests.enums.output.Vehicle": {
+      "reflectapi_demo.tests.enums.output.E": {
         "oneOf": [
           {
             "type": "object",
-            "title": "reflectapi_demo.tests.enums.output.CarData",
+            "title": "reflectapi_demo.tests.enums.output.Data",
             "required": [
-              "type",
-              "vin"
+              "a",
+              "type"
             ],
             "properties": {
-              "mileage": {
+              "a": {
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "b": {
                 "oneOf": [
                   {
                     "description": "Null",
@@ -169,26 +172,23 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
                 ]
               },
               "type": {
-                "const": "car"
-              },
-              "vin": {
-                "$ref": "#/components/schemas/std.string.String"
+                "const": "a"
               }
             }
           },
           {
             "type": "object",
-            "title": "truck",
+            "title": "b",
             "required": [
-              "license_plate",
+              "c",
               "type"
             ],
             "properties": {
-              "license_plate": {
+              "c": {
                 "$ref": "#/components/schemas/std.string.String"
               },
               "type": {
-                "const": "truck"
+                "const": "b"
               }
             }
           },
@@ -199,7 +199,7 @@ expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
             ],
             "properties": {
               "type": {
-                "const": "bicycle"
+                "const": "c"
               }
             }
           }
