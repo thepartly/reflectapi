@@ -53,7 +53,7 @@ from .testing import (
     MockClient,
     TestClientMixin,
 )
-from .types import BatchResult
+from .types import BatchResult, ReflectapiEmpty, ReflectapiInfallible
 
 __version__ = "0.1.0"
 
@@ -89,6 +89,8 @@ __all__ = [
     "MockClient",
     "NetworkError",
     "Option",
+    "ReflectapiEmpty",
+    "ReflectapiInfallible",
     "ReflectapiOption",
     "StreamingResponse",
     "TestClientMixin",

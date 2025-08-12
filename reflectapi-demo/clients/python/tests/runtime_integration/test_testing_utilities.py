@@ -9,6 +9,9 @@ from generated import (
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
+    MyapiModelBehaviorCalm as BehaviorCalm,
+    MyapiModelBehaviorAggressive as BehaviorAggressive,
+    MyapiModelBehaviorOther as BehaviorOther,
     MyapiProtoPaginated as Paginated
 )
 
@@ -62,24 +65,36 @@ class TestBasicModelFunctionality:
         assert len(paginated.items) == 1
         assert paginated.items[0].name == "pet1"
     
-    def test_behavior_enum_values(self):
-        """Test Behavior enum values."""
-        assert Behavior.CALM == "Calm"
-        assert Behavior.AGGRESSIVE == "Aggressive" 
-        assert Behavior.OTHER == "Other"
+    def test_behavior_discriminated_union_values(self):
+        """Test Behavior discriminated union variant creation."""
+        calm = BehaviorCalm()
+        aggressive = BehaviorAggressive(field_0=5.0, field_1="test")
+        other = BehaviorOther(description="Custom", notes="Some notes")
+        
+        assert calm.kind == "Calm"
+        assert aggressive.kind == "Aggressive"
+        assert aggressive.field_0 == 5.0
+        assert aggressive.field_1 == "test"
+        assert other.kind == "Other"
+        assert other.description == "Custom"
     
     def test_pet_with_behaviors(self):
         """Test Pet with behavior list."""
         dog_kind = PetKindDog(type="dog", breed="Retriever")
+        calm_behavior = BehaviorCalm()
+        aggressive_behavior = BehaviorAggressive(field_0=3.0, field_1="barks")
+        
         pet = Pet(
             name="active_dog",
             kind=dog_kind,
-            behaviors=[Behavior.CALM, Behavior.AGGRESSIVE]
+            behaviors=[calm_behavior, aggressive_behavior]
         )
         
         assert len(pet.behaviors) == 2
-        assert Behavior.CALM in pet.behaviors
-        assert Behavior.AGGRESSIVE in pet.behaviors
+        assert pet.behaviors[0].kind == "Calm"
+        assert pet.behaviors[1].kind == "Aggressive"
+        assert pet.behaviors[1].field_0 == 3.0
+        assert pet.behaviors[1].field_1 == "barks"
     
     def test_union_type_compatibility(self):
         """Test that PetKind union type works correctly."""

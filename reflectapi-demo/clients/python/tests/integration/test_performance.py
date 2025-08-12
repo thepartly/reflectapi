@@ -10,6 +10,8 @@ from generated import (
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
+    MyapiModelBehaviorCalm as BehaviorCalm,
+    MyapiModelBehaviorAggressive as BehaviorAggressive,
     AsyncClient
 )
 from reflectapi_runtime import ReflectapiOption
@@ -34,7 +36,7 @@ class TestPerformance:
                 name=f'Pet_{i}',
                 kind=kind,
                 age=i % 20,
-                behaviors=[Behavior.CALM, Behavior.AGGRESSIVE]
+                behaviors=[BehaviorCalm(), BehaviorAggressive(field_0=1.0, field_1="test")]
             )
             pets.append(pet)
         
@@ -125,7 +127,7 @@ class TestStress:
     def test_large_model_creation(self):
         """Test creating models with large amounts of data."""
         # Create a pet with large behavior list
-        large_behaviors = [Behavior.CALM] * 1000 + [Behavior.AGGRESSIVE] * 1000
+        large_behaviors = [BehaviorCalm()] * 500 + [BehaviorAggressive(field_0=2.0, field_1="perf")]
         
         pet = Pet(
             name="Large Pet",

@@ -54,7 +54,7 @@ enum Commands {
         format: bool,
 
         /// Instrument the generated code with tracing
-        #[arg(short, long, default_value = "false")]
+        #[arg(short = 'I', long, default_value = "false")]
         instrument: bool,
 
         // Python-specific options
@@ -73,10 +73,6 @@ enum Commands {
         /// Generate testing utilities for Python (default: false)
         #[arg(long, default_value = "false")]
         python_testing: bool,
-
-        /// Base URL for the Python client (optional)
-        #[arg(long)]
-        python_base_url: Option<String>,
     },
     /// Documentation subcommands
     #[command(subcommand)]
@@ -147,7 +143,6 @@ fn main() -> anyhow::Result<()> {
             python_async,
             python_sync,
             python_testing,
-            python_base_url,
         } => {
             let include_tags = BTreeSet::from_iter(include_tags);
             let exclude_tags = BTreeSet::from_iter(exclude_tags);
@@ -194,7 +189,7 @@ fn main() -> anyhow::Result<()> {
                             generate_async: python_async,
                             generate_sync: python_sync,
                             generate_testing: python_testing,
-                            base_url: python_base_url,
+                            base_url: None,
                         },
                     )?,
                 ),

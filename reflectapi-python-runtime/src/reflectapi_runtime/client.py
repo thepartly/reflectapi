@@ -227,26 +227,49 @@ class ClientBase(ABC):
 
     def _serialize_request_body(self, json_model: BaseModel) -> tuple[bytes, dict[str, str]]:
         """Serialize request body from Pydantic model."""
-        # Process each field manually to handle ReflectapiOption properly
-        model_dict = {}
-        from .option import ReflectapiOption, Undefined
+        from .option import ReflectapiOption
         
-        # Get the raw model data without triggering ReflectapiOption serialization
+        # Check if model has any ReflectapiOption fields that need special handling
         raw_data = json_model.model_dump(exclude_none=False)
+        has_reflectapi_options = any(
+            isinstance(field_value, ReflectapiOption) 
+            for field_value in raw_data.values()
+        )
         
-        for field_name, field_value in raw_data.items():
-            if isinstance(field_value, ReflectapiOption):
-                if not field_value.is_undefined:
-                    # Include the unwrapped value (including None for explicit null)
-                    model_dict[field_name] = field_value._value
-                # Skip undefined fields entirely
-            else:
-                model_dict[field_name] = field_value
+        if has_reflectapi_options:
+            # Process each field to handle ReflectapiOption properly
+            processed_fields = {}
+            for field_name, field_value in raw_data.items():
+                if isinstance(field_value, ReflectapiOption):
+                    if not field_value.is_undefined:
+                        # Include the unwrapped value (including None for explicit null)
+                        processed_fields[field_name] = field_value._value
+                    # Skip undefined fields entirely - don't include them at all
+                else:
+                    # Include all other fields that aren't None (unless they're meaningful None values)
+                    if field_value is not None:
+                        processed_fields[field_name] = field_value
+            
+            # Use json serialization with datetime handler for proper serialization
+            import json
+            import datetime
+            
+            def json_serializer(obj):
+                if isinstance(obj, datetime.datetime):
+                    return obj.isoformat()
+                elif isinstance(obj, datetime.date):
+                    return obj.isoformat()
+                elif hasattr(obj, 'model_dump'):
+                    # This is a Pydantic model (like our enum variants)
+                    return obj.model_dump(exclude_none=True)
+                raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+            
+            content = json.dumps(processed_fields, default=json_serializer, separators=(',', ':')).encode('utf-8')
+        else:
+            # Use Pydantic's built-in JSON serialization with exclude_none for proper handling
+            content = json_model.model_dump_json(exclude_none=True).encode('utf-8')
         
-        import json
-        content = json.dumps(model_dict, separators=(',', ':')).encode('utf-8')
         headers = {"Content-Type": "application/json"}
-        
         return content, headers
 
     def _build_headers(self, base_headers: dict[str, str], headers_model: BaseModel | None) -> dict[str, str]:
@@ -354,6 +377,29 @@ class ClientBase(ABC):
             pass
 
         try:
+            # Handle Union types (like MyapiModelOutputPet | None)
+            import types
+            if hasattr(types, 'UnionType') and isinstance(response_model, types.UnionType):
+                json_response = self._parse_json_response(response)
+                # For Union types, try to deserialize with each type in the union
+                union_args = response_model.__args__
+                
+                # Handle None case first
+                if json_response is None and type(None) in union_args:
+                    return ApiResponse(None, metadata)
+                
+                # Try each non-None type in the union
+                for arg_type in union_args:
+                    if arg_type is not type(None) and hasattr(arg_type, "model_validate"):
+                        try:
+                            validated_data = arg_type.model_validate(json_response)
+                            return ApiResponse(validated_data, metadata)
+                        except Exception:
+                            continue  # Try next type
+                
+                # If none of the types worked, return as dict
+                return ApiResponse(json_response, metadata)
+            
             # Type guard to ensure we have a model with validation methods
             if not (isinstance(response_model, type) and hasattr(response_model, "model_validate")):
                 # Shouldn't happen, but fallback to JSON parsing
@@ -610,24 +656,48 @@ class AsyncClientBase(ABC):
 
     def _serialize_request_body(self, json_model: BaseModel) -> tuple[bytes, dict[str, str]]:
         """Serialize request body from Pydantic model."""
-        # Process each field manually to handle ReflectapiOption properly
-        model_dict = {}
-        from .option import ReflectapiOption, Undefined
+        from .option import ReflectapiOption
         
-        # Get the raw model data without triggering ReflectapiOption serialization
+        # Check if model has any ReflectapiOption fields that need special handling
         raw_data = json_model.model_dump(exclude_none=False)
+        has_reflectapi_options = any(
+            isinstance(field_value, ReflectapiOption) 
+            for field_value in raw_data.values()
+        )
         
-        for field_name, field_value in raw_data.items():
-            if isinstance(field_value, ReflectapiOption):
-                if not field_value.is_undefined:
-                    # Include the unwrapped value (including None for explicit null)
-                    model_dict[field_name] = field_value._value
-                # Skip undefined fields entirely
-            else:
-                model_dict[field_name] = field_value
+        if has_reflectapi_options:
+            # Process each field to handle ReflectapiOption properly
+            processed_fields = {}
+            for field_name, field_value in raw_data.items():
+                if isinstance(field_value, ReflectapiOption):
+                    if not field_value.is_undefined:
+                        # Include the unwrapped value (including None for explicit null)
+                        processed_fields[field_name] = field_value._value
+                    # Skip undefined fields entirely - don't include them at all
+                else:
+                    # Include all other fields that aren't None (unless they're meaningful None values)
+                    if field_value is not None:
+                        processed_fields[field_name] = field_value
+            
+            # Use json serialization with datetime handler for proper serialization
+            import json
+            import datetime
+            
+            def json_serializer(obj):
+                if isinstance(obj, datetime.datetime):
+                    return obj.isoformat()
+                elif isinstance(obj, datetime.date):
+                    return obj.isoformat()
+                elif hasattr(obj, 'model_dump'):
+                    # This is a Pydantic model (like our enum variants)
+                    return obj.model_dump(exclude_none=True)
+                raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+            
+            content = json.dumps(processed_fields, default=json_serializer, separators=(',', ':')).encode('utf-8')
+        else:
+            # Use Pydantic's built-in JSON serialization with exclude_none for proper handling
+            content = json_model.model_dump_json(exclude_none=True).encode('utf-8')
         
-        import json
-        content = json.dumps(model_dict, separators=(',', ':')).encode('utf-8')
         headers = {"Content-Type": "application/json"}
         
         return content, headers
@@ -737,6 +807,29 @@ class AsyncClientBase(ABC):
             pass
 
         try:
+            # Handle Union types (like MyapiModelOutputPet | None)
+            import types
+            if hasattr(types, 'UnionType') and isinstance(response_model, types.UnionType):
+                json_response = self._parse_json_response(response)
+                # For Union types, try to deserialize with each type in the union
+                union_args = response_model.__args__
+                
+                # Handle None case first
+                if json_response is None and type(None) in union_args:
+                    return ApiResponse(None, metadata)
+                
+                # Try each non-None type in the union
+                for arg_type in union_args:
+                    if arg_type is not type(None) and hasattr(arg_type, "model_validate"):
+                        try:
+                            validated_data = arg_type.model_validate(json_response)
+                            return ApiResponse(validated_data, metadata)
+                        except Exception:
+                            continue  # Try next type
+                
+                # If none of the types worked, return as dict
+                return ApiResponse(json_response, metadata)
+            
             # Type guard to ensure we have a model with validation methods
             if not (isinstance(response_model, type) and hasattr(response_model, "model_validate")):
                 # Shouldn't happen, but fallback to JSON parsing

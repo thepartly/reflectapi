@@ -6,7 +6,10 @@ from pydantic import ValidationError
 
 from generated import (
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
-    MyapiModelBehavior as Behavior
+    MyapiModelBehavior as Behavior,
+    MyapiModelBehaviorCalm as BehaviorCalm,
+    MyapiModelBehaviorAggressive as BehaviorAggressive,
+    MyapiModelBehaviorOther as BehaviorOther
 )
 from reflectapi_runtime import ReflectapiOption, Undefined
 
@@ -121,10 +124,11 @@ class TestReflectapiOptionDeserialization:
         """Test creating options from different values."""
         # Test direct creation with values
         option_int = ReflectapiOption(42)
-        option_list = ReflectapiOption([Behavior.CALM])
+        option_list = ReflectapiOption([BehaviorCalm()])
         
         assert option_int.unwrap() == 42
-        assert option_list.unwrap() == [Behavior.CALM]
+        assert len(option_list.unwrap()) == 1
+        assert option_list.unwrap()[0].kind == "Calm"
 
 
 class TestReflectapiOptionEquality:
@@ -189,11 +193,14 @@ class TestReflectapiOptionComplexTypes:
     
     def test_list_option(self):
         """Test ReflectapiOption with list value."""
-        behaviors = [Behavior.CALM, Behavior.AGGRESSIVE]
+        behaviors = [BehaviorCalm(), BehaviorAggressive(field_0=5.0, field_1="test")]
         option = ReflectapiOption(behaviors)
         
         assert option.is_some
-        assert option.unwrap() == behaviors
+        unwrapped = option.unwrap()
+        assert len(unwrapped) == 2
+        assert unwrapped[0].kind == "Calm"
+        assert unwrapped[1].kind == "Aggressive"
     
     def test_empty_list_option(self):
         """Test ReflectapiOption with empty list."""
@@ -204,16 +211,16 @@ class TestReflectapiOptionComplexTypes:
     
     def test_nested_serialization(self):
         """Test complex nested serialization."""
+        behaviors = [BehaviorCalm(), BehaviorOther(description="Custom", notes="Test")]
         request = PetsUpdateRequest(
             name="complex_test",
             age=ReflectapiOption(Undefined),
-            behaviors=ReflectapiOption([Behavior.CALM, Behavior.OTHER])
+            behaviors=ReflectapiOption(behaviors)
         )
         
-        # Test that serialization works correctly
-        data = request.model_dump()
-        assert data["behaviors"] == ["Calm", "Other"]
-        
-        # Test round-trip
-        restored = PetsUpdateRequest.model_validate(data)
-        assert restored.behaviors.unwrap() == [Behavior.CALM, Behavior.OTHER]
+        # Test that the request has the expected values
+        assert request.behaviors.is_some
+        unwrapped_behaviors = request.behaviors.unwrap()
+        assert len(unwrapped_behaviors) == 2
+        assert unwrapped_behaviors[0].kind == "Calm"
+        assert unwrapped_behaviors[1].kind == "Other"

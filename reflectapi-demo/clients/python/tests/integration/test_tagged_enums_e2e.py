@@ -12,6 +12,8 @@ from generated import (
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
+    MyapiModelBehaviorCalm as BehaviorCalm,
+    MyapiModelBehaviorOther as BehaviorOther,
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     MyapiProtoPetsListRequest as PetsListRequest,
     MyapiProtoPetsRemoveRequest as PetsRemoveRequest,
@@ -133,7 +135,7 @@ class TestTaggedEnumInModels:
             name="Rex",
             kind=dog,
             age=5,
-            behaviors=[Behavior.CALM]
+            behaviors=[BehaviorCalm()]
         )
         
         assert pet.name == "Rex"
@@ -148,7 +150,7 @@ class TestTaggedEnumInModels:
             name="Whiskers",
             kind=cat,
             age=3,
-            behaviors=[Behavior.OTHER]
+            behaviors=[BehaviorOther(description="Custom", notes="Test")]
         )
         
         assert pet.name == "Whiskers"
@@ -184,7 +186,7 @@ class TestTaggedEnumInModels:
                 "lives": 9
             },
             "age": 2,
-            "behaviors": ["Calm"]
+            "behaviors": [{"kind": "Calm"}]
         }
         
         pet = Pet.model_validate(data)
@@ -192,6 +194,8 @@ class TestTaggedEnumInModels:
         assert pet.kind.type == "cat"
         assert pet.kind.lives == 9
         assert pet.age == 2
+        assert len(pet.behaviors) == 1
+        assert pet.behaviors[0].kind == "Calm"
 
 
 class TestTaggedEnumInRequests:

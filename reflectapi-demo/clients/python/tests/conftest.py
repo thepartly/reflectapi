@@ -17,13 +17,16 @@ from generated import (
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
+    MyapiModelBehaviorCalm as BehaviorCalm,
+    MyapiModelBehaviorAggressive as BehaviorAggressive,
+    MyapiModelBehaviorOther as BehaviorOther,
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     MyapiProtoPaginated as Paginated,
     AsyncClient
 )
 
 # Test configuration
-pytest_plugins = ["pytest_asyncio"]
+# pytest_plugins = ["pytest_asyncio"]  # Uncomment if using async tests
 
 
 @pytest.fixture
@@ -45,7 +48,7 @@ def sample_pet(sample_dog: PetKindDog) -> Pet:
         name="Buddy",
         kind=sample_dog,
         age=3,
-        behaviors=[Behavior.CALM, Behavior.AGGRESSIVE]
+        behaviors=[BehaviorCalm(), BehaviorAggressive(field_0=5.0, field_1="growls")]
     )
 
 
@@ -58,7 +61,7 @@ def sample_pet_details(sample_cat: PetKindCat) -> PetDetails:
         kind=sample_cat,
         age=2,
         updated_at=datetime.now(),
-        behaviors=[Behavior.CALM]
+        behaviors=[BehaviorCalm()]
     )
 
 
@@ -69,7 +72,7 @@ def sample_update_request() -> PetsUpdateRequest:
         name="TestPet",
         kind=PetKindDog(type='dog', breed='Labrador'),
         age=ReflectapiOption(5),
-        behaviors=ReflectapiOption([Behavior.CALM])
+        behaviors=ReflectapiOption([BehaviorCalm()])
     )
 
 
@@ -100,8 +103,12 @@ def paginated_pets(sample_pet_details: PetDetails) -> Paginated[PetDetails]:
 # Test data collections
 @pytest.fixture
 def behavior_samples() -> list[Behavior]:
-    """Sample behavior enum values."""
-    return [Behavior.CALM, Behavior.AGGRESSIVE, Behavior.OTHER]
+    """Sample behavior instances."""
+    return [
+        BehaviorCalm(),
+        BehaviorAggressive(field_0=5.0, field_1="test"),
+        BehaviorOther(description="Custom", notes="Some notes")
+    ]
 
 
 @pytest.fixture
@@ -142,7 +149,7 @@ class TestDataFactory:
         if with_age:
             request.age = ReflectapiOption(kwargs.get('age', 5))
         if with_behaviors:
-            request.behaviors = ReflectapiOption(kwargs.get('behaviors', [Behavior.CALM]))
+            request.behaviors = ReflectapiOption(kwargs.get('behaviors', [BehaviorCalm()]))
             
         return request
 

@@ -5,8 +5,7 @@ import warnings
 from unittest.mock import Mock, AsyncMock, patch
 
 from generated import (
-    AsyncClient, 
-    Client,
+    AsyncClient,
     MyapiModelInputPet as Pet,
     MyapiModelKind as PetKind,
     MyapiProtoPetsListRequest as PetsListRequest,
@@ -69,55 +68,7 @@ class TestAsyncClient:
                 assert "pets_delete is deprecated" in str(w[0].message)
 
 
-class TestSyncClient:
-    """Test synchronous Client functionality."""
-    
-    def test_sync_client_creation(self):
-        """Test creating sync Client."""
-        client = Client("http://test.example")
-        assert client.base_url == "http://test.example"
-    
-    def test_sync_client_has_all_methods(self):
-        """Test sync Client has all expected methods."""
-        client = Client("http://test.example")
-        
-        # Check namespace structure exists
-        assert hasattr(client, 'pets')
-        assert hasattr(client, 'health')
-        
-        # Check all expected pets methods exist
-        assert hasattr(client.pets, 'create')
-        assert hasattr(client.pets, 'list')
-        assert hasattr(client.pets, 'update')
-        assert hasattr(client.pets, 'remove')
-        assert hasattr(client.pets, 'delete')  # deprecated
-        assert hasattr(client.pets, 'get_first')
-        
-        # Check health methods exist
-        assert hasattr(client.health, 'check')
-    
-    def test_sync_client_pets_list_docstring(self):
-        """Test pets.list has proper docstring."""
-        client = Client("http://test.example")
-        docstring = client.pets.list.__doc__
-        
-        assert "List available pets" in docstring
-        assert "Returns:" in docstring
-        assert "ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]" in docstring
-    
-    def test_deprecated_method_warning_sync(self):
-        """Test deprecated method shows warning in sync client."""
-        client = Client("http://test.example")
-        
-        with patch.object(client, '_make_request', return_value=Mock()) as mock_request:
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always")
-                client.pets.delete(PetsRemoveRequest(name="test"))
-                
-                # Check deprecation warning was raised
-                assert len(w) == 1
-                assert issubclass(w[0].category, DeprecationWarning)
-                assert "pets_delete is deprecated" in str(w[0].message)
+# Sync client tests removed - only AsyncClient is generated
 
 
 class TestClientMethodSignatures:
@@ -148,7 +99,7 @@ class TestClientMethodSignatures:
     
     def test_health_check_no_params(self):
         """Test health.check has no data parameter."""
-        client = Client("http://test.example")
+        client = AsyncClient("http://test.example")
         
         import inspect
         sig = inspect.signature(client.health.check)
@@ -166,10 +117,7 @@ class TestClientBaseUrls:
         client = AsyncClient("https://api.example.com/v1")
         assert client.base_url == "https://api.example.com/v1"
     
-    def test_sync_client_base_url_storage(self):
-        """Test sync Client stores base URL correctly."""
-        client = Client("https://api.example.com/v1")
-        assert client.base_url == "https://api.example.com/v1"
+    # Sync client test removed - only AsyncClient is generated
 
 
 class TestClientInheritance:
@@ -181,8 +129,4 @@ class TestClientInheritance:
         client = AsyncClient("http://test.example")
         assert isinstance(client, AsyncClientBase)
     
-    def test_sync_client_inheritance(self):
-        """Test Client inherits from ClientBase."""
-        from reflectapi_runtime import ClientBase
-        client = Client("http://test.example")
-        assert isinstance(client, ClientBase)
+    # Sync client test removed - only AsyncClient is generated
