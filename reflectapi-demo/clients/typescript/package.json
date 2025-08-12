@@ -8,8 +8,7 @@
   "main": "build/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "tsc -p tsconfig.json && node build/index.js",
-    "test": "playwright test"
+    "start": "tsc -p tsconfig.json && node build/index.js"
   },
   "dependencies": {
     "node-fetch": "2"
@@ -18,7 +17,6 @@
     "@types/node": "20.11.30",
     "@types/node-fetch": "2",
     "typescript": "5.4.3",
-    "tslib": "2.6.2",
-    "@playwright/test": "^1.40.0"
+    "tslib": "2.6.2"
   }
 }

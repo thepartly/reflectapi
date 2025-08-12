@@ -14,19 +14,19 @@ async fn main() {
         .await;
     // error handling demo:
     match result {
-        Ok(_) => {
+        Ok(_v) => {
             // use structured application response data here
             println!("Health check successful")
         }
         Err(e) => match e {
-            Error::Application { error: _v, .. } => {
+            Error::Application(_v) => {
                 // use structured application error here
                 println!("Health check failed")
             }
-            Error::Network { error: e, .. } => {
+            Error::Network(e) => {
                 println!("Network error: {:?}", e)
             }
-            Error::Protocol { info, stage, .. } => match stage {
+            Error::Protocol { info, stage } => match stage {
                 ProtocolErrorStage::SerializeRequestBody => {
                     eprint!("Failed to serialize request body: {}", info)
                 }
@@ -43,7 +43,7 @@ async fn main() {
                     )
                 }
             },
-            Error::Server { status, body, .. } => {
+            Error::Server(status, body) => {
                 println!("Server error: {} with body: {:?}", status, body)
             }
         },

@@ -15,25 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: biomejs/setup-biome@v2
-      - uses: dtolnay/rust-toolchain@1.78.0
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: rustfmt
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt -- --check
-      - run: SQLX_OFFLINE=true cargo clippy --all-targets --all-features -- -D warnings
-      - run: SQLX_OFFLINE=true cargo test --workspace
-
-  typescript:
-    name: TypeScript test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'reflectapi-demo/clients/typescript/package-lock.json'
-      - run: npm ci
-        working-directory: reflectapi-demo/clients/typescript
-      - run: npm test
-        working-directory: reflectapi-demo/clients/typescript
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
