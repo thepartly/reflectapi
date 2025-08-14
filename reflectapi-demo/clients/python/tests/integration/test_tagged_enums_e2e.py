@@ -12,8 +12,7 @@ from generated import (
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
-    MyapiModelBehaviorCalm as BehaviorCalm,
-    MyapiModelBehaviorOther as BehaviorOther,
+    MyapiModelBehaviorOtherVariant as BehaviorOther,
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     MyapiProtoPetsListRequest as PetsListRequest,
     MyapiProtoPetsRemoveRequest as PetsRemoveRequest,
@@ -21,6 +20,9 @@ from generated import (
     MyapiProtoPaginated as Paginated
 )
 from reflectapi_runtime import ReflectapiOption
+
+# For externally tagged enums, unit variants are just string literals
+BehaviorCalm = "Calm"
 
 
 class TestTaggedEnumCreation:
@@ -135,7 +137,7 @@ class TestTaggedEnumInModels:
             name="Rex",
             kind=dog,
             age=5,
-            behaviors=[BehaviorCalm()]
+            behaviors=[BehaviorCalm]
         )
         
         assert pet.name == "Rex"
@@ -150,7 +152,7 @@ class TestTaggedEnumInModels:
             name="Whiskers",
             kind=cat,
             age=3,
-            behaviors=[BehaviorOther(description="Custom", notes="Test")]
+            behaviors=[{"Other": {"description": "Custom", "notes": "Test"}}]
         )
         
         assert pet.name == "Whiskers"
@@ -186,7 +188,7 @@ class TestTaggedEnumInModels:
                 "lives": 9
             },
             "age": 2,
-            "behaviors": [{"kind": "Calm"}]
+            "behaviors": ["Calm"]
         }
         
         pet = Pet.model_validate(data)
@@ -195,7 +197,7 @@ class TestTaggedEnumInModels:
         assert pet.kind.lives == 9
         assert pet.age == 2
         assert len(pet.behaviors) == 1
-        assert pet.behaviors[0].kind == "Calm"
+        assert pet.behaviors[0].root == "Calm"
 
 
 class TestTaggedEnumInRequests:

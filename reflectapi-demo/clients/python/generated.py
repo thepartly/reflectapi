@@ -16,7 +16,14 @@ import warnings
 
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    RootModel,
+    model_validator,
+    model_serializer,
+)
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ApiResponse
@@ -33,41 +40,75 @@ Input = TypeVar("Input")
 ClientType = TypeVar("ClientType")
 
 
-class MyapiModelBehaviorCalm(BaseModel):
-    """Calm variant"""
-
-    model_config = ConfigDict(extra="ignore")
-
-    kind: Literal["Calm"] = "Calm"
-
-
-class MyapiModelBehaviorAggressive(BaseModel):
+class MyapiModelBehaviorAggressiveVariant(BaseModel):
     """Aggressive variant"""
 
     model_config = ConfigDict(extra="ignore")
 
-    kind: Literal["Aggressive"] = "Aggressive"
     field_0: float
     field_1: str
 
 
-class MyapiModelBehaviorOther(BaseModel):
+class MyapiModelBehaviorOtherVariant(BaseModel):
     """Other variant"""
 
     model_config = ConfigDict(extra="ignore")
 
-    kind: Literal["Other"] = "Other"
     description: str
     notes: str | None = None
 
 
-# Discriminated union for MyapiModelBehavior
-MyapiModelBehavior = Annotated[
-    Union[
-        MyapiModelBehaviorCalm, MyapiModelBehaviorAggressive, MyapiModelBehaviorOther
-    ],
-    Field(discriminator="kind"),
+# Externally tagged enum using RootModel
+MyapiModelBehaviorVariants = Union[
+    Literal["Calm"], MyapiModelBehaviorAggressiveVariant, MyapiModelBehaviorOtherVariant
 ]
+
+
+class MyapiModelBehavior(RootModel[MyapiModelBehaviorVariants]):
+    """Externally tagged enum"""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_externally_tagged(cls, data):
+        # Handle direct variant instances (for programmatic creation)
+        if isinstance(data, MyapiModelBehaviorAggressiveVariant):
+            return data
+        if isinstance(data, MyapiModelBehaviorOtherVariant):
+            return data
+
+        # Handle JSON data (for deserialization)
+        if isinstance(data, str) and data == "Calm":
+            return data
+
+        if isinstance(data, dict):
+            if len(data) != 1:
+                raise ValueError("Externally tagged enum must have exactly one key")
+
+            key, value = next(iter(data.items()))
+            if key == "Aggressive":
+                if isinstance(value, list):
+                    return MyapiModelBehaviorAggressiveVariant(
+                        field_0=value[0], field_1=value[1]
+                    )
+                else:
+                    raise ValueError("Expected list for tuple variant Aggressive")
+            if key == "Other":
+                return MyapiModelBehaviorOtherVariant(**value)
+
+        raise ValueError(f"Unknown variant for MyapiModelBehavior: {data}")
+
+    @model_serializer
+    def _serialize_externally_tagged(self):
+        if self.root == "Calm":
+            return "Calm"
+        if isinstance(self.root, MyapiModelBehaviorAggressiveVariant):
+            return {"Aggressive": [self.root.field_0, self.root.field_1]}
+        if isinstance(self.root, MyapiModelBehaviorOtherVariant):
+            return {"Other": self.root.model_dump()}
+
+        raise ValueError(
+            f"Cannot serialize MyapiModelBehavior variant: {type(self.root)}"
+        )
 
 
 class MyapiModelBehaviorFactory:
@@ -76,17 +117,21 @@ class MyapiModelBehaviorFactory:
     MyapiModelBehavior variants
     """
 
-    CALM = MyapiModelBehaviorCalm()
+    CALM = "Calm"
 
     @staticmethod
-    def aggressive(field_0, field_1) -> MyapiModelBehaviorAggressive:
+    def aggressive(field_0, field_1) -> MyapiModelBehavior:
         """Creates the 'Aggressive' variant of the MyapiModelBehavior enum."""
-        return MyapiModelBehaviorAggressive(field_0=field_0, field_1=field_1)
+        return MyapiModelBehavior(
+            MyapiModelBehaviorAggressiveVariant(field_0=field_0, field_1=field_1)
+        )
 
     @staticmethod
-    def other(description, notes=None) -> MyapiModelBehaviorOther:
+    def other(description, notes=None) -> MyapiModelBehavior:
         """Creates the 'Other' variant of the MyapiModelBehavior enum."""
-        return MyapiModelBehaviorOther(description=description, notes=notes)
+        return MyapiModelBehavior(
+            MyapiModelBehaviorOtherVariant(description=description, notes=notes)
+        )
 
 
 class MyapiModelKindDog(BaseModel):
@@ -170,40 +215,60 @@ class MyapiProtoPaginated(BaseModel, Generic[Entity]):
     cursor: str | None = None
 
 
-class MyapiProtoPetsCreateErrorConflict(BaseModel):
-    """Conflict variant"""
-
-    model_config = ConfigDict(extra="ignore")
-
-    kind: Literal["Conflict"] = "Conflict"
-
-
-class MyapiProtoPetsCreateErrorNotAuthorized(BaseModel):
-    """NotAuthorized variant"""
-
-    model_config = ConfigDict(extra="ignore")
-
-    kind: Literal["NotAuthorized"] = "NotAuthorized"
-
-
-class MyapiProtoPetsCreateErrorInvalidIdentity(BaseModel):
+class MyapiProtoPetsCreateErrorInvalidIdentityVariant(BaseModel):
     """InvalidIdentity variant"""
 
     model_config = ConfigDict(extra="ignore")
 
-    kind: Literal["InvalidIdentity"] = "InvalidIdentity"
     message: str
 
 
-# Discriminated union for MyapiProtoPetsCreateError
-MyapiProtoPetsCreateError = Annotated[
-    Union[
-        MyapiProtoPetsCreateErrorConflict,
-        MyapiProtoPetsCreateErrorNotAuthorized,
-        MyapiProtoPetsCreateErrorInvalidIdentity,
-    ],
-    Field(discriminator="kind"),
+# Externally tagged enum using RootModel
+MyapiProtoPetsCreateErrorVariants = Union[
+    Literal["Conflict"],
+    Literal["NotAuthorized"],
+    MyapiProtoPetsCreateErrorInvalidIdentityVariant,
 ]
+
+
+class MyapiProtoPetsCreateError(RootModel[MyapiProtoPetsCreateErrorVariants]):
+    """Externally tagged enum"""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_externally_tagged(cls, data):
+        # Handle direct variant instances (for programmatic creation)
+        if isinstance(data, MyapiProtoPetsCreateErrorInvalidIdentityVariant):
+            return data
+
+        # Handle JSON data (for deserialization)
+        if isinstance(data, str) and data == "Conflict":
+            return data
+        if isinstance(data, str) and data == "NotAuthorized":
+            return data
+
+        if isinstance(data, dict):
+            if len(data) != 1:
+                raise ValueError("Externally tagged enum must have exactly one key")
+
+            key, value = next(iter(data.items()))
+            if key == "InvalidIdentity":
+                return MyapiProtoPetsCreateErrorInvalidIdentityVariant(**value)
+
+        raise ValueError(f"Unknown variant for MyapiProtoPetsCreateError: {data}")
+
+    @model_serializer
+    def _serialize_externally_tagged(self):
+        if self.root == "Conflict":
+            return "Conflict"
+        if self.root == "NotAuthorized":
+            return "NotAuthorized"
+        if isinstance(self.root, MyapiProtoPetsCreateErrorInvalidIdentityVariant):
+            return {"InvalidIdentity": self.root.model_dump()}
+
+        raise ValueError(
+            f"Cannot serialize MyapiProtoPetsCreateError variant: {type(self.root)}"
+        )
 
 
 class MyapiProtoPetsCreateErrorFactory:
@@ -212,13 +277,15 @@ class MyapiProtoPetsCreateErrorFactory:
     MyapiProtoPetsCreateError variants
     """
 
-    CONFLICT = MyapiProtoPetsCreateErrorConflict()
-    NOTAUTHORIZED = MyapiProtoPetsCreateErrorNotAuthorized()
+    CONFLICT = "Conflict"
+    NOTAUTHORIZED = "NotAuthorized"
 
     @staticmethod
-    def invalid_identity(message) -> MyapiProtoPetsCreateErrorInvalidIdentity:
+    def invalid_identity(message) -> MyapiProtoPetsCreateError:
         """Creates the 'InvalidIdentity' variant of the MyapiProtoPetsCreateError enum."""
-        return MyapiProtoPetsCreateErrorInvalidIdentity(message=message)
+        return MyapiProtoPetsCreateError(
+            MyapiProtoPetsCreateErrorInvalidIdentityVariant(message=message)
+        )
 
 
 class MyapiProtoPetsListError(str, Enum):
@@ -303,20 +370,50 @@ class AsyncPetsClient:
     def __init__(self, client: AsyncClientBase) -> None:
         self._client = client
 
-    async def remove(
+    async def list(
         self,
-        data: Optional[MyapiProtoPetsRemoveRequest] = None,
-    ) -> ApiResponse[Any]:
-        """Remove an existing pet
+        limit: Optional[int | None] = None,
+        cursor: Optional[str | None] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
+        """List available pets
+            limit: Query parameter: limit (optional)
+            cursor: Query parameter: cursor (optional)
 
-        Args:
-            data: Request data for the remove operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
         """
 
-        path = "/pets.remove"
+        path = "/pets.list"
+
+        params: dict[str, Any] = {}
+
+        if limit is not None:
+            params["limit"] = limit
+
+        if cursor is not None:
+            params["cursor"] = cursor
+
+        return await self._client._make_request(
+            "GET",
+            path,
+            params=params if params else None,
+            headers_model=headers,
+            response_model=MyapiProtoPaginated[MyapiModelOutputPet],
+        )
+
+    async def get_first(
+        self,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[MyapiModelOutputPet | None]:
+        """Fetch first pet, if any exists
+
+        Returns:
+            ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
+        """
+
+        path = "/pets.get-first"
 
         params: dict[str, Any] = {}
 
@@ -324,13 +421,14 @@ class AsyncPetsClient:
             "POST",
             path,
             params=params if params else None,
-            json_model=data,
-            response_model=None,
+            headers_model=headers,
+            response_model=MyapiModelOutputPet | None,
         )
 
     async def create(
         self,
         data: Optional[MyapiModelInputPet] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
     ) -> ApiResponse[Any]:
         """Create a new pet
 
@@ -350,12 +448,14 @@ class AsyncPetsClient:
             path,
             params=params if params else None,
             json_model=data,
+            headers_model=headers,
             response_model=None,
         )
 
     async def update(
         self,
         data: Optional[MyapiProtoPetsUpdateRequest] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
     ) -> ApiResponse[Any]:
         """Update an existing pet
 
@@ -375,12 +475,41 @@ class AsyncPetsClient:
             path,
             params=params if params else None,
             json_model=data,
+            headers_model=headers,
+            response_model=None,
+        )
+
+    async def remove(
+        self,
+        data: Optional[MyapiProtoPetsRemoveRequest] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[Any]:
+        """Remove an existing pet
+
+        Args:
+            data: Request data for the remove operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+
+        path = "/pets.remove"
+
+        params: dict[str, Any] = {}
+
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            headers_model=headers,
             response_model=None,
         )
 
     async def delete(
         self,
         data: Optional[MyapiProtoPetsRemoveRequest] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
     ) -> ApiResponse[Any]:
         """Remove an existing pet
 
@@ -409,58 +538,8 @@ class AsyncPetsClient:
             path,
             params=params if params else None,
             json_model=data,
+            headers_model=headers,
             response_model=None,
-        )
-
-    async def list(
-        self,
-        limit: Optional[int | None] = None,
-        cursor: Optional[str | None] = None,
-    ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
-        """List available pets
-            limit: Query parameter: limit (optional)
-            cursor: Query parameter: cursor (optional)
-
-
-        Returns:
-            ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
-        """
-
-        path = "/pets.list"
-
-        params: dict[str, Any] = {}
-
-        if limit is not None:
-            params["limit"] = limit
-
-        if cursor is not None:
-            params["cursor"] = cursor
-
-        return await self._client._make_request(
-            "GET",
-            path,
-            params=params if params else None,
-            response_model=MyapiProtoPaginated[MyapiModelOutputPet],
-        )
-
-    async def get_first(
-        self,
-    ) -> ApiResponse[MyapiModelOutputPet | None]:
-        """Fetch first pet, if any exists
-
-        Returns:
-            ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
-        """
-
-        path = "/pets.get-first"
-
-        params: dict[str, Any] = {}
-
-        return await self._client._make_request(
-            "POST",
-            path,
-            params=params if params else None,
-            response_model=MyapiModelOutputPet | None,
         )
 
 

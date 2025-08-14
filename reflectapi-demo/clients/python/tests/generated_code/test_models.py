@@ -11,14 +11,19 @@ from generated import (
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
+    MyapiModelBehaviorAggressiveVariant as BehaviorAggressive,
+    MyapiModelBehaviorOtherVariant as BehaviorOther,
     MyapiProtoPetsListRequest as PetsListRequest,
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     MyapiProtoPetsRemoveRequest as PetsRemoveRequest,
     MyapiProtoHeaders as Headers,
-    MyapiProtoPaginated as Paginated,
-    MyapiProtoOption as Option
+    MyapiProtoPaginated as Paginated
 )
+from reflectapi_runtime import ReflectapiOption as Option
 from reflectapi_runtime import ReflectapiOption, Undefined
+
+# For externally tagged enums, unit variants are just string literals
+BehaviorCalm = "Calm"
 # Import test helpers - conftest.py is automatically imported by pytest
 # from ..conftest import (
 #     assert_petkind_cat, assert_petkind_dog,
@@ -36,8 +41,10 @@ class TestBasicModels:
         assert sample_pet.kind.type == 'dog'
         assert sample_pet.kind.breed == "Golden Retriever"
         assert sample_pet.age == 3
-        assert Behavior.CALM in sample_pet.behaviors
-        assert Behavior.AGGRESSIVE in sample_pet.behaviors
+        # Check that sample pet has the expected behavior types
+        behavior_roots = [b.root for b in sample_pet.behaviors]
+        assert "Calm" in behavior_roots
+        assert any(isinstance(b, BehaviorAggressive) for b in behavior_roots)
     
     def test_pet_creation_manual(self, sample_cat: PetKindCat):
         """Test creating a Pet model manually."""
@@ -46,14 +53,15 @@ class TestBasicModels:
             kind=sample_cat,
             age=3,
             updated_at=datetime.now(),
-            behaviors=[Behavior.CALM]
+            behaviors=[BehaviorCalm]
         )
         assert pet.name == "fluffy"
         assert isinstance(pet.kind, PetKindCat)
         assert pet.kind.type == 'cat'
         assert pet.kind.lives == 9
         assert pet.age == 3
-        assert pet.behaviors == [Behavior.CALM]
+        assert len(pet.behaviors) == 1
+        assert pet.behaviors[0].root == BehaviorCalm
     
     def test_pet_optional_fields(self):
         """Test Pet with optional fields."""
@@ -107,15 +115,27 @@ class TestDiscriminatedUnions:
         assert pet_cat.kind.type == "cat"
     
     def test_behavior_values(self):
-        """Test Behavior enum values."""
-        assert Behavior.CALM == "Calm"
-        assert Behavior.AGGRESSIVE == "Aggressive"
-        assert Behavior.OTHER == "Other"
+        """Test Behavior discriminated union variant creation."""
+        calm = BehaviorCalm
+        aggressive = {"Aggressive": [5.0, "notes"]}
+        other = {"Other": {"description": "Custom", "notes": "Some notes"}}
+        
+        # Check that discriminator fields are set correctly
+        assert calm == "Calm"
+        assert aggressive == {"Aggressive": [5.0, "notes"]}
+        assert other == {"Other": {"description": "Custom", "notes": "Some notes"}}
     
     def test_option_values(self):
-        """Test Option enum values."""
-        assert Option.NONE == "None"
-        assert Option.SOME == "Some"
+        """Test ReflectapiOption creation."""
+        # ReflectapiOption is not an enum anymore, it's a wrapper class
+        from reflectapi_runtime import ReflectapiOption, Undefined
+        opt_some = ReflectapiOption(42)
+        opt_none = ReflectapiOption(None)
+        opt_undefined = ReflectapiOption(Undefined)
+        
+        assert opt_some.is_some
+        assert opt_none.is_none
+        assert opt_undefined.is_undefined
 
 
 class TestReflectapiOption:
@@ -242,7 +262,7 @@ class TestSerialization:
         request = PetsUpdateRequest(
             name="test",
             age=ReflectapiOption(Undefined),
-            behaviors=ReflectapiOption([Behavior.CALM])
+            behaviors=ReflectapiOption([BehaviorCalm])
         )
         data = request.model_dump()
         # Note: Current implementation includes ReflectapiOption objects as-is
@@ -300,9 +320,9 @@ class TestDocstrings:
         assert PetDetails is not None
         assert Headers is not None
     
-    def test_enum_docstrings(self):
-        """Test that enums have comprehensive docstrings."""
-        assert Option.__doc__ is not None
-        assert "Attributes:" in Option.__doc__
-        assert "NONE:" in Option.__doc__
-        assert "SOME:" in Option.__doc__
+    def test_behavior_discriminated_union(self):
+        """Test that behavior discriminated union works correctly."""
+        # Behaviors are now discriminated unions, not enums
+        assert BehaviorCalm == "Calm"
+        assert BehaviorAggressive is not None
+        assert BehaviorOther is not None

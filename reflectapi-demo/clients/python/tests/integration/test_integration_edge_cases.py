@@ -162,11 +162,11 @@ class TestReflectapiOptionIntegrationEdgeCases:
 
     def test_option_with_complex_nested_types(self):
         """Test ReflectapiOption with complex nested behavior data."""
-        from generated import MyapiModelBehaviorFactory as BehaviorFactory
+        from generated import MyapiModelBehavior as Behavior, MyapiModelBehaviorAggressiveVariant as BehaviorAggressive, MyapiModelBehaviorOtherVariant as BehaviorOther
         complex_behaviors = [
-            BehaviorFactory.CALM,
-            BehaviorFactory.aggressive(1.0, "test"),
-            BehaviorFactory.other("Other"),
+            Behavior("Calm"),
+            Behavior(BehaviorAggressive(field_0=1.0, field_1="test")),
+            Behavior(BehaviorOther(description="Other")),
         ] * 100  # 300 behaviors
 
         request = PetsUpdateRequest(

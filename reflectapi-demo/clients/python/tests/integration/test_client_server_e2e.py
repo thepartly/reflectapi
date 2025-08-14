@@ -9,13 +9,13 @@ import asyncio
 import pytest
 import pytest_asyncio
 import sys
+import json
 from pathlib import Path
 from datetime import datetime
 
 # E2E gating handled centrally in tests/conftest.py
 
-# Add the runtime path for local import
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "reflectapi-python-runtime" / "src"))
+
 
 from generated import (
     AsyncClient,
@@ -24,6 +24,7 @@ from generated import (
     MyapiModelKind as PetKind,
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
+    MyapiModelBehavior as Behavior,
     MyapiModelBehaviorFactory as BehaviorFactory,
     MyapiModelInputPet as PetsCreateRequest,  # Create uses input model
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
@@ -66,163 +67,114 @@ class TestClientServerIntegration:
     @pytest.mark.integration
     async def test_pets_list_empty(self, client):
         """Test listing pets when empty."""
-        try:
-            request = PetsListRequest(limit=10)
-            response = await client.pets.list(limit=10)
 
-            assert response.metadata.status_code == 200
-            assert hasattr(response, 'items')
-            assert isinstance(response.items, list)
-            # Initially empty or has existing pets
+        request = PetsListRequest(limit=10)
+        response = await client.pets.list(limit=10, headers=Headers(authorization="Bearer test-token"))
 
-        except ApiError as e:
-            if e.status_code == 401:
-                pytest.skip("Authentication required for pets endpoints")
-            else:
-                raise
-        except Exception as e:
-            pytest.skip(f"Server not available or endpoint changed: {e}")
+        assert response.metadata.status_code == 200
+        assert hasattr(response, 'items')
+        assert isinstance(response.items, list)
+
+
 
     @pytest.mark.integration
     async def test_create_pet_with_dog_kind(self, client, auth_headers):
         """Test creating a pet with dog kind (tagged enum)."""
-        try:
-            # Create a dog variant
-            dog_kind = PetKindDog(type="dog", breed="Golden Retriever")
-            pet = Pet(
-                name=f"test_dog_{datetime.now().timestamp()}",
-                kind=dog_kind,
-                age=3,
-                behaviors=[BehaviorFactory.CALM]
-            )
 
-            # Send create request
-            response = await client.pets.create(data=pet)
+        # Create a dog variant
+        dog_kind = PetKindDog(type="dog", breed="Golden Retriever")
+        pet = Pet(
+            name=f"test_dog_{datetime.now().timestamp()}",
+            kind=dog_kind,
+            age=3,
+            behaviors=[BehaviorFactory.CALM]
+        )
 
-            # Should succeed or give meaningful error
-            if response.metadata.status_code == 401:
-                pytest.skip("Authentication required")
-            elif response.metadata.status_code == 400:
-                # This is the bug we fixed - should not happen with proper discriminated unions
-                pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
-            else:
-                assert response.metadata.status_code in [200, 201, 409]  # Created or conflict
+        # Send create request
+        response = await client.pets.create(data=pet, headers=auth_headers)
 
-        except ApiError as e:
-            if e.status_code == 401:
-                pytest.skip("Authentication required for pets endpoints")
-            elif e.status_code == 400:
-                pytest.fail(f"Got 400 Bad Request - this suggests discriminated union bug: {e}")
-            else:
-                # Other errors are acceptable for this test
-                pass
-        except Exception as e:
-            pytest.skip(f"Server not available: {e}")
+        # Should succeed or give meaningful error
+        if response.metadata.status_code == 401:
+            pytest.skip("Authentication required")
+        elif response.metadata.status_code == 400:
+            # This is the bug we fixed - should not happen with proper discriminated unions
+            pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
+        else:
+            assert response.metadata.status_code in [200, 201, 409]  # Created or conflict
+
 
     @pytest.mark.integration
     async def test_create_pet_with_cat_kind(self, client, auth_headers):
         """Test creating a pet with cat kind (tagged enum)."""
-        try:
-            # Create a cat variant
-            cat_kind = PetKindCat(type="cat", lives=9)
-            pet = Pet(
-                name=f"test_cat_{datetime.now().timestamp()}",
-                kind=cat_kind,
-                age=2,
-                behaviors=[BehaviorFactory.CALM, BehaviorFactory.other("Custom")]
-            )
+        # Create a cat variant
+        cat_kind = PetKindCat(type="cat", lives=9)
+        pet = Pet(
+            name=f"test_cat_{datetime.now().timestamp()}",
+            kind=cat_kind,
+            age=2,
+            behaviors=[BehaviorFactory.CALM, BehaviorFactory.other("Custom")]
+        )
 
-            # Send create request
-            response = await client.pets.create(data=pet)
+        # Send create request
+        response = await client.pets.create(data=pet, headers=auth_headers)
 
-            # Should succeed or give meaningful error
-            if response.metadata.status_code == 401:
-                pytest.skip("Authentication required")
-            elif response.metadata.status_code == 400:
-                # This is the bug we fixed - should not happen with proper discriminated unions
-                pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
-            else:
-                assert response.metadata.status_code in [200, 201, 409]  # Created or conflict
-
-        except ApiError as e:
-            if e.status_code == 401:
-                pytest.skip("Authentication required for pets endpoints")
-            elif e.status_code == 400:
-                pytest.fail(f"Got 400 Bad Request - this suggests discriminated union bug: {e}")
-            else:
-                # Other errors are acceptable for this test
-                pass
-        except Exception as e:
-            pytest.skip(f"Server not available: {e}")
+        # Should succeed or give meaningful error
+        if response.metadata.status_code == 401:
+            pytest.skip("Authentication required")
+        elif response.metadata.status_code == 400:
+            # This is the bug we fixed - should not happen with proper discriminated unions
+            pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
+        else:
+            assert response.metadata.status_code in [200, 201, 409]  # Created or conflict
 
     @pytest.mark.integration
     async def test_update_pet_with_kind_change(self, client, auth_headers):
         """Test updating a pet with kind change (tagged enum)."""
-        try:
-            # Try to update a pet's kind
-            new_kind = PetKindDog(type="dog", breed="Labrador")
-            request = PetsUpdateRequest(
-                name="existing_pet",  # Assume this exists or will fail gracefully
-                kind=new_kind,
-                age=ReflectapiOption(4)
-            )
+        # Try to update a pet's kind
+        new_kind = PetKindDog(type="dog", breed="Labrador")
+        request = PetsUpdateRequest(
+            name="existing_pet",  # Assume this exists or will fail gracefully
+            kind=new_kind,
+            age=ReflectapiOption(4)
+        )
 
-            response = await client.pets.update(data=request)
+        response = await client.pets.update(data=request, headers=auth_headers)
 
-            # Should succeed, not found, or auth error - but not 400 Bad Request
-            if response.metadata.status_code == 401:
-                pytest.skip("Authentication required")
-            elif response.metadata.status_code == 400:
-                pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
-            else:
-                assert response.metadata.status_code in [200, 404]  # Updated or not found
+        # Should succeed, not found, or auth error - but not 400 Bad Request
+        if response.metadata.status_code == 401:
+            pytest.skip("Authentication required")
+        elif response.metadata.status_code == 400:
+            pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
+        else:
+            assert response.metadata.status_code in [200, 404]  # Updated or not found
 
-        except ApiError as e:
-            if e.status_code == 401:
-                pytest.skip("Authentication required for pets endpoints")
-            elif e.status_code == 400:
-                pytest.fail(f"Got 400 Bad Request - this suggests discriminated union bug: {e}")
-            else:
-                # 404 not found is acceptable for this test
-                pass
-        except Exception as e:
-            pytest.skip(f"Server not available: {e}")
 
     @pytest.mark.integration
     async def test_get_first_pet_with_tagged_enum(self, client, auth_headers):
         """Test getting first pet and validate tagged enum deserialization."""
-        try:
-            response = await client.pets.get_first()
 
-            if response.metadata.status_code == 401:
-                pytest.skip("Authentication required")
-            elif response.metadata.status_code == 200:
-                # If we get a pet back, validate the kind structure
-                if response is not None and hasattr(response, 'kind'):
-                    kind = response.kind
+        response = await client.pets.get_first()
 
-                    # Should have discriminator field
-                    assert hasattr(kind, 'type')
-                    assert kind.type in ['dog', 'cat']
+        if response.metadata.status_code == 401:
+            pytest.skip("Authentication required")
+        elif response.metadata.status_code == 200:
+            # If we get a pet back, validate the kind structure
+            if response is not None and hasattr(response, 'kind'):
+                kind = response.kind
 
-                    # Should have appropriate variant fields
-                    if kind.type == 'dog':
-                        assert hasattr(kind, 'breed')
-                        assert isinstance(kind.breed, str)
-                        assert not hasattr(kind, 'lives')
-                    elif kind.type == 'cat':
-                        assert hasattr(kind, 'lives')
-                        assert isinstance(kind.lives, int)
-                        assert not hasattr(kind, 'breed')
+                # Should have discriminator field
+                assert hasattr(kind, 'type')
+                assert kind.type in ['dog', 'cat']
 
-        except ApiError as e:
-            if e.status_code == 401:
-                pytest.skip("Authentication required for pets endpoints")
-            else:
-                # Other errors are acceptable
-                pass
-        except Exception as e:
-            pytest.skip(f"Server not available: {e}")
+                # Should have appropriate variant fields
+                if kind.type == 'dog':
+                    assert hasattr(kind, 'breed')
+                    assert isinstance(kind.breed, str)
+                    assert not hasattr(kind, 'lives')
+                elif kind.type == 'cat':
+                    assert hasattr(kind, 'lives')
+                    assert isinstance(kind.lives, int)
+                    assert not hasattr(kind, 'breed')
 
 
 class TestSerializationRoundTrip:
@@ -306,8 +258,6 @@ class TestSerializationRoundTrip:
 
     def test_json_compatibility(self):
         """Test that tagged enums work with JSON serialization."""
-        import json
-
         dog = PetKindDog(type="dog", breed="Poodle")
         pet = Pet(name="Buddy", kind=dog, age=6)
 
