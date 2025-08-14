@@ -98,22 +98,36 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     });
 
     // Check if we need Literal import and Field discriminator (for tagged enums)
-    let (has_literal, has_discriminated_unions) = {
+    let (has_literal, has_discriminated_unions, has_externally_tagged_enums) = {
         let mut has_literal = false;
         let mut has_discriminated_unions = false;
+        let mut has_externally_tagged_enums = false;
 
         for name in &all_type_names {
             if let Some(reflectapi_schema::Type::Enum(enum_def)) = schema.get_type(name) {
-                if matches!(
-                    enum_def.representation,
-                    reflectapi_schema::Representation::Internal { .. }
-                ) {
-                    has_literal = true;
-                    has_discriminated_unions = true;
+                match enum_def.representation {
+                    reflectapi_schema::Representation::Internal { .. } => {
+                        has_literal = true;
+                        has_discriminated_unions = true;
+                    }
+                    reflectapi_schema::Representation::External => {
+                        // Check if this enum has complex variants that need RootModel
+                        let has_complex_variants = enum_def.variants.iter().any(|v| {
+                            match &v.fields {
+                                reflectapi_schema::Fields::Named(_) => true,
+                                reflectapi_schema::Fields::Unnamed(fields) => !fields.is_empty(),
+                                reflectapi_schema::Fields::None => false,
+                            }
+                        });
+                        if has_complex_variants {
+                            has_externally_tagged_enums = true;
+                        }
+                    }
+                    _ => {}
                 }
             }
         }
-        (has_literal, has_discriminated_unions)
+        (has_literal, has_discriminated_unions, has_externally_tagged_enums)
     };
 
     // Check if we need ReflectapiOption import
@@ -153,6 +167,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         has_annotated: true, // Always include for external type fallbacks
         has_literal,
         has_discriminated_unions,
+        has_externally_tagged_enums,
     };
     generated_code.push(imports.render().context("Failed to render imports")?);
 
@@ -604,7 +619,178 @@ fn render_externally_tagged_enum(
     schema: &Schema,
     implemented_types: &HashMap<String, String>,
 ) -> anyhow::Result<String> {
-    render_hybrid_enum(enum_def, schema, implemented_types)
+    use reflectapi_schema::Fields;
+    
+    let enum_name = improve_class_name(&enum_def.name);
+    let mut variant_models = Vec::new();
+    let mut union_variants = Vec::new();
+    let mut validator_cases = Vec::new();
+    let mut dict_validator_cases = Vec::new();
+    let mut serializer_cases = Vec::new();
+    
+    // Collect active generic parameter names for this enum
+    let generic_params: Vec<String> = enum_def
+        .parameters()
+        .map(|p| map_generic_name(&p.name))
+        .collect();
+    
+    // Generate variant models and build validation/serialization logic
+    for variant in &enum_def.variants {
+        let variant_name = variant.name();
+        
+        match &variant.fields {
+            Fields::None => {
+                // Unit variant: represented as string literal
+                union_variants.push(format!("Literal[{:?}]", variant_name));
+                
+                validator_cases.push(format!(
+                    "        if isinstance(data, str) and data == \"{}\":\n            return data",
+                    variant_name
+                ));
+                
+                serializer_cases.push(format!(
+                    "        if self.root == \"{}\":\n            return \"{}\"",
+                    variant_name, variant_name
+                ));
+            }
+            Fields::Unnamed(unnamed_fields) => {
+                // Tuple variant: create a model class
+                let variant_class_name = format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
+                let mut fields = Vec::new();
+                let mut field_names = Vec::new();
+                
+                for (i, field) in unnamed_fields.iter().enumerate() {
+                    let field_type = type_ref_to_python_type(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        &generic_params,
+                    )?;
+                    
+                    let field_name = format!("field_{}", i);
+                    field_names.push(field_name.clone());
+                    
+                    fields.push(templates::Field {
+                        name: field_name,
+                        type_annotation: field_type,
+                        description: Some(field.description().to_string()),
+                        deprecation_note: field.deprecation_note.clone(),
+                        optional: false,
+                        default_value: None,
+                    });
+                }
+                
+                let variant_model = templates::DataClass {
+                    name: variant_class_name.clone(),
+                    description: Some(format!("{} variant", variant_name)),
+                    fields,
+                    is_tuple: true,
+                    is_generic: false,
+                    generic_params: vec![],
+                };
+                
+                variant_models.push(variant_model.render()?);
+                union_variants.push(variant_class_name.clone());
+                
+                // For tuple variants, the JSON value can be a single value or array
+                if field_names.len() == 1 {
+                    dict_validator_cases.push(format!(
+                        "            if key == \"{}\":\n                return {}(field_0=value)",
+                        variant_name, variant_class_name
+                    ));
+                    
+                    serializer_cases.push(format!(
+                        "        if isinstance(self.root, {}):\n            return {{\"{}\": self.root.field_0}}",
+                        variant_class_name, variant_name
+                    ));
+                } else {
+                    dict_validator_cases.push(format!(
+                        "            if key == \"{}\":\n                if isinstance(value, list):\n                    return {}({})\n                else:\n                    raise ValueError(\"Expected list for tuple variant {}\")",
+                        variant_name, variant_class_name,
+                        field_names.iter().enumerate().map(|(i, name)| format!("{}=value[{}]", name, i)).collect::<Vec<_>>().join(", "),
+                        variant_name
+                    ));
+                    
+                    serializer_cases.push(format!(
+                        "        if isinstance(self.root, {}):\n            return {{\"{}\": [{}]}}",
+                        variant_class_name, variant_name,
+                        field_names.iter().map(|name| format!("self.root.{}", name)).collect::<Vec<_>>().join(", ")
+                    ));
+                }
+            }
+            Fields::Named(named_fields) => {
+                // Struct variant: create a model class
+                let variant_class_name = format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
+                let mut fields = Vec::new();
+                
+                for field in named_fields {
+                    let field_type = type_ref_to_python_type(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        &generic_params,
+                    )?;
+                    
+                    let (optional, default_value, final_field_type) = if !field.required {
+                        (true, Some("None".to_string()), format!("{} | None", field_type))
+                    } else {
+                        (false, None, field_type)
+                    };
+                    
+                    fields.push(templates::Field {
+                        name: sanitize_field_name(field.name()),
+                        type_annotation: final_field_type,
+                        description: Some(field.description().to_string()),
+                        deprecation_note: field.deprecation_note.clone(),
+                        optional,
+                        default_value,
+                    });
+                }
+                
+                let variant_model = templates::DataClass {
+                    name: variant_class_name.clone(),
+                    description: Some(format!("{} variant", variant_name)),
+                    fields,
+                    is_tuple: false,
+                    is_generic: false,
+                    generic_params: vec![],
+                };
+                
+                variant_models.push(variant_model.render()?);
+                union_variants.push(variant_class_name.clone());
+                
+                dict_validator_cases.push(format!(
+                    "            if key == \"{}\":\n                return {}(**value)",
+                    variant_name, variant_class_name
+                ));
+                
+                serializer_cases.push(format!(
+                    "        if isinstance(self.root, {}):\n            return {{\"{}\": self.root.model_dump()}}",
+                    variant_class_name, variant_name
+                ));
+            }
+        }
+    }
+    
+    // Generate the externally tagged enum using RootModel
+    let template = templates::ExternallyTaggedEnumRootModel {
+        name: enum_name.clone(),
+        description: if enum_def.description().is_empty() {
+            None
+        } else {
+            Some(sanitize_description(enum_def.description()))
+        },
+        variant_models,
+        union_variants: union_variants.join(", "),
+        validator_cases: validator_cases.join("\n"),
+        dict_validator_cases: dict_validator_cases.join("\n"),
+        serializer_cases: serializer_cases.join("\n"),
+    };
+    
+    let result = template.render()
+        .context("Failed to render externally tagged enum")?;
+    
+    Ok(result)
 }
 
 fn render_hybrid_enum(
@@ -2813,7 +2999,7 @@ from __future__ import annotations
 {% endif %}
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict{% if has_discriminated_unions %}, Field{% endif %}
+from pydantic import BaseModel, ConfigDict{% if has_discriminated_unions %}, Field{% endif %}{% if has_externally_tagged_enums %}, RootModel, model_validator, model_serializer{% endif %}
 
 # Runtime imports
 {% if has_async %}{% if has_sync %}from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse{% else %}from reflectapi_runtime import AsyncClientBase, ApiResponse{% endif %}{% else %}{% if has_sync %}from reflectapi_runtime import ClientBase, ApiResponse{% endif %}{% endif %}
@@ -2849,6 +3035,7 @@ ClientType = TypeVar('ClientType')
         pub has_annotated: bool,
         pub has_literal: bool,
         pub has_discriminated_unions: bool,
+        pub has_externally_tagged_enums: bool,
     }
 
     #[derive(Template)]
@@ -3617,5 +3804,48 @@ class {{ name }}:
         pub description: Option<String>,
         pub is_generic: bool,
         pub generic_params: Vec<String>,
+    }
+
+    #[derive(Template)]
+    #[template(
+        source = r#"{% for variant_model in variant_models %}{{ variant_model }}
+
+{% endfor %}
+# Externally tagged enum using RootModel
+{{ name }}Variants = Union[{{ union_variants }}]
+
+class {{ name }}(RootModel[{{ name }}Variants]):
+    """{% if description.is_some() %}{{ description.as_deref().unwrap() }}{% else %}Externally tagged enum{% endif %}"""
+    
+    @model_validator(mode='before')
+    @classmethod
+    def _validate_externally_tagged(cls, data):
+{{ validator_cases }}
+        
+        if isinstance(data, dict):
+            if len(data) != 1:
+                raise ValueError("Externally tagged enum must have exactly one key")
+            
+            key, value = next(iter(data.items()))
+{{ dict_validator_cases }}
+        
+        raise ValueError(f"Unknown variant for {{ name }}: {data}")
+    
+    @model_serializer
+    def _serialize_externally_tagged(self):
+{{ serializer_cases }}
+        
+        raise ValueError(f"Cannot serialize {{ name }} variant: {type(self.root)}")
+"#,
+        ext = "txt"
+    )]
+    pub struct ExternallyTaggedEnumRootModel {
+        pub name: String,
+        pub description: Option<String>,
+        pub variant_models: Vec<String>,
+        pub union_variants: String,
+        pub validator_cases: String,
+        pub dict_validator_cases: String,
+        pub serializer_cases: String,
     }
 }
