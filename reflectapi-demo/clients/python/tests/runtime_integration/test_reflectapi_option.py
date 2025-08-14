@@ -7,11 +7,13 @@ from pydantic import ValidationError
 from generated import (
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     MyapiModelBehavior as Behavior,
-    MyapiModelBehaviorCalm as BehaviorCalm,
-    MyapiModelBehaviorAggressive as BehaviorAggressive,
-    MyapiModelBehaviorOther as BehaviorOther
+    MyapiModelBehaviorAggressiveVariant as BehaviorAggressive,
+    MyapiModelBehaviorOtherVariant as BehaviorOther
 )
 from reflectapi_runtime import ReflectapiOption, Undefined
+
+# For externally tagged enums, unit variants are just string literals
+BehaviorCalm = "Calm"
 
 
 class TestReflectapiOptionBasics:
@@ -124,11 +126,11 @@ class TestReflectapiOptionDeserialization:
         """Test creating options from different values."""
         # Test direct creation with values
         option_int = ReflectapiOption(42)
-        option_list = ReflectapiOption([BehaviorCalm()])
+        option_list = ReflectapiOption([BehaviorCalm])
         
         assert option_int.unwrap() == 42
         assert len(option_list.unwrap()) == 1
-        assert option_list.unwrap()[0].kind == "Calm"
+        assert option_list.unwrap()[0] == "Calm"
 
 
 class TestReflectapiOptionEquality:
@@ -193,14 +195,14 @@ class TestReflectapiOptionComplexTypes:
     
     def test_list_option(self):
         """Test ReflectapiOption with list value."""
-        behaviors = [BehaviorCalm(), BehaviorAggressive(field_0=5.0, field_1="test")]
+        behaviors = [BehaviorCalm, {"Aggressive": [5.0, "test"]}]
         option = ReflectapiOption(behaviors)
         
         assert option.is_some
         unwrapped = option.unwrap()
         assert len(unwrapped) == 2
-        assert unwrapped[0].kind == "Calm"
-        assert unwrapped[1].kind == "Aggressive"
+        assert unwrapped[0] == "Calm"
+        assert unwrapped[1] == {"Aggressive": [5.0, "test"]}
     
     def test_empty_list_option(self):
         """Test ReflectapiOption with empty list."""
@@ -211,7 +213,7 @@ class TestReflectapiOptionComplexTypes:
     
     def test_nested_serialization(self):
         """Test complex nested serialization."""
-        behaviors = [BehaviorCalm(), BehaviorOther(description="Custom", notes="Test")]
+        behaviors = [BehaviorCalm, {"Other": {"description": "Custom", "notes": "Test"}}]
         request = PetsUpdateRequest(
             name="complex_test",
             age=ReflectapiOption(Undefined),
@@ -222,5 +224,5 @@ class TestReflectapiOptionComplexTypes:
         assert request.behaviors.is_some
         unwrapped_behaviors = request.behaviors.unwrap()
         assert len(unwrapped_behaviors) == 2
-        assert unwrapped_behaviors[0].kind == "Calm"
-        assert unwrapped_behaviors[1].kind == "Other"
+        assert unwrapped_behaviors[0] == "Calm"
+        assert unwrapped_behaviors[1] == {"Other": {"description": "Custom", "notes": "Test"}}

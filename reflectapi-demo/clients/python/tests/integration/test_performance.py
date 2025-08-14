@@ -10,11 +10,13 @@ from generated import (
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
-    MyapiModelBehaviorCalm as BehaviorCalm,
-    MyapiModelBehaviorAggressive as BehaviorAggressive,
+    MyapiModelBehaviorAggressiveVariant as BehaviorAggressive,
     AsyncClient
 )
 from reflectapi_runtime import ReflectapiOption
+
+# For externally tagged enums, unit variants are just string literals
+BehaviorCalm = "Calm"
 
 
 @pytest.mark.slow
@@ -36,7 +38,7 @@ class TestPerformance:
                 name=f'Pet_{i}',
                 kind=kind,
                 age=i % 20,
-                behaviors=[BehaviorCalm(), BehaviorAggressive(field_0=1.0, field_1="test")]
+                behaviors=[BehaviorCalm, {"Aggressive": [1.0, "test"]}]
             )
             pets.append(pet)
 
@@ -127,7 +129,7 @@ class TestStress:
     def test_large_model_creation(self):
         """Test creating models with large amounts of data."""
         # Create a pet with large behavior list
-        large_behaviors = [BehaviorCalm()] * 500 + [BehaviorAggressive(field_0=2.0, field_1="perf")]
+        large_behaviors = [BehaviorCalm] * 500 + [{"Aggressive": [2.0, "perf"]}]
 
         pet = Pet(
             name="Large Pet",

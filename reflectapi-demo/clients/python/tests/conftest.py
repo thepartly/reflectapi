@@ -1,25 +1,35 @@
 """Shared test fixtures and configuration for Python demo client tests."""
 
-import pytest
-import sys
+# Centralized gating for e2e tests that require the running demo server.
+# If RUN_DEMO_E2E is not set to "1", skip tests explicitly marked `e2e`
+# and tests in the client-server e2e module.
 import os
-from typing import Generator, Any
-from pydantic import BaseModel
+import pytest
 
-# Add runtime to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'reflectapi-python-runtime', 'src'))
+_RUN_DEMO_E2E = os.environ.get("RUN_DEMO_E2E") == "1"
+_SKIP_E2E_REASON = "Requires running demo server at http://localhost:3000; set RUN_DEMO_E2E=1 to enable"
 
-from reflectapi_runtime import ReflectapiOption, Undefined, AsyncClientBase
+def pytest_collection_modifyitems(config, items):
+    if _RUN_DEMO_E2E:
+        return
+    for item in items:
+        is_e2e_marked = "e2e" in item.keywords
+        is_server_e2e_file = str(getattr(item, "fspath", "")).endswith("tests/integration/test_client_server_e2e.py")
+        if is_e2e_marked or is_server_e2e_file:
+            item.add_marker(pytest.mark.skip(reason=_SKIP_E2E_REASON))
+
+from typing import Any
+
+# No local sys.path manipulation; runtime is installed via uv
+from reflectapi_runtime import ReflectapiOption
 from generated import (
     MyapiModelInputPet as Pet,
-    MyapiModelOutputPet as PetDetails, 
+    MyapiModelOutputPet as PetDetails,
     MyapiModelKind as PetKind,
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
-    MyapiModelBehaviorCalm as BehaviorCalm,
-    MyapiModelBehaviorAggressive as BehaviorAggressive,
-    MyapiModelBehaviorOther as BehaviorOther,
+    MyapiModelBehaviorFactory as BehaviorFactory,
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     MyapiProtoPaginated as Paginated,
     AsyncClient
@@ -35,7 +45,7 @@ def sample_dog() -> PetKindDog:
     return PetKindDog(type='dog', breed='Golden Retriever')
 
 
-@pytest.fixture  
+@pytest.fixture
 def sample_cat() -> PetKindCat:
     """Create a sample cat variant."""
     return PetKindCat(type='cat', lives=9)
@@ -48,7 +58,7 @@ def sample_pet(sample_dog: PetKindDog) -> Pet:
         name="Buddy",
         kind=sample_dog,
         age=3,
-        behaviors=[BehaviorCalm(), BehaviorAggressive(field_0=5.0, field_1="growls")]
+        behaviors=[BehaviorCalm, {"Aggressive": [5.0, "growls"]}]
     )
 
 
@@ -57,11 +67,11 @@ def sample_pet_details(sample_cat: PetKindCat) -> PetDetails:
     """Create a sample PetDetails with cat variant."""
     from datetime import datetime
     return PetDetails(
-        name="Whiskers", 
+        name="Whiskers",
         kind=sample_cat,
         age=2,
         updated_at=datetime.now(),
-        behaviors=[BehaviorCalm()]
+        behaviors=[BehaviorCalm]
     )
 
 
@@ -72,7 +82,7 @@ def sample_update_request() -> PetsUpdateRequest:
         name="TestPet",
         kind=PetKindDog(type='dog', breed='Labrador'),
         age=ReflectapiOption(5),
-        behaviors=ReflectapiOption([BehaviorCalm()])
+        behaviors=ReflectapiOption([BehaviorCalm])
     )
 
 
@@ -105,22 +115,22 @@ def paginated_pets(sample_pet_details: PetDetails) -> Paginated[PetDetails]:
 def behavior_samples() -> list[Behavior]:
     """Sample behavior instances."""
     return [
-        BehaviorCalm(),
-        BehaviorAggressive(field_0=5.0, field_1="test"),
-        BehaviorOther(description="Custom", notes="Some notes")
+        BehaviorCalm,
+        {"Aggressive": [5.0, "test"]},
+        {"Other": {"description": "Custom", "notes": "Some notes"}}
     ]
 
 
 @pytest.fixture
 def pet_kind_samples(sample_dog: PetKindDog, sample_cat: PetKindCat) -> list[PetKind]:
-    """Sample PetKind union variants.""" 
+    """Sample PetKind union variants."""
     return [sample_dog, sample_cat]
 
 
 # Test utilities
 class TestDataFactory:
     """Factory for creating test data."""
-    
+
     @staticmethod
     def create_pet(name: str = "TestPet", kind_type: str = "dog", **kwargs) -> Pet:
         """Create a Pet with specified parameters."""
@@ -128,14 +138,14 @@ class TestDataFactory:
             kind = PetKindDog(type='dog', breed=kwargs.get('breed', 'Labrador'))
         else:
             kind = PetKindCat(type='cat', lives=kwargs.get('lives', 9))
-            
+
         return Pet(
             name=name,
             kind=kind,
             age=kwargs.get('age'),
             behaviors=kwargs.get('behaviors'),
         )
-    
+
     @staticmethod
     def create_update_request(
         name: str = "TestPet",
@@ -145,12 +155,12 @@ class TestDataFactory:
     ) -> PetsUpdateRequest:
         """Create a PetsUpdateRequest with optional fields."""
         request = PetsUpdateRequest(name=name)
-        
+
         if with_age:
             request.age = ReflectapiOption(kwargs.get('age', 5))
         if with_behaviors:
-            request.behaviors = ReflectapiOption(kwargs.get('behaviors', [BehaviorCalm()]))
-            
+            request.behaviors = ReflectapiOption(kwargs.get('behaviors', [BehaviorCalm]))
+
         return request
 
 
@@ -162,7 +172,7 @@ def test_factory() -> TestDataFactory:
 
 # Marks for test categorization
 pytest.mark.unit = pytest.mark.unit
-pytest.mark.integration = pytest.mark.integration  
+pytest.mark.integration = pytest.mark.integration
 pytest.mark.e2e = pytest.mark.e2e
 pytest.mark.slow = pytest.mark.slow
 
@@ -208,7 +218,7 @@ def assert_reflectapi_option_none(option: ReflectapiOption) -> None:
 # Export test helpers for use in test modules
 __all__ = [
     'assert_petkind_dog',
-    'assert_petkind_cat', 
+    'assert_petkind_cat',
     'assert_reflectapi_option_some',
     'assert_reflectapi_option_undefined',
     'assert_reflectapi_option_none',
