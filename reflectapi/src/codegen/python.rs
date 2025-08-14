@@ -2963,6 +2963,9 @@ class Async{{ group.class_name }}:
 {% if function.has_body %}
             data: Optional[{{ function.input_type }}] = None,
 {% endif %}
+{% if function.headers_type.is_some() %}
+            headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
+{% endif %}
         ) -> ApiResponse[{{ function.output_type }}]:
             """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
 
@@ -3007,6 +3010,9 @@ class Async{{ group.class_name }}:
 {% else %}
                 json_model=data,
 {% endif %}
+{% endif %}
+{% if function.headers_type.is_some() %}
+                headers_model=headers,
 {% endif %}
 {% if function.output_type == "Any" %}
                 response_model=None,
@@ -3123,9 +3129,12 @@ class {{ group.class_name }}:
             {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
 {% endfor %}
 {% if function.has_body %}
-            data: Optional[{{ function.input_type }}] = None,
+        data: Optional[{{ function.input_type }}] = None,
 {% endif %}
-        ) -> ApiResponse[{{ function.output_type }}]:
+{% if function.headers_type.is_some() %}
+        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
+{% endif %}
+    ) -> ApiResponse[{{ function.output_type }}]:
             """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
 
             Args:
@@ -3174,9 +3183,9 @@ class {{ group.class_name }}:
             headers_model=headers,
 {% endif %}
 {% if function.output_type == "Any" %}
-            response_model=None,
+                response_model=None,
 {% else %}
-            response_model={{ function.output_type }},
+                response_model={{ function.output_type }},
 {% endif %}
             )
 
@@ -3245,7 +3254,7 @@ class {{ class_name }}(ClientBase):
             params["{{ param.name }}"] = {{ param.name }}
 {% endfor %}
 
-        return self._make_request(
+        return await self._make_request(
             "{{ function.method }}",
             path,
             params=params if params else None,
@@ -3255,6 +3264,9 @@ class {{ class_name }}(ClientBase):
 {% else %}
             json_model=data,
 {% endif %}
+{% endif %}
+{% if function.headers_type.is_some() %}
+            headers_model=headers,
 {% endif %}
 {% if function.output_type == "Any" %}
             response_model=None,
