@@ -98,8 +98,8 @@ class ReflectapiOption(Generic[T]):
                 """Serialize ReflectapiOption handling all three states correctly."""
                 if isinstance(option_value, cls):
                     if option_value.is_undefined:
-                        # Return Undefined sentinel - Pydantic will exclude this from serialized output
-                        return Undefined
+                        # Return None for undefined to avoid pydantic undefined serialization issues
+                        return None
                     # Return the actual value (including None for explicit null)
                     return option_value._value
                 # Fallback for non-ReflectapiOption values
@@ -117,7 +117,6 @@ class ReflectapiOption(Generic[T]):
                         return_schema=core_schema.union_schema([
                             inner_schema,
                             core_schema.none_schema(),
-                            core_schema.is_instance_schema(_UndefinedType),
                         ]),
                         when_used='json',
                     )

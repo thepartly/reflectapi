@@ -5,41 +5,42 @@ import asyncio
 import sys
 import time
 from pathlib import Path
+import pytest
 
-# Add the runtime path for local import
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "reflectapi-python-runtime" / "src"))
-
-from generated import AsyncClient, Pet, PetKind
+from generated import AsyncClient, MyapiModelInputPet as Pet, MyapiModelKindDog as PetKindDog
 
 
+@pytest.mark.asyncio
 async def test_client():
     """Basic test of the generated client."""
     # For now, just test that we can import and create the client
     print("Testing Python client generation...")
-    
+
     # Test creating client
-    client = AsyncClient("http://localhost:8080")
+    client = AsyncClient("http://localhost:3000")
     print("✓ Created AsyncClient")
-    
-    # Test creating data models  
+
+    # Test creating data models
     pet_data = Pet(
         name="fluffy",
-        kind=PetKind.CAT,
+        kind=PetKindDog(type="dog", breed="Retriever"),
         age=3
     )
-    print("✓ Created Pet")
-    
+    print(f"✓ Created Pet: {pet_data}")
+
     # Note: PetsCreateRequest was a single-field tuple struct and is now unwrapped
     # The pets_create method now takes Pet directly
     print("✓ Pet data ready for pets_create (unwrapped tuple struct)")
-    
+
     # Test that methods exist
-    assert hasattr(client, 'health_check')
-    assert hasattr(client, 'pets_list')
-    assert hasattr(client, 'pets_create')
-    assert hasattr(client, 'pets_get_first')
+    assert hasattr(client, 'health')
+    assert hasattr(client.health, 'check')
+    assert hasattr(client, 'pets')
+    assert hasattr(client.pets, 'list')
+    assert hasattr(client.pets, 'create')
+    assert hasattr(client.pets, 'get_first')
     print("✓ All expected methods exist")
-    
+
     print("✓ Basic client generation test passed!")
     return True
 

@@ -1,4 +1,4 @@
-""" "
+"""
 Generated Python client for api_client.
 
 DO NOT MODIFY THIS FILE MANUALLY.
@@ -23,7 +23,6 @@ from reflectapi_runtime import AsyncClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiOption
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 Entity = TypeVar("Entity")
@@ -48,8 +47,8 @@ class MyapiModelBehaviorAggressive(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     kind: Literal["Aggressive"] = "Aggressive"
-    value_0: float
-    value_1: str
+    field_0: float
+    field_1: str
 
 
 class MyapiModelBehaviorOther(BaseModel):
@@ -72,14 +71,17 @@ MyapiModelBehavior = Annotated[
 
 
 class MyapiModelBehaviorFactory:
-    """Factory class for creating MyapiModelBehavior variants with ergonomic syntax."""
+    """Factory class for creating MyapiModelBehavior variants with ergonomic syntax.
+
+    MyapiModelBehavior variants
+    """
 
     CALM = MyapiModelBehaviorCalm()
 
     @staticmethod
-    def aggressive(value_0, value_1) -> MyapiModelBehaviorAggressive:
+    def aggressive(field_0, field_1) -> MyapiModelBehaviorAggressive:
         """Creates the 'Aggressive' variant of the MyapiModelBehavior enum."""
-        return MyapiModelBehaviorAggressive(value_0=value_0, value_1=value_1)
+        return MyapiModelBehaviorAggressive(field_0=field_0, field_1=field_1)
 
     @staticmethod
     def other(description, notes=None) -> MyapiModelBehaviorOther:
@@ -108,7 +110,23 @@ class MyapiModelKindCat(BaseModel):
 MyapiModelKind = Annotated[
     Union[MyapiModelKindDog, MyapiModelKindCat], Field(discriminator="type")
 ]
-""""""
+
+
+class MyapiModelKindFactory:
+    """Factory class for creating MyapiModelKind variants with ergonomic syntax.
+
+    MyapiModelKind variants
+    """
+
+    @staticmethod
+    def dog(breed) -> MyapiModelKindDog:
+        """Creates the 'dog' variant of the MyapiModelKind enum."""
+        return MyapiModelKindDog(breed=breed)
+
+    @staticmethod
+    def cat(lives) -> MyapiModelKindCat:
+        """Creates the 'cat' variant of the MyapiModelKind enum."""
+        return MyapiModelKindCat(lives=lives)
 
 
 class MyapiModelInputPet(BaseModel):
@@ -189,7 +207,10 @@ MyapiProtoPetsCreateError = Annotated[
 
 
 class MyapiProtoPetsCreateErrorFactory:
-    """Factory class for creating MyapiProtoPetsCreateError variants with ergonomic syntax."""
+    """Factory class for creating MyapiProtoPetsCreateError variants with ergonomic syntax.
+
+    MyapiProtoPetsCreateError variants
+    """
 
     CONFLICT = MyapiProtoPetsCreateErrorConflict()
     NOTAUTHORIZED = MyapiProtoPetsCreateErrorNotAuthorized()
@@ -282,31 +303,6 @@ class AsyncPetsClient:
     def __init__(self, client: AsyncClientBase) -> None:
         self._client = client
 
-    async def update(
-        self,
-        data: Optional[MyapiProtoPetsUpdateRequest] = None,
-    ) -> ApiResponse[Any]:
-        """Update an existing pet
-
-        Args:
-            data: Request data for the update operation.
-
-        Returns:
-            ApiResponse[Any]: Response containing Any data
-        """
-
-        path = "/pets.update"
-
-        params: dict[str, Any] = {}
-
-        return await self._client._make_request(
-            "POST",
-            path,
-            params=params if params else None,
-            json_model=data,
-            response_model=None,
-        )
-
     async def remove(
         self,
         data: Optional[MyapiProtoPetsRemoveRequest] = None,
@@ -332,57 +328,6 @@ class AsyncPetsClient:
             response_model=None,
         )
 
-    async def get_first(
-        self,
-    ) -> ApiResponse[MyapiModelOutputPet | None]:
-        """Fetch first pet, if any exists
-
-        Returns:
-            ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
-        """
-
-        path = "/pets.get-first"
-
-        params: dict[str, Any] = {}
-
-        return await self._client._make_request(
-            "POST",
-            path,
-            params=params if params else None,
-            response_model=MyapiModelOutputPet | None,
-        )
-
-    async def list(
-        self,
-        limit: Optional[int | None] = None,
-        cursor: Optional[str | None] = None,
-    ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
-        """List available pets
-            limit: Query parameter: limit (optional)
-            cursor: Query parameter: cursor (optional)
-
-
-        Returns:
-            ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
-        """
-
-        path = "/pets.list"
-
-        params: dict[str, Any] = {}
-
-        if limit is not None:
-            params["limit"] = limit
-
-        if cursor is not None:
-            params["cursor"] = cursor
-
-        return await self._client._make_request(
-            "GET",
-            path,
-            params=params if params else None,
-            response_model=MyapiProtoPaginated[MyapiModelOutputPet],
-        )
-
     async def create(
         self,
         data: Optional[MyapiModelInputPet] = None,
@@ -397,6 +342,31 @@ class AsyncPetsClient:
         """
 
         path = "/pets.create"
+
+        params: dict[str, Any] = {}
+
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=None,
+        )
+
+    async def update(
+        self,
+        data: Optional[MyapiProtoPetsUpdateRequest] = None,
+    ) -> ApiResponse[Any]:
+        """Update an existing pet
+
+        Args:
+            data: Request data for the update operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+
+        path = "/pets.update"
 
         params: dict[str, Any] = {}
 
@@ -440,6 +410,57 @@ class AsyncPetsClient:
             params=params if params else None,
             json_model=data,
             response_model=None,
+        )
+
+    async def list(
+        self,
+        limit: Optional[int | None] = None,
+        cursor: Optional[str | None] = None,
+    ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
+        """List available pets
+            limit: Query parameter: limit (optional)
+            cursor: Query parameter: cursor (optional)
+
+
+        Returns:
+            ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
+        """
+
+        path = "/pets.list"
+
+        params: dict[str, Any] = {}
+
+        if limit is not None:
+            params["limit"] = limit
+
+        if cursor is not None:
+            params["cursor"] = cursor
+
+        return await self._client._make_request(
+            "GET",
+            path,
+            params=params if params else None,
+            response_model=MyapiProtoPaginated[MyapiModelOutputPet],
+        )
+
+    async def get_first(
+        self,
+    ) -> ApiResponse[MyapiModelOutputPet | None]:
+        """Fetch first pet, if any exists
+
+        Returns:
+            ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
+        """
+
+        path = "/pets.get-first"
+
+        params: dict[str, Any] = {}
+
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            response_model=MyapiModelOutputPet | None,
         )
 
 
@@ -499,101 +520,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Testing utilities
-
-
-def create_myapimodelbehavior_response(
-    value: MyapiModelBehavior,
-) -> ApiResponse[MyapiModelBehavior]:
-    """Create a mock ApiResponse for MyapiModelBehavior."""
-    return create_api_response(value)
-
-
-def create_myapimodelinputpet_response(
-    value: MyapiModelInputPet,
-) -> ApiResponse[MyapiModelInputPet]:
-    """Create a mock ApiResponse for MyapiModelInputPet."""
-    return create_api_response(value)
-
-
-def create_myapimodelkind_response(
-    value: MyapiModelKind,
-) -> ApiResponse[MyapiModelKind]:
-    """Create a mock ApiResponse for MyapiModelKind."""
-    return create_api_response(value)
-
-
-def create_myapimodeloutputpet_response(
-    value: MyapiModelOutputPet,
-) -> ApiResponse[MyapiModelOutputPet]:
-    """Create a mock ApiResponse for MyapiModelOutputPet."""
-    return create_api_response(value)
-
-
-def create_myapiprotoheaders_response(
-    value: MyapiProtoHeaders,
-) -> ApiResponse[MyapiProtoHeaders]:
-    """Create a mock ApiResponse for MyapiProtoHeaders."""
-    return create_api_response(value)
-
-
-def create_myapiprotopaginated_response(
-    value: MyapiProtoPaginated,
-) -> ApiResponse[MyapiProtoPaginated]:
-    """Create a mock ApiResponse for MyapiProtoPaginated."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetscreateerror_response(
-    value: MyapiProtoPetsCreateError,
-) -> ApiResponse[MyapiProtoPetsCreateError]:
-    """Create a mock ApiResponse for MyapiProtoPetsCreateError."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetslisterror_response(
-    value: MyapiProtoPetsListError,
-) -> ApiResponse[MyapiProtoPetsListError]:
-    """Create a mock ApiResponse for MyapiProtoPetsListError."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetslistrequest_response(
-    value: MyapiProtoPetsListRequest,
-) -> ApiResponse[MyapiProtoPetsListRequest]:
-    """Create a mock ApiResponse for MyapiProtoPetsListRequest."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetsremoveerror_response(
-    value: MyapiProtoPetsRemoveError,
-) -> ApiResponse[MyapiProtoPetsRemoveError]:
-    """Create a mock ApiResponse for MyapiProtoPetsRemoveError."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetsremoverequest_response(
-    value: MyapiProtoPetsRemoveRequest,
-) -> ApiResponse[MyapiProtoPetsRemoveRequest]:
-    """Create a mock ApiResponse for MyapiProtoPetsRemoveRequest."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetsupdateerror_response(
-    value: MyapiProtoPetsUpdateError,
-) -> ApiResponse[MyapiProtoPetsUpdateError]:
-    """Create a mock ApiResponse for MyapiProtoPetsUpdateError."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetsupdaterequest_response(
-    value: MyapiProtoPetsUpdateRequest,
-) -> ApiResponse[MyapiProtoPetsUpdateRequest]:
-    """Create a mock ApiResponse for MyapiProtoPetsUpdateRequest."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()
