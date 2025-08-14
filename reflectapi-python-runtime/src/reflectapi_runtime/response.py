@@ -57,6 +57,11 @@ class ApiResponse(Generic[T]):
         """Transport metadata including timing, headers, and status."""
         return self._metadata
 
+    @property
+    def data(self) -> T:
+        """Alias for value for ergonomic access (useful when the payload is a dict)."""
+        return self._value
+
     def __getattr__(self, name: str) -> Any:
         """Delegate attribute access to the wrapped value for ergonomic usage."""
         return getattr(self._value, name)
@@ -71,7 +76,7 @@ class ApiResponse(Generic[T]):
             List of available attributes from both wrapper and value.
         """
         # Get ApiResponse's own attributes
-        wrapper_attrs = ['value', 'metadata']
+        wrapper_attrs = ['value', 'metadata', 'data']
 
         # Get attributes from the wrapped value
         value_attrs = []

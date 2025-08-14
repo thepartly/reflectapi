@@ -48,7 +48,7 @@ pub struct Config {
     pub package_name: String,
     /// Whether to generate async client
     pub generate_async: bool,
-    /// Whether to generate sync client  
+    /// Whether to generate sync client
     pub generate_sync: bool,
     /// Whether to generate testing utilities
     pub generate_testing: bool,
@@ -346,7 +346,10 @@ fn render_struct(
     }
 
     // Collect active generic parameter names for this struct, mapping to descriptive names
-    let active_generics: Vec<String> = struct_def.parameters().map(|p| map_generic_name(&p.name)).collect();
+    let active_generics: Vec<String> = struct_def
+        .parameters()
+        .map(|p| map_generic_name(&p.name))
+        .collect();
 
     // Separate regular fields from flattened fields
     let regular_fields = struct_def
@@ -612,7 +615,6 @@ fn render_hybrid_enum(
     render_discriminated_union_enum(enum_def, schema, implemented_types)
 }
 
-
 fn render_discriminated_union_enum(
     enum_def: &reflectapi_schema::Enum,
     schema: &Schema,
@@ -625,13 +627,16 @@ fn render_discriminated_union_enum(
     let mut union_members = Vec::new();
 
     // Collect active generic parameter names for this enum, mapping to descriptive names
-    let active_generics: Vec<String> = enum_def.parameters().map(|p| map_generic_name(&p.name)).collect();
+    let active_generics: Vec<String> = enum_def
+        .parameters()
+        .map(|p| map_generic_name(&p.name))
+        .collect();
     let has_generics = !active_generics.is_empty();
 
     // Generate Pydantic models for each variant
     for variant in &enum_def.variants {
         let variant_class_name = format!("{}{}", enum_name, to_pascal_case(variant.name()));
-        
+
         // For generic enums, add the type parameters to the union member names
         if has_generics {
             let params_str = active_generics.join(", ");
@@ -658,15 +663,20 @@ fn render_discriminated_union_enum(
             Fields::Unnamed(unnamed_fields) => {
                 // Tuple variant - create meaningful field names
                 for (i, field) in unnamed_fields.iter().enumerate() {
-                    let mut field_type = type_ref_to_python_type(&field.type_ref, schema, implemented_types, &active_generics)?;
+                    let mut field_type = type_ref_to_python_type(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        &active_generics,
+                    )?;
                     // Add | None to type annotation if field is optional
                     if !field.required {
                         field_type = format!("{} | None", field_type);
                     }
-                    
+
                     // Use descriptive generic names for tuple fields
-                    let field_name = format!("value_{}", i);
-                    
+                    let field_name = format!("field_{}", i);
+
                     fields.push(templates::Field {
                         name: field_name,
                         type_annotation: field_type,
@@ -677,14 +687,23 @@ fn render_discriminated_union_enum(
                         },
                         deprecation_note: None,
                         optional: !field.required,
-                        default_value: if field.required { None } else { Some("None".to_string()) },
+                        default_value: if field.required {
+                            None
+                        } else {
+                            Some("None".to_string())
+                        },
                     });
                 }
             }
             Fields::Named(named_fields) => {
                 // Struct variant - use actual field names
                 for field in named_fields.iter() {
-                    let mut field_type = type_ref_to_python_type(&field.type_ref, schema, implemented_types, &active_generics)?;
+                    let mut field_type = type_ref_to_python_type(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        &active_generics,
+                    )?;
                     // Add | None to type annotation if field is optional
                     if !field.required {
                         field_type = format!("{} | None", field_type);
@@ -699,7 +718,11 @@ fn render_discriminated_union_enum(
                         },
                         deprecation_note: None,
                         optional: !field.required,
-                        default_value: if field.required { None } else { Some("None".to_string()) },
+                        default_value: if field.required {
+                            None
+                        } else {
+                            Some("None".to_string())
+                        },
                     });
                 }
             }
@@ -719,7 +742,11 @@ fn render_discriminated_union_enum(
             generic_params: active_generics.clone(),
         };
 
-        variant_models.push(variant_model.render().context("Failed to render variant model")?);
+        variant_models.push(
+            variant_model
+                .render()
+                .context("Failed to render variant model")?,
+        );
     }
 
     // Generate the discriminated union (without UnknownVariant for now due to Pydantic limitations)
@@ -739,11 +766,14 @@ fn render_discriminated_union_enum(
     let discriminated_union_code = discriminated_union_template
         .render()
         .context("Failed to render discriminated union enum")?;
-    
+
     // Generate factory class for ergonomic instantiation
     let factory_class_code = generate_factory_class(enum_def, &enum_name, &union_members)?;
-    
-    Ok(format!("{}\n\n{}", discriminated_union_code, factory_class_code))
+
+    Ok(format!(
+        "{}\n\n{}",
+        discriminated_union_code, factory_class_code
+    ))
 }
 
 fn generate_factory_class(
@@ -752,14 +782,32 @@ fn generate_factory_class(
     union_members: &[String],
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
-    
+
     let factory_name = format!("{}Factory", enum_name);
     let mut class_attributes = Vec::new();
     let mut static_methods = Vec::new();
-    
+
+    // Check if this enum is generic
+    let is_generic = !enum_def.parameters.is_empty();
+    let generic_params: Vec<String> = if is_generic {
+        enum_def
+            .parameters
+            .iter()
+            .map(|p| map_generic_name(&p.name))
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    let generic_type_params = if is_generic {
+        format!("[{}]", generic_params.join(", "))
+    } else {
+        String::new()
+    };
+
     for (i, variant) in enum_def.variants.iter().enumerate() {
         let variant_class_name = &union_members[i];
-        
+
         match &variant.fields {
             Fields::None => {
                 // Unit variant - create as class attribute
@@ -774,46 +822,62 @@ fn generate_factory_class(
                 let method_name = to_snake_case(variant.name());
                 let method_params = generate_factory_method_params(variant)?;
                 let method_args = generate_factory_method_args(variant)?;
-                
+
+                // Add generic type parameters to the return type if the enum is generic and not already present
+                let return_type = if is_generic && !variant_class_name.contains('[') {
+                    format!("{}{}", variant_class_name, generic_type_params)
+                } else {
+                    variant_class_name.clone()
+                };
+
                 static_methods.push(format!(
                     r#"    @staticmethod
     def {}({}) -> {}:
-        """Creates the '{}' variant of the {} enum."""
+        '''Creates the '{}' variant of the {} enum.'''
         return {}({})"#,
                     method_name,
                     method_params,
-                    variant_class_name,
+                    return_type,
                     variant.name(),
                     enum_name,
-                    variant_class_name,
+                    return_type,
                     method_args
                 ));
             }
         }
     }
-    
+
+    let enum_description = if enum_def.description().is_empty() {
+        format!("{} variants", enum_name)
+    } else {
+        sanitize_description(enum_def.description())
+    };
+
     let mut factory_code = format!(
         r#"class {}:
-    """Factory class for creating {} variants with ergonomic syntax.""""#,
-        factory_name, enum_name
+    '''Factory class for creating {} variants with ergonomic syntax.
+
+    {}
+    '''"#,
+        factory_name, enum_name, enum_description
     );
-    
+
     if !class_attributes.is_empty() {
         factory_code.push_str("\n\n");
         factory_code.push_str(&class_attributes.join("\n"));
     }
-    
+
     if !static_methods.is_empty() {
         factory_code.push_str("\n\n");
         factory_code.push_str(&static_methods.join("\n\n"));
     }
-    
+
     Ok(factory_code)
 }
 
 fn generate_factory_method_params(variant: &reflectapi_schema::Variant) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
-    
+
     match &variant.fields {
         Fields::None => Ok(String::new()),
         Fields::Unnamed(unnamed_fields) => {
@@ -821,7 +885,7 @@ fn generate_factory_method_params(variant: &reflectapi_schema::Variant) -> anyho
                 .iter()
                 .enumerate()
                 .map(|(i, field)| {
-                    let param_name = format!("value_{}", i);
+                    let param_name = format!("field_{}", i);
                     if field.required {
                         param_name
                     } else {
@@ -832,17 +896,25 @@ fn generate_factory_method_params(variant: &reflectapi_schema::Variant) -> anyho
             Ok(params.join(", "))
         }
         Fields::Named(named_fields) => {
-            let params: Vec<String> = named_fields
-                .iter()
-                .map(|field| {
-                    let param_name = field.serde_name();
-                    if field.required {
-                        param_name.to_string()
-                    } else {
-                        format!("{} = None", param_name)
-                    }
-                })
-                .collect();
+            let mut params: Vec<String> = Vec::new();
+
+            // Separate required and optional parameters for better ergonomics
+            let mut required_params: Vec<String> = Vec::new();
+            let mut optional_params: Vec<String> = Vec::new();
+
+            for field in named_fields {
+                let param_name = to_snake_case(field.serde_name());
+                if field.required {
+                    required_params.push(param_name);
+                } else {
+                    optional_params.push(format!("{} = None", param_name));
+                }
+            }
+
+            // Put required parameters first, then optional ones
+            params.extend(required_params);
+            params.extend(optional_params);
+
             Ok(params.join(", "))
         }
     }
@@ -850,12 +922,12 @@ fn generate_factory_method_params(variant: &reflectapi_schema::Variant) -> anyho
 
 fn generate_factory_method_args(variant: &reflectapi_schema::Variant) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
-    
+
     match &variant.fields {
         Fields::None => Ok(String::new()),
         Fields::Unnamed(unnamed_fields) => {
             let args: Vec<String> = (0..unnamed_fields.len())
-                .map(|i| format!("value_{}=value_{}", i, i))
+                .map(|i| format!("field_{}=field_{}", i, i))
                 .collect();
             Ok(args.join(", "))
         }
@@ -863,8 +935,9 @@ fn generate_factory_method_args(variant: &reflectapi_schema::Variant) -> anyhow:
             let args: Vec<String> = named_fields
                 .iter()
                 .map(|field| {
-                    let name = field.serde_name();
-                    format!("{}={}", name, name)
+                    let serde_name = field.serde_name();
+                    let param_name = to_snake_case(serde_name);
+                    format!("{}={}", serde_name, param_name)
                 })
                 .collect();
             Ok(args.join(", "))
@@ -919,16 +992,19 @@ fn render_internally_tagged_enum_improved(
     let enum_name = improve_class_name(&enum_def.name);
     let mut variant_class_definitions: Vec<String> = Vec::new();
     let mut union_variant_names: Vec<String> = Vec::new();
-    
+
     // Check if this enum is generic
     let is_generic = !enum_def.parameters.is_empty();
-    let generic_params: Vec<String> = enum_def.parameters.iter()
+    let generic_params: Vec<String> = enum_def
+        .parameters
+        .iter()
         .map(|p| map_generic_name(&p.name))
         .collect();
-    
+
     // Generate TypeVar definitions if generic
     let type_var_definitions = if is_generic {
-        generic_params.iter()
+        generic_params
+            .iter()
             .map(|param| format!("{} = TypeVar('{}')", param, param))
             .collect::<Vec<_>>()
             .join("\n")
@@ -939,7 +1015,7 @@ fn render_internally_tagged_enum_improved(
     // Generate individual classes for each variant
     for variant in &enum_def.variants {
         let variant_class_name = format!("{}{}", enum_name, to_pascal_case(variant.name()));
-        
+
         // For generic enums, add the type parameters to the union variant names
         if is_generic {
             let params_str = generic_params.join(", ");
@@ -1065,8 +1141,12 @@ fn render_internally_tagged_enum_improved(
             Fields::Named(named_fields) => {
                 // Struct variant - handle normally
                 for field in named_fields {
-                    let field_type =
-                        type_ref_to_python_type(&field.type_ref, schema, implemented_types, &generic_params)?;
+                    let field_type = type_ref_to_python_type(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        &generic_params,
+                    )?;
 
                     let is_option_type = field.type_ref.name == "std::option::Option";
                     let (optional, default_value, final_field_type) = if !field.required {
@@ -1129,7 +1209,7 @@ fn render_internally_tagged_enum_improved(
         .collect();
 
     let union_template = templates::UnionClass {
-        name: enum_name,
+        name: enum_name.clone(),
         description: Some(enum_def.description().to_string()),
         variants: union_variants,
         discriminator_field: tag.to_string(),
@@ -1139,21 +1219,26 @@ fn render_internally_tagged_enum_improved(
 
     // Combine all parts
     let mut result = String::new();
-    
+
     // Add TypeVar definitions at the top if generic
     if !type_var_definitions.is_empty() {
         result.push_str(&type_var_definitions);
         result.push_str("\n\n");
     }
-    
+
     // Add variant classes
     result.push_str(&variant_class_definitions.join("\n\n"));
     if !result.is_empty() {
         result.push_str("\n\n");
     }
-    
+
     // Add union definition
     result.push_str(&union_definition);
+
+    // Add factory class for ergonomic instantiation
+    let factory_class_code = generate_factory_class(enum_def, &enum_name, &union_variant_names)?;
+    result.push_str("\n\n");
+    result.push_str(&factory_class_code);
 
     Ok(result)
 }
@@ -1170,7 +1255,10 @@ fn render_untagged_enum(
     let mut union_variants = Vec::new();
 
     // Collect active generic parameter names for this enum
-    let generic_params: Vec<String> = enum_def.parameters().map(|p| map_generic_name(&p.name)).collect();
+    let generic_params: Vec<String> = enum_def
+        .parameters()
+        .map(|p| map_generic_name(&p.name))
+        .collect();
 
     // Process each variant to create separate classes (without discriminator fields)
     for variant in &enum_def.variants {
@@ -1181,8 +1269,12 @@ fn render_untagged_enum(
         match &variant.fields {
             Fields::Named(named_fields) => {
                 for field in named_fields {
-                    let field_type =
-                        type_ref_to_python_type(&field.type_ref, schema, implemented_types, &generic_params)?;
+                    let field_type = type_ref_to_python_type(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        &generic_params,
+                    )?;
                     // Check if field type is Option<T>
                     let is_option_type = field.type_ref.name == "std::option::Option";
                     // Handle optionality
@@ -1215,8 +1307,12 @@ fn render_untagged_enum(
             Fields::Unnamed(unnamed_fields) => {
                 // Handle tuple-like variants for untagged enums
                 for (i, field) in unnamed_fields.iter().enumerate() {
-                    let field_type =
-                        type_ref_to_python_type(&field.type_ref, schema, implemented_types, &generic_params)?;
+                    let field_type = type_ref_to_python_type(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        &generic_params,
+                    )?;
                     let is_option_type = field.type_ref.name == "std::option::Option";
                     let (optional, default_value, final_field_type) = if !field.required {
                         if is_option_type {
@@ -1273,8 +1369,12 @@ fn render_untagged_enum(
     }
 
     // Generate the union type alias (without Field discriminator)
+    let union_variant_names: Vec<String> = union_variants
+        .iter()
+        .map(|uv| uv.type_annotation.clone())
+        .collect();
     let union_template = templates::UntaggedUnionClass {
-        name: enum_name,
+        name: enum_name.clone(),
         description: Some(enum_def.description().to_string()),
         variants: union_variants,
     };
@@ -1288,6 +1388,11 @@ fn render_untagged_enum(
         result.push_str("\n\n");
     }
     result.push_str(&union_definition);
+
+    // Add factory class for ergonomic instantiation
+    let factory_class_code = generate_factory_class(enum_def, &enum_name, &union_variant_names)?;
+    result.push_str("\n\n");
+    result.push_str(&factory_class_code);
 
     Ok(result)
 }
@@ -1314,6 +1419,18 @@ fn render_function(
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
         Some(type_ref_to_python_type(
             error_type,
+            schema,
+            implemented_types,
+            &[],
+        )?)
+    } else {
+        None
+    };
+
+    // Compute headers type if the function specifies input headers
+    let headers_type = if let Some(headers_ref) = function.input_headers.as_ref() {
+        Some(type_ref_to_python_type(
+            headers_ref,
             schema,
             implemented_types,
             &[],
@@ -1361,6 +1478,7 @@ fn render_function(
         },
         path,
         input_type,
+        headers_type,
         output_type,
         error_type,
         path_params,
@@ -1527,12 +1645,13 @@ fn improve_class_name(original_name: &str) -> String {
         // Convert Rust-style module paths to PascalCase
         // e.g., "nomatches::IfConflictOnInsertRequired" -> "NomatchesIfConflictOnInsertRequired"
         let parts: Vec<&str> = original_name.split("::").collect();
-        return parts.iter()
+        return parts
+            .iter()
             .map(|part| to_pascal_case(part))
             .collect::<Vec<_>>()
             .join("");
     }
-    
+
     // Handle dotted namespaces (e.g., "myapi.model.Pet" -> "Pet")
     if original_name.contains('.') {
         let parts: Vec<&str> = original_name.split('.').collect();
@@ -1799,7 +1918,7 @@ fn extract_request_suffix(request_name: &str) -> Option<String> {
     None
 }
 
-/// Extract meaningful suffix from error type name  
+/// Extract meaningful suffix from error type name
 fn extract_error_suffix(error_name: &str) -> Option<String> {
     if let Some(pos) = error_name.find("Error") {
         let prefix = &error_name[..pos];
@@ -1964,17 +2083,15 @@ fn type_ref_to_python_type(
         if !type_ref.arguments.is_empty() {
             // Now that we're properly implementing generic variant classes,
             // we can remove the inline union generation and let the regular path handle it
-            
+
             // Convert all arguments to Python types
             let arg_types: Result<Vec<String>, _> = type_ref
                 .arguments
                 .iter()
-                .map(|arg| {
-                    type_ref_to_python_type(arg, schema, implemented_types, active_generics)
-                })
+                .map(|arg| type_ref_to_python_type(arg, schema, implemented_types, active_generics))
                 .collect();
             let arg_types = arg_types?;
-            
+
             // Always use bracket notation for generic types
             // Never do string replacement in the type name itself
             return Ok(format!("{}[{}]", base_type, arg_types.join(", ")));
@@ -2667,12 +2784,12 @@ pub mod templates {
 
     #[derive(Template)]
     #[template(
-        source = r#"""""
+        source = r#"'''
 Generated Python client for {{ package_name }}.
 
 DO NOT MODIFY THIS FILE MANUALLY.
 This file is automatically generated by ReflectAPI.
-"""
+'''
 
 from __future__ import annotations
 "#,
@@ -2781,7 +2898,7 @@ ClientType = TypeVar('ClientType')
 
 class {{ name }}({% if is_int_enum %}IntEnum{% else %}Enum{% endif %}):
 {% if description.is_some() %}    """{{ description.as_deref().unwrap() }}"""
-    
+
 {% endif %}{% for variant in variants %}
     {{ variant.name }} = {{ variant.value }}
 {% if variant.description.is_some() %}    """{{ variant.description.as_deref().unwrap() }}"""
@@ -2800,7 +2917,7 @@ class {{ name }}({% if is_int_enum %}IntEnum{% else %}Enum{% endif %}):
     #[derive(Template)]
     #[template(
         source = r#"{{ name }} = Annotated[Union[{% for variant in variants %}{{ variant.type_annotation }}{% if !loop.last %}, {% endif %}{% endfor %}], Field(discriminator='{{ discriminator_field }}')]
-"""{{ description.as_deref().unwrap_or("") }}"""
+{% if description.is_some() && !description.as_deref().unwrap_or("").is_empty() %}"""{{ description.as_deref().unwrap() }}"""{% endif %}
 "#,
         ext = "txt"
     )]
@@ -2814,7 +2931,7 @@ class {{ name }}({% if is_int_enum %}IntEnum{% else %}Enum{% endif %}):
     #[derive(Template)]
     #[template(
         source = r#"{{ name }} = Union[{% for variant in variants %}{{ variant.type_annotation }}{% if !loop.last %}, {% endif %}{% endfor %}]
-"""{{ description.as_deref().unwrap_or("") }}"""
+{% if description.is_some() && !description.as_deref().unwrap_or("").is_empty() %}"""{{ description.as_deref().unwrap() }}"""{% endif %}
 "#,
         ext = "txt"
     )]
@@ -2830,10 +2947,10 @@ class {{ name }}({% if is_int_enum %}IntEnum{% else %}Enum{% endif %}):
 {% for group in function_groups %}
 class Async{{ group.class_name }}:
     """Async client for {{ group.name }} operations."""
-    
+
     def __init__(self, client: AsyncClientBase) -> None:
         self._client = client
-    
+
 {% for function in group.functions %}
     async def {{ function.name }}(
             self,
@@ -2848,17 +2965,17 @@ class Async{{ group.class_name }}:
 {% endif %}
         ) -> ApiResponse[{{ function.output_type }}]:
             """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
-            
+
             Args:
                 data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
 {% for param in function.path_params %}                {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
 {% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
 {% for param in function.query_params %}                {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
 {% endfor %}{% endif %}
-            
+
             Returns:
                 ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-            
+
             .. deprecated::
                {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
             """
@@ -2873,13 +2990,13 @@ class Async{{ group.class_name }}:
 {% for param in function.path_params %}
             path = path.replace("{" + "{{ param.name }}" + "}", str({{ param.name }}))
 {% endfor %}
-            
+
             params: dict[str, Any] = {}
 {% for param in function.query_params %}
             if {{ param.name }} is not None:
                 params["{{ param.name }}"] = {{ param.name }}
 {% endfor %}
-            
+
             return await self._client._make_request(
                 "{{ function.method }}",
                 path,
@@ -2897,13 +3014,13 @@ class Async{{ group.class_name }}:
                 response_model={{ function.output_type }},
 {% endif %}
             )
-        
+
 {% endfor %}
 
 {% endfor %}
 class {{ async_class_name }}(AsyncClientBase):
     """Async client for the API."""
-    
+
     def __init__(
         self,
         base_url: str{% if base_url.is_some() %} = "{{ base_url.as_ref().unwrap() }}"{% endif %},
@@ -2913,7 +3030,7 @@ class {{ async_class_name }}(AsyncClientBase):
 {% for group in function_groups %}
         self.{{ group.name }} = Async{{ group.class_name }}(self)
 {% endfor %}
-    
+
 {% for function in top_level_functions %}
     async def {{ function.name }}(
         self,
@@ -2921,24 +3038,27 @@ class {{ async_class_name }}(AsyncClientBase):
         {{ param.name }}: {{ param.type_annotation }},
 {% endfor %}
 {% for param in function.query_params %}
-        {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
+            {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
 {% endfor %}
 {% if function.has_body %}
-        data: Optional[{{ function.input_type }}] = None,
+            data: Optional[{{ function.input_type }}] = None,
+{% endif %}
+{% if function.headers_type.is_some() %}
+            headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
 {% endif %}
     ) -> ApiResponse[{{ function.output_type }}]:
         """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
-        
+
         Args:
             data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
 {% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
 {% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
 {% for param in function.query_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
 {% endfor %}{% endif %}
-        
+
         Returns:
             ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-        
+
         .. deprecated::
            {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
         """
@@ -2953,13 +3073,13 @@ class {{ async_class_name }}(AsyncClientBase):
 {% for param in function.path_params %}
         path = path.replace("{" + "{{ param.name }}" + "}", str({{ param.name }}))
 {% endfor %}
-        
+
         params: dict[str, Any] = {}
 {% for param in function.query_params %}
         if {{ param.name }} is not None:
             params["{{ param.name }}"] = {{ param.name }}
 {% endfor %}
-        
+
         return await self._make_request(
             "{{ function.method }}",
             path,
@@ -2971,13 +3091,16 @@ class {{ async_class_name }}(AsyncClientBase):
             json_model=data,
 {% endif %}
 {% endif %}
+{% if function.headers_type.is_some() %}
+                headers_model=headers,
+{% endif %}
 {% if function.output_type == "Any" %}
-            response_model=None,
+                response_model=None,
 {% else %}
-            response_model={{ function.output_type }},
+                response_model={{ function.output_type }},
 {% endif %}
         )
-    
+
 {% endfor %}
 
 {% endif %}
@@ -2986,10 +3109,10 @@ class {{ async_class_name }}(AsyncClientBase):
 {% for group in function_groups %}
 class {{ group.class_name }}:
     """Synchronous client for {{ group.name }} operations."""
-    
+
     def __init__(self, client: ClientBase) -> None:
         self._client = client
-    
+
 {% for function in group.functions %}
     def {{ function.name }}(
             self,
@@ -3004,17 +3127,17 @@ class {{ group.class_name }}:
 {% endif %}
         ) -> ApiResponse[{{ function.output_type }}]:
             """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
-            
+
             Args:
                 data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
 {% for param in function.path_params %}                {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
 {% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
 {% for param in function.query_params %}                {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
 {% endfor %}{% endif %}
-            
+
             Returns:
                 ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-            
+
             .. deprecated::
                {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
             """
@@ -3029,13 +3152,13 @@ class {{ group.class_name }}:
 {% for param in function.path_params %}
             path = path.replace("{" + "{{ param.name }}" + "}", str({{ param.name }}))
 {% endfor %}
-            
+
             params: dict[str, Any] = {}
 {% for param in function.query_params %}
             if {{ param.name }} is not None:
                 params["{{ param.name }}"] = {{ param.name }}
 {% endfor %}
-            
+
             return self._client._make_request(
                 "{{ function.method }}",
                 path,
@@ -3047,19 +3170,22 @@ class {{ group.class_name }}:
                 json_model=data,
 {% endif %}
 {% endif %}
+{% if function.headers_type.is_some() %}
+            headers_model=headers,
+{% endif %}
 {% if function.output_type == "Any" %}
-                response_model=None,
+            response_model=None,
 {% else %}
-                response_model={{ function.output_type }},
+            response_model={{ function.output_type }},
 {% endif %}
             )
-        
+
 {% endfor %}
 
 {% endfor %}
 class {{ class_name }}(ClientBase):
     """Synchronous client for the API."""
-    
+
     def __init__(
         self,
         base_url: str{% if base_url.is_some() %} = "{{ base_url.as_ref().unwrap() }}"{% endif %},
@@ -3069,7 +3195,7 @@ class {{ class_name }}(ClientBase):
 {% for group in function_groups %}
         self.{{ group.name }} = {{ group.class_name }}(self)
 {% endfor %}
-    
+
 {% for function in top_level_functions %}
     def {{ function.name }}(
         self,
@@ -3082,19 +3208,22 @@ class {{ class_name }}(ClientBase):
 {% if function.has_body %}
         data: Optional[{{ function.input_type }}] = None,
 {% endif %}
+{% if function.headers_type.is_some() %}
+        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
+{% endif %}
     ) -> ApiResponse[{{ function.output_type }}]:
         """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
-        
+
         Args:
             data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
 {% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
 {% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
 {% for param in function.query_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
 {% endfor %}{% endif %}
-        
+
         Returns:
             ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-        
+
         .. deprecated::
            {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
         """
@@ -3109,13 +3238,13 @@ class {{ class_name }}(ClientBase):
 {% for param in function.path_params %}
         path = path.replace("{" + "{{ param.name }}" + "}", str({{ param.name }}))
 {% endfor %}
-        
+
         params: dict[str, Any] = {}
 {% for param in function.query_params %}
         if {{ param.name }} is not None:
             params["{{ param.name }}"] = {{ param.name }}
 {% endfor %}
-        
+
         return self._make_request(
             "{{ function.method }}",
             path,
@@ -3133,7 +3262,7 @@ class {{ class_name }}(ClientBase):
             response_model={{ function.output_type }},
 {% endif %}
         )
-    
+
 {% endfor %}
 
 {% endif %}
@@ -3206,6 +3335,7 @@ def create_mock_client() -> MockClient:
         pub method: String,
         pub path: String,
         pub input_type: String,
+        pub headers_type: Option<String>,
         pub output_type: String,
         pub error_type: Option<String>,
         pub path_params: Vec<Parameter>,
@@ -3237,11 +3367,11 @@ def create_mock_client() -> MockClient:
 {% else %}    """Unit variant for externally tagged enum."""
 {% endif %}
     model_config = ConfigDict(extra="ignore")
-    
+
     def model_dump(self, **kwargs):
         """Serialize as just the variant name string for unit variants."""
         return "{{ variant_name }}"
-        
+
     def model_dump_json(self, **kwargs):
         """Serialize as JSON string for unit variants."""
         import json
@@ -3261,17 +3391,17 @@ def create_mock_client() -> MockClient:
 {% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
 {% else %}    """Tuple variant for externally tagged enum."""
 {% endif %}
-    
+
     model_config = ConfigDict(extra="ignore")
-    
+
 {% for field in fields %}    {{ field.name }}: {{ field.type_annotation }}{% if field.default_value.is_some() %} = {{ field.default_value.as_ref().unwrap() }}{% else %}{% if field.optional %} = None{% endif %}{% endif %}
 {% endfor %}
-    
+
     def model_dump(self, **kwargs):
         """Serialize as externally tagged tuple variant."""
         fields = [{% for field in fields %}self.{{ field.name }}{% if !loop.last %}, {% endif %}{% endfor %}]
         return {"{{ variant_name }}": fields}
-        
+
     def model_dump_json(self, **kwargs):
         """Serialize as JSON for externally tagged tuple variant."""
         import json
@@ -3293,10 +3423,10 @@ def create_mock_client() -> MockClient:
 {% else %}    """Struct variant for externally tagged enum."""
 {% endif %}
     model_config = ConfigDict(extra="ignore")
-    
+
 {% for field in fields %}    {{ field.name }}: {{ field.type_annotation }}{% if field.default_value.is_some() %} = {{ field.default_value.as_ref().unwrap() }}{% else %}{% if field.optional %} = None{% endif %}{% endif %}
 {% endfor %}
-    
+
     def model_dump(self, **kwargs):
         """Serialize as externally tagged struct variant."""
         fields = {}
@@ -3304,7 +3434,7 @@ def create_mock_client() -> MockClient:
             fields['{{ field.name }}'] = self.{{ field.name }}
 {% endfor %}
         return {"{{ variant_name }}": fields}
-        
+
     def model_dump_json(self, **kwargs):
         """Serialize as JSON for externally tagged struct variant."""
         import json
@@ -3353,7 +3483,7 @@ class {{ enum_name }}(str, Enum):
     # Unit variants as enum members
 {% for variant in unit_variants %}    {{ variant.name }} = "{{ variant.value }}"{% if variant.description.is_some() %}  # {{ variant.description.as_deref().unwrap() }}{% endif %}
 {% endfor %}
-    
+
     def model_dump(self):
         """Handle serialization for simple enum values."""
         return self.value
@@ -3384,12 +3514,12 @@ class {{ name }}:
     {% endif %}{%- for field_type in field_types %}
     {{ field_type }}
 {%- endfor %}
-    
+
     def model_dump(self) -> dict:
         """Serialize tuple variant as externally tagged."""
         fields = [{% for field in field_names %}self.{{ field }}{% if !loop.last %}, {% endif %}{% endfor %}]
         return {"{{ variant_name }}": fields}
-    
+
     def model_dump_json(self, **kwargs) -> str:
         """Serialize as JSON."""
         import json
@@ -3413,7 +3543,7 @@ class {{ name }}:
     {% endif %}{%- for field_def in field_definitions %}
     {{ field_def }}
 {%- endfor %}
-    
+
     def model_dump(self) -> dict:
         """Serialize struct variant as externally tagged."""
         result = {}
@@ -3422,7 +3552,7 @@ class {{ name }}:
             result['{{ field_name }}'] = self.{{ field_name }}
 {%- endfor %}
         return {"{{ variant_name }}": result}
-    
+
     def model_dump_json(self, **kwargs) -> str:
         """Serialize as JSON."""
         import json
@@ -3439,10 +3569,7 @@ class {{ name }}:
     }
 
     #[derive(Template)]
-    #[template(
-        source = r#"{{ method_name }}"#,
-        ext = "txt"
-    )]
+    #[template(source = r#"{{ method_name }}"#, ext = "txt")]
     pub struct FactoryMethod {
         pub method_name: String,
         pub variant_name: String,

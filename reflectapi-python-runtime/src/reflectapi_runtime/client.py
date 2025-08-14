@@ -228,14 +228,14 @@ class ClientBase(ABC):
     def _serialize_request_body(self, json_model: BaseModel) -> tuple[bytes, dict[str, str]]:
         """Serialize request body from Pydantic model."""
         from .option import ReflectapiOption
-        
+
         # Check if model has any ReflectapiOption fields that need special handling
         raw_data = json_model.model_dump(exclude_none=False)
         has_reflectapi_options = any(
-            isinstance(field_value, ReflectapiOption) 
+            isinstance(field_value, ReflectapiOption)
             for field_value in raw_data.values()
         )
-        
+
         if has_reflectapi_options:
             # Process each field to handle ReflectapiOption properly
             processed_fields = {}
@@ -249,11 +249,11 @@ class ClientBase(ABC):
                     # Include all other fields that aren't None (unless they're meaningful None values)
                     if field_value is not None:
                         processed_fields[field_name] = field_value
-            
+
             # Use json serialization with datetime handler for proper serialization
             import json
             import datetime
-            
+
             def json_serializer(obj):
                 if isinstance(obj, datetime.datetime):
                     return obj.isoformat()
@@ -263,26 +263,26 @@ class ClientBase(ABC):
                     # This is a Pydantic model (like our enum variants)
                     return obj.model_dump(exclude_none=True)
                 raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
-            
+
             content = json.dumps(processed_fields, default=json_serializer, separators=(',', ':')).encode('utf-8')
         else:
             # Use Pydantic's built-in JSON serialization with exclude_none for proper handling
             content = json_model.model_dump_json(exclude_none=True).encode('utf-8')
-        
+
         headers = {"Content-Type": "application/json"}
         return content, headers
 
     def _build_headers(self, base_headers: dict[str, str], headers_model: BaseModel | None) -> dict[str, str]:
         """Build complete headers dict including custom headers from headers_model."""
         headers = base_headers.copy()
-        
+
         # Add headers from headers_model if provided
         if headers_model is not None:
             header_dict = headers_model.model_dump(by_alias=True, exclude_unset=True)
             for key, value in header_dict.items():
                 if value is not None:
                     headers[key] = str(value)
-        
+
         return headers
 
     def _build_request(
@@ -299,7 +299,7 @@ class ClientBase(ABC):
             # Serialize Pydantic model
             content, base_headers = self._serialize_request_body(json_model)
             headers = self._build_headers(base_headers, headers_model)
-            
+
             return self._client.build_request(
                 method=method,
                 url=url,
@@ -383,11 +383,11 @@ class ClientBase(ABC):
                 json_response = self._parse_json_response(response)
                 # For Union types, try to deserialize with each type in the union
                 union_args = response_model.__args__
-                
+
                 # Handle None case first
                 if json_response is None and type(None) in union_args:
                     return ApiResponse(None, metadata)
-                
+
                 # Try each non-None type in the union
                 for arg_type in union_args:
                     if arg_type is not type(None) and hasattr(arg_type, "model_validate"):
@@ -396,10 +396,10 @@ class ClientBase(ABC):
                             return ApiResponse(validated_data, metadata)
                         except Exception:
                             continue  # Try next type
-                
+
                 # If none of the types worked, return as dict
                 return ApiResponse(json_response, metadata)
-            
+
             # Type guard to ensure we have a model with validation methods
             if not (isinstance(response_model, type) and hasattr(response_model, "model_validate")):
                 # Shouldn't happen, but fallback to JSON parsing
@@ -413,7 +413,7 @@ class ClientBase(ABC):
                 # Fallback to old method for compatibility
                 json_response = self._parse_json_response(response)
                 validated_data = response_model.model_validate(json_response)
-            
+
             return ApiResponse(validated_data, metadata)
         except PydanticValidationError as e:
             raise ValidationError(
@@ -436,21 +436,21 @@ class ClientBase(ABC):
         """Make an HTTP request and return an ApiResponse."""
         # Validate request parameters
         self._validate_request_params(json_data, json_model)
-        
+
         # Build URL and request
         url = f"{self.base_url}/{path.lstrip('/')}"
         request = self._build_request(method, url, params, json_data, json_model, headers_model)
-        
+
         # Execute request with timing
         start_time = time.time()
-        
+
         try:
             response = self._execute_request(request)
             metadata = TransportMetadata.from_response(response, start_time)
-            
+
             # Handle error responses
             self._handle_error_response(response, metadata)
-            
+
             # Validate and return response
             if response_model is not None:
                 return self._validate_response_model(response, response_model, metadata)
@@ -657,14 +657,14 @@ class AsyncClientBase(ABC):
     def _serialize_request_body(self, json_model: BaseModel) -> tuple[bytes, dict[str, str]]:
         """Serialize request body from Pydantic model."""
         from .option import ReflectapiOption
-        
+
         # Check if model has any ReflectapiOption fields that need special handling
         raw_data = json_model.model_dump(exclude_none=False)
         has_reflectapi_options = any(
-            isinstance(field_value, ReflectapiOption) 
+            isinstance(field_value, ReflectapiOption)
             for field_value in raw_data.values()
         )
-        
+
         if has_reflectapi_options:
             # Process each field to handle ReflectapiOption properly
             processed_fields = {}
@@ -678,11 +678,11 @@ class AsyncClientBase(ABC):
                     # Include all other fields that aren't None (unless they're meaningful None values)
                     if field_value is not None:
                         processed_fields[field_name] = field_value
-            
+
             # Use json serialization with datetime handler for proper serialization
             import json
             import datetime
-            
+
             def json_serializer(obj):
                 if isinstance(obj, datetime.datetime):
                     return obj.isoformat()
@@ -692,27 +692,27 @@ class AsyncClientBase(ABC):
                     # This is a Pydantic model (like our enum variants)
                     return obj.model_dump(exclude_none=True)
                 raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
-            
+
             content = json.dumps(processed_fields, default=json_serializer, separators=(',', ':')).encode('utf-8')
         else:
             # Use Pydantic's built-in JSON serialization with exclude_none for proper handling
             content = json_model.model_dump_json(exclude_none=True).encode('utf-8')
-        
+
         headers = {"Content-Type": "application/json"}
-        
+
         return content, headers
 
     def _build_headers(self, base_headers: dict[str, str], headers_model: BaseModel | None) -> dict[str, str]:
         """Build complete headers dict including custom headers from headers_model."""
         headers = base_headers.copy()
-        
+
         # Add headers from headers_model if provided
         if headers_model is not None:
             header_dict = headers_model.model_dump(by_alias=True, exclude_unset=True)
             for key, value in header_dict.items():
                 if value is not None:
                     headers[key] = str(value)
-        
+
         return headers
 
     def _build_request(
@@ -729,7 +729,7 @@ class AsyncClientBase(ABC):
             # Serialize Pydantic model
             content, base_headers = self._serialize_request_body(json_model)
             headers = self._build_headers(base_headers, headers_model)
-            
+
             return self._client.build_request(
                 method=method,
                 url=url,
@@ -813,11 +813,11 @@ class AsyncClientBase(ABC):
                 json_response = self._parse_json_response(response)
                 # For Union types, try to deserialize with each type in the union
                 union_args = response_model.__args__
-                
+
                 # Handle None case first
                 if json_response is None and type(None) in union_args:
                     return ApiResponse(None, metadata)
-                
+
                 # Try each non-None type in the union
                 for arg_type in union_args:
                     if arg_type is not type(None) and hasattr(arg_type, "model_validate"):
@@ -826,10 +826,10 @@ class AsyncClientBase(ABC):
                             return ApiResponse(validated_data, metadata)
                         except Exception:
                             continue  # Try next type
-                
+
                 # If none of the types worked, return as dict
                 return ApiResponse(json_response, metadata)
-            
+
             # Type guard to ensure we have a model with validation methods
             if not (isinstance(response_model, type) and hasattr(response_model, "model_validate")):
                 # Shouldn't happen, but fallback to JSON parsing
@@ -838,12 +838,18 @@ class AsyncClientBase(ABC):
 
             # Use model_validate_json for high-performance parsing
             if hasattr(response_model, "model_validate_json"):
-                validated_data = response_model.model_validate_json(response.content)
+                content = response.content
+                # In tests/mocked responses, content may not be bytes/str; fall back to parsed JSON
+                if not isinstance(content, (bytes, bytearray, str)):
+                    json_response = self._parse_json_response(response)
+                    validated_data = response_model.model_validate(json_response)
+                else:
+                    validated_data = response_model.model_validate_json(content)
             else:
                 # Fallback to old method for compatibility
                 json_response = self._parse_json_response(response)
                 validated_data = response_model.model_validate(json_response)
-            
+
             return ApiResponse(validated_data, metadata)
         except PydanticValidationError as e:
             raise ValidationError(
@@ -866,21 +872,21 @@ class AsyncClientBase(ABC):
         """Make an HTTP request and return an ApiResponse."""
         # Validate request parameters
         self._validate_request_params(json_data, json_model)
-        
+
         # Build URL and request
         url = f"{self.base_url}/{path.lstrip('/')}"
         request = self._build_request(method, url, params, json_data, json_model, headers_model)
-        
+
         # Execute request with timing
         start_time = time.time()
-        
+
         try:
             response = await self._execute_request(request)
             metadata = TransportMetadata.from_response(response, start_time)
-            
+
             # Handle error responses
             self._handle_error_response(response, metadata)
-            
+
             # Validate and return response
             if response_model is not None:
                 return self._validate_response_model(response, response_model, metadata)
