@@ -290,7 +290,7 @@ class TestImportOptimization:
 
         # Basic imports should always be present
         assert 'from typing import' in content
-        assert 'from pydantic import BaseModel' in content
+        assert 'from pydantic import (' in content
 
         # Conditional imports based on usage
         has_datetime_usage = 'datetime' in content and 'updated_at:' in content

@@ -58,11 +58,8 @@ class TestClientServerIntegration:
     @pytest.mark.integration
     async def test_health_check(self, client):
         """Test basic health check endpoint."""
-        try:
-            response = await client.health.check()
-            assert response.metadata.status_code == 200
-        except Exception as e:
-            pytest.skip(f"Server not available: {e}")
+        response = await client.health.check()
+        assert response.metadata.status_code == 200
 
     @pytest.mark.integration
     async def test_pets_list_empty(self, client):
@@ -72,8 +69,8 @@ class TestClientServerIntegration:
         response = await client.pets.list(limit=10, headers=Headers(authorization="Bearer test-token"))
 
         assert response.metadata.status_code == 200
-        assert hasattr(response, 'items')
-        assert isinstance(response.items, list)
+        assert hasattr(response.value, 'items')
+        assert isinstance(response.value.items, list)
 
 
 
@@ -94,9 +91,7 @@ class TestClientServerIntegration:
         response = await client.pets.create(data=pet, headers=auth_headers)
 
         # Should succeed or give meaningful error
-        if response.metadata.status_code == 401:
-            pytest.skip("Authentication required")
-        elif response.metadata.status_code == 400:
+        if response.metadata.status_code == 400:
             # This is the bug we fixed - should not happen with proper discriminated unions
             pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
         else:
@@ -119,9 +114,7 @@ class TestClientServerIntegration:
         response = await client.pets.create(data=pet, headers=auth_headers)
 
         # Should succeed or give meaningful error
-        if response.metadata.status_code == 401:
-            pytest.skip("Authentication required")
-        elif response.metadata.status_code == 400:
+        if response.metadata.status_code == 400:
             # This is the bug we fixed - should not happen with proper discriminated unions
             pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
         else:
@@ -138,29 +131,32 @@ class TestClientServerIntegration:
             age=ReflectapiOption(4)
         )
 
-        response = await client.pets.update(data=request, headers=auth_headers)
-
-        # Should succeed, not found, or auth error - but not 400 Bad Request
-        if response.metadata.status_code == 401:
-            pytest.skip("Authentication required")
-        elif response.metadata.status_code == 400:
-            pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
-        else:
-            assert response.metadata.status_code in [200, 404]  # Updated or not found
+        try:
+            response = await client.pets.update(data=request, headers=auth_headers)
+            # If we get a response, it should be successful
+            assert response.metadata.status_code == 200
+        except ApiError as e:
+            # Should be 404 (not found), but NOT 400 (bad request)
+            if e.status_code == 400:
+                pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
+            elif e.status_code == 404:
+                # This is expected for non-existent pet - test passes
+                pass
+            else:
+                # Unexpected error
+                pytest.fail(f"Unexpected error: {e.status_code} {e.message}")
 
 
     @pytest.mark.integration
     async def test_get_first_pet_with_tagged_enum(self, client, auth_headers):
         """Test getting first pet and validate tagged enum deserialization."""
 
-        response = await client.pets.get_first()
+        response = await client.pets.get_first(headers=auth_headers)
 
-        if response.metadata.status_code == 401:
-            pytest.skip("Authentication required")
-        elif response.metadata.status_code == 200:
+        if response.metadata.status_code == 200:
             # If we get a pet back, validate the kind structure
-            if response is not None and hasattr(response, 'kind'):
-                kind = response.kind
+            if response.value is not None and hasattr(response.value, 'kind'):
+                kind = response.value.kind
 
                 # Should have discriminator field
                 assert hasattr(kind, 'type')

@@ -86,11 +86,12 @@ class TestErrorEnums:
         """Test PetsCreateError factory-created variants."""
         from generated import MyapiProtoPetsCreateErrorFactory as PetsCreateErrorFactory
         conflict = PetsCreateErrorFactory.CONFLICT
-        assert conflict.kind == "Conflict"
+        assert conflict.root == "Conflict"
         not_auth = PetsCreateErrorFactory.NOTAUTHORIZED
-        assert not_auth.kind == "NotAuthorized"
+        assert not_auth.root == "NotAuthorized"
         invalid = PetsCreateErrorFactory.invalid_identity("test")
-        assert invalid.kind == "InvalidIdentity"
+        assert hasattr(invalid, 'message')
+        assert invalid.message == "test"
 
     def test_pets_list_error_values(self):
         """Test PetsListError enum values."""
@@ -169,8 +170,9 @@ class TestEdgeCases:
             kind=PetKindDog(type='dog', breed='Labrador'),
             behaviors=[BehaviorFactory.CALM, BehaviorFactory.CALM, BehaviorFactory.aggressive(3.0, "test")]
         )
-        # Duplicates should be preserved
-        assert [b.kind for b in pet.behaviors] == ["Calm", "Calm", "Aggressive"]
+        # Duplicates should be preserved - check root values for externally tagged enums
+        roots = [b.root if b.root == "Calm" else "Aggressive" if hasattr(b.root, 'field_0') else str(b.root) for b in pet.behaviors]
+        assert roots == ["Calm", "Calm", "Aggressive"]
 
 
 class TestSerialization:

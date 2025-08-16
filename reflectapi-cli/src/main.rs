@@ -17,7 +17,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Generates code for typescript, rust or openapi from a reflectapi schema
+    /// Generates code for typescript, rust, python or openapi from a reflectapi schema
     Codegen {
         /// Path to the source reflect schema
         #[arg(short, long, value_name = "FILE")]

@@ -320,11 +320,15 @@ class ClientBase(ABC):
             else:
                 processed_json_data = json_data
 
+            # Build headers for requests without json_model
+            headers = self._build_headers({}, headers_model)
+            
             return self._client.build_request(
                 method=method,
                 url=url,
                 params=params,
                 json=processed_json_data,
+                headers=headers if headers else None,
             )
 
     def _execute_request(self, request: httpx.Request) -> httpx.Response:
@@ -750,11 +754,15 @@ class AsyncClientBase(ABC):
             else:
                 processed_json_data = json_data
 
+            # Build headers for requests without json_model
+            headers = self._build_headers({}, headers_model)
+            
             return self._client.build_request(
                 method=method,
                 url=url,
                 params=params,
                 json=processed_json_data,
+                headers=headers if headers else None,
             )
 
     async def _execute_request(self, request: httpx.Request) -> httpx.Response:
