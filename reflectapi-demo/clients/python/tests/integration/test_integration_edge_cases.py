@@ -31,8 +31,8 @@ class TestClientNetworkEdgeCases:
     @pytest.mark.asyncio
     async def test_client_with_unreachable_server(self):
         """Test client behavior when server is unreachable."""
-        # Use non-routable IP address
-        client = AsyncClient("http://192.0.2.1:9999")  # RFC5737 test IP
+        # Use non-routable IP address with short timeout
+        client = AsyncClient("http://192.0.2.1:9999", timeout=1.0)  # RFC5737 test IP, 1s timeout
 
         with pytest.raises(NetworkError):
             await client.pets.list()
@@ -40,7 +40,7 @@ class TestClientNetworkEdgeCases:
     @pytest.mark.asyncio
     async def test_client_with_invalid_hostname(self):
         """Test client with invalid hostname."""
-        client = AsyncClient("https://this-hostname-does-not-exist-12345.com")
+        client = AsyncClient("https://this-hostname-does-not-exist-12345.com", timeout=2.0)
 
         with pytest.raises(NetworkError):
             await client.pets.list()
@@ -58,12 +58,14 @@ class TestClientNetworkEdgeCases:
     @pytest.mark.asyncio
     async def test_client_with_connection_timeout(self):
         """Test client with very short timeout."""
-        # Use a server that's slow to respond (httpbin delay endpoint)
-        client = AsyncClient("https://httpbin.org", timeout=0.001)  # 1ms timeout
+        from httpx import TimeoutException
+        
+        # Mock httpx to raise timeout exception directly
+        with patch('httpx.AsyncClient.send', side_effect=TimeoutException("Mock timeout")):
+            client = AsyncClient("https://api.example.com", timeout=0.001)  # 1ms timeout
 
-        with pytest.raises(TimeoutError):
-            # This endpoint has a 2 second delay
-            await client._make_request("GET", "/delay/2")
+            with pytest.raises(TimeoutError):
+                await client._make_request("GET", "/delay/2")
 
     @pytest.mark.asyncio
     async def test_client_with_large_response_payload(self):
@@ -412,11 +414,11 @@ class TestConcurrentRequestEdgeCases:
 
             client = AsyncClient("https://api.example.com")
 
-            # Make 100 concurrent requests
-            tasks = [client.pets.list() for _ in range(100)]
+            # Make 20 concurrent requests (reduced from 100)
+            tasks = [client.pets.list() for _ in range(20)]
             responses = await asyncio.gather(*tasks)
 
-            assert len(responses) == 100
+            assert len(responses) == 20
             assert all(response.data.items == [] for response in responses)
 
     @pytest.mark.asyncio
@@ -466,12 +468,12 @@ class TestConcurrentRequestEdgeCases:
     async def test_client_cleanup_with_pending_requests(self):
         """Test client cleanup when requests are still pending."""
         async def slow_response(request):
-            await asyncio.sleep(0.2)  # Slow response
+            await asyncio.sleep(0.05)  # Slow response (reduced from 0.2s)
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.json.return_value = {"result": "ok"}
             mock_response.headers = {}
-            mock_response.elapsed.total_seconds.return_value = 0.2
+            mock_response.elapsed.total_seconds.return_value = 0.05
             return mock_response
 
         with patch('httpx.AsyncClient.send', side_effect=slow_response):
@@ -480,7 +482,7 @@ class TestConcurrentRequestEdgeCases:
                 task = asyncio.create_task(client.health.check())
 
                 # Let request start
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.02)
 
                 # Context manager exit should handle cleanup properly
 

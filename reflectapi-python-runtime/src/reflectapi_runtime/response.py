@@ -62,9 +62,6 @@ class ApiResponse(Generic[T]):
         """Alias for value for ergonomic access (useful when the payload is a dict)."""
         return self._value
 
-    def __getattr__(self, name: str) -> Any:
-        """Delegate attribute access to the wrapped value for ergonomic usage."""
-        return getattr(self._value, name)
 
     def __dir__(self) -> list[str]:
         """Provide comprehensive attribute listing for better introspection.

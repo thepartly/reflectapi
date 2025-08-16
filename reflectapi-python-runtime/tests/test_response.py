@@ -75,48 +75,7 @@ class TestApiResponse:
         assert response.value == value
         assert response.metadata is metadata
 
-    def test_attribute_delegation(self):
-        """Test that attribute access is delegated to the wrapped value."""
 
-        class TestObject:
-            def __init__(self):
-                self.name = "test"
-                self.count = 42
-
-            def get_info(self):
-                return f"{self.name}:{self.count}"
-
-        value = TestObject()
-        metadata = TransportMetadata(
-            status_code=200,
-            headers=httpx.Headers({}),
-            timing=0.1,
-            raw_response=Mock(spec=httpx.Response),
-        )
-
-        response = ApiResponse(value, metadata)
-
-        # Should be able to access attributes of the wrapped value
-        assert response.name == "test"
-        assert response.count == 42
-        assert response.get_info() == "test:42"
-
-    def test_attribute_delegation_with_dict(self):
-        """Test attribute delegation with dictionary values."""
-        value = {"name": "test", "age": 25}
-        metadata = TransportMetadata(
-            status_code=200,
-            headers=httpx.Headers({}),
-            timing=0.1,
-            raw_response=Mock(spec=httpx.Response),
-        )
-
-        response = ApiResponse(value, metadata)
-
-        # Dictionary methods should be accessible
-        assert response.get("name") == "test"
-        assert response.keys()
-        assert "name" in response
 
     def test_repr(self):
         """Test string representation."""
@@ -180,3 +139,30 @@ class TestApiResponse:
         # Test __getitem__ raises TypeError for unsupported types
         with pytest.raises(TypeError, match="not subscriptable"):
             response[0]
+
+    def test_explicit_value_access_preferred(self):
+        """Test the preferred explicit .value access pattern."""
+        
+        class MockObject:
+            def __init__(self, name: str, count: int):
+                self.name = name
+                self.count = count
+
+            def get_info(self) -> str:
+                return f"{self.name}:{self.count}"
+
+        value = MockObject("test", 42)
+        metadata = TransportMetadata(
+            status_code=200,
+            headers=httpx.Headers({}),
+            timing=0.1,
+            raw_response=Mock(spec=httpx.Response),
+        )
+
+        response = ApiResponse(value, metadata)
+
+        # Preferred: Explicit access via .value (no deprecation warning)
+        assert response.value.name == "test"
+        assert response.value.count == 42
+        assert response.value.get_info() == "test:42"
+

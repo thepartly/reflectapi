@@ -94,8 +94,9 @@ class TestClientMethodSignatures:
         sig = inspect.signature(client.pets.get_first)
         params = list(sig.parameters.keys())
         
-        # Should have no parameters (no data)
-        assert params == []
+        # Should have headers parameter but no data parameter
+        assert 'data' not in params
+        assert 'headers' in params
     
     def test_health_check_no_params(self):
         """Test health.check has no data parameter."""

@@ -23,13 +23,15 @@ from pydantic import (
     RootModel,
     model_validator,
     model_serializer,
+    PrivateAttr,
 )
 
 # Runtime imports
-from reflectapi_runtime import AsyncClientBase, ApiResponse
+from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiOption
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 Entity = TypeVar("Entity")
@@ -104,33 +106,10 @@ class MyapiModelBehavior(RootModel[MyapiModelBehaviorVariants]):
         if isinstance(self.root, MyapiModelBehaviorAggressiveVariant):
             return {"Aggressive": [self.root.field_0, self.root.field_1]}
         if isinstance(self.root, MyapiModelBehaviorOtherVariant):
-            return {"Other": self.root.model_dump()}
+            return {"Other": self.root.model_dump(exclude_none=True)}
 
         raise ValueError(
             f"Cannot serialize MyapiModelBehavior variant: {type(self.root)}"
-        )
-
-
-class MyapiModelBehaviorFactory:
-    """Factory class for creating MyapiModelBehavior variants with ergonomic syntax.
-
-    MyapiModelBehavior variants
-    """
-
-    CALM = "Calm"
-
-    @staticmethod
-    def aggressive(field_0, field_1) -> MyapiModelBehavior:
-        """Creates the 'Aggressive' variant of the MyapiModelBehavior enum."""
-        return MyapiModelBehavior(
-            MyapiModelBehaviorAggressiveVariant(field_0=field_0, field_1=field_1)
-        )
-
-    @staticmethod
-    def other(description, notes=None) -> MyapiModelBehavior:
-        """Creates the 'Other' variant of the MyapiModelBehavior enum."""
-        return MyapiModelBehavior(
-            MyapiModelBehaviorOtherVariant(description=description, notes=notes)
         )
 
 
@@ -264,27 +243,10 @@ class MyapiProtoPetsCreateError(RootModel[MyapiProtoPetsCreateErrorVariants]):
         if self.root == "NotAuthorized":
             return "NotAuthorized"
         if isinstance(self.root, MyapiProtoPetsCreateErrorInvalidIdentityVariant):
-            return {"InvalidIdentity": self.root.model_dump()}
+            return {"InvalidIdentity": self.root.model_dump(exclude_none=True)}
 
         raise ValueError(
             f"Cannot serialize MyapiProtoPetsCreateError variant: {type(self.root)}"
-        )
-
-
-class MyapiProtoPetsCreateErrorFactory:
-    """Factory class for creating MyapiProtoPetsCreateError variants with ergonomic syntax.
-
-    MyapiProtoPetsCreateError variants
-    """
-
-    CONFLICT = "Conflict"
-    NOTAUTHORIZED = "NotAuthorized"
-
-    @staticmethod
-    def invalid_identity(message) -> MyapiProtoPetsCreateError:
-        """Creates the 'InvalidIdentity' variant of the MyapiProtoPetsCreateError enum."""
-        return MyapiProtoPetsCreateError(
-            MyapiProtoPetsCreateErrorInvalidIdentityVariant(message=message)
         )
 
 
@@ -333,8 +295,8 @@ class MyapiProtoPetsUpdateRequest(BaseModel):
 
     name: str
     kind: MyapiModelKind | None = None
-    age: ReflectapiOption[int] | None = None
-    behaviors: ReflectapiOption[list[MyapiModelBehavior]] | None = None
+    age: ReflectapiOption[int] = None
+    behaviors: ReflectapiOption[list[MyapiModelBehavior]] = None
 
 
 class AsyncHealthClient:
@@ -369,115 +331,6 @@ class AsyncPetsClient:
 
     def __init__(self, client: AsyncClientBase) -> None:
         self._client = client
-
-    async def list(
-        self,
-        limit: Optional[int | None] = None,
-        cursor: Optional[str | None] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
-        """List available pets
-            limit: Query parameter: limit (optional)
-            cursor: Query parameter: cursor (optional)
-
-
-        Returns:
-            ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
-        """
-
-        path = "/pets.list"
-
-        params: dict[str, Any] = {}
-
-        if limit is not None:
-            params["limit"] = limit
-
-        if cursor is not None:
-            params["cursor"] = cursor
-
-        return await self._client._make_request(
-            "GET",
-            path,
-            params=params if params else None,
-            headers_model=headers,
-            response_model=MyapiProtoPaginated[MyapiModelOutputPet],
-        )
-
-    async def get_first(
-        self,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[MyapiModelOutputPet | None]:
-        """Fetch first pet, if any exists
-
-        Returns:
-            ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
-        """
-
-        path = "/pets.get-first"
-
-        params: dict[str, Any] = {}
-
-        return await self._client._make_request(
-            "POST",
-            path,
-            params=params if params else None,
-            headers_model=headers,
-            response_model=MyapiModelOutputPet | None,
-        )
-
-    async def create(
-        self,
-        data: Optional[MyapiModelInputPet] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
-        """Create a new pet
-
-        Args:
-            data: Request data for the create operation.
-
-        Returns:
-            ApiResponse[Any]: Response containing Any data
-        """
-
-        path = "/pets.create"
-
-        params: dict[str, Any] = {}
-
-        return await self._client._make_request(
-            "POST",
-            path,
-            params=params if params else None,
-            json_model=data,
-            headers_model=headers,
-            response_model=None,
-        )
-
-    async def update(
-        self,
-        data: Optional[MyapiProtoPetsUpdateRequest] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
-        """Update an existing pet
-
-        Args:
-            data: Request data for the update operation.
-
-        Returns:
-            ApiResponse[Any]: Response containing Any data
-        """
-
-        path = "/pets.update"
-
-        params: dict[str, Any] = {}
-
-        return await self._client._make_request(
-            "POST",
-            path,
-            params=params if params else None,
-            json_model=data,
-            headers_model=headers,
-            response_model=None,
-        )
 
     async def remove(
         self,
@@ -542,6 +395,115 @@ class AsyncPetsClient:
             response_model=None,
         )
 
+    async def get_first(
+        self,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[MyapiModelOutputPet | None]:
+        """Fetch first pet, if any exists
+
+        Returns:
+            ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
+        """
+
+        path = "/pets.get-first"
+
+        params: dict[str, Any] = {}
+
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            headers_model=headers,
+            response_model=MyapiModelOutputPet | None,
+        )
+
+    async def list(
+        self,
+        limit: Optional[int | None] = None,
+        cursor: Optional[str | None] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
+        """List available pets
+            limit: Query parameter: limit (optional)
+            cursor: Query parameter: cursor (optional)
+
+
+        Returns:
+            ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
+        """
+
+        path = "/pets.list"
+
+        params: dict[str, Any] = {}
+
+        if limit is not None:
+            params["limit"] = limit
+
+        if cursor is not None:
+            params["cursor"] = cursor
+
+        return await self._client._make_request(
+            "GET",
+            path,
+            params=params if params else None,
+            headers_model=headers,
+            response_model=MyapiProtoPaginated[MyapiModelOutputPet],
+        )
+
+    async def create(
+        self,
+        data: Optional[MyapiModelInputPet] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[Any]:
+        """Create a new pet
+
+        Args:
+            data: Request data for the create operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+
+        path = "/pets.create"
+
+        params: dict[str, Any] = {}
+
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            headers_model=headers,
+            response_model=None,
+        )
+
+    async def update(
+        self,
+        data: Optional[MyapiProtoPetsUpdateRequest] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[Any]:
+        """Update an existing pet
+
+        Args:
+            data: Request data for the update operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+
+        path = "/pets.update"
+
+        params: dict[str, Any] = {}
+
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            headers_model=headers,
+            response_model=None,
+        )
+
 
 class AsyncClient(AsyncClientBase):
     """Async client for the API."""
@@ -556,6 +518,227 @@ class AsyncClient(AsyncClientBase):
         self.health = AsyncHealthClient(self)
 
         self.pets = AsyncPetsClient(self)
+
+
+class HealthClient:
+    """Synchronous client for health operations."""
+
+    def __init__(self, client: ClientBase) -> None:
+        self._client = client
+
+    def check(
+        self,
+    ) -> ApiResponse[Any]:
+        """Check the health of the service
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+
+        path = "/health.check"
+
+        params: dict[str, Any] = {}
+
+        return self._client._make_request(
+            "GET",
+            path,
+            params=params if params else None,
+            response_model=None,
+        )
+
+
+class PetsClient:
+    """Synchronous client for pets operations."""
+
+    def __init__(self, client: ClientBase) -> None:
+        self._client = client
+
+    def remove(
+        self,
+        data: Optional[MyapiProtoPetsRemoveRequest] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[Any]:
+        """Remove an existing pet
+
+        Args:
+            data: Request data for the remove operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+
+        path = "/pets.remove"
+
+        params: dict[str, Any] = {}
+
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            headers_model=headers,
+            response_model=None,
+        )
+
+    def delete(
+        self,
+        data: Optional[MyapiProtoPetsRemoveRequest] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[Any]:
+        """Remove an existing pet
+
+        Args:
+            data: Request data for the delete operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+
+        .. deprecated::
+           Use pets.remove instead
+        """
+
+        warnings.warn(
+            "pets_delete is deprecated: Use pets.remove instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        path = "/pets.delete"
+
+        params: dict[str, Any] = {}
+
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            headers_model=headers,
+            response_model=None,
+        )
+
+    def get_first(
+        self,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[MyapiModelOutputPet | None]:
+        """Fetch first pet, if any exists
+
+        Returns:
+            ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
+        """
+
+        path = "/pets.get-first"
+
+        params: dict[str, Any] = {}
+
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            headers_model=headers,
+            response_model=MyapiModelOutputPet | None,
+        )
+
+    def list(
+        self,
+        limit: Optional[int | None] = None,
+        cursor: Optional[str | None] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
+        """List available pets
+            limit: Query parameter: limit (optional)
+            cursor: Query parameter: cursor (optional)
+
+
+        Returns:
+            ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
+        """
+
+        path = "/pets.list"
+
+        params: dict[str, Any] = {}
+
+        if limit is not None:
+            params["limit"] = limit
+
+        if cursor is not None:
+            params["cursor"] = cursor
+
+        return self._client._make_request(
+            "GET",
+            path,
+            params=params if params else None,
+            headers_model=headers,
+            response_model=MyapiProtoPaginated[MyapiModelOutputPet],
+        )
+
+    def create(
+        self,
+        data: Optional[MyapiModelInputPet] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[Any]:
+        """Create a new pet
+
+        Args:
+            data: Request data for the create operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+
+        path = "/pets.create"
+
+        params: dict[str, Any] = {}
+
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            headers_model=headers,
+            response_model=None,
+        )
+
+    def update(
+        self,
+        data: Optional[MyapiProtoPetsUpdateRequest] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[Any]:
+        """Update an existing pet
+
+        Args:
+            data: Request data for the update operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+
+        path = "/pets.update"
+
+        params: dict[str, Any] = {}
+
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            headers_model=headers,
+            response_model=None,
+        )
+
+
+class Client(ClientBase):
+    """Synchronous client for the API."""
+
+    def __init__(
+        self,
+        base_url: str,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(base_url, **kwargs)
+
+        self.health = HealthClient(self)
+
+        self.pets = PetsClient(self)
 
 
 # Nested class definitions for better organization
@@ -599,3 +782,137 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
+
+
+# Factory classes (generated after model rebuild to avoid forward references)
+class MyapiModelBehaviorFactory:
+    """Factory class for creating MyapiModelBehavior variants with ergonomic syntax.
+
+    MyapiModelBehavior variants
+    """
+
+    CALM = MyapiModelBehavior("Calm")
+
+    @staticmethod
+    def aggressive(field_0, field_1) -> MyapiModelBehaviorAggressiveVariant:
+        """Creates the 'Aggressive' variant of the MyapiModelBehavior enum."""
+        return MyapiModelBehaviorAggressiveVariant(field_0=field_0, field_1=field_1)
+
+    @staticmethod
+    def other(description, notes=None) -> MyapiModelBehaviorOtherVariant:
+        """Creates the 'Other' variant of the MyapiModelBehavior enum."""
+        return MyapiModelBehaviorOtherVariant(description=description, notes=notes)
+
+
+class MyapiProtoPetsCreateErrorFactory:
+    """Factory class for creating MyapiProtoPetsCreateError variants with ergonomic syntax.
+
+    MyapiProtoPetsCreateError variants
+    """
+
+    CONFLICT = MyapiProtoPetsCreateError("Conflict")
+    NOTAUTHORIZED = MyapiProtoPetsCreateError("NotAuthorized")
+
+    @staticmethod
+    def invalid_identity(message) -> MyapiProtoPetsCreateErrorInvalidIdentityVariant:
+        """Creates the 'InvalidIdentity' variant of the MyapiProtoPetsCreateError enum."""
+        return MyapiProtoPetsCreateErrorInvalidIdentityVariant(message=message)
+
+
+# Testing utilities
+
+
+def create_myapimodelbehavior_response(
+    value: MyapiModelBehavior,
+) -> ApiResponse[MyapiModelBehavior]:
+    """Create a mock ApiResponse for MyapiModelBehavior."""
+    return create_api_response(value)
+
+
+def create_myapimodelinputpet_response(
+    value: MyapiModelInputPet,
+) -> ApiResponse[MyapiModelInputPet]:
+    """Create a mock ApiResponse for MyapiModelInputPet."""
+    return create_api_response(value)
+
+
+def create_myapimodelkind_response(
+    value: MyapiModelKind,
+) -> ApiResponse[MyapiModelKind]:
+    """Create a mock ApiResponse for MyapiModelKind."""
+    return create_api_response(value)
+
+
+def create_myapimodeloutputpet_response(
+    value: MyapiModelOutputPet,
+) -> ApiResponse[MyapiModelOutputPet]:
+    """Create a mock ApiResponse for MyapiModelOutputPet."""
+    return create_api_response(value)
+
+
+def create_myapiprotoheaders_response(
+    value: MyapiProtoHeaders,
+) -> ApiResponse[MyapiProtoHeaders]:
+    """Create a mock ApiResponse for MyapiProtoHeaders."""
+    return create_api_response(value)
+
+
+def create_myapiprotopaginated_response(
+    value: MyapiProtoPaginated,
+) -> ApiResponse[MyapiProtoPaginated]:
+    """Create a mock ApiResponse for MyapiProtoPaginated."""
+    return create_api_response(value)
+
+
+def create_myapiprotopetscreateerror_response(
+    value: MyapiProtoPetsCreateError,
+) -> ApiResponse[MyapiProtoPetsCreateError]:
+    """Create a mock ApiResponse for MyapiProtoPetsCreateError."""
+    return create_api_response(value)
+
+
+def create_myapiprotopetslisterror_response(
+    value: MyapiProtoPetsListError,
+) -> ApiResponse[MyapiProtoPetsListError]:
+    """Create a mock ApiResponse for MyapiProtoPetsListError."""
+    return create_api_response(value)
+
+
+def create_myapiprotopetslistrequest_response(
+    value: MyapiProtoPetsListRequest,
+) -> ApiResponse[MyapiProtoPetsListRequest]:
+    """Create a mock ApiResponse for MyapiProtoPetsListRequest."""
+    return create_api_response(value)
+
+
+def create_myapiprotopetsremoveerror_response(
+    value: MyapiProtoPetsRemoveError,
+) -> ApiResponse[MyapiProtoPetsRemoveError]:
+    """Create a mock ApiResponse for MyapiProtoPetsRemoveError."""
+    return create_api_response(value)
+
+
+def create_myapiprotopetsremoverequest_response(
+    value: MyapiProtoPetsRemoveRequest,
+) -> ApiResponse[MyapiProtoPetsRemoveRequest]:
+    """Create a mock ApiResponse for MyapiProtoPetsRemoveRequest."""
+    return create_api_response(value)
+
+
+def create_myapiprotopetsupdateerror_response(
+    value: MyapiProtoPetsUpdateError,
+) -> ApiResponse[MyapiProtoPetsUpdateError]:
+    """Create a mock ApiResponse for MyapiProtoPetsUpdateError."""
+    return create_api_response(value)
+
+
+def create_myapiprotopetsupdaterequest_response(
+    value: MyapiProtoPetsUpdateRequest,
+) -> ApiResponse[MyapiProtoPetsUpdateRequest]:
+    """Create a mock ApiResponse for MyapiProtoPetsUpdateRequest."""
+    return create_api_response(value)
+
+
+def create_mock_client() -> MockClient:
+    """Create a mock client for testing."""
+    return MockClient()

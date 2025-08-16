@@ -58,7 +58,7 @@ def sample_pet(sample_dog: PetKindDog) -> Pet:
         name="Buddy",
         kind=sample_dog,
         age=3,
-        behaviors=[BehaviorCalm, {"Aggressive": [5.0, "growls"]}]
+        behaviors=[BehaviorFactory.CALM, BehaviorFactory.aggressive(5.0, "growls")]
     )
 
 
@@ -71,7 +71,7 @@ def sample_pet_details(sample_cat: PetKindCat) -> PetDetails:
         kind=sample_cat,
         age=2,
         updated_at=datetime.now(),
-        behaviors=[BehaviorCalm]
+        behaviors=[BehaviorFactory.CALM]
     )
 
 
@@ -82,7 +82,7 @@ def sample_update_request() -> PetsUpdateRequest:
         name="TestPet",
         kind=PetKindDog(type='dog', breed='Labrador'),
         age=ReflectapiOption(5),
-        behaviors=ReflectapiOption([BehaviorCalm])
+        behaviors=ReflectapiOption([BehaviorFactory.CALM])
     )
 
 
@@ -115,9 +115,9 @@ def paginated_pets(sample_pet_details: PetDetails) -> Paginated[PetDetails]:
 def behavior_samples() -> list[Behavior]:
     """Sample behavior instances."""
     return [
-        BehaviorCalm,
-        {"Aggressive": [5.0, "test"]},
-        {"Other": {"description": "Custom", "notes": "Some notes"}}
+        BehaviorFactory.CALM,
+        BehaviorFactory.aggressive(5.0, "test"),
+        BehaviorFactory.other("Custom", "Some notes")
     ]
 
 
@@ -159,7 +159,7 @@ class TestDataFactory:
         if with_age:
             request.age = ReflectapiOption(kwargs.get('age', 5))
         if with_behaviors:
-            request.behaviors = ReflectapiOption(kwargs.get('behaviors', [BehaviorCalm]))
+            request.behaviors = ReflectapiOption(kwargs.get('behaviors', [BehaviorFactory.CALM]))
 
         return request
 
