@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "inout_test"
+        ],
+        "disambiguator": 0
+      },
       "name": "inout_test",
       "path": "",
       "input_type": {
@@ -25,15 +38,36 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "TestEnumRenameAll"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::TestEnumRenameAll",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "fieldName"
+              ],
+              "disambiguator": 0
+            },
             "name": "fieldName",
             "fields": "none"
           }
@@ -45,15 +79,36 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "TestEnumRenameAll"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::TestEnumRenameAll",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "fieldName"
+              ],
+              "disambiguator": 0
+            },
             "name": "fieldName",
             "fields": "none"
           }

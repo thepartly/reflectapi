@@ -652,6 +652,7 @@ fn reflectapi_duration(schema: &mut crate::Typespace) -> crate::TypeReference {
     let type_name = "std::time::Duration";
     if schema.reserve_type(type_name) {
         let type_def = crate::Struct {
+            id: crate::SymbolId::struct_id(vec![type_name.to_string()]),
             name: type_name.into(),
             description: "Time duration type".into(),
             fields: crate::Fields::Named(vec![

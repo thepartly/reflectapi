@@ -6,12 +6,26 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
   "types": [
     {
       "kind": "struct",
+      "id": {
+        "kind": "Struct",
+        "path": [
+          "reflectapi::Empty"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi::Empty",
       "description": "Struct object with no fields",
       "fields": "none"
     },
     {
       "kind": "struct",
+      "id": {
+        "kind": "Struct",
+        "path": [
+          "TestStructWithCircularReferenceGeneric"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGeneric",
       "parameters": [
         {
@@ -21,6 +35,13 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
       "fields": {
         "named": [
           {
+            "id": {
+              "kind": "Field",
+              "path": [
+                "_f"
+              ],
+              "disambiguator": 0
+            },
             "name": "_f",
             "type": {
               "name": "std::boxed::Box",
@@ -38,6 +59,13 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
             "required": true
           },
           {
+            "id": {
+              "kind": "Field",
+              "path": [
+                "_f2"
+              ],
+              "disambiguator": 0
+            },
             "name": "_f2",
             "type": {
               "name": "T"
@@ -49,6 +77,13 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
     },
     {
       "kind": "struct",
+      "id": {
+        "kind": "Struct",
+        "path": [
+          "TestStructWithCircularReferenceGenericParent"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericParent",
       "parameters": [
         {
@@ -58,6 +93,13 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
       "fields": {
         "named": [
           {
+            "id": {
+              "kind": "Field",
+              "path": [
+                "_f"
+              ],
+              "disambiguator": 0
+            },
             "name": "_f",
             "type": {
               "name": "std::boxed::Box",
@@ -80,6 +122,13 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
             "required": true
           },
           {
+            "id": {
+              "kind": "Field",
+              "path": [
+                "_f2"
+              ],
+              "disambiguator": 0
+            },
             "name": "_f2",
             "type": {
               "name": "std::marker::PhantomData",
@@ -96,6 +145,13 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
     },
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "std::boxed::Box"
+        ],
+        "disambiguator": 0
+      },
       "name": "std::boxed::Box",
       "description": "std::boxed::Box pointer type",
       "parameters": [
@@ -109,6 +165,13 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
     },
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "std::marker::PhantomData"
+        ],
+        "disambiguator": 0
+      },
       "name": "std::marker::PhantomData",
       "description": "Zero-sized phantom data",
       "parameters": [
@@ -119,6 +182,13 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericPa
     },
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "u8"
+        ],
+        "disambiguator": 0
+      },
       "name": "u8",
       "description": "8-bit unsigned integer"
     }

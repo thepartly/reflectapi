@@ -6,12 +6,26 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericWi
   "types": [
     {
       "kind": "struct",
+      "id": {
+        "kind": "Struct",
+        "path": [
+          "reflectapi::Empty"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi::Empty",
       "description": "Struct object with no fields",
       "fields": "none"
     },
     {
       "kind": "struct",
+      "id": {
+        "kind": "Struct",
+        "path": [
+          "TestStructWithCircularReferenceGenericWithoutBox"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
       "parameters": [
         {
@@ -24,6 +38,13 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericWi
       "fields": {
         "named": [
           {
+            "id": {
+              "kind": "Field",
+              "path": [
+                "_f1"
+              ],
+              "disambiguator": 0
+            },
             "name": "_f1",
             "type": {
               "name": "A"
@@ -31,6 +52,13 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericWi
             "required": true
           },
           {
+            "id": {
+              "kind": "Field",
+              "path": [
+                "_f2"
+              ],
+              "disambiguator": 0
+            },
             "name": "_f2",
             "type": {
               "name": "B"
@@ -42,10 +70,24 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericWi
     },
     {
       "kind": "struct",
+      "id": {
+        "kind": "Struct",
+        "path": [
+          "TestStructWithCircularReferenceGenericWithoutBoxParentSpecific"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBoxParentSpecific",
       "fields": {
         "named": [
           {
+            "id": {
+              "kind": "Field",
+              "path": [
+                "_f"
+              ],
+              "disambiguator": 0
+            },
             "name": "_f",
             "type": {
               "name": "reflectapi_demo::tests::generics::TestStructWithCircularReferenceGenericWithoutBox",
@@ -81,21 +123,49 @@ expression: "super::into_input_schema::<TestStructWithCircularReferenceGenericWi
     },
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "std::string::String"
+        ],
+        "disambiguator": 0
+      },
       "name": "std::string::String",
       "description": "UTF-8 encoded string"
     },
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "u16"
+        ],
+        "disambiguator": 0
+      },
       "name": "u16",
       "description": "16-bit unsigned integer"
     },
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "u32"
+        ],
+        "disambiguator": 0
+      },
       "name": "u32",
       "description": "32-bit unsigned integer"
     },
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "u8"
+        ],
+        "disambiguator": 0
+      },
       "name": "u8",
       "description": "8-bit unsigned integer"
     }

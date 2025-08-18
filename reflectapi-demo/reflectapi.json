@@ -1,8 +1,22 @@
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "Demo application",
   "description": "This is a demo application",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "health.check"
+        ],
+        "disambiguator": 0
+      },
       "name": "health.check",
       "path": "",
       "description": "Check the health of the service",
@@ -16,6 +30,13 @@
       ]
     },
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "pets.list"
+        ],
+        "disambiguator": 0
+      },
       "name": "pets.list",
       "path": "",
       "description": "List available pets",
@@ -43,6 +64,13 @@
       "readonly": true
     },
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "pets.create"
+        ],
+        "disambiguator": 0
+      },
       "name": "pets.create",
       "path": "",
       "description": "Create a new pet",
@@ -61,6 +89,13 @@
       ]
     },
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "pets.update"
+        ],
+        "disambiguator": 0
+      },
       "name": "pets.update",
       "path": "",
       "description": "Update an existing pet",
@@ -79,6 +114,13 @@
       ]
     },
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "pets.remove"
+        ],
+        "disambiguator": 0
+      },
       "name": "pets.remove",
       "path": "",
       "description": "Remove an existing pet",
@@ -97,6 +139,13 @@
       ]
     },
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "pets.delete"
+        ],
+        "disambiguator": 0
+      },
       "name": "pets.delete",
       "path": "",
       "description": "Remove an existing pet",
@@ -116,6 +165,13 @@
       ]
     },
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "pets.get-first"
+        ],
+        "disambiguator": 0
+      },
       "name": "pets.get-first",
       "path": "",
       "description": "Fetch first pet, if any exists",
@@ -143,6 +199,13 @@
     "types": [
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "chrono::DateTime"
+          ],
+          "disambiguator": 0
+        },
         "name": "chrono::DateTime",
         "description": "DateTime at a given timezone (RFC3339 format)",
         "parameters": [
@@ -156,22 +219,57 @@
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "f64"
+          ],
+          "disambiguator": 0
+        },
         "name": "f64",
         "description": "64-bit floating point number"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "Behavior"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::model::Behavior",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Calm"
+              ],
+              "disambiguator": 0
+            },
             "name": "Calm",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Aggressive"
+              ],
+              "disambiguator": 0
+            },
             "name": "Aggressive",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "description": "aggressiveness level",
                   "type": {
@@ -180,6 +278,13 @@
                   "required": true
                 },
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "1"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "1",
                   "description": "some notes",
                   "type": {
@@ -191,10 +296,24 @@
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Other"
+              ],
+              "disambiguator": 0
+            },
             "name": "Other",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "description"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "description",
                   "description": "Custom provided description of a behavior",
                   "type": {
@@ -203,6 +322,13 @@
                   "required": true
                 },
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "notes"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "notes",
                   "description": "Additional notes\nUp to a user to put free text here",
                   "type": {
@@ -216,6 +342,13 @@
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "Kind"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::model::Kind",
         "representation": {
           "internal": {
@@ -224,11 +357,25 @@
         },
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "dog"
+              ],
+              "disambiguator": 0
+            },
             "name": "dog",
             "description": "A dog",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "breed"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "breed",
                   "description": "breed of the dog",
                   "type": {
@@ -240,11 +387,25 @@
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "cat"
+              ],
+              "disambiguator": 0
+            },
             "name": "cat",
             "description": "A cat",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "lives"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "lives",
                   "description": "lives left",
                   "type": {
@@ -259,10 +420,24 @@
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "Pet"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::model::input::Pet",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "name"
+                ],
+                "disambiguator": 0
+              },
               "name": "name",
               "description": "identity",
               "type": {
@@ -271,6 +446,13 @@
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "kind"
+                ],
+                "disambiguator": 0
+              },
               "name": "kind",
               "description": "kind of pet",
               "type": {
@@ -279,6 +461,13 @@
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "age"
+                ],
+                "disambiguator": 0
+              },
               "name": "age",
               "description": "age of the pet",
               "deprecation_note": "test deprecation",
@@ -292,6 +481,13 @@
               }
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "updated_at"
+                ],
+                "disambiguator": 0
+              },
               "name": "updated_at",
               "type": {
                 "name": "chrono::DateTime",
@@ -303,6 +499,13 @@
               }
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "behaviors"
+                ],
+                "disambiguator": 0
+              },
               "name": "behaviors",
               "description": "behaviors of the pet",
               "type": {
@@ -319,10 +522,24 @@
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "Headers"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::proto::Headers",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "authorization"
+                ],
+                "disambiguator": 0
+              },
               "name": "authorization",
               "type": {
                 "name": "std::string::String"
@@ -334,10 +551,24 @@
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "PetsCreateRequest"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::proto::PetsCreateRequest",
         "fields": {
           "unnamed": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "0"
+                ],
+                "disambiguator": 0
+              },
               "name": "0",
               "type": {
                 "name": "myapi::model::input::Pet"
@@ -349,10 +580,24 @@
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "PetsListRequest"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::proto::PetsListRequest",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "limit"
+                ],
+                "disambiguator": 0
+              },
               "name": "limit",
               "type": {
                 "name": "std::option::Option",
@@ -364,6 +609,13 @@
               }
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "cursor"
+                ],
+                "disambiguator": 0
+              },
               "name": "cursor",
               "type": {
                 "name": "std::option::Option",
@@ -379,10 +631,24 @@
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "PetsRemoveRequest"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::proto::PetsRemoveRequest",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "name"
+                ],
+                "disambiguator": 0
+              },
               "name": "name",
               "description": "identity",
               "type": {
@@ -395,10 +661,24 @@
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "PetsUpdateRequest"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::proto::PetsUpdateRequest",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "name"
+                ],
+                "disambiguator": 0
+              },
               "name": "name",
               "description": "identity",
               "type": {
@@ -407,6 +687,13 @@
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "kind"
+                ],
+                "disambiguator": 0
+              },
               "name": "kind",
               "description": "kind of pet, non nullable in the model",
               "type": {
@@ -419,6 +706,13 @@
               }
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "age"
+                ],
+                "disambiguator": 0
+              },
               "name": "age",
               "description": "age of the pet, nullable in the model",
               "type": {
@@ -431,6 +725,13 @@
               }
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "behaviors"
+                ],
+                "disambiguator": 0
+              },
               "name": "behaviors",
               "description": "behaviors of the pet, nullable in the model",
               "type": {
@@ -452,12 +753,26 @@
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "reflectapi::Option"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Option",
         "description": "Undefinable Option type",
         "parameters": [
@@ -468,21 +783,49 @@
         "representation": "none",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Undefined"
+              ],
+              "disambiguator": 0
+            },
             "name": "Undefined",
             "description": "The value is missing, i.e. undefined in JavaScript",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "None"
+              ],
+              "disambiguator": 0
+            },
             "name": "None",
             "description": "The value is provided but set to none, i.e. null in JavaScript",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Some"
+              ],
+              "disambiguator": 0
+            },
             "name": "Some",
             "description": "The value is provided and set to some value",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "T"
@@ -495,6 +838,13 @@
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "std::option::Option"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::option::Option",
         "description": "Optional nullable type",
         "parameters": [
@@ -505,16 +855,37 @@
         "representation": "none",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "None"
+              ],
+              "disambiguator": 0
+            },
             "name": "None",
             "description": "The value is not provided, i.e. null",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Some"
+              ],
+              "disambiguator": 0
+            },
             "name": "Some",
             "description": "The value is provided and set to some value",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "T"
@@ -527,11 +898,25 @@
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::string::String"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::vec::Vec"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::vec::Vec",
         "description": "Expandable array type",
         "parameters": [
@@ -542,6 +927,13 @@
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       }
@@ -551,6 +943,13 @@
     "types": [
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "chrono::DateTime"
+          ],
+          "disambiguator": 0
+        },
         "name": "chrono::DateTime",
         "description": "DateTime at a given timezone (RFC3339 format)",
         "parameters": [
@@ -564,22 +963,57 @@
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "f64"
+          ],
+          "disambiguator": 0
+        },
         "name": "f64",
         "description": "64-bit floating point number"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "Behavior"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::model::Behavior",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Calm"
+              ],
+              "disambiguator": 0
+            },
             "name": "Calm",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Aggressive"
+              ],
+              "disambiguator": 0
+            },
             "name": "Aggressive",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "description": "aggressiveness level",
                   "type": {
@@ -588,6 +1022,13 @@
                   "required": true
                 },
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "1"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "1",
                   "description": "some notes",
                   "type": {
@@ -599,10 +1040,24 @@
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Other"
+              ],
+              "disambiguator": 0
+            },
             "name": "Other",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "description"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "description",
                   "description": "Custom provided description of a behavior",
                   "type": {
@@ -611,6 +1066,13 @@
                   "required": true
                 },
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "notes"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "notes",
                   "description": "Additional notes\nUp to a user to put free text here",
                   "type": {
@@ -624,6 +1086,13 @@
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "Kind"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::model::Kind",
         "representation": {
           "internal": {
@@ -632,11 +1101,25 @@
         },
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "dog"
+              ],
+              "disambiguator": 0
+            },
             "name": "dog",
             "description": "A dog",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "breed"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "breed",
                   "description": "breed of the dog",
                   "type": {
@@ -648,11 +1131,25 @@
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "cat"
+              ],
+              "disambiguator": 0
+            },
             "name": "cat",
             "description": "A cat",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "lives"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "lives",
                   "description": "lives left",
                   "type": {
@@ -667,10 +1164,24 @@
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "Pet"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::model::output::Pet",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "name"
+                ],
+                "disambiguator": 0
+              },
               "name": "name",
               "description": "identity",
               "type": {
@@ -679,6 +1190,13 @@
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "kind"
+                ],
+                "disambiguator": 0
+              },
               "name": "kind",
               "description": "kind of pet",
               "type": {
@@ -687,6 +1205,13 @@
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "age"
+                ],
+                "disambiguator": 0
+              },
               "name": "age",
               "description": "age of the pet",
               "deprecation_note": "test deprecation",
@@ -700,6 +1225,13 @@
               }
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "updated_at"
+                ],
+                "disambiguator": 0
+              },
               "name": "updated_at",
               "type": {
                 "name": "chrono::DateTime",
@@ -712,6 +1244,13 @@
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "behaviors"
+                ],
+                "disambiguator": 0
+              },
               "name": "behaviors",
               "description": "behaviors of the pet",
               "type": {
@@ -728,6 +1267,13 @@
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "Paginated"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::proto::Paginated",
         "parameters": [
           {
@@ -737,6 +1283,13 @@
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "items"
+                ],
+                "disambiguator": 0
+              },
               "name": "items",
               "description": "slice of a collection",
               "type": {
@@ -750,6 +1303,13 @@
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "cursor"
+                ],
+                "disambiguator": 0
+              },
               "name": "cursor",
               "description": "cursor for getting next page",
               "type": {
@@ -766,21 +1326,56 @@
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "PetsCreateError"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::proto::PetsCreateError",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Conflict"
+              ],
+              "disambiguator": 0
+            },
             "name": "Conflict",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "NotAuthorized"
+              ],
+              "disambiguator": 0
+            },
             "name": "NotAuthorized",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "InvalidIdentity"
+              ],
+              "disambiguator": 0
+            },
             "name": "InvalidIdentity",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "message"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "message",
                   "type": {
                     "name": "std::string::String"
@@ -794,13 +1389,34 @@
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "PetsListError"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::proto::PetsListError",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "InvalidCursor"
+              ],
+              "disambiguator": 0
+            },
             "name": "InvalidCursor",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Unauthorized"
+              ],
+              "disambiguator": 0
+            },
             "name": "Unauthorized",
             "fields": "none"
           }
@@ -808,13 +1424,34 @@
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "PetsRemoveError"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::proto::PetsRemoveError",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "NotFound"
+              ],
+              "disambiguator": 0
+            },
             "name": "NotFound",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "NotAuthorized"
+              ],
+              "disambiguator": 0
+            },
             "name": "NotAuthorized",
             "fields": "none"
           }
@@ -822,13 +1459,34 @@
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "PetsUpdateError"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::proto::PetsUpdateError",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "NotFound"
+              ],
+              "disambiguator": 0
+            },
             "name": "NotFound",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "NotAuthorized"
+              ],
+              "disambiguator": 0
+            },
             "name": "NotAuthorized",
             "fields": "none"
           }
@@ -836,10 +1494,24 @@
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "UnauthorizedError"
+          ],
+          "disambiguator": 0
+        },
         "name": "myapi::proto::UnauthorizedError",
         "fields": {
           "unnamed": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "0"
+                ],
+                "disambiguator": 0
+              },
               "name": "0",
               "type": {
                 "name": "std::tuple::Tuple0"
@@ -850,18 +1522,39 @@
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "std::option::Option"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::option::Option",
         "description": "Optional nullable type",
         "parameters": [
@@ -872,16 +1565,37 @@
         "representation": "none",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "None"
+              ],
+              "disambiguator": 0
+            },
             "name": "None",
             "description": "The value is not provided, i.e. null",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Some"
+              ],
+              "disambiguator": 0
+            },
             "name": "Some",
             "description": "The value is provided and set to some value",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "T"
@@ -894,16 +1608,37 @@
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::string::String"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple0"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple0",
         "description": "Unit type"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::vec::Vec"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::vec::Vec",
         "description": "Expandable array type",
         "parameters": [
@@ -914,6 +1649,13 @@
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       }

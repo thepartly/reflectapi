@@ -6,24 +6,59 @@ expression: "super::into_input_schema::<TestEnumWithFields>().input_types"
   "types": [
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "f64"
+        ],
+        "disambiguator": 0
+      },
       "name": "f64",
       "description": "64-bit floating point number"
     },
     {
       "kind": "struct",
+      "id": {
+        "kind": "Struct",
+        "path": [
+          "reflectapi::Empty"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi::Empty",
       "description": "Struct object with no fields",
       "fields": "none"
     },
     {
       "kind": "enum",
+      "id": {
+        "kind": "Enum",
+        "path": [
+          "TestEnumWithFields"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi_demo::tests::enums::TestEnumWithFields",
       "variants": [
         {
+          "id": {
+            "kind": "Variant",
+            "path": [
+              "Variant1"
+            ],
+            "disambiguator": 0
+          },
           "name": "Variant1",
           "fields": {
             "unnamed": [
               {
+                "id": {
+                  "kind": "Field",
+                  "path": [
+                    "0"
+                  ],
+                  "disambiguator": 0
+                },
                 "name": "0",
                 "type": {
                   "name": "u8"
@@ -34,10 +69,24 @@ expression: "super::into_input_schema::<TestEnumWithFields>().input_types"
           }
         },
         {
+          "id": {
+            "kind": "Variant",
+            "path": [
+              "Variant2"
+            ],
+            "disambiguator": 0
+          },
           "name": "Variant2",
           "fields": {
             "unnamed": [
               {
+                "id": {
+                  "kind": "Field",
+                  "path": [
+                    "0"
+                  ],
+                  "disambiguator": 0
+                },
                 "name": "0",
                 "type": {
                   "name": "std::string::String"
@@ -45,6 +94,13 @@ expression: "super::into_input_schema::<TestEnumWithFields>().input_types"
                 "required": true
               },
               {
+                "id": {
+                  "kind": "Field",
+                  "path": [
+                    "1"
+                  ],
+                  "disambiguator": 0
+                },
                 "name": "1",
                 "type": {
                   "name": "f64"
@@ -58,11 +114,25 @@ expression: "super::into_input_schema::<TestEnumWithFields>().input_types"
     },
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "std::string::String"
+        ],
+        "disambiguator": 0
+      },
       "name": "std::string::String",
       "description": "UTF-8 encoded string"
     },
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "u8"
+        ],
+        "disambiguator": 0
+      },
       "name": "u8",
       "description": "8-bit unsigned integer"
     }

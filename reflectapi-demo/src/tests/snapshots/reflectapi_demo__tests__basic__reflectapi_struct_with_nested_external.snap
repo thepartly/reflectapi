@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "inout_test"
+        ],
+        "disambiguator": 0
+      },
       "name": "inout_test",
       "path": "",
       "input_type": {
@@ -25,16 +38,37 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "TestStructWithNestedExternal"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::TestStructWithNestedExternal",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f",
               "type": {
                 "name": "reflectapi_demo::tests::test_lib::TestStructNested"
@@ -46,10 +80,24 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "TestStructNested"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::test_lib::TestStructNested",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f",
               "type": {
                 "name": "std::string::String"
@@ -61,6 +109,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::string::String"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
       }
@@ -70,16 +125,37 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "TestStructWithNestedExternal"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::TestStructWithNestedExternal",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f",
               "type": {
                 "name": "reflectapi_demo::tests::test_lib::TestStructNested"
@@ -91,10 +167,24 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "TestStructNested"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::test_lib::TestStructNested",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f",
               "type": {
                 "name": "std::string::String"
@@ -106,6 +196,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::string::String"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
       }

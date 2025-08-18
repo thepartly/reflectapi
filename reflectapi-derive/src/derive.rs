@@ -170,6 +170,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
         codegen_config: reflectapi_schema::LanguageSpecificTypeCodegenConfig,
     ) -> Struct {
         Struct {
+            id: reflectapi_schema::SymbolId::struct_id(vec![type_def_name.clone()]),
             name: type_def_name,
             serde_name,
             description: type_def_description,
@@ -384,6 +385,7 @@ fn visit_variant(
     };
 
     Variant {
+        id: reflectapi_schema::SymbolId::variant_id(vec![], variant_def_name.clone()),
         name: variant_def_name,
         serde_name,
         description: parse_doc_attributes(&variant.original.attrs),

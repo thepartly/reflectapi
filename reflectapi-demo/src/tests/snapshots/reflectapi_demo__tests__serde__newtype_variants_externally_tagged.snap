@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "inout_test"
+        ],
+        "disambiguator": 0
+      },
       "name": "inout_test",
       "path": "",
       "input_type": {
@@ -25,29 +38,71 @@ snapshot_kind: text
     "types": [
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "bool"
+          ],
+          "disambiguator": 0
+        },
         "name": "bool",
         "description": "Boolean value"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i32"
+          ],
+          "disambiguator": 0
+        },
         "name": "i32",
         "description": "32-bit signed integer"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "TestNewtypeVariantsExternallyTagged"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::TestNewtypeVariantsExternallyTagged",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "int"
+              ],
+              "disambiguator": 0
+            },
             "name": "int",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "i32"
@@ -58,10 +113,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "string"
+              ],
+              "disambiguator": 0
+            },
             "name": "string",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "std::string::String"
@@ -72,10 +141,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "bool"
+              ],
+              "disambiguator": 0
+            },
             "name": "bool",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "bool"
@@ -86,6 +169,13 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "unit"
+              ],
+              "disambiguator": 0
+            },
             "name": "unit",
             "fields": "none"
           }
@@ -93,6 +183,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::string::String"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
       }
@@ -102,29 +199,71 @@ snapshot_kind: text
     "types": [
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "bool"
+          ],
+          "disambiguator": 0
+        },
         "name": "bool",
         "description": "Boolean value"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i32"
+          ],
+          "disambiguator": 0
+        },
         "name": "i32",
         "description": "32-bit signed integer"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "TestNewtypeVariantsExternallyTagged"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::TestNewtypeVariantsExternallyTagged",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "int"
+              ],
+              "disambiguator": 0
+            },
             "name": "int",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "i32"
@@ -135,10 +274,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "string"
+              ],
+              "disambiguator": 0
+            },
             "name": "string",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "std::string::String"
@@ -149,10 +302,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "bool"
+              ],
+              "disambiguator": 0
+            },
             "name": "bool",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "bool"
@@ -163,6 +330,13 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "unit"
+              ],
+              "disambiguator": 0
+            },
             "name": "unit",
             "fields": "none"
           }
@@ -170,6 +344,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::string::String"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
       }

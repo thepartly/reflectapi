@@ -117,6 +117,7 @@ impl<'a> ToTokens for TokenizableField<'a> {
         }
         tokens.extend(quote::quote! {
             reflectapi::Field {
+                id: reflectapi::SymbolId::field_id(vec![], #name.to_string()),
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
@@ -168,6 +169,7 @@ impl<'a> ToTokens for TokenizableVariant<'a> {
         let untagged = self.inner.untagged;
         tokens.extend(quote::quote! {
             reflectapi::Variant {
+                id: reflectapi::SymbolId::variant_id(vec![], #name.to_string()),
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
@@ -239,6 +241,7 @@ impl<'a> ToTokens for TokenizableEnum<'a> {
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
             reflectapi::Enum {
+                id: reflectapi::SymbolId::enum_id(vec![#name.to_string()]),
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
@@ -313,6 +316,7 @@ impl<'a> ToTokens for TokenizableStruct<'a> {
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
             reflectapi::Struct {
+                id: reflectapi::SymbolId::struct_id(vec![#name.to_string()]),
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
@@ -347,6 +351,7 @@ impl<'a> ToTokens for TokenizablePrimitive<'a> {
             .map(TokenizableTypeReference::new);
         tokens.extend(quote::quote! {
             reflectapi::Primitive {
+                id: reflectapi::SymbolId::new(reflectapi::SymbolKind::Primitive, vec![#name.to_string()]),
                 name: #name.into(),
                 description: #description.into(),
                 parameters: vec![#(#parameters),*],

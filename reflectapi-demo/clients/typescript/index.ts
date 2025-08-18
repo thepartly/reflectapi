@@ -16,7 +16,7 @@ async function main() {
     (
         await c.pets.create({
             name: 'Bobby',
-            kind: 'dog',
+            kind: { type: 'dog', breed: 'Golden Retriever' },
             age: 1,
             behaviors: [],
         }, {

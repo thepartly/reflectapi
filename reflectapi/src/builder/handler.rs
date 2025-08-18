@@ -134,6 +134,7 @@ where
             .unwrap_or_default();
 
         let function_def = Function {
+            id: crate::SymbolId::endpoint_id(vec![rb.name.clone()]),
             name: rb.name.clone(),
             path: rb.path.clone(),
             deprecation_note: rb.deprecation_note,

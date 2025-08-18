@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "inout_test"
+        ],
+        "disambiguator": 0
+      },
       "name": "inout_test",
       "path": "",
       "input_type": {
@@ -25,6 +38,13 @@ snapshot_kind: text
     "types": [
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "indexmap::IndexMap"
+          ],
+          "disambiguator": 0
+        },
         "name": "indexmap::IndexMap",
         "description": "Key-value map type ordered by insertion",
         "parameters": [
@@ -49,6 +69,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "indexmap::IndexSet"
+          ],
+          "disambiguator": 0
+        },
         "name": "indexmap::IndexSet",
         "description": "Set type ordered by insertion",
         "parameters": [
@@ -67,16 +94,37 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "Test"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::Test",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "index_map"
+                ],
+                "disambiguator": 0
+              },
               "name": "index_map",
               "type": {
                 "name": "indexmap::IndexMap",
@@ -92,6 +140,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "index_set"
+                ],
+                "disambiguator": 0
+              },
               "name": "index_set",
               "type": {
                 "name": "indexmap::IndexSet",
@@ -104,6 +159,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "url"
+                ],
+                "disambiguator": 0
+              },
               "name": "url",
               "type": {
                 "name": "url::Url"
@@ -111,6 +173,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "json"
+                ],
+                "disambiguator": 0
+              },
               "name": "json",
               "type": {
                 "name": "serde_json::Value"
@@ -122,11 +191,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "serde_json::Value"
+          ],
+          "disambiguator": 0
+        },
         "name": "serde_json::Value",
         "description": "JSON value type"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::HashMap"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::HashMap",
         "description": "Key-value map type",
         "parameters": [
@@ -140,6 +223,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::HashSet"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::HashSet",
         "description": "Value set type",
         "parameters": [
@@ -158,11 +248,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::string::String"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::vec::Vec"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::vec::Vec",
         "description": "Expandable array type",
         "parameters": [
@@ -173,16 +277,37 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u32"
+          ],
+          "disambiguator": 0
+        },
         "name": "u32",
         "description": "32-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "url::Url"
+          ],
+          "disambiguator": 0
+        },
         "name": "url::Url",
         "description": "URL value type",
         "fallback": {
@@ -195,6 +320,13 @@ snapshot_kind: text
     "types": [
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "indexmap::IndexMap"
+          ],
+          "disambiguator": 0
+        },
         "name": "indexmap::IndexMap",
         "description": "Key-value map type ordered by insertion",
         "parameters": [
@@ -219,6 +351,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "indexmap::IndexSet"
+          ],
+          "disambiguator": 0
+        },
         "name": "indexmap::IndexSet",
         "description": "Set type ordered by insertion",
         "parameters": [
@@ -237,16 +376,37 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "Test"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::Test",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "index_map"
+                ],
+                "disambiguator": 0
+              },
               "name": "index_map",
               "type": {
                 "name": "indexmap::IndexMap",
@@ -262,6 +422,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "index_set"
+                ],
+                "disambiguator": 0
+              },
               "name": "index_set",
               "type": {
                 "name": "indexmap::IndexSet",
@@ -274,6 +441,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "url"
+                ],
+                "disambiguator": 0
+              },
               "name": "url",
               "type": {
                 "name": "url::Url"
@@ -281,6 +455,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "json"
+                ],
+                "disambiguator": 0
+              },
               "name": "json",
               "type": {
                 "name": "serde_json::Value"
@@ -292,11 +473,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "serde_json::Value"
+          ],
+          "disambiguator": 0
+        },
         "name": "serde_json::Value",
         "description": "JSON value type"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::HashMap"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::HashMap",
         "description": "Key-value map type",
         "parameters": [
@@ -310,6 +505,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::HashSet"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::HashSet",
         "description": "Value set type",
         "parameters": [
@@ -328,11 +530,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::string::String"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::vec::Vec"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::vec::Vec",
         "description": "Expandable array type",
         "parameters": [
@@ -343,16 +559,37 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u32"
+          ],
+          "disambiguator": 0
+        },
         "name": "u32",
         "description": "32-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "url::Url"
+          ],
+          "disambiguator": 0
+        },
         "name": "url::Url",
         "description": "URL value type",
         "fallback": {

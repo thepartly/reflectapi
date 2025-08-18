@@ -1,11 +1,22 @@
 mod codegen;
+mod ids;
 mod internal;
+mod normalize;
 mod rename;
+mod semantic;
 mod subst;
+mod symbol;
 mod visit;
 
 pub use self::codegen::*;
+pub use self::ids::ensure_symbol_ids;
+pub use self::normalize::{
+    NamingResolutionStage, NormalizationError, NormalizationPipeline, NormalizationStage,
+    Normalizer, TypeConsolidationStage,
+};
+pub use self::semantic::*;
 pub use self::subst::{mk_subst, Instantiate, Substitute};
+pub use self::symbol::{SymbolId, SymbolKind};
 pub use self::visit::{VisitMut, Visitor};
 
 #[cfg(feature = "glob")]
@@ -24,6 +35,10 @@ use std::{
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Schema {
+    /// Stable identifier for this schema
+    #[serde(default)]
+    pub id: SymbolId,
+
     pub name: String,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -48,6 +63,7 @@ impl Default for Schema {
 impl Schema {
     pub fn new() -> Self {
         Schema {
+            id: SymbolId::new(SymbolKind::Struct, vec!["Schema".to_string()]),
             name: String::new(),
             description: String::new(),
             functions: Vec::new(),
@@ -91,6 +107,7 @@ impl Schema {
             output_types,
             name: _,
             description: _,
+            id: _,
         } = other;
         self.functions.extend(functions);
         self.input_types.extend(input_types);
@@ -382,6 +399,10 @@ impl Typespace {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Function {
+    /// Stable identifier for this function
+    #[serde(default)]
+    pub id: SymbolId,
+
     /// Includes entity and action, for example: users.login
     pub name: String,
     /// URL mounting path, for example: /api/v1
@@ -428,6 +449,7 @@ pub struct Function {
 impl Function {
     pub fn new(name: String) -> Self {
         Function {
+            id: SymbolId::endpoint_id(vec![name.clone()]),
             name,
             deprecation_note: Default::default(),
             path: Default::default(),
@@ -483,7 +505,7 @@ impl Function {
     }
 }
 
-#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SerializationMode {
     #[default]
@@ -704,6 +726,10 @@ impl Type {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Primitive {
+    /// Stable identifier for this primitive type
+    #[serde(default)]
+    pub id: SymbolId,
+
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
@@ -725,6 +751,7 @@ impl Primitive {
         fallback: Option<TypeReference>,
     ) -> Self {
         Primitive {
+            id: SymbolId::new(SymbolKind::Primitive, vec![name.clone()]),
             name,
             description,
             parameters,
@@ -813,6 +840,10 @@ impl From<Primitive> for Type {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Struct {
+    /// Stable identifier for this struct
+    #[serde(default)]
+    pub id: SymbolId,
+
     /// Name of a struct, should be a valid Rust struct name identifier
     pub name: String,
 
@@ -841,8 +872,10 @@ pub struct Struct {
 
 impl Struct {
     pub fn new(name: impl Into<String>) -> Self {
+        let name = name.into();
         Struct {
-            name: name.into(),
+            id: SymbolId::struct_id(vec![name.clone()]),
+            name,
             serde_name: Default::default(),
             description: Default::default(),
             parameters: Default::default(),
@@ -993,6 +1026,10 @@ impl IntoIterator for Fields {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Field {
+    /// Stable identifier for this field
+    #[serde(default)]
+    pub id: SymbolId,
+
     /// Field name, should be a valid Rust field name identifier
     pub name: String,
     /// If a serialized name is not a valid Rust field name identifier
@@ -1045,6 +1082,7 @@ pub struct Field {
 impl Field {
     pub fn new(name: String, type_ref: TypeReference) -> Self {
         Field {
+            id: SymbolId::field_id(vec![], name.clone()),
             name,
             type_ref,
             serde_name: Default::default(),
@@ -1121,6 +1159,10 @@ fn is_default<T: Default + PartialEq>(t: &T) -> bool {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Enum {
+    /// Stable identifier for this enum
+    #[serde(default)]
+    pub id: SymbolId,
+
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub serde_name: String,
@@ -1144,6 +1186,7 @@ pub struct Enum {
 impl Enum {
     pub fn new(name: String) -> Self {
         Enum {
+            id: SymbolId::enum_id(vec![name.clone()]),
             name,
             serde_name: Default::default(),
             description: Default::default(),
@@ -1191,6 +1234,10 @@ impl From<Enum> for Type {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
 pub struct Variant {
+    /// Stable identifier for this variant
+    #[serde(default)]
+    pub id: SymbolId,
+
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub serde_name: String,
@@ -1209,6 +1256,7 @@ pub struct Variant {
 impl Variant {
     pub fn new(name: String) -> Self {
         Variant {
+            id: SymbolId::variant_id(vec![], name.clone()),
             name,
             serde_name: String::new(),
             description: String::new(),

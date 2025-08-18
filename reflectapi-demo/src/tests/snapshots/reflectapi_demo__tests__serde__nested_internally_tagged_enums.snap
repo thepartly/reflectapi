@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "inout_test"
+        ],
+        "disambiguator": 0
+      },
       "name": "inout_test",
       "path": "",
       "input_type": {
@@ -25,12 +38,26 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "Test"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::Test",
         "representation": {
           "internal": {
@@ -39,10 +66,24 @@ snapshot_kind: text
         },
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "v1"
+              ],
+              "disambiguator": 0
+            },
             "name": "v1",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "reflectapi_demo::tests::serde::V1"
@@ -53,10 +94,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "v2"
+              ],
+              "disambiguator": 0
+            },
             "name": "v2",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "reflectapi_demo::tests::serde::V2"
@@ -70,6 +125,13 @@ snapshot_kind: text
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "V1"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::V1",
         "representation": {
           "internal": {
@@ -78,10 +140,24 @@ snapshot_kind: text
         },
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "A"
+              ],
+              "disambiguator": 0
+            },
             "name": "A",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "a"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "a",
                   "type": {
                     "name": "u8"
@@ -92,10 +168,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "B"
+              ],
+              "disambiguator": 0
+            },
             "name": "B",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "b"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "b",
                   "type": {
                     "name": "u16"
@@ -109,6 +199,13 @@ snapshot_kind: text
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "V2"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::V2",
         "representation": {
           "internal": {
@@ -117,10 +214,24 @@ snapshot_kind: text
         },
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "C"
+              ],
+              "disambiguator": 0
+            },
             "name": "C",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "c"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "c",
                   "type": {
                     "name": "u32"
@@ -131,10 +242,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "D"
+              ],
+              "disambiguator": 0
+            },
             "name": "D",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "d"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "d",
                   "type": {
                     "name": "u64"
@@ -148,21 +273,49 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u16"
+          ],
+          "disambiguator": 0
+        },
         "name": "u16",
         "description": "16-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u32"
+          ],
+          "disambiguator": 0
+        },
         "name": "u32",
         "description": "32-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u64"
+          ],
+          "disambiguator": 0
+        },
         "name": "u64",
         "description": "64-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       }
@@ -172,12 +325,26 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "Test"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::Test",
         "representation": {
           "internal": {
@@ -186,10 +353,24 @@ snapshot_kind: text
         },
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "v1"
+              ],
+              "disambiguator": 0
+            },
             "name": "v1",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "reflectapi_demo::tests::serde::V1"
@@ -200,10 +381,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "v2"
+              ],
+              "disambiguator": 0
+            },
             "name": "v2",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "reflectapi_demo::tests::serde::V2"
@@ -217,6 +412,13 @@ snapshot_kind: text
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "V1"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::V1",
         "representation": {
           "internal": {
@@ -225,10 +427,24 @@ snapshot_kind: text
         },
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "A"
+              ],
+              "disambiguator": 0
+            },
             "name": "A",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "a"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "a",
                   "type": {
                     "name": "u8"
@@ -239,10 +455,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "B"
+              ],
+              "disambiguator": 0
+            },
             "name": "B",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "b"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "b",
                   "type": {
                     "name": "u16"
@@ -256,6 +486,13 @@ snapshot_kind: text
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "V2"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::V2",
         "representation": {
           "internal": {
@@ -264,10 +501,24 @@ snapshot_kind: text
         },
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "C"
+              ],
+              "disambiguator": 0
+            },
             "name": "C",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "c"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "c",
                   "type": {
                     "name": "u32"
@@ -278,10 +529,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "D"
+              ],
+              "disambiguator": 0
+            },
             "name": "D",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "d"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "d",
                   "type": {
                     "name": "u64"
@@ -295,21 +560,49 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u16"
+          ],
+          "disambiguator": 0
+        },
         "name": "u16",
         "description": "16-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u32"
+          ],
+          "disambiguator": 0
+        },
         "name": "u32",
         "description": "32-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u64"
+          ],
+          "disambiguator": 0
+        },
         "name": "u64",
         "description": "64-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       }

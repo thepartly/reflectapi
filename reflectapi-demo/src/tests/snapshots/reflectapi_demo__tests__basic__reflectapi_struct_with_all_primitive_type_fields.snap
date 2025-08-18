@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "inout_test"
+        ],
+        "disambiguator": 0
+      },
       "name": "inout_test",
       "path": "",
       "input_type": {
@@ -25,51 +38,121 @@ snapshot_kind: text
     "types": [
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "bool"
+          ],
+          "disambiguator": 0
+        },
         "name": "bool",
         "description": "Boolean value"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "char"
+          ],
+          "disambiguator": 0
+        },
         "name": "char",
         "description": "Unicode character"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "f32"
+          ],
+          "disambiguator": 0
+        },
         "name": "f32",
         "description": "32-bit floating point number"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "f64"
+          ],
+          "disambiguator": 0
+        },
         "name": "f64",
         "description": "64-bit floating point number"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i128"
+          ],
+          "disambiguator": 0
+        },
         "name": "i128",
         "description": "128-bit signed integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i16"
+          ],
+          "disambiguator": 0
+        },
         "name": "i16",
         "description": "16-bit signed integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i32"
+          ],
+          "disambiguator": 0
+        },
         "name": "i32",
         "description": "32-bit signed integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i64"
+          ],
+          "disambiguator": 0
+        },
         "name": "i64",
         "description": "64-bit signed integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i8"
+          ],
+          "disambiguator": 0
+        },
         "name": "i8",
         "description": "8-bit signed integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "isize"
+          ],
+          "disambiguator": 0
+        },
         "name": "isize",
         "description": "Machine-specific-bit signed integer",
         "fallback": {
@@ -78,22 +161,50 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "TestStructWithAllPrimitiveTypeFields"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::TestStructWithAllPrimitiveTypeFields",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_u8"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_u8",
               "type": {
                 "name": "u8"
@@ -101,6 +212,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_u16"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_u16",
               "type": {
                 "name": "u16"
@@ -108,6 +226,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_u32"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_u32",
               "type": {
                 "name": "u32"
@@ -115,6 +240,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_u64"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_u64",
               "type": {
                 "name": "u64"
@@ -122,6 +254,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_u128"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_u128",
               "type": {
                 "name": "u128"
@@ -129,6 +268,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_usize"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_usize",
               "type": {
                 "name": "usize"
@@ -136,6 +282,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_i8"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_i8",
               "type": {
                 "name": "i8"
@@ -143,6 +296,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_i16"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_i16",
               "type": {
                 "name": "i16"
@@ -150,6 +310,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_i32"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_i32",
               "type": {
                 "name": "i32"
@@ -157,6 +324,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_i64"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_i64",
               "type": {
                 "name": "i64"
@@ -164,6 +338,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_i128"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_i128",
               "type": {
                 "name": "i128"
@@ -171,6 +352,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_isize"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_isize",
               "type": {
                 "name": "isize"
@@ -178,6 +366,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_f32"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_f32",
               "type": {
                 "name": "f32"
@@ -185,6 +380,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_f64"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_f64",
               "type": {
                 "name": "f64"
@@ -192,6 +394,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_bool"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_bool",
               "type": {
                 "name": "bool"
@@ -199,6 +408,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_char"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_char",
               "type": {
                 "name": "char"
@@ -206,6 +422,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_str"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_str",
               "type": {
                 "name": "std::string::String"
@@ -213,6 +436,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_unit"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_unit",
               "type": {
                 "name": "std::tuple::Tuple0"
@@ -220,6 +450,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_option"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_option",
               "type": {
                 "name": "std::option::Option",
@@ -232,6 +469,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_vec"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_vec",
               "type": {
                 "name": "std::vec::Vec",
@@ -244,6 +488,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_hashmap"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_hashmap",
               "type": {
                 "name": "std::collections::HashMap",
@@ -259,6 +510,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_hashset"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_hashset",
               "type": {
                 "name": "std::collections::HashSet",
@@ -271,6 +529,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple",
               "type": {
                 "name": "std::tuple::Tuple2",
@@ -286,6 +551,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple3"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple3",
               "type": {
                 "name": "std::tuple::Tuple3",
@@ -304,6 +576,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple4"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple4",
               "type": {
                 "name": "std::tuple::Tuple4",
@@ -325,6 +604,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple5"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple5",
               "type": {
                 "name": "std::tuple::Tuple5",
@@ -349,6 +635,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple6"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple6",
               "type": {
                 "name": "std::tuple::Tuple6",
@@ -376,6 +669,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple7"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple7",
               "type": {
                 "name": "std::tuple::Tuple7",
@@ -406,6 +706,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple8"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple8",
               "type": {
                 "name": "std::tuple::Tuple8",
@@ -439,6 +746,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple9"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple9",
               "type": {
                 "name": "std::tuple::Tuple9",
@@ -475,6 +789,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple10"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple10",
               "type": {
                 "name": "std::tuple::Tuple10",
@@ -514,6 +835,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple11"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple11",
               "type": {
                 "name": "std::tuple::Tuple11",
@@ -556,6 +884,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple12"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple12",
               "type": {
                 "name": "std::tuple::Tuple12",
@@ -601,6 +936,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_array"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_array",
               "type": {
                 "name": "std::array::Array",
@@ -616,6 +958,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_box"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_box",
               "type": {
                 "name": "std::boxed::Box",
@@ -628,6 +977,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_arc"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_arc",
               "type": {
                 "name": "std::sync::Arc",
@@ -640,6 +996,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_cell"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_cell",
               "type": {
                 "name": "std::cell::Cell",
@@ -652,6 +1015,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_refcell"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_refcell",
               "type": {
                 "name": "std::cell::RefCell",
@@ -664,6 +1034,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_mutex"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_mutex",
               "type": {
                 "name": "std::sync::Mutex",
@@ -676,6 +1053,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_rwlock"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_rwlock",
               "type": {
                 "name": "std::sync::RwLock",
@@ -688,6 +1072,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_weak"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_weak",
               "type": {
                 "name": "std::sync::Weak",
@@ -700,6 +1091,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_phantomdata"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_phantomdata",
               "type": {
                 "name": "std::marker::PhantomData",
@@ -712,6 +1110,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_infallible"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_infallible",
               "type": {
                 "name": "reflectapi::Infallible"
@@ -723,6 +1128,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::array::Array"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::array::Array",
         "description": "Fixed-size Array",
         "parameters": [
@@ -744,6 +1156,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::boxed::Box"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::boxed::Box",
         "description": "std::boxed::Box pointer type",
         "parameters": [
@@ -757,6 +1176,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::cell::Cell"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::cell::Cell",
         "description": "std::cell::Cell pointer type",
         "parameters": [
@@ -770,6 +1196,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::cell::RefCell"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::cell::RefCell",
         "description": "std::cell::RefCell pointer type",
         "parameters": [
@@ -783,6 +1216,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::HashMap"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::HashMap",
         "description": "Key-value map type",
         "parameters": [
@@ -796,6 +1236,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::HashSet"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::HashSet",
         "description": "Value set type",
         "parameters": [
@@ -814,6 +1261,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::marker::PhantomData"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::marker::PhantomData",
         "description": "Zero-sized phantom data",
         "parameters": [
@@ -824,6 +1278,13 @@ snapshot_kind: text
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "std::option::Option"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::option::Option",
         "description": "Optional nullable type",
         "parameters": [
@@ -834,16 +1295,37 @@ snapshot_kind: text
         "representation": "none",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "None"
+              ],
+              "disambiguator": 0
+            },
             "name": "None",
             "description": "The value is not provided, i.e. null",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Some"
+              ],
+              "disambiguator": 0
+            },
             "name": "Some",
             "description": "The value is provided and set to some value",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "T"
@@ -856,11 +1338,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::string::String"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::sync::Arc"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::sync::Arc",
         "description": "std::sync::Arc pointer type",
         "parameters": [
@@ -874,6 +1370,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::sync::Mutex"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::sync::Mutex",
         "description": "std::sync::Mutex pointer type",
         "parameters": [
@@ -887,6 +1390,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::sync::RwLock"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::sync::RwLock",
         "description": "std::sync::RwLock pointer type",
         "parameters": [
@@ -900,6 +1410,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::sync::Weak"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::sync::Weak",
         "description": "std::sync::Weak pointer type",
         "parameters": [
@@ -913,11 +1430,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple0"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple0",
         "description": "Unit type"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple10"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple10",
         "description": "Tuple holding 10 elements",
         "parameters": [
@@ -955,6 +1486,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple11"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple11",
         "description": "Tuple holding 11 elements",
         "parameters": [
@@ -995,6 +1533,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple12"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple12",
         "description": "Tuple holding 12 elements",
         "parameters": [
@@ -1038,6 +1583,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple2"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple2",
         "description": "Tuple holding 2 elements",
         "parameters": [
@@ -1051,6 +1603,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple3"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple3",
         "description": "Tuple holding 3 elements",
         "parameters": [
@@ -1067,6 +1626,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple4"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple4",
         "description": "Tuple holding 4 elements",
         "parameters": [
@@ -1086,6 +1652,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple5"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple5",
         "description": "Tuple holding 5 elements",
         "parameters": [
@@ -1108,6 +1681,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple6"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple6",
         "description": "Tuple holding 6 elements",
         "parameters": [
@@ -1133,6 +1713,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple7"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple7",
         "description": "Tuple holding 7 elements",
         "parameters": [
@@ -1161,6 +1748,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple8"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple8",
         "description": "Tuple holding 8 elements",
         "parameters": [
@@ -1192,6 +1786,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple9"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple9",
         "description": "Tuple holding 9 elements",
         "parameters": [
@@ -1226,6 +1827,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::vec::Vec"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::vec::Vec",
         "description": "Expandable array type",
         "parameters": [
@@ -1236,31 +1844,73 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u128"
+          ],
+          "disambiguator": 0
+        },
         "name": "u128",
         "description": "128-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u16"
+          ],
+          "disambiguator": 0
+        },
         "name": "u16",
         "description": "16-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u32"
+          ],
+          "disambiguator": 0
+        },
         "name": "u32",
         "description": "32-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u64"
+          ],
+          "disambiguator": 0
+        },
         "name": "u64",
         "description": "64-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "usize"
+          ],
+          "disambiguator": 0
+        },
         "name": "usize",
         "description": "Machine-specific-bit unsigned integer",
         "fallback": {
@@ -1273,51 +1923,121 @@ snapshot_kind: text
     "types": [
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "bool"
+          ],
+          "disambiguator": 0
+        },
         "name": "bool",
         "description": "Boolean value"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "char"
+          ],
+          "disambiguator": 0
+        },
         "name": "char",
         "description": "Unicode character"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "f32"
+          ],
+          "disambiguator": 0
+        },
         "name": "f32",
         "description": "32-bit floating point number"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "f64"
+          ],
+          "disambiguator": 0
+        },
         "name": "f64",
         "description": "64-bit floating point number"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i128"
+          ],
+          "disambiguator": 0
+        },
         "name": "i128",
         "description": "128-bit signed integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i16"
+          ],
+          "disambiguator": 0
+        },
         "name": "i16",
         "description": "16-bit signed integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i32"
+          ],
+          "disambiguator": 0
+        },
         "name": "i32",
         "description": "32-bit signed integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i64"
+          ],
+          "disambiguator": 0
+        },
         "name": "i64",
         "description": "64-bit signed integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "i8"
+          ],
+          "disambiguator": 0
+        },
         "name": "i8",
         "description": "8-bit signed integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "isize"
+          ],
+          "disambiguator": 0
+        },
         "name": "isize",
         "description": "Machine-specific-bit signed integer",
         "fallback": {
@@ -1326,16 +2046,37 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "TestStructWithAllPrimitiveTypeFields"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::TestStructWithAllPrimitiveTypeFields",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_u8"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_u8",
               "type": {
                 "name": "u8"
@@ -1343,6 +2084,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_u16"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_u16",
               "type": {
                 "name": "u16"
@@ -1350,6 +2098,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_u32"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_u32",
               "type": {
                 "name": "u32"
@@ -1357,6 +2112,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_u64"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_u64",
               "type": {
                 "name": "u64"
@@ -1364,6 +2126,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_u128"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_u128",
               "type": {
                 "name": "u128"
@@ -1371,6 +2140,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_usize"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_usize",
               "type": {
                 "name": "usize"
@@ -1378,6 +2154,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_i8"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_i8",
               "type": {
                 "name": "i8"
@@ -1385,6 +2168,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_i16"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_i16",
               "type": {
                 "name": "i16"
@@ -1392,6 +2182,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_i32"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_i32",
               "type": {
                 "name": "i32"
@@ -1399,6 +2196,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_i64"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_i64",
               "type": {
                 "name": "i64"
@@ -1406,6 +2210,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_i128"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_i128",
               "type": {
                 "name": "i128"
@@ -1413,6 +2224,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_isize"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_isize",
               "type": {
                 "name": "isize"
@@ -1420,6 +2238,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_f32"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_f32",
               "type": {
                 "name": "f32"
@@ -1427,6 +2252,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_f64"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_f64",
               "type": {
                 "name": "f64"
@@ -1434,6 +2266,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_bool"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_bool",
               "type": {
                 "name": "bool"
@@ -1441,6 +2280,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_char"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_char",
               "type": {
                 "name": "char"
@@ -1448,6 +2294,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_str"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_str",
               "type": {
                 "name": "std::string::String"
@@ -1455,6 +2308,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_unit"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_unit",
               "type": {
                 "name": "std::tuple::Tuple0"
@@ -1462,6 +2322,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_option"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_option",
               "type": {
                 "name": "std::option::Option",
@@ -1474,6 +2341,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_vec"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_vec",
               "type": {
                 "name": "std::vec::Vec",
@@ -1486,6 +2360,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_hashmap"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_hashmap",
               "type": {
                 "name": "std::collections::HashMap",
@@ -1501,6 +2382,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_hashset"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_hashset",
               "type": {
                 "name": "std::collections::HashSet",
@@ -1513,6 +2401,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple",
               "type": {
                 "name": "std::tuple::Tuple2",
@@ -1528,6 +2423,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple3"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple3",
               "type": {
                 "name": "std::tuple::Tuple3",
@@ -1546,6 +2448,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple4"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple4",
               "type": {
                 "name": "std::tuple::Tuple4",
@@ -1567,6 +2476,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple5"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple5",
               "type": {
                 "name": "std::tuple::Tuple5",
@@ -1591,6 +2507,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple6"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple6",
               "type": {
                 "name": "std::tuple::Tuple6",
@@ -1618,6 +2541,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple7"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple7",
               "type": {
                 "name": "std::tuple::Tuple7",
@@ -1648,6 +2578,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple8"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple8",
               "type": {
                 "name": "std::tuple::Tuple8",
@@ -1681,6 +2618,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple9"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple9",
               "type": {
                 "name": "std::tuple::Tuple9",
@@ -1717,6 +2661,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple10"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple10",
               "type": {
                 "name": "std::tuple::Tuple10",
@@ -1756,6 +2707,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple11"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple11",
               "type": {
                 "name": "std::tuple::Tuple11",
@@ -1798,6 +2756,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_tuple12"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_tuple12",
               "type": {
                 "name": "std::tuple::Tuple12",
@@ -1843,6 +2808,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_array"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_array",
               "type": {
                 "name": "std::array::Array",
@@ -1858,6 +2830,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_box"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_box",
               "type": {
                 "name": "std::boxed::Box",
@@ -1870,6 +2849,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_arc"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_arc",
               "type": {
                 "name": "std::sync::Arc",
@@ -1882,6 +2868,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_cell"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_cell",
               "type": {
                 "name": "std::cell::Cell",
@@ -1894,6 +2887,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_refcell"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_refcell",
               "type": {
                 "name": "std::cell::RefCell",
@@ -1906,6 +2906,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_mutex"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_mutex",
               "type": {
                 "name": "std::sync::Mutex",
@@ -1918,6 +2925,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_rwlock"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_rwlock",
               "type": {
                 "name": "std::sync::RwLock",
@@ -1930,6 +2944,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_pointer_weak"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_pointer_weak",
               "type": {
                 "name": "std::sync::Weak",
@@ -1942,6 +2963,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_phantomdata"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_phantomdata",
               "type": {
                 "name": "std::marker::PhantomData",
@@ -1954,6 +2982,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f_infallible"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f_infallible",
               "type": {
                 "name": "reflectapi::Infallible"
@@ -1965,6 +3000,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::array::Array"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::array::Array",
         "description": "Fixed-size Array",
         "parameters": [
@@ -1986,6 +3028,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::boxed::Box"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::boxed::Box",
         "description": "std::boxed::Box pointer type",
         "parameters": [
@@ -1999,6 +3048,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::cell::Cell"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::cell::Cell",
         "description": "std::cell::Cell pointer type",
         "parameters": [
@@ -2012,6 +3068,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::cell::RefCell"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::cell::RefCell",
         "description": "std::cell::RefCell pointer type",
         "parameters": [
@@ -2025,6 +3088,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::HashMap"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::HashMap",
         "description": "Key-value map type",
         "parameters": [
@@ -2038,6 +3108,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::HashSet"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::HashSet",
         "description": "Value set type",
         "parameters": [
@@ -2056,6 +3133,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::marker::PhantomData"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::marker::PhantomData",
         "description": "Zero-sized phantom data",
         "parameters": [
@@ -2066,6 +3150,13 @@ snapshot_kind: text
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "std::option::Option"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::option::Option",
         "description": "Optional nullable type",
         "parameters": [
@@ -2076,16 +3167,37 @@ snapshot_kind: text
         "representation": "none",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "None"
+              ],
+              "disambiguator": 0
+            },
             "name": "None",
             "description": "The value is not provided, i.e. null",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Some"
+              ],
+              "disambiguator": 0
+            },
             "name": "Some",
             "description": "The value is provided and set to some value",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "T"
@@ -2098,11 +3210,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::string::String"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::sync::Arc"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::sync::Arc",
         "description": "std::sync::Arc pointer type",
         "parameters": [
@@ -2116,6 +3242,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::sync::Mutex"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::sync::Mutex",
         "description": "std::sync::Mutex pointer type",
         "parameters": [
@@ -2129,6 +3262,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::sync::RwLock"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::sync::RwLock",
         "description": "std::sync::RwLock pointer type",
         "parameters": [
@@ -2142,6 +3282,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::sync::Weak"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::sync::Weak",
         "description": "std::sync::Weak pointer type",
         "parameters": [
@@ -2155,11 +3302,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple0"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple0",
         "description": "Unit type"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple10"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple10",
         "description": "Tuple holding 10 elements",
         "parameters": [
@@ -2197,6 +3358,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple11"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple11",
         "description": "Tuple holding 11 elements",
         "parameters": [
@@ -2237,6 +3405,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple12"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple12",
         "description": "Tuple holding 12 elements",
         "parameters": [
@@ -2280,6 +3455,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple2"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple2",
         "description": "Tuple holding 2 elements",
         "parameters": [
@@ -2293,6 +3475,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple3"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple3",
         "description": "Tuple holding 3 elements",
         "parameters": [
@@ -2309,6 +3498,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple4"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple4",
         "description": "Tuple holding 4 elements",
         "parameters": [
@@ -2328,6 +3524,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple5"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple5",
         "description": "Tuple holding 5 elements",
         "parameters": [
@@ -2350,6 +3553,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple6"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple6",
         "description": "Tuple holding 6 elements",
         "parameters": [
@@ -2375,6 +3585,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple7"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple7",
         "description": "Tuple holding 7 elements",
         "parameters": [
@@ -2403,6 +3620,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple8"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple8",
         "description": "Tuple holding 8 elements",
         "parameters": [
@@ -2434,6 +3658,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple9"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple9",
         "description": "Tuple holding 9 elements",
         "parameters": [
@@ -2468,6 +3699,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::vec::Vec"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::vec::Vec",
         "description": "Expandable array type",
         "parameters": [
@@ -2478,31 +3716,73 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u128"
+          ],
+          "disambiguator": 0
+        },
         "name": "u128",
         "description": "128-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u16"
+          ],
+          "disambiguator": 0
+        },
         "name": "u16",
         "description": "16-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u32"
+          ],
+          "disambiguator": 0
+        },
         "name": "u32",
         "description": "32-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u64"
+          ],
+          "disambiguator": 0
+        },
         "name": "u64",
         "description": "64-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "usize"
+          ],
+          "disambiguator": 0
+        },
         "name": "usize",
         "description": "Machine-specific-bit unsigned integer",
         "fallback": {

@@ -601,6 +601,14 @@ impl Converter<'_> {
                 static STRING_TYPE: OnceLock<crate::Type> = OnceLock::new();
                 return STRING_TYPE.get_or_init(|| {
                     crate::Type::Primitive(crate::Primitive {
+                        id: crate::SymbolId::new(
+                            crate::SymbolKind::Primitive,
+                            vec![
+                                "std".to_string(),
+                                "string".to_string(),
+                                "String".to_string(),
+                            ],
+                        ),
                         name: "std::string::String".into(),
                         description: "UTF-8 encoded string".into(),
                         parameters: vec![],
@@ -811,6 +819,7 @@ impl Converter<'_> {
             crate::TypeReference::new(variant.name().to_owned(), type_ref.arguments.clone());
 
         let mut strukt = crate::Struct {
+            id: crate::SymbolId::struct_id(vec![variant.name().to_string()]),
             name: variant.name().to_owned(),
             serde_name: variant.serde_name.to_owned(),
             description: variant.description().to_owned(),

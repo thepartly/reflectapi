@@ -6,19 +6,47 @@ expression: "super::into_output_schema::<TestEnumWithDiscriminantIgnored>().outp
   "types": [
     {
       "kind": "struct",
+      "id": {
+        "kind": "Struct",
+        "path": [
+          "reflectapi::Infallible"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi::Infallible",
       "description": "Error object which is expected to be never returned",
       "fields": "none"
     },
     {
       "kind": "enum",
+      "id": {
+        "kind": "Enum",
+        "path": [
+          "TestEnumWithDiscriminantIgnored"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi_demo::tests::enums::TestEnumWithDiscriminantIgnored",
       "variants": [
         {
+          "id": {
+            "kind": "Variant",
+            "path": [
+              "Variant1"
+            ],
+            "disambiguator": 0
+          },
           "name": "Variant1",
           "fields": "none"
         },
         {
+          "id": {
+            "kind": "Variant",
+            "path": [
+              "Variant2"
+            ],
+            "disambiguator": 0
+          },
           "name": "Variant2",
           "fields": "none"
         }

@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "inout_test"
+        ],
+        "disambiguator": 0
+      },
       "name": "inout_test",
       "path": "",
       "input_type": {
@@ -25,26 +38,61 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "TestEmptyVariantsUntagged"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::TestEmptyVariantsUntagged",
         "representation": "none",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Empty"
+              ],
+              "disambiguator": 0
+            },
             "name": "Empty",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "EmptyUnit"
+              ],
+              "disambiguator": 0
+            },
             "name": "EmptyUnit",
             "fields": {
               "unnamed": []
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "EmptyStruct"
+              ],
+              "disambiguator": 0
+            },
             "name": "EmptyStruct",
             "fields": {
               "named": []
@@ -58,26 +106,61 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "TestEmptyVariantsUntagged"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::TestEmptyVariantsUntagged",
         "representation": "none",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Empty"
+              ],
+              "disambiguator": 0
+            },
             "name": "Empty",
             "fields": "none"
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "EmptyUnit"
+              ],
+              "disambiguator": 0
+            },
             "name": "EmptyUnit",
             "fields": {
               "unnamed": []
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "EmptyStruct"
+              ],
+              "disambiguator": 0
+            },
             "name": "EmptyStruct",
             "fields": {
               "named": []

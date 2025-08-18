@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "inout_test"
+        ],
+        "disambiguator": 0
+      },
       "name": "inout_test",
       "path": "",
       "input_type": {
@@ -25,6 +38,13 @@ snapshot_kind: text
     "types": [
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "chrono::DateTime"
+          ],
+          "disambiguator": 0
+        },
         "name": "chrono::DateTime",
         "description": "DateTime at a given timezone (RFC3339 format)",
         "parameters": [
@@ -38,6 +58,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "chrono::NaiveDate"
+          ],
+          "disambiguator": 0
+        },
         "name": "chrono::NaiveDate",
         "description": "Date without timezone (%Y-%m-%d)",
         "fallback": {
@@ -46,6 +73,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "chrono::NaiveDateTime"
+          ],
+          "disambiguator": 0
+        },
         "name": "chrono::NaiveDateTime",
         "description": "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
         "fallback": {
@@ -54,6 +88,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "chrono::NaiveTime"
+          ],
+          "disambiguator": 0
+        },
         "name": "chrono::NaiveTime",
         "description": "Time without timezone (%H:%M:%S%.f)",
         "fallback": {
@@ -62,16 +103,37 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "TestStruct"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::TestStruct",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "duration"
+                ],
+                "disambiguator": 0
+              },
               "name": "duration",
               "type": {
                 "name": "std::time::Duration"
@@ -79,6 +141,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "naive_time"
+                ],
+                "disambiguator": 0
+              },
               "name": "naive_time",
               "type": {
                 "name": "chrono::NaiveTime"
@@ -86,6 +155,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "naive_date"
+                ],
+                "disambiguator": 0
+              },
               "name": "naive_date",
               "type": {
                 "name": "chrono::NaiveDate"
@@ -93,6 +169,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "naive_datetime"
+                ],
+                "disambiguator": 0
+              },
               "name": "naive_datetime",
               "type": {
                 "name": "chrono::NaiveDateTime"
@@ -100,6 +183,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "date_time_fixed_offset"
+                ],
+                "disambiguator": 0
+              },
               "name": "date_time_fixed_offset",
               "type": {
                 "name": "chrono::DateTime",
@@ -112,6 +202,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "date_time_utc"
+                ],
+                "disambiguator": 0
+              },
               "name": "date_time_utc",
               "type": {
                 "name": "chrono::DateTime",
@@ -124,6 +221,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "date_time_local"
+                ],
+                "disambiguator": 0
+              },
               "name": "date_time_local",
               "type": {
                 "name": "chrono::DateTime",
@@ -140,11 +244,25 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "std::time::Duration"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::time::Duration",
         "description": "Time duration type",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "secs"
+                ],
+                "disambiguator": 0
+              },
               "name": "secs",
               "type": {
                 "name": "u64"
@@ -152,6 +270,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "nanos"
+                ],
+                "disambiguator": 0
+              },
               "name": "nanos",
               "type": {
                 "name": "u32"
@@ -163,11 +288,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u32"
+          ],
+          "disambiguator": 0
+        },
         "name": "u32",
         "description": "32-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u64"
+          ],
+          "disambiguator": 0
+        },
         "name": "u64",
         "description": "64-bit unsigned integer"
       }
@@ -177,6 +316,13 @@ snapshot_kind: text
     "types": [
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "chrono::DateTime"
+          ],
+          "disambiguator": 0
+        },
         "name": "chrono::DateTime",
         "description": "DateTime at a given timezone (RFC3339 format)",
         "parameters": [
@@ -190,6 +336,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "chrono::NaiveDate"
+          ],
+          "disambiguator": 0
+        },
         "name": "chrono::NaiveDate",
         "description": "Date without timezone (%Y-%m-%d)",
         "fallback": {
@@ -198,6 +351,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "chrono::NaiveDateTime"
+          ],
+          "disambiguator": 0
+        },
         "name": "chrono::NaiveDateTime",
         "description": "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
         "fallback": {
@@ -206,6 +366,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "chrono::NaiveTime"
+          ],
+          "disambiguator": 0
+        },
         "name": "chrono::NaiveTime",
         "description": "Time without timezone (%H:%M:%S%.f)",
         "fallback": {
@@ -214,16 +381,37 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "TestStruct"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::TestStruct",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "duration"
+                ],
+                "disambiguator": 0
+              },
               "name": "duration",
               "type": {
                 "name": "std::time::Duration"
@@ -231,6 +419,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "naive_time"
+                ],
+                "disambiguator": 0
+              },
               "name": "naive_time",
               "type": {
                 "name": "chrono::NaiveTime"
@@ -238,6 +433,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "naive_date"
+                ],
+                "disambiguator": 0
+              },
               "name": "naive_date",
               "type": {
                 "name": "chrono::NaiveDate"
@@ -245,6 +447,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "naive_datetime"
+                ],
+                "disambiguator": 0
+              },
               "name": "naive_datetime",
               "type": {
                 "name": "chrono::NaiveDateTime"
@@ -252,6 +461,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "date_time_fixed_offset"
+                ],
+                "disambiguator": 0
+              },
               "name": "date_time_fixed_offset",
               "type": {
                 "name": "chrono::DateTime",
@@ -264,6 +480,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "date_time_utc"
+                ],
+                "disambiguator": 0
+              },
               "name": "date_time_utc",
               "type": {
                 "name": "chrono::DateTime",
@@ -276,6 +499,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "date_time_local"
+                ],
+                "disambiguator": 0
+              },
               "name": "date_time_local",
               "type": {
                 "name": "chrono::DateTime",
@@ -292,11 +522,25 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "std::time::Duration"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::time::Duration",
         "description": "Time duration type",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "secs"
+                ],
+                "disambiguator": 0
+              },
               "name": "secs",
               "type": {
                 "name": "u64"
@@ -304,6 +548,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "nanos"
+                ],
+                "disambiguator": 0
+              },
               "name": "nanos",
               "type": {
                 "name": "u32"
@@ -315,11 +566,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u32"
+          ],
+          "disambiguator": 0
+        },
         "name": "u32",
         "description": "32-bit unsigned integer"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u64"
+          ],
+          "disambiguator": 0
+        },
         "name": "u64",
         "description": "64-bit unsigned integer"
       }

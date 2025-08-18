@@ -6,12 +6,26 @@ expression: "super::into_input_schema::<TestStructWithVecGenericGeneric<u8>>().i
   "types": [
     {
       "kind": "struct",
+      "id": {
+        "kind": "Struct",
+        "path": [
+          "reflectapi::Empty"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi::Empty",
       "description": "Struct object with no fields",
       "fields": "none"
     },
     {
       "kind": "struct",
+      "id": {
+        "kind": "Struct",
+        "path": [
+          "TestStructWithSimpleGeneric"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi_demo::tests::generics::TestStructWithSimpleGeneric",
       "parameters": [
         {
@@ -21,6 +35,13 @@ expression: "super::into_input_schema::<TestStructWithVecGenericGeneric<u8>>().i
       "fields": {
         "named": [
           {
+            "id": {
+              "kind": "Field",
+              "path": [
+                "_f"
+              ],
+              "disambiguator": 0
+            },
             "name": "_f",
             "type": {
               "name": "A"
@@ -32,6 +53,13 @@ expression: "super::into_input_schema::<TestStructWithVecGenericGeneric<u8>>().i
     },
     {
       "kind": "struct",
+      "id": {
+        "kind": "Struct",
+        "path": [
+          "TestStructWithVecGenericGeneric"
+        ],
+        "disambiguator": 0
+      },
       "name": "reflectapi_demo::tests::generics::TestStructWithVecGenericGeneric",
       "parameters": [
         {
@@ -41,6 +69,13 @@ expression: "super::into_input_schema::<TestStructWithVecGenericGeneric<u8>>().i
       "fields": {
         "named": [
           {
+            "id": {
+              "kind": "Field",
+              "path": [
+                "_f"
+              ],
+              "disambiguator": 0
+            },
             "name": "_f",
             "type": {
               "name": "std::vec::Vec",
@@ -62,6 +97,13 @@ expression: "super::into_input_schema::<TestStructWithVecGenericGeneric<u8>>().i
     },
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "std::vec::Vec"
+        ],
+        "disambiguator": 0
+      },
       "name": "std::vec::Vec",
       "description": "Expandable array type",
       "parameters": [
@@ -72,6 +114,13 @@ expression: "super::into_input_schema::<TestStructWithVecGenericGeneric<u8>>().i
     },
     {
       "kind": "primitive",
+      "id": {
+        "kind": "Primitive",
+        "path": [
+          "u8"
+        ],
+        "disambiguator": 0
+      },
       "name": "u8",
       "description": "8-bit unsigned integer"
     }

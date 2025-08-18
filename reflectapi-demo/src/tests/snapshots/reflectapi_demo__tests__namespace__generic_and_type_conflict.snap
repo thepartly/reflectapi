@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/namespace.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "get"
+        ],
+        "disambiguator": 0
+      },
       "name": "get",
       "path": "",
       "input_type": {
@@ -45,6 +58,13 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "T"
+          ],
+          "disambiguator": 0
+        },
         "name": "T",
         "parameters": [
           {
@@ -54,6 +74,13 @@ snapshot_kind: text
         "fields": {
           "unnamed": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "0"
+                ],
+                "disambiguator": 0
+              },
               "name": "0",
               "type": {
                 "name": "I"
@@ -65,12 +92,26 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "K"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::namespace::K",
         "parameters": [
           {
@@ -80,6 +121,13 @@ snapshot_kind: text
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "t"
+                ],
+                "disambiguator": 0
+              },
               "name": "t",
               "type": {
                 "name": "T"
@@ -91,6 +139,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple0"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple0",
         "description": "Unit type"
       }
@@ -100,6 +155,13 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "T"
+          ],
+          "disambiguator": 0
+        },
         "name": "T",
         "parameters": [
           {
@@ -109,6 +171,13 @@ snapshot_kind: text
         "fields": {
           "unnamed": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "0"
+                ],
+                "disambiguator": 0
+              },
               "name": "0",
               "type": {
                 "name": "I"
@@ -120,12 +189,26 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "K"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::namespace::K",
         "parameters": [
           {
@@ -135,6 +218,13 @@ snapshot_kind: text
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "t"
+                ],
+                "disambiguator": 0
+              },
               "name": "t",
               "type": {
                 "name": "T"
@@ -146,6 +236,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple0"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple0",
         "description": "Unit type"
       }

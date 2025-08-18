@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "inout_test"
+        ],
+        "disambiguator": 0
+      },
       "name": "inout_test",
       "path": "",
       "input_type": {
@@ -25,16 +38,37 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "TestStructWithTransformArray"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::TestStructWithTransformArray",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f",
               "type": {
                 "name": "std::vec::Vec",
@@ -51,6 +85,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::array::Array"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::array::Array",
         "description": "Fixed-size Array",
         "parameters": [
@@ -72,6 +113,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::vec::Vec"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::vec::Vec",
         "description": "Expandable array type",
         "parameters": [
@@ -82,6 +130,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       }
@@ -91,16 +146,37 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "TestStructWithTransformArray"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::TestStructWithTransformArray",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "_f"
+                ],
+                "disambiguator": 0
+              },
               "name": "_f",
               "type": {
                 "name": "std::vec::Vec",
@@ -117,6 +193,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::array::Array"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::array::Array",
         "description": "Fixed-size Array",
         "parameters": [
@@ -138,6 +221,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::vec::Vec"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::vec::Vec",
         "description": "Expandable array type",
         "parameters": [
@@ -148,6 +238,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       }

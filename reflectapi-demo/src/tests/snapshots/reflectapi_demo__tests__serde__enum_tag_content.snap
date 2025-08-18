@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "inout_test"
+        ],
+        "disambiguator": 0
+      },
       "name": "inout_test",
       "path": "",
       "input_type": {
@@ -25,12 +38,26 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "TestEnumTagContent"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::TestEnumTagContent",
         "representation": {
           "adjacent": {
@@ -40,10 +67,24 @@ snapshot_kind: text
         },
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Variant1"
+              ],
+              "disambiguator": 0
+            },
             "name": "Variant1",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "field_name"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "field_name",
                   "type": {
                     "name": "u8"
@@ -54,10 +95,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Variant2"
+              ],
+              "disambiguator": 0
+            },
             "name": "Variant2",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "u8"
@@ -71,6 +126,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       }
@@ -80,12 +142,26 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "TestEnumTagContent"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::serde::TestEnumTagContent",
         "representation": {
           "adjacent": {
@@ -95,10 +171,24 @@ snapshot_kind: text
         },
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Variant1"
+              ],
+              "disambiguator": 0
+            },
             "name": "Variant1",
             "fields": {
               "named": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "field_name"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "field_name",
                   "type": {
                     "name": "u8"
@@ -109,10 +199,24 @@ snapshot_kind: text
             }
           },
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Variant2"
+              ],
+              "disambiguator": 0
+            },
             "name": "Variant2",
             "fields": {
               "unnamed": [
                 {
+                  "id": {
+                    "kind": "Field",
+                    "path": [
+                      "0"
+                    ],
+                    "disambiguator": 0
+                  },
                   "name": "0",
                   "type": {
                     "name": "u8"
@@ -126,6 +230,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "u8"
+          ],
+          "disambiguator": 0
+        },
         "name": "u8",
         "description": "8-bit unsigned integer"
       }

@@ -1,12 +1,25 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: schema
-snapshot_kind: text
 ---
 {
+  "id": {
+    "kind": "Struct",
+    "path": [
+      "Schema"
+    ],
+    "disambiguator": 0
+  },
   "name": "",
   "functions": [
     {
+      "id": {
+        "kind": "Endpoint",
+        "path": [
+          "inout_test"
+        ],
+        "disambiguator": 0
+      },
       "name": "inout_test",
       "path": "",
       "input_type": {
@@ -25,16 +38,37 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Empty"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "Test"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::Test",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "us"
+                ],
+                "disambiguator": 0
+              },
               "name": "us",
               "type": {
                 "name": "std::collections::BTreeSet",
@@ -47,6 +81,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "xs"
+                ],
+                "disambiguator": 0
+              },
               "name": "xs",
               "type": {
                 "name": "std::collections::BTreeSet",
@@ -59,6 +100,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "ys"
+                ],
+                "disambiguator": 0
+              },
               "name": "ys",
               "type": {
                 "name": "std::collections::HashSet",
@@ -82,10 +130,24 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "U"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::U",
         "fields": {
           "unnamed": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "0"
+                ],
+                "disambiguator": 0
+              },
               "name": "0",
               "type": {
                 "name": "std::tuple::Tuple0"
@@ -110,6 +172,13 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "X"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::X",
         "fields": {
           "named": []
@@ -129,9 +198,23 @@ snapshot_kind: text
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "Y"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::Y",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Y"
+              ],
+              "disambiguator": 0
+            },
             "name": "Y",
             "fields": "none"
           }
@@ -151,6 +234,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::BTreeSet"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::BTreeSet",
         "description": "Ordered set type",
         "parameters": [
@@ -169,6 +259,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::HashSet"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::HashSet",
         "description": "Value set type",
         "parameters": [
@@ -187,11 +284,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple0"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple0",
         "description": "Unit type"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::vec::Vec"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::vec::Vec",
         "description": "Expandable array type",
         "parameters": [
@@ -206,16 +317,37 @@ snapshot_kind: text
     "types": [
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "reflectapi::Infallible"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "Test"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::Test",
         "fields": {
           "named": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "us"
+                ],
+                "disambiguator": 0
+              },
               "name": "us",
               "type": {
                 "name": "std::collections::BTreeSet",
@@ -228,6 +360,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "xs"
+                ],
+                "disambiguator": 0
+              },
               "name": "xs",
               "type": {
                 "name": "std::collections::BTreeSet",
@@ -240,6 +379,13 @@ snapshot_kind: text
               "required": true
             },
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "ys"
+                ],
+                "disambiguator": 0
+              },
               "name": "ys",
               "type": {
                 "name": "std::collections::HashSet",
@@ -263,10 +409,24 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "U"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::U",
         "fields": {
           "unnamed": [
             {
+              "id": {
+                "kind": "Field",
+                "path": [
+                  "0"
+                ],
+                "disambiguator": 0
+              },
               "name": "0",
               "type": {
                 "name": "std::tuple::Tuple0"
@@ -291,6 +451,13 @@ snapshot_kind: text
       },
       {
         "kind": "struct",
+        "id": {
+          "kind": "Struct",
+          "path": [
+            "X"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::X",
         "fields": {
           "named": []
@@ -310,9 +477,23 @@ snapshot_kind: text
       },
       {
         "kind": "enum",
+        "id": {
+          "kind": "Enum",
+          "path": [
+            "Y"
+          ],
+          "disambiguator": 0
+        },
         "name": "reflectapi_demo::tests::basic::Y",
         "variants": [
           {
+            "id": {
+              "kind": "Variant",
+              "path": [
+                "Y"
+              ],
+              "disambiguator": 0
+            },
             "name": "Y",
             "fields": "none"
           }
@@ -332,6 +513,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::BTreeSet"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::BTreeSet",
         "description": "Ordered set type",
         "parameters": [
@@ -350,6 +538,13 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::collections::HashSet"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::collections::HashSet",
         "description": "Value set type",
         "parameters": [
@@ -368,11 +563,25 @@ snapshot_kind: text
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::tuple::Tuple0"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::tuple::Tuple0",
         "description": "Unit type"
       },
       {
         "kind": "primitive",
+        "id": {
+          "kind": "Primitive",
+          "path": [
+            "std::vec::Vec"
+          ],
+          "disambiguator": 0
+        },
         "name": "std::vec::Vec",
         "description": "Expandable array type",
         "parameters": [
