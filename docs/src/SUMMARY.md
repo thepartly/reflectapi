@@ -34,13 +34,19 @@
 - [Code Generation Pipeline](./concepts/codegen.md)
 - [Derive Macros](./concepts/derive-macros.md)
 
+# Client Libraries
+
+- [Overview & Comparison](./clients/README.md)
+- [TypeScript Client](./clients/typescript.md)
+- [Python Client](./clients/python.md)
+- [Rust Client](./clients/rust.md)
+
 # Reference
 
 - [API Reference](./reference/README.md)
 - [CLI Reference](./reference/cli.md)
 - [Feature Flags](./reference/features.md)
 - [Attribute Reference](./reference/attributes.md)
-- [Client Comparison](./reference/client-comparison.md)
 - [Troubleshooting](./reference/troubleshooting.md)
 
 # Contributing
