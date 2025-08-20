@@ -4,7 +4,7 @@ version = "0.15.5"
 edition = "2021"
 default-run = "reflectapi"
 
-license = "MIT"
+license = "Apache-2.0"
 description = "CLI for reflectapi"
 homepage = "https://github.com/thepartly/reflectapi"
 documentation = "https://docs.rs/reflectapi-cli"

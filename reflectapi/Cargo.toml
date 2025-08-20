@@ -3,7 +3,7 @@ name = "reflectapi"
 version = "0.15.5"
 edition = "2021"
 
-license = "MIT"
+license = "Apache-2.0"
 description = "ReflectAPI is a library for Rust code-first web service API declaration and corresponding clients code generation tools."
 homepage = "https://github.com/thepartly/reflectapi"
 documentation = "https://docs.rs/reflectapi"

@@ -3,7 +3,7 @@ name = "reflectapi-derive"
 version = "0.15.5"
 edition = "2021"
 
-license = "MIT"
+license = "Apache-2.0"
 description = "Derive macros for reflectapi"
 repository = "https://github.com/thepartly/reflectapi"
 homepage = "https://github.com/thepartly/reflectapi"
