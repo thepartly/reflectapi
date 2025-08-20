@@ -1,0 +1,153 @@
+/* Custom styling for ReflectAPI documentation */
+
+:root {
+    --sidebar-width: 300px;
+    --page-padding: 15px;
+    --content-max-width: 750px;
+    --menu-bar-height: 50px;
+}
+
+/* Brand colors */
+.light {
+    --links: #FF6B35;
+    --inline-code-color: #2D3748;
+    --inline-code-bg: #F7FAFC;
+}
+
+.rust .light {
+    --links: #FF6B35;
+}
+
+.navy .light {
+    --links: #FF6B35;
+}
+
+.ayu .light {
+    --links: #FF6B35;
+}
+
+/* Code block styling */
+.hljs {
+    border-radius: 6px;
+    padding: 1em;
+}
+
+/* Improve inline code readability */
+:not(pre) > .hljs {
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+/* Improve table styling */
+table {
+    border-collapse: collapse;
+    margin: 1em 0;
+    width: 100%;
+}
+
+table th,
+table td {
+    border: 1px solid var(--table-border-color);
+    padding: 0.5em 1em;
+    text-align: left;
+}
+
+table th {
+    background-color: var(--table-header-bg);
+    font-weight: bold;
+}
+
+/* Add some spacing around headings */
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+h1:first-child,
+h2:first-child,
+h3:first-child {
+    margin-top: 0;
+}
+
+/* Improve callouts/admonitions */
+.warning,
+.info,
+.note {
+    padding: 1em;
+    margin: 1em 0;
+    border-left: 4px solid;
+    border-radius: 0 4px 4px 0;
+}
+
+.warning {
+    background-color: #FEF2F2;
+    border-color: #F87171;
+    color: #7F1D1D;
+}
+
+.info {
+    background-color: #EFF6FF;
+    border-color: #60A5FA;
+    color: #1E3A8A;
+}
+
+.note {
+    background-color: #F0FDF4;
+    border-color: #4ADE80;
+    color: #14532D;
+}
+
+/* Navigation improvements */
+.nav-chapters {
+    padding: 0;
+}
+
+.nav-chapters li {
+    margin: 0;
+}
+
+.nav-chapters a {
+    display: block;
+    padding: 0.5em 1em;
+    text-decoration: none;
+    border-radius: 4px;
+    margin: 0.2em 0;
+}
+
+.nav-chapters a:hover {
+    background-color: var(--sidebar-bg);
+}
+
+.nav-chapters .active {
+    background-color: var(--sidebar-active) !important;
+    color: var(--sidebar-active-color) !important;
+}
+
+/* Improve search styling */
+#searchresults {
+    border-radius: 6px;
+}
+
+#searchresults .result-name {
+    font-weight: bold;
+    color: var(--links);
+}
+
+/* Footer improvements */
+.nav-wrapper {
+    margin-top: 2em;
+    padding-top: 1em;
+    border-top: 1px solid var(--table-border-color);
+}
+
+/* Mobile responsiveness */
+@media only screen and (max-width: 768px) {
+    .content {
+        margin-left: 0;
+    }
+    
+    .nav-chapters {
+        border-right: none;
+    }
+}
