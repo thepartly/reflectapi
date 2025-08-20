@@ -1,5 +1,5 @@
-use reflectapi_schema::SemanticSchema;
 use super::naming::NamingConvention;
+use reflectapi_schema::SemanticSchema;
 
 /// Python Semantic IR for ReflectAPI
 ///
@@ -8,7 +8,7 @@ use super::naming::NamingConvention;
 /// question: "What is the most idiomatic way to model this concept in Python?"
 ///
 /// Key responsibilities:
-/// - Decide that internally tagged enums become DiscriminatedUnions  
+/// - Decide that internally tagged enums become DiscriminatedUnions
 /// - Decide that externally tagged enums become RootModelWrappers
 /// - Identify functions requiring pagination patterns
 /// - Determine factory pattern requirements
@@ -250,7 +250,7 @@ pub enum PaginationPattern {
         limit_param: String,
     },
 
-    /// Cursor-based pagination  
+    /// Cursor-based pagination
     CursorBased {
         cursor_param: String,
         page_size_param: Option<String>,
@@ -361,12 +361,12 @@ impl PySemanticTransform {
                 match semantic_type {
                     reflectapi_schema::SemanticType::Enum(e) => {
                         let (py_type, additional_types) = self.transform_enum(e, &schema);
-                        
+
                         // Insert additional variant types FIRST (definition-before-use)
                         for (name, variant_type) in additional_types {
                             types.push((name, variant_type));
                         }
-                        
+
                         // Then insert the main enum type
                         types.push((semantic_type.name().to_string(), py_type));
                     }
@@ -408,7 +408,7 @@ impl PySemanticTransform {
             SemanticType::Struct(s) => self.transform_struct(s, schema),
             SemanticType::Enum(_) => {
                 panic!("transform_type should not be called for enums - handle in transform method directly")
-            },
+            }
             SemanticType::Primitive(p) => self.transform_primitive(p),
         }
     }
@@ -423,7 +423,7 @@ impl PySemanticTransform {
         for field in strukt.fields.values() {
             let field_def = FieldDef {
                 name: field.name.clone(),
-                python_name: sanitize_python_identifier(&field.name),
+                python_name: self.naming.format_field_name(&field.name),
                 type_annotation: self.resolve_type_annotation(&field.type_ref),
                 description: field.description.clone(),
                 deprecation_note: field.deprecation_note.clone(),
@@ -471,7 +471,7 @@ impl PySemanticTransform {
                 for variant in enm.variants.values() {
                     // For internally tagged enums, each variant becomes a model with the discriminator field
                     let mut variant_fields = BTreeMap::new();
-                    
+
                     // Transform each field in the variant
                     for (_field_id, field) in variant.fields.iter() {
                         let field_def = FieldDef {
@@ -491,7 +491,9 @@ impl PySemanticTransform {
                         variant_fields.insert(field.name.clone(), field_def);
                     }
 
-                    let variant_class_name = self.naming.format_variant_class_name(&enm.name, &variant.name);
+                    let variant_class_name = self
+                        .naming
+                        .format_variant_class_name(&enm.name, &variant.name);
                     let variant_model = PySemanticType::SimpleModel(ModelDef {
                         name: variant_class_name,
                         description: variant.description.clone(),
@@ -508,14 +510,17 @@ impl PySemanticTransform {
                     python_variants.insert(variant.serde_name.clone(), variant_model);
                 }
 
-                (PySemanticType::DiscriminatedUnion(DiscriminatedUnionDef {
-                    name: self.naming.format_class_name(&enm.name),
-                    description: enm.description.clone(),
-                    discriminator_field: tag.clone(),
-                    variants: python_variants,
-                    unknown_variant_policy: UnknownPolicy::Strict,
-                    base_classes: vec!["BaseModel".to_string()],
-                }), vec![])
+                (
+                    PySemanticType::DiscriminatedUnion(DiscriminatedUnionDef {
+                        name: self.naming.format_class_name(&enm.name),
+                        description: enm.description.clone(),
+                        discriminator_field: tag.clone(),
+                        variants: python_variants,
+                        unknown_variant_policy: UnknownPolicy::Strict,
+                        base_classes: vec!["BaseModel".to_string()],
+                    }),
+                    vec![],
+                )
             }
 
             Representation::External => {
@@ -533,14 +538,16 @@ impl PySemanticTransform {
                         format!("Literal[\"{}\"]", variant.name)
                     } else {
                         // Complex variant - create dedicated model class
-                        let variant_class_name = self.naming.format_variant_class_name(&enm.name, &variant.name);
-                        
+                        let variant_class_name = self
+                            .naming
+                            .format_variant_class_name(&enm.name, &variant.name);
+
                         // Transform variant fields
                         let mut variant_fields = BTreeMap::new();
                         for (_field_id, field) in variant.fields.iter() {
                             let field_def = FieldDef {
                                 name: field.name.clone(),
-                                python_name: sanitize_python_identifier(&field.name),
+                                python_name: self.naming.format_field_name(&field.name),
                                 type_annotation: self.resolve_type_annotation(&field.type_ref),
                                 description: field.description.clone(),
                                 deprecation_note: field.deprecation_note.clone(),
@@ -554,7 +561,7 @@ impl PySemanticTransform {
                             };
                             variant_fields.insert(field.name.clone(), field_def);
                         }
-                        
+
                         let variant_model = PySemanticType::SimpleModel(ModelDef {
                             name: variant_class_name.clone(),
                             description: format!("Variant {} of {}", variant.name, enm.name),
@@ -567,10 +574,10 @@ impl PySemanticTransform {
                                 model_validators: vec![],
                             },
                         });
-                        
+
                         // Collect the variant type to return
                         additional_types.push((variant_class_name.clone(), variant_model));
-                        
+
                         variant_class_name
                     };
 
@@ -614,14 +621,16 @@ impl PySemanticTransform {
                         format!("Literal[\"{}\"]", variant.name)
                     } else {
                         // Complex variant - create dedicated model class
-                        let variant_class_name = self.naming.format_variant_class_name(&enm.name, &variant.name);
-                        
+                        let variant_class_name = self
+                            .naming
+                            .format_variant_class_name(&enm.name, &variant.name);
+
                         // Transform variant fields
                         let mut variant_fields = BTreeMap::new();
                         for (_field_id, field) in variant.fields.iter() {
                             let field_def = FieldDef {
                                 name: field.name.clone(),
-                                python_name: sanitize_python_identifier(&field.name),
+                                python_name: self.naming.format_field_name(&field.name),
                                 type_annotation: self.resolve_type_annotation(&field.type_ref),
                                 description: field.description.clone(),
                                 deprecation_note: field.deprecation_note.clone(),
@@ -635,7 +644,7 @@ impl PySemanticTransform {
                             };
                             variant_fields.insert(field.name.clone(), field_def);
                         }
-                        
+
                         let variant_model = PySemanticType::SimpleModel(ModelDef {
                             name: variant_class_name.clone(),
                             description: format!("Variant {} of {}", variant.name, enm.name),
@@ -648,10 +657,10 @@ impl PySemanticTransform {
                                 model_validators: vec![],
                             },
                         });
-                        
+
                         // Collect the variant type to return
                         additional_types.push((variant_class_name.clone(), variant_model));
-                        
+
                         variant_class_name
                     };
 
@@ -729,7 +738,7 @@ impl PySemanticTransform {
             output_type: None, // TODO: Resolve from SymbolId
             error_type: None,  // TODO: Resolve from SymbolId
             pagination: None,  // TODO: Detect pagination patterns
-            client_method_name: to_snake_case(&function.name),
+            client_method_name: self.naming.format_method_name(&function.name),
         }
     }
 
