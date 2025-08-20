@@ -1,0 +1,610 @@
+# Working with Custom Types
+
+Learn how to integrate external types and create strongly-typed wrappers for your ReflectAPI schemas.
+
+## Overview
+
+ReflectAPI provides several ways to work with custom types:
+- **NewType patterns** for strong typing and validation
+- **Manual trait implementations** for external crate types  
+- **Feature flags** for common external types
+- **Generic wrappers** for reusable type patterns
+
+## NewType Patterns
+
+NewTypes provide compile-time safety and validation without runtime overhead:
+
+### Basic NewTypes
+
+```rust,ignore
+use reflectapi::{Input, Output};
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
+#[serde(transparent)]
+pub struct UserId(pub u32);
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
+#[serde(transparent)]
+pub struct EmailAddress(pub String);
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
+#[serde(transparent)]
+pub struct PhoneNumber(pub String);
+```
+
+The `#[serde(transparent)]` attribute ensures the newtype serializes as its inner value:
+
+```json
+// UserId(123) serializes as:
+123
+
+// EmailAddress("user@example.com") serializes as:
+"user@example.com"
+```
+
+### NewTypes with Validation
+
+Add validation methods to your newtypes:
+
+```rust,ignore
+impl UserId {
+    pub fn new(id: u32) -> Result<Self, &'static str> {
+        if id == 0 {
+            Err("User ID cannot be zero")
+        } else {
+            Ok(UserId(id))
+        }
+    }
+}
+
+impl EmailAddress {
+    pub fn new(email: String) -> Result<Self, &'static str> {
+        if email.contains('@') {
+            Ok(EmailAddress(email))
+        } else {
+            Err("Invalid email format")
+        }
+    }
+    
+    pub fn domain(&self) -> &str {
+        self.0.split('@').nth(1).unwrap_or("")
+    }
+}
+
+impl PhoneNumber {
+    pub fn new(phone: String) -> Result<Self, &'static str> {
+        let cleaned = phone.chars()
+            .filter(|c| c.is_ascii_digit() || *c == '+')
+            .collect::<String>();
+            
+        if cleaned.len() >= 10 {
+            Ok(PhoneNumber(cleaned))
+        } else {
+            Err("Phone number too short")
+        }
+    }
+}
+```
+
+### Usage in API Handlers
+
+```rust,ignore
+use reflectapi::{Input, Output};
+
+#[derive(serde::Deserialize, Input)]
+pub struct CreateUserRequest {
+    pub email: EmailAddress,
+    pub phone: Option<PhoneNumber>,
+}
+
+#[derive(serde::Serialize, Output)]
+pub struct User {
+    pub id: UserId,
+    pub email: EmailAddress,
+    pub phone: Option<PhoneNumber>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+async fn create_user(
+    state: Arc<AppState>,
+    request: CreateUserRequest,
+    _headers: reflectapi::Empty,
+) -> Result<User, CreateUserError> {
+    // Validation already happened during deserialization
+    let user_id = state.next_user_id();
+    
+    let user = User {
+        id: UserId(user_id),
+        email: request.email,
+        phone: request.phone,
+        created_at: chrono::Utc::now(),
+    };
+    
+    Ok(user)
+}
+```
+
+## Manual Trait Implementations
+
+For types from external crates without ReflectAPI support:
+
+### Example: Custom Date Type
+
+```rust,ignore
+// External crate type we want to use
+pub struct CustomDate {
+    year: u16,
+    month: u8,
+    day: u8,
+}
+
+impl serde::Serialize for CustomDate {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let date_string = format!("{:04}-{:02}-{:02}", self.year, self.month, self.day);
+        serializer.serialize_str(&date_string)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for CustomDate {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        // Parse YYYY-MM-DD format
+        let parts: Vec<&str> = s.split('-').collect();
+        if parts.len() != 3 {
+            return Err(serde::de::Error::custom("Invalid date format"));
+        }
+        
+        Ok(CustomDate {
+            year: parts[0].parse().map_err(serde::de::Error::custom)?,
+            month: parts[1].parse().map_err(serde::de::Error::custom)?,
+            day: parts[2].parse().map_err(serde::de::Error::custom)?,
+        })
+    }
+}
+
+// Manual ReflectAPI trait implementations
+impl reflectapi::Input for CustomDate {
+    fn reflectapi_input_type(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
+        // Register as a string type with format constraint
+        let type_name = schema.register_type(
+            "CustomDate".into(),
+            reflectapi_schema::Type::String {
+                title: Some("Custom Date".into()),
+                description: Some("Date in YYYY-MM-DD format".into()),
+                format: Some("date".into()),
+                pattern: Some("^\\d{4}-\\d{2}-\\d{2}$".into()),
+                min_length: Some(10),
+                max_length: Some(10),
+            }
+        );
+        reflectapi::TypeReference::new(type_name, vec![])
+    }
+}
+
+impl reflectapi::Output for CustomDate {
+    fn reflectapi_output_type(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
+        // Same implementation for output
+        Self::reflectapi_input_type(schema)
+    }
+}
+```
+
+### Complex Custom Types
+
+For structs with multiple fields:
+
+```rust,ignore
+#[derive(Debug, Clone)]
+pub struct GeoCoordinate {
+    pub latitude: f64,
+    pub longitude: f64,
+    pub altitude: Option<f64>,
+}
+
+impl reflectapi::Input for GeoCoordinate {
+    fn reflectapi_input_type(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
+        use reflectapi_schema::{Type, ObjectField};
+        
+        let type_name = schema.register_type(
+            "GeoCoordinate".into(),
+            Type::Object {
+                title: Some("Geographic Coordinate".into()),
+                description: Some("GPS coordinates with optional altitude".into()),
+                properties: vec![
+                    ObjectField {
+                        name: "latitude".into(),
+                        type_ref: f64::reflectapi_input_type(schema),
+                        description: Some("Latitude in decimal degrees (-90 to 90)".into()),
+                        required: true,
+                    },
+                    ObjectField {
+                        name: "longitude".into(),
+                        type_ref: f64::reflectapi_input_type(schema),
+                        description: Some("Longitude in decimal degrees (-180 to 180)".into()),
+                        required: true,
+                    },
+                    ObjectField {
+                        name: "altitude".into(),
+                        type_ref: Option::<f64>::reflectapi_input_type(schema),
+                        description: Some("Altitude in meters above sea level".into()),
+                        required: false,
+                    },
+                ],
+                additional_properties: false,
+            }
+        );
+        
+        reflectapi::TypeReference::new(type_name, vec![])
+    }
+}
+
+impl reflectapi::Output for GeoCoordinate {
+    fn reflectapi_output_type(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
+        Self::reflectapi_input_type(schema)
+    }
+}
+```
+
+## External Type Support via Feature Flags
+
+ReflectAPI provides built-in support for common external types via feature flags:
+
+### Chrono Types
+
+```toml
+[dependencies]
+reflectapi = { version = "0.15", features = ["chrono"] }
+chrono = { version = "0.4", features = ["serde"] }
+```
+
+```rust,ignore
+#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+pub struct Event {
+    pub name: String,
+    pub start_time: chrono::DateTime<chrono::Utc>,
+    pub end_time: chrono::DateTime<chrono::Utc>,
+    pub date: chrono::NaiveDate,
+}
+```
+
+### UUID Support
+
+```toml
+[dependencies]
+reflectapi = { version = "0.15", features = ["uuid"] }
+uuid = { version = "1.0", features = ["serde"] }
+```
+
+```rust,ignore
+#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+pub struct Resource {
+    pub id: uuid::Uuid,
+    pub name: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+```
+
+### URL Support
+
+```toml
+[dependencies]
+reflectapi = { version = "0.15", features = ["url"] }
+url = { version = "2.0", features = ["serde"] }
+```
+
+```rust,ignore
+#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+pub struct WebResource {
+    pub url: url::Url,
+    pub title: String,
+    pub description: Option<String>,
+}
+```
+
+### Decimal Support
+
+```toml
+[dependencies]
+reflectapi = { version = "0.15", features = ["rust_decimal"] }
+rust_decimal = { version = "1.35", features = ["serde"] }
+```
+
+```rust,ignore
+#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+pub struct Price {
+    pub amount: rust_decimal::Decimal,
+    pub currency: String,
+}
+```
+
+## Generic Custom Types
+
+Create reusable generic patterns:
+
+### Paginated Results
+
+```rust,ignore
+#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+pub struct Page<T>
+where
+    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+{
+    pub items: Vec<T>,
+    pub page: u32,
+    pub per_page: u32,
+    pub total_pages: u32,
+    pub total_items: u32,
+}
+
+// Usage
+#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+pub struct Product {
+    pub id: u32,
+    pub name: String,
+    pub price: rust_decimal::Decimal,
+}
+
+async fn list_products(
+    state: Arc<AppState>,
+    request: ListProductsRequest,
+    _headers: reflectapi::Empty,
+) -> Result<Page<Product>, ListProductsError> {
+    // Implementation
+}
+```
+
+### Result Wrapper
+
+```rust,ignore
+#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[serde(tag = "status")]
+pub enum ApiResult<T, E>
+where
+    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    E: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+{
+    Success { data: T },
+    Error { error: E },
+}
+
+// This creates tagged unions that translate beautifully to TypeScript:
+// type ApiResult<T, E> = 
+//   | { status: "Success"; data: T }
+//   | { status: "Error"; error: E }
+```
+
+## Best Practices
+
+### 1. Use NewTypes for Domain Modeling
+
+```rust,ignore
+// ❌ Primitive obsession
+#[derive(Input, Output)]
+pub struct User {
+    pub id: u32,           // Which ID is this?
+    pub email: String,     // Any string?
+    pub age: u8,          // What about validation?
+}
+
+// ✅ Strong typing with newtypes
+#[derive(Input, Output)]
+pub struct User {
+    pub id: UserId,
+    pub email: EmailAddress,
+    pub age: Age,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[serde(transparent)]
+pub struct Age(u8);
+
+impl Age {
+    pub fn new(age: u8) -> Result<Self, &'static str> {
+        if age > 150 {
+            Err("Age cannot exceed 150")
+        } else {
+            Ok(Age(age))
+        }
+    }
+}
+```
+
+### 2. Implement Display and FromStr
+
+```rust,ignore
+impl std::fmt::Display for UserId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::str::FromStr for UserId {
+    type Err = std::num::ParseIntError;
+    
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(UserId(s.parse()?))
+    }
+}
+```
+
+### 3. Add Convenience Methods
+
+```rust,ignore
+impl EmailAddress {
+    pub fn username(&self) -> &str {
+        self.0.split('@').next().unwrap_or("")
+    }
+    
+    pub fn domain(&self) -> &str {
+        self.0.split('@').nth(1).unwrap_or("")
+    }
+    
+    pub fn is_corporate(&self) -> bool {
+        !["gmail.com", "yahoo.com", "outlook.com"]
+            .contains(&self.domain())
+    }
+}
+```
+
+### 4. Use Consistent Naming
+
+```rust,ignore
+// ✅ Consistent naming pattern
+pub struct UserId(pub u32);
+pub struct ProductId(pub u32);
+pub struct OrderId(pub u32);
+
+// ✅ Consistent validation pattern
+impl UserId {
+    pub fn new(id: u32) -> Result<Self, ValidationError> { /* */ }
+}
+```
+
+## Testing Custom Types
+
+Test both serialization and validation:
+
+```rust,ignore
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_email_validation() {
+        assert!(EmailAddress::new("user@example.com".into()).is_ok());
+        assert!(EmailAddress::new("invalid-email".into()).is_err());
+    }
+    
+    #[test]
+    fn test_email_serialization() {
+        let email = EmailAddress("user@example.com".into());
+        let json = serde_json::to_string(&email).unwrap();
+        assert_eq!(json, "\"user@example.com\"");
+        
+        let deserialized: EmailAddress = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.0, "user@example.com");
+    }
+    
+    #[test]
+    fn test_user_id_from_str() {
+        let id: UserId = "123".parse().unwrap();
+        assert_eq!(id.0, 123);
+    }
+}
+```
+
+## Client-Side Usage
+
+### TypeScript
+
+Generated TypeScript maintains type safety:
+
+```typescript
+// Generated types
+export type UserId = number;
+export type EmailAddress = string;
+
+export interface User {
+  id: UserId;
+  email: EmailAddress;
+  phone?: PhoneNumber;
+}
+
+// Usage with type safety
+const user: User = {
+  id: 123,
+  email: "user@example.com",
+  phone: "+1234567890"
+};
+```
+
+### Python
+
+Generated Python uses type aliases and validation:
+
+```python
+from typing import NewType
+from pydantic import BaseModel, validator
+
+UserId = NewType('UserId', int)
+EmailAddress = NewType('EmailAddress', str)
+
+class User(BaseModel):
+    id: UserId
+    email: EmailAddress
+    phone: Optional[PhoneNumber] = None
+    
+    @validator('email')
+    def validate_email(cls, v):
+        if '@' not in v:
+            raise ValueError('Invalid email format')
+        return v
+```
+
+## Common Pitfalls
+
+### 1. Forgetting Transparent Serialization
+
+```rust,ignore
+// ❌ Will serialize as {"0": 123} instead of 123
+#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+pub struct UserId(pub u32);
+
+// ✅ Serializes as 123
+#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[serde(transparent)]
+pub struct UserId(pub u32);
+```
+
+### 2. Missing Clone/Debug Traits
+
+```rust,ignore
+// ❌ Hard to work with
+#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+pub struct UserId(pub u32);
+
+// ✅ Full set of useful traits
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, Input, Output)]
+#[serde(transparent)]
+pub struct UserId(pub u32);
+```
+
+### 3. Inconsistent Validation
+
+```rust,ignore
+// ❌ Validation only in constructor
+impl EmailAddress {
+    pub fn new(email: String) -> Result<Self, &'static str> {
+        // validation here
+    }
+}
+
+// But serde can bypass validation!
+
+// ✅ Use serde validation or try_from
+impl TryFrom<String> for EmailAddress {
+    type Error = &'static str;
+    
+    fn try_from(email: String) -> Result<Self, Self::Error> {
+        if email.contains('@') {
+            Ok(EmailAddress(email))
+        } else {
+            Err("Invalid email format")
+        }
+    }
+}
+
+// Then use serde(try_from) if needed
+```
+
+## Next Steps
+
+- Learn about [Using Generic Types](./generics.md) for advanced type patterns
+- Explore [Working with Tagged Enums](./tagged-enums.md) for discriminated unions
+- See [Validation and Error Handling](./validation.md) for comprehensive validation strategies

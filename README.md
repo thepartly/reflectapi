@@ -2,7 +2,18 @@
 
 ReflectAPI is a library for Rust code-first web service API declaration and corresponding clients code generation tools.
 
-More documentation will follow later.
+## Features
+
+- **Code-first API definition** using Rust types and derive macros
+- **Multi-language client generation**: TypeScript, Rust, and Python
+- **OpenAPI spec generation** for documentation and tooling
+- **Type-safe** clients with full IntelliSense support
+- **Web framework integration** (Axum supported)
+
+## Documentation
+
+- [API Documentation](https://docs.rs/reflectapi) - Complete API reference
+- [User Guide](https://thepartly.github.io/reflectapi/) - Tutorials and examples
 
 ### Development notes
 
@@ -40,6 +51,7 @@ To run the Rust generated client. Note: requires the demo server running
 cd reflectapi-demo/clients/rust/
 cargo run --all-features
 ```
+
 
 To generate client in Python for demo server:
 

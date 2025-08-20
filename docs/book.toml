@@ -1,0 +1,38 @@
+[book]
+authors = ["ReflectAPI Contributors"]
+language = "en"
+multilingual = false
+src = "src"
+title = "ReflectAPI Documentation"
+description = "Code-first web service API declaration and client generation"
+
+[preprocessor.links]
+
+[output.html]
+additional-css = ["theme/custom.css"]
+git-repository-url = "https://github.com/thepartly/reflectapi"
+edit-url-template = "https://github.com/thepartly/reflectapi/edit/main/docs/{path}"
+site-url = "https://thepartly.github.io/reflectapi/"
+
+[output.html.playground]
+copyable = true
+copy-js = true
+line-numbers = false
+editable = false
+
+[output.html.search]
+enable = true
+limit-results = 30
+teaser-word-count = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 1
+boost-paragraph = 1
+expand = true
+heading-split-level = 3
+copy-js = true
+
+[rust]
+edition = "2021"
+
+[output.html.redirect]
