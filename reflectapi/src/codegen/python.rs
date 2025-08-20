@@ -193,7 +193,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Render all types (models and enums) without factories first
     let mut rendered_types = HashMap::new();
     let mut factory_data = Vec::new(); // Collect factory data for later generation
-    
+
     for original_type_name in all_type_names {
         // Skip types provided by the runtime
         if runtime_provided_types.contains(&original_type_name.as_str()) {
@@ -202,13 +202,14 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
         let type_def = schema.get_type(&original_type_name).unwrap();
         let name = improve_class_name(type_def.name());
-        let (rendered, factory_info) = render_type_without_factory(type_def, &schema, &implemented_types)?;
-        
+        let (rendered, factory_info) =
+            render_type_without_factory(type_def, &schema, &implemented_types)?;
+
         // Store factory info for later generation
         if let Some(info) = factory_info {
             factory_data.push(info);
         }
-        
+
         // Only store non-empty renders (excludes unwrapped tuple structs)
         if !rendered.trim().is_empty() {
             rendered_types.insert(name.clone(), rendered.clone());
@@ -307,11 +308,17 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         .push("    # Some types may not have model_rebuild method".to_string());
     external_types_and_rebuilds.push("    pass".to_string());
     external_types_and_rebuilds.push("".to_string());
-    external_types_and_rebuilds.push("# Factory classes (generated after model rebuild to avoid forward references)".to_string());
-    
+    external_types_and_rebuilds.push(
+        "# Factory classes (generated after model rebuild to avoid forward references)".to_string(),
+    );
+
     // Generate all factory classes now that types are defined and rebuilt
     for factory_info in &factory_data {
-        let factory_code = generate_factory_class(&factory_info.enum_def, &factory_info.enum_name, &factory_info.union_members)?;
+        let factory_code = generate_factory_class(
+            &factory_info.enum_def,
+            &factory_info.enum_name,
+            &factory_info.union_members,
+        )?;
         external_types_and_rebuilds.push(factory_code);
         external_types_and_rebuilds.push("".to_string());
     }
@@ -374,16 +381,6 @@ fn render_type_without_factory(
             Ok((String::new(), None)) // This shouldn't be reached normally
         }
     }
-}
-
-// Legacy function for backward compatibility (not used in new flow)
-fn render_type(
-    type_def: &Type,
-    schema: &Schema,
-    implemented_types: &HashMap<String, String>,
-) -> anyhow::Result<String> {
-    let (rendered, _) = render_type_without_factory(type_def, schema, implemented_types)?;
-    Ok(rendered)
 }
 
 fn render_struct(
@@ -571,7 +568,8 @@ fn render_enum_without_factory(
     match &enum_def.representation {
         Representation::Internal { tag } => {
             // Internally tagged enums don't use factories (they use discriminated unions)
-            let rendered = render_internally_tagged_enum_improved(enum_def, tag, schema, implemented_types)?;
+            let rendered =
+                render_internally_tagged_enum_improved(enum_def, tag, schema, implemented_types)?;
             Ok((rendered, None))
         }
         Representation::None => {
@@ -599,7 +597,11 @@ fn render_enum_without_factory(
 
                 if has_complex_variants {
                     // This is an externally tagged enum with complex variants - needs factory
-                    let (rendered, union_members) = render_externally_tagged_enum_without_factory(enum_def, schema, implemented_types)?;
+                    let (rendered, union_members) = render_externally_tagged_enum_without_factory(
+                        enum_def,
+                        schema,
+                        implemented_types,
+                    )?;
                     let factory_info = FactoryInfo {
                         enum_def: enum_def.clone(),
                         enum_name: improve_class_name(&enum_def.name),
@@ -632,100 +634,6 @@ fn render_enum_without_factory(
     }
 }
 
-fn render_enum(
-    enum_def: &reflectapi_schema::Enum,
-    schema: &Schema,
-    implemented_types: &HashMap<String, String>,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::{Fields, Representation};
-
-    // Check if this is a tagged enum (internally tagged)
-    match &enum_def.representation {
-        Representation::Internal { tag } => {
-            // Check if this internally tagged enum has tuple variants with struct types that can be flattened
-            let _has_flattenable_tuple_variants = enum_def.variants.iter().any(|v| {
-                if let Fields::Unnamed(fields) = &v.fields {
-                    if fields.len() == 1 {
-                        // Check if the tuple variant contains a struct type that can be flattened
-                        let field = &fields[0];
-                        let type_name = &field.type_ref.name;
-
-                        // Handle Box<T> by looking at the first type argument
-                        let actual_type_name = if type_name == "std::boxed::Box" {
-                            if let Some(boxed_arg) = field.type_ref.arguments.first() {
-                                &boxed_arg.name
-                            } else {
-                                type_name
-                            }
-                        } else {
-                            type_name
-                        };
-
-                        if let Some(inner_type) = schema.get_type(actual_type_name) {
-                            matches!(inner_type, Type::Struct(_))
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
-                    }
-                } else {
-                    false
-                }
-            });
-
-            // Use the improved internally tagged enum renderer
-            render_internally_tagged_enum_improved(enum_def, tag, schema, implemented_types)
-        }
-        Representation::None => {
-            // This is an untagged enum - generate Union without discriminator
-            render_untagged_enum(enum_def, schema, implemented_types)
-        }
-        _ => {
-            // Check if this is a primitive-represented enum (has discriminant values)
-            let has_discriminants = enum_def.variants.iter().any(|v| v.discriminant.is_some());
-
-            if has_discriminants {
-                // This is a primitive enum - use IntEnum or similar
-                render_primitive_enum(enum_def)
-            } else {
-                // Check if this has complex variants (tuple or struct variants)
-                let has_complex_variants = enum_def.variants.iter().any(|v| {
-                    match &v.fields {
-                        Fields::Named(_) => true,                      // struct variant
-                        Fields::Unnamed(fields) => !fields.is_empty(), // tuple variant with fields
-                        Fields::None => false,                         // unit variant
-                    }
-                });
-
-                if has_complex_variants {
-                    // This is an externally tagged enum with complex variants
-                    render_externally_tagged_enum(enum_def, schema, implemented_types)
-                } else {
-                    // This is a simple string enum - use the existing approach
-                    let variants = enum_def
-                        .variants
-                        .iter()
-                        .map(|variant| templates::EnumVariant {
-                            name: to_screaming_snake_case(variant.name()),
-                            value: variant.serde_name().to_string(),
-                            description: Some(variant.description().to_string()),
-                        })
-                        .collect();
-
-                    let enum_template = templates::EnumClass {
-                        name: improve_class_name(&enum_def.name),
-                        description: Some(enum_def.description().to_string()),
-                        variants,
-                    };
-
-                    enum_template.render().context("Failed to render enum")
-                }
-            }
-        }
-    }
-}
-
 fn render_externally_tagged_enum_without_factory(
     enum_def: &reflectapi_schema::Enum,
     schema: &Schema,
@@ -733,25 +641,27 @@ fn render_externally_tagged_enum_without_factory(
 ) -> anyhow::Result<(String, Vec<String>)> {
     // Generate the full enum (with factory)
     let full_enum = render_externally_tagged_enum(enum_def, schema, implemented_types)?;
-    
+
     // Extract just the part before the factory class (more specific split)
     let enum_name = improve_class_name(&enum_def.name);
     let factory_class_pattern = format!("\n\nclass {}Factory:", enum_name);
     let parts: Vec<&str> = full_enum.split(&factory_class_pattern).collect();
     let enum_without_factory = parts[0].to_string();
-    
+
     // Extract union member names for factory generation later
     let union_variants = extract_union_members_from_enum(enum_def)?;
-    
+
     Ok((enum_without_factory, union_variants))
 }
 
-fn extract_union_members_from_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<Vec<String>> {
+fn extract_union_members_from_enum(
+    enum_def: &reflectapi_schema::Enum,
+) -> anyhow::Result<Vec<String>> {
     use reflectapi_schema::Fields;
-    
+
     let enum_name = improve_class_name(&enum_def.name);
     let mut union_variants = Vec::new();
-    
+
     for variant in &enum_def.variants {
         let variant_name = variant.name();
         match &variant.fields {
@@ -759,12 +669,13 @@ fn extract_union_members_from_enum(enum_def: &reflectapi_schema::Enum) -> anyhow
                 union_variants.push(format!("Literal[\"{}\"]", variant_name));
             }
             Fields::Unnamed(_) | Fields::Named(_) => {
-                let variant_class_name = format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
+                let variant_class_name =
+                    format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
                 union_variants.push(variant_class_name);
             }
         }
     }
-    
+
     Ok(union_variants)
 }
 
@@ -962,7 +873,9 @@ fn render_externally_tagged_enum(
     // Choose template based on whether this is a generic enum
     let enum_code = if is_generic {
         // Use Approach B for generic externally tagged enums
-        let variant_info_list: Vec<templates::VariantInfo> = enum_def.variants.iter()
+        let variant_info_list: Vec<templates::VariantInfo> = enum_def
+            .variants
+            .iter()
             .filter(|v| !matches!(&v.fields, Fields::None)) // Only complex variants need variant classes
             .map(|v| templates::VariantInfo {
                 class_name: format!("{}{}Variant", enum_name, to_pascal_case(v.name())),
@@ -987,7 +900,9 @@ fn render_externally_tagged_enum(
             generic_params: generic_params.clone(),
             variant_info_list,
         };
-        template.render().context("Failed to render generic externally tagged enum")?
+        template
+            .render()
+            .context("Failed to render generic externally tagged enum")?
     } else {
         // Use existing RootModel approach for non-generic enums
         let template = templates::ExternallyTaggedEnumRootModel {
@@ -1006,9 +921,10 @@ fn render_externally_tagged_enum(
             is_generic,
             generic_params: generic_params.clone(),
         };
-        template.render().context("Failed to render externally tagged enum")?
+        template
+            .render()
+            .context("Failed to render externally tagged enum")?
     };
-
 
     // Generate factory class for ergonomic instantiation
     let factory_class_code = generate_externally_tagged_factory_class(enum_def, &enum_name)?;
