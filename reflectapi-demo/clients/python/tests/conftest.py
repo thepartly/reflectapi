@@ -23,16 +23,13 @@ from typing import Any
 # No local sys.path manipulation; runtime is installed via uv
 from reflectapi_runtime import ReflectapiOption
 from generated import (
-    MyapiModelInputPet as Pet,
-    MyapiModelOutputPet as PetDetails,
-    MyapiModelKind as PetKind,
-    MyapiModelKindDog as PetKindDog,
-    MyapiModelKindCat as PetKindCat,
-    MyapiModelBehavior as Behavior,
-    MyapiModelBehaviorFactory as BehaviorFactory,
-    MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
-    MyapiProtoPaginated as Paginated,
-    AsyncClient
+    OutputPet as PetDetails,
+    OutputKindDogVariant as DogVariant,
+    OutputBehavior as Behavior,
+    OutputBehaviorAggressiveVariant as BehaviorAggressive,
+    PetsUpdateRequest,
+    Paginated,
+    ApiClient as AsyncClient
 )
 
 # Test configuration
@@ -40,49 +37,17 @@ from generated import (
 
 
 @pytest.fixture
-def sample_dog() -> PetKindDog:
+def sample_dog() -> DogVariant:
     """Create a sample dog variant."""
-    return PetKindDog(type='dog', breed='Golden Retriever')
+    return DogVariant(breed='Golden Retriever')
 
 
-@pytest.fixture
-def sample_cat() -> PetKindCat:
-    """Create a sample cat variant."""
-    return PetKindCat(type='cat', lives=9)
-
-
-@pytest.fixture
-def sample_pet(sample_dog: PetKindDog) -> Pet:
-    """Create a sample Pet with dog variant."""
-    return Pet(
-        name="Buddy",
-        kind=sample_dog,
-        age=3,
-        behaviors=[BehaviorFactory.CALM, BehaviorFactory.aggressive(5.0, "growls")]
-    )
-
-
-@pytest.fixture
-def sample_pet_details(sample_cat: PetKindCat) -> PetDetails:
-    """Create a sample PetDetails with cat variant."""
-    from datetime import datetime
-    return PetDetails(
-        name="Whiskers",
-        kind=sample_cat,
-        age=2,
-        updated_at=datetime.now(),
-        behaviors=[BehaviorFactory.CALM]
-    )
-
-
-@pytest.fixture
+@pytest.fixture  
 def sample_update_request() -> PetsUpdateRequest:
     """Create a sample PetsUpdateRequest with ReflectapiOption fields."""
     return PetsUpdateRequest(
-        name="TestPet",
-        kind=PetKindDog(type='dog', breed='Labrador'),
-        age=ReflectapiOption(5),
-        behaviors=ReflectapiOption([BehaviorFactory.CALM])
+        name="TestPet"
+        # Other fields are ReflectapiOption and default to None
     )
 
 
@@ -101,75 +66,6 @@ def mock_async_client() -> AsyncClient:
     return AsyncClient("https://api.example.com")
 
 
-@pytest.fixture
-def paginated_pets(sample_pet_details: PetDetails) -> Paginated[PetDetails]:
-    """Create a sample paginated response."""
-    return Paginated[PetDetails](
-        items=[sample_pet_details],
-        cursor="next_page_token"
-    )
-
-
-# Test data collections
-@pytest.fixture
-def behavior_samples() -> list[Behavior]:
-    """Sample behavior instances."""
-    return [
-        BehaviorFactory.CALM,
-        BehaviorFactory.aggressive(5.0, "test"),
-        BehaviorFactory.other("Custom", "Some notes")
-    ]
-
-
-@pytest.fixture
-def pet_kind_samples(sample_dog: PetKindDog, sample_cat: PetKindCat) -> list[PetKind]:
-    """Sample PetKind union variants."""
-    return [sample_dog, sample_cat]
-
-
-# Test utilities
-class TestDataFactory:
-    """Factory for creating test data."""
-
-    @staticmethod
-    def create_pet(name: str = "TestPet", kind_type: str = "dog", **kwargs) -> Pet:
-        """Create a Pet with specified parameters."""
-        if kind_type == "dog":
-            kind = PetKindDog(type='dog', breed=kwargs.get('breed', 'Labrador'))
-        else:
-            kind = PetKindCat(type='cat', lives=kwargs.get('lives', 9))
-
-        return Pet(
-            name=name,
-            kind=kind,
-            age=kwargs.get('age'),
-            behaviors=kwargs.get('behaviors'),
-        )
-
-    @staticmethod
-    def create_update_request(
-        name: str = "TestPet",
-        with_age: bool = False,
-        with_behaviors: bool = False,
-        **kwargs
-    ) -> PetsUpdateRequest:
-        """Create a PetsUpdateRequest with optional fields."""
-        request = PetsUpdateRequest(name=name)
-
-        if with_age:
-            request.age = ReflectapiOption(kwargs.get('age', 5))
-        if with_behaviors:
-            request.behaviors = ReflectapiOption(kwargs.get('behaviors', [BehaviorFactory.CALM]))
-
-        return request
-
-
-@pytest.fixture
-def test_factory() -> TestDataFactory:
-    """Provide test data factory."""
-    return TestDataFactory()
-
-
 # Marks for test categorization
 pytest.mark.unit = pytest.mark.unit
 pytest.mark.integration = pytest.mark.integration
@@ -178,20 +74,6 @@ pytest.mark.slow = pytest.mark.slow
 
 
 # Test helpers
-def assert_petkind_dog(pet_kind: PetKind, expected_breed: str) -> None:
-    """Assert that a PetKind is a dog with expected breed."""
-    assert isinstance(pet_kind, PetKindDog)
-    assert pet_kind.type == 'dog'
-    assert pet_kind.breed == expected_breed
-
-
-def assert_petkind_cat(pet_kind: PetKind, expected_lives: int) -> None:
-    """Assert that a PetKind is a cat with expected lives."""
-    assert isinstance(pet_kind, PetKindCat)
-    assert pet_kind.type == 'cat'
-    assert pet_kind.lives == expected_lives
-
-
 def assert_reflectapi_option_some(option: ReflectapiOption, expected_value: Any) -> None:
     """Assert that a ReflectapiOption contains the expected value."""
     assert option.is_some
@@ -213,14 +95,3 @@ def assert_reflectapi_option_none(option: ReflectapiOption) -> None:
     assert not option.is_undefined
     assert not option.is_some
     assert option.value is None
-
-
-# Export test helpers for use in test modules
-__all__ = [
-    'assert_petkind_dog',
-    'assert_petkind_cat',
-    'assert_reflectapi_option_some',
-    'assert_reflectapi_option_undefined',
-    'assert_reflectapi_option_none',
-    'TestDataFactory',
-]
