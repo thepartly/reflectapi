@@ -34,7 +34,7 @@ from .hypothesis_strategies import (
     strategy_for_pydantic_model,
     strategy_for_type,
 )
-from .middleware import Middleware
+from .middleware import AsyncMiddleware
 from .option import (
     Option,
     ReflectapiOption,
@@ -85,7 +85,7 @@ __all__ = [
     "CassetteMiddleware",
     "ClientBase",
     "HAS_HYPOTHESIS",
-    "Middleware",
+    "AsyncMiddleware",
     "MockClient",
     "NetworkError",
     "Option",

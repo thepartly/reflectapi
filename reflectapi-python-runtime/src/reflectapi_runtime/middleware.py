@@ -65,10 +65,6 @@ class SyncMiddleware(ABC):
         pass
 
 
-# Backward compatibility alias
-Middleware = AsyncMiddleware
-
-
 class AsyncLoggingMiddleware(AsyncMiddleware):
     """Async middleware that logs request and response information."""
 
@@ -135,11 +131,7 @@ class SyncLoggingMiddleware(SyncMiddleware):
         return response
 
 
-# Backward compatibility alias
-LoggingMiddleware = AsyncLoggingMiddleware
-
-
-class RetryMiddleware(Middleware):
+class RetryMiddleware(AsyncMiddleware):
     """Middleware that retries requests on transient failures with exponential backoff and jitter."""
 
     # Methods that are safe to retry automatically on network failures
@@ -260,5 +252,3 @@ class SyncMiddlewareChain:
         return handler(request)
 
 
-# Backward compatibility alias
-MiddlewareChain = AsyncMiddlewareChain

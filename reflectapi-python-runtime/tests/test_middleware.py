@@ -12,9 +12,6 @@ from reflectapi_runtime.middleware import (
     AsyncLoggingMiddleware,
     AsyncMiddleware,
     AsyncMiddlewareChain,
-    LoggingMiddleware,
-    Middleware,
-    MiddlewareChain,
     RetryMiddleware,
     SyncLoggingMiddleware,
     SyncMiddleware,
@@ -22,23 +19,23 @@ from reflectapi_runtime.middleware import (
 )
 
 
-class TestMiddleware:
+class TestAsyncMiddleware:
     def test_is_abstract(self):
         with pytest.raises(TypeError):
-            Middleware()
+            AsyncMiddleware()
 
 
-class TestLoggingMiddleware:
+class TestAsyncLoggingMiddleware:
     def test_initialization(self):
-        middleware = LoggingMiddleware()
+        middleware = AsyncLoggingMiddleware()
         assert middleware.logger.name == "reflectapi.client"
 
-        middleware = LoggingMiddleware("custom.logger")
+        middleware = AsyncLoggingMiddleware("custom.logger")
         assert middleware.logger.name == "custom.logger"
 
     @pytest.mark.asyncio
     async def test_handle_logs_request_and_response(self, caplog):
-        middleware = LoggingMiddleware()
+        middleware = AsyncLoggingMiddleware()
 
         mock_request = Mock(spec=httpx.Request)
         mock_request.method = "GET"
@@ -429,12 +426,12 @@ class TestRetryMiddleware:
         assert call_count == 1  # No retries
 
 
-class TestMiddlewareChain:
+class TestAsyncMiddlewareChain:
     def test_initialization(self):
-        middleware1 = LoggingMiddleware()
+        middleware1 = AsyncLoggingMiddleware()
         middleware2 = RetryMiddleware()
 
-        chain = MiddlewareChain([middleware1, middleware2])
+        chain = AsyncMiddlewareChain([middleware1, middleware2])
 
         assert len(chain.middleware) == 2
         assert chain.middleware[0] is middleware1
@@ -442,7 +439,7 @@ class TestMiddlewareChain:
 
     @pytest.mark.asyncio
     async def test_execute_empty_chain(self):
-        chain = MiddlewareChain([])
+        chain = AsyncMiddlewareChain([])
 
         mock_request = Mock(spec=httpx.Request)
         mock_response = Mock(spec=httpx.Response)
@@ -457,8 +454,8 @@ class TestMiddlewareChain:
 
     @pytest.mark.asyncio
     async def test_execute_single_middleware(self):
-        middleware = LoggingMiddleware()
-        chain = MiddlewareChain([middleware])
+        middleware = AsyncLoggingMiddleware()
+        chain = AsyncMiddlewareChain([middleware])
 
         mock_request = Mock(spec=httpx.Request)
         mock_request.method = "GET"
@@ -481,13 +478,13 @@ class TestMiddlewareChain:
     async def test_execute_multiple_middleware(self):
         """Test middleware chain execution order with response modification."""
 
-        class TestMiddleware1(Middleware):
+        class TestMiddleware1(AsyncMiddleware):
             async def handle(self, request, next_call):
                 response = await next_call(request)
                 response.test_attr1 = "middleware1"
                 return response
 
-        class TestMiddleware2(Middleware):
+        class TestMiddleware2(AsyncMiddleware):
             async def handle(self, request, next_call):
                 response = await next_call(request)
                 response.test_attr2 = "middleware2"
@@ -495,7 +492,7 @@ class TestMiddlewareChain:
 
         middleware1 = TestMiddleware1()
         middleware2 = TestMiddleware2()
-        chain = MiddlewareChain([middleware1, middleware2])
+        chain = AsyncMiddlewareChain([middleware1, middleware2])
 
         mock_request = Mock(spec=httpx.Request)
         mock_response = Mock(spec=httpx.Response)
@@ -513,7 +510,7 @@ class TestMiddlewareChain:
 
     @pytest.mark.asyncio
     async def test_execute_with_async_client(self):
-        chain = MiddlewareChain([])
+        chain = AsyncMiddlewareChain([])
 
         mock_request = Mock(spec=httpx.Request)
         mock_response = Mock(spec=httpx.Response)
