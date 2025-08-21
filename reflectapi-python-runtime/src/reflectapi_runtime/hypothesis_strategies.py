@@ -130,17 +130,13 @@ if HAS_HYPOTHESIS:
         """
         field_strategies = {}
 
-        # Handle Pydantic V2
+        # Handle Pydantic models
         if hasattr(model_class, 'model_fields'):
             for field_name, field_info in model_class.model_fields.items():
                 field_type = field_info.annotation
                 field_strategies[field_name] = strategy_for_type(field_type)
-
-        # Handle Pydantic V1
-        elif hasattr(model_class, '__fields__'):
-            for field_name, field_info in model_class.__fields__.items():
-                field_type = field_info.type_
-                field_strategies[field_name] = strategy_for_type(field_type)
+        else:
+            raise ValueError(f"Unsupported Pydantic model: {model_class}. Only Pydantic V2 models are supported.")
 
         # Create a strategy that builds the model
         return st.builds(model_class, **field_strategies)
@@ -227,19 +223,14 @@ if HAS_HYPOTHESIS:
 
         # Get default strategies for all fields
         if hasattr(model_class, 'model_fields'):
-            # Pydantic V2
+            # Pydantic models
             for field_name, field_info in model_class.model_fields.items():
                 if field_name in field_overrides:
                     field_strategies[field_name] = field_overrides[field_name]
                 else:
                     field_strategies[field_name] = enhanced_strategy_for_type(field_info.annotation)
-        elif hasattr(model_class, '__fields__'):
-            # Pydantic V1
-            for field_name, field_info in model_class.__fields__.items():
-                if field_name in field_overrides:
-                    field_strategies[field_name] = field_overrides[field_name]
-                else:
-                    field_strategies[field_name] = enhanced_strategy_for_type(field_info.type_)
+        else:
+            raise ValueError(f"Unsupported Pydantic model: {model_class}. Only Pydantic V2 models are supported.")
 
         return st.builds(model_class, **field_strategies)
 

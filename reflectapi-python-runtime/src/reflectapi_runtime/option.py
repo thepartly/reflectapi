@@ -11,17 +11,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler
 
-try:
-    # Pydantic V2
-    from pydantic_core import core_schema
-    HAS_PYDANTIC_V2 = True
-except ImportError:
-    try:
-        # Pydantic V1
-        from pydantic import validator
-        HAS_PYDANTIC_V2 = False
-    except ImportError:
-        HAS_PYDANTIC_V2 = None
+from pydantic_core import core_schema
 
 T = TypeVar("T")
 
@@ -82,64 +72,48 @@ class ReflectapiOption(Generic[T]):
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ) -> core_schema.CoreSchema:
         """Generate Pydantic V2 core schema for ReflectapiOption."""
-        if HAS_PYDANTIC_V2:
-            from typing import get_args, get_origin
+        from typing import get_args, get_origin
 
-            # Extract the generic type argument if available
-            origin = get_origin(source_type)
-            args = get_args(source_type)
+        # Extract the generic type argument if available
+        origin = get_origin(source_type)
+        args = get_args(source_type)
 
-            def validate_option(value: Any) -> ReflectapiOption[Any]:
-                if isinstance(value, cls):
-                    return value
-                return cls(value)
+        def validate_option(value: Any) -> ReflectapiOption[Any]:
+            if isinstance(value, cls):
+                return value
+            return cls(value)
 
-            def serialize_option(option_value: ReflectapiOption[Any]) -> Any:
-                """Serialize ReflectapiOption handling all three states correctly."""
-                if isinstance(option_value, cls):
-                    if option_value.is_undefined:
-                        # Return None for undefined to avoid pydantic undefined serialization issues
-                        return None
-                    # Return the actual value (including None for explicit null)
-                    return option_value._value
-                # Fallback for non-ReflectapiOption values
-                return option_value
+        def serialize_option(option_value: ReflectapiOption[Any]) -> Any:
+            """Serialize ReflectapiOption handling all three states correctly."""
+            if isinstance(option_value, cls):
+                if option_value.is_undefined:
+                    # Return None for undefined to avoid pydantic undefined serialization issues
+                    return None
+                # Return the actual value (including None for explicit null)
+                return option_value._value
+            # Fallback for non-ReflectapiOption values
+            return option_value
 
-            if origin is cls and args:
-                # We have ReflectapiOption[SomeType]
-                inner_type = args[0]
-                inner_schema = handler(inner_type)
+        if origin is cls and args:
+            # We have ReflectapiOption[SomeType]
+            inner_type = args[0]
+            inner_schema = handler(inner_type)
 
-                return core_schema.no_info_plain_validator_function(
-                    validate_option,
-                    serialization=core_schema.plain_serializer_function_ser_schema(
-                        serialize_option,
-                        return_schema=core_schema.union_schema([
-                            inner_schema,
-                            core_schema.none_schema(),
-                        ]),
-                        when_used='json',
-                    )
+            return core_schema.no_info_plain_validator_function(
+                validate_option,
+                serialization=core_schema.plain_serializer_function_ser_schema(
+                    serialize_option,
+                    return_schema=core_schema.union_schema([
+                        inner_schema,
+                        core_schema.none_schema(),
+                    ]),
+                    when_used='json',
                 )
-            else:
-                # Fallback for untyped ReflectapiOption
-                return core_schema.no_info_plain_validator_function(validate_option)
+            )
         else:
-            # Pydantic V1 fallback
-            return core_schema.any_schema()
+            # Fallback for untyped ReflectapiOption
+            return core_schema.no_info_plain_validator_function(validate_option)
 
-    @classmethod
-    def __get_validators__(cls):
-        """Pydantic V1 validator."""
-        if HAS_PYDANTIC_V2 is False:
-            yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        """Validate value for Pydantic V1."""
-        if isinstance(v, cls):
-            return v
-        return cls(v)
 
     @property
     def is_undefined(self) -> bool:

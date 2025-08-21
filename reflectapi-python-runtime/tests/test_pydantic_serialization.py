@@ -179,7 +179,6 @@ class TestClientBasePydanticSerialization:
         assert "content" not in call_args[1]
         assert "headers" not in call_args[1]
 
-    # Note: Pydantic V1 fallback test removed - only V2 supported
 
     def test_make_request_with_params_and_pydantic_model(self, mock_httpx_client):
         """Test making a request with both query params and Pydantic model."""
@@ -302,7 +301,6 @@ class TestAsyncClientBasePydanticSerialization:
         assert call_args[1]["json"] == {"name": "Async Dict User", "age": 33}
         assert "content" not in call_args[1]
 
-    # Note: Pydantic V1 fallback test removed - only V2 supported
 
 
 class TestPydanticSerializationEdgeCases:
