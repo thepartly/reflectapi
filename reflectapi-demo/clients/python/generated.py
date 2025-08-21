@@ -317,6 +317,43 @@ class AsyncPetsClient:
         self._client = client
 
 
+    async def remove(
+            self,
+data: Optional[MyapiProtoPetsRemoveRequest] = None,
+headers: Optional[MyapiProtoHeaders] = None,
+) -> ApiResponse[Any]:
+            """Remove an existing pet
+
+            Args:
+                data: Request data for the remove operation.
+
+            Returns:
+                ApiResponse[Any]: Response containing Any data
+            """
+
+            path = "/pets.remove"
+
+
+            params: dict[str, Any] = {}
+
+
+            return await self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+                json_model=data,
+
+
+                headers_model=headers,
+
+
+                response_model=None,
+
+            )
+
+
     async def create(
             self,
 data: Optional[MyapiModelInputPet] = None,
@@ -332,119 +369,6 @@ headers: Optional[MyapiProtoHeaders] = None,
             """
 
             path = "/pets.create"
-
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                headers_model=headers,
-
-
-                response_model=None,
-
-            )
-
-
-    async def update(
-            self,
-data: Optional[MyapiProtoPetsUpdateRequest] = None,
-headers: Optional[MyapiProtoHeaders] = None,
-) -> ApiResponse[Any]:
-            """Update an existing pet
-
-            Args:
-                data: Request data for the update operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/pets.update"
-
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                headers_model=headers,
-
-
-                response_model=None,
-
-            )
-
-
-    async def get_first(
-            self,
-headers: Optional[MyapiProtoHeaders] = None,
-) -> ApiResponse[MyapiModelOutputPet | None]:
-            """Fetch first pet, if any exists
-
-            Returns:
-                ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
-            """
-
-            path = "/pets.get-first"
-
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                headers_model=headers,
-
-
-                response_model=MyapiModelOutputPet | None,
-
-            )
-
-
-    async def delete(
-            self,
-data: Optional[MyapiProtoPetsRemoveRequest] = None,
-headers: Optional[MyapiProtoHeaders] = None,
-) -> ApiResponse[Any]:
-            """Remove an existing pet
-
-            Args:
-                data: Request data for the delete operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-
-            .. deprecated::
-               Use pets.remove instead
-            """
-
-            warnings.warn(
-                "pets_delete is deprecated: Use pets.remove instead",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-            path = "/pets.delete"
 
 
             params: dict[str, Any] = {}
@@ -508,7 +432,7 @@ headers: Optional[MyapiProtoHeaders] = None,
             )
 
 
-    async def remove(
+    async def delete(
             self,
 data: Optional[MyapiProtoPetsRemoveRequest] = None,
 headers: Optional[MyapiProtoHeaders] = None,
@@ -516,13 +440,89 @@ headers: Optional[MyapiProtoHeaders] = None,
             """Remove an existing pet
 
             Args:
-                data: Request data for the remove operation.
+                data: Request data for the delete operation.
+
+            Returns:
+                ApiResponse[Any]: Response containing Any data
+
+            .. deprecated::
+               Use pets.remove instead
+            """
+
+            warnings.warn(
+                "pets_delete is deprecated: Use pets.remove instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+            path = "/pets.delete"
+
+
+            params: dict[str, Any] = {}
+
+
+            return await self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+                json_model=data,
+
+
+                headers_model=headers,
+
+
+                response_model=None,
+
+            )
+
+
+    async def get_first(
+            self,
+headers: Optional[MyapiProtoHeaders] = None,
+) -> ApiResponse[MyapiModelOutputPet | None]:
+            """Fetch first pet, if any exists
+
+            Returns:
+                ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
+            """
+
+            path = "/pets.get-first"
+
+
+            params: dict[str, Any] = {}
+
+
+            return await self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+                headers_model=headers,
+
+
+                response_model=MyapiModelOutputPet | None,
+
+            )
+
+
+    async def update(
+            self,
+data: Optional[MyapiProtoPetsUpdateRequest] = None,
+headers: Optional[MyapiProtoHeaders] = None,
+) -> ApiResponse[Any]:
+            """Update an existing pet
+
+            Args:
+                data: Request data for the update operation.
 
             Returns:
                 ApiResponse[Any]: Response containing Any data
             """
 
-            path = "/pets.remove"
+            path = "/pets.update"
 
 
             params: dict[str, Any] = {}
@@ -600,6 +600,43 @@ class PetsClient:
         self._client = client
 
 
+    def remove(
+            self,
+data: Optional[MyapiProtoPetsRemoveRequest] = None,
+headers: Optional[MyapiProtoHeaders] = None,
+) -> ApiResponse[Any]:
+            """Remove an existing pet
+
+            Args:
+                data: Request data for the remove operation.
+
+            Returns:
+                ApiResponse[Any]: Response containing Any data
+            """
+
+            path = "/pets.remove"
+
+
+            params: dict[str, Any] = {}
+
+
+            return self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+                json_model=data,
+
+
+            headers_model=headers,
+
+
+                response_model=None,
+
+            )
+
+
     def create(
             self,
 data: Optional[MyapiModelInputPet] = None,
@@ -615,119 +652,6 @@ headers: Optional[MyapiProtoHeaders] = None,
             """
 
             path = "/pets.create"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-            headers_model=headers,
-
-
-                response_model=None,
-
-            )
-
-
-    def update(
-            self,
-data: Optional[MyapiProtoPetsUpdateRequest] = None,
-headers: Optional[MyapiProtoHeaders] = None,
-) -> ApiResponse[Any]:
-            """Update an existing pet
-
-            Args:
-                data: Request data for the update operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/pets.update"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-            headers_model=headers,
-
-
-                response_model=None,
-
-            )
-
-
-    def get_first(
-            self,
-headers: Optional[MyapiProtoHeaders] = None,
-) -> ApiResponse[MyapiModelOutputPet | None]:
-            """Fetch first pet, if any exists
-
-            Returns:
-                ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
-            """
-
-            path = "/pets.get-first"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-            headers_model=headers,
-
-
-                response_model=MyapiModelOutputPet | None,
-
-            )
-
-
-    def delete(
-            self,
-data: Optional[MyapiProtoPetsRemoveRequest] = None,
-headers: Optional[MyapiProtoHeaders] = None,
-) -> ApiResponse[Any]:
-            """Remove an existing pet
-
-            Args:
-                data: Request data for the delete operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-
-            .. deprecated::
-               Use pets.remove instead
-            """
-
-            warnings.warn(
-                "pets_delete is deprecated: Use pets.remove instead",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-            path = "/pets.delete"
 
 
             params: dict[str, Any] = {}
@@ -791,7 +715,7 @@ headers: Optional[MyapiProtoHeaders] = None,
             )
 
 
-    def remove(
+    def delete(
             self,
 data: Optional[MyapiProtoPetsRemoveRequest] = None,
 headers: Optional[MyapiProtoHeaders] = None,
@@ -799,13 +723,89 @@ headers: Optional[MyapiProtoHeaders] = None,
             """Remove an existing pet
 
             Args:
-                data: Request data for the remove operation.
+                data: Request data for the delete operation.
+
+            Returns:
+                ApiResponse[Any]: Response containing Any data
+
+            .. deprecated::
+               Use pets.remove instead
+            """
+
+            warnings.warn(
+                "pets_delete is deprecated: Use pets.remove instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+            path = "/pets.delete"
+
+
+            params: dict[str, Any] = {}
+
+
+            return self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+                json_model=data,
+
+
+            headers_model=headers,
+
+
+                response_model=None,
+
+            )
+
+
+    def get_first(
+            self,
+headers: Optional[MyapiProtoHeaders] = None,
+) -> ApiResponse[MyapiModelOutputPet | None]:
+            """Fetch first pet, if any exists
+
+            Returns:
+                ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
+            """
+
+            path = "/pets.get-first"
+
+
+            params: dict[str, Any] = {}
+
+
+            return self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+            headers_model=headers,
+
+
+                response_model=MyapiModelOutputPet | None,
+
+            )
+
+
+    def update(
+            self,
+data: Optional[MyapiProtoPetsUpdateRequest] = None,
+headers: Optional[MyapiProtoHeaders] = None,
+) -> ApiResponse[Any]:
+            """Update an existing pet
+
+            Args:
+                data: Request data for the update operation.
 
             Returns:
                 ApiResponse[Any]: Response containing Any data
             """
 
-            path = "/pets.remove"
+            path = "/pets.update"
 
 
             params: dict[str, Any] = {}

@@ -253,7 +253,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     }
 
     // Convert function groups to structured format
-    let structured_function_groups: Vec<templates::FunctionGroup> = function_groups
+    let mut function_group_pairs: Vec<_> = function_groups.into_iter().collect();
+    function_group_pairs.sort_by(|a, b| a.0.cmp(&b.0)); // Sort by group name for deterministic output
+    let structured_function_groups: Vec<templates::FunctionGroup> = function_group_pairs
         .into_iter()
         .map(|(group_name, functions)| templates::FunctionGroup {
             name: group_name.clone(),
@@ -2031,7 +2033,9 @@ fn generate_nested_class_structure(
     }
 
     // Generate nested classes for each namespace group
-    for (namespace, type_names) in namespace_groups {
+    let mut namespace_pairs: Vec<_> = namespace_groups.into_iter().collect();
+    namespace_pairs.sort_by(|a, b| a.0.cmp(&b.0)); // Sort by namespace name for deterministic output
+    for (namespace, type_names) in namespace_pairs {
         if type_names.len() >= 2 {
             // Only create nested classes if there are enough related types
             let nested_class = generate_namespace_class(&namespace, &type_names, rendered_types);
