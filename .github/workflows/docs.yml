@@ -25,6 +25,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin
             target
           key: ${{ runner.os }}-cargo-docs-${{ hashFiles('**/Cargo.lock') }}
           
@@ -36,11 +37,14 @@ jobs:
           # Test that documentation compiles without warnings
           cargo doc --no-deps --all-features --document-private-items
           
+      - name: Install mdbook-keeper for doctest
+        run: cargo install mdbook-keeper
+        
       - name: Test mdBook examples
         run: |
-          # Extract and test code examples from mdBook
-          # This would be implemented as part of the testing pipeline
-          echo "TODO: Implement mdBook example testing"
+          cd docs
+          # mdbook-keeper runs doctests during build with real dependencies
+          mdbook build
 
   # Build and deploy documentation site
   build-and-deploy:
@@ -57,10 +61,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install mdBook
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.78.0
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+            target
+          key: ${{ runner.os }}-cargo-deploy-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Install mdBook and mdbook-keeper
         run: |
           curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.36/mdbook-v0.4.36-x86_64-unknown-linux-gnu.tar.gz | tar -xz
           echo "$(pwd)" >> $GITHUB_PATH
+          cargo install mdbook-keeper
           
       - name: Build mdBook documentation
         run: |
@@ -121,11 +141,14 @@ jobs:
           SERVER_PID=$!
           sleep 5  # Wait for server to start
           
-          # Generate all client types
+          # Create client output directories
           cd ..
-          cargo run --bin reflectapi-cli -- codegen --language typescript --schema reflectapi-demo/reflectapi.json --output test-clients/typescript
-          cargo run --bin reflectapi-cli -- codegen --language python --schema reflectapi-demo/reflectapi.json --output test-clients/python  
-          cargo run --bin reflectapi-cli -- codegen --language rust --schema reflectapi-demo/reflectapi.json --output test-clients/rust
+          mkdir -p test-clients/typescript test-clients/python test-clients/rust
+          
+          # Generate all client types
+          cargo run --bin reflectapi -- codegen --language typescript --schema reflectapi-demo/reflectapi.json --output test-clients/typescript
+          cargo run --bin reflectapi -- codegen --language python --schema reflectapi-demo/reflectapi.json --output test-clients/python  
+          cargo run --bin reflectapi -- codegen --language rust --schema reflectapi-demo/reflectapi.json --output test-clients/rust
           
           # Kill the demo server
           kill $SERVER_PID
@@ -133,12 +156,38 @@ jobs:
       - name: Test TypeScript client
         run: |
           cd test-clients/typescript
+          # Create basic package.json for the generated client
+          cat > package.json << EOF
+          {
+            "name": "test-client",
+            "version": "1.0.0",
+            "scripts": {
+              "build": "tsc --noEmit generated.ts"
+            },
+            "devDependencies": {
+              "typescript": "^5.0.0",
+              "@types/node": "^20.0.0"
+            }
+          }
+          EOF
+          
           npm install
           npm run build
           
       - name: Test Python client  
         run: |
           cd test-clients/python
+          # Create basic pyproject.toml for the generated client
+          cat > pyproject.toml << EOF
+          [project]
+          name = "test-client"
+          version = "0.1.0"
+          requires-python = ">=3.12"
+          dependencies = ["reflectapi-runtime"]
+          [project.optional-dependencies]
+          dev = ["ruff>=0.1.0"]
+          EOF
+          
           uv pip install -e ../../reflectapi-python-runtime
           uv run python -m py_compile generated.py
           uv run ruff check generated.py
@@ -146,4 +195,18 @@ jobs:
       - name: Test Rust client
         run: |
           cd test-clients/rust
+          # Create basic Cargo.toml for the generated client
+          cat > Cargo.toml << EOF
+          [package]
+          name = "test-client"
+          version = "0.1.0"
+          edition = "2021"
+          
+          [dependencies]
+          tokio = { version = "1.0", features = ["full"] }
+          serde = { version = "1.0", features = ["derive"] }
+          serde_json = "1.0"
+          reqwest = { version = "0.11", features = ["json"] }
+          EOF
+          
           cargo check
