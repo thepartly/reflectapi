@@ -8,7 +8,6 @@ This tests the improvements made to handle Rust standard library types:
 - serde_json::Value -> Any (already correct)
 """
 
-import pytest
 from datetime import timedelta
 from pathlib import Path
 from ipaddress import IPv4Address, IPv6Address
@@ -24,33 +23,33 @@ class TestTypeAnnotations:
     def test_imports_include_required_modules(self):
         """Test that generated code includes necessary imports."""
         gen_path = Path(__file__).resolve().parents[2] / "generated.py"
-        with open(gen_path, 'r') as f:
+        with open(gen_path, "r") as f:
             content = f.read()
 
         # Check for required imports in the generated code
         # Note: Some imports may only be present if the types are actually used
 
         # datetime should be imported (used for chrono::DateTime)
-        assert 'from datetime import datetime' in content
+        assert "from datetime import datetime" in content
 
         # typing imports should include Any, Union, etc.
-        assert 'from typing import Any' in content
-        assert 'Union' in content
+        assert "from typing import Any" in content
+        assert "Union" in content
 
     def test_external_type_definitions_present(self):
         """Test that external type definitions are present."""
         gen_path = Path(__file__).resolve().parents[2] / "generated.py"
-        with open(gen_path, 'r') as f:
+        with open(gen_path, "r") as f:
             content = f.read()
 
         # Check for external type annotations section
-        assert '# External type definitions' in content
+        assert "# External type definitions" in content
 
         # Check for Rust NonZero type mappings
-        assert 'StdNumNonZeroU32' in content
-        assert 'StdNumNonZeroU64' in content
-        assert 'StdNumNonZeroI32' in content
-        assert 'StdNumNonZeroI64' in content
+        assert "StdNumNonZeroU32" in content
+        assert "StdNumNonZeroU64" in content
+        assert "StdNumNonZeroI32" in content
+        assert "StdNumNonZeroI64" in content
 
 
 class TestRustTypeMapping:
@@ -104,8 +103,8 @@ class TestRustTypeMapping:
         # Test basic bytes operations
         assert isinstance(data, bytes)
         assert len(data) == 13
-        assert data[0] == ord('H')
-        assert data.decode('utf-8') == "Hello, world!"
+        assert data[0] == ord("H")
+        assert data.decode("utf-8") == "Hello, world!"
 
     def test_serde_json_value_mapping_concept(self):
         """Test serde_json::Value concept - maps to Any."""
@@ -131,7 +130,7 @@ class TestVecU8SpecialHandling:
     def test_bytes_creation_and_manipulation(self):
         """Test bytes type operations that Vec<u8> would need."""
         # Create bytes from various sources
-        from_string = "Hello".encode('utf-8')
+        from_string = "Hello".encode("utf-8")
         from_list = bytes([72, 101, 108, 108, 111])  # "Hello" in ASCII
         from_literal = b"Hello"
 
@@ -141,7 +140,7 @@ class TestVecU8SpecialHandling:
         # Test bytes operations
         assert len(from_literal) == 5
         assert from_literal[0] == 72  # 'H'
-        assert from_literal.decode('utf-8') == "Hello"
+        assert from_literal.decode("utf-8") == "Hello"
 
     def test_bytes_json_serialization(self):
         """Test how bytes would be handled in JSON serialization."""
@@ -151,7 +150,7 @@ class TestVecU8SpecialHandling:
         data = b"Binary data here"
 
         # Bytes need to be encoded for JSON (common approaches)
-        encoded = base64.b64encode(data).decode('ascii')
+        encoded = base64.b64encode(data).decode("ascii")
 
         # Should be able to round-trip
         json_str = json.dumps({"data": encoded})
@@ -167,31 +166,35 @@ class TestCodeGenerationStructure:
     def test_type_mapping_consistency(self):
         """Test that type mappings are consistent throughout generated code."""
         gen_path = Path(__file__).resolve().parents[2] / "generated.py"
-        with open(gen_path, 'r') as f:
+        with open(gen_path, "r") as f:
             content = f.read()
 
         # Check that datetime is used consistently
-        if 'datetime' in content:
+        if "datetime" in content:
             # If datetime is used, it should be properly imported
-            assert 'from datetime import datetime' in content
+            assert "from datetime import datetime" in content
 
         # Check that Union types are properly formed
-        union_count = content.count('Union[')
+        union_count = content.count("Union[")
         # There should be at least one Union (PetKind)
         assert union_count >= 1
 
     def test_literal_import_conditional(self):
         """Test that Literal is only imported when needed."""
         gen_path = Path(__file__).resolve().parents[2] / "generated.py"
-        with open(gen_path, 'r') as f:
+        with open(gen_path, "r") as f:
             content = f.read()
 
         # Since we have tagged enums, Literal should be imported
-        assert 'Literal' in content
+        assert "Literal" in content
 
         # And it should be in the typing import
-        typing_imports = [line for line in content.split('\n') if line.startswith('from typing import')]
-        has_literal_import = any('Literal' in line for line in typing_imports)
+        typing_imports = [
+            line
+            for line in content.split("\n")
+            if line.startswith("from typing import")
+        ]
+        has_literal_import = any("Literal" in line for line in typing_imports)
         assert has_literal_import, "Literal should be imported in typing statement"
 
 
@@ -207,12 +210,14 @@ class TestFutureTypeIntegration:
 
         # Hypothetical model that would be generated for Rust types
         class HypotheticalRustTypesModel:
-            def __init__(self,
-                         duration: timedelta,
-                         path: Path,
-                         ip: IPv4Address,
-                         data: bytes,
-                         metadata: Any):
+            def __init__(
+                self,
+                duration: timedelta,
+                path: Path,
+                ip: IPv4Address,
+                data: bytes,
+                metadata: Any,
+            ):
                 self.duration = duration
                 self.path = path
                 self.ip = ip
@@ -225,7 +230,7 @@ class TestFutureTypeIntegration:
             path=Path("/tmp/test.txt"),
             ip=IPv4Address("10.0.0.1"),
             data=b"test data",
-            metadata={"version": 1, "created": datetime.now()}
+            metadata={"version": 1, "created": datetime.now()},
         )
 
         # Verify all types are correct
@@ -262,7 +267,7 @@ class TestFutureTypeIntegration:
             path=Path("/home/user/document.pdf"),
             ip_address="192.168.1.100",  # Pydantic should convert string
             binary_data=b"binary content",
-            json_data={"nested": {"data": [1, 2, 3]}}
+            json_data={"nested": {"data": [1, 2, 3]}},
         )
 
         assert model.duration == timedelta(hours=2)
@@ -285,17 +290,17 @@ class TestImportOptimization:
     def test_conditional_imports(self):
         """Test that imports are only present when types are used."""
         gen_path = Path(__file__).resolve().parents[2] / "generated.py"
-        with open(gen_path, 'r') as f:
+        with open(gen_path, "r") as f:
             content = f.read()
 
         # Basic imports should always be present
-        assert 'from typing import' in content
-        assert 'from pydantic import (' in content
+        assert "from typing import" in content
+        assert "from pydantic import" in content
 
         # Conditional imports based on usage
-        has_datetime_usage = 'datetime' in content and 'updated_at:' in content
+        has_datetime_usage = "datetime" in content and "updated_at:" in content
         if has_datetime_usage:
-            assert 'from datetime import datetime' in content
+            assert "from datetime import datetime" in content
 
         # ReflectapiOption should be imported since it's used
-        assert 'from reflectapi_runtime import ReflectapiOption' in content
+        assert "from reflectapi_runtime import ReflectapiOption" in content
