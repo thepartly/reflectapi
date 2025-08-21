@@ -64,7 +64,7 @@ pub mod types {
                 #[serde(tag = "type")]
                 pub enum A {
                     X,
-                    Y,
+                    Y(()),
                 }
             }
         }

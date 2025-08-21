@@ -44,9 +44,24 @@ snapshot_kind: text
           },
           {
             "name": "Y",
-            "fields": "none"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "std::tuple::Tuple0"
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
       }
     ]
   },
@@ -73,9 +88,24 @@ snapshot_kind: text
           },
           {
             "name": "Y",
-            "fields": "none"
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "std::tuple::Tuple0"
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple0",
+        "description": "Unit type"
       }
     ]
   }

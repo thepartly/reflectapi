@@ -455,15 +455,19 @@ export function __client(base: string | Client): __definition.Interface {
                         }
                     }
 
-                    if self.fields.len() == 1 && self.fields.is_unnamed() {
-                        format!(
-                            r#"{{ {}: "{}" }} & {}"#,
-                            tag,
-                            self.name,
-                            self.render_fields(None)?
-                        )
-                    } else {
-                        self.render_fields(Some(tag))?
+                    match &self.fields {
+                        Fields::Unnamed(fields) if fields.len() == 1 => {
+                            if fields[0].type_ == "null" {
+                                format!(r#"{{ {tag}: "{}" }}"#, self.name)
+                            } else {
+                                format!(
+                                    r#"{{ {tag}: "{}" }} & {}"#,
+                                    self.name,
+                                    self.render_fields(None)?
+                                )
+                            }
+                        }
+                        _ => self.render_fields(Some(tag))?,
                     }
                 }
                 crate::Representation::Adjacent { tag, content } => {

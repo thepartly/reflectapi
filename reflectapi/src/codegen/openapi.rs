@@ -1097,11 +1097,25 @@ impl Converter<'_> {
                 Type::Boolean
                 | Type::Integer
                 | Type::Number
-                | Type::Null
                 | Type::String { .. }
                 | Type::Array { .. }
                 | Type::Tuple { .. } => Err(InvalidInternalTagError(schema.ty.clone())),
                 Type::Map { .. } => todo!("map within newtype variant"),
+                Type::Null => Ok(Inline(Schema::Flat(FlatSchema {
+                    description: schema.description.to_owned(),
+                    ty: Type::Object {
+                        title: String::new(),
+                        required: [tag_name.to_owned()].into(),
+                        properties: BTreeMap::from([(
+                            tag_name.to_owned(),
+                            Property {
+                                description: String::new(),
+                                deprecated: false,
+                                schema: tag_schema,
+                            },
+                        )]),
+                    },
+                }))),
                 Type::Object {
                     title,
                     required,

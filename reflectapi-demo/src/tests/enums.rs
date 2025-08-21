@@ -160,7 +160,7 @@ fn test_internally_tagged_enum_with_unit_variants() {
     #[serde(tag = "type")]
     enum A {
         X,
-        Y,
+        Y(()),
     }
 
     assert_snapshot!(A);
