@@ -277,79 +277,11 @@ class MyapiProtoPetsUpdateRequest(BaseModel):
     behaviors: ReflectapiOption[list[MyapiModelBehavior]] = None
 
 
-class AsyncHealthClient:
-    """Async client for health operations."""
-
-    def __init__(self, client: AsyncClientBase) -> None:
-        self._client = client
-
-
-    async def check(
-            self,
-
-
-        ) -> ApiResponse[Any]:
-            """Check the health of the service
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/health.check"
-
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "GET",
-                path,
-                params=params if params else None,
-
-
-                response_model=None,
-
-            )
-
-
 class AsyncPetsClient:
     """Async client for pets operations."""
 
     def __init__(self, client: AsyncClientBase) -> None:
         self._client = client
-
-
-    async def get_first(
-            self,
-
-
-            headers: Optional[MyapiProtoHeaders] = None,
-
-        ) -> ApiResponse[MyapiModelOutputPet | None]:
-            """Fetch first pet, if any exists
-
-            Returns:
-                ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
-            """
-
-            path = "/pets.get-first"
-
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                headers_model=headers,
-
-
-                response_model=MyapiModelOutputPet | None,
-
-            )
 
 
     async def remove(
@@ -372,90 +304,6 @@ class AsyncPetsClient:
             """
 
             path = "/pets.remove"
-
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                headers_model=headers,
-
-
-                response_model=None,
-
-            )
-
-
-    async def create(
-            self,
-
-
-            data: Optional[MyapiModelInputPet] = None,
-
-
-            headers: Optional[MyapiProtoHeaders] = None,
-
-        ) -> ApiResponse[Any]:
-            """Create a new pet
-
-            Args:
-                data: Request data for the create operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/pets.create"
-
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                headers_model=headers,
-
-
-                response_model=None,
-
-            )
-
-
-    async def update(
-            self,
-
-
-            data: Optional[MyapiProtoPetsUpdateRequest] = None,
-
-
-            headers: Optional[MyapiProtoHeaders] = None,
-
-        ) -> ApiResponse[Any]:
-            """Update an existing pet
-
-            Args:
-                data: Request data for the update operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/pets.update"
 
 
             params: dict[str, Any] = {}
@@ -576,70 +424,13 @@ class AsyncPetsClient:
             )
 
 
-class AsyncClient(AsyncClientBase):
-    """Async client for the API."""
-
-    def __init__(
-        self,
-        base_url: str,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(base_url, **kwargs)
-
-        self.health = AsyncHealthClient(self)
-
-        self.pets = AsyncPetsClient(self)
-
-
-class HealthClient:
-    """Synchronous client for health operations."""
-
-    def __init__(self, client: ClientBase) -> None:
-        self._client = client
-
-
-    def check(
+    async def get_first(
             self,
 
 
-    ) -> ApiResponse[Any]:
-            """Check the health of the service
+            headers: Optional[MyapiProtoHeaders] = None,
 
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/health.check"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "GET",
-                path,
-                params=params if params else None,
-
-
-                response_model=None,
-
-            )
-
-
-class PetsClient:
-    """Synchronous client for pets operations."""
-
-    def __init__(self, client: ClientBase) -> None:
-        self._client = client
-
-
-    def get_first(
-            self,
-
-
-        headers: Optional[MyapiProtoHeaders] = None,
-
-    ) -> ApiResponse[MyapiModelOutputPet | None]:
+        ) -> ApiResponse[MyapiModelOutputPet | None]:
             """Fetch first pet, if any exists
 
             Returns:
@@ -652,18 +443,159 @@ class PetsClient:
             params: dict[str, Any] = {}
 
 
-            return self._client._make_request(
+            return await self._client._make_request(
                 "POST",
                 path,
                 params=params if params else None,
 
 
-            headers_model=headers,
+                headers_model=headers,
 
 
                 response_model=MyapiModelOutputPet | None,
 
             )
+
+
+    async def update(
+            self,
+
+
+            data: Optional[MyapiProtoPetsUpdateRequest] = None,
+
+
+            headers: Optional[MyapiProtoHeaders] = None,
+
+        ) -> ApiResponse[Any]:
+            """Update an existing pet
+
+            Args:
+                data: Request data for the update operation.
+
+            Returns:
+                ApiResponse[Any]: Response containing Any data
+            """
+
+            path = "/pets.update"
+
+
+            params: dict[str, Any] = {}
+
+
+            return await self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+                json_model=data,
+
+
+                headers_model=headers,
+
+
+                response_model=None,
+
+            )
+
+
+    async def create(
+            self,
+
+
+            data: Optional[MyapiModelInputPet] = None,
+
+
+            headers: Optional[MyapiProtoHeaders] = None,
+
+        ) -> ApiResponse[Any]:
+            """Create a new pet
+
+            Args:
+                data: Request data for the create operation.
+
+            Returns:
+                ApiResponse[Any]: Response containing Any data
+            """
+
+            path = "/pets.create"
+
+
+            params: dict[str, Any] = {}
+
+
+            return await self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+                json_model=data,
+
+
+                headers_model=headers,
+
+
+                response_model=None,
+
+            )
+
+
+class AsyncHealthClient:
+    """Async client for health operations."""
+
+    def __init__(self, client: AsyncClientBase) -> None:
+        self._client = client
+
+
+    async def check(
+            self,
+
+
+        ) -> ApiResponse[Any]:
+            """Check the health of the service
+
+            Returns:
+                ApiResponse[Any]: Response containing Any data
+            """
+
+            path = "/health.check"
+
+
+            params: dict[str, Any] = {}
+
+
+            return await self._client._make_request(
+                "GET",
+                path,
+                params=params if params else None,
+
+
+                response_model=None,
+
+            )
+
+
+class AsyncClient(AsyncClientBase):
+    """Async client for the API."""
+
+    def __init__(
+        self,
+        base_url: str,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(base_url, **kwargs)
+
+        self.pets = AsyncPetsClient(self)
+
+        self.health = AsyncHealthClient(self)
+
+
+class PetsClient:
+    """Synchronous client for pets operations."""
+
+    def __init__(self, client: ClientBase) -> None:
+        self._client = client
 
 
     def remove(
@@ -686,90 +618,6 @@ class PetsClient:
             """
 
             path = "/pets.remove"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-            headers_model=headers,
-
-
-                response_model=None,
-
-            )
-
-
-    def create(
-            self,
-
-
-        data: Optional[MyapiModelInputPet] = None,
-
-
-        headers: Optional[MyapiProtoHeaders] = None,
-
-    ) -> ApiResponse[Any]:
-            """Create a new pet
-
-            Args:
-                data: Request data for the create operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/pets.create"
-
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-            headers_model=headers,
-
-
-                response_model=None,
-
-            )
-
-
-    def update(
-            self,
-
-
-        data: Optional[MyapiProtoPetsUpdateRequest] = None,
-
-
-        headers: Optional[MyapiProtoHeaders] = None,
-
-    ) -> ApiResponse[Any]:
-            """Update an existing pet
-
-            Args:
-                data: Request data for the update operation.
-
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
-
-            path = "/pets.update"
 
 
             params: dict[str, Any] = {}
@@ -890,6 +738,158 @@ class PetsClient:
             )
 
 
+    def get_first(
+            self,
+
+
+        headers: Optional[MyapiProtoHeaders] = None,
+
+    ) -> ApiResponse[MyapiModelOutputPet | None]:
+            """Fetch first pet, if any exists
+
+            Returns:
+                ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
+            """
+
+            path = "/pets.get-first"
+
+
+            params: dict[str, Any] = {}
+
+
+            return self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+            headers_model=headers,
+
+
+                response_model=MyapiModelOutputPet | None,
+
+            )
+
+
+    def update(
+            self,
+
+
+        data: Optional[MyapiProtoPetsUpdateRequest] = None,
+
+
+        headers: Optional[MyapiProtoHeaders] = None,
+
+    ) -> ApiResponse[Any]:
+            """Update an existing pet
+
+            Args:
+                data: Request data for the update operation.
+
+            Returns:
+                ApiResponse[Any]: Response containing Any data
+            """
+
+            path = "/pets.update"
+
+
+            params: dict[str, Any] = {}
+
+
+            return self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+                json_model=data,
+
+
+            headers_model=headers,
+
+
+                response_model=None,
+
+            )
+
+
+    def create(
+            self,
+
+
+        data: Optional[MyapiModelInputPet] = None,
+
+
+        headers: Optional[MyapiProtoHeaders] = None,
+
+    ) -> ApiResponse[Any]:
+            """Create a new pet
+
+            Args:
+                data: Request data for the create operation.
+
+            Returns:
+                ApiResponse[Any]: Response containing Any data
+            """
+
+            path = "/pets.create"
+
+
+            params: dict[str, Any] = {}
+
+
+            return self._client._make_request(
+                "POST",
+                path,
+                params=params if params else None,
+
+
+                json_model=data,
+
+
+            headers_model=headers,
+
+
+                response_model=None,
+
+            )
+
+
+class HealthClient:
+    """Synchronous client for health operations."""
+
+    def __init__(self, client: ClientBase) -> None:
+        self._client = client
+
+
+    def check(
+            self,
+
+
+    ) -> ApiResponse[Any]:
+            """Check the health of the service
+
+            Returns:
+                ApiResponse[Any]: Response containing Any data
+            """
+
+            path = "/health.check"
+
+
+            params: dict[str, Any] = {}
+
+
+            return self._client._make_request(
+                "GET",
+                path,
+                params=params if params else None,
+
+
+                response_model=None,
+
+            )
+
+
 class Client(ClientBase):
     """Synchronous client for the API."""
 
@@ -900,9 +900,9 @@ class Client(ClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.health = HealthClient(self)
-
         self.pets = PetsClient(self)
+
+        self.health = HealthClient(self)
 
 
 # Nested class definitions for better organization
