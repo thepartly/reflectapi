@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_input_python_code::<TestStructDocumented>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -53,12 +54,8 @@ class AsyncInputClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsBasicTestStructDocumented] = None,
-
-
-        ) -> ApiResponse[Any]:
+data: Optional[ReflectapiDemoTestsBasicTestStructDocumented] = None,
+) -> ApiResponse[Any]:
             """
 
             Args:
@@ -110,12 +107,8 @@ class InputClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsBasicTestStructDocumented] = None,
-
-
-    ) -> ApiResponse[Any]:
+data: Optional[ReflectapiDemoTestsBasicTestStructDocumented] = None,
+) -> ApiResponse[Any]:
             """
 
             Args:

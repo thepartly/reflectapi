@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/generics.rs
 expression: "super::into_input_python_code::<TestStructWithSimpleGeneric<u8>>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -51,12 +52,8 @@ class AsyncInputClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric[int]] = None,
-
-
-        ) -> ApiResponse[Any]:
+data: Optional[ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric[int]] = None,
+) -> ApiResponse[Any]:
             """
 
             Args:
@@ -108,12 +105,8 @@ class InputClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric[int]] = None,
-
-
-    ) -> ApiResponse[Any]:
+data: Optional[ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric[int]] = None,
+) -> ApiResponse[Any]:
             """
 
             Args:

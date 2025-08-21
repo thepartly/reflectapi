@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_python_code::<TestStructWithSkipFieldInput>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -57,12 +58,8 @@ class AsyncInoutClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput] = None,
-
-
-        ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput]:
+data: Optional[ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput] = None,
+) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput]:
             """
 
             Args:
@@ -114,12 +111,8 @@ class InoutClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput] = None,
-
-
-    ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput]:
+data: Optional[ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput] = None,
+) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput]:
             """
 
             Args:

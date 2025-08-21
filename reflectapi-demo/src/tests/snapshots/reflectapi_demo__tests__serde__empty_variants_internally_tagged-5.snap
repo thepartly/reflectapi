@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<TestEmptyVariantsInterallyTagged>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -77,12 +78,8 @@ class AsyncInoutClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTagged] = None,
-
-
-        ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTagged]:
+data: Optional[ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTagged] = None,
+) -> ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTagged]:
             """
 
             Args:
@@ -134,12 +131,8 @@ class InoutClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTagged] = None,
-
-
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTagged]:
+data: Optional[ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTagged] = None,
+) -> ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTagged]:
             """
 
             Args:

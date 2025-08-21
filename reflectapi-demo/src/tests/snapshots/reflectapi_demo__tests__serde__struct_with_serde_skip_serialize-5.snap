@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<TestStructWithSerdeSkipSerialize>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -57,12 +58,8 @@ class AsyncInoutClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize] = None,
-
-
-        ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize]:
+data: Optional[ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize] = None,
+) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize]:
             """
 
             Args:
@@ -114,12 +111,8 @@ class InoutClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize] = None,
-
-
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize]:
+data: Optional[ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize] = None,
+) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize]:
             """
 
             Args:

@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<TestEnumTagContentRenameAll>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -100,12 +101,8 @@ class AsyncInoutClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll] = None,
-
-
-        ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]:
+data: Optional[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll] = None,
+) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]:
             """
 
             Args:
@@ -157,12 +154,8 @@ class InoutClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll] = None,
-
-
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]:
+data: Optional[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll] = None,
+) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]:
             """
 
             Args:

@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/enums.rs
 expression: "super::into_output_python_code::<TestEnumWithDiscriminantIgnored>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -52,9 +53,7 @@ class AsyncOutputClient:
 
     async def test(
             self,
-
-
-        ) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]:
+) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]:
             """
 
             Returns:
@@ -100,9 +99,7 @@ class OutputClient:
 
     def test(
             self,
-
-
-    ) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]:
+) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]:
             """
 
             Returns:

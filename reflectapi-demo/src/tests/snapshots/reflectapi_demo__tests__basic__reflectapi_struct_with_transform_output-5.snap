@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_python_code::<TestStructWithTransformOutput>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -59,12 +60,8 @@ class AsyncInoutClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsBasicInputTestStructWithTransformOutput] = None,
-
-
-        ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithTransformOutput]:
+data: Optional[ReflectapiDemoTestsBasicInputTestStructWithTransformOutput] = None,
+) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithTransformOutput]:
             """
 
             Args:
@@ -116,12 +113,8 @@ class InoutClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsBasicInputTestStructWithTransformOutput] = None,
-
-
-    ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithTransformOutput]:
+data: Optional[ReflectapiDemoTestsBasicInputTestStructWithTransformOutput] = None,
+) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithTransformOutput]:
             """
 
             Args:

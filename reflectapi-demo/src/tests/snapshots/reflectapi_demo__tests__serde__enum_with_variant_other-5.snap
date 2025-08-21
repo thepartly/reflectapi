@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<TestEnumWithVariantOther>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -92,12 +93,8 @@ class AsyncInoutClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther] = None,
-
-
-        ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther]:
+data: Optional[ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther] = None,
+) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther]:
             """
 
             Args:
@@ -149,12 +146,8 @@ class InoutClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther] = None,
-
-
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther]:
+data: Optional[ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther] = None,
+) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther]:
             """
 
             Args:

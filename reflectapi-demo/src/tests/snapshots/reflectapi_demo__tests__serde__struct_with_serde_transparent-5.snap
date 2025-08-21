@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<TestStructWithSerdeTransparent>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -43,12 +44,8 @@ class AsyncInoutClient:
 
     async def test(
             self,
-
-
-            data: Optional[int] = None,
-
-
-        ) -> ApiResponse[int]:
+data: Optional[int] = None,
+) -> ApiResponse[int]:
             """
 
             Args:
@@ -100,12 +97,8 @@ class InoutClient:
 
     def test(
             self,
-
-
-        data: Optional[int] = None,
-
-
-    ) -> ApiResponse[int]:
+data: Optional[int] = None,
+) -> ApiResponse[int]:
             """
 
             Args:

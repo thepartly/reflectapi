@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/enums.rs
 expression: "super::into_input_python_code::<TestEnumWithDiscriminant>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -58,12 +59,8 @@ class AsyncInputClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant] = None,
-
-
-        ) -> ApiResponse[Any]:
+data: Optional[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant] = None,
+) -> ApiResponse[Any]:
             """
 
             Args:
@@ -115,12 +112,8 @@ class InputClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant] = None,
-
-
-    ) -> ApiResponse[Any]:
+data: Optional[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant] = None,
+) -> ApiResponse[Any]:
             """
 
             Args:

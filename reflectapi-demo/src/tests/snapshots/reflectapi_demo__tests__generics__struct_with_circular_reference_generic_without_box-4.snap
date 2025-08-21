@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/generics.rs
 expression: "super::into_input_python_code::<TestStructWithCircularReferenceGenericWithoutBox<TestStructWithCircularReferenceGenericWithoutBox<u8,\n        u16>,\n        TestStructWithCircularReferenceGenericWithoutBox<String, u32>>>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -52,12 +53,8 @@ class AsyncInputClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[int, int], ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[str, int]]] = None,
-
-
-        ) -> ApiResponse[Any]:
+data: Optional[ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[int, int], ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[str, int]]] = None,
+) -> ApiResponse[Any]:
             """
 
             Args:
@@ -109,12 +106,8 @@ class InputClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[int, int], ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[str, int]]] = None,
-
-
-    ) -> ApiResponse[Any]:
+data: Optional[ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[int, int], ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[str, int]]] = None,
+) -> ApiResponse[Any]:
             """
 
             Args:

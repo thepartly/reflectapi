@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<TestStructWithFlattenOptionalAndRequired>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -69,12 +70,8 @@ class AsyncInoutClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired] = None,
-
-
-        ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]:
+data: Optional[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired] = None,
+) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]:
             """
 
             Args:
@@ -126,12 +123,8 @@ class InoutClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired] = None,
-
-
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]:
+data: Optional[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired] = None,
+) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]:
             """
 
             Args:

@@ -3278,18 +3278,18 @@ class Async{{ group.class_name }}:
 {% for function in group.functions %}
     async def {{ function.name }}(
             self,
-{% for param in function.path_params %}
+{% for param in function.path_params -%}
             {{ param.name }}: {{ param.type_annotation }},
-{% endfor %}
-{% for param in function.query_params %}
+{% endfor -%}
+{% for param in function.query_params -%}
             {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{% endfor %}
-{% if function.has_body %}
+{% endfor -%}
+{% if function.has_body -%}
             data: Optional[{{ function.input_type }}] = None,
-{% endif %}
-{% if function.headers_type.is_some() %}
+{% endif -%}
+{% if function.headers_type.is_some() -%}
             headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{% endif %}
+{% endif -%}
         ) -> ApiResponse[{{ function.output_type }}]:
             """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
 
@@ -3364,18 +3364,18 @@ class {{ async_class_name }}(AsyncClientBase):
 {% for function in top_level_functions %}
     async def {{ function.name }}(
         self,
-{% for param in function.path_params %}
+{% for param in function.path_params -%}
         {{ param.name }}: {{ param.type_annotation }},
-{% endfor %}
-{% for param in function.query_params %}
+{% endfor -%}
+{% for param in function.query_params -%}
             {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{% endfor %}
-{% if function.has_body %}
+{% endfor -%}
+{% if function.has_body -%}
             data: Optional[{{ function.input_type }}] = None,
-{% endif %}
-{% if function.headers_type.is_some() %}
+{% endif -%}
+{% if function.headers_type.is_some() -%}
             headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{% endif %}
+{% endif -%}
     ) -> ApiResponse[{{ function.output_type }}]:
         """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
 
@@ -3446,18 +3446,18 @@ class {{ group.class_name }}:
 {% for function in group.functions %}
     def {{ function.name }}(
             self,
-{% for param in function.path_params %}
+{% for param in function.path_params -%}
             {{ param.name }}: {{ param.type_annotation }},
-{% endfor %}
-{% for param in function.query_params %}
+{% endfor -%}
+{% for param in function.query_params -%}
             {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{% endfor %}
-{% if function.has_body %}
+{% endfor -%}
+{% if function.has_body -%}
         data: Optional[{{ function.input_type }}] = None,
-{% endif %}
-{% if function.headers_type.is_some() %}
+{% endif -%}
+{% if function.headers_type.is_some() -%}
         headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{% endif %}
+{% endif -%}
     ) -> ApiResponse[{{ function.output_type }}]:
             """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
 
@@ -3532,18 +3532,18 @@ class {{ class_name }}(ClientBase):
 {% for function in top_level_functions %}
     def {{ function.name }}(
         self,
-{% for param in function.path_params %}
+{% for param in function.path_params -%}
         {{ param.name }}: {{ param.type_annotation }},
-{% endfor %}
-{% for param in function.query_params %}
+{% endfor -%}
+{% for param in function.query_params -%}
         {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{% endfor %}
-{% if function.has_body %}
+{% endfor -%}
+{% if function.has_body -%}
         data: Optional[{{ function.input_type }}] = None,
-{% endif %}
-{% if function.headers_type.is_some() %}
+{% endif -%}
+{% if function.headers_type.is_some() -%}
         headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{% endif %}
+{% endif -%}
     ) -> ApiResponse[{{ function.output_type }}]:
         """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
 

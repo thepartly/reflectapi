@@ -1,6 +1,7 @@
 ---
 source: reflectapi-demo/src/tests/enums.rs
 expression: "super::into_python_code::<A>()"
+snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -78,12 +79,8 @@ class AsyncInoutClient:
 
     async def test(
             self,
-
-
-            data: Optional[ReflectapiDemoTestsEnumsA] = None,
-
-
-        ) -> ApiResponse[ReflectapiDemoTestsEnumsA]:
+data: Optional[ReflectapiDemoTestsEnumsA] = None,
+) -> ApiResponse[ReflectapiDemoTestsEnumsA]:
             """
 
             Args:
@@ -135,12 +132,8 @@ class InoutClient:
 
     def test(
             self,
-
-
-        data: Optional[ReflectapiDemoTestsEnumsA] = None,
-
-
-    ) -> ApiResponse[ReflectapiDemoTestsEnumsA]:
+data: Optional[ReflectapiDemoTestsEnumsA] = None,
+) -> ApiResponse[ReflectapiDemoTestsEnumsA]:
             """
 
             Args:
