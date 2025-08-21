@@ -144,7 +144,6 @@ fn test_internally_tagged_enum_with_tuple_variants() {
         Y,
     }
 
-    #[allow(dead_code)]
     #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
     #[serde(tag = "type")]
     enum E {
@@ -153,4 +152,16 @@ fn test_internally_tagged_enum_with_tuple_variants() {
     }
 
     assert_snapshot!(E);
+}
+
+#[test]
+fn test_internally_tagged_enum_with_unit_variants() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    enum A {
+        X,
+        Y,
+    }
+
+    assert_snapshot!(A);
 }
