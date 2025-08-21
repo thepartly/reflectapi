@@ -147,8 +147,14 @@ where
                     v => v.to_string(),
                 };
                 header_map.insert(
-                    http::HeaderName::from_bytes(k.as_bytes()).unwrap(),
-                    http::HeaderValue::from_str(&v_str).unwrap(),
+                    http::HeaderName::from_bytes(k.as_bytes()).map_err(|err| Error::Protocol {
+                        info: err.to_string(),
+                        stage: ProtocolErrorStage::SerializeRequestHeaders,
+                    })?,
+                    http::HeaderValue::from_str(&v_str).map_err(|err| Error::Protocol {
+                        info: err.to_string(),
+                        stage: ProtocolErrorStage::SerializeRequestHeaders,
+                    })?,
                 );
             }
         }
