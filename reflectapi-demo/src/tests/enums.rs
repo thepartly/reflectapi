@@ -135,3 +135,33 @@ pub enum Nums {
 fn test_enum_rename_num() {
     assert_snapshot!(Nums);
 }
+
+#[test]
+fn test_internally_tagged_enum_with_tuple_variants() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    enum A {
+        X,
+        Y,
+    }
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    enum E {
+        #[serde(rename = "a")]
+        A(A),
+    }
+
+    assert_snapshot!(E);
+}
+
+#[test]
+fn test_internally_tagged_enum_with_unit_variants() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    enum A {
+        X,
+        Y(()),
+    }
+
+    assert_snapshot!(A);
+}

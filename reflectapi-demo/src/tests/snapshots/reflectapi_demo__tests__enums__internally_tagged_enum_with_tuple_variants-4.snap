@@ -1,0 +1,94 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.E"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.E"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.enums.A": {
+        "oneOf": [
+          {
+            "const": "X"
+          },
+          {
+            "const": "Y"
+          }
+        ]
+      },
+      "reflectapi_demo.tests.enums.E": {
+        "oneOf": [
+          {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "X",
+                  "type"
+                ],
+                "properties": {
+                  "X": {
+                    "type": "null"
+                  },
+                  "type": {
+                    "const": "a"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "Y",
+                  "type"
+                ],
+                "properties": {
+                  "Y": {
+                    "type": "null"
+                  },
+                  "type": {
+                    "const": "a"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

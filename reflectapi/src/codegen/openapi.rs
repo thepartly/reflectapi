@@ -1054,16 +1054,68 @@ impl Converter<'_> {
                     .map(|subschema| self.internally_tag(tag_name, tag_schema.clone(), subschema))
                     .collect::<Result<_, _>>()?,
             })),
-            Schema::Const { .. } => unreachable!("internally tagged const?"),
+            Schema::Const { value, description } => {
+                // For enum variants in internally tagged tuple variants, create object with discriminator + enum field
+                let mut properties = BTreeMap::new();
+                let mut required = BTreeSet::new();
+
+                // Add the discriminator field
+                properties.insert(
+                    tag_name.to_owned(),
+                    Property {
+                        description: String::new(),
+                        deprecated: false,
+                        schema: tag_schema.clone(),
+                    },
+                );
+                required.insert(tag_name.to_owned());
+
+                // Add the enum value as a field (with null value as per serde's behavior)
+                properties.insert(
+                    value.clone(),
+                    Property {
+                        description: String::new(),
+                        deprecated: false,
+                        schema: Inline(Schema::Flat(FlatSchema {
+                            description: String::new(),
+                            ty: Type::Null,
+                        })),
+                    },
+                );
+                required.insert(value.clone());
+
+                Ok(Inline(Schema::Flat(FlatSchema {
+                    description: description.clone(),
+                    ty: Type::Object {
+                        title: String::new(),
+                        required,
+                        properties,
+                    },
+                })))
+            }
             Schema::Flat(schema) => match &schema.ty {
                 Type::Boolean
                 | Type::Integer
                 | Type::Number
-                | Type::Null
                 | Type::String { .. }
                 | Type::Array { .. }
                 | Type::Tuple { .. } => Err(InvalidInternalTagError(schema.ty.clone())),
                 Type::Map { .. } => todo!("map within newtype variant"),
+                Type::Null => Ok(Inline(Schema::Flat(FlatSchema {
+                    description: schema.description.to_owned(),
+                    ty: Type::Object {
+                        title: String::new(),
+                        required: [tag_name.to_owned()].into(),
+                        properties: BTreeMap::from([(
+                            tag_name.to_owned(),
+                            Property {
+                                description: String::new(),
+                                deprecated: false,
+                                schema: tag_schema,
+                            },
+                        )]),
+                    },
+                }))),
                 Type::Object {
                     title,
                     required,
