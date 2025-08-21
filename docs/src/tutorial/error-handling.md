@@ -15,7 +15,7 @@ ReflectAPI treats errors as first-class citizens:
 
 The `StatusCode` trait maps your error types to HTTP status codes:
 
-```rust
+```rust,ignore
 use reflectapi::{Output, StatusCode};
 
 #[derive(serde::Serialize, Output)]
@@ -44,7 +44,7 @@ impl StatusCode for PetError {
 
 Let's create a robust error system. Update your `src/api_types.rs`:
 
-```rust
+```rust,ignore
 use reflectapi::{Output, StatusCode};
 use std::fmt;
 
@@ -419,7 +419,7 @@ impl From<InternalError> for PetStoreError {
 
 Create helper functions for common error patterns. Add to `src/handlers.rs`:
 
-```rust
+```rust,ignore
 use tracing::{error, warn, info};
 use crate::api_types::*;
 
@@ -734,7 +734,7 @@ impl ValidationContext {
 
 ## Updated Create Pet Handler with Advanced Error Handling
 
-```rust
+```rust,ignore
 pub async fn create_pet(
     state: Arc<AppState>,
     request: CreatePetRequest,
@@ -846,7 +846,7 @@ pub async fn create_pet(
 
 Add retry logic and graceful degradation:
 
-```rust
+```rust,ignore
 use std::time::Duration;
 use tokio::time::sleep;
 

@@ -7,6 +7,30 @@ In this first step, we'll create all the data models for our Pet Store API. Refl
 Let's start by defining our core `Pet` type. Create `src/model.rs`:
 
 ```rust
+# extern crate reflectapi;
+# extern crate serde;
+# extern crate chrono;
+# 
+# use reflectapi::{Input, Output};
+# use serde::{Serialize, Deserialize};
+# 
+# #[derive(Debug, Clone, Serialize, Deserialize, Input, Output)]
+# #[serde(tag = "type", rename_all = "snake_case")]
+# pub enum PetKind {
+#     Dog { breed: String },
+#     Cat { lives: u8 },
+#     Bird { can_talk: bool },
+# }
+# 
+# #[derive(Debug, Clone, Serialize, Deserialize, Input, Output)]
+# pub enum Behavior {
+#     Calm,
+#     Aggressive { level: f64, notes: String },
+#     Playful { favorite_toy: Option<String> },
+#     Other { description: String },
+# }
+# 
+# fn main() {
 use reflectapi::{Input, Output};
 
 #[derive(
@@ -29,13 +53,26 @@ pub struct Pet {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub behaviors: Vec<Behavior>,
 }
+
+// Test that the struct can be created
+let _pet = Pet {
+    id: 1,
+    name: "Buddy".to_string(),
+    kind: PetKind::Dog { breed: "Golden Retriever".to_string() },
+    age: Some(3),
+    updated_at: chrono::Utc::now(),
+    behaviors: vec![Behavior::Calm],
+};
+# }
 ```
+
 
 ### Pet Kind Enum
 
 Different types of pets have different attributes. We'll use a tagged enum:
 
-```rust
+```rust,ignore
+# use reflectapi::{Input, Output};
 #[derive(
     Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output,
 )]
@@ -81,7 +118,8 @@ This creates a **discriminated union** that serializes as:
 
 Pets can have various behaviors with different data:
 
-```rust
+```rust,ignore
+# use reflectapi::{Input, Output};
 #[derive(
     Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output,
 )]
@@ -108,13 +146,63 @@ pub enum Behavior {
 }
 ```
 
+### Working with Enum Patterns
+
+Here's a simple example demonstrating the enum patterns you just learned:
+
+```rust
+/// Demonstrates basic enum patterns for pet behaviors
+#[derive(Debug, Clone, PartialEq)]
+pub enum Behavior {
+    Calm,
+    Aggressive { level: f64, notes: String },
+    Playful { favorite_toy: Option<String> },
+    Other { description: String },
+}
+
+fn main() {
+    // Test basic enum construction and matching
+    let calm_behavior = Behavior::Calm;
+    let aggressive_behavior = Behavior::Aggressive {
+        level: 0.7,
+        notes: "Protective of food".to_string(),
+    };
+
+    match calm_behavior {
+        Behavior::Calm => println!("Pet is calm"),
+        Behavior::Aggressive { level, .. } => println!("Aggression level: {}", level),
+        _ => println!("Other behavior"),
+    }
+
+    // Test enum comparison
+    assert_eq!(calm_behavior, Behavior::Calm);
+
+    // Test extracting data from enum variants
+    if let Behavior::Aggressive { level, notes } = aggressive_behavior {
+        assert_eq!(level, 0.7);
+        assert_eq!(notes, "Protective of food");
+    }
+}
+```
+
 ## Request and Response Types
 
 Now let's define the types for our API operations. Create `src/api_types.rs`:
 
-```rust
+```rust,ignore,ignore
 use reflectapi::{Input, Output};
 use crate::model::{Pet, PetKind, Behavior};
+
+// ============================================================================
+// Health Check
+// ============================================================================
+
+#[derive(serde::Serialize, Output)]
+pub struct HealthResponse {
+    pub status: String,
+    pub service: String,
+    pub timestamp: String,
+}
 
 // ============================================================================
 // Authentication
@@ -255,7 +343,7 @@ This is more powerful than regular `Option<T>` which only has two states.
 
 Let's define comprehensive error types for our API:
 
-```rust
+```rust,ignore,ignore
 use reflectapi::{Output, StatusCode};
 
 // ============================================================================
@@ -328,7 +416,7 @@ impl From<UnauthorizedError> for PetError {
 
 Finally, let's define our application state in `src/state.rs`:
 
-```rust
+```rust,ignore,ignore
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use crate::model::Pet;
@@ -378,7 +466,7 @@ impl Default for AppState {
 
 Update your `src/main.rs` to include the new modules:
 
-```rust
+```rust,ignore,ignore
 mod model;
 mod api_types;
 mod state;

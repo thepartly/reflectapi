@@ -15,6 +15,21 @@ ReflectAPI is a library for Rust code-first web service API declaration and corr
 - [API Documentation](https://docs.rs/reflectapi) - Complete API reference
 - [User Guide](https://thepartly.github.io/reflectapi/) - Tutorials and examples
 
+### Building Documentation
+
+```bash
+# Generate and serve documentation locally
+cargo install mdbook
+mdbook build docs
+mdbook serve docs  # Opens at http://localhost:3000
+
+# Test documentation code examples (using mdbook-keeper)
+# Note: mdbook-keeper runs tests during build, not via separate test command
+mdbook build docs  # This runs all doctests with proper dependencies
+
+
+```
+
 ### Development notes
 
 Ensure that you have `prettier` and `rustfmt` available in your PATH to format generated code.
@@ -56,14 +71,7 @@ cargo run --all-features
 To generate client in Python for demo server:
 
 ```
-cargo run --bin reflectapi -- codegen --language python --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/python/ --python-async --python-sync --python-testing
-```
-
-To run the Python generated client. Note: requires the demo server running
-
-```
-cd reflectapi-demo/clients/python/
-uv run python test_client.py
+cargo run --bin reflectapi -- codegen --language python --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/python
 ```
 
 ### Updating Snapshots

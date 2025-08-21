@@ -16,7 +16,7 @@ cargo install --path reflectapi-cli
 
 ## Usage
 
-```
+```bash
 reflectapi [OPTIONS] <COMMAND>
 ```
 
@@ -32,7 +32,7 @@ reflectapi [OPTIONS] <COMMAND>
 
 Generate client libraries from a ReflectAPI schema.
 
-```
+```bash
 reflectapi codegen [OPTIONS] --language <LANGUAGE>
 ```
 
@@ -112,7 +112,7 @@ reflectapi-cli codegen \
 
 Serve interactive documentation for your API schema.
 
-```
+```bash
 reflectapi doc <COMMAND>
 ```
 

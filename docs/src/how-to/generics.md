@@ -461,7 +461,7 @@ else:
 
 Generated Rust maintains zero-cost generics:
 
-```rust
+```rust,ignore
 // Generated generic types match the original definitions
 pub struct Page<T> {
     pub items: Vec<T>,

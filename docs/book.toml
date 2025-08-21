@@ -35,4 +35,9 @@ copy-js = true
 [rust]
 edition = "2021"
 
+[preprocessor.keeper]
+command = "mdbook-keeper"
+manifest_dir = "/mnt/fast-dev/dev/reflectapi"
+is_workspace = true
+
 [output.html.redirect]

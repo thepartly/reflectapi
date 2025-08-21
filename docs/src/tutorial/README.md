@@ -1,6 +1,6 @@
 # Building a Pet Store API
 
-Welcome to the ReflectAPI tutorial! In this comprehensive guide, you'll build a complete Pet Store API from scratch. By the end, you'll have a fully functional web service with automatic client generation, OpenAPI documentation, and proper error handling.
+In this tutorial, you'll build a complete Pet Store API from scratch. By the end, you'll have a fully functional web service with automatic client generation, OpenAPI documentation, and proper error handling.
 
 ## What You'll Build
 
@@ -63,4 +63,5 @@ reqwest = { version = "0.12", features = ["json"] }
 serde_json = "1.0"
 ```
 
-Ready? Let's start by [defining the types](./defining-types.md) for our Pet Store API!
+
+Let's start by [defining the types](./defining-types.md) for our Pet Store API!
