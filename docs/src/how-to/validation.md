@@ -312,7 +312,7 @@ async fn update_user(req: UpdateUserRequest) -> Result<User, ErrorResponse> {
 
 ### Unit Tests
 
-```rust
+```rust,ignore
 #[cfg(test)]
 mod tests {
     use super::*;

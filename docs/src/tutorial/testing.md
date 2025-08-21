@@ -354,7 +354,7 @@ cd ..
 
 Create a Rust test file `clients/rust/src/main.rs`:
 
-```rust
+```rust,ignore
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

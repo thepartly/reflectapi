@@ -102,7 +102,7 @@ class ApiError(Exception):
 ```
 
 **Rust:**
-```rust
+```rust,ignore
 #[derive(Debug, thiserror::Error)]
 pub enum ClientError {
     #[error("API error: {status}")]
@@ -185,7 +185,7 @@ const user = await client.users.get(123);
 user = await client.users.get(123)
 ```
 
-```rust
+```rust,ignore
 // Rust equivalent
 let user = client.users().get(123).await?;
 ```

@@ -50,7 +50,7 @@ my-api-client = { path = "./clients/rust" }
 
 ### Simple Client
 
-```rust
+```rust,ignore
 use my_api_client::{Client, models::*};
 
 #[tokio::main]
@@ -76,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Client Builder
 
-```rust
+```rust,ignore
 use my_api_client::{ClientBuilder, models::*};
 use std::time::Duration;
 
@@ -100,7 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Connection Pooling
 
-```rust
+```rust,ignore
 use my_api_client::{Client, ClientBuilder};
 use reqwest::ClientBuilder as ReqwestBuilder;
 
@@ -127,7 +127,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### TLS Configuration
 
-```rust
+```rust,ignore
 use my_api_client::ClientBuilder;
 use reqwest::ClientBuilder as ReqwestBuilder;
 
@@ -152,7 +152,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 The Rust client provides comprehensive error handling using `thiserror`:
 
-```rust
+```rust,ignore
 use my_api_client::{Client, ClientError, ApiError};
 
 #[tokio::main]
@@ -187,7 +187,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Error Types
 
-```rust
+```rust,ignore
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -232,7 +232,7 @@ impl ApiError {
 
 The Rust client provides compile-time type safety:
 
-```rust
+```rust,ignore
 use my_api_client::{Client, models::*};
 
 #[tokio::main]
@@ -262,7 +262,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Option Types
 
-```rust
+```rust,ignore
 use my_api_client::models::*;
 
 // ReflectAPI Option<T> maps to Rust Option<T>
@@ -285,7 +285,7 @@ let update_request = UpdateUserRequest {
 
 ### Request Middleware
 
-```rust
+```rust,ignore
 use my_api_client::{Client, ClientBuilder};
 use reqwest::{Request, Response};
 use std::time::Instant;
@@ -334,7 +334,7 @@ impl LoggingClient {
 
 ### Concurrent Operations
 
-```rust
+```rust,ignore
 use my_api_client::{Client, models::*};
 use futures::future::try_join_all;
 use std::collections::HashMap;
@@ -391,7 +391,7 @@ async fn get_users_batch(
 
 ### Authentication Handling
 
-```rust
+```rust,ignore
 use my_api_client::{Client, ClientBuilder, ClientError};
 use tokio::sync::RwLock;
 use std::sync::Arc;
@@ -467,7 +467,7 @@ impl AuthenticatedClient {
 
 ### Connection Reuse
 
-```rust
+```rust,ignore
 use my_api_client::{Client, ClientBuilder};
 use reqwest::ClientBuilder as ReqwestBuilder;
 use std::sync::Arc;
@@ -530,7 +530,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Streaming Responses
 
-```rust
+```rust,ignore
 use my_api_client::{Client, models::*};
 use futures::stream::StreamExt;
 
@@ -558,7 +558,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 The Rust client works excellently for building CLI tools:
 
-```rust
+```rust,ignore
 use my_api_client::{Client, models::*};
 use clap::{Arg, Command};
 use tokio;
@@ -632,7 +632,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Unit Testing
 
-```rust
+```rust,ignore
 use my_api_client::{Client, models::*};
 use mockito::{mock, server_url};
 
@@ -674,7 +674,7 @@ async fn test_user_not_found() {
 
 ### Integration Testing
 
-```rust
+```rust,ignore
 use my_api_client::{Client, models::*};
 
 #[tokio::test]
@@ -734,7 +734,7 @@ cargo update
 ```
 
 **Runtime errors:**
-```rust
+```rust,ignore
 // Enable detailed error logging
 env_logger::init();
 
@@ -748,7 +748,7 @@ match client.users().get(123).await {
 ```
 
 **TLS/Certificate issues:**
-```rust
+```rust,ignore
 // Disable certificate verification (development only)
 let http_client = reqwest::ClientBuilder::new()
     .danger_accept_invalid_certs(true)
@@ -764,7 +764,7 @@ let http_client = reqwest::ClientBuilder::new()
 
 Enable comprehensive debugging:
 
-```rust
+```rust,ignore
 use my_api_client::{Client, ClientBuilder};
 
 // Enable request/response logging

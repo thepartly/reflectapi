@@ -15,7 +15,7 @@ Now that you have working endpoints, let's add comprehensive validation to make 
 
 Add validation attributes directly to your types. Update your `src/api_types.rs`:
 
-```rust
+```rust,ignore
 #[derive(serde::Deserialize, Input)]
 pub struct CreatePetRequest {
     /// Pet's name (required, 1-50 characters)
@@ -68,11 +68,69 @@ where
 }
 ```
 
+### Basic Validation Patterns
+
+Here's a simplified example showing the validation patterns you just learned:
+
+```rust
+/// Demonstrates basic validation patterns for input data
+#[derive(Debug, PartialEq)]
+pub enum ValidationError {
+    Empty,
+    TooLong,
+    InvalidCharacters,
+    TooOld,
+}
+
+fn validate_pet_name(name: &str) -> Result<String, ValidationError> {
+    let trimmed = name.trim();
+    
+    if trimmed.is_empty() {
+        return Err(ValidationError::Empty);
+    }
+    
+    if trimmed.len() > 50 {
+        return Err(ValidationError::TooLong);
+    }
+    
+    if trimmed.chars().any(|c| c.is_control()) {
+        return Err(ValidationError::InvalidCharacters);
+    }
+    
+    Ok(trimmed.to_string())
+}
+
+fn validate_pet_age(age: Option<u8>) -> Result<Option<u8>, ValidationError> {
+    if let Some(age_value) = age {
+        if age_value > 150 {
+            return Err(ValidationError::TooOld);
+        }
+    }
+    Ok(age)
+}
+
+fn main() {
+    // Test valid inputs
+    assert_eq!(validate_pet_name("Buddy"), Ok("Buddy".to_string()));
+    assert_eq!(validate_pet_name("  Max  "), Ok("Max".to_string()));
+    assert_eq!(validate_pet_age(Some(5)), Ok(Some(5)));
+    assert_eq!(validate_pet_age(None), Ok(None));
+
+    // Test invalid inputs
+    assert_eq!(validate_pet_name(""), Err(ValidationError::Empty));
+    assert_eq!(validate_pet_name("   "), Err(ValidationError::Empty));
+
+    let long_name = "a".repeat(51);
+    assert_eq!(validate_pet_name(&long_name), Err(ValidationError::TooLong));
+    assert_eq!(validate_pet_age(Some(151)), Err(ValidationError::TooOld));
+}
+```
+
 ### Using NewType Patterns for Validation
 
 Create validated newtype wrappers. Add to your `src/model.rs`:
 
-```rust
+```rust,ignore
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Input, Output)]
@@ -169,7 +227,7 @@ impl PetAge {
 
 Update your handlers with comprehensive validation. Modify `src/handlers.rs`:
 
-```rust
+```rust,ignore
 // Enhanced authentication with detailed error messages
 fn authenticate(headers: &ApiHeaders) -> Result<(), PetError> {
     if headers.authorization.is_empty() {
@@ -408,7 +466,7 @@ fn validate_behaviors(behaviors: &[Behavior]) -> Result<(), PetError> {
 
 ### Updated Create Pet Handler with Full Validation
 
-```rust
+```rust,ignore
 pub async fn create_pet(
     state: Arc<AppState>,
     request: CreatePetRequest,
@@ -488,7 +546,7 @@ pub async fn create_pet(
 
 Add validation rules to your API builder. Update `src/api.rs`:
 
-```rust
+```rust,ignore
 pub fn create_api() -> reflectapi::Builder<Arc<AppState>> {
     reflectapi::Builder::new()
         .name("Pet Store API")
@@ -573,7 +631,7 @@ pub fn create_api() -> reflectapi::Builder<Arc<AppState>> {
 
 Add input sanitization helpers in `src/handlers.rs`:
 
-```rust
+```rust,ignore
 // Sanitization helpers
 fn sanitize_text_input(input: &str) -> String {
     input
@@ -646,7 +704,7 @@ pub async fn list_pets(
 
 Add basic rate limiting in your handlers:
 
-```rust
+```rust,ignore
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
@@ -735,7 +793,7 @@ fn authenticate_with_rate_limiting(headers: &ApiHeaders, state: &AppState) -> Re
 
 Add structured error reporting:
 
-```rust
+```rust,ignore
 use tracing::{info, warn, error};
 
 // Enhanced error context

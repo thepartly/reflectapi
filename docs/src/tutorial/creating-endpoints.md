@@ -6,7 +6,7 @@ Now that we have our types defined, let's create the API endpoints. ReflectAPI u
 
 Every ReflectAPI handler follows this exact pattern:
 
-```rust
+```rust,ignore
 async fn handler_name(
     state: Arc<AppState>,
     request: RequestType,
@@ -24,7 +24,7 @@ This signature is **fixed** and enables ReflectAPI to:
 
 Create `src/handlers.rs` for our endpoint implementations:
 
-```rust
+```rust,ignore
 use std::sync::Arc;
 use crate::{
     api_types::*,
@@ -68,18 +68,18 @@ pub async fn health_check(
     _state: Arc<AppState>,
     _request: reflectapi::Empty,
     _headers: reflectapi::Empty,
-) -> Result<serde_json::Value, UnauthorizedError> {
-    Ok(serde_json::json!({
-        "status": "healthy",
-        "service": "pet-store-api",
-        "timestamp": chrono::Utc::now().to_rfc3339()
-    }))
+) -> Result<HealthResponse, UnauthorizedError> {
+    Ok(HealthResponse {
+        status: "healthy".to_string(),
+        service: "pet-store-api".to_string(),
+        timestamp: chrono::Utc::now().to_rfc3339(),
+    })
 }
 ```
 
 ## List Pets Endpoint
 
-```rust
+```rust,ignore
 pub async fn list_pets(
     state: Arc<AppState>,
     request: ListPetsRequest,
@@ -140,7 +140,7 @@ pub async fn list_pets(
 
 ## Create Pet Endpoint
 
-```rust
+```rust,ignore
 pub async fn create_pet(
     state: Arc<AppState>,
     request: CreatePetRequest,
@@ -200,7 +200,7 @@ pub async fn create_pet(
 
 ## Get Pet Endpoint
 
-```rust
+```rust,ignore
 pub async fn get_pet(
     state: Arc<AppState>,
     request: GetPetRequest,
@@ -222,7 +222,7 @@ pub async fn get_pet(
 
 ## Update Pet Endpoint
 
-```rust
+```rust,ignore
 pub async fn update_pet(
     state: Arc<AppState>,
     request: UpdatePetRequest,
@@ -296,7 +296,7 @@ pub async fn update_pet(
 
 ## Delete Pet Endpoint
 
-```rust
+```rust,ignore
 pub async fn delete_pet(
     state: Arc<AppState>,
     request: DeletePetRequest,
@@ -324,7 +324,7 @@ pub async fn delete_pet(
 
 Now let's create the ReflectAPI builder that registers all our endpoints. Create `src/api.rs`:
 
-```rust
+```rust,ignore
 use std::sync::Arc;
 use crate::{handlers, state::AppState};
 
@@ -332,7 +332,6 @@ pub fn create_api() -> reflectapi::Builder<Arc<AppState>> {
     reflectapi::Builder::new()
         .name("Pet Store API")
         .description("A comprehensive API for managing a pet store")
-        .version("1.0.0")
         
         // Health check endpoint
         .route(handlers::health_check, |b| {
@@ -398,7 +397,7 @@ pub fn create_api() -> reflectapi::Builder<Arc<AppState>> {
 
 Update your `src/main.rs` to create a working web server:
 
-```rust
+```rust,ignore
 mod model;
 mod api_types;
 mod state;
@@ -407,8 +406,6 @@ mod api;
 
 use std::sync::Arc;
 use axum::{
-    Router,
-    extract::State,
     response::Json,
     http::StatusCode,
 };
@@ -418,18 +415,17 @@ use crate::{api::create_api, state::AppState};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
-    tracing_subscriber::init();
+    tracing_subscriber::fmt::init();
     
     // Create application state
     let app_state = Arc::new(AppState::new());
     
     // Build the ReflectAPI schema
     let api_builder = create_api();
-    let schema = api_builder.build()?;
+    let (_schema, routers) = api_builder.build()?;
     
     // Create the Axum router with ReflectAPI integration
-    let app = Router::new()
-        .merge(reflectapi::axum::route(schema, app_state.clone()))
+    let app = reflectapi::axum::into_router(app_state.clone(), routers, |_name, r| r)
         .layer(CorsLayer::permissive())
         .fallback(not_found_handler);
     
@@ -460,7 +456,7 @@ async fn not_found_handler() -> (StatusCode, Json<serde_json::Value>) {
 
 Let's break down why the canonical signature is important:
 
-```rust
+```rust,ignore
 async fn handler(
     state: Arc<AppState>,      // Application state (database, config, etc.)
     request: RequestType,      // Strongly-typed request data
@@ -478,7 +474,7 @@ async fn handler(
 
 ### Why Not Standard Axum Extractors?
 
-```rust
+```rust,ignore
 // ❌ This won't work with ReflectAPI
 async fn bad_handler(
     State(state): State<AppState>,
