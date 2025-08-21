@@ -4,7 +4,7 @@ language = "en"
 multilingual = false
 src = "src"
 title = "ReflectAPI Documentation"
-description = "Code-first web service API declaration and client generation"
+description = "Code-first Rust web service API declaration and client generation"
 
 [preprocessor.links]
 
@@ -37,7 +37,7 @@ edition = "2021"
 
 [preprocessor.keeper]
 command = "mdbook-keeper"
-manifest_dir = "/mnt/fast-dev/dev/reflectapi"
+manifest_dir = ".."
 is_workspace = true
 
 [output.html.redirect]
