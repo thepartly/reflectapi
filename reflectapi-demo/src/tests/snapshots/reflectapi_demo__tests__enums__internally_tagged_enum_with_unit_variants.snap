@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/enums.rs
 expression: schema
-snapshot_kind: text
 ---
 {
   "name": "",

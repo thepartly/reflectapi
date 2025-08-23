@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_python_code::<TestStructWithNestedExternal>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -59,36 +58,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTestStructWithNestedExternal] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithNestedExternal]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTestStructWithNestedExternal] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithNestedExternal]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTestStructWithNestedExternal]: Response containing ReflectapiDemoTestsBasicTestStructWithNestedExternal data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithNestedExternal]: Response containing ReflectapiDemoTestsBasicTestStructWithNestedExternal data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTestStructWithNestedExternal,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicTestStructWithNestedExternal,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -112,36 +103,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTestStructWithNestedExternal] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithNestedExternal]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTestStructWithNestedExternal] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithNestedExternal]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTestStructWithNestedExternal]: Response containing ReflectapiDemoTestsBasicTestStructWithNestedExternal data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithNestedExternal]: Response containing ReflectapiDemoTestsBasicTestStructWithNestedExternal data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTestStructWithNestedExternal,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicTestStructWithNestedExternal,
+)
 
 
 class Client(ClientBase):

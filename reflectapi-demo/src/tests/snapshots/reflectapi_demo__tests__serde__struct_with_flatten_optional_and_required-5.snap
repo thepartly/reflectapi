@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<TestStructWithFlattenOptionalAndRequired>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -57,7 +56,6 @@ class ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired(BaseModel
 
     model_config = ConfigDict(extra="ignore")
 
-    # Flattened g (non-struct type not fully supported): ReflectapiDemoTestsSerdeTestStructWithFlattenNested | None
     field_name: int
 
 
@@ -69,36 +67,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired] = None,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]: Response containing ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]: Response containing ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -122,36 +112,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired] = None,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]: Response containing ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired]: Response containing ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired,
+)
 
 
 class Client(ClientBase):

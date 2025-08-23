@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_python_code::<TestStructWithVec>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -51,36 +50,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTestStructWithVec] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithVec]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTestStructWithVec] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithVec]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTestStructWithVec]: Response containing ReflectapiDemoTestsBasicTestStructWithVec data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithVec]: Response containing ReflectapiDemoTestsBasicTestStructWithVec data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTestStructWithVec,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicTestStructWithVec,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -104,36 +95,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTestStructWithVec] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithVec]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTestStructWithVec] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithVec]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTestStructWithVec]: Response containing ReflectapiDemoTestsBasicTestStructWithVec data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithVec]: Response containing ReflectapiDemoTestsBasicTestStructWithVec data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTestStructWithVec,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicTestStructWithVec,
+)
 
 
 class Client(ClientBase):

@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_python_code::<TestStructOneBasicFieldStringReflectBothDifferently>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -59,36 +58,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently]: Response containing ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently]: Response containing ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -112,36 +103,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently]: Response containing ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently]: Response containing ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently,
+)
 
 
 class Client(ClientBase):

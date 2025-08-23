@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/enums.rs
 expression: "super::into_output_python_code::<TestEnumWithDiscriminantIgnored>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -52,29 +51,23 @@ class AsyncOutputClient:
 
 
     async def test(
-            self,
-) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]:
-            """
+        self,
+    ) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]:
+        """
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]: Response containing ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]: Response containing ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored data
+        """
+        path = "/output_test"
 
-            path = "/output_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                response_model=ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            response_model=ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -98,29 +91,23 @@ class OutputClient:
 
 
     def test(
-            self,
-) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]:
-            """
+        self,
+    ) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]:
+        """
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]: Response containing ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]: Response containing ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored data
+        """
+        path = "/output_test"
 
-            path = "/output_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                response_model=ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            response_model=ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored,
+)
 
 
 class Client(ClientBase):

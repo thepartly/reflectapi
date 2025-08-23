@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<TestStruct<u8>>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -43,36 +42,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[bytes] = None,
-) -> ApiResponse[bytes]:
-            """
+        self,
+        data: Optional[bytes] = None,
+    ) -> ApiResponse[bytes]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[bytes]: Response containing bytes data
-            """
+        Returns:
+            ApiResponse[bytes]: Response containing bytes data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=bytes,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=bytes,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -96,36 +87,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[bytes] = None,
-) -> ApiResponse[bytes]:
-            """
+        self,
+        data: Optional[bytes] = None,
+    ) -> ApiResponse[bytes]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[bytes]: Response containing bytes data
-            """
+        Returns:
+            ApiResponse[bytes]: Response containing bytes data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=bytes,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=bytes,
+)
 
 
 class Client(ClientBase):

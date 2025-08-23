@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_input_python_code::<TestStructOneBasicFieldU32>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -51,36 +50,28 @@ class AsyncInputClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTestStructOneBasicFieldU32] = None,
-) -> ApiResponse[Any]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTestStructOneBasicFieldU32] = None,
+    ) -> ApiResponse[Any]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+        path = "/input_test"
 
-            path = "/input_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=None,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=None,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -104,36 +95,28 @@ class InputClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTestStructOneBasicFieldU32] = None,
-) -> ApiResponse[Any]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTestStructOneBasicFieldU32] = None,
+    ) -> ApiResponse[Any]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[Any]: Response containing Any data
-            """
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+        path = "/input_test"
 
-            path = "/input_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=None,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=None,
+)
 
 
 class Client(ClientBase):

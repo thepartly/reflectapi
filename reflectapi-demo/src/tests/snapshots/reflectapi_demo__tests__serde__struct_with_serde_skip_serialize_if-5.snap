@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<TestStructWithSerdeSkipSerializeIf>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -60,36 +59,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerializeIf] = None,
-) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerializeIf] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf]: Response containing ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf]: Response containing ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -113,36 +104,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerializeIf] = None,
-) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerializeIf] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf]: Response containing ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf]: Response containing ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf,
+)
 
 
 class Client(ClientBase):

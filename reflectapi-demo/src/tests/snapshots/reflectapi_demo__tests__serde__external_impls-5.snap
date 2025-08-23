@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<Test>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -40,9 +39,9 @@ class ReflectapiDemoTestsSerdeTest(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    index_map: IndexmapIndexMap[int, int]
-    index_set: IndexmapIndexSet[str]
-    url: UrlUrl
+    index_map: dict[int, int]
+    index_set: list[str]
+    url: str
     json: Any
 
 
@@ -54,36 +53,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsSerdeTest] = None,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsSerdeTest] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsSerdeTest,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsSerdeTest,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -107,36 +98,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsSerdeTest] = None,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsSerdeTest] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsSerdeTest,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsSerdeTest,
+)
 
 
 class Client(ClientBase):

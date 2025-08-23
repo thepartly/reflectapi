@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<TestEnumTagContentRenameAll>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -100,36 +99,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll] = None,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]: Response containing ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]: Response containing ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -153,36 +144,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll] = None,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]: Response containing ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]: Response containing ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll,
+)
 
 
 class Client(ClientBase):

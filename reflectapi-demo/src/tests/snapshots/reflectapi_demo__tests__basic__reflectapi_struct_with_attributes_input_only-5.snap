@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_python_code::<TestStructWithAttributesInputOnly>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -51,36 +50,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[str] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly]:
-            """
+        self,
+        data: Optional[str] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly]: Response containing ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly]: Response containing ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_data=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_data=data,
+            response_model=ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -104,36 +95,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[str] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly]:
-            """
+        self,
+        data: Optional[str] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly]: Response containing ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly]: Response containing ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_data=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_data=data,
+            response_model=ReflectapiDemoTestsBasicTestStructWithAttributesInputOnly,
+)
 
 
 class Client(ClientBase):

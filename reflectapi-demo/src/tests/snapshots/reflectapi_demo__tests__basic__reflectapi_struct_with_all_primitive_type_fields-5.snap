@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_python_code::<TestStructWithAllPrimitiveTypeFields>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -46,13 +45,13 @@ class ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields(BaseModel):
     _f_u32: int
     _f_u64: int
     _f_u128: U128
-    _f_usize: Usize
+    _f_usize: int
     _f_i8: int
     _f_i16: int
     _f_i32: int
     _f_i64: int
     _f_i128: I128
-    _f_isize: Isize
+    _f_isize: int
     _f_f32: float
     _f_f64: float
     _f_bool: bool
@@ -62,7 +61,7 @@ class ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields(BaseModel):
     _f_option: int | None = None
     _f_vec: bytes
     _f_hashmap: dict[int, str]
-    _f_hashset: StdCollectionsHashSet[int]
+    _f_hashset: bytes
     _f_tuple: StdTupleTuple2[int, str]
     _f_tuple3: StdTupleTuple3[int, str, int]
     _f_tuple4: StdTupleTuple4[int, str, int, str]
@@ -74,14 +73,14 @@ class ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields(BaseModel):
     _f_tuple10: StdTupleTuple10[int, str, int, str, int, str, int, str, int, str]
     _f_tuple11: StdTupleTuple11[int, str, int, str, int, str, int, str, int, str, int]
     _f_tuple12: StdTupleTuple12[int, str, int, str, int, str, int, str, int, str, int, str]
-    _f_array: StdArrayArray[int, Annotated[Any, "External type: 3"]]
+    _f_array: bytes
     _f_pointer_box: int
     _f_pointer_arc: int
-    _f_pointer_cell: StdCellCell[int]
-    _f_pointer_refcell: StdCellRefCell[int]
-    _f_pointer_mutex: StdSyncMutex[int]
-    _f_pointer_rwlock: StdSyncRwLock[int]
-    _f_pointer_weak: StdSyncWeak[int]
+    _f_pointer_cell: int
+    _f_pointer_refcell: int
+    _f_pointer_mutex: int
+    _f_pointer_rwlock: int
+    _f_pointer_weak: int
     _f_phantomdata: StdMarkerPhantomData[int]
     _f_infallible: ReflectapiInfallible
 
@@ -94,36 +93,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields]: Response containing ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields]: Response containing ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -147,36 +138,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields]: Response containing ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields]: Response containing ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields,
+)
 
 
 class Client(ClientBase):

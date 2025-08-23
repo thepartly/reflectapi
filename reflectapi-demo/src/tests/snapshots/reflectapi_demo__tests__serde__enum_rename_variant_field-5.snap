@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: "super::into_python_code::<TestEnumRenameVariantField>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -86,36 +85,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsSerdeTestEnumRenameVariantField] = None,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameVariantField]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsSerdeTestEnumRenameVariantField] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameVariantField]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameVariantField]: Response containing ReflectapiDemoTestsSerdeTestEnumRenameVariantField data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameVariantField]: Response containing ReflectapiDemoTestsSerdeTestEnumRenameVariantField data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsSerdeTestEnumRenameVariantField,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsSerdeTestEnumRenameVariantField,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -139,36 +130,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsSerdeTestEnumRenameVariantField] = None,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameVariantField]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsSerdeTestEnumRenameVariantField] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameVariantField]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameVariantField]: Response containing ReflectapiDemoTestsSerdeTestEnumRenameVariantField data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameVariantField]: Response containing ReflectapiDemoTestsSerdeTestEnumRenameVariantField data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsSerdeTestEnumRenameVariantField,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsSerdeTestEnumRenameVariantField,
+)
 
 
 class Client(ClientBase):

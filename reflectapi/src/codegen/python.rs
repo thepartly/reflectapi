@@ -329,29 +329,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
     // Generate testing utilities if requested
     if config.generate_testing {
-        // Only include user-defined types, not primitive types that are mapped to built-ins
-        let mut user_defined_types: Vec<String> = rendered_types
-            .keys()
-            .filter(|name| {
-                // Filter out types that are just mapped to primitives/built-ins
-                !name.starts_with("std::")
-                    && !matches!(
-                        name.as_str(),
-                        "f64"
-                            | "u8"
-                            | "i32"
-                            | "bool"
-                            | "String"
-                            | "ChronoDateTime"
-                            | "StdVecVec"
-                            | "StdStringString"
-                            | "StdTupleTuple0"
-                            | "U8"
-                            | "F64"
-                    )
-            })
-            .cloned()
-            .collect();
+        // contains user-defined types that have Pydantic classes generated for them.
+        // Note types with fallbacks to primitives are not added.
+        let mut user_defined_types: Vec<String> = rendered_types.keys().cloned().collect();
         user_defined_types.sort();
 
         let testing_template = templates::TestingModule {
@@ -383,6 +363,94 @@ fn render_type_without_factory(
             Ok((String::new(), None)) // This shouldn't be reached normally
         }
     }
+}
+
+/// Recursively collect fields from flattened structures
+fn collect_flattened_fields(
+    type_ref: &TypeReference,
+    schema: &Schema,
+    implemented_types: &HashMap<String, String>,
+    active_generics: &[String],
+    parent_required: bool,
+    depth: usize,
+) -> anyhow::Result<Vec<templates::Field>> {
+    // Prevent infinite recursion
+    if depth > 10 {
+        return Ok(vec![templates::Field {
+            name: format!("# Max flattening depth reached for type {}", type_ref.name),
+            type_annotation: "Any".to_string(),
+            description: Some("Maximum flattening depth exceeded".to_string()),
+            deprecation_note: None,
+            optional: true,
+            default_value: Some("None".to_string()),
+        }]);
+    }
+
+    let mut collected_fields = Vec::new();
+
+    if let Some(reflectapi_schema::Type::Struct(struct_def)) = schema.get_type(&type_ref.name) {
+        for field in struct_def.fields.iter() {
+            if field.flattened() {
+                // Recursively collect fields from nested flattened structures
+                let nested_fields = collect_flattened_fields(
+                    &field.type_ref,
+                    schema,
+                    implemented_types,
+                    active_generics,
+                    parent_required && field.required,
+                    depth + 1,
+                )?;
+                collected_fields.extend(nested_fields);
+            } else {
+                // Regular field in flattened struct
+                let field_type = type_ref_to_python_type(
+                    &field.type_ref,
+                    schema,
+                    implemented_types,
+                    active_generics,
+                )?;
+
+                let is_option_type = field.type_ref.name == "std::option::Option"
+                    || field.type_ref.name == "reflectapi::Option";
+
+                let (optional, default_value, final_field_type) =
+                    if !field.required || !parent_required {
+                        if is_option_type {
+                            (true, Some("None".to_string()), field_type)
+                        } else {
+                            (
+                                true,
+                                Some("None".to_string()),
+                                format!("{} | None", field_type),
+                            )
+                        }
+                    } else if is_option_type {
+                        (true, Some("None".to_string()), field_type)
+                    } else {
+                        (false, None, field_type)
+                    };
+
+                collected_fields.push(templates::Field {
+                    name: sanitize_field_name(field.name()),
+                    type_annotation: final_field_type,
+                    description: Some(format!(
+                        "(flattened{}) {}",
+                        if depth > 1 {
+                            format!(" depth={}", depth)
+                        } else {
+                            String::new()
+                        },
+                        field.description()
+                    )),
+                    deprecation_note: field.deprecation_note.clone(),
+                    optional,
+                    default_value,
+                });
+            }
+        }
+    }
+
+    Ok(collected_fields)
 }
 
 fn render_struct(
@@ -451,92 +519,18 @@ fn render_struct(
         })
         .collect::<Result<Vec<_>, anyhow::Error>>()?;
 
-    // Collect flattened fields by expanding them from their type definitions
+    // Collect flattened fields recursively using the new helper function
     let mut flattened_fields: Vec<templates::Field> = Vec::new();
     for field in struct_def.fields.iter().filter(|f| f.flattened()) {
-        // Try to get the type definition and expand its fields
-        if let Some(flattened_type) = schema.get_type(&field.type_ref.name) {
-            match flattened_type {
-                reflectapi_schema::Type::Struct(flattened_struct) => {
-                    // Recursively get fields from the flattened struct
-                    for flattened_field in flattened_struct.fields.iter() {
-                        let field_type = type_ref_to_python_type(
-                            &flattened_field.type_ref,
-                            schema,
-                            implemented_types,
-                            &active_generics,
-                        )?;
-
-                        // Check if field type is Option<T> or ReflectapiOption<T> (which handle nullability themselves)
-                        let is_option_type = flattened_field.type_ref.name == "std::option::Option"
-                            || flattened_field.type_ref.name == "reflectapi::Option";
-
-                        // Handle optionality - flattened fields inherit parent field's optionality
-                        let (optional, default_value, final_field_type) =
-                            if !flattened_field.required || !field.required {
-                                if is_option_type {
-                                    (true, Some("None".to_string()), field_type)
-                                } else {
-                                    (
-                                        true,
-                                        Some("None".to_string()),
-                                        format!("{} | None", field_type),
-                                    )
-                                }
-                            } else if is_option_type {
-                                (true, Some("None".to_string()), field_type)
-                            } else {
-                                (false, None, field_type)
-                            };
-
-                        flattened_fields.push(templates::Field {
-                            name: sanitize_field_name(flattened_field.name()),
-                            type_annotation: final_field_type,
-                            description: Some(format!(
-                                "(flattened) {}",
-                                flattened_field.description()
-                            )),
-                            deprecation_note: flattened_field.deprecation_note.clone(),
-                            optional,
-                            default_value,
-                        });
-                    }
-                }
-                _ => {
-                    // For non-struct flattened types, add a comment field
-                    let field_type = type_ref_to_python_type(
-                        &field.type_ref,
-                        schema,
-                        implemented_types,
-                        &active_generics,
-                    )?;
-                    flattened_fields.push(templates::Field {
-                        name: format!(
-                            "# Flattened {} (non-struct type not fully supported)",
-                            field.name()
-                        ),
-                        type_annotation: field_type,
-                        description: Some(format!("Flattened from non-struct: {}", field.name())),
-                        deprecation_note: None,
-                        optional: false,
-                        default_value: None,
-                    });
-                }
-            }
-        } else {
-            // Unknown type - add a comment
-            flattened_fields.push(templates::Field {
-                name: format!("# Flattened {} (unknown type)", field.name()),
-                type_annotation: "Any".to_string(),
-                description: Some(format!(
-                    "Flattened field from unknown type: {}",
-                    field.name()
-                )),
-                deprecation_note: None,
-                optional: true,
-                default_value: Some("None".to_string()),
-            });
-        }
+        let fields = collect_flattened_fields(
+            &field.type_ref,
+            schema,
+            implemented_types,
+            &active_generics,
+            field.required,
+            0,
+        )?;
+        flattened_fields.extend(fields);
     }
 
     // Combine regular fields with flattened field information
@@ -2278,7 +2272,8 @@ fn type_ref_to_python_type(
             return Ok(mapped);
         }
     }
-    // Check if this type has a direct mapping
+
+    // 1. FIRST: Check if this type has a direct mapping to a built-in Python type
     if let Some(python_type) = implemented_types.get(&type_ref.name) {
         if type_ref.arguments.is_empty() {
             return Ok(python_type.clone());
@@ -2327,7 +2322,22 @@ fn type_ref_to_python_type(
         return Ok(result);
     }
 
-    // Check if it's a user-defined type in the schema
+    // 2. SECOND: Check for fallback types BEFORE checking if it's a user-defined type
+    // This is the key fix - prioritize fallback resolution over schema type generation
+    if let Some(fallback_type_ref) = type_ref
+        .fallback_once(schema.input_types())
+        .or_else(|| type_ref.fallback_once(schema.output_types()))
+    {
+        // If a fallback exists, resolve it recursively
+        return type_ref_to_python_type(
+            &fallback_type_ref,
+            schema,
+            implemented_types,
+            active_generics,
+        );
+    }
+
+    // 3. THIRD: Only after checking fallbacks, check if it's a user-defined type in the schema
     if let Some(type_def) = schema.get_type(&type_ref.name) {
         // Check if this is a single-field tuple struct that should be unwrapped
         if let reflectapi_schema::Type::Struct(struct_def) = type_def {
@@ -2366,26 +2376,7 @@ fn type_ref_to_python_type(
         return Ok(base_type);
     }
 
-    // Try schema-based fallback first (like TypeScript codegen does)
-    if let Some(fallback_type_ref) = type_ref.fallback_once(schema.input_types()) {
-        return type_ref_to_python_type(
-            &fallback_type_ref,
-            schema,
-            implemented_types,
-            active_generics,
-        );
-    }
-
-    if let Some(fallback_type_ref) = type_ref.fallback_once(schema.output_types()) {
-        return type_ref_to_python_type(
-            &fallback_type_ref,
-            schema,
-            implemented_types,
-            active_generics,
-        );
-    }
-
-    // Final fallback for undefined external types - try to map to sensible Python types
+    // 4. FINAL: Final fallback for undefined external types - try to map to sensible Python types
     let fallback_type = map_external_type_to_python(&type_ref.name);
     Ok(fallback_type)
 }
@@ -3278,76 +3269,78 @@ class Async{{ group.class_name }}:
 
     def __init__(self, client: AsyncClientBase) -> None:
         self._client = client
-
 {% for function in group.functions %}
+
     async def {{ function.name }}(
-            self,
-{% for param in function.path_params -%}
-            {{ param.name }}: {{ param.type_annotation }},
-{% endfor -%}
-{% for param in function.query_params -%}
-            {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{% endfor -%}
-{% if function.has_body -%}
-            data: Optional[{{ function.input_type }}] = None,
-{% endif -%}
-{% if function.headers_type.is_some() -%}
-            headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{% endif -%}
-        ) -> ApiResponse[{{ function.output_type }}]:
-            """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
+        self,
+{%- for param in function.path_params %}
+        {{ param.name }}: {{ param.type_annotation }},
+{%- endfor %}
+{%- for param in function.query_params %}
+        {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
+{%- endfor %}
+{%- if function.has_body %}
+        data: Optional[{{ function.input_type }}] = None,
+{%- endif %}
+{%- if function.headers_type.is_some() %}
+        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
+{%- endif %}
+    ) -> ApiResponse[{{ function.output_type }}]:
+        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body || !function.path_params.is_empty() || !function.query_params.is_empty() %}
 
-            Args:
-                data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
-{% for param in function.path_params %}                {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
+        Args:{% if function.has_body %}
+            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
+{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
 {% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
-{% for param in function.query_params %}                {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
-{% endfor %}{% endif %}
+{%- for param in function.query_params %}
+            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
+{%- endfor %}{% endif %}{% endif %}
 
-            Returns:
-                ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
+        Returns:
+            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
 
-            .. deprecated::
-               {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
-            """
-            {% if function.deprecation_note.is_some() %}
-            warnings.warn(
-                "{% if function.original_name.is_some() %}{{ function.original_name.as_deref().unwrap() }}{% else %}{{ function.name }}{% endif %} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            {% endif %}
-            path = "{{ function.path }}"
+        .. deprecated::
+           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
+        """
+        {% if function.deprecation_note.is_some() %}
+        warnings.warn(
+            "{% if function.original_name.is_some() %}{{ function.original_name.as_deref().unwrap() }}{% else %}{{ function.name }}{% endif %} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        {% endif -%}
+        path = "{{ function.path }}"
+{% if !function.path_params.is_empty() %}
+        # Format path parameters using safer string formatting
+        path_params = {
 {% for param in function.path_params %}
-            path = path.replace("{" + "{{ param.raw_name }}" + "}", str({{ param.name }}))
+            "{{ param.raw_name }}": str({{ param.name }}),
 {% endfor %}
-
-            params: dict[str, Any] = {}
+        }
+        for param_name, param_value in path_params.items():
+            path = path.replace("{" + param_name + "}", param_value)
+{% endif %}
+        params: dict[str, Any] = {}
 {% for param in function.query_params %}
-            if {{ param.name }} is not None:
-                params["{{ param.name }}"] = {{ param.name }}
+        if {{ param.name }} is not None:
+            params["{{ param.name }}"] = {{ param.name }}
 {% endfor %}
-
-            return await self._client._make_request(
-                "{{ function.method }}",
-                path,
-                params=params if params else None,
-{% if function.has_body %}
-{% if function.is_input_primitive %}
-                json_data=data,
-{% else %}
-                json_model=data,
-{% endif %}
-{% endif %}
-{% if function.headers_type.is_some() %}
-                headers_model=headers,
-{% endif %}
-{% if function.output_type == "Any" %}
-                response_model=None,
-{% else %}
-                response_model={{ function.output_type }},
-{% endif %}
-            )
+        return await self._client._make_request(
+            "{{ function.method }}",
+            path,
+            params=params if params else None,
+{% if function.has_body -%}
+{% if function.is_input_primitive %}            json_data=data,
+{% else %}            json_model=data,
+{% endif -%}
+{% endif -%}
+{% if function.headers_type.is_some() %}            headers_model=headers,
+{% endif -%}
+{% if function.output_type == "Any" %}            response_model=None,
+{% else %}            response_model={{ function.output_type }},
+{% endif -%}
+        )
 
 {% endfor %}
 
@@ -3368,18 +3361,18 @@ class {{ async_class_name }}(AsyncClientBase):
 {% for function in top_level_functions %}
     async def {{ function.name }}(
         self,
-{% for param in function.path_params -%}
+{%- for param in function.path_params %}
         {{ param.name }}: {{ param.type_annotation }},
-{% endfor -%}
-{% for param in function.query_params -%}
-            {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{% endfor -%}
-{% if function.has_body -%}
-            data: Optional[{{ function.input_type }}] = None,
-{% endif -%}
-{% if function.headers_type.is_some() -%}
-            headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{% endif -%}
+{%- endfor %}
+{%- for param in function.query_params %}
+        {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
+{%- endfor %}
+{%- if function.has_body %}
+        data: Optional[{{ function.input_type }}] = None,
+{%- endif %}
+{%- if function.headers_type.is_some() %}
+        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
+{%- endif %}
     ) -> ApiResponse[{{ function.output_type }}]:
         """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
 
@@ -3402,37 +3395,38 @@ class {{ async_class_name }}(AsyncClientBase):
             DeprecationWarning,
             stacklevel=2,
         )
-        {% endif %}
-        path = "{{ function.path }}"
-{% for param in function.path_params %}
-        path = path.replace("{" + "{{ param.name }}" + "}", str({{ param.name }}))
-{% endfor %}
 
+        {% endif -%}
+        path = "{{ function.path }}"
+{% if !function.path_params.is_empty() %}
+        # Format path parameters using safer string formatting
+        path_params = {
+{% for param in function.path_params %}
+            "{{ param.name }}": str({{ param.name }}),
+{% endfor %}
+        }
+        for param_name, param_value in path_params.items():
+            path = path.replace("{" + param_name + "}", param_value)
+{% endif %}
         params: dict[str, Any] = {}
 {% for param in function.query_params %}
         if {{ param.name }} is not None:
             params["{{ param.name }}"] = {{ param.name }}
 {% endfor %}
-
         return await self._make_request(
             "{{ function.method }}",
             path,
             params=params if params else None,
-{% if function.has_body %}
-{% if function.is_input_primitive %}
-            json_data=data,
-{% else %}
-            json_model=data,
-{% endif %}
-{% endif %}
-{% if function.headers_type.is_some() %}
-                headers_model=headers,
-{% endif %}
-{% if function.output_type == "Any" %}
-                response_model=None,
-{% else %}
-                response_model={{ function.output_type }},
-{% endif %}
+{% if function.has_body -%}
+{% if function.is_input_primitive %}            json_data=data,
+{% else %}            json_model=data,
+{% endif -%}
+{% endif -%}
+{% if function.headers_type.is_some() %}            headers_model=headers,
+{% endif -%}
+{% if function.output_type == "Any" %}            response_model=None,
+{% else %}            response_model={{ function.output_type }},
+{% endif -%}
         )
 
 {% endfor %}
@@ -3446,76 +3440,78 @@ class {{ group.class_name }}:
 
     def __init__(self, client: ClientBase) -> None:
         self._client = client
-
 {% for function in group.functions %}
+
     def {{ function.name }}(
-            self,
-{% for param in function.path_params -%}
-            {{ param.name }}: {{ param.type_annotation }},
-{% endfor -%}
-{% for param in function.query_params -%}
-            {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{% endfor -%}
-{% if function.has_body -%}
+        self,
+{%- for param in function.path_params %}
+        {{ param.name }}: {{ param.type_annotation }},
+{%- endfor %}
+{%- for param in function.query_params %}
+        {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
+{%- endfor %}
+{%- if function.has_body %}
         data: Optional[{{ function.input_type }}] = None,
-{% endif -%}
-{% if function.headers_type.is_some() -%}
+{%- endif %}
+{%- if function.headers_type.is_some() %}
         headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{% endif -%}
+{%- endif %}
     ) -> ApiResponse[{{ function.output_type }}]:
-            """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
+        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body || !function.path_params.is_empty() || !function.query_params.is_empty() %}
 
-            Args:
-                data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
-{% for param in function.path_params %}                {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
+        Args:{% if function.has_body %}
+            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
+{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
 {% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
-{% for param in function.query_params %}                {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
-{% endfor %}{% endif %}
+{%- for param in function.query_params %}
+            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
+{%- endfor %}{% endif %}{% endif %}
 
-            Returns:
-                ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
+        Returns:
+            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
 
-            .. deprecated::
-               {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
-            """
-            {% if function.deprecation_note.is_some() %}
-            warnings.warn(
-                "{% if function.original_name.is_some() %}{{ function.original_name.as_deref().unwrap() }}{% else %}{{ function.name }}{% endif %} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            {% endif %}
-            path = "{{ function.path }}"
+        .. deprecated::
+           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
+        """
+        {% if function.deprecation_note.is_some() %}
+        warnings.warn(
+            "{% if function.original_name.is_some() %}{{ function.original_name.as_deref().unwrap() }}{% else %}{{ function.name }}{% endif %} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        {% endif -%}
+        path = "{{ function.path }}"
+{% if !function.path_params.is_empty() %}
+        # Format path parameters using safer string formatting
+        path_params = {
 {% for param in function.path_params %}
-            path = path.replace("{" + "{{ param.raw_name }}" + "}", str({{ param.name }}))
+            "{{ param.raw_name }}": str({{ param.name }}),
 {% endfor %}
-
-            params: dict[str, Any] = {}
+        }
+        for param_name, param_value in path_params.items():
+            path = path.replace("{" + param_name + "}", param_value)
+{% endif %}
+        params: dict[str, Any] = {}
 {% for param in function.query_params %}
-            if {{ param.name }} is not None:
-                params["{{ param.name }}"] = {{ param.name }}
+        if {{ param.name }} is not None:
+            params["{{ param.name }}"] = {{ param.name }}
 {% endfor %}
-
-            return self._client._make_request(
-                "{{ function.method }}",
-                path,
-                params=params if params else None,
-{% if function.has_body %}
-{% if function.is_input_primitive %}
-                json_data=data,
-{% else %}
-                json_model=data,
-{% endif %}
-{% endif %}
-{% if function.headers_type.is_some() %}
-            headers_model=headers,
-{% endif %}
-{% if function.output_type == "Any" %}
-                response_model=None,
-{% else %}
-                response_model={{ function.output_type }},
-{% endif %}
-            )
+        return self._client._make_request(
+            "{{ function.method }}",
+            path,
+            params=params if params else None,
+{% if function.has_body -%}
+{% if function.is_input_primitive %}            json_data=data,
+{% else %}            json_model=data,
+{% endif -%}
+{% endif -%}
+{% if function.headers_type.is_some() %}            headers_model=headers,
+{% endif -%}
+{% if function.output_type == "Any" %}            response_model=None,
+{% else %}            response_model={{ function.output_type }},
+{% endif -%}
+        )
 
 {% endfor %}
 
@@ -3536,18 +3532,18 @@ class {{ class_name }}(ClientBase):
 {% for function in top_level_functions %}
     def {{ function.name }}(
         self,
-{% for param in function.path_params -%}
+{%- for param in function.path_params %}
         {{ param.name }}: {{ param.type_annotation }},
-{% endfor -%}
-{% for param in function.query_params -%}
+{%- endfor %}
+{%- for param in function.query_params %}
         {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{% endfor -%}
-{% if function.has_body -%}
+{%- endfor %}
+{%- if function.has_body %}
         data: Optional[{{ function.input_type }}] = None,
-{% endif -%}
-{% if function.headers_type.is_some() -%}
+{%- endif %}
+{%- if function.headers_type.is_some() %}
         headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{% endif -%}
+{%- endif %}
     ) -> ApiResponse[{{ function.output_type }}]:
         """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
 
@@ -3572,9 +3568,16 @@ class {{ class_name }}(ClientBase):
         )
         {% endif %}
         path = "{{ function.path }}"
+{% if !function.path_params.is_empty() %}
+        # Format path parameters using safer string formatting
+        path_params = {
 {% for param in function.path_params %}
-        path = path.replace("{" + "{{ param.name }}" + "}", str({{ param.name }}))
+            "{{ param.name }}": str({{ param.name }}),
 {% endfor %}
+        }
+        for param_name, param_value in path_params.items():
+            path = path.replace("{" + param_name + "}", param_value)
+{% endif %}
 
         params: dict[str, Any] = {}
 {% for param in function.query_params %}

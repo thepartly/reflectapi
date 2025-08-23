@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/enums.rs
 expression: "super::into_output_python_code::<TestEnumWithDiscriminant>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -58,29 +57,23 @@ class AsyncOutputClient:
 
 
     async def test(
-            self,
-) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant]:
-            """
+        self,
+    ) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant]:
+        """
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant]: Response containing ReflectapiDemoTestsEnumsTestEnumWithDiscriminant data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant]: Response containing ReflectapiDemoTestsEnumsTestEnumWithDiscriminant data
+        """
+        path = "/output_test"
 
-            path = "/output_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                response_model=ReflectapiDemoTestsEnumsTestEnumWithDiscriminant,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            response_model=ReflectapiDemoTestsEnumsTestEnumWithDiscriminant,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -104,29 +97,23 @@ class OutputClient:
 
 
     def test(
-            self,
-) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant]:
-            """
+        self,
+    ) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant]:
+        """
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant]: Response containing ReflectapiDemoTestsEnumsTestEnumWithDiscriminant data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant]: Response containing ReflectapiDemoTestsEnumsTestEnumWithDiscriminant data
+        """
+        path = "/output_test"
 
-            path = "/output_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                response_model=ReflectapiDemoTestsEnumsTestEnumWithDiscriminant,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            response_model=ReflectapiDemoTestsEnumsTestEnumWithDiscriminant,
+)
 
 
 class Client(ClientBase):

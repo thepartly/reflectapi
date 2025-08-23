@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_python_code::<Test>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -41,9 +40,9 @@ class ReflectapiDemoTestsBasicTest(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    us: StdCollectionsBTreeSet[None]
-    xs: StdCollectionsBTreeSet[ReflectapiDemoTestsBasicX]
-    ys: StdCollectionsHashSet[ReflectapiDemoTestsBasicY]
+    us: list[None]
+    xs: list[ReflectapiDemoTestsBasicX]
+    ys: list[ReflectapiDemoTestsBasicY]
 
 
 class ReflectapiDemoTestsBasicX(BaseModel):
@@ -67,36 +66,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTest] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTest] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTest]: Response containing ReflectapiDemoTestsBasicTest data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTest]: Response containing ReflectapiDemoTestsBasicTest data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTest,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicTest,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -120,36 +111,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTest] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTest] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTest]: Response containing ReflectapiDemoTestsBasicTest data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTest]: Response containing ReflectapiDemoTestsBasicTest data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTest,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicTest,
+)
 
 
 class Client(ClientBase):

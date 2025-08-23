@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super::into_python_code::<TestStructWithHashSetField>()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
@@ -40,7 +39,7 @@ class ReflectapiDemoTestsBasicTestStructWithHashSetField(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    _f_hashset: StdCollectionsHashSet[int]
+    _f_hashset: bytes
 
 
 class AsyncInoutClient:
@@ -51,36 +50,28 @@ class AsyncInoutClient:
 
 
     async def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTestStructWithHashSetField] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTestStructWithHashSetField] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]: Response containing ReflectapiDemoTestsBasicTestStructWithHashSetField data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]: Response containing ReflectapiDemoTestsBasicTestStructWithHashSetField data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return await self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTestStructWithHashSetField,
-
-            )
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicTestStructWithHashSetField,
+)
 
 
 class AsyncClient(AsyncClientBase):
@@ -104,36 +95,28 @@ class InoutClient:
 
 
     def test(
-            self,
-data: Optional[ReflectapiDemoTestsBasicTestStructWithHashSetField] = None,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]:
-            """
+        self,
+        data: Optional[ReflectapiDemoTestsBasicTestStructWithHashSetField] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]:
+        """
 
-            Args:
-                data: Request data for the test operation.
+        Args:
+            data: Request data for the test operation.
 
-            Returns:
-                ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]: Response containing ReflectapiDemoTestsBasicTestStructWithHashSetField data
-            """
+        Returns:
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]: Response containing ReflectapiDemoTestsBasicTestStructWithHashSetField data
+        """
+        path = "/inout_test"
 
-            path = "/inout_test"
+        params: dict[str, Any] = {}
 
-
-            params: dict[str, Any] = {}
-
-
-            return self._client._make_request(
-                "POST",
-                path,
-                params=params if params else None,
-
-
-                json_model=data,
-
-
-                response_model=ReflectapiDemoTestsBasicTestStructWithHashSetField,
-
-            )
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=ReflectapiDemoTestsBasicTestStructWithHashSetField,
+)
 
 
 class Client(ClientBase):
