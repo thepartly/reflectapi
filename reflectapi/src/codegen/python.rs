@@ -136,6 +136,9 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
     if imports.has_reflectapi_infallible {
         special_types.push("ReflectapiInfallible");
     }
+    if imports.has_flatten_support {
+        special_types.push("create_flattened_model");
+    }
     
     // Build the final import string
     let mut result = Vec::new();
@@ -181,6 +184,73 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
     
     result.push("".to_string());
     result.join("\n")
+}
+
+/// Identify structs that use flatten and collect metadata
+fn identify_flattened_structs(schema: &Schema) -> HashMap<String, FlattenMetadata> {
+    let mut flattened_structs = HashMap::new();
+    
+    // Check all struct types for flattened fields
+    let mut all_type_names = Vec::new();
+    for type_def in schema.input_types().types() {
+        all_type_names.push(type_def.name().to_string());
+    }
+    for type_def in schema.output_types().types() {
+        let name = type_def.name().to_string();
+        if !all_type_names.contains(&name) {
+            all_type_names.push(name);
+        }
+    }
+    
+    for type_name in &all_type_names {
+        if let Some(reflectapi_schema::Type::Struct(struct_def)) = schema.get_type(type_name) {
+            let mut regular_fields = Vec::new();
+            let mut flattened_fields = Vec::new();
+            let mut optional_flattened = Vec::new();
+            
+            for field in struct_def.fields.iter() {
+                if field.flattened {
+                    let field_info = FlattenedFieldInfo {
+                        name: field.name.clone(),
+                        type_ref: field.type_ref.clone(),
+                        optional: field.optional,
+                    };
+                    if field.optional {
+                        optional_flattened.push(field.name.clone());
+                    }
+                    flattened_fields.push(field_info);
+                } else {
+                    regular_fields.push(field.clone());
+                }
+            }
+            
+            if !flattened_fields.is_empty() {
+                flattened_structs.insert(
+                    type_name.clone(),
+                    FlattenMetadata {
+                        regular_fields,
+                        flattened_fields,
+                        optional_flattened,
+                    }
+                );
+            }
+        }
+    }
+    
+    flattened_structs
+}
+
+/// Metadata about a struct with flattened fields
+struct FlattenMetadata {
+    regular_fields: Vec<reflectapi_schema::Field>,
+    flattened_fields: Vec<FlattenedFieldInfo>,
+    optional_flattened: Vec<String>,
+}
+
+struct FlattenedFieldInfo {
+    name: String,
+    type_ref: TypeReference,
+    optional: bool,
 }
 
 fn validate_type_references(schema: &Schema) -> anyhow::Result<()> {
@@ -343,6 +413,10 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Consolidate types to avoid duplicates
     schema.consolidate_types();
     
+    // Identify structs that use flatten
+    let flattened_structs = identify_flattened_structs(&schema);
+    let has_flatten = !flattened_structs.is_empty();
+    
     // Validate all type references exist
     validate_type_references(&schema)?;
 
@@ -413,6 +487,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Check if we need ReflectapiInfallible import
     let has_reflectapi_infallible =
         schema_uses_type(&schema, &all_type_names, "reflectapi::Infallible");
+    
+    // Check if we need flatten support
+    let has_flatten_support = has_flatten;
 
     // Check if we need warnings import (for deprecated functions)
     let has_warnings = schema.functions().any(|f| f.deprecation_note.is_some());
@@ -452,6 +529,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         has_reflectapi_option,
         has_reflectapi_empty,
         has_reflectapi_infallible,
+        has_flatten_support,
         has_warnings,
         has_datetime,
         has_uuid,
@@ -3606,6 +3684,7 @@ from pydantic import BaseModel, ConfigDict{% if has_discriminated_unions %}, Fie
         pub has_reflectapi_option: bool,
         pub has_reflectapi_empty: bool,
         pub has_reflectapi_infallible: bool,
+        pub has_flatten_support: bool,
         pub has_warnings: bool,
         pub has_datetime: bool,
         pub has_uuid: bool,

@@ -20,6 +20,13 @@ from .auth import (
 )
 from .batch import BatchClient
 from .client import AsyncClientBase, ClientBase
+from .flatten import (
+    FlattenedModel,
+    create_flattened_model,
+    FlattenedFieldDescriptor,
+    flatten_dict,
+    unflatten_dict,
+)
 from .exceptions import (
     ApiError,
     ApplicationError,
