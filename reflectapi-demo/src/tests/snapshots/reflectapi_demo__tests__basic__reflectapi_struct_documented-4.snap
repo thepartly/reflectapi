@@ -13,8 +13,7 @@ from __future__ import annotations
 
 
 # Standard library imports
-from typing import Any, Optional, TypeVar, Generic, Union, Annotated
-
+from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
 from pydantic import BaseModel, ConfigDict
@@ -24,14 +23,6 @@ from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
-
-
-Entity = TypeVar('Entity')
-Data = TypeVar('Data')
-IdentityType = TypeVar('IdentityType')
-ConflictAction = TypeVar('ConflictAction')
-Input = TypeVar('Input')
-ClientType = TypeVar('ClientType')
 
 
 class ReflectapiDemoTestsBasicTestStructDocumented(BaseModel):
@@ -45,7 +36,7 @@ more"""
 
 
 class AsyncInputClient:
-    """Async client for input operations."""
+    """Async client for input_ operations."""
 
     def __init__(self, client: AsyncClientBase) -> None:
         self._client = client
@@ -86,11 +77,11 @@ class AsyncClient(AsyncClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.input = AsyncInputClient(self)
+        self.input_ = AsyncInputClient(self)
 
 
 class InputClient:
-    """Synchronous client for input operations."""
+    """Synchronous client for input_ operations."""
 
     def __init__(self, client: ClientBase) -> None:
         self._client = client
@@ -131,7 +122,7 @@ class Client(ClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.input = InputClient(self)
+        self.input_ = InputClient(self)
 
 
 # External type definitions

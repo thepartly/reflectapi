@@ -14,8 +14,7 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Any, Optional, TypeVar, Generic, Union, Annotated, Literal
-
+from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
 from pydantic import BaseModel, ConfigDict, Field
@@ -25,14 +24,6 @@ from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
-
-
-Entity = TypeVar('Entity')
-Data = TypeVar('Data')
-IdentityType = TypeVar('IdentityType')
-ConflictAction = TypeVar('ConflictAction')
-Input = TypeVar('Input')
-ClientType = TypeVar('ClientType')
 
 
 class ReflectapiDemoTestsSerdeTestV1(BaseModel):
@@ -47,17 +38,6 @@ class ReflectapiDemoTestsSerdeTestV1(BaseModel):
 ReflectapiDemoTestsSerdeTest = Annotated[Union[ReflectapiDemoTestsSerdeTestV1], Field(discriminator='version')]
 
 
-class ReflectapiDemoTestsSerdeTestFactory:
-    '''Factory class for creating ReflectapiDemoTestsSerdeTest variants with ergonomic syntax.
-
-    ReflectapiDemoTestsSerdeTest variants
-    '''
-
-    @staticmethod
-    def v1(field_0) -> ReflectapiDemoTestsSerdeTestV1:
-        '''Creates the 'v1' variant of the ReflectapiDemoTestsSerdeTest enum.'''
-        return ReflectapiDemoTestsSerdeTestV1(field_0=field_0)
-
 class ReflectapiDemoTestsSerdeV1A(BaseModel):
     """Generated data model."""
 
@@ -68,18 +48,6 @@ class ReflectapiDemoTestsSerdeV1A(BaseModel):
 
 
 ReflectapiDemoTestsSerdeV1 = Annotated[Union[ReflectapiDemoTestsSerdeV1A], Field(discriminator='type')]
-
-
-class ReflectapiDemoTestsSerdeV1Factory:
-    '''Factory class for creating ReflectapiDemoTestsSerdeV1 variants with ergonomic syntax.
-
-    ReflectapiDemoTestsSerdeV1 variants
-    '''
-
-    @staticmethod
-    def a(a) -> ReflectapiDemoTestsSerdeV1A:
-        '''Creates the 'A' variant of the ReflectapiDemoTestsSerdeV1 enum.'''
-        return ReflectapiDemoTestsSerdeV1A(a=a)
 
 
 class AsyncInoutClient:
@@ -187,6 +155,28 @@ except AttributeError:
     pass
 
 # Factory classes (generated after model rebuild to avoid forward references)
+class ReflectapiDemoTestsSerdeTestFactory:
+    '''Factory class for creating ReflectapiDemoTestsSerdeTest variants with ergonomic syntax.
+
+    ReflectapiDemoTestsSerdeTest variants
+    '''
+
+    @staticmethod
+    def v1(field_0) -> ReflectapiDemoTestsSerdeTestV1:
+        '''Creates the 'v1' variant of the ReflectapiDemoTestsSerdeTest enum.'''
+        return ReflectapiDemoTestsSerdeTestV1(field_0=field_0)
+
+class ReflectapiDemoTestsSerdeV1Factory:
+    '''Factory class for creating ReflectapiDemoTestsSerdeV1 variants with ergonomic syntax.
+
+    ReflectapiDemoTestsSerdeV1 variants
+    '''
+
+    @staticmethod
+    def a(a) -> ReflectapiDemoTestsSerdeV1A:
+        '''Creates the 'A' variant of the ReflectapiDemoTestsSerdeV1 enum.'''
+        return ReflectapiDemoTestsSerdeV1A(a=a)
+
 
 # Testing utilities
 

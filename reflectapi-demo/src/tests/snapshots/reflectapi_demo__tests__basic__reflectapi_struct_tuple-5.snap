@@ -13,8 +13,7 @@ from __future__ import annotations
 
 
 # Standard library imports
-from typing import Any, Optional, TypeVar, Generic, Union, Annotated
-
+from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
 from pydantic import BaseModel, ConfigDict
@@ -26,21 +25,13 @@ from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
 
 
-Entity = TypeVar('Entity')
-Data = TypeVar('Data')
-IdentityType = TypeVar('IdentityType')
-ConflictAction = TypeVar('ConflictAction')
-Input = TypeVar('Input')
-ClientType = TypeVar('ClientType')
-
-
 class ReflectapiDemoTestsBasicTestStructTuple(BaseModel):
     """Generated data model."""
 
     model_config = ConfigDict(extra="ignore")
 
-    field_0: int
-    field_1: str
+    _0: int
+    _1: str
 
 
 class AsyncInoutClient:

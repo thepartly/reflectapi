@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use anyhow::Context;
 use askama::Template;
@@ -12,41 +12,12 @@ struct FactoryInfo {
     enum_def: reflectapi_schema::Enum,
     enum_name: String,
     union_members: Vec<String>,
+    is_internally_tagged: bool,
 }
 
 fn to_valid_python_identifier(name: &str) -> String {
-    let cleaned = name
-        .replace(['.', '-'], "_")
-        .chars()
-        .map(|c| {
-            if c.is_alphanumeric() || c == '_' {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect::<String>();
-
-    // Handle Python keywords by appending underscore
-    const PYTHON_KEYWORDS: &[&str] = &[
-        "and", "as", "assert", "break", "class", "continue", "def", "del", "elif", "else",
-        "except", "exec", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda",
-        "not", "or", "pass", "print", "raise", "return", "try", "while", "with", "yield", "async",
-        "await", "nonlocal",
-    ];
-
-    let mut result = if PYTHON_KEYWORDS.contains(&cleaned.as_str()) {
-        format!("{}_", cleaned)
-    } else {
-        cleaned
-    };
-
-    // If the identifier starts with a digit, prefix it with "field_"
-    if result.chars().next().map_or(false, |c| c.is_ascii_digit()) {
-        result = format!("field_{}", result);
-    }
-
-    result
+    // Use the more comprehensive safe_python_identifier function
+    safe_python_identifier(name)
 }
 
 /// Configuration for Python client generation
@@ -76,12 +47,304 @@ impl Default for Config {
     }
 }
 
+/// Validate that all type references in the schema exist
+/// Generate optimized imports with proper sorting and deduplication
+fn generate_optimized_imports(imports: &templates::Imports) -> String {
+    use std::collections::BTreeSet;
+    
+    let mut stdlib_imports = BTreeSet::new();
+    let mut typing_imports = BTreeSet::new();
+    let mut third_party_imports = BTreeSet::new();
+    let mut runtime_imports = BTreeSet::new();
+    
+    // Standard library - datetime
+    if imports.has_datetime || imports.has_date || imports.has_timedelta {
+        let mut datetime_parts = vec![];
+        if imports.has_datetime {
+            datetime_parts.push("datetime");
+        }
+        if imports.has_date {
+            datetime_parts.push("date");
+        }
+        if imports.has_timedelta {
+            datetime_parts.push("timedelta");
+        }
+        stdlib_imports.insert(format!("from datetime import {}", datetime_parts.join(", ")));
+    }
+    
+    // Standard library - enum
+    if imports.has_enums {
+        stdlib_imports.insert("from enum import Enum".to_string());
+    }
+    
+    // Standard library - uuid
+    if imports.has_uuid {
+        stdlib_imports.insert("from uuid import UUID".to_string());
+    }
+    
+    // Standard library - warnings
+    if imports.has_warnings {
+        stdlib_imports.insert("import warnings".to_string());
+    }
+    
+    // Typing imports - always include base ones
+    typing_imports.insert("Any");
+    typing_imports.insert("Optional");
+    if imports.has_generics || !imports.global_type_vars.is_empty() {
+        typing_imports.insert("TypeVar");
+        typing_imports.insert("Generic");
+    }
+    typing_imports.insert("Union");
+    
+    if imports.has_annotated {
+        typing_imports.insert("Annotated");
+    }
+    if imports.has_literal {
+        typing_imports.insert("Literal");
+    }
+    
+    // Pydantic imports
+    third_party_imports.insert("BaseModel");
+    third_party_imports.insert("ConfigDict");
+    if imports.has_discriminated_unions {
+        third_party_imports.insert("Field");
+    }
+    if imports.has_externally_tagged_enums {
+        third_party_imports.insert("RootModel");
+        third_party_imports.insert("model_validator");
+        third_party_imports.insert("model_serializer");
+        third_party_imports.insert("PrivateAttr");
+    }
+    
+    // Runtime imports - client bases
+    if imports.has_async && imports.has_sync {
+        runtime_imports.insert("AsyncClientBase, ClientBase, ApiResponse");
+    } else if imports.has_async {
+        runtime_imports.insert("AsyncClientBase, ApiResponse");
+    } else if imports.has_sync {
+        runtime_imports.insert("ClientBase, ApiResponse");
+    }
+    
+    // Runtime imports - special types
+    let mut special_types = vec![];
+    if imports.has_reflectapi_option {
+        special_types.push("ReflectapiOption");
+    }
+    if imports.has_reflectapi_empty {
+        special_types.push("ReflectapiEmpty");
+    }
+    if imports.has_reflectapi_infallible {
+        special_types.push("ReflectapiInfallible");
+    }
+    
+    // Build the final import string
+    let mut result = Vec::new();
+    
+    // Add header
+    result.push("# Standard library imports".to_string());
+    for import in stdlib_imports {
+        result.push(import);
+    }
+    
+    // Add typing imports
+    if !typing_imports.is_empty() {
+        let typing_list: Vec<&str> = typing_imports.iter().map(|s| s.as_ref()).collect();
+        result.push(format!("from typing import {}", typing_list.join(", ")));
+    }
+    
+    result.push("".to_string());
+    result.push("# Third-party imports".to_string());
+    
+    // Add pydantic imports
+    if !third_party_imports.is_empty() {
+        let pydantic_list: Vec<&str> = third_party_imports.iter().map(|s| s.as_ref()).collect();
+        result.push(format!("from pydantic import {}", pydantic_list.join(", ")));
+    }
+    
+    result.push("".to_string());
+    result.push("# Runtime imports".to_string());
+    
+    // Add runtime imports
+    for import in runtime_imports {
+        result.push(format!("from reflectapi_runtime import {}", import));
+    }
+    
+    // Add special types as separate imports for clarity
+    for special_type in special_types {
+        result.push(format!("from reflectapi_runtime import {}", special_type));
+    }
+    
+    // Add testing imports
+    if imports.has_testing {
+        result.push("from reflectapi_runtime.testing import MockClient, create_api_response".to_string());
+    }
+    
+    result.push("".to_string());
+    result.join("\n")
+}
+
+fn validate_type_references(schema: &Schema) -> anyhow::Result<()> {
+    // Collect all defined types
+    let mut defined_types = HashSet::new();
+    
+    // Add input types
+    for type_def in schema.input_types().types() {
+        defined_types.insert(type_def.name().to_string());
+    }
+    
+    // Add output types
+    for type_def in schema.output_types().types() {
+        defined_types.insert(type_def.name().to_string());
+    }
+    
+    // Also add primitive types that are always valid
+    let primitives = vec![
+        "bool", "i8", "i16", "i32", "i64", "i128", "isize",
+        "u8", "u16", "u32", "u64", "u128", "usize", 
+        "f32", "f64", "char", "str", "String",
+        "std::vec::Vec", "std::collections::HashMap", "std::collections::HashSet",
+        "std::collections::BTreeMap", "std::collections::BTreeSet",
+        "Option", "Result", "std::sync::Arc", "std::rc::Rc", "Box",
+        "chrono::DateTime", "chrono::NaiveDateTime", "chrono::NaiveDate",
+        "chrono::Utc", "chrono::Local", "chrono::FixedOffset",
+        "uuid::Uuid", "url::Url", "std::time::Duration"
+    ];
+    for primitive in primitives {
+        defined_types.insert(primitive.to_string());
+    }
+    
+    // Check all type references
+    let mut errors = Vec::new();
+    
+    // Check input types
+    for type_def in schema.input_types().types() {
+        let type_name = type_def.name();
+        match type_def {
+            reflectapi_schema::Type::Struct(struct_def) => {
+                // Check field types
+                for field in struct_def.fields.iter() {
+                    validate_type_ref(&field.type_ref, &defined_types, &mut errors, 
+                        &format!("struct {}, field {}", type_name, field.name()));
+                }
+            }
+            reflectapi_schema::Type::Enum(enum_def) => {
+                // Check variant field types
+                for variant in &enum_def.variants {
+                    use reflectapi_schema::Fields;
+                    match &variant.fields {
+                        Fields::Named(fields) => {
+                            for field in fields {
+                                validate_type_ref(&field.type_ref, &defined_types, &mut errors,
+                                    &format!("enum {}, variant {}, field {}", 
+                                        type_name, variant.name(), field.name()));
+                            }
+                        }
+                        Fields::Unnamed(fields) => {
+                            for (i, field) in fields.iter().enumerate() {
+                                validate_type_ref(&field.type_ref, &defined_types, &mut errors,
+                                    &format!("enum {}, variant {}, field {}", 
+                                        type_name, variant.name(), i));
+                            }
+                        }
+                        Fields::None => {}
+                    }
+                }
+            }
+            _ => {} // Primitive types don't have references
+        }
+    }
+    
+    // Check output types (if different from input types)
+    for type_def in schema.output_types().types() {
+        let type_name = type_def.name();
+        // Skip if already checked as input type
+        if schema.input_types().has_type(type_name) {
+            continue;
+        }
+        match type_def {
+            reflectapi_schema::Type::Struct(struct_def) => {
+                // Check field types
+                for field in struct_def.fields.iter() {
+                    validate_type_ref(&field.type_ref, &defined_types, &mut errors, 
+                        &format!("struct {}, field {}", type_name, field.name()));
+                }
+            }
+            reflectapi_schema::Type::Enum(enum_def) => {
+                // Check variant field types
+                for variant in &enum_def.variants {
+                    use reflectapi_schema::Fields;
+                    match &variant.fields {
+                        Fields::Named(fields) => {
+                            for field in fields {
+                                validate_type_ref(&field.type_ref, &defined_types, &mut errors,
+                                    &format!("enum {}, variant {}, field {}", 
+                                        type_name, variant.name(), field.name()));
+                            }
+                        }
+                        Fields::Unnamed(fields) => {
+                            for (i, field) in fields.iter().enumerate() {
+                                validate_type_ref(&field.type_ref, &defined_types, &mut errors,
+                                    &format!("enum {}, variant {}, field {}", 
+                                        type_name, variant.name(), i));
+                            }
+                        }
+                        Fields::None => {}
+                    }
+                }
+            }
+            _ => {} // Primitive types don't have references
+        }
+    }
+    
+    if !errors.is_empty() {
+        return Err(anyhow::anyhow!(
+            "Type validation errors:\n{}",
+            errors.join("\n")
+        ));
+    }
+    
+    Ok(())
+}
+
+fn validate_type_ref(
+    type_ref: &TypeReference,
+    defined_types: &HashSet<String>,
+    errors: &mut Vec<String>,
+    context: &str,
+) {
+    // Check if the base type exists
+    if !defined_types.contains(&type_ref.name) {
+        // Check if it might be a generic parameter (single uppercase letter or common generic names)
+        let is_generic = type_ref.name.len() <= 3 && 
+                        type_ref.name.chars().all(|c| c.is_uppercase() || c.is_ascii_digit());
+        
+        // Also check if it looks like a local type (no :: in the name)
+        // These might be defined elsewhere in the same module/schema
+        let is_local_type = !type_ref.name.contains("::");
+        
+        if !is_generic && !is_local_type {
+            errors.push(format!(
+                "Unknown type '{}' referenced in {}",
+                type_ref.name, context
+            ));
+        }
+    }
+    
+    // Recursively check type arguments
+    for arg in &type_ref.arguments {
+        validate_type_ref(arg, defined_types, errors, context);
+    }
+}
+
 /// Generate Python client code from a schema
 pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let implemented_types = build_implemented_types();
 
     // Consolidate types to avoid duplicates
     schema.consolidate_types();
+    
+    // Validate all type references exist
+    validate_type_references(&schema)?;
 
     let mut generated_code = Vec::new();
 
@@ -159,6 +422,26 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let has_uuid = check_uuid_usage(&schema, &all_type_names);
     let has_timedelta = check_timedelta_usage(&schema, &all_type_names);
     let has_date = check_date_usage(&schema, &all_type_names);
+    
+    // Collect all generic parameters used in the schema
+    let mut global_type_vars = collect_all_generic_params(&schema, &all_type_names);
+    
+    // Add common generic parameters that are always needed
+    // These are used in common patterns like ForwardPaginatedList[Data]
+    let common_type_vars = vec![
+        "Entity".to_string(),
+        "Data".to_string(),
+        "IdentityType".to_string(),
+        "ConflictAction".to_string(),
+        "Input".to_string(),
+        "ClientType".to_string(),
+    ];
+    
+    for type_var in common_type_vars {
+        if !global_type_vars.contains(&type_var) {
+            global_type_vars.push(type_var);
+        }
+    }
 
     // Generate imports
     let imports = templates::Imports {
@@ -179,8 +462,20 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         has_literal,
         has_discriminated_unions,
         has_externally_tagged_enums,
+        global_type_vars: global_type_vars.clone(),
     };
-    generated_code.push(imports.render().context("Failed to render imports")?);
+    // Use optimized import generation instead of template
+    generated_code.push(generate_optimized_imports(&imports));
+
+    // Generate TypeVar declarations
+    if !global_type_vars.is_empty() {
+        generated_code.push("".to_string());
+        generated_code.push("# Type variables for generic types".to_string());
+        for type_var in &global_type_vars {
+            generated_code.push(format!("{} = TypeVar('{}')", type_var, type_var));
+        }
+        generated_code.push("".to_string());
+    }
 
     // Types that are provided by the runtime library and should not be generated
     let runtime_provided_types = [
@@ -316,11 +611,19 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
     // Generate all factory classes now that types are defined and rebuilt
     for factory_info in &factory_data {
-        let factory_code = generate_factory_class(
-            &factory_info.enum_def,
-            &factory_info.enum_name,
-            &factory_info.union_members,
-        )?;
+        let factory_code = if factory_info.is_internally_tagged {
+            generate_internally_tagged_factory_class(
+                &factory_info.enum_def,
+                &factory_info.enum_name,
+                &factory_info.union_members,
+            )?
+        } else {
+            generate_factory_class(
+                &factory_info.enum_def,
+                &factory_info.enum_name,
+                &factory_info.union_members,
+            )?
+        };
         external_types_and_rebuilds.push(factory_code);
         external_types_and_rebuilds.push("".to_string());
     }
@@ -468,7 +771,7 @@ fn render_struct(
     // Collect active generic parameter names for this struct, mapping to descriptive names
     let active_generics: Vec<String> = struct_def
         .parameters()
-        .map(|p| map_generic_name(&p.name))
+        .map(|p| p.name.clone())
         .collect();
 
     // Separate regular fields from flattened fields
@@ -563,10 +866,19 @@ fn render_enum_without_factory(
     // Check if this is a tagged enum (internally tagged)
     match &enum_def.representation {
         Representation::Internal { tag } => {
-            // Internally tagged enums don't use factories (they use discriminated unions)
-            let rendered =
-                render_internally_tagged_enum_improved(enum_def, tag, schema, implemented_types)?;
-            Ok((rendered, None))
+            // Internally tagged enums need factories but they're generated after model rebuild
+            let (rendered, union_variant_names) =
+                render_internally_tagged_enum_without_factory(enum_def, tag, schema, implemented_types)?;
+            
+            // Return factory info so it can be generated later
+            let factory_info = FactoryInfo {
+                enum_def: enum_def.clone(),
+                enum_name: improve_class_name(&enum_def.name),
+                union_members: union_variant_names,
+                is_internally_tagged: true,
+            };
+            
+            Ok((rendered, Some(factory_info)))
         }
         Representation::None => {
             // Untagged enums don't use factories
@@ -602,6 +914,7 @@ fn render_enum_without_factory(
                         enum_def: enum_def.clone(),
                         enum_name: improve_class_name(&enum_def.name),
                         union_members,
+                        is_internally_tagged: false,
                     };
                     Ok((rendered, Some(factory_info)))
                 } else {
@@ -693,7 +1006,7 @@ fn render_externally_tagged_enum(
     // Collect active generic parameter names for this enum
     let generic_params: Vec<String> = enum_def
         .parameters()
-        .map(|p| map_generic_name(&p.name))
+        .map(|p| p.name.clone())
         .collect();
 
     // Generate variant models and build validation/serialization logic
@@ -888,6 +1201,7 @@ fn render_externally_tagged_enum(
             },
             variant_models,
             union_variants: union_variants.join(", "),
+            is_single_variant: union_variants.len() == 1,
             instance_validator_cases: instance_validator_cases.join("\n"),
             validator_cases: validator_cases.join("\n"),
             dict_validator_cases: dict_validator_cases.join("\n"),
@@ -910,6 +1224,7 @@ fn render_externally_tagged_enum(
             },
             variant_models,
             union_variants: union_variants.join(", "),
+            is_single_variant: union_variants.len() == 1,
             instance_validator_cases: instance_validator_cases.join("\n"),
             validator_cases: validator_cases.join("\n"),
             dict_validator_cases: dict_validator_cases.join("\n"),
@@ -961,7 +1276,7 @@ fn generate_factory_class(
         enum_def
             .parameters
             .iter()
-            .map(|p| map_generic_name(&p.name))
+            .map(|p| p.name.clone())
             .collect()
     } else {
         Vec::new()
@@ -978,13 +1293,17 @@ fn generate_factory_class(
 
         match &variant.fields {
             Fields::None => {
-                // Unit variant - create as class attribute directly since all types are now defined
-                class_attributes.push(format!(
-                    "    {} = {}(\"{}\")",
-                    variant.name().to_uppercase(),
-                    enum_name,
-                    variant.name()
-                ));
+                // For generic enums, skip unit variants as they cannot be instantiated
+                // (Generic externally tagged enums use Approach B which doesn't support unit variant instantiation)
+                if !is_generic {
+                    // Unit variant - create as class attribute directly since all types are now defined
+                    class_attributes.push(format!(
+                        "    {} = {}(\"{}\")",
+                        variant.name().to_uppercase(),
+                        enum_name,
+                        variant.name()
+                    ));
+                }
             }
             Fields::Unnamed(_) | Fields::Named(_) => {
                 // Complex variant - create static method
@@ -1044,9 +1363,10 @@ fn generate_factory_class(
     Ok(factory_code)
 }
 
-fn generate_externally_tagged_factory_class(
+fn generate_internally_tagged_factory_class(
     enum_def: &reflectapi_schema::Enum,
     enum_name: &str,
+    union_variant_names: &[String],
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
@@ -1054,18 +1374,90 @@ fn generate_externally_tagged_factory_class(
     let mut class_attributes = Vec::new();
     let mut static_methods = Vec::new();
 
+    for (i, variant) in enum_def.variants.iter().enumerate() {
+        let variant_name = variant.name();
+        let variant_class_name = &union_variant_names[i];
+
+        match &variant.fields {
+            Fields::None => {
+                // Unit variant - instantiate the variant class directly
+                // For internally tagged enums, unit variants are BaseModel classes
+                class_attributes.push(format!(
+                    "    {} = {}()",
+                    variant_name.to_uppercase(),
+                    variant_class_name
+                ));
+            }
+            Fields::Unnamed(_) | Fields::Named(_) => {
+                // Complex variant - create static method
+                let method_name = to_snake_case(variant_name);
+                let method_params = generate_factory_method_params(variant)?;
+                let method_args = generate_factory_method_args(variant)?;
+
+                static_methods.push(format!(
+                    r#"    @staticmethod
+    def {}({}) -> {}:
+        '''Creates the '{}' variant of the {} enum.'''
+        return {}({})"#,
+                    method_name,
+                    method_params,
+                    variant_class_name,
+                    variant_name,
+                    enum_name,
+                    variant_class_name,
+                    method_args
+                ));
+            }
+        }
+    }
+
+    let enum_description = if enum_def.description().is_empty() {
+        format!("{} variants", enum_name)
+    } else {
+        sanitize_description(enum_def.description())
+    };
+
+    let mut factory_code = format!(
+        r#"class {}:
+    '''Factory class for creating {} variants with ergonomic syntax.
+
+    {}
+    '''"#,
+        factory_name, enum_name, enum_description
+    );
+
+    if !class_attributes.is_empty() {
+        factory_code.push_str("\n\n");
+        factory_code.push_str(&class_attributes.join("\n"));
+    }
+
+    if !static_methods.is_empty() {
+        factory_code.push_str("\n\n");
+        factory_code.push_str(&static_methods.join("\n\n"));
+    }
+
+    Ok(factory_code)
+}
+
+fn generate_externally_tagged_factory_class(
+    enum_def: &reflectapi_schema::Enum,
+    enum_name: &str,
+) -> anyhow::Result<String> {
+    use reflectapi_schema::Fields;
+
+    let factory_name = format!("{}Factory", enum_name);
+    let class_attributes: Vec<String> = Vec::new();
+    let mut static_methods = Vec::new();
+
     for variant in &enum_def.variants {
         let variant_name = variant.name();
 
         match &variant.fields {
             Fields::None => {
-                // Unit variant - create as class attribute directly since all types are now defined
-                class_attributes.push(format!(
-                    "    {} = {}(\"{}\")",
-                    variant_name.to_uppercase(),
-                    enum_name,
-                    variant_name
-                ));
+                // Skip unit variants for externally tagged enums
+                // They're already handled by the RootModel validator and instantiating
+                // them here can cause forward reference issues
+                // Users can create them with: EnumName("variant_name")
             }
             Fields::Unnamed(_) | Fields::Named(_) => {
                 // Complex variant - create static method that returns wrapped RootModel
@@ -1215,12 +1607,32 @@ fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<S
         .context("Failed to render primitive enum")
 }
 
+fn render_internally_tagged_enum_without_factory(
+    enum_def: &reflectapi_schema::Enum,
+    tag: &str,
+    schema: &Schema,
+    implemented_types: &HashMap<String, String>,
+) -> anyhow::Result<(String, Vec<String>)> {
+    let (rendered, union_variant_names) = render_internally_tagged_enum_core(enum_def, tag, schema, implemented_types)?;
+    Ok((rendered, union_variant_names))
+}
+
 fn render_internally_tagged_enum_improved(
     enum_def: &reflectapi_schema::Enum,
     tag: &str,
     schema: &Schema,
     implemented_types: &HashMap<String, String>,
 ) -> anyhow::Result<String> {
+    let (rendered, _) = render_internally_tagged_enum_core(enum_def, tag, schema, implemented_types)?;
+    Ok(rendered)
+}
+
+fn render_internally_tagged_enum_core(
+    enum_def: &reflectapi_schema::Enum,
+    tag: &str,
+    schema: &Schema,
+    implemented_types: &HashMap<String, String>,
+) -> anyhow::Result<(String, Vec<String>)> {
     use reflectapi_schema::{Fields, Type};
 
     let enum_name = improve_class_name(&enum_def.name);
@@ -1232,7 +1644,7 @@ fn render_internally_tagged_enum_improved(
     let generic_params: Vec<String> = enum_def
         .parameters
         .iter()
-        .map(|p| map_generic_name(&p.name))
+        .map(|p| p.name.clone())
         .collect();
 
     // Generate TypeVar definitions if generic
@@ -1487,12 +1899,10 @@ fn render_internally_tagged_enum_improved(
     // Add union definition
     result.push_str(&union_definition);
 
-    // Add factory class for ergonomic instantiation
-    let factory_class_code = generate_factory_class(enum_def, &enum_name, &union_variant_names)?;
-    result.push_str("\n\n");
-    result.push_str(&factory_class_code);
-
-    Ok(result)
+    // Don't generate factory inline - it will be generated after model rebuild
+    // to avoid forward reference issues
+    
+    Ok((result, union_variant_names))
 }
 
 fn render_untagged_enum(
@@ -1509,7 +1919,7 @@ fn render_untagged_enum(
     // Collect active generic parameter names for this enum
     let generic_params: Vec<String> = enum_def
         .parameters()
-        .map(|p| map_generic_name(&p.name))
+        .map(|p| p.name.clone())
         .collect();
 
     // Process each variant to create separate classes (without discriminator fields)
@@ -1847,19 +2257,60 @@ fn is_primitive_type(type_name: &str) -> bool {
     )
 }
 
-// Map generic parameter names to descriptive Python type variable names
-fn map_generic_name(name: &str) -> String {
-    match name {
-        "T" => "Entity".to_string(),
-        "D" => "Data".to_string(),
-        "I" => "IdentityType".to_string(),
-        "C" => "ConflictAction".to_string(),
-        // Keep Input and ClientType as they are already descriptive
-        "Input" => "Input".to_string(),
-        "ClientType" => "ClientType".to_string(),
-        // For other generic names, keep as-is but capitalize to follow convention
-        other => other.to_string(),
+// Ensure a name is a valid Python identifier and doesn't conflict with reserved words
+fn safe_python_identifier(name: &str) -> String {
+    // Python reserved keywords that cannot be used as identifiers
+    const PYTHON_KEYWORDS: &[&str] = &[
+        "False", "None", "True", "and", "as", "assert", "async", "await",
+        "break", "class", "continue", "def", "del", "elif", "else", "except",
+        "finally", "for", "from", "global", "if", "import", "in", "is",
+        "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try",
+        "while", "with", "yield"
+    ];
+    
+    // Python built-in functions that should be avoided
+    const PYTHON_BUILTINS: &[&str] = &[
+        "abs", "all", "any", "ascii", "bin", "bool", "bytes", "callable",
+        "chr", "classmethod", "compile", "complex", "delattr", "dict", "dir",
+        "divmod", "enumerate", "eval", "exec", "filter", "float", "format",
+        "frozenset", "getattr", "globals", "hasattr", "hash", "help", "hex",
+        "id", "input", "int", "isinstance", "issubclass", "iter", "len",
+        "list", "locals", "map", "max", "memoryview", "min", "next", "object",
+        "oct", "open", "ord", "pow", "print", "property", "range", "repr",
+        "reversed", "round", "set", "setattr", "slice", "sorted", "staticmethod",
+        "str", "sum", "super", "tuple", "type", "vars", "zip"
+    ];
+    
+    // Common Pydantic/typing names to avoid
+    const PYDANTIC_NAMES: &[&str] = &[
+        "BaseModel", "Field", "validator", "root_validator", "Config",
+        "model_config", "model_fields", "model_validator", "model_serializer"
+    ];
+    
+    let mut result = name.to_string();
+    
+    // Replace invalid characters with underscores
+    result = result.chars().map(|c| {
+        if c.is_ascii_alphanumeric() || c == '_' {
+            c
+        } else {
+            '_'
+        }
+    }).collect();
+    
+    // Ensure it starts with a letter or underscore
+    if !result.is_empty() && result.chars().next().unwrap().is_ascii_digit() {
+        result = format!("_{}", result);
     }
+    
+    // Check for conflicts and add underscore suffix if needed
+    if PYTHON_KEYWORDS.contains(&result.as_str()) || 
+       PYTHON_BUILTINS.contains(&result.as_str()) ||
+       PYDANTIC_NAMES.contains(&result.as_str()) {
+        result = format!("{}_", result);
+    }
+    
+    result
 }
 
 // Utility functions for string case conversion
@@ -2260,17 +2711,8 @@ fn type_ref_to_python_type(
     active_generics: &[String],
 ) -> anyhow::Result<String> {
     // Check if this is an active generic parameter first
-    // We need to check both the original name and the mapped name
-    let mapped_name = map_generic_name(&type_ref.name);
-    if active_generics.contains(&mapped_name) {
-        return Ok(mapped_name);
-    }
-    // Also check if the original name is a known generic that should be mapped
-    if matches!(type_ref.name.as_str(), "T" | "D" | "I" | "C") {
-        let mapped = map_generic_name(&type_ref.name);
-        if active_generics.contains(&mapped) {
-            return Ok(mapped);
-        }
+    if active_generics.contains(&type_ref.name) {
+        return Ok(type_ref.name.clone());
     }
 
     // 1. FIRST: Check if this type has a direct mapping to a built-in Python type
@@ -2531,6 +2973,36 @@ fn check_timedelta_usage(schema: &Schema, all_type_names: &[String]) -> bool {
     }
 
     false
+}
+
+/// Collect all unique generic parameter names from the schema
+fn collect_all_generic_params(schema: &Schema, all_type_names: &[String]) -> Vec<String> {
+    use std::collections::HashSet;
+    let mut generic_params = HashSet::new();
+    
+    // Collect from all types
+    for type_name in all_type_names {
+        if let Some(type_def) = schema.get_type(type_name) {
+            match type_def {
+                reflectapi_schema::Type::Struct(struct_def) => {
+                    for param in struct_def.parameters() {
+                        generic_params.insert(param.name.clone());
+                    }
+                }
+                reflectapi_schema::Type::Enum(enum_def) => {
+                    for param in enum_def.parameters() {
+                        generic_params.insert(param.name.clone());
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    
+    // Sort for deterministic output
+    let mut result: Vec<String> = generic_params.into_iter().collect();
+    result.sort();
+    result
 }
 
 /// Check if the schema uses date types (chrono::NaiveDate)
@@ -3121,12 +3593,8 @@ from pydantic import BaseModel, ConfigDict{% if has_discriminated_unions %}, Fie
 {% endif %}{% if has_testing %}from reflectapi_runtime.testing import MockClient, create_api_response
 {% endif %}
 
-Entity = TypeVar('Entity')
-Data = TypeVar('Data')
-IdentityType = TypeVar('IdentityType')
-ConflictAction = TypeVar('ConflictAction')
-Input = TypeVar('Input')
-ClientType = TypeVar('ClientType')
+{% for type_var in global_type_vars %}{{ type_var }} = TypeVar('{{ type_var }}')
+{% endfor %}
 "#,
         ext = "txt"
     )]
@@ -3148,6 +3616,7 @@ ClientType = TypeVar('ClientType')
         pub has_literal: bool,
         pub has_discriminated_unions: bool,
         pub has_externally_tagged_enums: bool,
+        pub global_type_vars: Vec<String>,
     }
 
     #[derive(Template)]
@@ -3976,8 +4445,9 @@ class {{ name }}(Generic[{% for param in generic_params %}{{ param }}{% if !loop
         raise NotImplementedError("Generic externally tagged enums not yet fully implemented")
 {% else %}
 # Externally tagged enum using RootModel
-{{ name }}Variants = Union[{{ union_variants }}]
-
+{% if is_single_variant %}{{ name }}Variants = {{ union_variants }}
+{% else %}{{ name }}Variants = Union[{{ union_variants }}]
+{% endif %}
 class {{ name }}(RootModel[{{ name }}Variants]):
     """{% if description.is_some() %}{{ description.as_deref().unwrap() }}{% else %}Externally tagged enum{% endif %}"""
     
@@ -4013,6 +4483,7 @@ class {{ name }}(RootModel[{{ name }}Variants]):
         pub description: Option<String>,
         pub variant_models: Vec<String>,
         pub union_variants: String,
+        pub is_single_variant: bool,
         pub instance_validator_cases: String,
         pub validator_cases: String,
         pub dict_validator_cases: String,
@@ -4066,8 +4537,9 @@ class {{ name }}(Generic[{% for param in generic_params %}{{ param }}{% if !loop
         return f"Union[{', '.join(variant_examples)}]  # Use this pattern to create specific unions"
 {% else %}
 # Non-generic externally tagged enum - use existing RootModel approach  
-{{ name }}Variants = Union[{{ union_variants }}]
-
+{% if is_single_variant %}{{ name }}Variants = {{ union_variants }}
+{% else %}{{ name }}Variants = Union[{{ union_variants }}]
+{% endif %}
 class {{ name }}(RootModel[{{ name }}Variants]):
     """{% if description.is_some() %}{{ description.as_deref().unwrap() }}{% else %}Externally tagged enum{% endif %}"""
     
@@ -4103,6 +4575,7 @@ class {{ name }}(RootModel[{{ name }}Variants]):
         pub description: Option<String>,
         pub variant_models: Vec<String>,
         pub union_variants: String,
+        pub is_single_variant: bool,
         pub instance_validator_cases: String,
         pub validator_cases: String,
         pub dict_validator_cases: String,

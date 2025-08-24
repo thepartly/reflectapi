@@ -14,8 +14,7 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Any, Optional, TypeVar, Generic, Union, Annotated, Literal
-
+from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
 from pydantic import BaseModel, ConfigDict, Field
@@ -25,14 +24,6 @@ from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
-
-
-Entity = TypeVar('Entity')
-Data = TypeVar('Data')
-IdentityType = TypeVar('IdentityType')
-ConflictAction = TypeVar('ConflictAction')
-Input = TypeVar('Input')
-ClientType = TypeVar('ClientType')
 
 
 class ReflectapiDemoTestsEnumsAX(BaseModel):
@@ -53,20 +44,6 @@ class ReflectapiDemoTestsEnumsAY(BaseModel):
 
 
 ReflectapiDemoTestsEnumsA = Annotated[Union[ReflectapiDemoTestsEnumsAX, ReflectapiDemoTestsEnumsAY], Field(discriminator='type')]
-
-
-class ReflectapiDemoTestsEnumsAFactory:
-    '''Factory class for creating ReflectapiDemoTestsEnumsA variants with ergonomic syntax.
-
-    ReflectapiDemoTestsEnumsA variants
-    '''
-
-    X = ReflectapiDemoTestsEnumsA("X")
-
-    @staticmethod
-    def y(field_0) -> ReflectapiDemoTestsEnumsAY:
-        '''Creates the 'Y' variant of the ReflectapiDemoTestsEnumsA enum.'''
-        return ReflectapiDemoTestsEnumsAY(field_0=field_0)
 
 
 class AsyncInoutClient:
@@ -173,6 +150,19 @@ except AttributeError:
     pass
 
 # Factory classes (generated after model rebuild to avoid forward references)
+class ReflectapiDemoTestsEnumsAFactory:
+    '''Factory class for creating ReflectapiDemoTestsEnumsA variants with ergonomic syntax.
+
+    ReflectapiDemoTestsEnumsA variants
+    '''
+
+    X = ReflectapiDemoTestsEnumsAX()
+
+    @staticmethod
+    def y(field_0) -> ReflectapiDemoTestsEnumsAY:
+        '''Creates the 'Y' variant of the ReflectapiDemoTestsEnumsA enum.'''
+        return ReflectapiDemoTestsEnumsAY(field_0=field_0)
+
 
 # Testing utilities
 

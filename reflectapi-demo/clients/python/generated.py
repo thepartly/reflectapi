@@ -11,12 +11,11 @@ from __future__ import annotations
 # Standard library imports
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, TypeVar, Generic, Union, Annotated, Literal
 import warnings
-
+from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator, model_serializer, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, RootModel, model_serializer, model_validator
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -26,11 +25,20 @@ from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
 
 
+# Type variables for generic types
+
+T = TypeVar('T')
+
 Entity = TypeVar('Entity')
+
 Data = TypeVar('Data')
+
 IdentityType = TypeVar('IdentityType')
+
 ConflictAction = TypeVar('ConflictAction')
+
 Input = TypeVar('Input')
+
 ClientType = TypeVar('ClientType')
 
 
@@ -119,22 +127,6 @@ class MyapiModelKindCat(BaseModel):
 MyapiModelKind = Annotated[Union[MyapiModelKindDog, MyapiModelKindCat], Field(discriminator='type')]
 
 
-class MyapiModelKindFactory:
-    '''Factory class for creating MyapiModelKind variants with ergonomic syntax.
-
-    MyapiModelKind variants
-    '''
-
-    @staticmethod
-    def dog(breed) -> MyapiModelKindDog:
-        '''Creates the 'dog' variant of the MyapiModelKind enum.'''
-        return MyapiModelKindDog(breed=breed)
-
-    @staticmethod
-    def cat(lives) -> MyapiModelKindCat:
-        '''Creates the 'cat' variant of the MyapiModelKind enum.'''
-        return MyapiModelKindCat(lives=lives)
-
 class MyapiModelInputPet(BaseModel):
     """Generated data model."""
 
@@ -167,12 +159,12 @@ class MyapiProtoHeaders(BaseModel):
     authorization: str
 
 
-class MyapiProtoPaginated(BaseModel, Generic[Entity]):
+class MyapiProtoPaginated(BaseModel, Generic[T]):
     """Generated data model."""
 
     model_config = ConfigDict(extra="ignore")
 
-    items: list[Entity]
+    items: list[T]
     cursor: str | None = None
 
 
@@ -311,33 +303,6 @@ class AsyncPetsClient:
         self._client = client
 
 
-    async def remove(
-        self,
-        data: Optional[MyapiProtoPetsRemoveRequest] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
-        """Remove an existing pet
-
-        Args:
-            data: Request data for the remove operation.
-
-        Returns:
-            ApiResponse[Any]: Response containing Any data
-        """
-        path = "/pets.remove"
-
-        params: dict[str, Any] = {}
-
-        return await self._client._make_request(
-            "POST",
-            path,
-            params=params if params else None,
-            json_model=data,
-            headers_model=headers,
-            response_model=None,
-)
-
-
     async def delete(
         self,
         data: Optional[MyapiProtoPetsRemoveRequest] = None,
@@ -397,7 +362,34 @@ class AsyncPetsClient:
 )
 
 
-    async def list(
+    async def create(
+        self,
+        data: Optional[MyapiModelInputPet] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[Any]:
+        """Create a new pet
+
+        Args:
+            data: Request data for the create operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+        path = "/pets.create"
+
+        params: dict[str, Any] = {}
+
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            headers_model=headers,
+            response_model=None,
+)
+
+
+    async def list_(
         self,
         limit: Optional[int | None] = None,
         cursor: Optional[str | None] = None,
@@ -431,6 +423,33 @@ class AsyncPetsClient:
 )
 
 
+    async def remove(
+        self,
+        data: Optional[MyapiProtoPetsRemoveRequest] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[Any]:
+        """Remove an existing pet
+
+        Args:
+            data: Request data for the remove operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+        path = "/pets.remove"
+
+        params: dict[str, Any] = {}
+
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            headers_model=headers,
+            response_model=None,
+)
+
+
     async def update(
         self,
         data: Optional[MyapiProtoPetsUpdateRequest] = None,
@@ -445,33 +464,6 @@ class AsyncPetsClient:
             ApiResponse[Any]: Response containing Any data
         """
         path = "/pets.update"
-
-        params: dict[str, Any] = {}
-
-        return await self._client._make_request(
-            "POST",
-            path,
-            params=params if params else None,
-            json_model=data,
-            headers_model=headers,
-            response_model=None,
-)
-
-
-    async def create(
-        self,
-        data: Optional[MyapiModelInputPet] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
-        """Create a new pet
-
-        Args:
-            data: Request data for the create operation.
-
-        Returns:
-            ApiResponse[Any]: Response containing Any data
-        """
-        path = "/pets.create"
 
         params: dict[str, Any] = {}
 
@@ -534,33 +526,6 @@ class PetsClient:
         self._client = client
 
 
-    def remove(
-        self,
-        data: Optional[MyapiProtoPetsRemoveRequest] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
-        """Remove an existing pet
-
-        Args:
-            data: Request data for the remove operation.
-
-        Returns:
-            ApiResponse[Any]: Response containing Any data
-        """
-        path = "/pets.remove"
-
-        params: dict[str, Any] = {}
-
-        return self._client._make_request(
-            "POST",
-            path,
-            params=params if params else None,
-            json_model=data,
-            headers_model=headers,
-            response_model=None,
-)
-
-
     def delete(
         self,
         data: Optional[MyapiProtoPetsRemoveRequest] = None,
@@ -620,7 +585,34 @@ class PetsClient:
 )
 
 
-    def list(
+    def create(
+        self,
+        data: Optional[MyapiModelInputPet] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[Any]:
+        """Create a new pet
+
+        Args:
+            data: Request data for the create operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+        path = "/pets.create"
+
+        params: dict[str, Any] = {}
+
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            headers_model=headers,
+            response_model=None,
+)
+
+
+    def list_(
         self,
         limit: Optional[int | None] = None,
         cursor: Optional[str | None] = None,
@@ -654,6 +646,33 @@ class PetsClient:
 )
 
 
+    def remove(
+        self,
+        data: Optional[MyapiProtoPetsRemoveRequest] = None,
+        headers: Optional[MyapiProtoHeaders] = None,
+    ) -> ApiResponse[Any]:
+        """Remove an existing pet
+
+        Args:
+            data: Request data for the remove operation.
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+        """
+        path = "/pets.remove"
+
+        params: dict[str, Any] = {}
+
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            json_model=data,
+            headers_model=headers,
+            response_model=None,
+)
+
+
     def update(
         self,
         data: Optional[MyapiProtoPetsUpdateRequest] = None,
@@ -668,33 +687,6 @@ class PetsClient:
             ApiResponse[Any]: Response containing Any data
         """
         path = "/pets.update"
-
-        params: dict[str, Any] = {}
-
-        return self._client._make_request(
-            "POST",
-            path,
-            params=params if params else None,
-            json_model=data,
-            headers_model=headers,
-            response_model=None,
-)
-
-
-    def create(
-        self,
-        data: Optional[MyapiModelInputPet] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
-        """Create a new pet
-
-        Args:
-            data: Request data for the create operation.
-
-        Returns:
-            ApiResponse[Any]: Response containing Any data
-        """
-        path = "/pets.create"
 
         params: dict[str, Any] = {}
 
@@ -780,6 +772,22 @@ class MyapiModelBehaviorFactory:
     def other(description, notes = None) -> MyapiModelBehaviorOtherVariant:
         '''Creates the 'Other' variant of the MyapiModelBehavior enum.'''
         return MyapiModelBehaviorOtherVariant(description=description, notes=notes)
+
+class MyapiModelKindFactory:
+    '''Factory class for creating MyapiModelKind variants with ergonomic syntax.
+
+    MyapiModelKind variants
+    '''
+
+    @staticmethod
+    def dog(breed) -> MyapiModelKindDog:
+        '''Creates the 'dog' variant of the MyapiModelKind enum.'''
+        return MyapiModelKindDog(breed=breed)
+
+    @staticmethod
+    def cat(lives) -> MyapiModelKindCat:
+        '''Creates the 'cat' variant of the MyapiModelKind enum.'''
+        return MyapiModelKindCat(lives=lives)
 
 class MyapiProtoPetsCreateErrorFactory:
     '''Factory class for creating MyapiProtoPetsCreateError variants with ergonomic syntax.

@@ -14,8 +14,7 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Any, Optional, TypeVar, Generic, Union, Annotated, Literal
-
+from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
 from pydantic import BaseModel, ConfigDict, Field
@@ -25,14 +24,6 @@ from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
-
-
-Entity = TypeVar('Entity')
-Data = TypeVar('Data')
-IdentityType = TypeVar('IdentityType')
-ConflictAction = TypeVar('ConflictAction')
-Input = TypeVar('Input')
-ClientType = TypeVar('ClientType')
 
 
 class ReflectapiDemoTestsSerdeTestVariant1(BaseModel):
@@ -54,23 +45,6 @@ class ReflectapiDemoTestsSerdeTestVariant2(BaseModel):
 
 
 ReflectapiDemoTestsSerdeTest = Annotated[Union[ReflectapiDemoTestsSerdeTestVariant1, ReflectapiDemoTestsSerdeTestVariant2], Field(discriminator='type')]
-
-
-class ReflectapiDemoTestsSerdeTestFactory:
-    '''Factory class for creating ReflectapiDemoTestsSerdeTest variants with ergonomic syntax.
-
-    ReflectapiDemoTestsSerdeTest variants
-    '''
-
-    @staticmethod
-    def variant1(field_name) -> ReflectapiDemoTestsSerdeTestVariant1:
-        '''Creates the 'Variant1' variant of the ReflectapiDemoTestsSerdeTest enum.'''
-        return ReflectapiDemoTestsSerdeTestVariant1(field_name=field_name)
-
-    @staticmethod
-    def variant2(field_0) -> ReflectapiDemoTestsSerdeTestVariant2:
-        '''Creates the 'Variant2' variant of the ReflectapiDemoTestsSerdeTest enum.'''
-        return ReflectapiDemoTestsSerdeTestVariant2(field_0=field_0)
 
 
 class AsyncInoutClient:
@@ -177,6 +151,22 @@ except AttributeError:
     pass
 
 # Factory classes (generated after model rebuild to avoid forward references)
+class ReflectapiDemoTestsSerdeTestFactory:
+    '''Factory class for creating ReflectapiDemoTestsSerdeTest variants with ergonomic syntax.
+
+    ReflectapiDemoTestsSerdeTest variants
+    '''
+
+    @staticmethod
+    def variant1(field_name) -> ReflectapiDemoTestsSerdeTestVariant1:
+        '''Creates the 'Variant1' variant of the ReflectapiDemoTestsSerdeTest enum.'''
+        return ReflectapiDemoTestsSerdeTestVariant1(field_name=field_name)
+
+    @staticmethod
+    def variant2(field_0) -> ReflectapiDemoTestsSerdeTestVariant2:
+        '''Creates the 'Variant2' variant of the ReflectapiDemoTestsSerdeTest enum.'''
+        return ReflectapiDemoTestsSerdeTestVariant2(field_0=field_0)
+
 
 # Testing utilities
 

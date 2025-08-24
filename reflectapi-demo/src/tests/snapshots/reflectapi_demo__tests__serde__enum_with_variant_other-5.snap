@@ -14,8 +14,7 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Any, Optional, TypeVar, Generic, Union, Annotated, Literal
-
+from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
 from pydantic import BaseModel, ConfigDict, Field
@@ -25,14 +24,6 @@ from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
-
-
-Entity = TypeVar('Entity')
-Data = TypeVar('Data')
-IdentityType = TypeVar('IdentityType')
-ConflictAction = TypeVar('ConflictAction')
-Input = TypeVar('Input')
-ClientType = TypeVar('ClientType')
 
 
 class ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherV0(BaseModel):
@@ -45,14 +36,6 @@ class ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherV0(BaseModel):
 
 ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther = Annotated[Union[ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherV0], Field(discriminator='type')]
 
-
-class ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherFactory:
-    '''Factory class for creating ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther variants with ergonomic syntax.
-
-    ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther variants
-    '''
-
-    V0 = ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther("V0")
 
 class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherV0(BaseModel):
     """Generated data model."""
@@ -71,16 +54,6 @@ class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherVariant1(BaseModel):
 
 
 ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther = Annotated[Union[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherV0, ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherVariant1], Field(discriminator='type')]
-
-
-class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherFactory:
-    '''Factory class for creating ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther variants with ergonomic syntax.
-
-    ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther variants
-    '''
-
-    V0 = ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther("V0")
-    VARIANT1 = ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther("Variant1")
 
 
 class AsyncInoutClient:
@@ -188,6 +161,23 @@ except AttributeError:
     pass
 
 # Factory classes (generated after model rebuild to avoid forward references)
+class ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherFactory:
+    '''Factory class for creating ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther variants with ergonomic syntax.
+
+    ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther variants
+    '''
+
+    V0 = ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherV0()
+
+class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherFactory:
+    '''Factory class for creating ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther variants with ergonomic syntax.
+
+    ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther variants
+    '''
+
+    V0 = ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherV0()
+    VARIANT1 = ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherVariant1()
+
 
 # Testing utilities
 

@@ -14,11 +14,10 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Any, Optional, TypeVar, Generic, Union, Annotated
-
+from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict, RootModel, model_validator, model_serializer, PrivateAttr
+from pydantic import BaseModel, ConfigDict, PrivateAttr, RootModel, model_serializer, model_validator
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -27,19 +26,11 @@ from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
 
 
-Entity = TypeVar('Entity')
-Data = TypeVar('Data')
-IdentityType = TypeVar('IdentityType')
-ConflictAction = TypeVar('ConflictAction')
-Input = TypeVar('Input')
-ClientType = TypeVar('ClientType')
-
-
-Entity = TypeVar('Entity')
+T = TypeVar('T')
 
 
 # Generic externally tagged enum using Approach B: Generic Variant Models
-Entity = TypeVar('Entity')
+T = TypeVar('T')
 
 
 # Common non-generic base class with discriminator
@@ -60,22 +51,22 @@ class ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant
 
     model_config = ConfigDict(extra="ignore")
 
-    field_0: Entity
-    field_1: Entity
+    field_0: T
+    field_1: T
 
 
-class ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant3Variant(BaseModel, Generic[Entity]):
+class ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant3Variant(BaseModel, Generic[T]):
     """Variant3 variant"""
 
     model_config = ConfigDict(extra="ignore")
 
     field1: int
-    field2: Entity
+    field2: T
 
 
 # Type alias for parameterized union - users can create specific unions as needed
 # Example: ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFields[SomeType, AnotherType] = Union[ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant1[SomeType], ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant2[AnotherType]]
-class ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFields(Generic[Entity]):
+class ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFields(Generic[T]):
     """Generic externally tagged enum using Approach B
 
     This is a generic enum where each variant is a separate generic class.
@@ -94,9 +85,9 @@ class ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFields(Generi
         # For Approach B, users should create unions directly using variant classes
         # This method serves as documentation
         variant_examples = [
-            "ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant1Variant[Entity]",
-            "ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant2Variant[Entity]",
-            "ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant3Variant[Entity]"
+            "ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant1Variant[T]",
+            "ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant2Variant[T]",
+            "ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant3Variant[T]"
         ]
 
         # Return a helpful hint rather than NotImplementedError
@@ -104,7 +95,7 @@ class ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFields(Generi
 
 
 class AsyncInputClient:
-    """Async client for input operations."""
+    """Async client for input_ operations."""
 
     def __init__(self, client: AsyncClientBase) -> None:
         self._client = client
@@ -145,11 +136,11 @@ class AsyncClient(AsyncClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.input = AsyncInputClient(self)
+        self.input_ = AsyncInputClient(self)
 
 
 class InputClient:
-    """Synchronous client for input operations."""
+    """Synchronous client for input_ operations."""
 
     def __init__(self, client: ClientBase) -> None:
         self._client = client
@@ -190,7 +181,7 @@ class Client(ClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.input = InputClient(self)
+        self.input_ = InputClient(self)
 
 
 # External type definitions
@@ -214,19 +205,19 @@ class ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsFactory
     '''
 
     @staticmethod
-    def variant1(field_0) -> ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant1Variant[Entity]:
+    def variant1(field_0) -> ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant1Variant[T]:
         '''Creates the 'Variant1' variant of the ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFields enum.'''
-        return ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant1Variant[Entity](field_0=field_0)
+        return ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant1Variant[T](field_0=field_0)
 
     @staticmethod
-    def variant2(field_0, field_1) -> ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant2Variant[Entity]:
+    def variant2(field_0, field_1) -> ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant2Variant[T]:
         '''Creates the 'Variant2' variant of the ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFields enum.'''
-        return ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant2Variant[Entity](field_0=field_0, field_1=field_1)
+        return ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant2Variant[T](field_0=field_0, field_1=field_1)
 
     @staticmethod
-    def variant3(field1, field2) -> ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant3Variant[Entity]:
+    def variant3(field1, field2) -> ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant3Variant[T]:
         '''Creates the 'Variant3' variant of the ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFields enum.'''
-        return ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant3Variant[Entity](field1=field1, field2=field2)
+        return ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant3Variant[T](field1=field1, field2=field2)
 
 
 # Testing utilities
