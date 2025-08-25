@@ -17,7 +17,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Generates code for typescript, rust or openapi from a reflectapi schema
+    /// Generates code for typescript, rust, python or openapi from a reflectapi schema
     Codegen {
         /// Path to the source reflect schema
         #[arg(short, long, value_name = "FILE")]
@@ -54,8 +54,25 @@ enum Commands {
         format: bool,
 
         /// Instrument the generated code with tracing
-        #[arg(short, long, default_value = "false")]
+        #[arg(short = 'I', long, default_value = "false")]
         instrument: bool,
+
+        // Python-specific options
+        /// Package name for the generated Python client
+        #[arg(long, default_value = "api_client")]
+        python_package_name: String,
+
+        /// Generate async client for Python (default: true)
+        #[arg(long, default_value = "true")]
+        python_async: bool,
+
+        /// Generate sync client for Python (default: false)
+        #[arg(long, default_value = "false")]
+        python_sync: bool,
+
+        /// Generate testing utilities for Python (default: false)
+        #[arg(long, default_value = "false")]
+        python_testing: bool,
     },
     /// Documentation subcommands
     #[command(subcommand)]
@@ -80,6 +97,7 @@ enum DocSubcommand {
 enum Language {
     Typescript,
     Rust,
+    Python,
     Openapi,
 }
 
@@ -121,6 +139,10 @@ fn main() -> anyhow::Result<()> {
             typecheck,
             format,
             instrument,
+            python_package_name,
+            python_async,
+            python_sync,
+            python_testing,
         } => {
             let include_tags = BTreeSet::from_iter(include_tags);
             let exclude_tags = BTreeSet::from_iter(exclude_tags);
@@ -156,6 +178,19 @@ fn main() -> anyhow::Result<()> {
                             .shared_modules(
                                 shared_modules.unwrap_or_default().into_iter().collect(),
                             ),
+                    )?,
+                ),
+                Language::Python => (
+                    "generated.py",
+                    reflectapi::codegen::python::generate(
+                        schema,
+                        &reflectapi::codegen::python::Config {
+                            package_name: python_package_name,
+                            generate_async: python_async,
+                            generate_sync: python_sync,
+                            generate_testing: python_testing,
+                            base_url: None,
+                        },
                     )?,
                 ),
                 Language::Openapi => (
