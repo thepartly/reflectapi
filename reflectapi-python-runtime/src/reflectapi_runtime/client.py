@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import datetime
+import json
 import time
 from abc import ABC
 from typing import Any, TypeVar, overload
@@ -30,6 +32,17 @@ class _NoValidation:
 NO_VALIDATION = _NoValidation()
 
 T = TypeVar("T", bound=BaseModel)
+
+
+def _json_serializer(obj: Any) -> Any:
+    """JSON serializer function for datetime and Pydantic objects."""
+    if isinstance(obj, datetime.datetime):
+        return obj.isoformat()
+    elif isinstance(obj, datetime.date):
+        return obj.isoformat()
+    elif hasattr(obj, 'model_dump'):
+        return obj.model_dump(exclude_none=True)
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
 # Note: AsyncAuthWrapper removed - AuthHandler now inherits from httpx.Auth directly
@@ -225,12 +238,26 @@ class ClientBase(ABC):
         if json_model is not None and json_data is not None:
             raise ValueError("Cannot specify both json_data and json_model")
 
-    def _serialize_request_body(self, json_model: BaseModel) -> tuple[bytes, dict[str, str]]:
-        """Serialize request body from Pydantic model."""
+    def _serialize_request_body(self, json_model: BaseModel | int | float | str | bool | list | dict) -> tuple[bytes, dict[str, str]]:
+        """Serialize request body from Pydantic model or primitive type."""
         from .option import ReflectapiOption
+        
+        # Handle primitive types (for untagged unions)
+        if not hasattr(json_model, 'model_dump'):
+            content = json.dumps(json_model, default=_json_serializer, separators=(',', ':')).encode('utf-8')
+            headers = {"Content-Type": "application/json"}
+            return content, headers
 
         # Check if model has any ReflectapiOption fields that need special handling
         raw_data = json_model.model_dump(exclude_none=False)
+        
+        # Handle case where RootModel serializes to primitive value (e.g., strings for unit variants)
+        if not isinstance(raw_data, dict):
+            # For primitive values, use Pydantic's built-in JSON serialization
+            content = json_model.model_dump_json(exclude_none=True, by_alias=True).encode('utf-8')
+            headers = {"Content-Type": "application/json"}
+            return content, headers
+            
         has_reflectapi_options = any(
             isinstance(field_value, ReflectapiOption)
             for field_value in raw_data.values()
@@ -251,23 +278,10 @@ class ClientBase(ABC):
                         processed_fields[field_name] = field_value
 
             # Use json serialization with datetime handler for proper serialization
-            import json
-            import datetime
-
-            def json_serializer(obj):
-                if isinstance(obj, datetime.datetime):
-                    return obj.isoformat()
-                elif isinstance(obj, datetime.date):
-                    return obj.isoformat()
-                elif hasattr(obj, 'model_dump'):
-                    # This is a Pydantic model (like our enum variants)
-                    return obj.model_dump(exclude_none=True)
-                raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
-
-            content = json.dumps(processed_fields, default=json_serializer, separators=(',', ':')).encode('utf-8')
+            content = json.dumps(processed_fields, default=_json_serializer, separators=(',', ':')).encode('utf-8')
         else:
-            # Use Pydantic's built-in JSON serialization with exclude_none for proper handling
-            content = json_model.model_dump_json(exclude_none=True).encode('utf-8')
+            # Use Pydantic's built-in JSON serialization with exclude_none and by_alias for proper handling
+            content = json_model.model_dump_json(exclude_none=True, by_alias=True).encode('utf-8')
 
         headers = {"Content-Type": "application/json"}
         return content, headers
@@ -658,12 +672,26 @@ class AsyncClientBase(ABC):
         if json_model is not None and json_data is not None:
             raise ValueError("Cannot specify both json_data and json_model")
 
-    def _serialize_request_body(self, json_model: BaseModel) -> tuple[bytes, dict[str, str]]:
-        """Serialize request body from Pydantic model."""
+    def _serialize_request_body(self, json_model: BaseModel | int | float | str | bool | list | dict) -> tuple[bytes, dict[str, str]]:
+        """Serialize request body from Pydantic model or primitive type."""
         from .option import ReflectapiOption
+        
+        # Handle primitive types (for untagged unions)
+        if not hasattr(json_model, 'model_dump'):
+            content = json.dumps(json_model, default=_json_serializer, separators=(',', ':')).encode('utf-8')
+            headers = {"Content-Type": "application/json"}
+            return content, headers
 
         # Check if model has any ReflectapiOption fields that need special handling
         raw_data = json_model.model_dump(exclude_none=False)
+        
+        # Handle case where RootModel serializes to primitive value (e.g., strings for unit variants)
+        if not isinstance(raw_data, dict):
+            # For primitive values, use Pydantic's built-in JSON serialization
+            content = json_model.model_dump_json(exclude_none=True, by_alias=True).encode('utf-8')
+            headers = {"Content-Type": "application/json"}
+            return content, headers
+            
         has_reflectapi_options = any(
             isinstance(field_value, ReflectapiOption)
             for field_value in raw_data.values()
@@ -684,23 +712,10 @@ class AsyncClientBase(ABC):
                         processed_fields[field_name] = field_value
 
             # Use json serialization with datetime handler for proper serialization
-            import json
-            import datetime
-
-            def json_serializer(obj):
-                if isinstance(obj, datetime.datetime):
-                    return obj.isoformat()
-                elif isinstance(obj, datetime.date):
-                    return obj.isoformat()
-                elif hasattr(obj, 'model_dump'):
-                    # This is a Pydantic model (like our enum variants)
-                    return obj.model_dump(exclude_none=True)
-                raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
-
-            content = json.dumps(processed_fields, default=json_serializer, separators=(',', ':')).encode('utf-8')
+            content = json.dumps(processed_fields, default=_json_serializer, separators=(',', ':')).encode('utf-8')
         else:
-            # Use Pydantic's built-in JSON serialization with exclude_none for proper handling
-            content = json_model.model_dump_json(exclude_none=True).encode('utf-8')
+            # Use Pydantic's built-in JSON serialization with exclude_none and by_alias for proper handling
+            content = json_model.model_dump_json(exclude_none=True, by_alias=True).encode('utf-8')
 
         headers = {"Content-Type": "application/json"}
 

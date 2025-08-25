@@ -63,13 +63,13 @@ class AuthHandler(httpx.Auth):
         """Apply authentication to an asynchronous request."""
         pass
 
-    def auth_flow(self, request: httpx.Request) -> httpx.Request:
+    def auth_flow(self, request: httpx.Request):
         """httpx sync auth flow implementation."""
-        return self.apply_auth(request)
+        yield self.apply_auth(request)
 
-    async def async_auth_flow(self, request: httpx.Request) -> httpx.Request:
+    async def async_auth_flow(self, request: httpx.Request):
         """httpx async auth flow implementation."""
-        return await self.apply_auth_async(request)
+        yield await self.apply_auth_async(request)
 
     def __call__(self, request: httpx.Request) -> httpx.Request:
         """Allow handler to be used as a callable for httpx auth parameter."""
