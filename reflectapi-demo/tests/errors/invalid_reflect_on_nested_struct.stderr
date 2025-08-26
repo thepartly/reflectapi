@@ -5,14 +5,14 @@ error[E0277]: the trait bound `TestStructNested: Input` is not satisfied
   |         ^^^^^^^^^^^^^^^^ the trait `Input` is not implemented for `TestStructNested`
   |
   = help: the following other types implement trait `Input`:
-            bool
-            char
-            isize
-            i8
-            i16
-            i32
-            i64
-            i128
+            ()
+            (A, B)
+            (A, B, C)
+            (A, B, C, D)
+            (A, B, C, D, E)
+            (A, B, C, D, E, F)
+            (A, B, C, D, E, F, G)
+            (A, B, C, D, E, F, G, H)
           and $N others
 
 error[E0277]: the trait bound `TestStructNested: reflectapi::Output` is not satisfied
@@ -22,12 +22,12 @@ error[E0277]: the trait bound `TestStructNested: reflectapi::Output` is not sati
   |         ^^^^^^^^^^^^^^^^ the trait `reflectapi::Output` is not implemented for `TestStructNested`
   |
   = help: the following other types implement trait `reflectapi::Output`:
-            bool
-            char
-            isize
-            i8
-            i16
-            i32
-            i64
-            i128
+            &'static str
+            ()
+            (A, B)
+            (A, B, C)
+            (A, B, C, D)
+            (A, B, C, D, E)
+            (A, B, C, D, E, F)
+            (A, B, C, D, E, F, G)
           and $N others

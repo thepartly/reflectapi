@@ -5,12 +5,12 @@ error[E0277]: the trait bound `dyn MyTrait: Input` is not satisfied
   |            ^^^^^^^^^^^ the trait `Input` is not implemented for `dyn MyTrait`
   |
   = help: the following other types implement trait `Input`:
-            bool
-            char
-            isize
-            i8
-            i16
-            i32
-            i64
-            i128
+            ()
+            (A, B)
+            (A, B, C)
+            (A, B, C, D)
+            (A, B, C, D, E)
+            (A, B, C, D, E, F)
+            (A, B, C, D, E, F, G)
+            (A, B, C, D, E, F, G, H)
           and $N others
