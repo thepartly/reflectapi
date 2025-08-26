@@ -93,7 +93,7 @@ enum DocSubcommand {
     },
 }
 
-#[derive(ValueEnum, Clone)]
+#[derive(ValueEnum, Clone, PartialEq)]
 enum Language {
     Typescript,
     Rust,
@@ -153,21 +153,22 @@ fn main() -> anyhow::Result<()> {
             let schema: reflectapi::Schema = serde_json::from_str(&schema_as_json)
                 .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
 
-            let (filename, generated_code) = match language {
-                Language::Typescript => (
-                    "generated.ts",
-                    reflectapi::codegen::typescript::generate(
+            let files: std::collections::BTreeMap<String, String> = match language {
+                Language::Typescript => {
+                    let content = reflectapi::codegen::typescript::generate(
                         schema,
                         reflectapi::codegen::typescript::Config::default()
                             .format(format)
                             .typecheck(typecheck)
                             .include_tags(include_tags)
                             .exclude_tags(exclude_tags),
-                    )?,
-                ),
-                Language::Rust => (
-                    "generated.rs",
-                    reflectapi::codegen::rust::generate(
+                    )?;
+                    let mut files = std::collections::BTreeMap::new();
+                    files.insert("generated.ts".to_string(), content);
+                    files
+                }
+                Language::Rust => {
+                    let content = reflectapi::codegen::rust::generate(
                         schema,
                         reflectapi::codegen::rust::Config::default()
                             .format(format)
@@ -178,43 +179,74 @@ fn main() -> anyhow::Result<()> {
                             .shared_modules(
                                 shared_modules.unwrap_or_default().into_iter().collect(),
                             ),
-                    )?,
-                ),
-                Language::Python => (
-                    "generated.py",
-                    reflectapi::codegen::python::generate(
-                        schema,
-                        &reflectapi::codegen::python::Config {
-                            package_name: python_package_name,
-                            generate_async: python_async,
-                            generate_sync: python_sync,
-                            generate_testing: python_testing,
-                            base_url: None,
-                        },
-                    )?,
-                ),
-                Language::Openapi => (
-                    "openapi.json",
-                    reflectapi::codegen::openapi::generate(
+                    )?;
+                    let mut files = std::collections::BTreeMap::new();
+                    files.insert("generated.rs".to_string(), content);
+                    files
+                }
+                Language::Python => {
+                    let config = reflectapi::codegen::python::Config {
+                        package_name: python_package_name,
+                        generate_async: python_async,
+                        generate_sync: python_sync,
+                        generate_testing: python_testing,
+                        base_url: None,
+                    };
+                    reflectapi::codegen::python::generate_files(schema, &config)?
+                }
+                Language::Openapi => {
+                    let content = reflectapi::codegen::openapi::generate(
                         &schema,
                         reflectapi::codegen::openapi::Config::default()
                             .include_tags(include_tags)
                             .exclude_tags(exclude_tags),
-                    )?,
-                ),
+                    )?;
+                    let mut files = std::collections::BTreeMap::new();
+                    files.insert("openapi.json".to_string(), content);
+                    files
+                }
             };
 
             if output == Some(std::path::PathBuf::from("-")) {
-                println!("{generated_code}");
+                // For stdout, output the first/main file
+                if let Some(content) = files.values().next() {
+                    println!("{}", content);
+                }
                 return Ok(());
             }
 
-            let output = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
-            let output = output.join(filename);
-            let mut file = std::fs::File::create(output.clone())
-                .context(format!("Failed to create file: {:?}", output))?;
-            file.write(generated_code.as_bytes())
-                .context(format!("Failed to write to file: {:?}", output))?;
+            let output_path = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
+
+            // For single-file languages, write directly to the specified path if it's a file,
+            // or to default filename in the directory if it's a directory
+            // For multi-file languages (like Python), create directory and write multiple files
+            if files.len() == 1 {
+                let (filename, content) = files.iter().next().unwrap();
+                let final_path =
+                    if output_path.is_dir() || output_path.to_string_lossy().ends_with('/') {
+                        output_path.join(filename)
+                    } else {
+                        output_path
+                    };
+                let mut file = std::fs::File::create(&final_path)
+                    .context(format!("Failed to create file: {:?}", final_path))?;
+                file.write_all(content.as_bytes())
+                    .context(format!("Failed to write to file: {:?}", final_path))?;
+            } else {
+                // Multi-file: create directory and write all files
+                std::fs::create_dir_all(&output_path).context(format!(
+                    "Failed to create output directory: {:?}",
+                    output_path
+                ))?;
+
+                for (filename, content) in files {
+                    let file_path = output_path.join(&filename);
+                    let mut file = std::fs::File::create(&file_path)
+                        .context(format!("Failed to create file: {:?}", file_path))?;
+                    file.write_all(content.as_bytes())
+                        .context(format!("Failed to write to file: {:?}", file_path))?;
+                }
+            }
             Ok(())
         }
     }
