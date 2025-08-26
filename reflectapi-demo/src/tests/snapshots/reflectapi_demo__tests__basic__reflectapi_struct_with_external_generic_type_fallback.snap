@@ -1,0 +1,161 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructWithExternalGenericTypeFallback"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::TestStructWithExternalGenericTypeFallback"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "i32",
+        "description": "32-bit signed integer"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructWithExternalGenericTypeFallback",
+        "fields": {
+          "named": [
+            {
+              "name": "data",
+              "type": {
+                "name": "std::collections::HashMap",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "i32"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashMap",
+        "description": "Key-value map type",
+        "parameters": [
+          {
+            "name": "K"
+          },
+          {
+            "name": "V"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::sync::Arc",
+        "description": "std::sync::Arc pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "i32",
+        "description": "32-bit signed integer"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::TestStructWithExternalGenericTypeFallback",
+        "fields": {
+          "named": [
+            {
+              "name": "data",
+              "type": {
+                "name": "std::collections::HashMap",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "i32"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashMap",
+        "description": "Key-value map type",
+        "parameters": [
+          {
+            "name": "K"
+          },
+          {
+            "name": "V"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::sync::Arc",
+        "description": "std::sync::Arc pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      }
+    ]
+  }
+}

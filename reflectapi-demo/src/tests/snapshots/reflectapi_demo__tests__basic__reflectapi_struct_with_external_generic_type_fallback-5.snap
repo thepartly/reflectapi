@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "super :: into_python_code :: < Test > ()"
+expression: "super :: into_python_code :: < TestStructWithExternalGenericTypeFallback > ()"
 snapshot_kind: text
 ---
 '''
@@ -14,7 +14,6 @@ from __future__ import annotations
 
 
 # Standard library imports
-from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
@@ -27,27 +26,12 @@ from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
 
 
-class ReflectapiDemoTestsBasicX(BaseModel):
+class ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback(BaseModel):
     """Generated data model."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-
-class ReflectapiDemoTestsBasicY(str, Enum):
-    """Generated enum."""
-
-
-    Y = "Y"
-
-
-class ReflectapiDemoTestsBasicTest(BaseModel):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    us: list[None]
-    xs: list[ReflectapiDemoTestsBasicX]
-    ys: list[ReflectapiDemoTestsBasicY]
+    data: dict[str, int]
 
 
 class AsyncInoutClient:
@@ -59,15 +43,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
+        data: Optional[ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTest]: Response containing ReflectapiDemoTestsBasicTest data
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback]: Response containing ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback data
         """
         path = "/inout_test"
 
@@ -78,7 +62,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTest,
+            response_model=ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback,
 )
 
 
@@ -104,15 +88,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
+        data: Optional[ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback] = None,
+    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTest]: Response containing ReflectapiDemoTestsBasicTest data
+            ApiResponse[ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback]: Response containing ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback data
         """
         path = "/inout_test"
 
@@ -123,7 +107,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTest,
+            response_model=ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback,
 )
 
 
@@ -148,9 +132,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTest.model_rebuild()
-    ReflectapiDemoTestsBasicX.model_rebuild()
-    ReflectapiDemoTestsBasicY.model_rebuild()
+    ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -160,18 +142,8 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasictest_response(value: ReflectapiDemoTestsBasicTest) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTest."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsbasicx_response(value: ReflectapiDemoTestsBasicX) -> ApiResponse[ReflectapiDemoTestsBasicX]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicX."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsbasicy_response(value: ReflectapiDemoTestsBasicY) -> ApiResponse[ReflectapiDemoTestsBasicY]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicY."""
+def create_reflectapidemotestsbasicteststructwithexternalgenerictypefallback_response(value: ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback]:
+    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructWithExternalGenericTypeFallback."""
     return create_api_response(value)
 
 
