@@ -278,10 +278,31 @@ type Cases<T, R> = Step3<Step2<Step1<T>>, R>;
 type CasesNonExhaustive<T, R> = Partial<Cases<T, R>>;
 
 /**
- * Ergonomically and exhaustively handle all possible cases of a discriminated union in the externally tagged representation (https://serde.rs/enum-representations.html).
- * See tests for examples.
- * Talk to @andy if you have issues or question or just change it however you wish :)
- * */
+ * Ergonomically and exhaustively handle all possible cases of a discriminated union 
+ * in the externally tagged representation (https://serde.rs/enum-representations.html).
+ * 
+ * @example
+ * ```typescript
+ * type Status = 'loading' | { success: { data: string } } | { error: { message: string } };
+ * 
+ * function handleStatus(status: Status) {
+ *   return match(status, {
+ *     loading: () => 'Loading...',
+ *     success: ({ data }) => `Success: ${data}`,
+ *     error: ({ message }) => `Error: ${message}`
+ *   });
+ * }
+ * 
+ * // With default handler for non-exhaustive matching
+ * function handleStatusWithDefault(status: Status) {
+ *   return match(
+ *     status,
+ *     { loading: () => 'Loading...' },
+ *     () => 'Unknown status'
+ *   );
+ * }
+ * ```
+ */
 export function match<T extends object | string, R>(value: T, cases: Cases<T, R>): R;
 export function match<T extends object | string, R>(
   value: T,
