@@ -17,19 +17,19 @@ Learn how to work with generic types in `reflectapi` to create flexible, reusabl
 ```rust,ignore
 use reflectapi::{Input, Output};
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Container<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub value: T,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Response<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub success: bool,
     pub data: Option<T>,
@@ -40,22 +40,22 @@ where
 ### Multiple Type Parameters
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct KeyValue<K, V>
 where
-    K: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
-    V: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    K: Input + Output,
+    V: Input + Output,
 {
     pub key: K,
     pub value: V,
     pub metadata: std::collections::HashMap<String, String>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Mapping<K, V>
 where
-    K: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
-    V: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    K: Input + Output,
+    V: Input + Output,
 {
     pub pairs: Vec<KeyValue<K, V>>,
     pub default_value: Option<V>,
@@ -67,10 +67,10 @@ where
 ### Paginated Results
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Page<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     /// Items in this page
     pub items: Vec<T>,
@@ -86,40 +86,22 @@ where
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
 }
-
-// Usage in handlers
-async fn list_users(
-    state: Arc<AppState>,
-    request: ListUsersRequest,
-    _headers: reflectapi::Empty,
-) -> Result<Page<User>, ListUsersError> {
-    let users = state.get_users(request.page, request.per_page).await?;
-    
-    Ok(Page {
-        items: users.items,
-        page: request.page,
-        per_page: request.per_page,
-        total_pages: users.total_pages,
-        total_items: users.total_count,
-        next_cursor: users.next_cursor,
-    })
-}
 ```
 
 ### Result Wrappers
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "status")]
 pub enum ApiResult<T, E>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
-    E: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
+    E: Input + Output,
 {
     Success { 
         data: T,
         #[serde(skip_serializing_if = "Option::is_none")]
-        metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
+        metadata: Option<std::collections::HashMap<String, String>>,
     },
     Error { 
         error: E,
@@ -129,14 +111,14 @@ where
 }
 
 // Specialized error types
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct ValidationError {
     pub field: String,
     pub message: String,
     pub code: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct SystemError {
     pub message: String,
     pub trace_id: String,
@@ -150,10 +132,10 @@ type SystemResult<T> = ApiResult<T, SystemError>;
 ### Generic Collections
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Collection<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub items: Vec<T>,
     pub total_count: u64,
@@ -161,40 +143,40 @@ where
     pub sort_order: Option<String>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Tree<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub value: T,
     pub children: Vec<Tree<T>>,
     pub parent_id: Option<String>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Graph<N, E>
 where
-    N: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
-    E: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    N: Input + Output,
+    E: Input + Output,
 {
     pub nodes: Vec<Node<N>>,
     pub edges: Vec<Edge<E>>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Node<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub id: String,
     pub data: T,
     pub position: (f64, f64),
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Edge<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub from: String,
     pub to: String,
@@ -208,22 +190,22 @@ where
 ### Option-like Types
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "type")]
 pub enum Maybe<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     Some { value: T },
     None,
     Unknown { reason: String },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "state", content = "data")]
 pub enum AsyncValue<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     Loading,
     Success(T),
@@ -234,12 +216,12 @@ where
 ### Complex Generic Enums
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "operation")]
 pub enum DatabaseOperation<T, K>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
-    K: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
+    K: Input + Output,
 {
     Create { data: T },
     Read { key: K },
@@ -259,10 +241,10 @@ where
 
 ```rust,ignore
 // Generic type that requires specific traits
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Identifiable<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub id: uuid::Uuid,
     pub data: T,
@@ -270,10 +252,10 @@ where
 }
 
 // For types that need comparison
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Comparable<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output + PartialEq,
+    T: Input + Output + PartialEq,
 {
     pub current: T,
     pub previous: Option<T>,
@@ -284,7 +266,7 @@ where
 // but it's needed for the business logic
 impl<T> Comparable<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output + PartialEq,
+    T: Input + Output + PartialEq,
 {
     pub fn new(current: T, previous: Option<T>) -> Self {
         let changed = match &previous {
@@ -313,7 +295,7 @@ use std::collections::HashMap;
 #[derive(serde::Deserialize, Input)]
 pub struct CreateRequest<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub data: T,
 }
@@ -321,8 +303,8 @@ where
 #[derive(serde::Deserialize, Input)]
 pub struct UpdateRequest<T, K>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
-    K: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
+    K: Input + Output,
 {
     pub id: K,
     pub data: T,
@@ -331,7 +313,7 @@ where
 #[derive(serde::Deserialize, Input)]
 pub struct GetRequest<K>
 where
-    K: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    K: Input + Output,
 {
     pub id: K,
 }
@@ -340,38 +322,16 @@ where
 #[derive(serde::Serialize, Output)]
 pub struct EntityResponse<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub entity: T,
     pub metadata: HashMap<String, String>,
 }
 
-// Example handlers - you'd register these for specific types
-async fn create_entity<T>(
-    state: Arc<AppState>,
-    request: CreateRequest<T>,
-    _headers: reflectapi::Empty,
-) -> Result<EntityResponse<T>, CreateEntityError>
-where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output + Clone,
-{
-    // Implementation would be type-specific
-    todo!("Implement based on entity type")
-}
-
-// In practice, you'd have specific handlers:
-async fn create_user(
-    state: Arc<AppState>,
-    request: CreateRequest<User>,
-    headers: reflectapi::Empty,
-) -> Result<EntityResponse<User>, CreateEntityError> {
-    // Specific implementation for User
-    let user = state.user_service.create(request.data).await?;
-    Ok(EntityResponse {
-        entity: user,
-        metadata: HashMap::new(),
-    })
-}
+// Usage with specific types
+type CreateUserRequest = CreateRequest<User>;
+type CreateUserResponse = EntityResponse<User>;
+type UpdateUserRequest = UpdateRequest<User, u32>;
 ```
 
 ## Client-Side Generated Code
@@ -509,10 +469,10 @@ match result {
 ### Generic Builders
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct QueryBuilder<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub filters: Vec<Filter<T>>,
     pub sorts: Vec<Sort>,
@@ -520,21 +480,21 @@ where
     pub offset: Option<u32>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Filter<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub field: String,
     pub operator: FilterOperator,
     pub value: FilterValue<T>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "type")]
 pub enum FilterValue<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     Single { value: T },
     Multiple { values: Vec<T> },
@@ -542,7 +502,7 @@ where
     Null,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub enum FilterOperator {
     Equals,
     NotEquals,
@@ -562,22 +522,22 @@ pub enum FilterOperator {
 ### Generic State Machines
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct StateMachine<S, E>
 where
-    S: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
-    E: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    S: Input + Output,
+    E: Input + Output,
 {
     pub current_state: S,
     pub history: Vec<StateTransition<S, E>>,
     pub metadata: std::collections::HashMap<String, String>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct StateTransition<S, E>
 where
-    S: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
-    E: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    S: Input + Output,
+    E: Input + Output,
 {
     pub from_state: S,
     pub to_state: S,
@@ -586,7 +546,7 @@ where
 }
 
 // Example: Order state machine
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub enum OrderState {
     Created,
     PaymentPending,
@@ -598,7 +558,7 @@ pub enum OrderState {
     Refunded,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub enum OrderEvent {
     PaymentRequested,
     PaymentReceived,
@@ -618,12 +578,10 @@ type OrderStateMachine = StateMachine<OrderState, OrderEvent>;
 
 ```rust,ignore
 // ❌ Too many constraints
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Container<T>
 where
-    T: serde::Serialize 
-        + for<'de> serde::Deserialize<'de> 
-        + Input 
+    T: Input 
         + Output 
         + Clone 
         + Debug 
@@ -635,10 +593,10 @@ where
 }
 
 // ✅ Minimal constraints for `reflectapi`
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Container<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub value: T,
 }
@@ -646,7 +604,7 @@ where
 // Add trait bounds only in impl blocks when needed
 impl<T> Container<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output + Clone,
+    T: Input + Output + Clone,
 {
     pub fn duplicate(&self) -> Self {
         Self {
@@ -665,13 +623,7 @@ pub type UserResult = ApiResult<User, ValidationError>;
 pub type ProductCollection = Collection<Product>;
 
 // Make APIs easier to understand
-async fn list_users(
-    state: Arc<AppState>,
-    request: ListUsersRequest,
-    _headers: reflectapi::Empty,
-) -> Result<UserPage, ListUsersError> {
-    // Implementation
-}
+// Handler signatures become cleaner and more readable
 ```
 
 ### 3. Document Generic Parameters
@@ -683,10 +635,10 @@ async fn list_users(
 /// 
 /// * `T` - The type of items in the collection. Must be serializable and
 ///         implement `reflectapi` Input/Output traits.
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Page<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     /// Items in this page
     pub items: Vec<T>,
@@ -757,7 +709,7 @@ mod tests {
 
 ```rust,ignore
 // ❌ Missing lifetime in where clause
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Container<T>
 where
     T: serde::Serialize + serde::Deserialize + Input + Output, // Wrong!
@@ -766,10 +718,10 @@ where
 }
 
 // ✅ Correct lifetime specification
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Container<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub value: T,
 }
@@ -779,26 +731,26 @@ where
 
 ```rust,ignore
 // ❌ Adding unnecessary constraints at struct level
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Container<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output + Clone + Debug,
+    T: Input + Output + Clone + Debug,
 {
     pub value: T,
 }
 
 // ✅ Add constraints only where needed
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Container<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
+    T: Input + Output,
 {
     pub value: T,
 }
 
 impl<T> Clone for Container<T>
 where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output + Clone,
+    T: Input + Output + Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -810,6 +762,4 @@ where
 
 ## Next Steps
 
-- Learn about [Working with Tagged Enums](./tagged-enums.md) for discriminated union patterns
-- Explore [Working with Custom Types](./custom-types.md) for strong typing strategies  
-- See [Validation and Error Handling](./validation.md) for generic error patterns
+- Learn about [Working with Custom Types](./custom-types.md) for strong typing strategies  
