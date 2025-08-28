@@ -15,7 +15,7 @@ Serde provides four tagging strategies for enums, each with different serializat
 The default serialization wraps the variant in an object:
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub enum Behavior {
     Calm,
     Aggressive(f64, String),
@@ -51,7 +51,7 @@ export type Behavior =
 Uses a `type` field to discriminate variants:
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Kind {
     /// A dog
@@ -88,7 +88,7 @@ export type Kind =
 Separates the tag and content into different fields:
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "type", content = "data")]
 pub enum Message {
     Text(String),
@@ -122,7 +122,7 @@ export type Message =
 No discriminator field - relies on structure to determine variant:
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(untagged)]
 pub enum Value {
     String(String),
@@ -163,7 +163,7 @@ true
 - Works well with OpenAPI specifications
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "status")]
 pub enum OrderStatus {
     Pending { order_id: String },
@@ -190,7 +190,7 @@ pub enum OrderStatus {
 - Simple discriminated unions
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 pub enum UserEvent {
     Login { user_id: u32, timestamp: String },
     Logout { user_id: u32 },
@@ -206,7 +206,7 @@ pub enum UserEvent {
 - Integration with external systems
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "message_type", content = "payload")]
 pub enum WebSocketMessage {
     UserJoined(UserInfo),
@@ -223,7 +223,7 @@ pub enum WebSocketMessage {
 You can nest tagged enums for complex hierarchies:
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "category")]
 pub enum Product {
     Electronics {
@@ -238,14 +238,14 @@ pub enum Product {
     },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "type")]
 pub enum ElectronicDevice {
     Laptop { cpu: String, ram_gb: u32 },
     Phone { os: String, storage_gb: u32 },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "type")]
 pub enum ClothingItem {
     Shirt { size: String, color: String },
@@ -258,7 +258,7 @@ pub enum ClothingItem {
 Use different tag field names for clarity:
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "action_type")]
 pub enum UserAction {
     Create { name: String, email: String },
@@ -266,7 +266,7 @@ pub enum UserAction {
     Delete { id: u32 },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "event", content = "details")]
 pub enum AuditLog {
     UserAction(UserAction),
@@ -280,7 +280,7 @@ pub enum AuditLog {
 Control how variants appear in JSON:
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "payment_method", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PaymentMethod {
     CreditCard { 
@@ -429,7 +429,7 @@ enum Event {
 Be careful with unit variants in internally tagged enums:
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Input, Output)]
 #[serde(tag = "type")]
 pub enum State {
     Loading,        // OK - becomes {"type": "Loading"}
@@ -474,4 +474,3 @@ enum Message {
 
 - Learn about [Using Generic Types](./generics.md) with tagged enums
 - Explore [Working with Custom Types](./custom-types.md) for complex data structures
-- See [Validation and Error Handling](./validation.md) for robust error types

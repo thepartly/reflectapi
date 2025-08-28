@@ -21,7 +21,6 @@
 - [Generating & Using Clients](./how-to/clients.md)
 - [Working with Custom Types](./how-to/custom-types.md)
 - [Integrating with Axum](./how-to/axum.md)
-- [Validation and Error Handling](./how-to/validation.md)
 - [Using Generic Types](./how-to/generics.md)
 - [Working with Tagged Enums](./how-to/tagged-enums.md)
 - [OpenAPI Integration](./how-to/openapi.md)

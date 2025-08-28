@@ -6,8 +6,7 @@ Learn how to integrate external types and create strongly-typed wrappers for you
 
 `reflectapi` provides several ways to work with custom types:
 - **NewType patterns** for strong typing and validation
-- **Manual trait implementations** for external crate types  
-- **Feature flags** for common external types
+- **Feature flags** for common external types (chrono, uuid, url, etc.)
 - **Generic wrappers** for reusable type patterns
 
 ## NewType Patterns
@@ -86,11 +85,9 @@ impl PhoneNumber {
 }
 ```
 
-### Usage in API Handlers
+### Usage in API Types
 
 ```rust,ignore
-use reflectapi::{Input, Output};
-
 #[derive(serde::Deserialize, Input)]
 pub struct CreateUserRequest {
     pub email: EmailAddress,
@@ -104,152 +101,10 @@ pub struct User {
     pub phone: Option<PhoneNumber>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
-
-async fn create_user(
-    state: Arc<AppState>,
-    request: CreateUserRequest,
-    _headers: reflectapi::Empty,
-) -> Result<User, CreateUserError> {
-    // Validation already happened during deserialization
-    let user_id = state.next_user_id();
-    
-    let user = User {
-        id: UserId(user_id),
-        email: request.email,
-        phone: request.phone,
-        created_at: chrono::Utc::now(),
-    };
-    
-    Ok(user)
-}
 ```
 
-## Manual Trait Implementations
+With NewTypes, validation happens automatically during deserialization, providing type safety at the API boundary.
 
-For types from external crates without `reflectapi` support:
-
-### Example: Custom Date Type
-
-```rust,ignore
-// External crate type we want to use
-pub struct CustomDate {
-    year: u16,
-    month: u8,
-    day: u8,
-}
-
-impl serde::Serialize for CustomDate {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let date_string = format!("{:04}-{:02}-{:02}", self.year, self.month, self.day);
-        serializer.serialize_str(&date_string)
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for CustomDate {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        // Parse YYYY-MM-DD format
-        let parts: Vec<&str> = s.split('-').collect();
-        if parts.len() != 3 {
-            return Err(serde::de::Error::custom("Invalid date format"));
-        }
-        
-        Ok(CustomDate {
-            year: parts[0].parse().map_err(serde::de::Error::custom)?,
-            month: parts[1].parse().map_err(serde::de::Error::custom)?,
-            day: parts[2].parse().map_err(serde::de::Error::custom)?,
-        })
-    }
-}
-
-// Manual `reflectapi` trait implementations
-impl reflectapi::Input for CustomDate {
-    fn reflectapi_input_type(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
-        // Register as a string type with format constraint
-        let type_name = schema.register_type(
-            "CustomDate".into(),
-            reflectapi_schema::Type::String {
-                title: Some("Custom Date".into()),
-                description: Some("Date in YYYY-MM-DD format".into()),
-                format: Some("date".into()),
-                pattern: Some("^\\d{4}-\\d{2}-\\d{2}$".into()),
-                min_length: Some(10),
-                max_length: Some(10),
-            }
-        );
-        reflectapi::TypeReference::new(type_name, vec![])
-    }
-}
-
-impl reflectapi::Output for CustomDate {
-    fn reflectapi_output_type(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
-        // Same implementation for output
-        Self::reflectapi_input_type(schema)
-    }
-}
-```
-
-### Complex Custom Types
-
-For structs with multiple fields:
-
-```rust,ignore
-#[derive(Debug, Clone)]
-pub struct GeoCoordinate {
-    pub latitude: f64,
-    pub longitude: f64,
-    pub altitude: Option<f64>,
-}
-
-impl reflectapi::Input for GeoCoordinate {
-    fn reflectapi_input_type(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
-        use reflectapi_schema::{Type, ObjectField};
-        
-        let type_name = schema.register_type(
-            "GeoCoordinate".into(),
-            Type::Object {
-                title: Some("Geographic Coordinate".into()),
-                description: Some("GPS coordinates with optional altitude".into()),
-                properties: vec![
-                    ObjectField {
-                        name: "latitude".into(),
-                        type_ref: f64::reflectapi_input_type(schema),
-                        description: Some("Latitude in decimal degrees (-90 to 90)".into()),
-                        required: true,
-                    },
-                    ObjectField {
-                        name: "longitude".into(),
-                        type_ref: f64::reflectapi_input_type(schema),
-                        description: Some("Longitude in decimal degrees (-180 to 180)".into()),
-                        required: true,
-                    },
-                    ObjectField {
-                        name: "altitude".into(),
-                        type_ref: Option::<f64>::reflectapi_input_type(schema),
-                        description: Some("Altitude in meters above sea level".into()),
-                        required: false,
-                    },
-                ],
-                additional_properties: false,
-            }
-        );
-        
-        reflectapi::TypeReference::new(type_name, vec![])
-    }
-}
-
-impl reflectapi::Output for GeoCoordinate {
-    fn reflectapi_output_type(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
-        Self::reflectapi_input_type(schema)
-    }
-}
-```
 
 ## External Type Support via Feature Flags
 
@@ -562,7 +417,7 @@ pub struct UserId(pub u32);
 pub struct UserId(pub u32);
 ```
 
-### 2. Missing Clone/Debug Traits
+### 2. Missing Useful Traits
 
 ```rust,ignore
 // ❌ Hard to work with
@@ -575,36 +430,6 @@ pub struct UserId(pub u32);
 pub struct UserId(pub u32);
 ```
 
-### 3. Inconsistent Validation
-
-```rust,ignore
-// ❌ Validation only in constructor
-impl EmailAddress {
-    pub fn new(email: String) -> Result<Self, &'static str> {
-        // validation here
-    }
-}
-
-// But serde can bypass validation!
-
-// ✅ Use serde validation or try_from
-impl TryFrom<String> for EmailAddress {
-    type Error = &'static str;
-    
-    fn try_from(email: String) -> Result<Self, Self::Error> {
-        if email.contains('@') {
-            Ok(EmailAddress(email))
-        } else {
-            Err("Invalid email format")
-        }
-    }
-}
-
-// Then use serde(try_from) if needed
-```
-
 ## Next Steps
 
 - Learn about [Using Generic Types](./generics.md) for advanced type patterns
-- Explore [Working with Tagged Enums](./tagged-enums.md) for discriminated unions
-- See [Validation and Error Handling](./validation.md) for comprehensive validation strategies

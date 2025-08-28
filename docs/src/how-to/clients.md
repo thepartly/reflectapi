@@ -327,5 +327,5 @@ GENERATE_CLIENTS=1 cargo run
 ## Next Steps
 
 - See language-specific guides for [TypeScript](../clients/typescript.md), [Python](../clients/python.md), and [Rust](../clients/rust.md)
-- Learn about [Custom Types](./custom-types.md) and [Validation](./validation.md)
+- Learn about [Custom Types](./custom-types.md) for advanced type handling
 - Explore [Client Comparison](../clients/README.md) for feature differences
