@@ -1,10 +1,10 @@
 # Working with Tagged Enums
 
-Learn how to use Serde's tagging strategies with ReflectAPI to create type-safe, discriminated unions that translate beautifully to TypeScript and other languages.
+Learn how to use Serde's tagging strategies with `reflectapi` to create type-safe, discriminated unions that translate beautifully to TypeScript and other languages.
 
 ## Overview
 
-Tagged enums are one of ReflectAPI's most powerful features. Rust's enums with Serde's tagging strategies create discriminated unions that maintain type safety across all generated client languages, particularly TypeScript's discriminated unions.
+Tagged enums are one of `reflectapi`'s most powerful features. Rust's enums with Serde's tagging strategies create discriminated unions that maintain type safety across all generated client languages, particularly TypeScript's discriminated unions.
 
 ## Serde Tagging Strategies
 
@@ -310,7 +310,7 @@ Results in:
 
 ### TypeScript Usage
 
-ReflectAPI generates TypeScript discriminated unions that work perfectly with type guards:
+`reflectapi` generates TypeScript discriminated unions that work perfectly with type guards:
 
 ```typescript
 // Generated type

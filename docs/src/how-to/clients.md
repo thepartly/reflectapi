@@ -1,6 +1,6 @@
 # Generating & Using Clients
 
-Learn how to generate and use type-safe client libraries from your ReflectAPI definition.
+Learn how to generate and use type-safe client libraries from your `reflectapi` definition.
 
 ## Quick Start
 
@@ -26,13 +26,13 @@ Use the CLI to generate clients for your target languages:
 
 ```bash
 # TypeScript (most common)
-reflectapi-cli codegen --language typescript --schema api-schema.json --output clients/typescript
+cargo run --bin reflectapi codegen --language typescript --schema api-schema.json --output clients/typescript
 
 # Python
-reflectapi-cli codegen --language python --schema api-schema.json --output clients/python
+cargo run --bin reflectapi codegen --language python --schema api-schema.json --output clients/python
 
 # Rust
-reflectapi-cli codegen --language rust --schema api-schema.json --output clients/rust
+cargo run --bin reflectapi codegen --language rust --schema api-schema.json --output clients/rust
 ```
 
 ### 3. Use the Generated Client
@@ -92,56 +92,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Development Workflow
 
-### 1. Schema Versioning
-
-Keep your schema files versioned to track API changes:
-
-```bash
-# Tag schemas with versions
-cp api-schema.json schemas/v1.0.0.json
-
-# Or use git tags
-git tag -a v1.0.0 -m "API v1.0.0"
-```
-
-### 2. Client Updates
+### Client Updates
 
 Regenerate clients when your API changes:
 
 ```bash
 # Update schema
 cargo run  # Regenerates api-schema.json
-
-# Regenerate all clients
-make generate-clients  # or your build script
 ```
 
-### 3. Automation
 
-Set up automatic client generation in your CI/CD pipeline:
+You can use a `build.rs` script to automate client generation during server builds.
 
-```yaml
-# .github/workflows/generate-clients.yml
-name: Generate Clients
-on:
-  push:
-    branches: [main]
-    paths: ['src/**/*.rs']
-
-jobs:
-  generate:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Generate Schema
-      run: cargo run --bin generate-schema
-    - name: Generate TypeScript Client
-      run: reflectapi-cli codegen --language typescript --schema api-schema.json --output clients/typescript
-    - name: Generate Python Client  
-      run: reflectapi-cli codegen --language python --schema api-schema.json --output clients/python
-    - name: Generate Rust Client
-      run: reflectapi-cli codegen --language rust --schema api-schema.json --output clients/rust
-```
 
 ## Best Practices
 
@@ -149,7 +111,6 @@ jobs:
 
 - **Export schema in build**: Include schema generation in your build process
 - **Version control schemas**: Commit generated schemas for reproducibility
-- **Validate schemas**: Ensure schemas are valid before generating clients
 
 ### Client Distribution
 
@@ -165,12 +126,6 @@ All clients provide structured error information:
 - **Error messages** from the server
 - **Network errors** for connectivity issues
 
-### Testing
-
-- **Unit tests**: Test client functionality with mocked responses
-- **Integration tests**: Test against real API instances
-- **Generated tests**: Include tests in generated client packages
-
 ## Language-Specific Guides
 
 For detailed documentation on each client language:
@@ -178,33 +133,6 @@ For detailed documentation on each client language:
 - **[TypeScript Client](../clients/typescript.md)** - Full type safety, async/await, framework integration
 - **[Python Client](../clients/python.md)** - Pydantic models, async httpx, data science integration  
 - **[Rust Client](../clients/rust.md)** - Zero-cost abstractions, compile-time safety, CLI tools
-
-## Troubleshooting
-
-### Common Issues
-
-**Schema generation fails:**
-- Ensure your builder includes all types and routes
-- Check that all types implement required traits
-
-**Client compilation errors:**
-- Verify the schema is up-to-date and valid JSON
-- Check that all dependencies are properly installed
-
-**Runtime errors:**
-- Verify the base URL and network connectivity
-- Check authentication credentials and headers
-
-**Type mismatches:**
-- Regenerate clients after API changes
-- Ensure schema and client versions are aligned
-
-### Debug Tips
-
-1. **Validate schema**: Use `reflectapi-cli validate` to check schema correctness
-2. **Test generation**: Generate clients in a temporary directory first
-3. **Check logs**: Enable debug logging in generated clients
-4. **Version control**: Use git to track changes between client generations
 
 ## Next Steps
 

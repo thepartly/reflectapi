@@ -1,6 +1,7 @@
 # Quick Start
 
-This guide will have you up and running with ReflectAPI in under 5 minutes.
+
+This guide will have you up and running with `reflectapi` in under 5 minutes.
 
 ## Prerequisites
 
@@ -16,7 +17,7 @@ cd my-api
 
 ## Add Dependencies
 
-Add ReflectAPI to your `Cargo.toml`:
+Add `reflectapi` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -180,4 +181,4 @@ const user = await client.users.get(1);
 3. **Generate schema** as JSON for client generation
 4. **Generate clients** using the CLI tool
 
-That's it! You've built your first ReflectAPI.
+That's it! You've built your first `reflectapi`.

@@ -1,6 +1,24 @@
-# ReflectAPI
+<div align="center">
+  <img src=".github/reflectapi-text.png" alt="reflectapi" width="400">
+  <br>
+  <img src=".github/reflectapi-logo.png" alt="reflectapi logo" width="150">
+</div>
 
-ReflectAPI is a library for Rust code-first web service API declaration and corresponding clients code generation tools.
+<div align="center">
+  <a href="https://crates.io/crates/reflectapi">
+    <img src="https://img.shields.io/crates/v/reflectapi.svg" alt="Crates.io">
+  </a>
+  <a href="https://docs.rs/reflectapi">
+    <img src="https://docs.rs/reflectapi/badge.svg" alt="Documentation">
+  </a>
+  <a href="https://github.com/thepartly/reflectapi/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+  </a>
+</div>
+
+<br>
+
+`reflectapi` is a library for Rust code-first web service API declaration and corresponding clients code generation tools.
 
 ## Features
 
@@ -10,10 +28,27 @@ ReflectAPI is a library for Rust code-first web service API declaration and corr
 - **Type-safe** clients with full IntelliSense support
 - **Web framework integration** (Axum supported)
 
+## Installation
+
+Add `reflectapi` to your `Cargo.toml`:
+
+```toml
+[dependencies]
+reflectapi = "0.15"
+```
+
+Or install via cargo:
+
+```bash
+cargo add reflectapi
+```
+
 ## Documentation
 
-- [API Documentation](https://docs.rs/reflectapi) - Complete API reference
-- [User Guide](https://thepartly.github.io/reflectapi/) - Tutorials and examples
+- 📦 [Crates.io](https://crates.io/crates/reflectapi) - Package information and versions
+- 📖 [API Documentation](https://docs.rs/reflectapi) - Complete API reference  
+- 📚 [User Guide](https://thepartly.github.io/reflectapi/) - Tutorials and examples
+- 🚀 [Quick Start](https://thepartly.github.io/reflectapi/getting-started/quick-start.html) - Get up and running in 5 minutes
 
 ### Building Documentation
 

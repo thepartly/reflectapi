@@ -1,6 +1,6 @@
 # TypeScript Client
 
-The TypeScript client provides full type safety, modern async/await patterns, and excellent IDE support for consuming ReflectAPI services.
+The TypeScript client provides full type safety, modern async/await patterns, and excellent IDE support for consuming `reflectapi` services.
 
 ## Features
 
@@ -13,7 +13,7 @@ The TypeScript client provides full type safety, modern async/await patterns, an
 
 ## Generation
 
-Generate a TypeScript client from your ReflectAPI schema:
+Generate a TypeScript client from your `reflectapi` schema:
 
 ```bash
 reflectapi-cli codegen --language typescript --schema api-schema.json --output clients/typescript

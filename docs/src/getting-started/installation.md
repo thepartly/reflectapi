@@ -1,10 +1,10 @@
 # Installation
 
-Get ReflectAPI up and running in minutes.
+Get `reflectapi` up and running in minutes.
 
 ## Basic Setup
 
-Add ReflectAPI to your `Cargo.toml`:
+Add `reflectapi` to your `Cargo.toml`:
 
 ```toml
 [dependencies]

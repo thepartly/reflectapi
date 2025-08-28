@@ -1,10 +1,10 @@
 # Creating Endpoints
 
-Now that we have our types defined, let's create the API endpoints. ReflectAPI uses a specific handler signature that enables automatic client generation and consistent error handling.
+Now that we have our types defined, let's create the API endpoints. `reflectapi` uses a specific handler signature that enables automatic client generation and consistent error handling.
 
 ## The Canonical Handler Signature
 
-Every ReflectAPI handler follows this exact pattern:
+Every `reflectapi` handler follows this exact pattern:
 
 ```rust,ignore
 async fn handler_name(
@@ -14,7 +14,7 @@ async fn handler_name(
 ) -> Result<ResponseType, ErrorType>
 ```
 
-This signature is **fixed** and enables ReflectAPI to:
+This signature is **fixed** and enables `reflectapi` to:
 - Generate consistent client code across all languages
 - Handle HTTP status codes properly
 - Pass request metadata consistently
@@ -239,7 +239,7 @@ pub async fn update_pet(
             pet_id: request.id,
         })?;
     
-    // Update fields using ReflectAPI's three-state option
+    // Update fields using `reflectapi`'s three-state option
     if let Some(new_name) = request.name.unfold() {
         if let Some(name) = new_name {
             if name.trim().is_empty() {
@@ -320,9 +320,9 @@ pub async fn delete_pet(
 }
 ```
 
-## Creating the ReflectAPI Builder
+## Creating the `reflectapi` Builder
 
-Now let's create the ReflectAPI builder that registers all our endpoints. Create `src/api.rs`:
+Now let's create the `reflectapi` builder that registers all our endpoints. Create `src/api.rs`:
 
 ```rust,ignore
 use std::sync::Arc;
@@ -420,11 +420,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create application state
     let app_state = Arc::new(AppState::new());
     
-    // Build the ReflectAPI schema
+    // Build the `reflectapi` schema
     let api_builder = create_api();
     let (_schema, routers) = api_builder.build()?;
     
-    // Create the Axum router with ReflectAPI integration
+    // Create the Axum router with `reflectapi` integration
     let app = reflectapi::axum::into_router(app_state.clone(), routers, |_name, r| r)
         .layer(CorsLayer::permissive())
         .fallback(not_found_handler);
@@ -475,14 +475,14 @@ async fn handler(
 ### Why Not Standard Axum Extractors?
 
 ```rust,ignore
-// ❌ This won't work with ReflectAPI
+// ❌ This won't work with `reflectapi`
 async fn bad_handler(
     State(state): State<AppState>,
     Extension(user): Extension<AuthUser>,  // Breaks client generation!
     Json(request): Json<CreatePetRequest>,
 ) -> Result<Json<Pet>, AppError>
 
-// ✅ ReflectAPI requires this exact pattern
+// ✅ `reflectapi` requires this exact pattern
 async fn good_handler(
     state: Arc<AppState>,
     request: CreatePetRequest,
@@ -490,7 +490,7 @@ async fn good_handler(
 ) -> Result<Pet, PetError>
 ```
 
-The ReflectAPI pattern ensures that:
+The `reflectapi` pattern ensures that:
 - Generated clients know exactly what parameters to send
 - All languages get consistent method signatures
 - HTTP metadata is handled predictably
@@ -537,7 +537,7 @@ curl "http://localhost:3000/pets.list?limit=5" \
 ## What You've Accomplished
 
 ✅ **Canonical handler signatures** that enable consistent client generation  
-✅ **Authentication middleware** that works with ReflectAPI's constraints  
+✅ **Authentication middleware** that works with `reflectapi`'s constraints  
 ✅ **Full CRUD operations** for pet management  
 ✅ **Proper error handling** with HTTP status codes  
 ✅ **Three-state option handling** for partial updates  
@@ -547,11 +547,11 @@ curl "http://localhost:3000/pets.list?limit=5" \
 
 When a request comes in:
 
-1. **Axum** routes the request to the ReflectAPI handler
-2. **ReflectAPI** deserializes the request body to your `RequestType`
-3. **ReflectAPI** extracts headers and creates your `HeadersType`
+1. **Axum** routes the request to the `reflectapi` handler
+2. **`reflectapi`** deserializes the request body to your `RequestType`
+3. **`reflectapi`** extracts headers and creates your `HeadersType`
 4. **Your handler** processes the request with type safety
-5. **ReflectAPI** serializes the response and sets the HTTP status code
+5. **`reflectapi`** serializes the response and sets the HTTP status code
 6. **Generated clients** receive properly typed responses
 
 ## Next Steps

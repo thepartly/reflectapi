@@ -1,6 +1,6 @@
 # Client Generation
 
-ReflectAPI automatically generates type-safe client libraries for multiple programming languages from your Rust API definition. This section covers how to generate and use clients in different languages.
+`reflectapi` automatically generates type-safe client libraries for multiple programming languages from your Rust API definition. This section covers how to generate and use clients in different languages.
 
 ## Supported Languages
 
@@ -12,7 +12,7 @@ ReflectAPI automatically generates type-safe client libraries for multiple progr
 
 ## Code Generation Workflow
 
-1. **Define your API** using ReflectAPI traits and builder
+1. **Define your API** using `reflectapi` traits and builder
 2. **Generate schema** as JSON from your Rust application
 3. **Run the CLI** to generate client libraries
 4. **Use the clients** in your applications with full type safety

@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker for serving ReflectAPI documentation
+ * Cloudflare Worker for serving `reflectapi` documentation
  * Uses Workers Static Assets feature to serve mdBook output
  */
 

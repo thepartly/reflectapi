@@ -1,12 +1,12 @@
 # Validation and Error Handling
 
-Learn how to add robust validation and error handling to your ReflectAPI applications.
+Learn how to add robust validation and error handling to your `reflectapi` applications.
 
 ## Input Validation
 
 ### Using Serde Validation
 
-ReflectAPI works seamlessly with serde's built-in validation:
+`reflectapi` works seamlessly with serde's built-in validation:
 
 ```rust,ignore
 use reflectapi::{Input, Output};

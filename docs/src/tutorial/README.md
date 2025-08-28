@@ -15,10 +15,10 @@ A Pet Store API with these features:
 ## What You'll Learn
 
 Throughout this tutorial, you'll discover:
-- How to define types with ReflectAPI's derive macros
+- How to define types with `reflectapi`'s derive macros
 - Creating API endpoints with the canonical handler signature
 - Implementing validation and comprehensive error handling
-- Working with ReflectAPI's three-state option type
+- Working with `reflectapi`'s three-state option type
 - Generating and using clients in multiple languages
 - Testing your API with generated clients
 

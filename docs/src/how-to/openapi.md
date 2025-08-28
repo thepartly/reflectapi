@@ -1,10 +1,10 @@
 # OpenAPI Integration
 
-Learn how to generate OpenAPI specifications from your ReflectAPI schema and serve interactive API documentation.
+Learn how to generate OpenAPI specifications from your `reflectapi` schema and serve interactive API documentation.
 
 ## Overview
 
-ReflectAPI automatically generates OpenAPI 3.0 specifications from your API schema. This allows you to:
+`reflectapi` automatically generates OpenAPI 3.0 specifications from your API schema. This allows you to:
 - Generate interactive API documentation
 - Import your API into tools like Postman or Insomnia
 - Use OpenAPI generators for additional client libraries
@@ -14,7 +14,7 @@ ReflectAPI automatically generates OpenAPI 3.0 specifications from your API sche
 
 ### Basic Generation
 
-Convert your ReflectAPI schema to OpenAPI format:
+Convert your `reflectapi` schema to OpenAPI format:
 
 ```rust,ignore
 use reflectapi::{Builder, codegen::openapi::Spec};
@@ -159,7 +159,7 @@ let app = axum_app
 
 ### Schema Enrichment
 
-ReflectAPI preserves documentation from your Rust code:
+`reflectapi` preserves documentation from your Rust code:
 
 ```rust,ignore
 /// User account information

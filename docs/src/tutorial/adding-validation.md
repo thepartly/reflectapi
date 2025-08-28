@@ -1,13 +1,13 @@
 # Adding Validation
 
-Now that you have working endpoints, let's add comprehensive validation to make your API production-ready. ReflectAPI provides multiple layers of validation that work seamlessly with client generation.
+Now that you have working endpoints, let's add comprehensive validation to make your API production-ready. `reflectapi` provides multiple layers of validation that work seamlessly with client generation.
 
-## Types of Validation in ReflectAPI
+## Types of Validation in `reflectapi`
 
 1. **Schema-level validation** - Built into your type definitions
 2. **Serde validation** - Using serde attributes for serialization rules  
 3. **Business logic validation** - Custom validation in your handlers
-4. **Schema validation** - Using the ReflectAPI builder's validation system
+4. **Schema validation** - Using the `reflectapi` builder's validation system
 
 ## Schema-Level Validation
 
@@ -889,7 +889,7 @@ done
 ✅ **Error context** with detailed validation messages  
 ✅ **Structured logging** for debugging and monitoring  
 
-## Benefits of ReflectAPI's Validation
+## Benefits of `reflectapi`'s Validation
 
 1. **Type Safety**: Validation errors are compile-time checked types
 2. **Client Generation**: Validation constraints appear in generated client documentation

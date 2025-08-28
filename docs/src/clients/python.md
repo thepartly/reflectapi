@@ -1,6 +1,6 @@
 # Python Client
 
-The Python client provides runtime type validation with Pydantic, async/await support, and comprehensive error handling for consuming ReflectAPI services.
+The Python client provides runtime type validation with Pydantic, async/await support, and comprehensive error handling for consuming `reflectapi` services.
 
 ## Features
 
@@ -20,7 +20,7 @@ The Python client provides runtime type validation with Pydantic, async/await su
 
 ## Generation
 
-Generate a Python client from your ReflectAPI schema:
+Generate a Python client from your `reflectapi` schema:
 
 ```bash
 reflectapi-cli codegen --language python --schema api-schema.json --output clients/python
@@ -37,7 +37,7 @@ This creates a complete Python package with:
 Install the generated client and its dependencies:
 
 ```bash
-# Install the ReflectAPI Python runtime
+# Install the `reflectapi` Python runtime
 pip install reflectapi-runtime
 
 # Install the generated client
@@ -327,7 +327,7 @@ class AuthenticatedClient(AsyncClient):
 
 ## Three-State Option Handling
 
-ReflectAPI supports three-state options (Undefined/None/Some) that map to Python naturally:
+`reflectapi` supports three-state options (Undefined/None/Some) that map to Python naturally:
 
 ```python
 from clients.python.models import UpdateUserRequest

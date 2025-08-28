@@ -1,10 +1,10 @@
 # Error Handling
 
-Error handling is crucial for creating reliable APIs. ReflectAPI provides powerful tools for creating consistent, informative error responses that work seamlessly across all generated clients.
+Error handling is crucial for creating reliable APIs. `reflectapi` provides powerful tools for creating consistent, informative error responses that work seamlessly across all generated clients.
 
-## ReflectAPI's Error Handling Philosophy
+## `reflectapi`'s Error Handling Philosophy
 
-ReflectAPI treats errors as first-class citizens:
+`reflectapi` treats errors as first-class citizens:
 
 1. **Type-safe errors** - Errors are strongly typed with derive macros
 2. **HTTP status codes** - Automatic mapping via the `StatusCode` trait
@@ -1000,7 +1000,7 @@ curl -X POST http://localhost:3000/pets.create \
 ✅ **Client-side error handling** with typed exceptions  
 ✅ **Comprehensive error testing** scenarios  
 
-## Benefits of ReflectAPI's Error System
+## Benefits of `reflectapi`'s Error System
 
 1. **Type Safety**: All errors are compile-time checked
 2. **Consistency**: Same error structure across all client languages

@@ -1,6 +1,6 @@
 # Testing Your API
 
-Now that you have a complete Pet Store API, let's test it thoroughly using generated clients and various testing strategies. ReflectAPI makes testing easy by generating clients in multiple languages.
+Now that you have a complete Pet Store API, let's test it thoroughly using generated clients and various testing strategies. `reflectapi` makes testing easy by generating clients in multiple languages.
 
 ## What We'll Cover
 
@@ -110,7 +110,7 @@ curl -X POST http://localhost:3000/pets.get \
 
 ## Generating Clients
 
-First, generate the ReflectAPI schema:
+First, generate the `reflectapi` schema:
 
 ```bash
 # Generate schema file
@@ -1315,7 +1315,7 @@ if __name__ == "__main__":
 ✅ **Performance monitoring** and metrics  
 ✅ **Cross-language client validation**  
 
-## Key Testing Benefits of ReflectAPI
+## Key Testing Benefits of `reflectapi`
 
 1. **Type Safety**: Generated clients catch errors at compile/development time
 2. **Consistency**: Same API behavior across all client languages
@@ -1341,7 +1341,7 @@ Before deploying your Pet Store API to production:
 
 ## Congratulations! 🎉
 
-You've successfully built a complete Pet Store API using ReflectAPI with:
+You've successfully built a complete Pet Store API using `reflectapi` with:
 
 - **Type-safe API definitions** with automatic client generation
 - **Comprehensive validation** at multiple levels
@@ -1349,4 +1349,4 @@ You've successfully built a complete Pet Store API using ReflectAPI with:
 - **Cross-language client support** (TypeScript, Rust, Python)
 - **Thorough testing** including unit, integration, and load tests
 
-Your API is now ready for production deployment and can serve as a foundation for building larger, more complex APIs with ReflectAPI!
+Your API is now ready for production deployment and can serve as a foundation for building larger, more complex APIs with `reflectapi`!

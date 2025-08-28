@@ -1,10 +1,10 @@
 # Feature Flags
 
-Complete reference for ReflectAPI feature flags and build configuration.
+Complete reference for `reflectapi` feature flags and build configuration.
 
 ## Feature Flags
 
-ReflectAPI uses feature flags to enable specific functionality:
+`reflectapi` uses feature flags to enable specific functionality:
 
 ### Core Features
 
@@ -112,7 +112,7 @@ serde_json = "1.0"
 
 ## Version Compatibility
 
-| ReflectAPI | Rust | Serde | Axum |
+| `reflectapi` | Rust | Serde | Axum |
 |------------|------|-------|------|
 | 0.15.x     | 1.78+ | 1.0   | 0.8  |
 

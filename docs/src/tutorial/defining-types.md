@@ -1,6 +1,6 @@
 # Defining Types
 
-In this first step, we'll create all the data models for our Pet Store API. ReflectAPI uses derive macros to automatically generate schemas, serialization, and client code from your Rust types.
+In this first step, we'll create all the data models for our Pet Store API. `reflectapi` uses derive macros to automatically generate schemas, serialization, and client code from your Rust types.
 
 ## The Pet Model
 
@@ -320,7 +320,7 @@ pub struct DeletePetResponse {
 }
 ```
 
-## The Power of ReflectAPI's Option Type
+## The Power of `reflectapi`'s Option Type
 
 Notice we're using `reflectapi::Option<T>` for some update fields. This provides **three-state logic**:
 
@@ -499,7 +499,7 @@ The `Input` and `Output` derive macros automatically:
 
 ## Understanding the Generated Schema
 
-ReflectAPI analyzes your types and creates rich schemas. For example, your `Pet` type generates:
+`reflectapi` analyzes your types and creates rich schemas. For example, your `Pet` type generates:
 
 - **TypeScript**: `interface Pet { id: number; name: string; kind: PetKind; ... }`
 - **Python**: `class Pet(BaseModel): id: int; name: str; kind: PetKind; ...`
@@ -507,4 +507,4 @@ ReflectAPI analyzes your types and creates rich schemas. For example, your `Pet`
 
 ## Next Steps
 
-Now that we have our data models, let's [create the API endpoints](./creating-endpoints.md) that use these types with ReflectAPI's canonical handler signature!
+Now that we have our data models, let's [create the API endpoints](./creating-endpoints.md) that use these types with `reflectapi`'s canonical handler signature!

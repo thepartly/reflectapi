@@ -1,8 +1,9 @@
 # Introduction
 
-ReflectAPI is a Rust library for code-first web service API declaration and client generation. It allows you to define your API using native Rust types and automatically generate type-safe client libraries for TypeScript, Python, and Rust.
 
-## Why ReflectAPI?
+`reflectapi` is a Rust library for code-first web service API declaration and client generation. It allows you to define your API using native Rust types and automatically generate type-safe client libraries for TypeScript, Python, and Rust.
+
+## Why `reflectapi`?
 
 Traditional API development often involves:
 - ❌ Maintaining separate API specifications (OpenAPI, etc.)
@@ -10,7 +11,7 @@ Traditional API development often involves:
 - ❌ Manual type definitions across multiple languages
 - ❌ Runtime errors from API mismatches
 
-ReflectAPI solves these problems by:
+`reflectapi` solves these problems by:
 - ✅ **Code-first approach**: API definition lives in your Rust code
 - ✅ **Automatic client generation**: Generate clients in multiple languages
 - ✅ **Type safety**: Compile-time guarantees across all clients
@@ -18,7 +19,7 @@ ReflectAPI solves these problems by:
 
 ## Core Philosophy
 
-ReflectAPI follows a simple principle: **define once, generate everything**. By leveraging Rust's powerful type system and derive macros, you can:
+`reflectapi` follows a simple principle: **define once, generate everything**. By leveraging Rust's powerful type system and derive macros, you can:
 
 1. Define your API types using standard Rust structs and enums
 2. Add derive macros to make them API-compatible
@@ -28,7 +29,7 @@ ReflectAPI follows a simple principle: **define once, generate everything**. By 
 ## What You'll Learn
 
 This documentation will guide you through:
-- Setting up ReflectAPI in your project
+- Setting up `reflectapi` in your project
 - Defining type-safe APIs using Rust
 - Generating clients for different languages
 - Advanced features like custom types and validation
@@ -36,4 +37,4 @@ This documentation will guide you through:
 
 ## Ready to Start?
 
-Head over to [Quick Start](./getting-started/quick-start.md) to build your first API with ReflectAPI!
+Head over to [Quick Start](./getting-started/quick-start.md) to build your first API with `reflectapi`!

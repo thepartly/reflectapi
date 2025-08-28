@@ -1,6 +1,6 @@
 # Rust Client
 
-The Rust client provides zero-cost abstractions, compile-time type safety, and comprehensive error handling for consuming ReflectAPI services.
+The Rust client provides zero-cost abstractions, compile-time type safety, and comprehensive error handling for consuming `reflectapi` services.
 
 ## Features
 
@@ -20,7 +20,7 @@ The Rust client provides zero-cost abstractions, compile-time type safety, and c
 
 ## Generation
 
-Generate a Rust client from your ReflectAPI schema:
+Generate a Rust client from your `reflectapi` schema:
 
 ```bash
 reflectapi-cli codegen --language rust --schema api-schema.json --output clients/rust
@@ -265,7 +265,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```rust,ignore
 use my_api_client::models::*;
 
-// ReflectAPI Option<T> maps to Rust Option<T>
+// `reflectapi` Option<T> maps to Rust Option<T>
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct UpdateUserRequest {
     pub name: Option<String>,     // Three-state: None, Some(value), or omitted

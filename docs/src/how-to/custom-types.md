@@ -1,10 +1,10 @@
 # Working with Custom Types
 
-Learn how to integrate external types and create strongly-typed wrappers for your ReflectAPI schemas.
+Learn how to integrate external types and create strongly-typed wrappers for your `reflectapi` schemas.
 
 ## Overview
 
-ReflectAPI provides several ways to work with custom types:
+`reflectapi` provides several ways to work with custom types:
 - **NewType patterns** for strong typing and validation
 - **Manual trait implementations** for external crate types  
 - **Feature flags** for common external types
@@ -126,7 +126,7 @@ async fn create_user(
 
 ## Manual Trait Implementations
 
-For types from external crates without ReflectAPI support:
+For types from external crates without `reflectapi` support:
 
 ### Example: Custom Date Type
 
@@ -168,7 +168,7 @@ impl<'de> serde::Deserialize<'de> for CustomDate {
     }
 }
 
-// Manual ReflectAPI trait implementations
+// Manual `reflectapi` trait implementations
 impl reflectapi::Input for CustomDate {
     fn reflectapi_input_type(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
         // Register as a string type with format constraint
@@ -253,7 +253,7 @@ impl reflectapi::Output for GeoCoordinate {
 
 ## External Type Support via Feature Flags
 
-ReflectAPI provides built-in support for common external types via feature flags:
+`reflectapi` provides built-in support for common external types via feature flags:
 
 ### Chrono Types
 

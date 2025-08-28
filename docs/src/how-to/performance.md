@@ -1,12 +1,12 @@
 # Performance Optimization
 
-Learn how to optimize ReflectAPI applications for maximum performance.
+Learn how to optimize `reflectapi` applications for maximum performance.
 
 ## Schema Generation Performance
 
 ### Compile-Time Optimization
 
-ReflectAPI uses derive macros to generate schemas at compile time, avoiding runtime overhead:
+`reflectapi` uses derive macros to generate schemas at compile time, avoiding runtime overhead:
 
 ```rust,ignore
 // This generates zero runtime code

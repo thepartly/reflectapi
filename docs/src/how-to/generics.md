@@ -1,10 +1,10 @@
 # Using Generic Types
 
-Learn how to work with generic types in ReflectAPI to create flexible, reusable API components while maintaining type safety across all generated clients.
+Learn how to work with generic types in `reflectapi` to create flexible, reusable API components while maintaining type safety across all generated clients.
 
 ## Overview
 
-ReflectAPI provides excellent support for generic types, allowing you to:
+`reflectapi` provides excellent support for generic types, allowing you to:
 - **Create reusable generic structs and enums** with type parameters
 - **Build type-safe APIs** with flexible data structures
 - **Generate proper generic code** in TypeScript, Python, and Rust clients
@@ -280,7 +280,7 @@ where
     pub changed: bool,
 }
 
-// Note: PartialEq is not part of the serde/ReflectAPI requirements,
+// Note: PartialEq is not part of the serde/`reflectapi` requirements,
 // but it's needed for the business logic
 impl<T> Comparable<T>
 where
@@ -634,7 +634,7 @@ where
     pub value: T,
 }
 
-// ✅ Minimal constraints for ReflectAPI
+// ✅ Minimal constraints for `reflectapi`
 #[derive(serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Container<T>
 where
@@ -682,7 +682,7 @@ async fn list_users(
 /// # Type Parameters
 /// 
 /// * `T` - The type of items in the collection. Must be serializable and
-///         implement ReflectAPI Input/Output traits.
+///         implement `reflectapi` Input/Output traits.
 #[derive(serde::Serialize, serde::Deserialize, Input, Output)]
 pub struct Page<T>
 where
