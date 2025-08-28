@@ -4,11 +4,11 @@
 
 ## Supported Languages
 
-| Language   | Status | Features |
-|------------|--------|----------|
+| Language   | Status   | Features |
+|------------|----------|----------|
 | TypeScript | ✅ Stable | Full type safety, async/await, error handling |
-| Python     | ✅ Stable | Pydantic models, async httpx, type hints |
 | Rust       | ✅ Stable | Compile-time types, reqwest, comprehensive errors |
+| Python     | ✅ New    | Pydantic models, async httpx, type hints |
 
 ## Code Generation Workflow
 
@@ -22,9 +22,9 @@
 cargo run  # Your app should save reflectapi-schema.json
 
 # Generate clients
-reflectapi-cli codegen --language typescript --schema reflectapi-schema.json --output clients/typescript
-reflectapi-cli codegen --language python --schema reflectapi-schema.json --output clients/python
-reflectapi-cli codegen --language rust --schema reflectapi-schema.json --output clients/rust
+cargo run reflectapi codegen --language typescript --schema reflectapi-schema.json --output clients/typescript
+cargo run reflectapi codegen --language python --schema reflectapi-schema.json --output clients/python
+cargo run reflectapi codegen --language rust --schema reflectapi-schema.json --output clients/rust
 ```
 
 ## Common Features
