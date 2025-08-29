@@ -352,10 +352,10 @@ mod proto {
         #[serde(default, skip_serializing_if = "Option::is_undefined")]
         pub kind: Option<crate::model::Kind>,
         /// age of the pet, nullable in the model
-        #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+        #[serde(default, skip_serializing_if = "reflectapi::Possible::is_undefined")]
         pub age: reflectapi::Possible<u8>,
         /// behaviors of the pet, nullable in the model
-        #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+        #[serde(default, skip_serializing_if = "reflectapi::Possible::is_undefined")]
         pub behaviors: reflectapi::Possible<Vec<crate::model::Behavior>>,
     }
 
