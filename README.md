@@ -18,14 +18,21 @@
 
 <br>
 
-`reflectapi` is a library for Rust code-first web service API declaration and corresponding clients code generation tools.
+`reflectapi` is a library and a toolkit for writing web API services in Rust and generating compatible corresponding clients, delivering best possible development experience and efficiency.
 
 ## Features
 
-- **Code-first API definition** using Rust types and derive macros
-- **Multi-language client generation**: TypeScript, Rust, and Python
-- **Type-safe** clients with IntelliSense support
-- **Web framework integration** (Axum supported)
+- **Code-first definition of services with API over HTTP**
+- **100% compatible type-safe and extensible clients** delivering same simplicity and intent of the server API
+- **Multi-language client generation**:
+  - TypeScript - production
+  - Rust - production
+  - Python - experimental
+- **Documentation rendering** using Redoc tool
+- **Web framework agnostic** with plugable Axum support included, other frameworks are possible
+- **Full support for all serde attributes**
+- **Full enablement for all Rust types**, including standard library, common popular crates and adding support for 3rd party and custom types is straightforward
+
 
 ## Installation
 
