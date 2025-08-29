@@ -33,22 +33,6 @@
 - **Full support for all serde attributes**
 - **Full enablement for all Rust types**, including standard library, common popular crates and adding support for 3rd party and custom types is straightforward
 
-
-## Installation
-
-Add `reflectapi` to your `Cargo.toml`:
-
-```toml
-[dependencies]
-reflectapi = "*"
-```
-
-Or install via cargo:
-
-```bash
-cargo add reflectapi
-```
-
 ## Documentation
 
 - 📦 [Crates.io](https://crates.io/crates/reflectapi) - Package information and versions
