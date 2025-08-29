@@ -569,10 +569,16 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
 
                 // this one is important to not serialize undefined values
                 // as this is the special built-in type which allows to differentiate between undefined and null
+<<<<<<< Updated upstream
                 if self.type_.starts_with("reflectapi::Possible<") {
                     serde_attrs.push(
                         "skip_serializing_if = \"reflectapi::Possible::is_undefined\"".into(),
                     );
+=======
+                if self.type_.starts_with("reflectapi::Option<") {
+                    serde_attrs
+                        .push("skip_serializing_if = \"reflectapi::Option::is_undefined\"".into());
+>>>>>>> Stashed changes
                 }
                 // the rest are nice to have, we enumerate only commonly used std types
                 if self.type_.starts_with("std::option::Option<") {
@@ -1230,7 +1236,7 @@ fn __doc_to_ts_comments(doc: &str, offset: u8) -> String {
 fn __build_implemented_types() -> HashMap<String, String> {
     let mut implemented_types = HashMap::new();
 
-    // TODO once the todos below are addressed it would be possible to drop this function completely
+    // TODO once the todos below are addressed it would be Option to drop this function completely
 
     // warning: all generic type parameter names should match reflect defnition coming from
     // the implementation of reflect for standard types
@@ -1241,10 +1247,14 @@ fn __build_implemented_types() -> HashMap<String, String> {
         "std::option::Option<T>".into(),
     );
     // TODO this one should probably be defined as primitive type
+<<<<<<< Updated upstream
     implemented_types.insert(
         "reflectapi::Possible".into(),
         "reflectapi::Possible<T>".into(),
     );
+=======
+    implemented_types.insert("reflectapi::Option".into(), "reflectapi::Option<T>".into());
+>>>>>>> Stashed changes
 
     implemented_types.insert("std::array::Array".into(), "[T; N]".into());
 
