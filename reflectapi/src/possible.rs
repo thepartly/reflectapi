@@ -1,123 +1,123 @@
 use std::ops::Deref;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Hash, Copy)]
-pub enum Option<T> {
+pub enum Possible<T> {
     #[default]
     Undefined,
     None,
     Some(T),
 }
 
-impl<T> Option<T> {
+impl<T> Possible<T> {
     pub fn is_undefined(&self) -> bool {
-        matches!(self, Option::Undefined)
+        matches!(self, Possible::Undefined)
     }
 
     pub fn is_none(&self) -> bool {
-        matches!(self, Option::None)
+        matches!(self, Possible::None)
     }
 
     pub fn is_none_or_undefined(&self) -> bool {
-        matches!(self, Option::None | Option::Undefined)
+        matches!(self, Possible::None | Possible::Undefined)
     }
 
     pub fn is_some(&self) -> bool {
-        matches!(self, Option::Some(_))
+        matches!(self, Possible::Some(_))
     }
 
-    pub fn as_ref(&self) -> Option<&T> {
+    pub fn as_ref(&self) -> Possible<&T> {
         match self {
-            Option::Undefined => Option::Undefined,
-            Option::None => Option::None,
-            Option::Some(value) => Option::Some(value),
+            Possible::Undefined => Possible::Undefined,
+            Possible::None => Possible::None,
+            Possible::Some(value) => Possible::Some(value),
         }
     }
 
     pub fn into_option(self) -> std::option::Option<T> {
         match self {
-            Option::Undefined => None,
-            Option::None => None,
-            Option::Some(value) => Some(value),
+            Possible::Undefined => None,
+            Possible::None => None,
+            Possible::Some(value) => Some(value),
         }
     }
 
     pub fn as_option(&self) -> std::option::Option<&T> {
         match self {
-            Option::Undefined => None,
-            Option::None => None,
-            Option::Some(value) => Some(value),
+            Possible::Undefined => None,
+            Possible::None => None,
+            Possible::Some(value) => Some(value),
         }
     }
 
     pub fn unfold(&self) -> std::option::Option<std::option::Option<&T>> {
         match self {
-            Option::Undefined => None,
-            Option::None => Some(std::option::Option::None),
-            Option::Some(value) => Some(std::option::Option::Some(value)),
+            Possible::Undefined => None,
+            Possible::None => Some(std::option::Option::None),
+            Possible::Some(value) => Some(std::option::Option::Some(value)),
         }
     }
 
     pub fn fold(source: std::option::Option<std::option::Option<T>>) -> Self {
         match source {
-            None => Option::Undefined,
-            Some(None) => Option::None,
-            Some(Some(value)) => Option::Some(value),
+            None => Possible::Undefined,
+            Some(None) => Possible::None,
+            Some(Some(value)) => Possible::Some(value),
         }
     }
 
-    pub fn map<U, F>(self, f: F) -> Option<U>
+    pub fn map<U, F>(self, f: F) -> Possible<U>
     where
         F: FnOnce(T) -> U,
     {
         match self {
-            Option::Undefined => Option::Undefined,
-            Option::None => Option::None,
-            Option::Some(value) => Option::Some(f(value)),
+            Possible::Undefined => Possible::Undefined,
+            Possible::None => Possible::None,
+            Possible::Some(value) => Possible::Some(f(value)),
         }
     }
 
-    pub fn as_deref(&self) -> Option<&T::Target>
+    pub fn as_deref(&self) -> Possible<&T::Target>
     where
         T: Deref,
     {
         match self.as_ref() {
-            Option::Undefined => Option::Undefined,
-            Option::None => Option::None,
-            Option::Some(t) => Option::Some(t.deref()),
+            Possible::Undefined => Possible::Undefined,
+            Possible::None => Possible::None,
+            Possible::Some(t) => Possible::Some(t.deref()),
         }
     }
 }
 
-impl<T> From<std::option::Option<T>> for Option<T> {
+impl<T> From<std::option::Option<T>> for Possible<T> {
     fn from(option: std::option::Option<T>) -> Self {
         match option {
-            Some(value) => Option::Some(value),
-            None => Option::None,
+            Some(value) => Possible::Some(value),
+            None => Possible::None,
         }
     }
 }
 
-impl<T> From<Option<T>> for std::option::Option<T> {
-    fn from(val: Option<T>) -> Self {
+impl<T> From<Possible<T>> for std::option::Option<T> {
+    fn from(val: Possible<T>) -> Self {
         match val {
-            Option::Undefined => None,
-            Option::None => None,
-            Option::Some(value) => Some(value),
+            Possible::Undefined => None,
+            Possible::None => None,
+            Possible::Some(value) => Some(value),
         }
     }
 }
 
-impl<T: serde::Serialize> serde::Serialize for Option<T> {
+impl<T: serde::Serialize> serde::Serialize for Possible<T> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
-            Option::Undefined => serializer.serialize_none(),
-            Option::None => serializer.serialize_none(),
-            Option::Some(v) => serializer.serialize_some(v),
+            Possible::Undefined => serializer.serialize_none(),
+            Possible::None => serializer.serialize_none(),
+            Possible::Some(v) => serializer.serialize_some(v),
         }
     }
 }
 
-impl<'de, T: serde::de::Deserialize<'de>> serde::Deserialize<'de> for Option<T> {
+impl<'de, T: serde::de::Deserialize<'de>> serde::Deserialize<'de> for Possible<T> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct UndefinableOptionVisitor<V> {
             marker: std::marker::PhantomData<V>,
@@ -127,25 +127,25 @@ impl<'de, T: serde::de::Deserialize<'de>> serde::Deserialize<'de> for Option<T> 
         where
             V: serde::Deserialize<'de>,
         {
-            type Value = Option<V>;
+            type Value = Possible<V>;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 formatter.write_str("an option or undefined")
             }
 
             fn visit_none<E: serde::de::Error>(self) -> Result<Self::Value, E> {
-                Ok(Option::None)
+                Ok(Possible::None)
             }
 
             fn visit_unit<E: serde::de::Error>(self) -> Result<Self::Value, E> {
-                Ok(Option::None)
+                Ok(Possible::None)
             }
 
             fn visit_some<D: serde::Deserializer<'de>>(
                 self,
                 deserializer: D,
             ) -> Result<Self::Value, D::Error> {
-                serde::Deserialize::deserialize(deserializer).map(Option::Some)
+                serde::Deserialize::deserialize(deserializer).map(Possible::Some)
             }
         }
 
@@ -155,12 +155,12 @@ impl<'de, T: serde::de::Deserialize<'de>> serde::Deserialize<'de> for Option<T> 
     }
 }
 
-fn reflectapi_type_option(schema: &mut crate::Typespace) -> String {
-    let type_name = "reflectapi::Option";
+fn reflectapi_type_possible(schema: &mut crate::Typespace) -> String {
+    let type_name = "reflectapi::Possible";
     if schema.reserve_type(type_name) {
         let mut type_def = crate::Enum::new(type_name.into());
         type_def.parameters.push("T".into());
-        type_def.description = "Undefinable Option type".into();
+        type_def.description = "Undefinable Possible type".into();
         type_def.representation = crate::Representation::None;
 
         let mut variant = crate::Variant::new("Undefined".into());
@@ -182,18 +182,18 @@ fn reflectapi_type_option(schema: &mut crate::Typespace) -> String {
     }
     type_name.into()
 }
-impl<T: crate::Input> crate::Input for crate::Option<T> {
+impl<T: crate::Input> crate::Input for crate::Possible<T> {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
-            reflectapi_type_option(schema),
+            reflectapi_type_possible(schema),
             vec![T::reflectapi_input_type(schema)],
         )
     }
 }
-impl<T: crate::Output> crate::Output for crate::Option<T> {
+impl<T: crate::Output> crate::Output for crate::Possible<T> {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
-            reflectapi_type_option(schema),
+            reflectapi_type_possible(schema),
             vec![T::reflectapi_output_type(schema)],
         )
     }
@@ -204,8 +204,8 @@ mod tests {
 
     #[derive(serde::Serialize, serde::Deserialize, Default)]
     struct Test {
-        #[serde(default, skip_serializing_if = "crate::Option::is_undefined")]
-        value: crate::Option<String>,
+        #[serde(default, skip_serializing_if = "crate::Possible::is_undefined")]
+        value: crate::Possible<String>,
     }
 
     #[derive(serde::Serialize, serde::Deserialize)]
@@ -252,7 +252,7 @@ mod tests {
     #[test]
     fn test_none() {
         let data = Test {
-            value: crate::Option::None,
+            value: crate::Possible::None,
         };
         assert!(!data.value.is_undefined());
         assert!(data.value.is_none());
@@ -270,7 +270,7 @@ mod tests {
     #[test]
     fn test_none_untagged() {
         let data = Test {
-            value: crate::Option::None,
+            value: crate::Possible::None,
         };
         assert!(!data.value.is_undefined());
         assert!(data.value.is_none());
@@ -292,7 +292,7 @@ mod tests {
     #[test]
     fn test_some() {
         let data = Test {
-            value: crate::Option::Some(String::from("test")),
+            value: crate::Possible::Some(String::from("test")),
         };
         assert!(!data.value.is_undefined());
         assert!(!data.value.is_none());
@@ -308,7 +308,7 @@ mod tests {
         assert!(deserialized.value.is_some());
         assert_eq!(
             deserialized.value,
-            crate::Option::from(Some(String::from("test")))
+            crate::Possible::from(Some(String::from("test")))
         );
     }
 

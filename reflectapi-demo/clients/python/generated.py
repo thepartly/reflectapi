@@ -19,7 +19,6 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, RootModel, model
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
-from reflectapi_runtime import ReflectapiOption
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
@@ -53,6 +52,30 @@ class MyapiProtoPetsUpdateError(str, Enum):
 
     NOT_FOUND = "NotFound"
     NOT_AUTHORIZED = "NotAuthorized"
+
+
+class ReflectapiPossibleUndefined(BaseModel):
+    """The value is missing, i.e. undefined in JavaScript"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+
+class ReflectapiPossibleNone(BaseModel):
+    """The value is provided but set to none, i.e. null in JavaScript"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+
+class ReflectapiPossibleSome(BaseModel):
+    """The value is provided and set to some value"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    field_0: T | None = None
+
+
+ReflectapiPossible = Union[ReflectapiPossibleUndefined, ReflectapiPossibleNone, ReflectapiPossibleSome]
+"""Undefinable Possible type"""
 
 
 class MyapiModelBehaviorAggressiveVariant(BaseModel):
@@ -257,8 +280,8 @@ class MyapiProtoPetsUpdateRequest(BaseModel):
 
     name: str
     kind: MyapiModelKind | None = None
-    age: ReflectapiOption[int] = None
-    behaviors: ReflectapiOption[list[MyapiModelBehavior]] = None
+    age: ReflectapiPossible[int] | None = None
+    behaviors: ReflectapiPossible[list[MyapiModelBehavior]] | None = None
 
 
 class AsyncHealthClient:
@@ -742,6 +765,7 @@ try:
     MyapiProtoPetsRemoveRequest.model_rebuild()
     MyapiProtoPetsUpdateError.model_rebuild()
     MyapiProtoPetsUpdateRequest.model_rebuild()
+    ReflectapiPossible.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -871,6 +895,11 @@ def create_myapiprotopetsupdateerror_response(value: MyapiProtoPetsUpdateError) 
 
 def create_myapiprotopetsupdaterequest_response(value: MyapiProtoPetsUpdateRequest) -> ApiResponse[MyapiProtoPetsUpdateRequest]:
     """Create a mock ApiResponse for MyapiProtoPetsUpdateRequest."""
+    return create_api_response(value)
+
+
+def create_reflectapipossible_response(value: ReflectapiPossible) -> ApiResponse[ReflectapiPossible]:
+    """Create a mock ApiResponse for ReflectapiPossible."""
     return create_api_response(value)
 
 

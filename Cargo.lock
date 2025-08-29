@@ -1663,7 +1663,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi"
-version = "0.15.5"
+version = "0.16.0"
 dependencies = [
  "anyhow",
  "askama",
@@ -1689,7 +1689,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-cli"
-version = "0.15.5"
+version = "0.16.0"
 dependencies = [
  "anyhow",
  "askama",
@@ -1711,6 +1711,7 @@ dependencies = [
  "datatest-stable",
  "http 1.2.0",
  "http-rest-file",
+ "indexmap",
  "insta",
  "reflectapi",
  "rmp-serde",
@@ -1720,6 +1721,7 @@ dependencies = [
  "tower 0.4.13",
  "tower-http",
  "trybuild",
+ "url",
  "uuid",
 ]
 
@@ -1745,7 +1747,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-derive"
-version = "0.15.5"
+version = "0.16.0"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -1757,7 +1759,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-schema"
-version = "0.15.5"
+version = "0.16.0"
 dependencies = [
  "glob",
  "serde",

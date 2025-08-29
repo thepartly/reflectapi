@@ -20,6 +20,7 @@ where
     }
     app
 }
+
 fn into_router_one<S>(app_state: S, router: crate::Router<S>) -> (String, Router)
 where
     S: Send + Clone + Sync + 'static,

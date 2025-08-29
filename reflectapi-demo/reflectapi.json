@@ -422,7 +422,7 @@
               "name": "age",
               "description": "age of the pet, nullable in the model",
               "type": {
-                "name": "reflectapi::Option",
+                "name": "reflectapi::Possible",
                 "arguments": [
                   {
                     "name": "u8"
@@ -434,7 +434,7 @@
               "name": "behaviors",
               "description": "behaviors of the pet, nullable in the model",
               "type": {
-                "name": "reflectapi::Option",
+                "name": "reflectapi::Possible",
                 "arguments": [
                   {
                     "name": "std::vec::Vec",
@@ -458,8 +458,8 @@
       },
       {
         "kind": "enum",
-        "name": "reflectapi::Option",
-        "description": "Undefinable Option type",
+        "name": "reflectapi::Possible",
+        "description": "Undefinable Possible type",
         "parameters": [
           {
             "name": "T"

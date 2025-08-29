@@ -645,7 +645,11 @@ snapshot_kind: text
             "description": "age of the pet, nullable in the model",
             "oneOf": [
               {
-                "description": "Null",
+                "description": "The value is missing, i.e. undefined in JavaScript",
+                "type": "null"
+              },
+              {
+                "description": "The value is provided but set to none, i.e. null in JavaScript",
                 "type": "null"
               },
               {
@@ -657,7 +661,11 @@ snapshot_kind: text
             "description": "behaviors of the pet, nullable in the model",
             "oneOf": [
               {
-                "description": "Null",
+                "description": "The value is missing, i.e. undefined in JavaScript",
+                "type": "null"
+              },
+              {
+                "description": "The value is provided but set to none, i.e. null in JavaScript",
                 "type": "null"
               },
               {

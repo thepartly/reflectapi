@@ -407,7 +407,8 @@ impl RouteBuilder {
 
     /// Adds multiple tags to the route.
     pub fn tags<T: AsRef<str>>(mut self, tags: impl IntoIterator<Item = T>) -> Self {
-        self.tags.extend(tags.into_iter().map(|s| s.as_ref().to_string()));
+        self.tags
+            .extend(tags.into_iter().map(|s| s.as_ref().to_string()));
         self
     }
 }
