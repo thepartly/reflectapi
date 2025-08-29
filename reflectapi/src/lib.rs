@@ -3,7 +3,8 @@
 //!
 //! ## Quick start
 //!
-//! Define your server
+//! Server application side example:
+//! (complete main.rs example can be found in [https://github.com/thepartly/reflectapi/tree/main/reflectapi-demo](https://github.com/thepartly/reflectapi/tree/main/reflectapi-demo))
 //!
 //! ```rust
 //!
@@ -20,7 +21,7 @@
 //!     unimplemented!("just a demo of API signature")
 //! }
 //!
-//! pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
+//! pub fn builder() -> reflectapi::Builder<std::sync::Arc<AppState>> {
 //!     reflectapi::Builder::new()
 //!         .route(books_list, |b| {
 //!             b.name("books.list").description("List all books")
@@ -72,17 +73,49 @@
 //!         pub next_cursor: Option<String>,
 //!         pub prev_cursor: Option<String>,
 //!     }
-//! }
 //!
+//!     #[derive(serde::Serialize, reflectapi::Output)]
+//!     pub enum BooksListError {
+//!         Unauthorized,
+//!         LimitExceeded { requested: u32, allowed: u32 },
+//!     }
+//!
+//!     impl reflectapi::StatusCode for BooksListError {
+//!         fn status_code(&self) -> http::StatusCode {
+//!             match self {
+//!                 BooksListError::Unauthorized => http::StatusCode::UNAUTHORIZED,
+//!                 BooksListError::LimitExceeded { .. } => http::StatusCode::UNPROCESSABLE_ENTITY,
+//!             }
+//!         }
+//!     }
+//! }
 //! ```
 //!
-//! Now use it from Typescript (one of the languages supported by the codegen):
+//! Generated client in Typescript (one of the languages supported by the codegen) example:
 //!
 //! ```typescript
+//! import { client, match } from './generated';
+//
+//! async function main() {
+//!     const c = client('http://localhost:3000');
+//
+//!     const result = await c.books.list({}, {
+//!         authorization: 'password'
+//!     })
+//!     let { items, pagination } = result.unwrap_ok_or_else((e) => {
+//!         throw match(e.unwrap(), {
+//!             Unauthorized: () => 'NotAuthorized',
+//!             LimitExceeded: ({ requested, allowed }) => `Limit exceeded: ${requested} > ${allowed}`,
+//!         });
+//!     });
+//!     console.log(`items: ${items[0]?.author}`);
+//!     console.log(`next cursor: ${pagination.next_cursor}`);
+//! }
+//
+//! main()
+//!     .then(() => console.log('done'))
+//!     .catch((err) => console.error(err));
 //! ```
-//!
-//!
-//! ## Examples
 //!
 //! For complete examples, see the [`reflectapi-demo`](https://github.com/thepartly/reflectapi/tree/main/reflectapi-demo) crate which demonstrates:
 //! - Basic CRUD operations
