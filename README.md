@@ -1,7 +1,5 @@
 <div align="center">
   <img src=".github/reflectapi-text.png" alt="reflectapi" width="400">
-  <br>
-  <img src=".github/reflectapi-logo.png" alt="reflectapi logo" width="150">
 </div>
 
 <div align="center">
