@@ -161,10 +161,7 @@ mod validation;
 pub mod rt;
 
 #[cfg(feature = "builder")]
-pub use builder::*;
-
-#[cfg(feature = "builder")]
-mod builder;
+pub(crate) mod builder;
 
 #[cfg(feature = "axum")]
 mod axum;
@@ -176,6 +173,11 @@ pub mod codegen;
 // Public re-exports
 #[cfg(feature = "axum")]
 pub use axum::*;
+#[cfg(feature = "builder")]
+pub use builder::{
+    BuildError, BuildErrors, Builder, Handler, HandlerCallback, HandlerFuture, IntoResult,
+    RouteBuilder, StatusCode, Router, ContentType
+};
 pub use empty::*;
 pub use infallible::*;
 pub use possible::*;
@@ -184,5 +186,7 @@ pub use traits::*;
 pub use validation::*;
 
 // Hidden re-exports
+// #[doc(hidden)]
+// pub use builder::*;
 #[doc(hidden)]
 pub use reflectapi_schema::*;
