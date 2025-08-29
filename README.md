@@ -53,8 +53,8 @@ cargo add reflectapi
 
 - 📦 [Crates.io](https://crates.io/crates/reflectapi) - Package information and versions
 - 📖 [API Documentation](https://docs.rs/reflectapi) - Complete API reference  
-- 📚 [User Guide](https://thepartly.github.io/reflectapi/) - Tutorials and examples
-- 🚀 [Quick Start](https://thepartly.github.io/reflectapi/getting-started/quick-start.html) - Get up and running in 5 minutes
+- 📚 [User Guide](https://reflectapi.partly.workers.dev/) - Tutorials and examples
+- 🚀 [Quick Start](https://reflectapi.partly.workers.dev/getting-started/quick-start.html) - Get up and running in 5 minutes
 
 ## Development notes
 

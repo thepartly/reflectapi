@@ -234,64 +234,117 @@ let axum_app = reflectapi::axum::into_router(app_state, routers, |_name, r| {
 });
 ```
 
-### Accessing Authentication Data in Handlers
+### Passing Authentication Data to Handlers
 
-Pass authentication data to `reflectapi` handlers through state:
+Since `reflectapi` handlers have a fixed signature `async fn(State, Input, Headers) -> Result<Output, Error>`, authentication data from middleware must be passed through the State parameter. There are two main approaches:
+
+#### Approach 1: Request-Scoped State (Recommended)
+
+For per-request authentication data, create a request-scoped state that includes both your app state and the authenticated user:
 
 ```rust,ignore
-use axum::Extension;
-
-// Extend your state to include user information
+// Request-scoped state that includes user
 #[derive(Clone)]
-pub struct AppState {
+pub struct RequestState {
     pub db: PgPool,
     pub config: Arc<Config>,
+    pub current_user: Option<AuthUser>,
 }
 
-// Custom headers type that can extract user from extensions
-#[derive(serde::Deserialize, reflectapi::Input)]
-pub struct AuthHeaders {
-    #[serde(skip)]  // Not from HTTP headers
-    pub user: Option<AuthUser>,
-}
-
-impl AuthHeaders {
-    pub fn from_request(req: &axum::http::Request<axum::body::Body>) -> Self {
-        let user = req.extensions().get::<AuthUser>().cloned();
-        Self { user }
-    }
-}
-
-// Use in your handlers
-async fn get_current_user(
-    state: AppState,
-    _input: (),
-    headers: AuthHeaders,
-) -> Result<UserProfile, ApiError> {
-    let user = headers.user.ok_or(ApiError::Unauthorized)?;
+// Middleware that creates request-scoped state
+pub async fn auth_with_state_middleware<B>(
+    State(app_state): State<AppState>,
+    mut req: Request<B>,
+    next: Next<B>,
+) -> Result<Response, StatusCode> {
+    // Extract and validate token
+    let token = req
+        .headers()
+        .get("Authorization")
+        .and_then(|h| h.to_str().ok())
+        .and_then(|h| h.strip_prefix("Bearer "));
     
-    // Use the authenticated user
+    // Validate and get user (simplified)
+    let current_user = if let Some(token) = token {
+        validate_token(token).ok()
+    } else {
+        None
+    };
+    
+    // Create request-scoped state
+    let request_state = RequestState {
+        db: app_state.db.clone(),
+        config: app_state.config.clone(),
+        current_user,
+    };
+    
+    // Replace the state for this request
+    req.extensions_mut().insert(request_state);
+    
+    Ok(next.run(req).await)
+}
+
+// Handler receives request-scoped state
+async fn get_current_user(
+    state: RequestState,  // Contains the authenticated user
+    _input: (),
+    _headers: (),
+) -> Result<UserProfile, ApiError> {
+    let user = state.current_user.ok_or(ApiError::Unauthorized)?;
+    
     let profile = fetch_user_profile(&state.db, user.id).await?;
     Ok(profile)
 }
 
 async fn create_post(
-    state: AppState,
+    state: RequestState,
     request: CreatePostRequest,
-    headers: AuthHeaders,
+    _headers: (),
 ) -> Result<Post, ApiError> {
-    let user = headers.user.ok_or(ApiError::Unauthorized)?;
+    let user = state.current_user.ok_or(ApiError::Unauthorized)?;
     
-    // Verify user has permission to create posts
+    // Verify user has permission
     if !user.roles.contains(&"author".to_string()) {
         return Err(ApiError::Forbidden);
     }
     
-    // Create post with user as author
     let post = create_post_in_db(&state.db, request, user.id).await?;
     Ok(post)
 }
 ```
+
+#### Approach 2: Optional Authentication in Headers
+
+For APIs where authentication is optional or uses simple tokens, you can use the Headers parameter to pass authentication tokens (not user objects):
+
+```rust,ignore
+// Headers that include optional auth token
+#[derive(serde::Deserialize, reflectapi::Input)]
+pub struct ApiHeaders {
+    #[serde(rename = "authorization")]
+    pub auth_token: Option<String>,
+}
+
+// Handler validates token itself
+async fn get_user_info(
+    state: AppState,
+    _input: (),
+    headers: ApiHeaders,
+) -> Result<UserInfo, ApiError> {
+    // Validate token in handler
+    let user = if let Some(token) = headers.auth_token {
+        validate_token(&token).map_err(|_| ApiError::Unauthorized)?
+    } else {
+        return Err(ApiError::Unauthorized);
+    };
+    
+    // Fetch user info
+    let info = fetch_user_info(&state.db, user.id).await?;
+    Ok(info)
+}
+```
+
+**Important**: The Headers parameter in `reflectapi` is only for deserializing actual HTTP headers. It cannot access request extensions or run custom extraction logic. Any `from_request` method you define will not be called by the framework.
 
 ## CORS Configuration
 

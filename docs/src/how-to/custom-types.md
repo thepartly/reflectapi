@@ -178,61 +178,6 @@ pub struct Price {
 }
 ```
 
-## Generic Custom Types
-
-Create reusable generic patterns:
-
-### Paginated Results
-
-```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
-pub struct Page<T>
-where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
-{
-    pub items: Vec<T>,
-    pub page: u32,
-    pub per_page: u32,
-    pub total_pages: u32,
-    pub total_items: u32,
-}
-
-// Usage
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
-pub struct Product {
-    pub id: u32,
-    pub name: String,
-    pub price: rust_decimal::Decimal,
-}
-
-async fn list_products(
-    state: Arc<AppState>,
-    request: ListProductsRequest,
-    _headers: reflectapi::Empty,
-) -> Result<Page<Product>, ListProductsError> {
-    // Implementation
-}
-```
-
-### Result Wrapper
-
-```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, Input, Output)]
-#[serde(tag = "status")]
-pub enum ApiResult<T, E>
-where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
-    E: serde::Serialize + for<'de> serde::Deserialize<'de> + Input + Output,
-{
-    Success { data: T },
-    Error { error: E },
-}
-
-// This creates tagged unions that translate beautifully to TypeScript:
-// type ApiResult<T, E> = 
-//   | { status: "Success"; data: T }
-//   | { status: "Error"; error: E }
-```
 
 ## Best Practices
 
@@ -381,25 +326,23 @@ const user: User = {
 
 ### Python
 
-Generated Python uses type aliases and validation:
+Generated Python uses type aliases:
 
 ```python
-from typing import NewType
-from pydantic import BaseModel, validator
+from typing import NewType, Optional
+from pydantic import BaseModel
 
 UserId = NewType('UserId', int)
 EmailAddress = NewType('EmailAddress', str)
+PhoneNumber = NewType('PhoneNumber', str)
 
 class User(BaseModel):
     id: UserId
     email: EmailAddress
     phone: Optional[PhoneNumber] = None
-    
-    @validator('email')
-    def validate_email(cls, v):
-        if '@' not in v:
-            raise ValueError('Invalid email format')
-        return v
+
+# Note: Validation happens server-side in reflectapi.
+# Client-side validation can be added manually if needed.
 ```
 
 ## Common Pitfalls
