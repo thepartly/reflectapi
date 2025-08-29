@@ -18,7 +18,7 @@
 
 <br>
 
-`reflectapi` is a library and a toolkit for writing web API services in Rust and generating compatible corresponding clients, delivering best possible development experience and efficiency.
+`reflectapi` is a library and a toolkit for writing web API services in Rust and generating compatible clients, delivering great development experience and efficiency.
 
 ## Features
 
