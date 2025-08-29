@@ -105,7 +105,7 @@
 //! ```rust,no_run
 //! # #[cfg(feature = "axum")]
 //! # {
-//! use reflectapi::axum::into_router;
+//! use reflectapi::into_router;
 //! # use reflectapi::Builder;
 //! # let builder = Builder::new();
 //! # let (schema, routers) = builder.build().unwrap();
