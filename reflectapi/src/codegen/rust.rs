@@ -570,8 +570,9 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
                 // this one is important to not serialize undefined values
                 // as this is the special built-in type which allows to differentiate between undefined and null
                 if self.type_.starts_with("reflectapi::Possible<") {
-                    serde_attrs
-                        .push("skip_serializing_if = \"reflectapi::Possible::is_undefined\"".into());
+                    serde_attrs.push(
+                        "skip_serializing_if = \"reflectapi::Possible::is_undefined\"".into(),
+                    );
                 }
                 // the rest are nice to have, we enumerate only commonly used std types
                 if self.type_.starts_with("std::option::Option<") {
@@ -1240,7 +1241,10 @@ fn __build_implemented_types() -> HashMap<String, String> {
         "std::option::Option<T>".into(),
     );
     // TODO this one should probably be defined as primitive type
-    implemented_types.insert("reflectapi::Possible".into(), "reflectapi::Possible<T>".into());
+    implemented_types.insert(
+        "reflectapi::Possible".into(),
+        "reflectapi::Possible<T>".into(),
+    );
 
     implemented_types.insert("std::array::Array".into(), "[T; N]".into());
 

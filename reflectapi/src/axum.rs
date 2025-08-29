@@ -5,7 +5,10 @@ use axum::{
     Router,
 };
 
-use crate::{builder::{HandlerInput, HandlerOutput}, Handler};
+use crate::{
+    builder::{HandlerInput, HandlerOutput},
+    Handler,
+};
 
 pub fn into_router<S, F>(app_state: S, router: Vec<crate::Router<S>>, cb: F) -> Router
 where
