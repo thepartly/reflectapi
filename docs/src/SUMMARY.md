@@ -6,6 +6,7 @@
 
 - [Quick Start](./getting-started/quick-start.md)
 - [Installation](./getting-started/installation.md)
+- [Client Libraries](./clients/README.md)
 
 # Tutorial: Building a Pet Store API
 
@@ -25,11 +26,4 @@
 - [Working with Tagged Enums](./how-to/tagged-enums.md)
 - [OpenAPI Integration](./how-to/openapi.md)
 - [Performance Optimization](./how-to/performance.md)
-
-# Client Libraries
-
-- [Overview & Comparison](./clients/README.md)
-- [TypeScript Client](./clients/typescript.md)
-- [Python Client](./clients/python.md)
-- [Rust Client](./clients/rust.md)
 
