@@ -1,10 +1,46 @@
-# ReflectAPI
+<div align="center">
+  <img src=".github/reflectapi-text.png" alt="reflectapi" width="400">
+</div>
 
-ReflectAPI is a library for Rust code-first web service API declaration and corresponding clients code generation tools.
+<div align="center">
+  <a href="https://crates.io/crates/reflectapi">
+    <img src="https://img.shields.io/crates/v/reflectapi.svg" alt="Crates.io">
+  </a>
+  <a href="https://docs.rs/reflectapi">
+    <img src="https://docs.rs/reflectapi/badge.svg" alt="Documentation">
+  </a>
+  <a href="https://github.com/thepartly/reflectapi/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+  </a>
+</div>
 
-More documentation will follow later.
+<br>
 
-### Development notes
+`reflectapi` is a library and a toolkit for writing web API services in Rust and generating compatible clients, delivering great development experience and efficiency.
+
+## Features
+
+- **Code-first definition of services with API over HTTP**
+- **100% compatible type-safe and extensible clients** delivering same simplicity and intent of the server API
+- **Multi-language client generation**:
+  - TypeScript - stable
+  - Rust - stable
+  - Python - experimental
+- **Documentation rendering** using Redoc tool
+- **Web framework agnostic** with plugable Axum support included, other frameworks are possible
+- **Full support for all serde attributes**
+- **Full enablement for all Rust types**, including standard library, common popular crates and adding support for 3rd party and custom types is straightforward
+
+## Documentation
+
+- 📦 [Crates.io](https://crates.io/crates/reflectapi) - Package information and versions
+- 📖 [API Documentation](https://docs.rs/reflectapi) - Complete API reference  
+- 📚 [User Guide](https://reflectapi.partly.workers.dev/) - Tutorials and examples
+- 🚀 [Quick Start](https://reflectapi.partly.workers.dev/getting-started/quick-start.html) - Get up and running in 5 minutes
+
+## Development notes
+
+### Building and running
 
 Ensure that you have `prettier` and `rustfmt` available in your PATH to format generated code.
 
@@ -41,17 +77,11 @@ cd reflectapi-demo/clients/rust/
 cargo run --all-features
 ```
 
+
 To generate client in Python for demo server:
 
 ```
-cargo run --bin reflectapi -- codegen --language python --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/python/ --python-async --python-sync --python-testing
-```
-
-To run the Python generated client. Note: requires the demo server running
-
-```
-cd reflectapi-demo/clients/python/
-uv run python test_client.py
+cargo run --bin reflectapi -- codegen --language python --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/python
 ```
 
 ### Updating Snapshots
@@ -75,7 +105,24 @@ cargo insta accept
 cargo test
 ```
 
-### Release
+### Building Documentation
+
+```bash
+# Install required tools (one-time setup)
+cargo install mdbook mdbook-keeper
+
+# Build documentation
+cd docs
+mdbook build
+
+# Serve documentation locally
+mdbook serve  # Opens at http://localhost:3000
+
+# Note: mdbook-keeper automatically runs doctests during build
+# The build command both generates HTML and tests code examples
+```
+
+### Releasing
 
 ```
 cargo release --exclude reflectapi-demo --exclude reflectapi-demo-client --exclude reflectapi-demo-client-generated minor --execute

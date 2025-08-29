@@ -1,9 +1,9 @@
 [package]
 name = "reflectapi"
-version = "0.15.5"
+version = "0.16.0"
 edition = "2021"
 
-license = "MIT"
+license = "Apache-2.0"
 description = "ReflectAPI is a library for Rust code-first web service API declaration and corresponding clients code generation tools."
 homepage = "https://github.com/thepartly/reflectapi"
 documentation = "https://docs.rs/reflectapi"
@@ -20,8 +20,8 @@ workspace = true
 
 [dependencies]
 # workspace dependencies
-reflectapi-derive = { path = "../reflectapi-derive", version = "0.15.5" }
-reflectapi-schema = { path = "../reflectapi-schema", version = "0.15.5" }
+reflectapi-derive = { path = "../reflectapi-derive", version = "0.16.0" }
+reflectapi-schema = { path = "../reflectapi-schema", version = "0.16.0" }
 
 # mandatory 3rd party dependencies
 serde = { version = "1.0.197", features = ["derive"] }
@@ -55,6 +55,9 @@ check_keyword = { version = "0.2.0", optional = true }
 reqwest = { version = "0.12", optional = true }
 reqwest-middleware = { version = "0.4", optional = true }
 
+# optional dependency for documentation features
+document-features = { version = "0.2", optional = true }
+
 [dev-dependencies]
 serde_json = { version = "1.0.114" }
 
@@ -63,13 +66,13 @@ default = ["glob"]
 # feature for implementing schema builder
 builder = ["dep:serde_json", "dep:bytes", "dep:http", "dep:mime"]
 msgpack = ["dep:rmp-serde", "builder"]
-# features for implementing reflect traits for foreigh types
+# features for implementing reflect traits for foreign types
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]
 url = ["dep:url"]
 rust_decimal = ["dep:rust_decimal"]
 # features for transforming reflect schema to runnable servers
-# based on dififerent web server frameworks
+# based on different web server frameworks
 axum = ["dep:axum", "builder"]
 # feature flag for enabling codegen libraries
 codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep:serde_json"]

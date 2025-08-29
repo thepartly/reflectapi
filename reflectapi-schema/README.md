@@ -1,3 +1,0 @@
-# ReflectAPI Schema
-
-TBD

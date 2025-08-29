@@ -604,6 +604,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "document-features"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95249b50c6c185bee49034bcb378a49dc2b5dff0be90ff6616d31d64febab05d"
+dependencies = [
+ "litrs",
+]
+
+[[package]]
 name = "encode_unicode"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1248,6 +1257,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "643cb0b8d4fcc284004d5fd0d67ccf61dfffadb7f75e1e71bc420f4688a3a704"
 
 [[package]]
+name = "litrs"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5e54036fe321fd421e10d732f155734c4e4afd610dd556d9a82833ab3ee0bed"
+
+[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1648,7 +1663,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi"
-version = "0.15.5"
+version = "0.16.0"
 dependencies = [
  "anyhow",
  "askama",
@@ -1656,6 +1671,7 @@ dependencies = [
  "bytes",
  "check_keyword",
  "chrono",
+ "document-features",
  "http 1.2.0",
  "indexmap",
  "mime",
@@ -1673,7 +1689,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-cli"
-version = "0.15.5"
+version = "0.16.0"
 dependencies = [
  "anyhow",
  "askama",
@@ -1695,6 +1711,7 @@ dependencies = [
  "datatest-stable",
  "http 1.2.0",
  "http-rest-file",
+ "indexmap",
  "insta",
  "reflectapi",
  "rmp-serde",
@@ -1704,6 +1721,7 @@ dependencies = [
  "tower 0.4.13",
  "tower-http",
  "trybuild",
+ "url",
  "uuid",
 ]
 
@@ -1729,7 +1747,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-derive"
-version = "0.15.5"
+version = "0.16.0"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -1741,7 +1759,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-schema"
-version = "0.15.5"
+version = "0.16.0"
 dependencies = [
  "glob",
  "serde",

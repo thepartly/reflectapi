@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 authors = [
-    {name = "ReflectAPI Team"}
+    {name = "Partly"}
 ]
 keywords = ["api", "client", "codegen", "rest", "http"]
 classifiers = [

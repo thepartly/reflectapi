@@ -1,0 +1,19 @@
+{
+  "name": "reflectapi-docs-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for serving ReflectAPI documentation",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "mdbook build"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240821.1",
+    "wrangler": "^3.72.0",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

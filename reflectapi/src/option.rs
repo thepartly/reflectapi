@@ -1,30 +1,75 @@
 use std::ops::Deref;
 
+/// A three-state enum that represents a value that can be present (`Some`),
+/// explicitly absent (`None`), a.k.a null, or not provided at all (`Undefined`).
+///
+/// This is particularly useful for distinguishing between a field that was intentionally
+/// set to `null` versus a field that was omitted from a request or data structure,
+/// a common pattern in APIs (e.g., JSON `null` vs. a missing key).
+///
+/// It is often used with `serde`'s `#[serde(default)]` and `#[serde(skip_serializing_if = "...")]`
+/// attributes to handle optional fields in a more precise way than `Option<T>`.
+///
+/// # Example
+///
+/// ```rust
+/// # use serde::{Serialize, Deserialize};
+/// # use reflectapi::Option;
+///
+/// #[derive(Serialize, Deserialize, Default)]
+/// struct UserPatch {
+///     #[serde(default, skip_serializing_if = "Option::is_undefined")]
+///     name: Option<String>,
+///     #[serde(default, skip_serializing_if = "Option::is_undefined")]
+///     email: Option<Option<String>>,
+/// }
+///
+/// // User wants to update their name, but not their email.
+/// // The `email` field is omitted from the JSON.
+/// let patch_json = r#"{"name": "Jane Doe"}"#;
+/// let patch: UserPatch = serde_json::from_str(patch_json).unwrap();
+/// assert_eq!(patch.name, Option::Some("Jane Doe".to_string()));
+/// assert!(patch.email.is_undefined());
+///
+/// // User wants to clear their email, setting it to null.
+/// let patch_json_null = r#"{"email": null}"#;
+/// let patch_null: UserPatch = serde_json::from_str(patch_json_null).unwrap();
+/// assert!(patch_null.name.is_undefined());
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Default, Hash, Copy)]
 pub enum Option<T> {
+    /// The value was not provided. This is the default state.
+    /// When used with `#[serde(default)]`, this variant will be used for missing fields.
     #[default]
     Undefined,
+    /// The value was provided and is explicitly `None` (e.g., `null` in JSON).
     None,
+    /// The value was provided and is present.
     Some(T),
 }
 
 impl<T> Option<T> {
+    /// Returns `true` if the `Option` is `Undefined`.
     pub fn is_undefined(&self) -> bool {
         matches!(self, Option::Undefined)
     }
 
+    /// Returns `true` if the `Option` is `None`.
     pub fn is_none(&self) -> bool {
         matches!(self, Option::None)
     }
 
+    /// Returns `true` if the `Option` is `None` or `Undefined`.
     pub fn is_none_or_undefined(&self) -> bool {
         matches!(self, Option::None | Option::Undefined)
     }
 
+    /// Returns `true` if the `Option` is `Some`.
     pub fn is_some(&self) -> bool {
         matches!(self, Option::Some(_))
     }
 
+    /// Converts from `Option<T>` to `Option<&T>`.
     pub fn as_ref(&self) -> Option<&T> {
         match self {
             Option::Undefined => Option::Undefined,
@@ -33,6 +78,10 @@ impl<T> Option<T> {
         }
     }
 
+    /// Converts the `Option<T>` into a standard `Option<T>`.
+    ///
+    /// Note: This is a lossy conversion, as both `Undefined` and `None`
+    /// are mapped to `Option::None`.
     pub fn into_option(self) -> std::option::Option<T> {
         match self {
             Option::Undefined => None,
@@ -41,6 +90,10 @@ impl<T> Option<T> {
         }
     }
 
+    /// Converts a reference to a `Option<T>` into an `Option<&T>`.
+    ///
+    /// Note: This is a lossy conversion, as both `Undefined` and `None`
+    /// are mapped to `Option::None`.
     pub fn as_option(&self) -> std::option::Option<&T> {
         match self {
             Option::Undefined => None,
@@ -49,6 +102,12 @@ impl<T> Option<T> {
         }
     }
 
+    /// "Unfolds" the `Option<&T>` into a nested `Option<Option<&T>>`.
+    ///
+    /// This is a lossless conversion that preserves all three states:
+    /// - `Option::Undefined` -> `None`
+    /// - `Option::None`      -> `Some(None)`
+    /// - `Option::Some(v)`   -> `Some(Some(v))`
     pub fn unfold(&self) -> std::option::Option<std::option::Option<&T>> {
         match self {
             Option::Undefined => None,
@@ -57,6 +116,12 @@ impl<T> Option<T> {
         }
     }
 
+    /// "Folds" a nested `Option<Option<T>>` into a `Option<T>`.
+    ///
+    /// This is the inverse of `unfold` and is also lossless:
+    /// - `None`           -> `Option::Undefined`
+    /// - `Some(None)`     -> `Option::None`
+    /// - `Some(Some(v))`  -> `Option::Some(v)`
     pub fn fold(source: std::option::Option<std::option::Option<T>>) -> Self {
         match source {
             None => Option::Undefined,
@@ -65,6 +130,8 @@ impl<T> Option<T> {
         }
     }
 
+    /// Maps a `Option<T>` to `Option<U>` by applying a function to a
+    /// contained `Some` value, leaving `Undefined` and `None` values untouched.
     pub fn map<U, F>(self, f: F) -> Option<U>
     where
         F: FnOnce(T) -> U,
@@ -76,6 +143,7 @@ impl<T> Option<T> {
         }
     }
 
+    /// Converts a `Option<T>` to a `Option<&T::Target>` where `T` implements `Deref`.
     pub fn as_deref(&self) -> Option<&T::Target>
     where
         T: Deref,
@@ -182,6 +250,7 @@ fn reflectapi_type_option(schema: &mut crate::Typespace) -> String {
     }
     type_name.into()
 }
+
 impl<T: crate::Input> crate::Input for crate::Option<T> {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
@@ -190,6 +259,7 @@ impl<T: crate::Input> crate::Input for crate::Option<T> {
         )
     }
 }
+
 impl<T: crate::Output> crate::Output for crate::Option<T> {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(

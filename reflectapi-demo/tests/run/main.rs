@@ -11,7 +11,7 @@ async fn run(path: &datatest_stable::Utf8Path) -> datatest_stable::Result<()> {
     let reqs = rest_file_to_reqs(file)?;
 
     let (_schema, router) = reflectapi_demo::builder().build().unwrap();
-    let mut app = reflectapi::axum::into_router(Default::default(), router, |_name, r| r);
+    let mut app = reflectapi::into_router(Default::default(), router, |_name, r| r);
 
     let mut pretty = String::new();
     for mut req in reqs {

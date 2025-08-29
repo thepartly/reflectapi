@@ -5,7 +5,10 @@ use axum::{
     Router,
 };
 
-use crate::{Handler, HandlerInput, HandlerOutput};
+use crate::{
+    builder::{HandlerInput, HandlerOutput},
+    Handler,
+};
 
 pub fn into_router<S, F>(app_state: S, router: Vec<crate::Router<S>>, cb: F) -> Router
 where
@@ -20,6 +23,7 @@ where
     }
     app
 }
+
 fn into_router_one<S>(app_state: S, router: crate::Router<S>) -> (String, Router)
 where
     S: Send + Clone + Sync + 'static,

@@ -1015,17 +1015,17 @@ pub struct Field {
     /// - field always present and not null / none
     ///
     /// required and nullable:
-    /// - Rust: Option<T>, do not skip serializing if None
+    /// - Rust: `Option<T>`, do not skip serializing if None
     /// - TypeScript: T | null, do not skip serializing if null
     ///
     /// not required and not nullable:
-    /// - Rust: Option<T>, skip serializing if None
+    /// - Rust: `Option<T>`, skip serializing if None
     /// - TypeScript: T | undefined, skip serializing if undefined
     ///
     /// not required and nullable:
     ///   serializers and deserializers are required to differentiate between
     ///   missing fields and null / none fields
-    /// - Rust: reflectapi::Option<T> is enum with Undefined, None and Some variants
+    /// - Rust: `reflectapi::Option<T>` is enum with Undefined, None and Some variants
     /// - TypeScript: T | null | undefined
     ///
     /// Default is false
