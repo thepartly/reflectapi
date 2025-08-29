@@ -588,11 +588,11 @@ export namespace myapi {
       /**
        * age of the pet, nullable in the model
        */
-      age?: reflectapi.Possible<number /* u8 */>;
+      age?: number /* u8 */ | null | undefined;
       /**
        * behaviors of the pet, nullable in the model
        */
-      behaviors?: reflectapi.Possible<Array<myapi.model.Behavior>>;
+      behaviors?: Array<myapi.model.Behavior> | null | undefined;
     }
 
     export type UnauthorizedError = null;
@@ -609,23 +609,6 @@ export namespace reflectapi {
    * Error object which is expected to be never returned
    */
   export interface Infallible {}
-
-  /**
-   * Undefinable Possible type
-   */
-  export type Possible<T> =
-    /**
-     * The value is missing, i.e. undefined in JavaScript
-     */
-    | null
-    /**
-     * The value is provided but set to none, i.e. null in JavaScript
-     */
-    | null
-    /**
-     * The value is provided and set to some value
-     */
-    | T;
 }
 
 namespace __implementation {
