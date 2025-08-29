@@ -25,8 +25,8 @@
 - **Code-first definition of services with API over HTTP**
 - **100% compatible type-safe and extensible clients** delivering same simplicity and intent of the server API
 - **Multi-language client generation**:
-  - TypeScript - production
-  - Rust - production
+  - TypeScript - stable
+  - Rust - stable
   - Python - experimental
 - **Documentation rendering** using Redoc tool
 - **Web framework agnostic** with plugable Axum support included, other frameworks are possible
