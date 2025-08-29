@@ -384,10 +384,16 @@ pub mod types {
                 )]
                 pub kind: std::option::Option<super::super::myapi::model::Kind>,
                 /// age of the pet, nullable in the model
-                #[serde(default = "Default::default")]
+                #[serde(
+                    default = "Default::default",
+                    skip_serializing_if = "reflectapi::Option::is_undefined"
+                )]
                 pub age: reflectapi::Option<u8>,
                 /// behaviors of the pet, nullable in the model
-                #[serde(default = "Default::default")]
+                #[serde(
+                    default = "Default::default",
+                    skip_serializing_if = "reflectapi::Option::is_undefined"
+                )]
                 pub behaviors:
                     reflectapi::Option<std::vec::Vec<super::super::myapi::model::Behavior>>,
             }

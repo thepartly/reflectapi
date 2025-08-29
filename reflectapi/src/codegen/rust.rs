@@ -1229,7 +1229,7 @@ fn __doc_to_ts_comments(doc: &str, offset: u8) -> String {
 fn __build_implemented_types() -> HashMap<String, String> {
     let mut implemented_types = HashMap::new();
 
-    // TODO once the todos below are addressed it would be Option to drop this function completely
+    // TODO once the todos below are addressed it would be possible to drop this function completely
 
     // warning: all generic type parameter names should match reflect defnition coming from
     // the implementation of reflect for standard types
