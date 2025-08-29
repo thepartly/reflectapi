@@ -152,6 +152,3 @@ Run tests:
 cargo test --bin reflectapi-cli
 ```
 
-## License
-
-MIT

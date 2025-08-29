@@ -24,8 +24,7 @@
 
 - **Code-first API definition** using Rust types and derive macros
 - **Multi-language client generation**: TypeScript, Rust, and Python
-- **OpenAPI spec generation** for documentation and tooling
-- **Type-safe** clients with full IntelliSense support
+- **Type-safe** clients with IntelliSense support
 - **Web framework integration** (Axum supported)
 
 ## Installation
@@ -34,7 +33,7 @@ Add `reflectapi` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-reflectapi = "0.15"
+reflectapi = "*"
 ```
 
 Or install via cargo:
@@ -64,6 +63,8 @@ mdbook build docs  # This runs all doctests with proper dependencies
 
 
 ```
+
+## Demo 
 
 ### Development notes
 

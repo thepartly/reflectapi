@@ -4,7 +4,10 @@ Get `reflectapi` up and running in minutes.
 
 ## Basic Setup
 
-Add `reflectapi` to your `Cargo.toml`:
+
+cargo add reflectapi --features builder
+
+
 
 ```toml
 [dependencies]

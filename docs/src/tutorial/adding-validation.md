@@ -1,6 +1,7 @@
 # Adding Validation
 
-Now that you have working endpoints, let's add basic validation to make your API more robust. With `reflectapi`, validation primarily happens at the type level using standard Serde patterns.
+Now that you have working endpoints, let's add basic validation to make your API more robust. With `reflectapi`, 
+validation primarily happens at the type level using standard Serde patterns.
 
 ## Basic Input Validation
 
@@ -219,7 +220,8 @@ except Exception as e:
 ✅ **Error responses** with clear validation messages  
 ✅ **Client compatibility** with generated error handling  
 
-The key insight is that `reflectapi` leverages Rust's type system and standard Serde patterns for validation, rather than requiring additional validation libraries. This keeps your validation logic simple and ensures it works correctly with code generation.
+The key insight is that `reflectapi` leverages Rust's type system and standard Serde patterns for validation, rather than
+requiring additional validation libraries. This keeps your validation logic simple and ensures it works correctly with code generation.
 
 ## Next Steps
 

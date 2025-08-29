@@ -1,21 +1,17 @@
 # Introduction
 
 
-`reflectapi` is a Rust library for code-first web service API declaration and client generation. It allows you to define your API using native Rust types and automatically generate type-safe client libraries for TypeScript, Python, and Rust.
+`reflectapi` is a Rust library for code-first web service API declaration and client generation. It allows 
+you to define your API using native Rust types and automatically generate type-safe client libraries for 
+TypeScript, Python, and Rust.
 
 ## Why `reflectapi`?
 
-Traditional API development often involves:
-- ❌ Maintaining separate API specifications (OpenAPI, etc.)
-- ❌ Keeping client libraries in sync with server changes
-- ❌ Manual type definitions across multiple languages
-- ❌ Runtime errors from API mismatches
+`reflectapi`:
+- Takes a **Code-first approach**: API definition lives in your Rust code
+- Features **client generation**: Generate client SDKs in multiple languages
+- Client side **Type inference**: Propagate type information directly to clients from server
 
-`reflectapi` solves these problems by:
-- ✅ **Code-first approach**: API definition lives in your Rust code
-- ✅ **Automatic client generation**: Generate clients in multiple languages
-- ✅ **Type safety**: Compile-time guarantees across all clients
-- ✅ **Single source of truth**: Your Rust types define everything
 
 ## Core Philosophy
 
@@ -26,14 +22,6 @@ Traditional API development often involves:
 3. Use the builder pattern to define endpoints
 4. Generate clients for any supported language
 
-## What You'll Learn
-
-This documentation will guide you through:
-- Setting up `reflectapi` in your project
-- Defining type-safe APIs using Rust
-- Generating clients for different languages
-- Advanced features like custom types and validation
-- Best practices for production APIs
 
 ## Ready to Start?
 

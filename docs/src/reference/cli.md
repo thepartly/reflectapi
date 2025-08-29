@@ -22,7 +22,6 @@ reflectapi [OPTIONS] <COMMAND>
 
 ### Global Options
 
-- `-d, --debug...` - Turn debugging information on (can be repeated for more verbosity)
 - `-h, --help` - Print help information
 - `-V, --version` - Print version information
 

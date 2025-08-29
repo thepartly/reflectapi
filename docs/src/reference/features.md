@@ -1,6 +1,6 @@
 # Feature Flags
 
-Complete reference for `reflectapi` feature flags and build configuration.
+Reference for `reflectapi` feature flags and build configuration.
 
 ## Feature Flags
 

@@ -87,6 +87,3 @@ cargo run --bin reflectapi-cli -- codegen --language rust --schema api.json --ou
 - [API Documentation](https://docs.rs/reflectapi)
 - [Examples](https://github.com/thepartly/reflectapi/tree/main/reflectapi-demo)
 
-## License
-
-MIT

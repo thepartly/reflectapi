@@ -136,6 +136,3 @@ The schema representation is designed to be:
 - **Transformable**: Supports various transformation operations
 - **Serializable**: Can be saved/loaded as JSON
 
-## License
-
-MIT
