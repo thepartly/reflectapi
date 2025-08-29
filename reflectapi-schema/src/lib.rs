@@ -1025,7 +1025,7 @@ pub struct Field {
     /// not required and nullable:
     ///   serializers and deserializers are required to differentiate between
     ///   missing fields and null / none fields
-    /// - Rust: `reflectapi::Possible<T>` is enum with Undefined, None and Some variants
+    /// - Rust: `reflectapi::Option<T>` is enum with Undefined, None and Some variants
     /// - TypeScript: T | null | undefined
     ///
     /// Default is false

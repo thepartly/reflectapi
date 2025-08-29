@@ -888,7 +888,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
     // Types that are provided by the runtime library and should not be generated
     let runtime_provided_types = [
-        "reflectapi::Possible",
+        "reflectapi::Option",
         "reflectapi::Empty",
         "reflectapi::Infallible",
         "std::option::Option",
@@ -1240,7 +1240,7 @@ fn collect_flattened_fields(
 
     // Unwrap Option<T> and ReflectapiOption<T> when flattening
     let target_type_name = if (type_ref.name == "std::option::Option"
-        || type_ref.name == "reflectapi::Possible")
+        || type_ref.name == "reflectapi::Option")
         && !type_ref.arguments.is_empty()
     {
         &type_ref.arguments[0].name
@@ -1273,7 +1273,7 @@ fn collect_flattened_fields(
                 )?;
 
                 let is_option_type = field.type_ref.name == "std::option::Option"
-                    || field.type_ref.name == "reflectapi::Possible";
+                    || field.type_ref.name == "reflectapi::Option";
 
                 let (optional, default_value, final_field_type) =
                     if !field.required || !parent_required {
@@ -1362,7 +1362,7 @@ fn render_struct(
 
             // Check if field type is Option<T> or ReflectapiOption<T> (which handle nullability themselves)
             let is_option_type = field.type_ref.name == "std::option::Option"
-                || field.type_ref.name == "reflectapi::Possible";
+                || field.type_ref.name == "reflectapi::Option";
 
             // Fix default value handling for optional fields
             let (optional, default_value, field_type) = if !field.required {
@@ -1620,7 +1620,7 @@ fn render_adjacently_tagged_enum_without_factory(
                         used_type_vars,
                     )?;
                     let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Possible";
+                        || field.type_ref.name == "reflectapi::Option";
                     let (optional, default_value, final_field_type) = if !field.required {
                         if is_option_type {
                             (true, Some("None".to_string()), field_type)
@@ -2631,7 +2631,7 @@ fn render_internally_tagged_enum_core(
                             // Handle field optionality
                             let is_option_type = struct_field.type_ref.name
                                 == "std::option::Option"
-                                || struct_field.type_ref.name == "reflectapi::Possible";
+                                || struct_field.type_ref.name == "reflectapi::Option";
                             let (optional, default_value, final_field_type) =
                                 if !struct_field.required {
                                     if is_option_type {
@@ -2697,7 +2697,7 @@ fn render_internally_tagged_enum_core(
                     )?;
 
                     let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Possible";
+                        || field.type_ref.name == "reflectapi::Option";
                     let (optional, default_value, final_field_type) = if !field.required {
                         if is_option_type {
                             (true, Some("None".to_string()), field_type)
@@ -2868,7 +2868,7 @@ fn render_untagged_enum(
                     )?;
                     // Check if field type is Option<T> or ReflectapiOption<T> (which handle nullability themselves)
                     let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Possible";
+                        || field.type_ref.name == "reflectapi::Option";
                     // Handle optionality
                     let (optional, default_value, final_field_type) = if !field.required {
                         if is_option_type {
@@ -2909,7 +2909,7 @@ fn render_untagged_enum(
                         used_type_vars,
                     )?;
                     let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Possible";
+                        || field.type_ref.name == "reflectapi::Option";
                     let (optional, default_value, final_field_type) = if !field.required {
                         if is_option_type {
                             (true, Some("None".to_string()), field_type)
@@ -3907,7 +3907,7 @@ fn get_type_parameters(type_name: &str) -> Vec<&'static str> {
         "std::rc::Rc" => vec!["T"],
         "std::vec::Vec" => vec!["T"],
         "std::option::Option" => vec!["T"],
-        "reflectapi::Possible" => vec!["T"],
+        "reflectapi::Option" => vec!["T"],
         "std::collections::HashMap" => vec!["K", "V"],
         "std::collections::BTreeMap" => vec!["K", "V"],
         "std::result::Result" => vec!["T", "E"],
@@ -4305,9 +4305,9 @@ fn type_ref_uses_date(type_ref: &TypeReference) -> bool {
     false
 }
 
-/// Check if the schema uses reflectapi::Possible anywhere
+/// Check if the schema uses reflectapi::Option anywhere
 fn schema_uses_reflectapi_option(schema: &Schema, all_type_names: &Vec<String>) -> bool {
-    // Check all types in the schema for reflectapi::Possible usage
+    // Check all types in the schema for reflectapi::Option usage
     for type_name in all_type_names {
         if let Some(type_def) = schema.get_type(type_name) {
             if type_uses_reflectapi_option(type_def) {
@@ -4390,7 +4390,7 @@ fn type_reference_references_type(type_ref: &TypeReference, target_type: &str) -
         .any(|arg| type_reference_references_type(arg, target_type))
 }
 
-/// Recursively check if a type uses reflectapi::Possible
+/// Recursively check if a type uses reflectapi::Option
 fn type_uses_reflectapi_option(type_def: &reflectapi_schema::Type) -> bool {
     match type_def {
         reflectapi_schema::Type::Struct(s) => {
@@ -4402,19 +4402,19 @@ fn type_uses_reflectapi_option(type_def: &reflectapi_schema::Type) -> bool {
             }
         }
         reflectapi_schema::Type::Enum(_) => {
-            // Enums don't contain reflectapi::Possible
+            // Enums don't contain reflectapi::Option
         }
         reflectapi_schema::Type::Primitive(_) => {
-            // Primitives don't contain reflectapi::Possible
+            // Primitives don't contain reflectapi::Option
         }
     }
     false
 }
 
-/// Check if a type reference uses reflectapi::Possible
+/// Check if a type reference uses reflectapi::Option
 fn type_reference_uses_reflectapi_option(type_ref: &TypeReference) -> bool {
-    // Check if this is directly a reflectapi::Possible
-    if type_ref.name == "reflectapi::Possible" {
+    // Check if this is directly a reflectapi::Option
+    if type_ref.name == "reflectapi::Option" {
         return true;
     }
 
@@ -4458,7 +4458,7 @@ fn build_implemented_types() -> BTreeMap<String, String> {
 
     // ReflectAPI specific types
     types.insert(
-        "reflectapi::Possible".to_string(),
+        "reflectapi::Option".to_string(),
         "ReflectapiOption[T]".to_string(),
     );
     types.insert(
