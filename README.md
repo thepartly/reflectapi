@@ -56,26 +56,9 @@ cargo add reflectapi
 - 📚 [User Guide](https://thepartly.github.io/reflectapi/) - Tutorials and examples
 - 🚀 [Quick Start](https://thepartly.github.io/reflectapi/getting-started/quick-start.html) - Get up and running in 5 minutes
 
-### Building Documentation
+## Development notes
 
-```bash
-# Install required tools (one-time setup)
-cargo install mdbook mdbook-keeper
-
-# Build documentation
-cd docs
-mdbook build
-
-# Serve documentation locally
-mdbook serve  # Opens at http://localhost:3000
-
-# Note: mdbook-keeper automatically runs doctests during build
-# The build command both generates HTML and tests code examples
-```
-
-## Demo 
-
-### Development notes
+### Building and running
 
 Ensure that you have `prettier` and `rustfmt` available in your PATH to format generated code.
 
@@ -140,7 +123,24 @@ cargo insta accept
 cargo test
 ```
 
-### Release
+### Building Documentation
+
+```bash
+# Install required tools (one-time setup)
+cargo install mdbook mdbook-keeper
+
+# Build documentation
+cd docs
+mdbook build
+
+# Serve documentation locally
+mdbook serve  # Opens at http://localhost:3000
+
+# Note: mdbook-keeper automatically runs doctests during build
+# The build command both generates HTML and tests code examples
+```
+
+### Releasing
 
 ```
 cargo release --exclude reflectapi-demo --exclude reflectapi-demo-client --exclude reflectapi-demo-client-generated minor --execute
