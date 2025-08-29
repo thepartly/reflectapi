@@ -10,43 +10,7 @@ pub use result::*;
 
 /// [`Builder`] provides a chained API for defining the overall API specification,
 /// adding individual routes (handlers), and composing multiple builders together.
-///
-/// # Example
-///
-/// ```rust
-/// # use reflectapi::{Builder, RouteBuilder, Input, Output, StatusCode};
-/// # use serde::{Serialize, Deserialize};
-/// #
-/// # #[derive(Input, Output, Serialize, Deserialize)]
-/// # struct User { id: u32, name: String }
-/// # #[derive(Input, Output, Serialize, Deserialize, StatusCode)]
-/// # struct ErrorResponse;
-/// # impl From<ErrorResponse> for (u16, ErrorResponse) {
-/// #     fn from(value: ErrorResponse) -> Self { (500, value) }
-/// # }
-/// #
-/// # type AppState = ();
-/// #
-/// # async fn get_user(_state: AppState, _input: (), _headers: ()) -> Result<User, ErrorResponse> {
-/// #     Ok(User { id: 1, name: "Test".to_string() })
-/// # }
-///
-/// fn api() -> Builder<AppState> {
-///     Builder::new()
-///         .name("My Awesome API")
-///         .description("This API manages users.")
-///         .path("/api/v1")
-///         .tag("Users")
-///         .route(get_user, |route| {
-///             route
-///                 .name("GetUser")
-///                 .path("/users/{id}")
-///                 .description("Retrieves a single user by their ID.")
-///         })
-/// }
-///
-/// let (schema, routers) = api().build().unwrap();
-/// ```
+// TODO: example here.
 pub struct Builder<S>
 where
     S: Send + 'static,
