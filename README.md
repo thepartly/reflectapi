@@ -52,16 +52,18 @@ cargo add reflectapi
 ### Building Documentation
 
 ```bash
-# Generate and serve documentation locally
-cargo install mdbook
-mdbook build docs
-mdbook serve docs  # Opens at http://localhost:3000
+# Install required tools (one-time setup)
+cargo install mdbook mdbook-keeper
 
-# Test documentation code examples (using mdbook-keeper)
-# Note: mdbook-keeper runs tests during build, not via separate test command
-mdbook build docs  # This runs all doctests with proper dependencies
+# Build documentation
+cd docs
+mdbook build
 
+# Serve documentation locally
+mdbook serve  # Opens at http://localhost:3000
 
+# Note: mdbook-keeper automatically runs doctests during build
+# The build command both generates HTML and tests code examples
 ```
 
 ## Demo 

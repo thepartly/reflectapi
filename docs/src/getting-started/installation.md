@@ -4,16 +4,11 @@ Get `reflectapi` up and running in minutes.
 
 ## Basic Setup
 
-
-cargo add reflectapi --features builder
-
-
-
-```toml
-[dependencies]
-reflectapi = { version = "0.15", features = ["builder"] }
-serde = { version = "1.0", features = ["derive"] }
+```shell
+cargo add reflectapi --features builder,axum,json,chrono
 ```
+
+
 
 ## CLI Tool
 
@@ -23,23 +18,7 @@ Install the CLI tool to generate client libraries:
 cargo install reflectapi-cli
 ```
 
-## Common Integrations
 
-### With Axum Web Framework
-
-```toml
-[dependencies]
-reflectapi = { version = "0.15", features = ["builder", "axum"] }
-axum = "0.8"
-tokio = { version = "1.0", features = ["full"] }
-```
-
-### For Client Generation
-
-```toml
-[dependencies]
-reflectapi = { version = "0.15", features = ["builder", "codegen"] }
-```
 
 ## Next Steps
 
