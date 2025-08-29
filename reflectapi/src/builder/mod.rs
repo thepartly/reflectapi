@@ -8,6 +8,45 @@ pub use handler::*;
 use reflectapi_schema::Pattern;
 pub use result::*;
 
+/// [`Builder`] provides a chained API for defining the overall API specification,
+/// adding individual routes (handlers), and composing multiple builders together.
+///
+/// # Example
+///
+/// ```rust
+/// # use reflectapi::{Builder, RouteBuilder, Input, Output, StatusCode};
+/// # use serde::{Serialize, Deserialize};
+/// #
+/// # #[derive(Input, Output, Serialize, Deserialize)]
+/// # struct User { id: u32, name: String }
+/// # #[derive(Input, Output, Serialize, Deserialize, StatusCode)]
+/// # struct ErrorResponse;
+/// # impl From<ErrorResponse> for (u16, ErrorResponse) {
+/// #     fn from(value: ErrorResponse) -> Self { (500, value) }
+/// # }
+/// #
+/// # type AppState = ();
+/// #
+/// # async fn get_user(_state: AppState, _input: (), _headers: ()) -> Result<User, ErrorResponse> {
+/// #     Ok(User { id: 1, name: "Test".to_string() })
+/// # }
+///
+/// fn api() -> Builder<AppState> {
+///     Builder::new()
+///         .name("My Awesome API")
+///         .description("This API manages users.")
+///         .path("/api/v1")
+///         .tag("Users")
+///         .route(get_user, |route| {
+///             route
+///                 .name("GetUser")
+///                 .path("/users/{id}")
+///                 .description("Retrieves a single user by their ID.")
+///         })
+/// }
+///
+/// let (schema, routers) = api().build().unwrap();
+/// ```
 pub struct Builder<S>
 where
     S: Send + 'static,
@@ -41,6 +80,7 @@ impl<S> Default for Builder<S>
 where
     S: Send + 'static,
 {
+    /// Creates a new, empty [`Builder`]. Equivalent to [`Builder::new()`].
     fn default() -> Self {
         Self::new()
     }
@@ -50,6 +90,7 @@ impl<S> Builder<S>
 where
     S: Send + 'static,
 {
+    /// Creates a new, empty [`Builder`].
     pub fn new() -> Self {
         Self {
             schema: Default::default(),
@@ -63,11 +104,16 @@ where
         }
     }
 
+    /// Sets the top-level name for the API schema.
     pub fn name(mut self, name: impl Into<String>) -> Self {
         self.schema.name = name.into();
         self
     }
 
+    /// Sets a base path to be prepended to all routes defined in this builder.
+    ///
+    /// The path will be normalized to ensure it starts with a `/` (if not empty)
+    /// and does not end with one.
     pub fn path(mut self, path: impl Into<String>) -> Self {
         let path = path.into();
         self.path = path;
@@ -80,26 +126,35 @@ where
         self
     }
 
+    /// Configures whether to record an error if a `rename_types` operation
+    /// matches no types.
+    ///
+    /// By default, this is `false`, and a redundant rename will result in a `BuildError`.
     pub fn allow_redundant_renames(mut self, allow: bool) -> Self {
         self.allow_redundant_renames = allow;
         self
     }
 
+    /// Sets the top-level description for the API schema.
     pub fn description(mut self, description: impl Into<String>) -> Self {
         self.schema.description = description.into();
         self
     }
 
-    pub fn tag(mut self, tag: impl Into<String>) -> Self {
-        self.default_tags.insert(tag.into());
+    /// Adds a default tag to be applied to all routes in this builder.
+    pub fn tag<T: AsRef<str>>(mut self, tag: T) -> Self {
+        self.default_tags.insert(tag.as_ref().into());
         self
     }
 
-    pub fn tags(mut self, tags: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.default_tags.extend(tags.into_iter().map(Into::into));
+    /// Adds multiple default tags to be applied to all routes in this builder.
+    pub fn tags<T: AsRef<str>>(mut self, tags: impl IntoIterator<Item = T>) -> Self {
+        self.default_tags
+            .extend(tags.into_iter().map(|s| s.as_ref().to_string()));
         self
     }
 
+    /// Removes a default tag from this builder.
     pub fn untag<Q>(mut self, tag: &Q) -> Self
     where
         String: Borrow<Q>,
@@ -109,6 +164,10 @@ where
         self
     }
 
+    /// Adds a route to the API.
+    ///
+    /// This method takes a handler function and a closure that configures the
+    /// route's metadata (like its name, path, and description) using a [`RouteBuilder`].
     pub fn route<F, Fut, R, I, O, E, H>(
         mut self,
         handler: F,
@@ -133,6 +192,12 @@ where
         self
     }
 
+    /// Merges another [`Builder`] into this one.
+    ///
+    /// The schema definitions and handlers from `other` are merged.
+    /// The handlers from `other` are grouped into a separate [`Router`] identified
+    /// by `other`'s name. This is useful for combining independent API modules.
+    /// Note: This does not prepend any paths. Use [`Builder::nest`] for hierarchical routing.
     pub fn extend(mut self, other: Builder<S>) -> Self {
         let other_name = other.schema.name.clone();
         self.merged_handlers.push((other_name, other.handlers));
@@ -140,11 +205,17 @@ where
         self
     }
 
+    /// Nests another [`Builder`] under this one's base path.
+    ///
+    /// This is the primary method for composing modular APIs. It merges the schema
+    /// and handlers from `other`, and prepends this builder's `path` to all of
+    /// `other`'s routes.
     pub fn nest(self, other: Builder<S>) -> Self {
         let other = other.prepend_path(self.path.as_str());
         self.extend(other)
     }
 
+    /// Internal helper to prepend a path to all handlers and schema paths.
     fn prepend_path(mut self, path: &str) -> Self {
         if path.is_empty() {
             return self;
@@ -156,10 +227,18 @@ where
         self
     }
 
+    /// Renames types in the schema that match a glob pattern.
+    ///
+    /// This is a powerful tool for cleaning up type names, especially for removing
+    /// verbose module paths.
+    ///
+    /// # Example
+    ///
+    /// `builder.glob_rename_types("my_crate::models::*", "")`
     #[cfg(feature = "glob")]
-    pub fn glob_rename_types(mut self, glob: &str, replacer: &str) -> Self {
-        match glob.parse::<reflectapi_schema::Glob>() {
-            Ok(pattern) => self.rename_types(&pattern, replacer),
+    pub fn glob_rename_types<G: AsRef<str>, R: AsRef<str>>(mut self, glob: G, replacer: R) -> Self {
+        match glob.as_ref().parse::<reflectapi_schema::Glob>() {
+            Ok(pattern) => self.rename_types(&pattern, replacer.as_ref()),
             Err(err) => {
                 self.errors.push(BuildError::Other(
                     format!("invalid glob pattern: {err}").into(),
@@ -169,6 +248,7 @@ where
         }
     }
 
+    /// Renames types in the schema that match a given pattern.
     pub fn rename_types(mut self, pattern: impl Pattern + fmt::Display, to: &str) -> Self {
         if self.schema.rename_types(pattern, to) == 0 && !self.allow_redundant_renames {
             self.errors.push(BuildError::RedundantRename {
@@ -179,6 +259,10 @@ where
         self
     }
 
+    /// Adds a custom validation function to be run against the schema during the build process.
+    ///
+    /// This allows for enforcing project-specific rules, such as naming conventions or
+    /// ensuring all routes have descriptions.
     pub fn validate(
         mut self,
         validation: fn(&crate::Schema) -> Vec<crate::ValidationError>,
@@ -187,11 +271,17 @@ where
         self
     }
 
+    /// Inlines all types marked as `#[reflectapi(transparent)]` throughout the schema.
+    /// This simplifies the schema by replacing wrapper types with their inner types.
     pub fn fold_transparent_types(mut self) -> Self {
         self.schema.fold_transparent_types();
         self
     }
 
+    /// Consumes the builder and attempts to build the final API [`crate::Schema`] and [`Vec<Router>`].
+    ///
+    /// This method performs final validation and consolidation. It returns an error
+    /// if any validation checks fail or if any other build errors were recorded.
     pub fn build(
         mut self,
     ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), crate::BuildErrors> {
@@ -227,14 +317,20 @@ where
     }
 }
 
+/// A collection of named handlers, produced by the [`Builder`].
 pub struct Router<S>
 where
     S: Send + 'static,
 {
+    /// The name of this router, derived from the [`Builder`]'s name.
     pub name: String,
+    /// The list of handlers belonging to this router.
     pub handlers: Vec<crate::Handler<S>>,
 }
 
+/// A fluent builder for configuring a single route's metadata.
+///
+/// An instance of [`RouteBuilder`] is passed to the closure in [`Builder::route`].
 #[derive(Default)]
 pub struct RouteBuilder {
     name: String,
@@ -246,17 +342,23 @@ pub struct RouteBuilder {
 }
 
 impl RouteBuilder {
+    /// Creates a new, empty [`RouteBuilder`].
     pub fn new() -> Self {
         Default::default()
     }
 
+    /// Sets the name for the route, often used as an "operation ID" in API specifications.
     pub fn name(mut self, name: impl Into<String>) -> Self {
         self.name = name.into();
         self
     }
 
-    pub fn path(mut self, path: impl Into<String>) -> Self {
-        self.path = path.into();
+    /// Sets the path for the route.
+    ///
+    /// If the parent [`Builder`] has a base path, this path will be appended to it.
+    /// The path will be normalized to ensure it starts with a `/` and does not end with one.
+    pub fn path<T: AsRef<str>>(mut self, path: T) -> Self {
+        self.path = path.as_ref().into();
         if self.path.ends_with('/') {
             self.path.pop();
         }
@@ -266,28 +368,34 @@ impl RouteBuilder {
         self
     }
 
+    /// Sets the description for the route, used for documentation.
     pub fn description(mut self, description: impl Into<String>) -> Self {
         self.description = description.into();
         self
     }
 
-    /// Set the deprecation note for this route.
-    /// An empty string the route is deprecated but no note is provided.
+    /// Marks this route as deprecated, with an optional explanatory note.
+    /// If the provided string is empty, the route is marked as deprecated without a note.
     pub fn deprecation_note(mut self, deprecated: impl Into<String>) -> Self {
         self.deprecation_note = Some(deprecated.into());
         self
     }
 
+    /// Marks this route as "read-only".
+    /// This is a hint to code generators that the route likely corresponds to
+    /// an HTTP GET request and does not modify server state.
     pub fn readonly(mut self, readonly: bool) -> Self {
         self.readonly = readonly;
         self
     }
 
-    pub fn tag(mut self, tag: impl Into<String>) -> Self {
-        self.tags.insert(tag.into());
+    /// Adds a tag to the route, used for grouping related operations in documentation.
+    pub fn tag<T: AsRef<str>>(mut self, tag: T) -> Self {
+        self.tags.insert(tag.as_ref().into());
         self
     }
 
+    /// Removes a tag from the route.
     pub fn untag<Q>(mut self, tag: &Q) -> Self
     where
         String: Borrow<Q>,
@@ -297,16 +405,21 @@ impl RouteBuilder {
         self
     }
 
-    pub fn tags(mut self, tags: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.tags.extend(tags.into_iter().map(Into::into));
+    /// Adds multiple tags to the route.
+    pub fn tags<T: AsRef<str>>(mut self, tags: impl IntoIterator<Item = T>) -> Self {
+        self.tags.extend(tags.into_iter().map(|s| s.as_ref().to_string()));
         self
     }
 }
 
+/// An error that can occur during the [`Builder::build`] process.
 #[derive(Debug)]
 pub enum BuildError {
+    /// An error from a custom validation function.
     Validation(crate::ValidationError),
+    /// A generic error.
     Other(Box<dyn Error + Send + Sync>),
+    /// A [`Builder::rename_types`] operation was configured but did not match any types.
     RedundantRename { pattern: String },
 }
 
@@ -324,6 +437,9 @@ impl fmt::Display for BuildError {
 
 impl std::error::Error for BuildError {}
 
+/// A collection of errors that occurred during the build process.
+///
+/// See [`BuildError`] for more details.
 #[derive(Debug)]
 pub struct BuildErrors(pub Vec<BuildError>);
 

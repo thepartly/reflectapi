@@ -143,7 +143,7 @@
 //!
 //! ## Examples
 //!
-//! For complete examples, see the `reflectapi-demo` crate which demonstrates:
+//! For complete examples, see the [`reflectapi-demo`](https://github.com/thepartly/reflectapi/tree/main/reflectapi-demo) crate which demonstrates:
 //! - Basic CRUD operations
 //! - Tagged enums and discriminated unions
 //! - Generic types and collections
@@ -162,6 +162,7 @@ mod option;
 mod traits;
 mod validation;
 
+#[doc(hidden)]
 #[cfg(feature = "rt")]
 pub mod rt;
 
@@ -172,8 +173,13 @@ pub use builder::*;
 mod builder;
 
 #[cfg(feature = "axum")]
-pub mod axum;
+mod axum;
+#[cfg(feature = "axum")]
+pub use axum::*;
 
+// NOTE: Re-exporting the entire interface of all of these crates is a major semver hazard!
+
+#[doc(hidden)]
 #[cfg(feature = "codegen")]
 pub mod codegen;
 
@@ -195,11 +201,14 @@ pub use rust_decimal;
 #[cfg(feature = "json")]
 pub use serde_json;
 
+// Public re-exports
 pub use empty::*;
 pub use infallible::*;
-
 pub use option::*;
-pub use reflectapi_derive::*;
-pub use reflectapi_schema::*;
 pub use traits::*;
+pub use reflectapi_derive::{Input, Output};
 pub use validation::*;
+
+// Hidden re-exports
+#[doc(hidden)]
+pub use reflectapi_schema::*;

@@ -1,8 +1,57 @@
+/// A trait for types that can be used as an input in an API.
+///
+/// Implementing this trait allows a type to be introspected and its structure
+/// added to a `Typespace` schema. This is essential for automatically generating
+/// API documentation, client-side code, and validation rules for function arguments
+/// and request bodies.
+///
+/// ## Derive Macro
+///
+/// **In most cases, you should not implement this trait manually.** Instead, use the
+/// `#[derive(Input)]` macro provided by `reflectapi` to automatically generate
+/// a correct and efficient implementation.
+///
+/// ```rust
+/// # use reflectapi::{Input, Output};
+///
+/// #[derive(Input, Output)]
+/// struct User {
+///     id: u64,
+///     username: String,
+///     password_hash: String,
+/// }
+/// ```
+// TODO: We need examples for manual derive and supported flags for the derive macro.
 pub trait Input {
+    /// Recursively adds the type definition to the schema and returns a reference to it.
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference;
 }
 
+/// A trait for types that can be used as an output in an API.
+///
+/// Implementing this trait allows a type to be introspected and its structure
+/// added to a `Typespace` schema. This is essential for automatically generating
+/// API documentation, client-side code, and validation rules for function return
+/// types and response bodies.
+///
+/// # Derive Macro
+///
+/// **In most cases, you should not implement this trait manually.** Instead, use the
+/// `#[derive(Output)]` macro provided by `reflectapi` to automatically generate
+/// a correct and efficient implementation.
+///
+/// ```rust
+/// # use reflectapi::{Input, Output};
+///
+/// #[derive(Input, Output)]
+/// struct User {
+///     id: u64,
+///     username: String,
+/// }
+/// ```
+// TODO: We need examples for manual derive and supported flags for the derive macro.
 pub trait Output {
+    /// Recursively adds the type definition to the schema and returns a reference to it.
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference;
 }
 
