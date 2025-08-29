@@ -131,7 +131,7 @@
 mod empty;
 mod impls;
 mod infallible;
-mod possible;
+mod option;
 mod traits;
 mod validation;
 
@@ -159,7 +159,7 @@ pub use builder::{
 };
 pub use empty::*;
 pub use infallible::*;
-pub use possible::*;
+pub use option::*;
 pub use reflectapi_derive::{Input, Output};
 pub use traits::*;
 pub use validation::*;
