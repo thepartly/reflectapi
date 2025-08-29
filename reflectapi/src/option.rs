@@ -14,21 +14,21 @@ use std::ops::Deref;
 ///
 /// ```rust
 /// # use serde::{Serialize, Deserialize};
-/// # use reflectapi::Possible;
+/// # use reflectapi::Option;
 ///
 /// #[derive(Serialize, Deserialize, Default)]
 /// struct UserPatch {
-///     #[serde(default, skip_serializing_if = "Possible::is_undefined")]
-///     name: Possible<String>,
-///     #[serde(default, skip_serializing_if = "Possible::is_undefined")]
-///     email: Possible<Option<String>>,
+///     #[serde(default, skip_serializing_if = "Option::is_undefined")]
+///     name: Option<String>,
+///     #[serde(default, skip_serializing_if = "Option::is_undefined")]
+///     email: Option<Option<String>>,
 /// }
 ///
 /// // User wants to update their name, but not their email.
 /// // The `email` field is omitted from the JSON.
 /// let patch_json = r#"{"name": "Jane Doe"}"#;
 /// let patch: UserPatch = serde_json::from_str(patch_json).unwrap();
-/// assert_eq!(patch.name, Possible::Some("Jane Doe".to_string()));
+/// assert_eq!(patch.name, Option::Some("Jane Doe".to_string()));
 /// assert!(patch.email.is_undefined());
 ///
 /// // User wants to clear their email, setting it to null.
@@ -49,27 +49,27 @@ pub enum Option<T> {
 }
 
 impl<T> Option<T> {
-    /// Returns `true` if the `Possible` is `Undefined`.
+    /// Returns `true` if the `Option` is `Undefined`.
     pub fn is_undefined(&self) -> bool {
         matches!(self, Option::Undefined)
     }
 
-    /// Returns `true` if the `Possible` is `None`.
+    /// Returns `true` if the `Option` is `None`.
     pub fn is_none(&self) -> bool {
         matches!(self, Option::None)
     }
 
-    /// Returns `true` if the `Possible` is `None` or `Undefined`.
+    /// Returns `true` if the `Option` is `None` or `Undefined`.
     pub fn is_none_or_undefined(&self) -> bool {
         matches!(self, Option::None | Option::Undefined)
     }
 
-    /// Returns `true` if the `Possible` is `Some`.
+    /// Returns `true` if the `Option` is `Some`.
     pub fn is_some(&self) -> bool {
         matches!(self, Option::Some(_))
     }
 
-    /// Converts from `Possible<T>` to `Possible<&T>`.
+    /// Converts from `Option<T>` to `Option<&T>`.
     pub fn as_ref(&self) -> Option<&T> {
         match self {
             Option::Undefined => Option::Undefined,
@@ -78,7 +78,7 @@ impl<T> Option<T> {
         }
     }
 
-    /// Converts the `Possible<T>` into a standard `Option<T>`.
+    /// Converts the `Option<T>` into a standard `Option<T>`.
     ///
     /// Note: This is a lossy conversion, as both `Undefined` and `None`
     /// are mapped to `Option::None`.
@@ -90,7 +90,7 @@ impl<T> Option<T> {
         }
     }
 
-    /// Converts a reference to a `Possible<T>` into an `Option<&T>`.
+    /// Converts a reference to a `Option<T>` into an `Option<&T>`.
     ///
     /// Note: This is a lossy conversion, as both `Undefined` and `None`
     /// are mapped to `Option::None`.
@@ -102,12 +102,12 @@ impl<T> Option<T> {
         }
     }
 
-    /// "Unfolds" the `Possible<&T>` into a nested `Option<Option<&T>>`.
+    /// "Unfolds" the `Option<&T>` into a nested `Option<Option<&T>>`.
     ///
     /// This is a lossless conversion that preserves all three states:
-    /// - `Possible::Undefined` -> `None`
-    /// - `Possible::None`      -> `Some(None)`
-    /// - `Possible::Some(v)`   -> `Some(Some(v))`
+    /// - `Option::Undefined` -> `None`
+    /// - `Option::None`      -> `Some(None)`
+    /// - `Option::Some(v)`   -> `Some(Some(v))`
     pub fn unfold(&self) -> std::option::Option<std::option::Option<&T>> {
         match self {
             Option::Undefined => None,
@@ -116,12 +116,12 @@ impl<T> Option<T> {
         }
     }
 
-    /// "Folds" a nested `Option<Option<T>>` into a `Possible<T>`.
+    /// "Folds" a nested `Option<Option<T>>` into a `Option<T>`.
     ///
     /// This is the inverse of `unfold` and is also lossless:
-    /// - `None`           -> `Possible::Undefined`
-    /// - `Some(None)`     -> `Possible::None`
-    /// - `Some(Some(v))`  -> `Possible::Some(v)`
+    /// - `None`           -> `Option::Undefined`
+    /// - `Some(None)`     -> `Option::None`
+    /// - `Some(Some(v))`  -> `Option::Some(v)`
     pub fn fold(source: std::option::Option<std::option::Option<T>>) -> Self {
         match source {
             None => Option::Undefined,
@@ -130,7 +130,7 @@ impl<T> Option<T> {
         }
     }
 
-    /// Maps a `Possible<T>` to `Possible<U>` by applying a function to a
+    /// Maps a `Option<T>` to `Option<U>` by applying a function to a
     /// contained `Some` value, leaving `Undefined` and `None` values untouched.
     pub fn map<U, F>(self, f: F) -> Option<U>
     where
@@ -143,7 +143,7 @@ impl<T> Option<T> {
         }
     }
 
-    /// Converts a `Possible<T>` to a `Possible<&T::Target>` where `T` implements `Deref`.
+    /// Converts a `Option<T>` to a `Option<&T::Target>` where `T` implements `Deref`.
     pub fn as_deref(&self) -> Option<&T::Target>
     where
         T: Deref,
@@ -223,12 +223,12 @@ impl<'de, T: serde::de::Deserialize<'de>> serde::Deserialize<'de> for Option<T> 
     }
 }
 
-fn reflectapi_type_possible(schema: &mut crate::Typespace) -> String {
-    let type_name = "reflectapi::Possible";
+fn reflectapi_type_option(schema: &mut crate::Typespace) -> String {
+    let type_name = "reflectapi::Option";
     if schema.reserve_type(type_name) {
         let mut type_def = crate::Enum::new(type_name.into());
         type_def.parameters.push("T".into());
-        type_def.description = "Undefinable Possible type".into();
+        type_def.description = "Undefinable Option type".into();
         type_def.representation = crate::Representation::None;
 
         let mut variant = crate::Variant::new("Undefined".into());
@@ -254,7 +254,7 @@ fn reflectapi_type_possible(schema: &mut crate::Typespace) -> String {
 impl<T: crate::Input> crate::Input for crate::Option<T> {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
-            reflectapi_type_possible(schema),
+            reflectapi_type_option(schema),
             vec![T::reflectapi_input_type(schema)],
         )
     }
@@ -263,7 +263,7 @@ impl<T: crate::Input> crate::Input for crate::Option<T> {
 impl<T: crate::Output> crate::Output for crate::Option<T> {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
-            reflectapi_type_possible(schema),
+            reflectapi_type_option(schema),
             vec![T::reflectapi_output_type(schema)],
         )
     }
