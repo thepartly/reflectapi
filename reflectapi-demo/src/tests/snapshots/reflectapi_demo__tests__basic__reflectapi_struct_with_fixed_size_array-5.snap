@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
 expression: "super :: into_python_code :: < TestStructWithFixedSizeArray > ()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.

@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/generics.rs
 expression: "super :: into_input_python_code :: < TestStructWithVecGenericGeneric::<u8> >\n()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.

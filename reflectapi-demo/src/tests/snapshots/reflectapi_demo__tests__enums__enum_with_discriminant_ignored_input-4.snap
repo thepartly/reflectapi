@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/enums.rs
 expression: "super :: into_input_python_code :: < TestEnumWithDiscriminantIgnored > ()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.

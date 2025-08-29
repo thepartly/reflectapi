@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/generics.rs
 expression: "super :: into_input_python_code :: <\nTestStructWithCircularReferenceGenericWithoutBox::<\nTestStructWithCircularReferenceGenericWithoutBox<u8, u16>,\nTestStructWithCircularReferenceGenericWithoutBox<String, u32>, >\n> ()"
-snapshot_kind: text
 ---
 '''
 Generated Python client for api_client.
