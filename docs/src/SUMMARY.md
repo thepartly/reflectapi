@@ -26,13 +26,6 @@
 - [OpenAPI Integration](./how-to/openapi.md)
 - [Performance Optimization](./how-to/performance.md)
 
-# Concepts
-
-- [Schema System](./concepts/schema.md)
-- [Type System](./concepts/type-system.md)
-- [Code Generation Pipeline](./concepts/codegen.md)
-- [Derive Macros](./concepts/derive-macros.md)
-
 # Client Libraries
 
 - [Overview & Comparison](./clients/README.md)
@@ -40,16 +33,3 @@
 - [Python Client](./clients/python.md)
 - [Rust Client](./clients/rust.md)
 
-# Reference
-
-- [API Reference](./reference/README.md)
-- [CLI Reference](./reference/cli.md)
-- [Feature Flags](./reference/features.md)
-- [Attribute Reference](./reference/attributes.md)
-- [Troubleshooting](./reference/troubleshooting.md)
-
-# Contributing
-
-- [Development Guide](./contributing/README.md)
-- [Testing](./contributing/testing.md)
-- [Documentation](./contributing/documentation.md)
