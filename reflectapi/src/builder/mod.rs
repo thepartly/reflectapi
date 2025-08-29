@@ -10,7 +10,6 @@ pub use result::*;
 
 /// [`Builder`] provides a chained API for defining the overall API specification,
 /// adding individual routes (handlers), and composing multiple builders together.
-// TODO: example here.
 pub struct Builder<S>
 where
     S: Send + 'static,
