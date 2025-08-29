@@ -68,12 +68,6 @@
 //! # }
 //! ```
 //!
-//! ## Feature Flags
-//!
-//! ReflectAPI uses feature flags to enable different functionality:
-//!
-#![cfg_attr(feature = "document-features", doc = document_features::document_features!())]
-//!
 //! ## Code Generation
 //!
 //! ReflectAPI can generate client libraries for multiple languages:

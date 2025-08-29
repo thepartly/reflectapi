@@ -76,8 +76,6 @@ rust_decimal = ["dep:rust_decimal"]
 axum = ["dep:axum", "builder"]
 # feature flag for enabling codegen libraries
 codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep:serde_json"]
-# enable automatic feature documentation generation (doc-only)
-document-features = ["dep:document-features"]
 rt = ["dep:http", "dep:serde_json", "dep:bytes", "dep:url"]
 glob = ["reflectapi-schema/glob"]
 json = ["dep:serde_json"]
