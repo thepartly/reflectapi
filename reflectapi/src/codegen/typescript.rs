@@ -145,6 +145,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
                 Command::new("biome").args(["format", "--stdin-file-path", "dummy.ts"]),
                 Command::new("prettier").args(["--parser", "typescript"]),
                 Command::new("npx")
+                    .arg("-y")
                     .arg("prettier")
                     .args(["--parser", "typescript"]),
             ],
@@ -163,7 +164,14 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
     let path = super::tmp_path(src).with_extension("ts");
     std::fs::write(&path, src)?;
 
-    for cmd in [&mut Command::new("tsc"), Command::new("npx").arg("tsc")] {
+    for cmd in [
+        &mut Command::new("tsc"),
+        Command::new("npx")
+            .arg("-y")
+            .arg("-p")
+            .arg("typescript")
+            .arg("tsc"),
+    ] {
         let child = match cmd
             .arg("--noEmit")
             .arg("--skipLibCheck")
@@ -183,10 +191,11 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
 
         if !output.status.success() {
             return Err(anyhow::anyhow!(
-                "tsc failed with exit code {:?}\n{}",
+                "tsc failed with exit code {:?}\n{}\n{}",
                 output.status.code(),
                 // tsc outputs to stdout
-                String::from_utf8_lossy(&output.stdout)
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr),
             ));
         }
 

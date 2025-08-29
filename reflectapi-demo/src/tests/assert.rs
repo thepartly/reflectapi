@@ -207,7 +207,7 @@ macro_rules! assert_builder_snapshot {
         let typescript = reflectapi::codegen::strip_boilerplate(
             &reflectapi::codegen::typescript::generate(
                 schema.clone(),
-                reflectapi::codegen::typescript::Config::default()
+                &reflectapi::codegen::typescript::Config::default()
                     .format(true)
                     .typecheck(true),
             )
