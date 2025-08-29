@@ -40,4 +40,11 @@ command = "mdbook-keeper"
 manifest_dir = ".."
 is_workspace = true
 
+[[preprocessor.keeper.rust_manifest]]
+name = "default"
+[preprocessor.keeper.rust_manifest.dependencies]
+reflectapi = { workspace = true, features = ["rt", "reqwest", "url"] }
+reqwest = { version = "0.12", features = ["json"] }
+url = "2.5"
+
 [output.html.redirect]
