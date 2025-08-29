@@ -1,6 +1,5 @@
 # Quick Start
 
-
 This guide will have you up and running with `reflectapi` in under 5 minutes.
 
 ## Prerequisites
@@ -101,9 +100,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Save schema for client generation
     let schema_json = serde_json::to_string_pretty(&schema)?;
-    std::fs::write("api-schema.json", schema_json)?;
+    std::fs::write("reflectapi-schema.json", schema_json)?;
     
-    println!("✅ API schema generated at api-schema.json");
+    println!("✅ API schema generated at reflectapi-schema.json");
     
     // Start the HTTP server
     let app_state = (); // No state needed for this example
@@ -127,7 +126,7 @@ cargo run
 
 You should see:
 ```text
-✅ API schema generated at api-schema.json
+✅ API schema generated at reflectapi-schema.json
 🚀 Server running on http://0.0.0.0:3000
 📖 Ready to generate clients!
 ```
@@ -146,7 +145,7 @@ Then generate a TypeScript client:
 
 ```bash
 mkdir clients
-reflectapi-cli codegen --language typescript --schema api-schema.json --output clients/typescript
+reflectapi-cli codegen --language typescript --schema reflectapi-schema.json --output clients/typescript
 ```
 
 ## Use Your Generated Client
@@ -154,31 +153,17 @@ reflectapi-cli codegen --language typescript --schema api-schema.json --output c
 The generated TypeScript client will be fully typed:
 
 ```typescript
-import { ApiClient } from './clients/typescript';
+import { client } from './clients/typescript';
 
-const client = new ApiClient('http://localhost:3000');
+const c = client('http://localhost:3000');
 
 // Create a user - fully type-safe!
-const newUser = await client.users.create({
+const newUser = await c.users.create({
   name: 'Bob',
   email: 'bob@example.com'
 });
 
 // Get a user
-const user = await client.users.get(1);
+const user = await c.users.get(1);
 ```
-
-## What's Next?
-
-- [Learn how to build a complete API](../tutorial/README.md)
-- [Explore client generation options](../clients/README.md)
-- [Understand the architecture](../architecture/README.md)
-
-## Key Concepts Recap
-
-1. **Define types** with `#[derive(Input, Output)]`
-2. **Build your API** using the `Builder` pattern
-3. **Generate schema** as JSON for client generation
-4. **Generate clients** using the CLI tool
-
-That's it! You've built your first `reflectapi`.
+That's it!
