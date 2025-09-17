@@ -1,0 +1,3 @@
+# Mark snapshot directories as generated code
+**/snapshots/** linguist-generated=true
+reflectapi-demo/src/tests/snapshots/* linguist-generated=true
