@@ -58,7 +58,6 @@ class AsyncOutputClient:
         path = "/output_test"
 
         params: dict[str, Any] = {}
-
         return await self._client._make_request(
             "POST",
             path,
@@ -98,7 +97,6 @@ class OutputClient:
         path = "/output_test"
 
         params: dict[str, Any] = {}
-
         return self._client._make_request(
             "POST",
             path,

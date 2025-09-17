@@ -3030,8 +3030,8 @@ fn render_function(
         None
     };
 
-    // Extract path and query parameters from input type
-    let (path_params, query_params) = extract_parameters(schema, function, &input_type)?;
+    // Extract path parameters from input type
+    let path_params = extract_path_parameters(&function.path)?;
 
     // Combine base path with function name (like TypeScript and Rust generators do)
     let path = if function.path.is_empty() {
@@ -3048,15 +3048,7 @@ fn render_function(
     };
 
     // Determine if we need a body parameter
-    // For GET requests, body is not needed as all parameters become path/query params
-    // For POST requests, we use the body if there are fields not covered by path params
-    let has_body = if function.readonly {
-        // GET requests don't have bodies
-        false
-    } else {
-        // POST requests have bodies if there's an input type
-        function.input_type.is_some()
-    };
+    let has_body = function.input_type.is_some();
 
     Ok(templates::Function {
         name: safe_python_identifier_with_context(
@@ -3065,35 +3057,24 @@ fn render_function(
         ),
         original_name: None, // Will be set later if this function is nested
         description: Some(function.description().to_string()),
-        method: if function.readonly {
-            "GET".to_string()
-        } else {
-            "POST".to_string()
-        },
+        method: "POST".to_string(),
         path,
         input_type,
         headers_type,
         output_type,
         error_type,
         path_params,
-        query_params,
         has_body,
         is_input_primitive,
         deprecation_note: function.deprecation_note.clone(),
     })
 }
 
-// Extract path and query parameters from function definition
-fn extract_parameters(
-    schema: &Schema,
-    function: &Function,
-    _input_type: &str,
-) -> anyhow::Result<(Vec<templates::Parameter>, Vec<templates::Parameter>)> {
+// Extract path parameters from function definition
+fn extract_path_parameters(path: &str) -> anyhow::Result<Vec<templates::Parameter>> {
     let mut path_params = Vec::new();
-    let mut query_params = Vec::new();
 
     // Extract path parameters by finding {param_name} patterns in the path
-    let path = &function.path;
     let mut in_param = false;
     let mut current_param = String::new();
 
@@ -3123,43 +3104,7 @@ fn extract_parameters(
         }
     }
 
-    // Extract query parameters from input type if it's a GET request
-    if function.readonly && function.input_type.is_some() {
-        if let Some(input_type_ref) = &function.input_type {
-            // Try to get the struct definition from the schema
-            if let Some(reflectapi_schema::Type::Struct(struct_def)) =
-                schema.get_type(&input_type_ref.name)
-            {
-                // Get path parameter names to exclude them from query params
-                let path_param_names: std::collections::HashSet<String> =
-                    path_params.iter().map(|p| p.name.clone()).collect();
-
-                // For GET requests, fields not in path become query parameters
-                for field in struct_def.fields.iter() {
-                    let field_name = to_snake_case(field.name());
-
-                    // Skip if this field is already a path parameter
-                    if !path_param_names.contains(&field_name) {
-                        let field_type = type_ref_to_python_type(
-                            &field.type_ref,
-                            schema,
-                            &build_implemented_types(),
-                            &[],
-                            &mut BTreeSet::new(),
-                        )?;
-                        query_params.push(templates::Parameter {
-                            name: field_name.clone(),
-                            raw_name: field.name().to_string(), // For query params, raw_name is the original field name
-                            type_annotation: field_type,
-                            description: Some(format!("Query parameter: {}", field.name())),
-                        });
-                    }
-                }
-            }
-        }
-    }
-
-    Ok((path_params, query_params))
+    Ok(path_params)
 }
 
 // Check if a type name represents a primitive type
@@ -4796,9 +4741,6 @@ class Async{{ group.class_name }}:
 {%- for param in function.path_params %}
         {{ param.name }}: {{ param.type_annotation }},
 {%- endfor %}
-{%- for param in function.query_params %}
-        {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{%- endfor %}
 {%- if function.has_body %}
         data: Optional[{{ function.input_type }}] = None,
 {%- endif %}
@@ -4806,15 +4748,12 @@ class Async{{ group.class_name }}:
         headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
 {%- endif %}
     ) -> ApiResponse[{{ function.output_type }}]:
-        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body || !function.path_params.is_empty() || !function.query_params.is_empty() %}
+        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body || !function.path_params.is_empty() %}
 
         Args:{% if function.has_body %}
             data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
 {% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
-{%- for param in function.query_params %}
-            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
-{%- endfor %}{% endif %}{% endif %}
+{% endfor %}{% endif %}{% endif %}
 
         Returns:
             ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
@@ -4842,10 +4781,6 @@ class Async{{ group.class_name }}:
             path = path.replace("{" + param_name + "}", param_value)
 {% endif %}
         params: dict[str, Any] = {}
-{% for param in function.query_params %}
-        if {{ param.name }} is not None:
-            params["{{ param.name }}"] = {{ param.name }}
-{% endfor %}
         return await self._client._make_request(
             "{{ function.method }}",
             path,
@@ -4884,9 +4819,6 @@ class {{ async_class_name }}(AsyncClientBase):
 {%- for param in function.path_params %}
         {{ param.name }}: {{ param.type_annotation }},
 {%- endfor %}
-{%- for param in function.query_params %}
-        {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{%- endfor %}
 {%- if function.has_body %}
         data: Optional[{{ function.input_type }}] = None,
 {%- endif %}
@@ -4899,8 +4831,6 @@ class {{ async_class_name }}(AsyncClientBase):
         Args:
             data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
 {% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
-{% for param in function.query_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
 {% endfor %}{% endif %}
 
         Returns:
@@ -4929,10 +4859,6 @@ class {{ async_class_name }}(AsyncClientBase):
             path = path.replace("{" + param_name + "}", param_value)
 {% endif %}
         params: dict[str, Any] = {}
-{% for param in function.query_params %}
-        if {{ param.name }} is not None:
-            params["{{ param.name }}"] = {{ param.name }}
-{% endfor %}
         return await self._make_request(
             "{{ function.method }}",
             path,
@@ -4967,9 +4893,6 @@ class {{ group.class_name }}:
 {%- for param in function.path_params %}
         {{ param.name }}: {{ param.type_annotation }},
 {%- endfor %}
-{%- for param in function.query_params %}
-        {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{%- endfor %}
 {%- if function.has_body %}
         data: Optional[{{ function.input_type }}] = None,
 {%- endif %}
@@ -4977,15 +4900,12 @@ class {{ group.class_name }}:
         headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
 {%- endif %}
     ) -> ApiResponse[{{ function.output_type }}]:
-        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body || !function.path_params.is_empty() || !function.query_params.is_empty() %}
+        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body || !function.path_params.is_empty() %}
 
         Args:{% if function.has_body %}
             data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
 {% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
-{%- for param in function.query_params %}
-            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
-{%- endfor %}{% endif %}{% endif %}
+{% endfor %}{% endif %}{% endif %}
 
         Returns:
             ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
@@ -5013,10 +4933,6 @@ class {{ group.class_name }}:
             path = path.replace("{" + param_name + "}", param_value)
 {% endif %}
         params: dict[str, Any] = {}
-{% for param in function.query_params %}
-        if {{ param.name }} is not None:
-            params["{{ param.name }}"] = {{ param.name }}
-{% endfor %}
         return self._client._make_request(
             "{{ function.method }}",
             path,
@@ -5055,9 +4971,6 @@ class {{ class_name }}(ClientBase):
 {%- for param in function.path_params %}
         {{ param.name }}: {{ param.type_annotation }},
 {%- endfor %}
-{%- for param in function.query_params %}
-        {{ param.name }}: Optional[{{ param.type_annotation }}] = None,
-{%- endfor %}
 {%- if function.has_body %}
         data: Optional[{{ function.input_type }}] = None,
 {%- endif %}
@@ -5070,8 +4983,6 @@ class {{ class_name }}(ClientBase):
         Args:
             data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
 {% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}{% if !function.query_params.is_empty() %}
-{% for param in function.query_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Query parameter") }} (optional)
 {% endfor %}{% endif %}
 
         Returns:
@@ -5100,10 +5011,6 @@ class {{ class_name }}(ClientBase):
 {% endif %}
 
         params: dict[str, Any] = {}
-{% for param in function.query_params %}
-        if {{ param.name }} is not None:
-            params["{{ param.name }}"] = {{ param.name }}
-{% endfor %}
 
         return await self._make_request(
             "{{ function.method }}",
@@ -5204,7 +5111,6 @@ def create_mock_client() -> MockClient:
         pub output_type: String,
         pub error_type: Option<String>,
         pub path_params: Vec<Parameter>,
-        pub query_params: Vec<Parameter>,
         pub has_body: bool,
         pub is_input_primitive: bool,
         pub deprecation_note: Option<String>,

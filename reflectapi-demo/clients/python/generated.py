@@ -279,9 +279,8 @@ class AsyncHealthClient:
         path = "/health.check"
 
         params: dict[str, Any] = {}
-
         return await self._client._make_request(
-            "GET",
+            "POST",
             path,
             params=params if params else None,
             response_model=None,
@@ -311,7 +310,6 @@ class AsyncPetsClient:
         path = "/pets.create"
 
         params: dict[str, Any] = {}
-
         return await self._client._make_request(
             "POST",
             path,
@@ -348,7 +346,6 @@ class AsyncPetsClient:
         path = "/pets.delete"
 
         params: dict[str, Any] = {}
-
         return await self._client._make_request(
             "POST",
             path,
@@ -371,7 +368,6 @@ class AsyncPetsClient:
         path = "/pets.get-first"
 
         params: dict[str, Any] = {}
-
         return await self._client._make_request(
             "POST",
             path,
@@ -383,15 +379,13 @@ class AsyncPetsClient:
 
     async def list(
         self,
-        limit: Optional[int | None] = None,
-        cursor: Optional[str | None] = None,
+        data: Optional[MyapiProtoPetsListRequest] = None,
         headers: Optional[MyapiProtoHeaders] = None,
     ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
         """List available pets
 
         Args:
-            limit: Query parameter: limit (optional)
-            cursor: Query parameter: cursor (optional)
+            data: Request data for the list operation.
 
         Returns:
             ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
@@ -399,17 +393,11 @@ class AsyncPetsClient:
         path = "/pets.list"
 
         params: dict[str, Any] = {}
-
-        if limit is not None:
-            params["limit"] = limit
-
-        if cursor is not None:
-            params["cursor"] = cursor
-
         return await self._client._make_request(
-            "GET",
+            "POST",
             path,
             params=params if params else None,
+            json_model=data,
             headers_model=headers,
             response_model=MyapiProtoPaginated[MyapiModelOutputPet],
 )
@@ -431,7 +419,6 @@ class AsyncPetsClient:
         path = "/pets.remove"
 
         params: dict[str, Any] = {}
-
         return await self._client._make_request(
             "POST",
             path,
@@ -458,7 +445,6 @@ class AsyncPetsClient:
         path = "/pets.update"
 
         params: dict[str, Any] = {}
-
         return await self._client._make_request(
             "POST",
             path,
@@ -502,9 +488,8 @@ class HealthClient:
         path = "/health.check"
 
         params: dict[str, Any] = {}
-
         return self._client._make_request(
-            "GET",
+            "POST",
             path,
             params=params if params else None,
             response_model=None,
@@ -534,7 +519,6 @@ class PetsClient:
         path = "/pets.create"
 
         params: dict[str, Any] = {}
-
         return self._client._make_request(
             "POST",
             path,
@@ -571,7 +555,6 @@ class PetsClient:
         path = "/pets.delete"
 
         params: dict[str, Any] = {}
-
         return self._client._make_request(
             "POST",
             path,
@@ -594,7 +577,6 @@ class PetsClient:
         path = "/pets.get-first"
 
         params: dict[str, Any] = {}
-
         return self._client._make_request(
             "POST",
             path,
@@ -606,15 +588,13 @@ class PetsClient:
 
     def list(
         self,
-        limit: Optional[int | None] = None,
-        cursor: Optional[str | None] = None,
+        data: Optional[MyapiProtoPetsListRequest] = None,
         headers: Optional[MyapiProtoHeaders] = None,
     ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
         """List available pets
 
         Args:
-            limit: Query parameter: limit (optional)
-            cursor: Query parameter: cursor (optional)
+            data: Request data for the list operation.
 
         Returns:
             ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
@@ -622,17 +602,11 @@ class PetsClient:
         path = "/pets.list"
 
         params: dict[str, Any] = {}
-
-        if limit is not None:
-            params["limit"] = limit
-
-        if cursor is not None:
-            params["cursor"] = cursor
-
         return self._client._make_request(
-            "GET",
+            "POST",
             path,
             params=params if params else None,
+            json_model=data,
             headers_model=headers,
             response_model=MyapiProtoPaginated[MyapiModelOutputPet],
 )
@@ -654,7 +628,6 @@ class PetsClient:
         path = "/pets.remove"
 
         params: dict[str, Any] = {}
-
         return self._client._make_request(
             "POST",
             path,
@@ -681,7 +654,6 @@ class PetsClient:
         path = "/pets.update"
 
         params: dict[str, Any] = {}
-
         return self._client._make_request(
             "POST",
             path,

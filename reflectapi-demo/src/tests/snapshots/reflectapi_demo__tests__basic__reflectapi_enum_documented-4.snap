@@ -118,7 +118,6 @@ class AsyncInputClient:
         path = "/input_test"
 
         params: dict[str, Any] = {}
-
         return await self._client._make_request(
             "POST",
             path,
@@ -163,7 +162,6 @@ class InputClient:
         path = "/input_test"
 
         params: dict[str, Any] = {}
-
         return self._client._make_request(
             "POST",
             path,
