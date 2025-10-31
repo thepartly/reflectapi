@@ -588,9 +588,9 @@ export function __client(base: string | Client): __definition.Interface {
     #[derive(Template)]
     #[template(
         source = "function {{ name }}(client: Client) {
-    return (input: {{ input_type }}, headers: {{ input_headers }}) => __request<
+    return (input: {{ input_type }}, headers: {{ input_headers }}, options?: RequestOptions) => __request<
         {{ input_type }}, {{ input_headers }}, {{ output_type }}, {{ error_type }}
-    >(client, '{{ path }}', input, headers);
+    >(client, '{{ path }}', input, headers, options);
 }",
         ext = "txt"
     )]
@@ -749,7 +749,7 @@ fn interfaces_from_function_group(
                 4,
             ),
             type_: format!(
-                "(input: {}, headers: {})\n        => AsyncResult<{}, {}>",
+                "(input: {}, headers: {}, options?: RequestOptions)\n        => AsyncResult<{}, {}>",
                 input_type, input_headers, output_type, error_type
             ),
             optional: false,

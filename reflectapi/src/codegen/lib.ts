@@ -1,8 +1,13 @@
+export interface RequestOptions {
+  signal?: AbortSignal;
+}
+
 export interface Client {
   request(
     path: string,
     body: string,
     headers: Record<string, string>,
+    options?: RequestOptions,
   ): Promise<[number, string]>;
 }
 
@@ -164,6 +169,7 @@ export function __request<I, H, O, E>(
   path: string,
   input: I | undefined,
   headers: H | undefined,
+  options?: RequestOptions,
 ): AsyncResult<O, E> {
   let hdrs: Record<string, string> = {
     "content-type": "application/json",
@@ -174,7 +180,7 @@ export function __request<I, H, O, E>(
     }
   }
   return client
-    .request(path, JSON.stringify(input), hdrs)
+    .request(path, JSON.stringify(input), hdrs, options)
     .then(([status, response_body]) => {
       if (status >= 200 && status < 300) {
         try {
@@ -216,12 +222,14 @@ class ClientInstance {
     path: string,
     body: string,
     headers: Record<string, string>,
+    options?: RequestOptions,
   ): Promise<[number, string]> {
     return (globalThis as any)
       .fetch(`${this.base}${path}`, {
         method: "POST",
         headers: headers,
         body: body,
+        signal: options?.signal,
       })
       .then((response: any) => {
         return response.text().then((text: string) => {
