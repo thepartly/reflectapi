@@ -8,11 +8,16 @@ export function client(base: string | Client): __definition.Interface {
   return __implementation.__client(base);
 }
 /* <----- */
+export interface RequestOptions {
+  signal?: AbortSignal;
+}
+
 export interface Client {
   request(
     path: string,
     body: string,
     headers: Record<string, string>,
+    options?: RequestOptions,
   ): Promise<[number, string]>;
 }
 
@@ -174,6 +179,7 @@ export function __request<I, H, O, E>(
   path: string,
   input: I | undefined,
   headers: H | undefined,
+  options?: RequestOptions,
 ): AsyncResult<O, E> {
   let hdrs: Record<string, string> = {
     "content-type": "application/json",
@@ -184,7 +190,7 @@ export function __request<I, H, O, E>(
     }
   }
   return client
-    .request(path, JSON.stringify(input), hdrs)
+    .request(path, JSON.stringify(input), hdrs, options)
     .then(([status, response_body]) => {
       if (status >= 200 && status < 300) {
         try {
@@ -226,12 +232,14 @@ class ClientInstance {
     path: string,
     body: string,
     headers: Record<string, string>,
+    options?: RequestOptions,
   ): Promise<[number, string]> {
     return (globalThis as any)
       .fetch(`${this.base}${path}`, {
         method: "POST",
         headers: headers,
         body: body,
+        signal: options?.signal,
       })
       .then((response: any) => {
         return response.text().then((text: string) => {
@@ -242,7 +250,9 @@ class ClientInstance {
 }
 
 type UnionToIntersection<U> = (
-  U extends any ? (k: U) => unknown : never
+  U extends any
+    ? (k: U) => unknown
+    : never
 ) extends (k: infer I) => void
   ? I
   : never;
@@ -377,7 +387,11 @@ export namespace __definition {
     /**
      * Check the health of the service
      */
-    check: (input: {}, headers: {}) => AsyncResult<{}, {}>;
+    check: (
+      input: {},
+      headers: {},
+      options?: RequestOptions,
+    ) => AsyncResult<{}, {}>;
   }
 
   export interface PetsInterface {
@@ -387,6 +401,7 @@ export namespace __definition {
     list: (
       input: myapi.proto.PetsListRequest,
       headers: myapi.proto.Headers,
+      options?: RequestOptions,
     ) => AsyncResult<
       myapi.proto.Paginated<myapi.model.output.Pet>,
       myapi.proto.PetsListError
@@ -397,6 +412,7 @@ export namespace __definition {
     create: (
       input: myapi.proto.PetsCreateRequest,
       headers: myapi.proto.Headers,
+      options?: RequestOptions,
     ) => AsyncResult<{}, myapi.proto.PetsCreateError>;
     /**
      * Update an existing pet
@@ -404,6 +420,7 @@ export namespace __definition {
     update: (
       input: myapi.proto.PetsUpdateRequest,
       headers: myapi.proto.Headers,
+      options?: RequestOptions,
     ) => AsyncResult<{}, myapi.proto.PetsUpdateError>;
     /**
      * Remove an existing pet
@@ -411,6 +428,7 @@ export namespace __definition {
     remove: (
       input: myapi.proto.PetsRemoveRequest,
       headers: myapi.proto.Headers,
+      options?: RequestOptions,
     ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
     /**
      * @deprecated Use pets.remove instead
@@ -419,6 +437,7 @@ export namespace __definition {
     delete: (
       input: myapi.proto.PetsRemoveRequest,
       headers: myapi.proto.Headers,
+      options?: RequestOptions,
     ) => AsyncResult<{}, myapi.proto.PetsRemoveError>;
     /**
      * Fetch first pet, if any exists
@@ -426,6 +445,7 @@ export namespace __definition {
     get_first: (
       input: {},
       headers: myapi.proto.Headers,
+      options?: RequestOptions,
     ) => AsyncResult<
       myapi.model.output.Pet | null,
       myapi.proto.UnauthorizedError
@@ -637,73 +657,91 @@ namespace __implementation {
   /* -----> */
 
   function health__check(client: Client) {
-    return (input: {}, headers: {}) =>
-      __request<{}, {}, {}, {}>(client, "/health.check", input, headers);
+    return (input: {}, headers: {}, options?: RequestOptions) =>
+      __request<{}, {}, {}, {}>(
+        client,
+        "/health.check",
+        input,
+        headers,
+        options,
+      );
   }
   function pets__list(client: Client) {
-    return (input: myapi.proto.PetsListRequest, headers: myapi.proto.Headers) =>
+    return (
+      input: myapi.proto.PetsListRequest,
+      headers: myapi.proto.Headers,
+      options?: RequestOptions,
+    ) =>
       __request<
         myapi.proto.PetsListRequest,
         myapi.proto.Headers,
         myapi.proto.Paginated<myapi.model.output.Pet>,
         myapi.proto.PetsListError
-      >(client, "/pets.list", input, headers);
+      >(client, "/pets.list", input, headers, options);
   }
   function pets__create(client: Client) {
     return (
       input: myapi.proto.PetsCreateRequest,
       headers: myapi.proto.Headers,
+      options?: RequestOptions,
     ) =>
       __request<
         myapi.proto.PetsCreateRequest,
         myapi.proto.Headers,
         {},
         myapi.proto.PetsCreateError
-      >(client, "/pets.create", input, headers);
+      >(client, "/pets.create", input, headers, options);
   }
   function pets__update(client: Client) {
     return (
       input: myapi.proto.PetsUpdateRequest,
       headers: myapi.proto.Headers,
+      options?: RequestOptions,
     ) =>
       __request<
         myapi.proto.PetsUpdateRequest,
         myapi.proto.Headers,
         {},
         myapi.proto.PetsUpdateError
-      >(client, "/pets.update", input, headers);
+      >(client, "/pets.update", input, headers, options);
   }
   function pets__remove(client: Client) {
     return (
       input: myapi.proto.PetsRemoveRequest,
       headers: myapi.proto.Headers,
+      options?: RequestOptions,
     ) =>
       __request<
         myapi.proto.PetsRemoveRequest,
         myapi.proto.Headers,
         {},
         myapi.proto.PetsRemoveError
-      >(client, "/pets.remove", input, headers);
+      >(client, "/pets.remove", input, headers, options);
   }
   function pets__delete(client: Client) {
     return (
       input: myapi.proto.PetsRemoveRequest,
       headers: myapi.proto.Headers,
+      options?: RequestOptions,
     ) =>
       __request<
         myapi.proto.PetsRemoveRequest,
         myapi.proto.Headers,
         {},
         myapi.proto.PetsRemoveError
-      >(client, "/pets.delete", input, headers);
+      >(client, "/pets.delete", input, headers, options);
   }
   function pets__get_first(client: Client) {
-    return (input: {}, headers: myapi.proto.Headers) =>
+    return (
+      input: {},
+      headers: myapi.proto.Headers,
+      options?: RequestOptions,
+    ) =>
       __request<
         {},
         myapi.proto.Headers,
         myapi.model.output.Pet | null,
         myapi.proto.UnauthorizedError
-      >(client, "/pets.get-first", input, headers);
+      >(client, "/pets.get-first", input, headers, options);
   }
 }

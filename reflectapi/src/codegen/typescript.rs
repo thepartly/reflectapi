@@ -176,7 +176,7 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
             .arg("--noEmit")
             .arg("--skipLibCheck")
             .arg("--strict")
-            .args(["--lib", "esnext"])
+            .args(["--lib", "esnext,DOM"])
             .arg(&path)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
