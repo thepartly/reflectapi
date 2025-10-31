@@ -143,15 +143,12 @@ pub mod rt;
 pub(crate) mod builder;
 
 #[cfg(feature = "axum")]
-mod axum;
+pub mod axum;
 
 #[doc(hidden)]
 #[cfg(feature = "codegen")]
 pub mod codegen;
 
-// Public re-exports
-#[cfg(feature = "axum")]
-pub use axum::*;
 #[cfg(feature = "builder")]
 pub use builder::{
     BuildError, BuildErrors, Builder, ContentType, Handler, HandlerCallback, HandlerFuture,
