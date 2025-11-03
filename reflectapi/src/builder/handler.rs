@@ -2,6 +2,7 @@ use core::fmt;
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use futures_core::stream::Stream;
+use reflectapi_schema::TypeReference;
 
 use http::HeaderName;
 
@@ -136,12 +137,34 @@ where
         O: crate::Output + serde::ser::Serialize + Send + 'static,
         E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
+        let (function_def, mut input_headers) = Self::mk_function::<I, H, O, E>(&rb, schema);
+        schema.functions.push(function_def);
+
+        // inject system header requirements used by the handler wrapper
+        input_headers.push(http::header::CONTENT_TYPE);
+        input_headers.push(HeaderName::from_static("traceparent"));
+
+        Handler {
+            name: rb.name,
+            path: rb.path,
+            readonly: rb.readonly,
+            input_headers,
+            callback: HandlerCallback::Single(Arc::new(move |state: S, input: HandlerInput| {
+                Box::pin(Self::handler_wrap(state, input, handler)) as _
+            })),
+        }
+    }
+
+    fn mk_function<I: crate::Input, H: crate::Input, O: crate::Output, E: crate::Output>(
+        rb: &RouteBuilder,
+        schema: &mut Schema,
+    ) -> (Function, Vec<HeaderName>) {
         let input_type = I::reflectapi_input_type(&mut schema.input_types);
-        let input_headers = H::reflectapi_input_type(&mut schema.input_types);
         let output_type = O::reflectapi_output_type(&mut schema.output_types);
         let error_type = E::reflectapi_output_type(&mut schema.output_types);
+        let input_headers = H::reflectapi_input_type(&mut schema.input_types);
 
-        let mut input_headers_names = schema
+        let input_headers_names = schema
             .input_types
             .get_type(input_headers.name.as_str())
             .map(|type_def| match type_def {
@@ -160,11 +183,10 @@ where
                 _ => vec![],
             })
             .unwrap_or_default();
-
-        let function_def = Function {
+        let f = Function {
             name: rb.name.clone(),
             path: rb.path.clone(),
-            deprecation_note: rb.deprecation_note,
+            deprecation_note: rb.deprecation_note.clone(),
             description: rb.description.clone(),
             input_type: if input_type.name == "reflectapi::Empty" {
                 None
@@ -192,23 +214,10 @@ where
                 crate::SerializationMode::Msgpack,
             ],
             readonly: rb.readonly,
-            tags: rb.tags,
+            tags: rb.tags.clone(),
         };
-        schema.functions.push(function_def);
 
-        // inject system header requirements used by the handler wrapper
-        input_headers_names.push(http::header::CONTENT_TYPE);
-        input_headers_names.push(HeaderName::from_static("traceparent"));
-
-        Handler {
-            name: rb.name,
-            path: rb.path,
-            readonly: rb.readonly,
-            input_headers: input_headers_names.clone(),
-            callback: HandlerCallback::Single(Arc::new(move |state: S, input: HandlerInput| {
-                Box::pin(Self::handler_wrap(state, input, handler)) as _
-            })),
-        }
+        (f, input_headers_names)
     }
 
     async fn handler_wrap<F, Fut, R, I, H, O, E>(

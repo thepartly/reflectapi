@@ -173,13 +173,12 @@ where
         O: crate::Output + serde::ser::Serialize + Send + 'static,
         E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
-        // let rb = builder(
-        //     RouteBuilder::new()
-        //         .tags(&self.default_tags)
-        //         .path(self.path.clone()),
-        // );
-        let _ = (&mut self, builder, handler);
-        todo!()
+        let rb = builder(
+            RouteBuilder::new()
+                .tags(&self.default_tags)
+                .path(self.path.clone()),
+        );
+        todo!();
         // let route = crate::Handler::new(rb, handler, &mut self.schema);
         // self.handlers.push(route);
         // self
