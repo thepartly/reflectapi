@@ -318,7 +318,7 @@ where
     /// The name of this router, derived from the [`Builder`]'s name.
     pub name: String,
     /// The list of handlers belonging to this router.
-    pub handlers: Vec<crate::Handler<S>>,
+    pub(crate) handlers: Vec<crate::Handler<S>>,
 }
 
 /// A fluent builder for configuring a single route's metadata.

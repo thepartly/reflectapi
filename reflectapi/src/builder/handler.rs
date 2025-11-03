@@ -1,5 +1,7 @@
 use core::fmt;
-use std::sync::Arc;
+use std::{future::Future, pin::Pin, sync::Arc};
+
+use futures_core::stream::Stream;
 
 use http::HeaderName;
 
@@ -12,7 +14,7 @@ pub struct HandlerInput {
     pub headers: http::HeaderMap,
 }
 
-pub struct HandlerOutput {
+pub(crate) struct HandlerOutput {
     pub code: http::StatusCode,
     pub body: bytes::Bytes,
     pub headers: http::HeaderMap,
@@ -70,11 +72,13 @@ impl From<ContentType> for http::HeaderValue {
     }
 }
 
-pub type HandlerFuture =
-    std::pin::Pin<Box<dyn std::future::Future<Output = HandlerOutput> + Send + 'static>>;
+pub(crate) type HandlerFuture = Pin<Box<dyn Future<Output = HandlerOutput> + Send + 'static>>;
 
-pub enum HandlerCallback<S> {
+pub(crate) type StreamFuture = Pin<Box<dyn Stream<Item = HandlerOutput> + Send + 'static>>;
+
+pub(crate) enum HandlerCallback<S> {
     Single(Arc<dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync>),
+    Stream(Arc<dyn Fn(S, HandlerInput) -> StreamFuture + Send + Sync>),
 }
 
 impl<S> Clone for HandlerCallback<S>
@@ -84,11 +88,12 @@ where
     fn clone(&self) -> Self {
         match self {
             HandlerCallback::Single(cb) => HandlerCallback::Single(cb.clone()),
+            HandlerCallback::Stream(cb) => HandlerCallback::Stream(cb.clone()),
         }
     }
 }
 
-pub struct Handler<S>
+pub(crate) struct Handler<S>
 where
     S: Send + 'static,
 {
@@ -124,7 +129,7 @@ where
     ) -> Handler<S>
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
-        Fut: std::future::Future<Output = R> + Send + 'static,
+        Fut: Future<Output = R> + Send + 'static,
         R: crate::IntoResult<O, E> + 'static,
         I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
@@ -217,7 +222,7 @@ where
         O: crate::Output + serde::ser::Serialize,
         E: crate::Output + serde::ser::Serialize + crate::StatusCode,
         F: Fn(S, I, H) -> Fut,
-        Fut: std::future::Future<Output = R> + Send + 'static,
+        Fut: Future<Output = R> + Send + 'static,
         R: crate::IntoResult<O, E>,
     {
         let mut input_headers = input.headers;

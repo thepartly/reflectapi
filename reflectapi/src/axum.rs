@@ -52,6 +52,9 @@ where
                     HandlerCallback::Single(callback) => {
                         callback(shared_state, input).await.into_response()
                     }
+                    HandlerCallback::Stream(callback) => {
+                        todo!()
+                    }
                 }
             }
         };
