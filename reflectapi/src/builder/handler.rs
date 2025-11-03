@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{future::Future, pin::Pin, sync::Arc};
 
-use futures_util::{stream::Stream, StreamExt, TryStream, TryStreamExt};
+use futures_util::{stream::Stream, StreamExt, TryStreamExt};
 
 use http::HeaderName;
 
@@ -75,7 +75,7 @@ impl From<ContentType> for http::HeaderValue {
 pub(crate) type HandlerFuture = Pin<Box<dyn Future<Output = HandlerOutput> + Send + 'static>>;
 
 pub(crate) type HandlerStream =
-    Pin<Box<dyn Stream<Item = Result<bytes::Bytes, bytes::Bytes>> + Send + 'static>>;
+    Pin<Box<dyn Stream<Item = Result<String, String>> + Send + 'static>>;
 
 pub(crate) enum HandlerCallback<S> {
     Future(Arc<dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync>),
@@ -419,7 +419,7 @@ where
         state: S,
         input: HandlerInput,
         handler: F,
-    ) -> Result<impl Stream<Item = Result<bytes::Bytes, bytes::Bytes>>, HandlerOutput>
+    ) -> Result<impl Stream<Item = Result<String, String>>, HandlerOutput>
     where
         I: crate::Input + serde::de::DeserializeOwned,
         H: crate::Input + serde::de::DeserializeOwned,
@@ -436,20 +436,27 @@ where
                 Err(err) => return Err(err),
             };
 
+        if content_type != ContentType::Json {
+            response_headers.insert(
+                http::header::CONTENT_TYPE,
+                http::HeaderValue::from_static("text/plain"),
+            );
+            return Err(HandlerOutput {
+                code: http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                body: bytes::Bytes::from(
+                    "Streaming is only supported with application/json content-type",
+                ),
+                headers: response_headers,
+            });
+        }
+
         Ok(handler(state, input, input_headers)
             .map(Ok)
             .and_then(move |res| {
                 let res = res.into_result();
                 async move {
                     let res = UntaggedResult::from(res);
-                    match content_type {
-                        ContentType::Json => serde_json::to_vec(&res)
-                            .map(bytes::Bytes::from)
-                            .map_err(|err| err.to_string().into()),
-                        ContentType::MessagePack => rmp_serde::to_vec_named(&res)
-                            .map(bytes::Bytes::from)
-                            .map_err(|err| err.to_string().into()),
-                    }
+                    serde_json::to_string(&res).map_err(|err| err.to_string())
                 }
             }))
     }
