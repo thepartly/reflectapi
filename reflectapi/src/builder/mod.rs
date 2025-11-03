@@ -155,6 +155,34 @@ where
         self
     }
 
+    /// Adds a stream route to the API.
+    ///
+    /// This method takes a stream handler function and a closure that configures the
+    /// route's metadata (like its name, path, and description) using a [`RouteBuilder`].
+    pub fn stream_route<F, Fut, R, I, O, E, H>(
+        mut self,
+        handler: F,
+        builder: fn(RouteBuilder) -> RouteBuilder,
+    ) -> Self
+    where
+        F: Fn(S, I, H) -> S + Send + Sync + Copy + 'static,
+        S: std::future::Future<Output = R> + Send + 'static,
+        R: IntoResult<O, E> + 'static,
+        I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+        H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+        O: crate::Output + serde::ser::Serialize + Send + 'static,
+        E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+    {
+        let rb = builder(
+            RouteBuilder::new()
+                .tags(&self.default_tags)
+                .path(self.path.clone()),
+        );
+        let route = crate::Handler::new(rb, handler, &mut self.schema);
+        self.handlers.push(route);
+        self
+    }
+
     /// Merges another [`Builder`] into this one.
     ///
     /// The schema definitions and handlers from `other` are merged.
