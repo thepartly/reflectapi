@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{future::Future, pin::Pin, sync::Arc};
 
-use futures_util::{stream::Stream, StreamExt};
+use futures_util::{stream::Stream, StreamExt, TryStream, TryStreamExt};
 
 use http::HeaderName;
 
@@ -434,14 +434,18 @@ where
                 Ok(r) => r,
                 Err(err) => return Err(err),
             };
-        handler(state, input, input_headers).map(|res| match res.into_result() {
-            Ok(o) => match content_type {
-                ContentType::Json => serde_json::to_vec(o)
-                    .map(|v| bytes::Bytes::from(v))
-                    .map_err(|err| bytes::Bytes::from(err.to_string())),
-            },
-            Err(_) => todo!(),
-        })
+
+        Ok(handler(state, input, input_headers).map(Ok).map_ok(|res| {
+            let res = UntaggedResult::from(res.into_result());
+            match content_type {
+                ContentType::Json => serde_json::to_vec(&res)
+                    .map(bytes::Bytes::from)
+                    .map_err(|err| err.to_string().into()),
+                ContentType::MessagePack => rmp_serde::to_vec_named(&res)
+                    .map(bytes::Bytes::from)
+                    .map_err(|err| err.to_string().into()),
+            }
+        }))
     }
 }
 
