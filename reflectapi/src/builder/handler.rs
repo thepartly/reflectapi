@@ -155,6 +155,39 @@ where
         }
     }
 
+    pub(crate) fn new_stream<F, St, R, I, O, E, H>(
+        rb: RouteBuilder,
+        handler: F,
+        schema: &mut Schema,
+    ) -> Handler<S>
+    where
+        F: Fn(S, I, H) -> St + Send + Sync + Copy + 'static,
+        St: Stream<Item = R> + Send + 'static,
+        R: crate::IntoResult<O, E> + 'static,
+        I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+        H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
+        O: crate::Output + serde::ser::Serialize + Send + 'static,
+        E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+        S: Send + 'static,
+    {
+        let (function_def, mut input_headers) = Self::mk_function::<I, H, O, E>(&rb, schema);
+        schema.functions.push(function_def);
+
+        // inject system header requirements used by the handler wrapper
+        input_headers.push("content-type".into());
+        input_headers.push("traceparent".into());
+
+        Handler {
+            name: rb.name,
+            path: rb.path,
+            readonly: rb.readonly,
+            input_headers,
+            callback: HandlerCallback::Stream(Arc::new(
+                move |state: S, input: HandlerInput| todo!(),
+            )),
+        }
+    }
+
     fn mk_function<I: crate::Input, H: crate::Input, O: crate::Output, E: crate::Output>(
         rb: &RouteBuilder,
         schema: &mut Schema,

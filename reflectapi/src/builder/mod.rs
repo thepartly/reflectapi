@@ -178,10 +178,9 @@ where
                 .tags(&self.default_tags)
                 .path(self.path.clone()),
         );
-        todo!();
-        // let route = crate::Handler::new(rb, handler, &mut self.schema);
-        // self.handlers.push(route);
-        // self
+        let route = crate::Handler::new_stream(rb, handler, &mut self.schema);
+        self.handlers.push(route);
+        self
     }
 
     /// Merges another [`Builder`] into this one.
