@@ -429,23 +429,29 @@ where
         St: Stream<Item = R> + Send + 'static,
         R: crate::IntoResult<O, E>,
     {
+        // TODO how do headers work with sse
         let (input, input_headers, content_type, mut response_headers) =
             match Self::parse_input::<I, H>(input) {
                 Ok(r) => r,
                 Err(err) => return Err(err),
             };
 
-        Ok(handler(state, input, input_headers).map(Ok).map_ok(|res| {
-            let res = UntaggedResult::from(res.into_result());
-            match content_type {
-                ContentType::Json => serde_json::to_vec(&res)
-                    .map(bytes::Bytes::from)
-                    .map_err(|err| err.to_string().into()),
-                ContentType::MessagePack => rmp_serde::to_vec_named(&res)
-                    .map(bytes::Bytes::from)
-                    .map_err(|err| err.to_string().into()),
-            }
-        }))
+        Ok(handler(state, input, input_headers)
+            .map(Ok)
+            .and_then(move |res| {
+                let res = res.into_result();
+                async move {
+                    let res = UntaggedResult::from(res);
+                    match content_type {
+                        ContentType::Json => serde_json::to_vec(&res)
+                            .map(bytes::Bytes::from)
+                            .map_err(|err| err.to_string().into()),
+                        ContentType::MessagePack => rmp_serde::to_vec_named(&res)
+                            .map(bytes::Bytes::from)
+                            .map_err(|err| err.to_string().into()),
+                    }
+                }
+            }))
     }
 }
 
