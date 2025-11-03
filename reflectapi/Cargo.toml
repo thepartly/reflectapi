@@ -25,7 +25,7 @@ reflectapi-schema = { path = "../reflectapi-schema", version = "0.16.2" }
 
 # mandatory 3rd party dependencies
 serde = { version = "1.0.197", features = ["derive"] }
-futures-core = "0.3"
+futures-util = "0.3"
 
 # optional 3rd party dependencies for implementing schema builder
 serde_json = { version = "1.0.114", optional = true }

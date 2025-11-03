@@ -49,7 +49,7 @@ where
                 }
                 let input = HandlerInput { body, headers };
                 match callback {
-                    HandlerCallback::Single(callback) => {
+                    HandlerCallback::Future(callback) => {
                         callback(shared_state, input).await.into_response()
                     }
                     HandlerCallback::Stream(callback) => {

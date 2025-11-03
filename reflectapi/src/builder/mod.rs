@@ -4,6 +4,7 @@ mod result;
 use core::fmt;
 use std::{borrow::Borrow, collections::BTreeSet, error::Error};
 
+use futures_util::Stream;
 pub use handler::*;
 use reflectapi_schema::Pattern;
 pub use result::*;
@@ -166,7 +167,7 @@ where
     ) -> Self
     where
         F: Fn(S, I, H) -> S + Send + Sync + Copy + 'static,
-        S: futures_core::Stream<Item = R> + Send + 'static,
+        S: Stream<Item = R> + Send + 'static,
         R: IntoResult<O, E> + 'static,
         I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         H: crate::Input + serde::de::DeserializeOwned + Send + 'static,

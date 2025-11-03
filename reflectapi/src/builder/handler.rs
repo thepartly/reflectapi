@@ -1,8 +1,7 @@
 use core::fmt;
 use std::{future::Future, pin::Pin, sync::Arc};
 
-use futures_core::stream::Stream;
-use reflectapi_schema::TypeReference;
+use futures_util::{stream::Stream, StreamExt};
 
 use http::HeaderName;
 
@@ -75,11 +74,12 @@ impl From<ContentType> for http::HeaderValue {
 
 pub(crate) type HandlerFuture = Pin<Box<dyn Future<Output = HandlerOutput> + Send + 'static>>;
 
-pub(crate) type StreamFuture = Pin<Box<dyn Stream<Item = HandlerOutput> + Send + 'static>>;
+pub(crate) type HandlerStream =
+    Pin<Box<dyn Stream<Item = Result<bytes::Bytes, bytes::Bytes>> + Send + 'static>>;
 
 pub(crate) enum HandlerCallback<S> {
-    Single(Arc<dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync>),
-    Stream(Arc<dyn Fn(S, HandlerInput) -> StreamFuture + Send + Sync>),
+    Future(Arc<dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync>),
+    Stream(Arc<dyn Fn(S, HandlerInput) -> Result<HandlerStream, HandlerOutput> + Send + Sync>),
 }
 
 impl<S> Clone for HandlerCallback<S>
@@ -88,7 +88,7 @@ where
 {
     fn clone(&self) -> Self {
         match self {
-            HandlerCallback::Single(cb) => HandlerCallback::Single(cb.clone()),
+            HandlerCallback::Future(cb) => HandlerCallback::Future(cb.clone()),
             HandlerCallback::Stream(cb) => HandlerCallback::Stream(cb.clone()),
         }
     }
@@ -149,7 +149,7 @@ where
             path: rb.path,
             readonly: rb.readonly,
             input_headers,
-            callback: HandlerCallback::Single(Arc::new(move |state: S, input: HandlerInput| {
+            callback: HandlerCallback::Future(Arc::new(move |state: S, input: HandlerInput| {
                 Box::pin(Self::handler_wrap(state, input, handler)) as _
             })),
         }
@@ -182,9 +182,10 @@ where
             path: rb.path,
             readonly: rb.readonly,
             input_headers,
-            callback: HandlerCallback::Stream(Arc::new(
-                move |state: S, input: HandlerInput| todo!(),
-            )),
+            callback: HandlerCallback::Stream(Arc::new(move |state: S, input: HandlerInput| {
+                Self::stream_handler_wrap(state, input, handler)
+                    .map(|stream| Box::pin(stream) as HandlerStream)
+            })),
         }
     }
 
@@ -412,6 +413,35 @@ where
             body: bytes::Bytes::from(output_serialized),
             headers: response_headers,
         }
+    }
+
+    fn stream_handler_wrap<F, St, R, I, H, O, E>(
+        state: S,
+        input: HandlerInput,
+        handler: F,
+    ) -> Result<impl Stream<Item = Result<bytes::Bytes, bytes::Bytes>>, HandlerOutput>
+    where
+        I: crate::Input + serde::de::DeserializeOwned,
+        H: crate::Input + serde::de::DeserializeOwned,
+        O: crate::Output + serde::ser::Serialize,
+        E: crate::Output + serde::ser::Serialize + crate::StatusCode,
+        F: Fn(S, I, H) -> St,
+        St: Stream<Item = R> + Send + 'static,
+        R: crate::IntoResult<O, E>,
+    {
+        let (input, input_headers, content_type, mut response_headers) =
+            match Self::parse_input::<I, H>(input) {
+                Ok(r) => r,
+                Err(err) => return Err(err),
+            };
+        handler(state, input, input_headers).map(|res| match res.into_result() {
+            Ok(o) => match content_type {
+                ContentType::Json => serde_json::to_vec(o)
+                    .map(|v| bytes::Bytes::from(v))
+                    .map_err(|err| bytes::Bytes::from(err.to_string())),
+            },
+            Err(_) => todo!(),
+        })
     }
 }
 
