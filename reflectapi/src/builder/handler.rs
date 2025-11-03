@@ -253,43 +253,30 @@ where
         (f, input_headers_names)
     }
 
-    async fn handler_wrap<F, Fut, R, I, H, O, E>(
-        state: S,
-        input: HandlerInput,
-        handler: F,
-    ) -> HandlerOutput
-    where
-        I: crate::Input + serde::de::DeserializeOwned,
-        H: crate::Input + serde::de::DeserializeOwned,
-        O: crate::Output + serde::ser::Serialize,
-        E: crate::Output + serde::ser::Serialize + crate::StatusCode,
-        F: Fn(S, I, H) -> Fut,
-        Fut: Future<Output = R> + Send + 'static,
-        R: crate::IntoResult<O, E>,
-    {
-        let mut input_headers = input.headers;
-
-        let content_type = match ContentType::extract(&input_headers) {
+    fn parse_input<I: serde::de::DeserializeOwned, H: serde::de::DeserializeOwned>(
+        mut handler_input: HandlerInput,
+    ) -> Result<(I, H, ContentType, http::HeaderMap), HandlerOutput> {
+        let content_type = match ContentType::extract(&handler_input.headers) {
             Ok(t) => t,
             Err(err) => {
-                return HandlerOutput {
+                return Err(HandlerOutput {
                     code: http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
                     body: err.into(),
                     headers: Default::default(),
-                };
+                });
             }
         };
 
         let input_parsed = match content_type {
-            ContentType::Json => if !input.body.is_empty() {
-                serde_json::from_slice::<I>(input.body.as_ref())
+            ContentType::Json => if !handler_input.body.is_empty() {
+                serde_json::from_slice::<I>(handler_input.body.as_ref())
             } else {
                 serde_json::from_value::<I>(serde_json::Value::Object(serde_json::Map::new()))
             }
             .map_err(|err| err.to_string()),
             #[cfg(feature = "msgpack")]
-            ContentType::MessagePack => if !input.body.is_empty() {
-                rmp_serde::from_read::<_, I>(input.body.as_ref())
+            ContentType::MessagePack => if !handler_input.body.is_empty() {
+                rmp_serde::from_read::<_, I>(handler_input.body.as_ref())
             } else {
                 rmp_serde::from_slice::<I>(&[0x80])
             }
@@ -299,17 +286,17 @@ where
         let input = match input_parsed {
             Ok(r) => r,
             Err(err) => {
-                return HandlerOutput {
+                return Err(HandlerOutput {
                     code: http::StatusCode::BAD_REQUEST,
                     body: bytes::Bytes::from(
                         format!(
                             "Failed to parse request body: {err}, received: {:?}",
-                            input.body
+                            handler_input.body
                         )
                         .into_bytes(),
                     ),
                     headers: Default::default(),
-                };
+                });
             }
         };
 
@@ -319,7 +306,7 @@ where
 
         let mut headers_as_json_map = serde_json::Map::new();
         let mut current_header_name = None;
-        for (header_name, header_value) in input_headers.drain() {
+        for (header_name, header_value) in handler_input.headers.drain() {
             let header_name = match header_name {
                 Some(header_name) => {
                     current_header_name = Some(header_name.clone());
@@ -343,16 +330,38 @@ where
         let input_headers = match input_headers {
             Ok(r) => r,
             Err(err) => {
-                return HandlerOutput {
+                return Err(HandlerOutput {
                     code: http::StatusCode::BAD_REQUEST,
                     body: bytes::Bytes::from(
                         format!("Failed to parse request headers: {}", err).into_bytes(),
                     ),
                     headers: Default::default(),
-                };
+                });
             }
         };
 
+        Ok((input, input_headers, content_type, response_headers))
+    }
+
+    async fn handler_wrap<F, Fut, R, I, H, O, E>(
+        state: S,
+        input: HandlerInput,
+        handler: F,
+    ) -> HandlerOutput
+    where
+        I: crate::Input + serde::de::DeserializeOwned,
+        H: crate::Input + serde::de::DeserializeOwned,
+        O: crate::Output + serde::ser::Serialize,
+        E: crate::Output + serde::ser::Serialize + crate::StatusCode,
+        F: Fn(S, I, H) -> Fut,
+        Fut: Future<Output = R> + Send + 'static,
+        R: crate::IntoResult<O, E>,
+    {
+        let (input, input_headers, content_type, mut response_headers) =
+            match Self::parse_input::<I, H>(input) {
+                Ok(r) => r,
+                Err(err) => return err,
+            };
         let output = handler(state, input, input_headers).await;
         let output = UntaggedResult::from(output.into_result());
 
@@ -367,8 +376,10 @@ where
         let output_serialized = match output_serialized {
             Ok(r) => r,
             Err(err) => {
-                response_headers
-                    .insert("content-type", http::HeaderValue::from_static("text/plain"));
+                response_headers.insert(
+                    http::header::CONTENT_TYPE,
+                    http::HeaderValue::from_static("text/plain"),
+                );
                 return HandlerOutput {
                     code: http::StatusCode::INTERNAL_SERVER_ERROR,
                     body: bytes::Bytes::from(
