@@ -73,7 +73,20 @@ impl From<ContentType> for http::HeaderValue {
 pub type HandlerFuture =
     std::pin::Pin<Box<dyn std::future::Future<Output = HandlerOutput> + Send + 'static>>;
 
-pub type HandlerCallback<S> = dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync;
+pub enum HandlerCallback<S> {
+    Single(Arc<dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync>),
+}
+
+impl<S> Clone for HandlerCallback<S>
+where
+    S: Send + 'static,
+{
+    fn clone(&self) -> Self {
+        match self {
+            HandlerCallback::Single(cb) => HandlerCallback::Single(cb.clone()),
+        }
+    }
+}
 
 pub struct Handler<S>
 where
@@ -83,7 +96,7 @@ where
     pub path: String,
     pub readonly: bool,
     pub input_headers: Vec<HeaderName>,
-    pub callback: Arc<HandlerCallback<S>>,
+    pub callback: HandlerCallback<S>,
 }
 
 impl<S> fmt::Debug for Handler<S>
@@ -96,7 +109,7 @@ where
             .field("path", &self.path)
             .field("readonly", &self.readonly)
             .field("input_headers", &self.input_headers)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -187,9 +200,9 @@ where
             path: rb.path,
             readonly: rb.readonly,
             input_headers: input_headers_names.clone(),
-            callback: Arc::new(move |state: S, input: HandlerInput| {
+            callback: HandlerCallback::Single(Arc::new(move |state: S, input: HandlerInput| {
                 Box::pin(Self::handler_wrap(state, input, handler)) as _
-            }),
+            })),
         }
     }
 

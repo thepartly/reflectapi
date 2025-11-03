@@ -166,21 +166,23 @@ where
     ) -> Self
     where
         F: Fn(S, I, H) -> S + Send + Sync + Copy + 'static,
-        S: std::future::Future<Output = R> + Send + 'static,
+        S: futures_core::Stream<Item = R> + Send + 'static,
         R: IntoResult<O, E> + 'static,
         I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         O: crate::Output + serde::ser::Serialize + Send + 'static,
         E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
-        let rb = builder(
-            RouteBuilder::new()
-                .tags(&self.default_tags)
-                .path(self.path.clone()),
-        );
-        let route = crate::Handler::new(rb, handler, &mut self.schema);
-        self.handlers.push(route);
-        self
+        // let rb = builder(
+        //     RouteBuilder::new()
+        //         .tags(&self.default_tags)
+        //         .path(self.path.clone()),
+        // );
+        let _ = (&mut self, builder, handler);
+        todo!()
+        // let route = crate::Handler::new(rb, handler, &mut self.schema);
+        // self.handlers.push(route);
+        // self
     }
 
     /// Merges another [`Builder`] into this one.

@@ -7,7 +7,7 @@ use axum::{
 
 use crate::{
     builder::{HandlerInput, HandlerOutput},
-    Handler,
+    Handler, HandlerCallback,
 };
 
 pub fn into_router<S, F>(app_state: S, router: Vec<crate::Router<S>>, cb: F) -> Router
@@ -47,8 +47,12 @@ where
                         headers.insert(h, value.clone());
                     }
                 }
-                let result = callback(shared_state, HandlerInput { body, headers }).await;
-                result.into_response()
+                let input = HandlerInput { body, headers };
+                match callback {
+                    HandlerCallback::Single(callback) => {
+                        callback(shared_state, input).await.into_response()
+                    }
+                }
             }
         };
         let mount_path = format!("{}/{}", path, name);
