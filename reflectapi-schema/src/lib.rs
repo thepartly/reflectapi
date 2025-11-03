@@ -442,12 +442,10 @@ pub struct Function {
     pub input_headers: Option<TypeReference>,
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub output_type: Option<TypeReference>,
-
-    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub error_type: Option<TypeReference>,
 
-    ///
+    pub output_type: OutputType,
+
     /// Supported content types for request and response bodies.
     ///
     /// Note: serialization for header values is not affected by this field.
@@ -478,8 +476,8 @@ impl Function {
             description: Default::default(),
             input_type: None,
             input_headers: None,
-            output_type: None,
             error_type: None,
+            output_type: OutputType::Single(None),
             serialization: Default::default(),
             readonly: Default::default(),
             tags: Default::default(),
@@ -510,12 +508,8 @@ impl Function {
         self.input_headers.as_ref()
     }
 
-    pub fn output_type(&self) -> Option<&TypeReference> {
-        self.output_type.as_ref()
-    }
-
-    pub fn error_type(&self) -> Option<&TypeReference> {
-        self.error_type.as_ref()
+    pub fn output_type(&self) -> &OutputType {
+        &self.output_type
     }
 
     pub fn serialization(&self) -> std::slice::Iter<'_, SerializationMode> {
@@ -524,6 +518,47 @@ impl Function {
 
     pub fn readonly(&self) -> bool {
         self.readonly
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum OutputType {
+    Single(Option<TypeReference>),
+    Stream {
+        item_type: TypeReference,
+        /// The per-item error type, if any
+        error_type: Option<TypeReference>,
+    },
+}
+
+impl OutputType {
+    pub fn as_single(&self) -> Option<&TypeReference> {
+        match self {
+            OutputType::Single(type_ref) => type_ref.as_ref(),
+            OutputType::Stream { .. } => None,
+        }
+    }
+
+    pub fn is_stream(&self) -> bool {
+        matches!(self, OutputType::Stream { .. })
+    }
+
+    pub fn type_refs(&self) -> Vec<&TypeReference> {
+        match self {
+            OutputType::Single(Some(tr)) => vec![tr],
+            OutputType::Single(None) => vec![],
+            OutputType::Stream {
+                item_type,
+                error_type,
+            } => {
+                let mut refs = vec![item_type];
+                if let Some(et) = error_type {
+                    refs.push(et);
+                }
+                refs
+            }
+        }
     }
 }
 

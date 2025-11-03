@@ -727,7 +727,7 @@ fn function_signature(
     } else {
         "{}".into()
     };
-    let output_type = if let Some(output_type) = function.output_type.as_ref() {
+    let output_type = if let Some(output_type) = function.output_type.as_single() {
         type_ref_to_ts_ref(output_type, schema, implemented_types)
     } else {
         "{}".into()

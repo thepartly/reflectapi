@@ -923,7 +923,7 @@ fn __function_signature(
     } else {
         "reflectapi::Empty".into()
     };
-    let output_type = if let Some(output_type) = function.output_type.as_ref() {
+    let output_type = if let Some(output_type) = function.output_type.as_single() {
         __type_ref_to_ts_ref(output_type, schema, implemented_types, 1, None)
     } else {
         "reflectapi::Empty".into()

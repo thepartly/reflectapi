@@ -1,13 +1,14 @@
 use axum::{
     http::response::Builder,
-    response::IntoResponse,
+    response::{sse, IntoResponse, Sse},
     routing::{get, post},
     Router,
 };
+use futures_util::StreamExt;
 
 use crate::{
     builder::{HandlerInput, HandlerOutput},
-    Handler,
+    Handler, HandlerCallback,
 };
 
 pub fn into_router<S, F>(app_state: S, router: Vec<crate::Router<S>>, cb: F) -> Router
@@ -39,7 +40,7 @@ where
             callback,
         } = handler;
         let axum_handler = {
-            let shared_state = app_state.clone();
+            let state = app_state.clone();
             move |axum_headers: http::HeaderMap, body: axum::body::Bytes| async move {
                 let mut headers = http::HeaderMap::new();
                 for h in input_headers {
@@ -47,8 +48,17 @@ where
                         headers.insert(h, value.clone());
                     }
                 }
-                let result = callback(shared_state, HandlerInput { body, headers }).await;
-                result.into_response()
+                let input = HandlerInput { body, headers };
+                match callback {
+                    HandlerCallback::Future(f) => f(state, input).await.into_response(),
+                    HandlerCallback::Stream(f) => match f(state, input) {
+                        Ok(st) => {
+                            Sse::new(st.map(|s| s.map(|data| sse::Event::default().data(data))))
+                                .into_response()
+                        }
+                        Err(err) => err.into_response(),
+                    },
+                }
             }
         };
         let mount_path = format!("{path}/{name}");

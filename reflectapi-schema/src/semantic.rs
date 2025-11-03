@@ -38,12 +38,21 @@ pub struct SemanticFunction {
     /// Resolved type references (no dangling pointers)
     pub input_type: Option<SymbolId>,
     pub input_headers: Option<SymbolId>,
-    pub output_type: Option<SymbolId>,
+    pub output_type: SemanticOutputType,
     pub error_type: Option<SymbolId>,
 
     pub serialization: Vec<crate::SerializationMode>,
     pub readonly: bool,
     pub tags: BTreeSet<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SemanticOutputType {
+    Single(Option<SymbolId>),
+    Stream {
+        item_type: SymbolId,
+        error_type: Option<SymbolId>,
+    },
 }
 
 /// Resolved type definition with semantic validation
