@@ -1,6 +1,8 @@
 use core::fmt;
 use std::sync::Arc;
 
+use http::HeaderName;
+
 use crate::{Function, Schema, Struct};
 
 use super::RouteBuilder;
@@ -80,7 +82,7 @@ where
     pub name: String,
     pub path: String,
     pub readonly: bool,
-    pub input_headers: Vec<String>,
+    pub input_headers: Vec<HeaderName>,
     pub callback: Arc<HandlerCallback<S>>,
 }
 
@@ -127,7 +129,10 @@ where
             .map(|type_def| match type_def {
                 crate::Type::Struct(Struct { fields, .. }) => fields
                     .iter()
-                    .map(|field| field.serde_name().to_owned())
+                    .map(|field| {
+                        HeaderName::from_bytes(field.serde_name.as_bytes())
+                            .expect("valid header name")
+                    })
                     .collect(),
                 _ => vec![],
             })
@@ -169,8 +174,8 @@ where
         schema.functions.push(function_def);
 
         // inject system header requirements used by the handler wrapper
-        input_headers_names.push("content-type".into());
-        input_headers_names.push("traceparent".into());
+        input_headers_names.push(http::header::CONTENT_TYPE);
+        input_headers_names.push(HeaderName::from_static("traceparent"));
 
         Handler {
             name: rb.name,
@@ -268,6 +273,7 @@ where
             }
         }
         let headers_as_json = serde_json::Value::Object(headers_as_json_map);
+        dbg!(&headers_as_json);
 
         let input_headers = serde_json::from_value::<H>(headers_as_json);
         let input_headers = match input_headers {

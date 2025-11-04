@@ -44,10 +44,7 @@ where
                 let mut headers = http::HeaderMap::new();
                 for h in input_headers {
                     if let Some(value) = axum_headers.get(&h) {
-                        headers.insert(
-                            http::HeaderName::from_bytes(h.as_bytes()).unwrap(),
-                            value.clone(),
-                        );
+                        headers.insert(h, value.clone());
                     }
                 }
                 let result = callback(shared_state, HandlerInput { body, headers }).await;

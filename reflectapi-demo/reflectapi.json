@@ -120,18 +120,7 @@
       "path": "",
       "description": "Fetch first pet, if any exists",
       "input_headers": {
-        "name": "myapi::proto::Headers"
-      },
-      "output_type": {
-        "name": "std::option::Option",
-        "arguments": [
-          {
-            "name": "myapi::model::output::Pet"
-          }
-        ]
-      },
-      "error_type": {
-        "name": "myapi::proto::UnauthorizedError"
+        "name": "myapi::IntegrationHeadersV1"
       },
       "serialization": [
         "json",
@@ -158,6 +147,22 @@
         "kind": "primitive",
         "name": "f64",
         "description": "64-bit floating point number"
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::IntegrationHeadersV1",
+        "fields": {
+          "named": [
+            {
+              "name": "Partly_Integration_ID",
+              "serde_name": "Partly-Integration-ID",
+              "type": {
+                "name": "uuid::Uuid"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "enum",
@@ -544,6 +549,11 @@
         "kind": "primitive",
         "name": "u8",
         "description": "8-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "uuid::Uuid",
+        "description": "UUID value type"
       }
     ]
   },
@@ -836,20 +846,6 @@
       },
       {
         "kind": "struct",
-        "name": "myapi::proto::UnauthorizedError",
-        "fields": {
-          "unnamed": [
-            {
-              "name": "0",
-              "type": {
-                "name": "std::tuple::Tuple0"
-              }
-            }
-          ]
-        }
-      },
-      {
-        "kind": "struct",
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
         "fields": "none"
@@ -896,11 +892,6 @@
         "kind": "primitive",
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
-      },
-      {
-        "kind": "primitive",
-        "name": "std::tuple::Tuple0",
-        "description": "Unit type"
       },
       {
         "kind": "primitive",
