@@ -1,6 +1,8 @@
 use core::fmt;
 use std::sync::Arc;
 
+use http::HeaderName;
+
 use crate::{Function, Schema, Struct};
 
 use super::RouteBuilder;
@@ -80,7 +82,7 @@ where
     pub name: String,
     pub path: String,
     pub readonly: bool,
-    pub input_headers: Vec<String>,
+    pub input_headers: Vec<HeaderName>,
     pub callback: Arc<HandlerCallback<S>>,
 }
 
@@ -127,7 +129,15 @@ where
             .map(|type_def| match type_def {
                 crate::Type::Struct(Struct { fields, .. }) => fields
                     .iter()
-                    .map(|field| field.serde_name().to_owned())
+                    .map(|field| {
+                        let header_name = if field.serde_name.is_empty() {
+                            field.name.as_str()
+                        } else {
+                            field.serde_name.as_str()
+                        };
+                        HeaderName::from_bytes(header_name.as_bytes())
+                            .unwrap_or_else(|_| panic!("invalid header name: `{header_name}`"))
+                    })
                     .collect(),
                 _ => vec![],
             })
@@ -169,8 +179,8 @@ where
         schema.functions.push(function_def);
 
         // inject system header requirements used by the handler wrapper
-        input_headers_names.push("content-type".into());
-        input_headers_names.push("traceparent".into());
+        input_headers_names.push(http::header::CONTENT_TYPE);
+        input_headers_names.push(HeaderName::from_static("traceparent"));
 
         Handler {
             name: rb.name,
