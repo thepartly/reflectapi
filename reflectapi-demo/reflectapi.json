@@ -146,7 +146,7 @@
         "name": "myapi::proto::Headers"
       },
       "output_type": {
-        "name": "i32"
+        "name": "myapi::model::output::Pet"
       },
       "serialization": [
         "json",
@@ -582,11 +582,6 @@
         "kind": "primitive",
         "name": "f64",
         "description": "64-bit floating point number"
-      },
-      {
-        "kind": "primitive",
-        "name": "i32",
-        "description": "32-bit signed integer"
       },
       {
         "kind": "enum",
