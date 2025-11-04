@@ -137,6 +137,22 @@
         "json",
         "msgpack"
       ]
+    },
+    {
+      "name": "pets.cdc-events",
+      "path": "",
+      "description": "Stream of change data capture events for pets",
+      "input_headers": {
+        "name": "myapi::proto::Headers"
+      },
+      "output_type": {
+        "name": "i32"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ],
+      "readonly": true
     }
   ],
   "input_types": {
@@ -566,6 +582,11 @@
         "kind": "primitive",
         "name": "f64",
         "description": "64-bit floating point number"
+      },
+      {
+        "kind": "primitive",
+        "name": "i32",
+        "description": "32-bit signed integer"
       },
       {
         "kind": "enum",
