@@ -278,7 +278,6 @@ where
             }
         }
         let headers_as_json = serde_json::Value::Object(headers_as_json_map);
-        dbg!(&headers_as_json);
 
         let input_headers = serde_json::from_value::<H>(headers_as_json);
         let input_headers = match input_headers {
