@@ -279,16 +279,18 @@ fn pets_cdc_events(
     state: Arc<AppState>,
     _: reflectapi::Empty,
     headers: proto::Headers,
-) -> impl Stream<Item = model::Pet> {
+) -> Result<impl Stream<Item = model::Pet>, proto::UnauthorizedError> {
     authorize::<proto::UnauthorizedError>(headers)
         .expect("todo need to be able to return result here too?");
 
     let mut rx = state.tx.subscribe();
-    async_stream::__private::stream_inner!((async_stream)loop {
-        match rx.recv().await {
-            Ok(pet) => yield pet,
-            Err(broadcast::error::RecvError::Lagged(_)) => {}
-            Err(broadcast::error::RecvError::Closed) => break
+    Ok(async_stream::stream! {
+        loop {
+            match rx.recv().await {
+                Ok(pet) => yield pet,
+                Err(broadcast::error::RecvError::Lagged(_)) => {}
+                Err(broadcast::error::RecvError::Closed) => break,
+            }
         }
     })
 }

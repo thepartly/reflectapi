@@ -155,22 +155,23 @@ where
         }
     }
 
-    pub(crate) fn new_stream<F, St, R, I, O, E, H>(
+    pub(crate) fn new_stream<F, St, R, I, O, E1, E2, H>(
         rb: RouteBuilder,
         handler: F,
         schema: &mut Schema,
     ) -> Handler<S>
     where
-        F: Fn(S, I, H) -> St + Send + Sync + Copy + 'static,
+        F: Fn(S, I, H) -> Result<St, E1> + Send + Sync + Copy + 'static,
         St: Stream<Item = R> + Send + 'static,
-        R: crate::IntoResult<O, E> + 'static,
+        R: crate::IntoResult<O, E2> + 'static,
         I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
         O: crate::Output + serde::ser::Serialize + Send + 'static,
-        E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+        E1: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+        E2: crate::Output + serde::ser::Serialize + Send + 'static,
         S: Send + 'static,
     {
-        let (function_def, mut input_headers) = Self::mk_function::<I, H, O, E>(&rb, schema);
+        let (function_def, mut input_headers) = Self::mk_function::<I, H, O, E1>(&rb, schema);
         schema.functions.push(function_def);
 
         // inject system header requirements used by the handler wrapper
@@ -415,7 +416,7 @@ where
         }
     }
 
-    fn stream_handler_wrap<F, St, R, I, H, O, E>(
+    fn stream_handler_wrap<F, St, R, I, H, O, E1, E2>(
         state: S,
         input: HandlerInput,
         handler: F,
@@ -424,10 +425,11 @@ where
         I: crate::Input + serde::de::DeserializeOwned,
         H: crate::Input + serde::de::DeserializeOwned,
         O: crate::Output + serde::ser::Serialize,
-        E: crate::Output + serde::ser::Serialize + crate::StatusCode,
-        F: Fn(S, I, H) -> St,
+        E1: crate::Output + serde::ser::Serialize + crate::StatusCode,
+        E2: crate::Output + serde::ser::Serialize,
+        F: Fn(S, I, H) -> Result<St, E1>,
         St: Stream<Item = R> + Send + 'static,
-        R: crate::IntoResult<O, E>,
+        R: crate::IntoResult<O, E2>,
     {
         // TODO how do headers work with sse
         let (input, input_headers, content_type, mut response_headers) =
@@ -447,15 +449,19 @@ where
             });
         }
 
-        Ok(handler(state, input, input_headers)
-            .map(Ok)
-            .and_then(move |res| {
-                let res = res.into_result();
-                async move {
-                    let res = UntaggedResult::from(res);
-                    serde_json::to_string(&res).map_err(|err| err.to_string())
-                }
-            }))
+        let st = handler(state, input, input_headers).map_err(|err| HandlerOutput {
+            code: err.status_code(),
+            body: serde_json::to_vec(&err).unwrap().into(),
+            headers: response_headers,
+        })?;
+
+        Ok(st.map(Ok).and_then(move |res| {
+            let res = res.into_result();
+            async move {
+                let res = UntaggedResult::from(res);
+                serde_json::to_string(&res).map_err(|err| err.to_string())
+            }
+        }))
     }
 }
 

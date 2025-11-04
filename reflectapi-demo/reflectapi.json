@@ -148,6 +148,9 @@
       "output_type": {
         "name": "myapi::model::output::Pet"
       },
+      "error_type": {
+        "name": "myapi::proto::UnauthorizedError"
+      },
       "serialization": [
         "json",
         "msgpack"

@@ -7,7 +7,10 @@ use std::{borrow::Borrow, collections::BTreeSet, error::Error};
 use futures_util::Stream;
 pub use handler::*;
 use reflectapi_schema::Pattern;
-pub use result::*;
+pub use result::{IntoResult, StatusCode};
+use serde::{de::DeserializeOwned, ser::Serialize};
+
+use crate::{Input, Output};
 
 /// [`Builder`] provides a chained API for defining the overall API specification,
 /// adding individual routes (handlers), and composing multiple builders together.
@@ -141,10 +144,10 @@ where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
         Fut: std::future::Future<Output = R> + Send + 'static,
         R: IntoResult<O, E> + 'static,
-        I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        O: crate::Output + serde::ser::Serialize + Send + 'static,
-        E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+        I: Input + DeserializeOwned + Send + 'static,
+        H: Input + DeserializeOwned + Send + 'static,
+        O: Output + Serialize + Send + 'static,
+        E: Output + Serialize + StatusCode + Send + 'static,
     {
         let rb = builder(
             RouteBuilder::new()
@@ -160,19 +163,20 @@ where
     ///
     /// This method takes a stream handler function and a closure that configures the
     /// route's metadata (like its name, path, and description) using a [`RouteBuilder`].
-    pub fn stream_route<F, St, R, I, O, E, H>(
+    pub fn stream_route<F, St, R, I, O, E1, E2, H>(
         mut self,
         handler: F,
         builder: fn(RouteBuilder) -> RouteBuilder,
     ) -> Self
     where
-        F: Fn(S, I, H) -> St + Send + Sync + Copy + 'static,
+        F: Fn(S, I, H) -> Result<St, E1> + Send + Sync + Copy + 'static,
         St: Stream<Item = R> + Send + 'static,
-        R: IntoResult<O, E> + 'static,
-        I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        O: crate::Output + serde::ser::Serialize + Send + 'static,
-        E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+        R: IntoResult<O, E2> + 'static,
+        I: Input + DeserializeOwned + Send + 'static,
+        H: Input + DeserializeOwned + Send + 'static,
+        O: Output + Serialize + Send + 'static,
+        E1: Output + Serialize + StatusCode + Send + 'static,
+        E2: Output + Serialize + Send + 'static,
     {
         let rb = builder(
             RouteBuilder::new()
