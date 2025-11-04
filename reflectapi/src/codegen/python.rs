@@ -3997,8 +3997,6 @@ fn check_timedelta_usage(schema: &Schema, all_type_names: &[String]) -> bool {
 }
 
 /// Collect all unique generic parameter names from the schema
-// Function removed - now tracking used TypeVars dynamically
-
 /// Check if the schema uses date types (chrono::NaiveDate)
 fn check_date_usage(schema: &Schema, all_type_names: &[String]) -> bool {
     // Check all types for date usage
@@ -4682,7 +4680,7 @@ class {{ name }}({% if is_int_enum %}IntEnum{% else %}Enum{% endif %}):
         source = r#"{% if is_generic %}
 class {{ name }}(Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]):
     """{{ description.as_deref().unwrap_or("Generated discriminated union type.") }}"""
-    
+
     @classmethod
     def __class_getitem__(cls, params):
         """Enable subscripting for generic discriminated union."""
@@ -4690,7 +4688,7 @@ class {{ name }}(Generic[{% for param in generic_params %}{{ param }}{% if !loop
             params = (params,)
         if len(params) != {{ generic_params.len() }}:
             raise TypeError(f"Expected {{ generic_params.len() }} type parameters, got {len(params)}")
-        
+
         return Annotated[
             Union[{% for variant in variants %}{{ variant.base_name }}[{% for param in generic_params %}params[{{ loop.index0 }}]{% if !loop.last %}, {% endif %}{% endfor %}]{% if !loop.last %}, {% endif %}{% endfor %}],
             Field(discriminator='{{ discriminator_field }}')
@@ -5401,23 +5399,23 @@ class {{ name }}(RootModel[{{ name }}Variants]{% if is_generic %}, Generic[{% fo
     def _validate_externally_tagged(cls, data):
         # Handle direct variant instances (for programmatic creation)
 {{ instance_validator_cases }}
-        
+
         # Handle JSON data (for deserialization)
 {{ validator_cases }}
-        
+
         if isinstance(data, dict):
             if len(data) != 1:
                 raise ValueError("Externally tagged enum must have exactly one key")
-            
+
             key, value = next(iter(data.items()))
 {{ dict_validator_cases }}
-        
+
         raise ValueError(f"Unknown variant for {{ name }}: {data}")
-    
+
     @model_serializer
     def _serialize_externally_tagged(self):
 {{ serializer_cases }}
-        
+
         raise ValueError(f"Cannot serialize {{ name }} variant: {type(self.root)}")
 "#,
         ext = "txt"
@@ -5456,12 +5454,12 @@ class {{ name }}Base(BaseModel):
 # Example: {{ name }}[SomeType, AnotherType] = Union[{{ name }}Variant1[SomeType], {{ name }}Variant2[AnotherType]]
 class {{ name }}(Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]):
     """{% if description.is_some() %}{{ description.as_deref().unwrap() }}{% else %}Generic externally tagged enum using Approach B{% endif %}
-    
+
     This is a generic enum where each variant is a separate generic class.
     To create a specific instance, use the variant classes directly.
     To create a union type, use Union[VariantClass[Type1], OtherVariant[Type2]].
     """
-    
+
     @classmethod
     def __class_getitem__(cls, params):
         """Create documentation about parameterized types."""
@@ -5469,46 +5467,46 @@ class {{ name }}(Generic[{% for param in generic_params %}{{ param }}{% if !loop
             params = (params,)
         if len(params) != {{ generic_params.len() }}:
             raise TypeError(f"Expected {{ generic_params.len() }} type parameters, got {len(params)}")
-        
+
         # For Approach B, users should create unions directly using variant classes
         # This method serves as documentation
         variant_examples = [
             {% for variant_info in variant_info_list %}"{{ variant_info.class_name }}[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]"{% if !loop.last %},
             {% endif %}{% endfor %}
         ]
-        
+
         # Return a helpful hint rather than NotImplementedError
         return f"Union[{', '.join(variant_examples)}]  # Use this pattern to create specific unions"
 {% else %}
-# Non-generic externally tagged enum - use existing RootModel approach  
+# Non-generic externally tagged enum - use existing RootModel approach
 {% if is_single_variant %}{{ name }}Variants = {{ union_variants }}
 {% else %}{{ name }}Variants = Union[{{ union_variants }}]
 {% endif %}
 class {{ name }}(RootModel[{{ name }}Variants]):
     """{% if description.is_some() %}{{ description.as_deref().unwrap() }}{% else %}Externally tagged enum{% endif %}"""
-    
+
     @model_validator(mode='before')
     @classmethod
     def _validate_externally_tagged(cls, data):
         # Handle direct variant instances (for programmatic creation)
 {{ instance_validator_cases }}
-        
+
         # Handle JSON data (for deserialization)
 {{ validator_cases }}
-        
+
         if isinstance(data, dict):
             if len(data) != 1:
                 raise ValueError("Externally tagged enum must have exactly one key")
-            
+
             key, value = next(iter(data.items()))
 {{ dict_validator_cases }}
-        
+
         raise ValueError(f"Unknown variant for {{ name }}: {data}")
-    
+
     @model_serializer
     def _serialize_externally_tagged(self):
 {{ serializer_cases }}
-        
+
         raise ValueError(f"Cannot serialize {{ name }} variant: {type(self.root)}")
 {% endif %}
 "#,

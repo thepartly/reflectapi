@@ -16,7 +16,7 @@ impl<'a, P: Pattern> Renamer<'a, P> {
     }
 }
 
-impl<'a, P: Pattern> Visitor for Renamer<'a, P> {
+impl<P: Pattern> Visitor for Renamer<'_, P> {
     type Output = usize;
 
     fn visit_top_level_name(
