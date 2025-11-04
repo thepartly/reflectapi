@@ -174,8 +174,8 @@ where
         schema.functions.push(function_def);
 
         // inject system header requirements used by the handler wrapper
-        input_headers.push("content-type".into());
-        input_headers.push("traceparent".into());
+        input_headers.push(http::header::CONTENT_TYPE);
+        input_headers.push(HeaderName::from_static("traceparent"));
 
         Handler {
             name: rb.name,
@@ -431,10 +431,7 @@ where
     {
         // TODO how do headers work with sse
         let (input, input_headers, content_type, mut response_headers) =
-            match Self::parse_input::<I, H>(input) {
-                Ok(r) => r,
-                Err(err) => return Err(err),
-            };
+            Self::parse_input::<I, H>(input)?;
 
         if content_type != ContentType::Json {
             response_headers.insert(
