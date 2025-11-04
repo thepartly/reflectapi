@@ -1121,7 +1121,7 @@ impl Converter<'_> {
                     required,
                     properties,
                 } => {
-                    return Ok(Inline(Schema::Flat(FlatSchema {
+                    Ok(Inline(Schema::Flat(FlatSchema {
                         description: schema.description.to_owned(),
                         ty: Type::Object {
                             title: title.to_owned(),

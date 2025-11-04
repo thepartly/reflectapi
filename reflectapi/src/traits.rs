@@ -625,7 +625,7 @@ impl<T: Output> Output for *mut T {
         )
     }
 }
-impl<'a, T: Input + Clone> Input for std::borrow::Cow<'a, T> {
+impl<T: Input + Clone> Input for std::borrow::Cow<'_, T> {
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflectapi_type_pointer(schema, "std::borrow::Cow", true),
@@ -633,7 +633,7 @@ impl<'a, T: Input + Clone> Input for std::borrow::Cow<'a, T> {
         )
     }
 }
-impl<'a, T: Output + Clone> Output for std::borrow::Cow<'a, T> {
+impl<T: Output + Clone> Output for std::borrow::Cow<'_, T> {
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
         crate::TypeReference::new(
             reflectapi_type_pointer(schema, "std::borrow::Cow", true),

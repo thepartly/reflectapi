@@ -11,7 +11,7 @@ impl<'a> TokenizableType<'a> {
     }
 }
 
-impl<'a> ToTokens for TokenizableType<'a> {
+impl ToTokens for TokenizableType<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self.inner {
             Type::Enum(e) => {
@@ -46,7 +46,7 @@ impl<'a> TokenizableTypeReference<'a> {
     }
 }
 
-impl<'a> ToTokens for TokenizableTypeReference<'a> {
+impl ToTokens for TokenizableTypeReference<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
         let arguments = self.inner.arguments().map(TokenizableTypeReference::new);
@@ -69,7 +69,7 @@ impl<'a> TokenizableTypeParameter<'a> {
     }
 }
 
-impl<'a> ToTokens for TokenizableTypeParameter<'a> {
+impl ToTokens for TokenizableTypeParameter<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
         let description = self.inner.description.as_str();
@@ -92,7 +92,7 @@ impl<'a> TokenizableField<'a> {
     }
 }
 
-impl<'a> ToTokens for TokenizableField<'a> {
+impl ToTokens for TokenizableField<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
@@ -141,7 +141,7 @@ impl<'a> TokenizableVariant<'a> {
     }
 }
 
-impl<'a> ToTokens for TokenizableVariant<'a> {
+impl ToTokens for TokenizableVariant<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
@@ -189,7 +189,7 @@ impl<'a> TokenizableRepresentation<'a> {
     }
 }
 
-impl<'a> ToTokens for TokenizableRepresentation<'a> {
+impl ToTokens for TokenizableRepresentation<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let tks = match self.inner {
             Representation::External => {
@@ -227,7 +227,7 @@ impl<'a> TokenizableEnum<'a> {
     }
 }
 
-impl<'a> ToTokens for TokenizableEnum<'a> {
+impl ToTokens for TokenizableEnum<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
@@ -255,7 +255,7 @@ pub(crate) struct TokenizableLanguageSpecificTypeCodegenConfig<'a>(
     &'a reflectapi_schema::LanguageSpecificTypeCodegenConfig,
 );
 
-impl<'a> ToTokens for TokenizableLanguageSpecificTypeCodegenConfig<'a> {
+impl ToTokens for TokenizableLanguageSpecificTypeCodegenConfig<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let rust = TokenizableRustTypeCodegenConfig(&self.0.rust);
         tokens.extend(quote::quote! {
@@ -268,7 +268,7 @@ impl<'a> ToTokens for TokenizableLanguageSpecificTypeCodegenConfig<'a> {
 
 pub(crate) struct TokenizableRustTypeCodegenConfig<'a>(&'a RustTypeCodegenConfig);
 
-impl<'a> ToTokens for TokenizableRustTypeCodegenConfig<'a> {
+impl ToTokens for TokenizableRustTypeCodegenConfig<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let additional_derives = &self.0.additional_derives;
         tokens.extend(quote::quote! {
@@ -289,7 +289,7 @@ impl<'a> TokenizableStruct<'a> {
     }
 }
 
-impl<'a> ToTokens for TokenizableStruct<'a> {
+impl ToTokens for TokenizableStruct<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
@@ -335,7 +335,7 @@ impl<'a> TokenizablePrimitive<'a> {
     }
 }
 
-impl<'a> ToTokens for TokenizablePrimitive<'a> {
+impl ToTokens for TokenizablePrimitive<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.inner.name.as_str();
         let description = self.inner.description.as_str();
