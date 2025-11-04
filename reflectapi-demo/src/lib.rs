@@ -249,18 +249,17 @@ fn some_datetime() -> chrono::DateTime<chrono::Utc> {
         .with_timezone(&chrono::Utc)
 }
 
-#[derive(Debug, Clone, serde::Deserialize, reflectapi::Input)]
-pub struct IntegrationHeadersV1 {
-    #[serde(rename = "Partly-Integration-ID")]
-    pub integration_id: uuid::Uuid,
-}
-
 async fn pets_get_first(
     state: Arc<AppState>,
     _: reflectapi::Empty,
-    headers: IntegrationHeadersV1,
-) -> reflectapi::Empty {
-    reflectapi::Empty {}
+    headers: proto::Headers,
+) -> Result<Option<model::Pet>, proto::UnauthorizedError> {
+    authorize::<proto::UnauthorizedError>(headers)?;
+
+    let pets = state.pets.lock().unwrap();
+    let random_pet = pets.first().cloned();
+
+    Ok(random_pet)
 }
 
 mod proto {

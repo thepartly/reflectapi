@@ -130,8 +130,13 @@ where
                 crate::Type::Struct(Struct { fields, .. }) => fields
                     .iter()
                     .map(|field| {
-                        HeaderName::from_bytes(field.serde_name.as_bytes())
-                            .expect("valid header name")
+                        let header_name = if field.serde_name.is_empty() {
+                            field.name.as_str()
+                        } else {
+                            field.serde_name.as_str()
+                        };
+                        HeaderName::from_bytes(header_name.as_bytes())
+                            .unwrap_or_else(|_| panic!("invalid header name: `{header_name}`"))
                     })
                     .collect(),
                 _ => vec![],
