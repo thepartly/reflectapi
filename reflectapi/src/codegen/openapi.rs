@@ -1120,31 +1120,29 @@ impl Converter<'_> {
                     title,
                     required,
                     properties,
-                } => {
-                    Ok(Inline(Schema::Flat(FlatSchema {
-                        description: schema.description.to_owned(),
-                        ty: Type::Object {
-                            title: title.to_owned(),
-                            required: required
-                                .iter()
-                                .cloned()
-                                .chain(std::iter::once(tag_name.to_owned()))
-                                .collect(),
-                            properties: properties
-                                .iter()
-                                .map(|(k, v)| (k.to_owned(), v.clone()))
-                                .chain(std::iter::once((
-                                    tag_name.to_owned(),
-                                    Property {
-                                        description: String::new(),
-                                        deprecated: false,
-                                        schema: tag_schema,
-                                    },
-                                )))
-                                .collect(),
-                        },
-                    })))
-                }
+                } => Ok(Inline(Schema::Flat(FlatSchema {
+                    description: schema.description.to_owned(),
+                    ty: Type::Object {
+                        title: title.to_owned(),
+                        required: required
+                            .iter()
+                            .cloned()
+                            .chain(std::iter::once(tag_name.to_owned()))
+                            .collect(),
+                        properties: properties
+                            .iter()
+                            .map(|(k, v)| (k.to_owned(), v.clone()))
+                            .chain(std::iter::once((
+                                tag_name.to_owned(),
+                                Property {
+                                    description: String::new(),
+                                    deprecated: false,
+                                    schema: tag_schema,
+                                },
+                            )))
+                            .collect(),
+                    },
+                }))),
             },
         }
     }
