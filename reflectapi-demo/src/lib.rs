@@ -1,5 +1,7 @@
 use std::sync::{Arc, Mutex};
 
+use futures_util::Stream;
+
 #[cfg(test)]
 mod tests;
 
@@ -40,6 +42,11 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
         .route(pets_get_first, |b| {
             b.name("pets.get-first")
                 .description("Fetch first pet, if any exists")
+        })
+        .stream_route(pets_cdc_events, |b| {
+            b.name("pets.cdc-events")
+                .readonly(true)
+                .description("Stream of change data capture events for pets")
         })
         .rename_types("reflectapi_demo::", "myapi::")
         // and some optional linting rules
@@ -260,6 +267,15 @@ async fn pets_get_first(
     let random_pet = pets.first().cloned();
 
     Ok(random_pet)
+}
+
+fn pets_cdc_events(
+    _state: Arc<AppState>,
+    _: reflectapi::Empty,
+    _headers: proto::Headers,
+) -> impl Stream<Item = ()> {
+    // authorize::<proto::UnauthorizedError>(headers)?;
+    futures_util::stream::iter([()])
 }
 
 mod proto {
