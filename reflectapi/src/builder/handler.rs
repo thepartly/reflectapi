@@ -5,7 +5,7 @@ use futures_util::{stream::Stream, StreamExt, TryStreamExt};
 
 use http::HeaderName;
 
-use crate::{Function, Schema, Struct};
+use crate::{Function, Input, Output, OutputType, Schema, Struct};
 
 use super::RouteBuilder;
 
@@ -132,12 +132,13 @@ where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
         Fut: Future<Output = R> + Send + 'static,
         R: crate::IntoResult<O, E> + 'static,
-        I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        O: crate::Output + serde::ser::Serialize + Send + 'static,
-        E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+        I: Input + serde::de::DeserializeOwned + Send + 'static,
+        H: Input + serde::de::DeserializeOwned + Send + 'static,
+        O: Output + serde::ser::Serialize + Send + 'static,
+        E: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
-        let (function_def, mut input_headers) = Self::mk_function::<I, H, O, E>(&rb, schema);
+        let (function_def, mut input_headers) =
+            Self::mk_function::<I, H, O, E, crate::Empty>(&rb, schema, false);
         schema.functions.push(function_def);
 
         // inject system header requirements used by the handler wrapper
@@ -164,14 +165,15 @@ where
         F: Fn(S, I, H) -> Result<St, E1> + Send + Sync + Copy + 'static,
         St: Stream<Item = R> + Send + 'static,
         R: crate::IntoResult<O, E2> + 'static,
-        I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        O: crate::Output + serde::ser::Serialize + Send + 'static,
-        E1: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
-        E2: crate::Output + serde::ser::Serialize + Send + 'static,
+        I: Input + serde::de::DeserializeOwned + Send + 'static,
+        H: Input + serde::de::DeserializeOwned + Send + 'static,
+        O: Output + serde::ser::Serialize + Send + 'static,
+        E1: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+        E2: Output + serde::ser::Serialize + Send + 'static,
         S: Send + 'static,
     {
-        let (function_def, mut input_headers) = Self::mk_function::<I, H, O, E1>(&rb, schema);
+        let (function_def, mut input_headers) =
+            Self::mk_function::<I, H, O, E1, E2>(&rb, schema, true);
         schema.functions.push(function_def);
 
         // inject system header requirements used by the handler wrapper
@@ -190,13 +192,15 @@ where
         }
     }
 
-    fn mk_function<I: crate::Input, H: crate::Input, O: crate::Output, E: crate::Output>(
+    fn mk_function<I: Input, H: Input, O: Output, E1: Output, E2: Output>(
         rb: &RouteBuilder,
         schema: &mut Schema,
+        is_stream: bool,
     ) -> (Function, Vec<HeaderName>) {
         let input_type = I::reflectapi_input_type(&mut schema.input_types);
         let output_type = O::reflectapi_output_type(&mut schema.output_types);
-        let error_type = E::reflectapi_output_type(&mut schema.output_types);
+        let error_type = E1::reflectapi_output_type(&mut schema.output_types);
+        let stream_error_type = E2::reflectapi_output_type(&mut schema.output_types);
         let input_headers = H::reflectapi_input_type(&mut schema.input_types);
 
         let input_headers_names = schema
@@ -228,10 +232,21 @@ where
             } else {
                 Some(input_type)
             },
-            output_type: if output_type.name == "reflectapi::Empty" {
-                None
+            output_type: if is_stream {
+                OutputType::Stream {
+                    item_type: output_type,
+                    error_type: if stream_error_type.name == "reflectapi::Infallible" {
+                        None
+                    } else {
+                        Some(stream_error_type)
+                    },
+                }
             } else {
-                Some(output_type)
+                OutputType::Single(if output_type.name == "reflectapi::Empty" {
+                    None
+                } else {
+                    Some(output_type)
+                })
             },
             error_type: if error_type.name == "reflectapi::Infallible" {
                 None
@@ -351,10 +366,10 @@ where
         handler: F,
     ) -> HandlerOutput
     where
-        I: crate::Input + serde::de::DeserializeOwned,
-        H: crate::Input + serde::de::DeserializeOwned,
-        O: crate::Output + serde::ser::Serialize,
-        E: crate::Output + serde::ser::Serialize + crate::StatusCode,
+        I: Input + serde::de::DeserializeOwned,
+        H: Input + serde::de::DeserializeOwned,
+        O: Output + serde::ser::Serialize,
+        E: Output + serde::ser::Serialize + crate::StatusCode,
         F: Fn(S, I, H) -> Fut,
         Fut: Future<Output = R> + Send + 'static,
         R: crate::IntoResult<O, E>,
@@ -422,11 +437,11 @@ where
         handler: F,
     ) -> Result<impl Stream<Item = Result<String, String>>, HandlerOutput>
     where
-        I: crate::Input + serde::de::DeserializeOwned,
-        H: crate::Input + serde::de::DeserializeOwned,
-        O: crate::Output + serde::ser::Serialize,
-        E1: crate::Output + serde::ser::Serialize + crate::StatusCode,
-        E2: crate::Output + serde::ser::Serialize,
+        I: Input + serde::de::DeserializeOwned,
+        H: Input + serde::de::DeserializeOwned,
+        O: Output + serde::ser::Serialize,
+        E1: Output + serde::ser::Serialize + crate::StatusCode,
+        E2: Output + serde::ser::Serialize,
         F: Fn(S, I, H) -> Result<St, E1>,
         St: Stream<Item = R> + Send + 'static,
         R: crate::IntoResult<O, E2>,
