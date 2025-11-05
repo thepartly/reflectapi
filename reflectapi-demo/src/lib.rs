@@ -274,6 +274,7 @@ mod proto {
 
     #[derive(serde::Deserialize, reflectapi::Input)]
     pub struct Headers {
+        /// Authorization header
         pub authorization: String,
     }
 
