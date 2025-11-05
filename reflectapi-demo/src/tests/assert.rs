@@ -168,7 +168,7 @@ macro_rules! assert_input_snapshot {
         insta::assert_json_snapshot!(super::into_input_schema::<$I>().input_types);
         insta::assert_snapshot!(super::into_input_typescript_code::<$I>());
         insta::assert_snapshot!(super::into_input_rust_code::<$I>());
-        // insta::assert_snapshot!(super::into_input_python_code::<$I>());
+        insta::assert_snapshot!(super::into_input_python_code::<$I>());
     };
 }
 
@@ -177,7 +177,7 @@ macro_rules! assert_output_snapshot {
         insta::assert_json_snapshot!(super::into_output_schema::<$O>().output_types);
         insta::assert_snapshot!(super::into_output_typescript_code::<$O>());
         insta::assert_snapshot!(super::into_output_rust_code::<$O>());
-        // insta::assert_snapshot!(super::into_output_python_code::<$O>());
+        insta::assert_snapshot!(super::into_output_python_code::<$O>());
     };
 }
 
@@ -188,7 +188,7 @@ macro_rules! assert_snapshot {
         insta::assert_snapshot!(super::into_typescript_code::<$T>());
         insta::assert_snapshot!(super::into_rust_code::<$T>());
         insta::assert_json_snapshot!(reflectapi::codegen::openapi::Spec::from(&schema));
-        // insta::assert_snapshot!(super::into_python_code::<$T>());
+        insta::assert_snapshot!(super::into_python_code::<$T>());
     }};
 }
 
