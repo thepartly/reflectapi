@@ -153,6 +153,8 @@ pub struct Parameter {
     location: In,
     required: bool,
     schema: InlineOrRef<Schema>,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    description: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -552,14 +554,12 @@ impl Converter<'_> {
                 ..
             }) => properties
                 .into_iter()
-                .map(|(name, property)| {
-                    let required = required.contains(&name);
-                    Parameter {
-                        name,
-                        location: In::Header,
-                        required,
-                        schema: property.schema,
-                    }
+                .map(|(name, property)| Parameter {
+                    location: In::Header,
+                    required: required.contains(&name),
+                    name,
+                    schema: property.schema,
+                    description: property.description,
                 })
                 .collect(),
             _ => unreachable!("header type is a struct"),
