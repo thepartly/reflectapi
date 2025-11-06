@@ -311,6 +311,7 @@ pub mod types {
 
             #[derive(Debug, serde::Serialize)]
             pub struct Headers {
+                /// Authorization header
                 pub authorization: std::string::String,
             }
 

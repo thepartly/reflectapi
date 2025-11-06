@@ -324,6 +324,7 @@
           "named": [
             {
               "name": "authorization",
+              "description": "Authorization header",
               "type": {
                 "name": "std::string::String"
               },

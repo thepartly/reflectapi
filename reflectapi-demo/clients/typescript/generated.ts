@@ -553,6 +553,9 @@ export namespace myapi {
 
   export namespace proto {
     export interface Headers {
+      /**
+       * Authorization header
+       */
       authorization: string;
     }
 

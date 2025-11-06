@@ -1682,7 +1682,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi"
-version = "0.16.3"
+version = "0.16.4"
 dependencies = [
  "anyhow",
  "askama",
@@ -1708,7 +1708,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-cli"
-version = "0.16.3"
+version = "0.16.4"
 dependencies = [
  "anyhow",
  "askama",
@@ -1766,7 +1766,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-derive"
-version = "0.16.3"
+version = "0.16.4"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -1778,7 +1778,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-schema"
-version = "0.16.3"
+version = "0.16.4"
 dependencies = [
  "glob",
  "serde",

@@ -52,7 +52,8 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/std.string.String"
-            }
+            },
+            "description": "Authorization header"
           }
         ]
       }
@@ -103,7 +104,8 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/std.string.String"
-            }
+            },
+            "description": "Authorization header"
           }
         ],
         "deprecated": true
@@ -151,7 +153,8 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/std.string.String"
-            }
+            },
+            "description": "Authorization header"
           }
         ]
       }
@@ -225,7 +228,8 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/std.string.String"
-            }
+            },
+            "description": "Authorization header"
           }
         ]
       }
@@ -276,7 +280,8 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/std.string.String"
-            }
+            },
+            "description": "Authorization header"
           }
         ]
       }
@@ -327,7 +332,8 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/std.string.String"
-            }
+            },
+            "description": "Authorization header"
           }
         ]
       }
