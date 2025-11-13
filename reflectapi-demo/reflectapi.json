@@ -254,6 +254,11 @@
                 }
               ]
             }
+          },
+          {
+            "name": "bird",
+            "description": "Test for unit variants in internally tagged enums",
+            "fields": "none"
           }
         ]
       },
@@ -663,6 +668,11 @@
                 }
               ]
             }
+          },
+          {
+            "name": "bird",
+            "description": "Test for unit variants in internally tagged enums",
+            "fields": "none"
           }
         ]
       },

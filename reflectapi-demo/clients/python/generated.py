@@ -230,9 +230,18 @@ class MyapiModelKindCat(BaseModel):
     lives: int
 
 
+class MyapiModelKindBird(BaseModel):
+    """Test for unit variants in internally tagged enums"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    type: Literal["bird"] = "bird"
+
+
 class MyapiModelKind(RootModel):
     root: Annotated[
-        Union[MyapiModelKindDog, MyapiModelKindCat], Field(discriminator="type")
+        Union[MyapiModelKindDog, MyapiModelKindCat, MyapiModelKindBird],
+        Field(discriminator="type"),
     ]
 
 
@@ -783,6 +792,8 @@ class MyapiModelKindFactory:
 
     MyapiModelKind variants
     """
+
+    BIRD = MyapiModelKindBird()
 
     @staticmethod
     def dog(breed) -> MyapiModelKindDog:

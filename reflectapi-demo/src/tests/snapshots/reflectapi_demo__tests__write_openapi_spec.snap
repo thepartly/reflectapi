@@ -439,6 +439,17 @@ expression: s
                 "const": "cat"
               }
             }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "bird"
+              }
+            }
           }
         ]
       },
