@@ -502,7 +502,11 @@ export namespace myapi {
            * lives left
            */
           lives: number /* u8 */;
-        };
+        }
+      /**
+       * Test for unit variants in internally tagged enums
+       */
+      | { type: "bird" };
 
     export namespace input {
       export interface Pet {
