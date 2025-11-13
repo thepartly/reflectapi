@@ -15,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: biomejs/setup-biome@v2
+      - uses: astral-sh/ruff-action@v3
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
