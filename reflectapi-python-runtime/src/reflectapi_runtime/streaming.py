@@ -68,7 +68,9 @@ class StreamingResponse:
         finally:
             await self.aclose()
 
-    async def aiter_text(self, chunk_size: int = 8192, encoding: str | None = None) -> AsyncIterator[str]:
+    async def aiter_text(
+        self, chunk_size: int = 8192, encoding: str | None = None
+    ) -> AsyncIterator[str]:
         """Iterate over response content as text chunks."""
         if self.is_closed:
             raise RuntimeError("Cannot iterate over closed response")
@@ -79,7 +81,9 @@ class StreamingResponse:
         finally:
             await self.aclose()
 
-    async def aiter_lines(self, chunk_size: int = 8192, encoding: str | None = None) -> AsyncIterator[str]:
+    async def aiter_lines(
+        self, chunk_size: int = 8192, encoding: str | None = None
+    ) -> AsyncIterator[str]:
         """Iterate over response content line by line."""
         if self.is_closed:
             raise RuntimeError("Cannot iterate over closed response")
@@ -108,13 +112,14 @@ class StreamingResponse:
 
         bytes_written = 0
         try:
-            with open(file_path, 'wb') as f:
+            with open(file_path, "wb") as f:
                 async for chunk in self.aiter_bytes(chunk_size):
                     f.write(chunk)
                     bytes_written += len(chunk)
         except Exception:
             # Clean up partial file on error
             import os
+
             try:
                 os.unlink(file_path)
             except OSError:
@@ -236,16 +241,19 @@ class AsyncStreamingClient:
         if json_model is not None:
             # Use Pydantic with improved ReflectapiOption serialization
             model_dict = json_model.model_dump(exclude_none=False)  # Keep explicit None
-            
+
             # Filter out Undefined values (ReflectapiOption serializer returns Undefined sentinel)
             from .option import Undefined
+
             final_dict = {
-                k: v for k, v in model_dict.items() 
-                if not (hasattr(v, '__class__') and v is Undefined)
+                k: v
+                for k, v in model_dict.items()
+                if not (hasattr(v, "__class__") and v is Undefined)
             }
-            
+
             import json
-            content = json.dumps(final_dict, separators=(',', ':')).encode('utf-8')
+
+            content = json.dumps(final_dict, separators=(",", ":")).encode("utf-8")
             request_headers["Content-Type"] = "application/json"
 
             # Build request with raw content
@@ -346,7 +354,9 @@ class AsyncStreamingClient:
                 print(f"Downloaded {progress['bytes_written']} bytes")
             ```
         """
-        async with self.stream_request("GET", path, params=params, headers=headers) as response:
+        async with self.stream_request(
+            "GET", path, params=params, headers=headers
+        ) as response:
             total_bytes = response.content_length
             bytes_written = 0
 
@@ -358,7 +368,7 @@ class AsyncStreamingClient:
             }
 
             try:
-                with open(file_path, 'wb') as f:
+                with open(file_path, "wb") as f:
                     async for chunk in response.aiter_bytes(chunk_size):
                         f.write(chunk)
                         bytes_written += len(chunk)
@@ -366,13 +376,16 @@ class AsyncStreamingClient:
                         # Update progress
                         progress_info["bytes_written"] = bytes_written
                         if total_bytes:
-                            progress_info["progress"] = min(bytes_written / total_bytes, 1.0)
+                            progress_info["progress"] = min(
+                                bytes_written / total_bytes, 1.0
+                            )
 
                 yield progress_info
 
             except Exception:
                 # Clean up partial file on error
                 import os
+
                 try:
                     os.unlink(file_path)
                 except OSError:
@@ -389,6 +402,7 @@ class AsyncStreamingClient:
     ) -> AsyncStreamingClient:
         """Create a streaming client with Bearer token authentication."""
         from .auth import BearerTokenAuth
+
         return cls(base_url, auth=BearerTokenAuth(token), **kwargs)
 
     @classmethod
@@ -402,7 +416,10 @@ class AsyncStreamingClient:
     ) -> AsyncStreamingClient:
         """Create a streaming client with API key authentication."""
         from .auth import APIKeyAuth
-        return cls(base_url, auth=APIKeyAuth(api_key, header_name, param_name), **kwargs)
+
+        return cls(
+            base_url, auth=APIKeyAuth(api_key, header_name, param_name), **kwargs
+        )
 
     @classmethod
     def from_basic_auth(
@@ -414,6 +431,7 @@ class AsyncStreamingClient:
     ) -> AsyncStreamingClient:
         """Create a streaming client with HTTP Basic authentication."""
         from .auth import BasicAuth
+
         return cls(base_url, auth=BasicAuth(username, password), **kwargs)
 
     @classmethod
@@ -428,8 +446,11 @@ class AsyncStreamingClient:
     ) -> AsyncStreamingClient:
         """Create a streaming client with OAuth2 client credentials authentication."""
         from .auth import OAuth2ClientCredentialsAuth
+
         return cls(
             base_url,
-            auth=OAuth2ClientCredentialsAuth(token_url, client_id, client_secret, scope),
-            **kwargs
+            auth=OAuth2ClientCredentialsAuth(
+                token_url, client_id, client_secret, scope
+            ),
+            **kwargs,
         )

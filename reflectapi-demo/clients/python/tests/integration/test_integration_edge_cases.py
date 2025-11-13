@@ -16,11 +16,15 @@ from generated import (
     MyapiModelBehavior as Behavior,
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     AsyncClient,
-    MyapiProtoPaginated as Paginated
+    MyapiProtoPaginated as Paginated,
 )
 from reflectapi_runtime import (
-    ReflectapiOption, Undefined, ApplicationError, NetworkError,
-    TimeoutError, ValidationError
+    ReflectapiOption,
+    Undefined,
+    ApplicationError,
+    NetworkError,
+    TimeoutError,
+    ValidationError,
 )
 
 
@@ -32,7 +36,9 @@ class TestClientNetworkEdgeCases:
     async def test_client_with_unreachable_server(self):
         """Test client behavior when server is unreachable."""
         # Use non-routable IP address with short timeout
-        client = AsyncClient("http://192.0.2.1:9999", timeout=1.0)  # RFC5737 test IP, 1s timeout
+        client = AsyncClient(
+            "http://192.0.2.1:9999", timeout=1.0
+        )  # RFC5737 test IP, 1s timeout
 
         with pytest.raises(NetworkError):
             await client.pets.list()
@@ -40,7 +46,9 @@ class TestClientNetworkEdgeCases:
     @pytest.mark.asyncio
     async def test_client_with_invalid_hostname(self):
         """Test client with invalid hostname."""
-        client = AsyncClient("https://this-hostname-does-not-exist-12345.com", timeout=2.0)
+        client = AsyncClient(
+            "https://this-hostname-does-not-exist-12345.com", timeout=2.0
+        )
 
         with pytest.raises(NetworkError):
             await client.pets.list()
@@ -59,10 +67,14 @@ class TestClientNetworkEdgeCases:
     async def test_client_with_connection_timeout(self):
         """Test client with very short timeout."""
         from httpx import TimeoutException
-        
+
         # Mock httpx to raise timeout exception directly
-        with patch('httpx.AsyncClient.send', side_effect=TimeoutException("Mock timeout")):
-            client = AsyncClient("https://api.example.com", timeout=0.001)  # 1ms timeout
+        with patch(
+            "httpx.AsyncClient.send", side_effect=TimeoutException("Mock timeout")
+        ):
+            client = AsyncClient(
+                "https://api.example.com", timeout=0.001
+            )  # 1ms timeout
 
             with pytest.raises(TimeoutError):
                 await client._make_request("GET", "/delay/2")
@@ -72,15 +84,17 @@ class TestClientNetworkEdgeCases:
         """Test client handling very large response payloads."""
         # This test would need a real server endpoint that returns large data
         # For now, we'll mock it
-        with patch('httpx.AsyncClient.send') as mock_send:
+        with patch("httpx.AsyncClient.send") as mock_send:
             # Create a very large response (10MB of JSON)
             large_pets = []
             for i in range(10000):
-                large_pets.append({
-                    "name": f"Pet_{i}_{'x' * 100}",
-                    "kind": {"type": "dog", "breed": f"Breed_{i}"},
-                    "updated_at": "2023-01-01T00:00:00Z"
-                })
+                large_pets.append(
+                    {
+                        "name": f"Pet_{i}_{'x' * 100}",
+                        "kind": {"type": "dog", "breed": f"Breed_{i}"},
+                        "updated_at": "2023-01-01T00:00:00Z",
+                    }
+                )
 
             large_response_data = {"items": large_pets, "cursor": "large_cursor"}
 
@@ -94,10 +108,7 @@ class TestClientNetworkEdgeCases:
             client = AsyncClient("https://api.example.com")
 
             # Should handle large response without issues
-            response = await client._make_request(
-                "GET", "/pets",
-                response_model="Any"
-            )
+            response = await client._make_request("GET", "/pets", response_model="Any")
 
             assert len(response.data["items"]) == 10000
 
@@ -111,9 +122,9 @@ class TestReflectapiOptionIntegrationEdgeCases:
         # Create request with various option states
         request = PetsUpdateRequest(
             name="Option Test Pet",
-            kind=PetKindDog(type='dog', breed='Option Breed'),
+            kind=PetKindDog(type="dog", breed="Option Breed"),
             age=ReflectapiOption(5),  # Some value
-            behaviors=ReflectapiOption(Undefined)  # Undefined
+            behaviors=ReflectapiOption(Undefined),  # Undefined
         )
 
         # Use JSON dump with exclude_unset to drop undefined fields
@@ -133,13 +144,13 @@ class TestReflectapiOptionIntegrationEdgeCases:
         # Request with None value
         request_with_none = PetsUpdateRequest(
             name="None Test",
-            age=ReflectapiOption(None)  # Explicit None
+            age=ReflectapiOption(None),  # Explicit None
         )
 
         # Request with undefined value
         request_undefined = PetsUpdateRequest(
             name="Undefined Test",
-            age=ReflectapiOption(Undefined)  # Explicit Undefined
+            age=ReflectapiOption(Undefined),  # Explicit Undefined
         )
 
         # Request with default (should be undefined)
@@ -150,7 +161,9 @@ class TestReflectapiOptionIntegrationEdgeCases:
 
         # Test serialization differences
         none_json = json.loads(request_with_none.model_dump_json())
-        undefined_json = json.loads(request_undefined.model_dump_json(exclude_unset=True))
+        undefined_json = json.loads(
+            request_undefined.model_dump_json(exclude_unset=True)
+        )
         default_json = json.loads(request_default.model_dump_json(exclude_unset=True))
 
         # None should be included as null
@@ -164,7 +177,12 @@ class TestReflectapiOptionIntegrationEdgeCases:
 
     def test_option_with_complex_nested_types(self):
         """Test ReflectapiOption with complex nested behavior data."""
-        from generated import MyapiModelBehavior as Behavior, MyapiModelBehaviorAggressiveVariant as BehaviorAggressive, MyapiModelBehaviorOtherVariant as BehaviorOther
+        from generated import (
+            MyapiModelBehavior as Behavior,
+            MyapiModelBehaviorAggressiveVariant as BehaviorAggressive,
+            MyapiModelBehaviorOtherVariant as BehaviorOther,
+        )
+
         complex_behaviors = [
             Behavior("Calm"),
             Behavior(BehaviorAggressive(field_0=1.0, field_1="test")),
@@ -172,8 +190,7 @@ class TestReflectapiOptionIntegrationEdgeCases:
         ] * 100  # 300 behaviors
 
         request = PetsUpdateRequest(
-            name="Complex Behaviors",
-            behaviors=ReflectapiOption(complex_behaviors)
+            name="Complex Behaviors", behaviors=ReflectapiOption(complex_behaviors)
         )
 
         # Should handle large behavior lists
@@ -207,29 +224,30 @@ class TestDiscriminatedUnionEdgeCases:
     def test_pet_kind_with_extra_fields(self):
         """Test PetKind with extra fields that don't belong."""
         # Dog with cat field - extra fields are ignored by models
-        dog = PetKindDog(type='dog', breed='Labrador', lives=9)
-        assert dog.type == 'dog' and dog.breed == 'Labrador'
-        assert not hasattr(dog, 'lives')
+        dog = PetKindDog(type="dog", breed="Labrador", lives=9)
+        assert dog.type == "dog" and dog.breed == "Labrador"
+        assert not hasattr(dog, "lives")
 
         # Cat with dog field - extra fields are ignored
-        cat = PetKindCat(type='cat', lives=9, breed='Siamese')
-        assert cat.type == 'cat' and cat.lives == 9
-        assert not hasattr(cat, 'breed')
+        cat = PetKindCat(type="cat", lives=9, breed="Siamese")
+        assert cat.type == "cat" and cat.lives == 9
+        assert not hasattr(cat, "breed")
 
     def test_pet_kind_json_round_trip_edge_cases(self):
         """Test PetKind JSON round-trip with edge case data."""
         edge_cases = [
-            PetKindDog(type='dog', breed=''),  # Empty breed
-            PetKindDog(type='dog', breed='a' * 1000),  # Very long breed
-            PetKindCat(type='cat', lives=0),  # Zero lives
-            PetKindCat(type='cat', lives=-1),  # Negative lives
-            PetKindCat(type='cat', lives=999999),  # Very high lives
+            PetKindDog(type="dog", breed=""),  # Empty breed
+            PetKindDog(type="dog", breed="a" * 1000),  # Very long breed
+            PetKindCat(type="cat", lives=0),  # Zero lives
+            PetKindCat(type="cat", lives=-1),  # Negative lives
+            PetKindCat(type="cat", lives=999999),  # Very high lives
         ]
 
         for pet_kind in edge_cases:
             # Should serialize and deserialize correctly
             json_data = pet_kind.model_dump()
             from pydantic import TypeAdapter
+
             reconstructed = TypeAdapter(PetKind).validate_python(json_data)
 
             assert type(reconstructed) == type(pet_kind)
@@ -241,17 +259,18 @@ class TestDiscriminatedUnionEdgeCases:
     def test_pet_kind_discriminator_tampering_in_json(self):
         """Test tampering with discriminator in JSON data."""
         # Create valid dog JSON, then tamper with discriminator
-        dog = PetKindDog(type='dog', breed='Tampered')
+        dog = PetKindDog(type="dog", breed="Tampered")
         dog_json = dog.model_dump_json()
         dog_data = json.loads(dog_json)
 
         # Tamper with discriminator
-        dog_data['type'] = 'cat'
+        dog_data["type"] = "cat"
         tampered_json = json.dumps(dog_data)
 
         # Should fail validation
         with pytest.raises(Exception):
             from pydantic import TypeAdapter
+
             TypeAdapter(PetKind).validate_python(dog_data)
 
 
@@ -262,7 +281,7 @@ class TestClientMethodEdgeCases:
     @pytest.mark.asyncio
     async def test_pets_list_with_extreme_parameters(self):
         """Test pets.list with extreme parameter values."""
-        with patch('httpx.AsyncClient.send') as mock_send:
+        with patch("httpx.AsyncClient.send") as mock_send:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.json.return_value = {"items": [], "cursor": None}
@@ -290,7 +309,7 @@ class TestClientMethodEdgeCases:
     @pytest.mark.asyncio
     async def test_pets_create_with_invalid_data(self):
         """Test pets.create with invalid data that should fail server-side."""
-        with patch('httpx.AsyncClient.send') as mock_send:
+        with patch("httpx.AsyncClient.send") as mock_send:
             # Mock server error response
             mock_response = Mock()
             mock_response.status_code = 400
@@ -302,10 +321,7 @@ class TestClientMethodEdgeCases:
             client = AsyncClient("https://api.example.com")
 
             # Create valid pet data
-            pet = Pet(
-                name="Test Pet",
-                kind=PetKindDog(type='dog', breed='Test Breed')
-            )
+            pet = Pet(name="Test Pet", kind=PetKindDog(type="dog", breed="Test Breed"))
 
             # Should raise ApplicationError for 400 response
             with pytest.raises(ApplicationError) as exc_info:
@@ -316,7 +332,7 @@ class TestClientMethodEdgeCases:
     @pytest.mark.asyncio
     async def test_client_with_none_data_parameters(self):
         """Test client methods with None data parameters."""
-        with patch('httpx.AsyncClient.send') as mock_send:
+        with patch("httpx.AsyncClient.send") as mock_send:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.json.return_value = {"result": "ok"}
@@ -338,10 +354,12 @@ class TestErrorResponseHandling:
     @pytest.mark.asyncio
     async def test_server_returning_html_error(self):
         """Test handling when server returns HTML instead of JSON."""
-        with patch('httpx.AsyncClient.send') as mock_send:
+        with patch("httpx.AsyncClient.send") as mock_send:
             mock_response = Mock()
             mock_response.status_code = 500
-            mock_response.json.side_effect = json.JSONDecodeError("Expecting value", "doc", 0)
+            mock_response.json.side_effect = json.JSONDecodeError(
+                "Expecting value", "doc", 0
+            )
             mock_response.text = "<html><body>Internal Server Error</body></html>"
             mock_response.headers = {"Content-Type": "text/html"}
             mock_response.elapsed.total_seconds.return_value = 0.1
@@ -358,10 +376,12 @@ class TestErrorResponseHandling:
     @pytest.mark.asyncio
     async def test_server_returning_empty_response(self):
         """Test handling when server returns empty response."""
-        with patch('httpx.AsyncClient.send') as mock_send:
+        with patch("httpx.AsyncClient.send") as mock_send:
             mock_response = Mock()
             mock_response.status_code = 204  # No Content
-            mock_response.json.side_effect = json.JSONDecodeError("Expecting value", "doc", 0)
+            mock_response.json.side_effect = json.JSONDecodeError(
+                "Expecting value", "doc", 0
+            )
             mock_response.text = ""
             mock_response.headers = {}
             mock_response.elapsed.total_seconds.return_value = 0.1
@@ -381,10 +401,12 @@ class TestErrorResponseHandling:
     @pytest.mark.asyncio
     async def test_server_returning_malformed_json(self):
         """Test handling when server returns malformed JSON."""
-        with patch('httpx.AsyncClient.send') as mock_send:
+        with patch("httpx.AsyncClient.send") as mock_send:
             mock_response = Mock()
             mock_response.status_code = 200
-            mock_response.json.side_effect = json.JSONDecodeError("Invalid JSON", "doc", 5)
+            mock_response.json.side_effect = json.JSONDecodeError(
+                "Invalid JSON", "doc", 5
+            )
             mock_response.text = '{"incomplete": json'
             mock_response.headers = {"Content-Type": "application/json"}
             mock_response.elapsed.total_seconds.return_value = 0.1
@@ -404,7 +426,7 @@ class TestConcurrentRequestEdgeCases:
     @pytest.mark.asyncio
     async def test_many_concurrent_requests_same_client(self):
         """Test many concurrent requests using the same client instance."""
-        with patch('httpx.AsyncClient.send') as mock_send:
+        with patch("httpx.AsyncClient.send") as mock_send:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.json.return_value = {"items": [], "cursor": None}
@@ -424,7 +446,8 @@ class TestConcurrentRequestEdgeCases:
     @pytest.mark.asyncio
     async def test_concurrent_requests_with_mixed_success_failure(self):
         """Test concurrent requests where some succeed and some fail."""
-        with patch('httpx.AsyncClient.send') as mock_send:
+        with patch("httpx.AsyncClient.send") as mock_send:
+
             def mixed_response(request):
                 # Simulate success/failure based on URL
                 if "success" in str(request.url):
@@ -452,8 +475,7 @@ class TestConcurrentRequestEdgeCases:
 
             # Gather with return_exceptions to handle failures
             results = await asyncio.gather(
-                *success_tasks, *failure_tasks,
-                return_exceptions=True
+                *success_tasks, *failure_tasks, return_exceptions=True
             )
 
             # Should have 5 successful responses and 5 exceptions
@@ -467,6 +489,7 @@ class TestConcurrentRequestEdgeCases:
     @pytest.mark.asyncio
     async def test_client_cleanup_with_pending_requests(self):
         """Test client cleanup when requests are still pending."""
+
         async def slow_response(request):
             await asyncio.sleep(0.05)  # Slow response (reduced from 0.2s)
             mock_response = Mock()
@@ -476,7 +499,7 @@ class TestConcurrentRequestEdgeCases:
             mock_response.elapsed.total_seconds.return_value = 0.05
             return mock_response
 
-        with patch('httpx.AsyncClient.send', side_effect=slow_response):
+        with patch("httpx.AsyncClient.send", side_effect=slow_response):
             async with AsyncClient("https://api.example.com") as client:
                 # Start request but don't wait for completion
                 task = asyncio.create_task(client.health.check())

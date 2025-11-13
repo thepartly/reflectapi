@@ -141,6 +141,7 @@ class TestCassetteClient:
 
         # Create proper httpx Request and Response objects
         import httpx
+
         request = httpx.Request("POST", "http://api.example.com/users")
         response = httpx.Response(201, json={"id": 1, "name": "John"})
 
@@ -156,6 +157,7 @@ class TestCassetteClient:
         client = CassetteClient.record(self.temp_path)
 
         import httpx
+
         client.record_interaction(
             httpx.Request("GET", "http://example.com/1"),
             httpx.Response(200, text="response1"),

@@ -103,17 +103,18 @@ class ReflectapiOption(Generic[T]):
                 validate_option,
                 serialization=core_schema.plain_serializer_function_ser_schema(
                     serialize_option,
-                    return_schema=core_schema.union_schema([
-                        inner_schema,
-                        core_schema.none_schema(),
-                    ]),
-                    when_used='json',
-                )
+                    return_schema=core_schema.union_schema(
+                        [
+                            inner_schema,
+                            core_schema.none_schema(),
+                        ]
+                    ),
+                    when_used="json",
+                ),
             )
         else:
             # Fallback for untyped ReflectapiOption
             return core_schema.no_info_plain_validator_function(validate_option)
-
 
     @property
     def is_undefined(self) -> bool:

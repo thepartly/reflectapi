@@ -3,7 +3,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import time
 from unittest.mock import AsyncMock, Mock, patch
@@ -50,7 +50,7 @@ class TestAuthToken:
             token_type="Custom",
             expires_in=3600,
             refresh_token="refresh_token",
-            scope="read write"
+            scope="read write",
         )
 
         assert token.access_token == "test_token"
@@ -71,19 +71,19 @@ class TestAuthToken:
 
     def test_is_expired_expired(self):
         """Test expired token."""
-        with patch('time.time', return_value=1000):
+        with patch("time.time", return_value=1000):
             token = AuthToken("test_token", expires_in=60)
 
-        with patch('time.time', return_value=1200):  # 200 seconds later
+        with patch("time.time", return_value=1200):  # 200 seconds later
             assert token.is_expired
 
     def test_is_expired_with_buffer(self):
         """Test token expiry includes 60 second buffer."""
-        with patch('time.time', return_value=1000):
+        with patch("time.time", return_value=1000):
             token = AuthToken("test_token", expires_in=120)
 
         # 70 seconds later (within buffer) - should be expired
-        with patch('time.time', return_value=1070):
+        with patch("time.time", return_value=1070):
             assert token.is_expired
 
     def test_expires_at_no_expiry(self):
@@ -93,7 +93,7 @@ class TestAuthToken:
 
     def test_expires_at_with_expiry(self):
         """Test expires_at calculation."""
-        with patch('time.time', return_value=1000):
+        with patch("time.time", return_value=1000):
             token = AuthToken("test_token", expires_in=3600)
 
         assert token.expires_at == 4600
@@ -225,10 +225,7 @@ class TestOAuth2ClientCredentialsAuth:
     def test_initialization(self):
         """Test initialization of OAuth2 client credentials auth."""
         auth = OAuth2ClientCredentialsAuth(
-            "https://example.com/token",
-            "client_id",
-            "client_secret",
-            "read write"
+            "https://example.com/token", "client_id", "client_secret", "read write"
         )
 
         assert auth.token_url == "https://example.com/token"
@@ -240,10 +237,7 @@ class TestOAuth2ClientCredentialsAuth:
     def test_prepare_token_request(self):
         """Test token request preparation."""
         auth = OAuth2ClientCredentialsAuth(
-            "https://example.com/token",
-            "client_id",
-            "client_secret",
-            "read write"
+            "https://example.com/token", "client_id", "client_secret", "read write"
         )
 
         data = auth._prepare_token_request()
@@ -259,9 +253,7 @@ class TestOAuth2ClientCredentialsAuth:
     def test_prepare_token_request_no_scope(self):
         """Test token request preparation without scope."""
         auth = OAuth2ClientCredentialsAuth(
-            "https://example.com/token",
-            "client_id",
-            "client_secret"
+            "https://example.com/token", "client_id", "client_secret"
         )
 
         data = auth._prepare_token_request()
@@ -289,7 +281,7 @@ class TestOAuth2ClientCredentialsAuth:
             "https://example.com/token",
             "client_id",
             "client_secret",
-            client=mock_client
+            client=mock_client,
         )
 
         token = auth._get_valid_token_sync()
@@ -306,7 +298,7 @@ class TestOAuth2ClientCredentialsAuth:
                 "client_id": "client_id",
                 "client_secret": "client_secret",
             },
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 
     @pytest.mark.asyncio
@@ -326,7 +318,7 @@ class TestOAuth2ClientCredentialsAuth:
             "https://example.com/token",
             "client_id",
             "client_secret",
-            client=mock_client
+            client=mock_client,
         )
 
         token = await auth._get_valid_token_async()
@@ -343,7 +335,7 @@ class TestOAuth2ClientCredentialsAuth:
                 "client_id": "client_id",
                 "client_secret": "client_secret",
             },
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 
     def test_get_valid_token_sync_cached(self):
@@ -354,7 +346,7 @@ class TestOAuth2ClientCredentialsAuth:
             "https://example.com/token",
             "client_id",
             "client_secret",
-            client=mock_client
+            client=mock_client,
         )
 
         # Set a non-expired token
@@ -381,7 +373,7 @@ class TestOAuth2ClientCredentialsAuth:
             "https://example.com/token",
             "client_id",
             "client_secret",
-            client=mock_client
+            client=mock_client,
         )
 
         request = httpx.Request("GET", "http://example.com")
@@ -405,7 +397,7 @@ class TestOAuth2ClientCredentialsAuth:
             "https://example.com/token",
             "client_id",
             "client_secret",
-            client=mock_client
+            client=mock_client,
         )
 
         request = httpx.Request("GET", "http://example.com")
@@ -433,7 +425,7 @@ class TestOAuth2AuthorizationCodeAuth:
             token_url="https://example.com/token",
             client_id="client_id",
             client_secret="client_secret",
-            expires_in=3600
+            expires_in=3600,
         )
 
         assert auth._token.access_token == "access_token"
@@ -443,7 +435,9 @@ class TestOAuth2AuthorizationCodeAuth:
 
     def test_initialization_invalid_refresh_config(self):
         """Test initialization with invalid refresh configuration."""
-        with pytest.raises(ValueError, match="token_url, client_id, and client_secret are required"):
+        with pytest.raises(
+            ValueError, match="token_url, client_id, and client_secret are required"
+        ):
             OAuth2AuthorizationCodeAuth(
                 access_token="access_token",
                 refresh_token="refresh_token",  # Has refresh token but missing other params
@@ -468,7 +462,7 @@ class TestOAuth2AuthorizationCodeAuth:
             token_url="https://example.com/token",
             client_id="client_id",
             client_secret="client_secret",
-            client=mock_client
+            client=mock_client,
         )
 
         token = auth._refresh_token_sync()
@@ -485,7 +479,7 @@ class TestOAuth2AuthorizationCodeAuth:
                 "client_id": "client_id",
                 "client_secret": "client_secret",
             },
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 
     def test_refresh_token_sync_no_refresh_token(self):
@@ -514,7 +508,7 @@ class TestOAuth2AuthorizationCodeAuth:
             token_url="https://example.com/token",
             client_id="client_id",
             client_secret="client_secret",
-            client=mock_client
+            client=mock_client,
         )
 
         token = await auth._refresh_token_async()
@@ -534,11 +528,14 @@ class TestOAuth2AuthorizationCodeAuth:
 
     def test_get_valid_token_sync_expired_no_refresh(self):
         """Test getting valid token when expired and no refresh token."""
-        with patch('time.time', return_value=1000):
+        with patch("time.time", return_value=1000):
             auth = OAuth2AuthorizationCodeAuth("access_token", expires_in=60)
 
-        with patch('time.time', return_value=1200):  # Expired
-            with pytest.raises(RuntimeError, match="Access token is expired and no refresh token available"):
+        with patch("time.time", return_value=1200):  # Expired
+            with pytest.raises(
+                RuntimeError,
+                match="Access token is expired and no refresh token available",
+            ):
                 auth._get_valid_token_sync()
 
     def test_apply_auth(self):
@@ -566,6 +563,7 @@ class TestCustomAuth:
 
     def test_initialization_sync_only(self):
         """Test initialization with sync function only."""
+
         def sync_auth(request):
             request.headers["Custom-Auth"] = "sync"
             return request
@@ -576,6 +574,7 @@ class TestCustomAuth:
 
     def test_initialization_async_only(self):
         """Test initialization with async function only."""
+
         async def async_auth(request):
             request.headers["Custom-Auth"] = "async"
             return request
@@ -586,6 +585,7 @@ class TestCustomAuth:
 
     def test_initialization_both(self):
         """Test initialization with both functions."""
+
         def sync_auth(request):
             return request
 
@@ -598,11 +598,15 @@ class TestCustomAuth:
 
     def test_initialization_neither(self):
         """Test initialization with no functions raises error."""
-        with pytest.raises(ValueError, match="At least one of sync_auth_func or async_auth_func must be provided"):
+        with pytest.raises(
+            ValueError,
+            match="At least one of sync_auth_func or async_auth_func must be provided",
+        ):
             CustomAuth()
 
     def test_apply_auth(self):
         """Test applying custom synchronous authentication."""
+
         def sync_auth(request):
             request.headers["Custom-Auth"] = "test"
             return request
@@ -616,6 +620,7 @@ class TestCustomAuth:
 
     def test_apply_auth_no_sync_func(self):
         """Test applying sync auth without sync function raises error."""
+
         async def async_auth(request):
             return request
 
@@ -628,6 +633,7 @@ class TestCustomAuth:
     @pytest.mark.asyncio
     async def test_apply_auth_async(self):
         """Test applying custom asynchronous authentication."""
+
         async def async_auth(request):
             request.headers["Custom-Auth"] = "test"
             return request
@@ -642,13 +648,16 @@ class TestCustomAuth:
     @pytest.mark.asyncio
     async def test_apply_auth_async_no_async_func(self):
         """Test applying async auth without async function raises error."""
+
         def sync_auth(request):
             return request
 
         auth = CustomAuth(sync_auth_func=sync_auth)
         request = httpx.Request("GET", "http://example.com")
 
-        with pytest.raises(RuntimeError, match="No asynchronous auth function provided"):
+        with pytest.raises(
+            RuntimeError, match="No asynchronous auth function provided"
+        ):
             await auth.apply_auth_async(request)
 
 
@@ -684,10 +693,7 @@ class TestConvenienceFunctions:
     def test_oauth2_client_credentials_factory(self):
         """Test oauth2_client_credentials factory function."""
         auth = oauth2_client_credentials(
-            "https://example.com/token",
-            "client_id",
-            "client_secret",
-            "read write"
+            "https://example.com/token", "client_id", "client_secret", "read write"
         )
         assert isinstance(auth, OAuth2ClientCredentialsAuth)
         assert auth.token_url == "https://example.com/token"
@@ -703,7 +709,7 @@ class TestConvenienceFunctions:
             token_url="https://example.com/token",
             client_id="client_id",
             client_secret="client_secret",
-            expires_in=3600
+            expires_in=3600,
         )
         assert isinstance(auth, OAuth2AuthorizationCodeAuth)
         assert auth._token.access_token == "access_token"
@@ -729,9 +735,7 @@ class TestClientIntegration:
         mock_client.send.return_value = mock_response
 
         client = ClientBase.from_bearer_token(
-            "http://example.com",
-            "test_token",
-            client=mock_client
+            "http://example.com", "test_token", client=mock_client
         )
 
         # Verify the auth handler was set
@@ -753,9 +757,7 @@ class TestClientIntegration:
         mock_client.send = AsyncMock(return_value=mock_response)
 
         client = AsyncClientBase.from_api_key(
-            "http://example.com",
-            "test_key",
-            client=mock_client
+            "http://example.com", "test_key", client=mock_client
         )
 
         # Verify the auth handler was set
@@ -772,7 +774,7 @@ class TestClientIntegration:
             "client_id",
             "client_secret",
             "read write",
-            client=mock_client
+            client=mock_client,
         )
 
         assert isinstance(client.auth, OAuth2ClientCredentialsAuth)
@@ -786,10 +788,7 @@ class TestClientIntegration:
         mock_client = Mock(spec=httpx.Client)
 
         client = ClientBase.from_basic_auth(
-            "http://example.com",
-            "username",
-            "password",
-            client=mock_client
+            "http://example.com", "username", "password", client=mock_client
         )
 
         assert isinstance(client.auth, BasicAuth)

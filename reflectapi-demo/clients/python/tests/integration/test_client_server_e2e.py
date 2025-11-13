@@ -16,7 +16,6 @@ from datetime import datetime
 # E2E gating handled centrally in tests/conftest.py
 
 
-
 from generated import (
     AsyncClient,
     MyapiModelInputPet as Pet,
@@ -30,7 +29,7 @@ from generated import (
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     MyapiProtoPetsRemoveRequest as PetsRemoveRequest,
     MyapiProtoPetsListRequest as PetsListRequest,
-    MyapiProtoHeaders as Headers
+    MyapiProtoHeaders as Headers,
 )
 from reflectapi_runtime import ReflectapiOption, ApiError
 
@@ -66,13 +65,13 @@ class TestClientServerIntegration:
         """Test listing pets when empty."""
 
         request = PetsListRequest(limit=10)
-        response = await client.pets.list(limit=10, headers=Headers(authorization="Bearer test-token"))
+        response = await client.pets.list(
+            limit=10, headers=Headers(authorization="Bearer test-token")
+        )
 
         assert response.metadata.status_code == 200
-        assert hasattr(response.value, 'items')
+        assert hasattr(response.value, "items")
         assert isinstance(response.value.items, list)
-
-
 
     @pytest.mark.integration
     async def test_create_pet_with_dog_kind(self, client, auth_headers):
@@ -84,7 +83,7 @@ class TestClientServerIntegration:
             name=f"test_dog_{datetime.now().timestamp()}",
             kind=dog_kind,
             age=3,
-            behaviors=[BehaviorFactory.CALM]
+            behaviors=[BehaviorFactory.CALM],
         )
 
         # Send create request
@@ -93,10 +92,15 @@ class TestClientServerIntegration:
         # Should succeed or give meaningful error
         if response.metadata.status_code == 400:
             # This is the bug we fixed - should not happen with proper discriminated unions
-            pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
+            pytest.fail(
+                "Got 400 Bad Request - discriminated union serialization may be broken"
+            )
         else:
-            assert response.metadata.status_code in [200, 201, 409]  # Created or conflict
-
+            assert response.metadata.status_code in [
+                200,
+                201,
+                409,
+            ]  # Created or conflict
 
     @pytest.mark.integration
     async def test_create_pet_with_cat_kind(self, client, auth_headers):
@@ -107,7 +111,7 @@ class TestClientServerIntegration:
             name=f"test_cat_{datetime.now().timestamp()}",
             kind=cat_kind,
             age=2,
-            behaviors=[BehaviorFactory.CALM, BehaviorFactory.other("Custom")]
+            behaviors=[BehaviorFactory.CALM, BehaviorFactory.other("Custom")],
         )
 
         # Send create request
@@ -116,9 +120,15 @@ class TestClientServerIntegration:
         # Should succeed or give meaningful error
         if response.metadata.status_code == 400:
             # This is the bug we fixed - should not happen with proper discriminated unions
-            pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
+            pytest.fail(
+                "Got 400 Bad Request - discriminated union serialization may be broken"
+            )
         else:
-            assert response.metadata.status_code in [200, 201, 409]  # Created or conflict
+            assert response.metadata.status_code in [
+                200,
+                201,
+                409,
+            ]  # Created or conflict
 
     @pytest.mark.integration
     async def test_update_pet_with_kind_change(self, client, auth_headers):
@@ -128,7 +138,7 @@ class TestClientServerIntegration:
         request = PetsUpdateRequest(
             name="existing_pet",  # Assume this exists or will fail gracefully
             kind=new_kind,
-            age=ReflectapiOption(4)
+            age=ReflectapiOption(4),
         )
 
         try:
@@ -138,14 +148,15 @@ class TestClientServerIntegration:
         except ApiError as e:
             # Should be 404 (not found), but NOT 400 (bad request)
             if e.status_code == 400:
-                pytest.fail("Got 400 Bad Request - discriminated union serialization may be broken")
+                pytest.fail(
+                    "Got 400 Bad Request - discriminated union serialization may be broken"
+                )
             elif e.status_code == 404:
                 # This is expected for non-existent pet - test passes
                 pass
             else:
                 # Unexpected error
                 pytest.fail(f"Unexpected error: {e.status_code} {e.message}")
-
 
     @pytest.mark.integration
     async def test_get_first_pet_with_tagged_enum(self, client, auth_headers):
@@ -155,22 +166,22 @@ class TestClientServerIntegration:
 
         if response.metadata.status_code == 200:
             # If we get a pet back, validate the kind structure
-            if response.value is not None and hasattr(response.value, 'kind'):
+            if response.value is not None and hasattr(response.value, "kind"):
                 kind = response.value.kind
 
                 # Should have discriminator field
-                assert hasattr(kind, 'type')
-                assert kind.type in ['dog', 'cat']
+                assert hasattr(kind, "type")
+                assert kind.type in ["dog", "cat"]
 
                 # Should have appropriate variant fields
-                if kind.type == 'dog':
-                    assert hasattr(kind, 'breed')
+                if kind.type == "dog":
+                    assert hasattr(kind, "breed")
                     assert isinstance(kind.breed, str)
-                    assert not hasattr(kind, 'lives')
-                elif kind.type == 'cat':
-                    assert hasattr(kind, 'lives')
+                    assert not hasattr(kind, "lives")
+                elif kind.type == "cat":
+                    assert hasattr(kind, "lives")
                     assert isinstance(kind.lives, int)
-                    assert not hasattr(kind, 'breed')
+                    assert not hasattr(kind, "breed")
 
 
 class TestSerializationRoundTrip:
@@ -181,10 +192,7 @@ class TestSerializationRoundTrip:
         # Create original dog
         original_dog = PetKindDog(type="dog", breed="German Shepherd")
         original_pet = Pet(
-            name="Rex",
-            kind=original_dog,
-            age=5,
-            behaviors=[BehaviorFactory.CALM]
+            name="Rex", kind=original_dog, age=5, behaviors=[BehaviorFactory.CALM]
         )
 
         # Serialize to dict (like JSON)
@@ -208,7 +216,7 @@ class TestSerializationRoundTrip:
             name="Whiskers",
             kind=original_cat,
             age=3,
-            behaviors=[BehaviorFactory.other("Custom")]
+            behaviors=[BehaviorFactory.other("Custom")],
         )
 
         # Serialize to dict (like JSON)
@@ -233,14 +241,16 @@ class TestSerializationRoundTrip:
 
         pets = [
             PetDetails(name="Bruno", kind=dog, updated_at=now, age=4),
-            PetDetails(name="Luna", kind=cat, updated_at=now, age=2)
+            PetDetails(name="Luna", kind=cat, updated_at=now, age=2),
         ]
 
         # Serialize each pet
         serialized_pets = [pet.model_dump() for pet in pets]
 
         # Deserialize back
-        deserialized_pets = [PetDetails.model_validate(data) for data in serialized_pets]
+        deserialized_pets = [
+            PetDetails.model_validate(data) for data in serialized_pets
+        ]
 
         # Validate first pet (dog)
         assert deserialized_pets[0].name == "Bruno"
@@ -259,7 +269,9 @@ class TestSerializationRoundTrip:
 
         # Convert to dict then JSON
         pet_dict = pet.model_dump()
-        json_str = json.dumps(pet_dict, default=str)  # default=str for datetime handling
+        json_str = json.dumps(
+            pet_dict, default=str
+        )  # default=str for datetime handling
 
         # Parse back from JSON
         parsed_dict = json.loads(json_str)
@@ -281,9 +293,9 @@ class TestEdgeCases:
             "name": "Invalid Pet",
             "kind": {
                 "type": "bird",  # Invalid discriminator
-                "wingspan": 30
+                "wingspan": 30,
             },
-            "age": 2
+            "age": 2,
         }
 
         with pytest.raises(Exception):  # Should raise validation error
@@ -297,7 +309,7 @@ class TestEdgeCases:
                 # Missing "type" field
                 "breed": "Unknown"
             },
-            "age": 2
+            "age": 2,
         }
 
         with pytest.raises(Exception):  # Should raise validation error
@@ -309,10 +321,10 @@ class TestEdgeCases:
             "name": "Invalid Pet",
             "kind": {
                 "type": "dog",
-                "lives": 9  # Cat field in dog variant
+                "lives": 9,  # Cat field in dog variant
                 # Missing breed field
             },
-            "age": 2
+            "age": 2,
         }
 
         with pytest.raises(Exception):  # Should raise validation error
@@ -327,8 +339,8 @@ async def test_async_functionality():
 
     # Client should be created successfully
     assert client is not None
-    assert hasattr(client, 'pets')
-    assert hasattr(client, 'health')
+    assert hasattr(client, "pets")
+    assert hasattr(client, "health")
 
     # Clean up
     await client.aclose()

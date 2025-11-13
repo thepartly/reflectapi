@@ -14,6 +14,7 @@ import httpx
 @dataclass
 class AuthToken:
     """Represents an authentication token with metadata."""
+
     access_token: str
     token_type: str = "Bearer"
     expires_in: int | None = None
@@ -100,7 +101,12 @@ class BearerTokenAuth(AuthHandler):
 class APIKeyAuth(AuthHandler):
     """API Key authentication handler with flexible placement options."""
 
-    def __init__(self, api_key: str, header_name: str = "X-API-Key", param_name: str | None = None):
+    def __init__(
+        self,
+        api_key: str,
+        header_name: str = "X-API-Key",
+        param_name: str | None = None,
+    ):
         """Initialize with API key and placement options.
 
         Args:
@@ -162,7 +168,7 @@ class OAuth2ClientCredentialsAuth(AuthHandler):
         client_id: str,
         client_secret: str,
         scope: str | None = None,
-        client: httpx.Client | httpx.AsyncClient | None = None
+        client: httpx.Client | httpx.AsyncClient | None = None,
     ):
         """Initialize OAuth2 client credentials authentication.
 
@@ -183,8 +189,12 @@ class OAuth2ClientCredentialsAuth(AuthHandler):
         self._token_lock = asyncio.Lock()
 
         # HTTP clients for token requests
-        self._sync_client = client if isinstance(client, httpx.Client) else httpx.Client()
-        self._async_client = client if isinstance(client, httpx.AsyncClient) else httpx.AsyncClient()
+        self._sync_client = (
+            client if isinstance(client, httpx.Client) else httpx.Client()
+        )
+        self._async_client = (
+            client if isinstance(client, httpx.AsyncClient) else httpx.AsyncClient()
+        )
         self._owns_clients = client is None
 
     def _prepare_token_request(self) -> dict[str, Any]:
@@ -210,7 +220,7 @@ class OAuth2ClientCredentialsAuth(AuthHandler):
         response = self._sync_client.post(
             self.token_url,
             data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         response.raise_for_status()
 
@@ -220,7 +230,7 @@ class OAuth2ClientCredentialsAuth(AuthHandler):
             token_type=token_data.get("token_type", "Bearer"),
             expires_in=token_data.get("expires_in"),
             refresh_token=token_data.get("refresh_token"),
-            scope=token_data.get("scope")
+            scope=token_data.get("scope"),
         )
 
         return self._token
@@ -236,7 +246,7 @@ class OAuth2ClientCredentialsAuth(AuthHandler):
             response = await self._async_client.post(
                 self.token_url,
                 data=data,
-                headers={"Content-Type": "application/x-www-form-urlencoded"}
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
             response.raise_for_status()
 
@@ -246,7 +256,7 @@ class OAuth2ClientCredentialsAuth(AuthHandler):
                 token_type=token_data.get("token_type", "Bearer"),
                 expires_in=token_data.get("expires_in"),
                 refresh_token=token_data.get("refresh_token"),
-                scope=token_data.get("scope")
+                scope=token_data.get("scope"),
             )
 
             return self._token
@@ -285,7 +295,7 @@ class OAuth2AuthorizationCodeAuth(AuthHandler):
         client_id: str | None = None,
         client_secret: str | None = None,
         expires_in: int | None = None,
-        client: httpx.Client | httpx.AsyncClient | None = None
+        client: httpx.Client | httpx.AsyncClient | None = None,
     ):
         """Initialize OAuth2 authorization code authentication.
 
@@ -301,7 +311,7 @@ class OAuth2AuthorizationCodeAuth(AuthHandler):
         self._token = AuthToken(
             access_token=access_token,
             refresh_token=refresh_token,
-            expires_in=expires_in
+            expires_in=expires_in,
         )
 
         self.token_url = token_url
@@ -316,8 +326,12 @@ class OAuth2AuthorizationCodeAuth(AuthHandler):
             )
 
         # HTTP clients for token refresh
-        self._sync_client = client if isinstance(client, httpx.Client) else httpx.Client()
-        self._async_client = client if isinstance(client, httpx.AsyncClient) else httpx.AsyncClient()
+        self._sync_client = (
+            client if isinstance(client, httpx.Client) else httpx.Client()
+        )
+        self._async_client = (
+            client if isinstance(client, httpx.AsyncClient) else httpx.AsyncClient()
+        )
         self._owns_clients = client is None
 
     def _refresh_token_sync(self) -> AuthToken:
@@ -335,7 +349,7 @@ class OAuth2AuthorizationCodeAuth(AuthHandler):
         response = self._sync_client.post(
             self.token_url,
             data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         response.raise_for_status()
 
@@ -345,7 +359,7 @@ class OAuth2AuthorizationCodeAuth(AuthHandler):
             token_type=token_data.get("token_type", "Bearer"),
             expires_in=token_data.get("expires_in"),
             refresh_token=token_data.get("refresh_token", self._token.refresh_token),
-            scope=token_data.get("scope")
+            scope=token_data.get("scope"),
         )
 
         return self._token
@@ -365,7 +379,7 @@ class OAuth2AuthorizationCodeAuth(AuthHandler):
         response = await self._async_client.post(
             self.token_url,
             data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         response.raise_for_status()
 
@@ -375,7 +389,7 @@ class OAuth2AuthorizationCodeAuth(AuthHandler):
             token_type=token_data.get("token_type", "Bearer"),
             expires_in=token_data.get("expires_in"),
             refresh_token=token_data.get("refresh_token", self._token.refresh_token),
-            scope=token_data.get("scope")
+            scope=token_data.get("scope"),
         )
 
         return self._token
@@ -440,7 +454,7 @@ class CustomAuth(AuthHandler):
     def __init__(
         self,
         sync_auth_func: Callable[[httpx.Request], httpx.Request] | None = None,
-        async_auth_func: Callable[[httpx.Request], httpx.Request] | None = None
+        async_auth_func: Callable[[httpx.Request], httpx.Request] | None = None,
     ):
         """Initialize with custom authentication functions.
 
@@ -449,7 +463,9 @@ class CustomAuth(AuthHandler):
             async_auth_func: Asynchronous function that takes httpx.Request and returns httpx.Request
         """
         if not sync_auth_func and not async_auth_func:
-            raise ValueError("At least one of sync_auth_func or async_auth_func must be provided")
+            raise ValueError(
+                "At least one of sync_auth_func or async_auth_func must be provided"
+            )
 
         self.sync_auth_func = sync_auth_func
         self.async_auth_func = async_auth_func
@@ -473,7 +489,9 @@ def bearer_token(token: str) -> BearerTokenAuth:
     return BearerTokenAuth(token)
 
 
-def api_key(key: str, header_name: str = "X-API-Key", param_name: str | None = None) -> APIKeyAuth:
+def api_key(
+    key: str, header_name: str = "X-API-Key", param_name: str | None = None
+) -> APIKeyAuth:
     """Create an API key authentication handler."""
     return APIKeyAuth(key, header_name, param_name)
 
@@ -484,10 +502,7 @@ def basic_auth(username: str, password: str) -> BasicAuth:
 
 
 def oauth2_client_credentials(
-    token_url: str,
-    client_id: str,
-    client_secret: str,
-    scope: str | None = None
+    token_url: str, client_id: str, client_secret: str, scope: str | None = None
 ) -> OAuth2ClientCredentialsAuth:
     """Create an OAuth2 client credentials authentication handler."""
     return OAuth2ClientCredentialsAuth(token_url, client_id, client_secret, scope)
@@ -499,7 +514,7 @@ def oauth2_authorization_code(
     token_url: str | None = None,
     client_id: str | None = None,
     client_secret: str | None = None,
-    expires_in: int | None = None
+    expires_in: int | None = None,
 ) -> OAuth2AuthorizationCodeAuth:
     """Create an OAuth2 authorization code authentication handler."""
     return OAuth2AuthorizationCodeAuth(

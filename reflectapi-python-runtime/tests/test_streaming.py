@@ -10,7 +10,7 @@ import httpx
 import pytest
 from pydantic import BaseModel
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from reflectapi_runtime.auth import BearerTokenAuth
 from reflectapi_runtime.exceptions import ApplicationError, NetworkError, TimeoutError
@@ -19,6 +19,7 @@ from reflectapi_runtime.streaming import AsyncStreamingClient, StreamingResponse
 
 class MockModel(BaseModel):
     """Test model for request serialization."""
+
     name: str
     value: int
 
@@ -39,11 +40,12 @@ def mock_response():
 def mock_streaming_response(mock_response):
     """Create a mock StreamingResponse."""
     from reflectapi_runtime.response import TransportMetadata
+
     metadata = TransportMetadata(
         status_code=200,
         headers=httpx.Headers({"content-type": "application/octet-stream"}),
         timing=0.1,
-        raw_response=mock_response
+        raw_response=mock_response,
     )
     return StreamingResponse(mock_response, metadata)
 
@@ -54,11 +56,12 @@ class TestStreamingResponse:
     def test_initialization(self, mock_response):
         """Test StreamingResponse initialization."""
         from reflectapi_runtime.response import TransportMetadata
+
         metadata = TransportMetadata(
             status_code=200,
             headers=httpx.Headers({"content-type": "application/json"}),
             timing=0.15,
-            raw_response=mock_response
+            raw_response=mock_response,
         )
 
         streaming_response = StreamingResponse(mock_response, metadata)
@@ -70,7 +73,10 @@ class TestStreamingResponse:
     def test_properties(self, mock_streaming_response):
         """Test StreamingResponse properties."""
         assert mock_streaming_response.status_code == 200
-        assert mock_streaming_response.headers["content-type"] == "application/octet-stream"
+        assert (
+            mock_streaming_response.headers["content-type"]
+            == "application/octet-stream"
+        )
         assert mock_streaming_response.content_type == "application/octet-stream"
         assert not mock_streaming_response.is_closed
 
@@ -78,11 +84,12 @@ class TestStreamingResponse:
         """Test content-length parsing when present."""
         mock_response.headers = httpx.Headers({"content-length": "1024"})
         from reflectapi_runtime.response import TransportMetadata
+
         metadata = TransportMetadata(
             status_code=200,
             headers=httpx.Headers({"content-length": "1024"}),
             timing=0.1,
-            raw_response=mock_response
+            raw_response=mock_response,
         )
 
         streaming_response = StreamingResponse(mock_response, metadata)
@@ -96,11 +103,12 @@ class TestStreamingResponse:
         """Test content-length with invalid value."""
         mock_response.headers = httpx.Headers({"content-length": "invalid"})
         from reflectapi_runtime.response import TransportMetadata
+
         metadata = TransportMetadata(
             status_code=200,
             headers=httpx.Headers({"content-length": "invalid"}),
             timing=0.1,
-            raw_response=mock_response
+            raw_response=mock_response,
         )
 
         streaming_response = StreamingResponse(mock_response, metadata)
@@ -109,6 +117,7 @@ class TestStreamingResponse:
     @pytest.mark.asyncio
     async def test_aiter_bytes(self, mock_streaming_response):
         """Test iterating over bytes chunks."""
+
         # Mock the async iterator
         async def mock_aiter_bytes(chunk_size):
             yield b"chunk1"
@@ -137,6 +146,7 @@ class TestStreamingResponse:
     @pytest.mark.asyncio
     async def test_aiter_text(self, mock_streaming_response):
         """Test iterating over text chunks."""
+
         # Mock the async iterator
         async def mock_aiter_text(chunk_size, encoding):
             yield "text1"
@@ -154,6 +164,7 @@ class TestStreamingResponse:
     @pytest.mark.asyncio
     async def test_aiter_lines(self, mock_streaming_response):
         """Test iterating over lines."""
+
         # Mock the async iterator
         async def mock_aiter_lines(chunk_size):
             yield "line1"
@@ -171,6 +182,7 @@ class TestStreamingResponse:
     @pytest.mark.asyncio
     async def test_aiter_lines_with_encoding(self, mock_streaming_response):
         """Test iterating over lines with encoding."""
+
         # Mock the async iterator returning bytes
         async def mock_aiter_lines(chunk_size):
             yield b"line1"
@@ -187,6 +199,7 @@ class TestStreamingResponse:
     @pytest.mark.asyncio
     async def test_save_to_file(self, mock_streaming_response):
         """Test saving stream to file."""
+
         # Mock the async iterator
         async def mock_aiter_bytes(chunk_size):
             yield b"chunk1"
@@ -203,7 +216,7 @@ class TestStreamingResponse:
             assert bytes_written == 12  # len("chunk1chunk2")
 
             # Verify file contents
-            with open(tmp_path, 'rb') as f:
+            with open(tmp_path, "rb") as f:
                 content = f.read()
             assert content == b"chunk1chunk2"
 
@@ -213,6 +226,7 @@ class TestStreamingResponse:
     @pytest.mark.asyncio
     async def test_save_to_file_with_error(self, mock_streaming_response):
         """Test saving stream to file with error cleanup."""
+
         # Mock the async iterator that raises an error
         async def mock_aiter_bytes(chunk_size):
             yield b"chunk1"
@@ -292,7 +306,9 @@ class TestAsyncStreamingClient:
         """Test client as async context manager."""
         mock_client = AsyncMock(spec=httpx.AsyncClient)
 
-        async with AsyncStreamingClient("https://api.example.com", client=mock_client) as client:
+        async with AsyncStreamingClient(
+            "https://api.example.com", client=mock_client
+        ) as client:
             assert isinstance(client, AsyncStreamingClient)
 
         # Client should not be closed since we don't own it
@@ -301,7 +317,7 @@ class TestAsyncStreamingClient:
     @pytest.mark.asyncio
     async def test_aclose_owned_client(self):
         """Test closing owned client."""
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value = mock_client
 
@@ -401,11 +417,11 @@ class TestAsyncStreamingClient:
         client = AsyncStreamingClient("https://api.example.com")
         model = MockModel(name="test", value=42)
 
-        with pytest.raises(ValueError, match="Cannot specify both json_data and json_model"):
+        with pytest.raises(
+            ValueError, match="Cannot specify both json_data and json_model"
+        ):
             async with client.stream_request(
-                "POST", "/test",
-                json_data={"key": "value"},
-                json_model=model
+                "POST", "/test", json_data={"key": "value"}, json_model=model
             ):
                 pass
 
@@ -496,7 +512,7 @@ class TestAsyncStreamingClient:
                 assert isinstance(progress["response"], StreamingResponse)
 
             # Verify file contents
-            with open(tmp_path, 'rb') as f:
+            with open(tmp_path, "rb") as f:
                 content = f.read()
             assert content == b"chunk1chunk2"
 
@@ -582,8 +598,7 @@ class TestAsyncStreamingClientConvenienceMethods:
     def test_from_bearer_token(self):
         """Test creating client with bearer token."""
         client = AsyncStreamingClient.from_bearer_token(
-            "https://api.example.com",
-            "test_token"
+            "https://api.example.com", "test_token"
         )
 
         assert isinstance(client.auth, BearerTokenAuth)
@@ -594,8 +609,7 @@ class TestAsyncStreamingClientConvenienceMethods:
         from reflectapi_runtime.auth import APIKeyAuth
 
         client = AsyncStreamingClient.from_api_key(
-            "https://api.example.com",
-            "test_key"
+            "https://api.example.com", "test_key"
         )
 
         assert isinstance(client.auth, APIKeyAuth)
@@ -606,9 +620,7 @@ class TestAsyncStreamingClientConvenienceMethods:
         from reflectapi_runtime.auth import BasicAuth
 
         client = AsyncStreamingClient.from_basic_auth(
-            "https://api.example.com",
-            "username",
-            "password"
+            "https://api.example.com", "username", "password"
         )
 
         assert isinstance(client.auth, BasicAuth)
@@ -622,7 +634,7 @@ class TestAsyncStreamingClientConvenienceMethods:
             "https://auth.example.com/token",
             "client_id",
             "client_secret",
-            "read write"
+            "read write",
         )
 
         assert isinstance(client.auth, OAuth2ClientCredentialsAuth)

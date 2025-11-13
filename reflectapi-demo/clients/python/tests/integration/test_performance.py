@@ -11,7 +11,7 @@ from generated import (
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
     MyapiModelBehaviorAggressiveVariant as BehaviorAggressive,
-    AsyncClient
+    AsyncClient,
 )
 from reflectapi_runtime import ReflectapiOption
 
@@ -30,15 +30,15 @@ class TestPerformance:
         pets = []
         for i in range(1000):
             if i % 2 == 0:
-                kind = PetKindDog(type='dog', breed=f'Breed_{i}')
+                kind = PetKindDog(type="dog", breed=f"Breed_{i}")
             else:
-                kind = PetKindCat(type='cat', lives=i % 9 + 1)
+                kind = PetKindCat(type="cat", lives=i % 9 + 1)
 
             pet = Pet(
-                name=f'Pet_{i}',
+                name=f"Pet_{i}",
                 kind=kind,
                 age=i % 20,
-                behaviors=[BehaviorCalm, {"Aggressive": [1.0, "test"]}]
+                behaviors=[BehaviorCalm, {"Aggressive": [1.0, "test"]}],
             )
             pets.append(pet)
 
@@ -47,15 +47,21 @@ class TestPerformance:
 
         assert len(pets) == 1000
         assert duration < 1.0  # Should create 1000 pets in under 1 second
-        print(f"Created 1000 pets in {duration:.3f} seconds ({1000/duration:.0f} pets/sec)")
+        print(
+            f"Created 1000 pets in {duration:.3f} seconds ({1000 / duration:.0f} pets/sec)"
+        )
 
     def test_serialization_performance(self):
         """Test performance of serializing many models."""
         # Create test data
         pets = []
         for i in range(100):
-            kind = PetKindDog(type='dog', breed='Labrador') if i % 2 == 0 else PetKindCat(type='cat', lives=9)
-            pets.append(Pet(name=f'Pet_{i}', kind=kind, age=i % 20))
+            kind = (
+                PetKindDog(type="dog", breed="Labrador")
+                if i % 2 == 0
+                else PetKindCat(type="cat", lives=9)
+            )
+            pets.append(Pet(name=f"Pet_{i}", kind=kind, age=i % 20))
 
         # Test JSON serialization performance
         start_time = time.time()
@@ -133,8 +139,8 @@ class TestStress:
 
         pet = Pet(
             name="Large Pet",
-            kind=PetKindDog(type='dog', breed='Large Breed'),
-            behaviors=large_behaviors
+            kind=PetKindDog(type="dog", breed="Large Breed"),
+            behaviors=large_behaviors,
         )
 
         assert len(pet.behaviors) == 501
@@ -147,8 +153,12 @@ class TestStress:
         # Create nested paginated responses
         pets = []
         for i in range(50):
-            kind = PetKindCat(type='cat', lives=9) if i % 2 else PetKindDog(type='dog', breed='Breed')
-            pets.append(Pet(name=f'Pet_{i}', kind=kind))
+            kind = (
+                PetKindCat(type="cat", lives=9)
+                if i % 2
+                else PetKindDog(type="dog", breed="Breed")
+            )
+            pets.append(Pet(name=f"Pet_{i}", kind=kind))
 
         paginated = Paginated[Pet](items=pets, cursor="test_cursor")
 
@@ -185,8 +195,8 @@ class TestConcurrency:
 
         async def create_and_serialize_pet(pet_id: int) -> str:
             """Create a pet and serialize it."""
-            kind = PetKindDog(type='dog', breed=f'Breed_{pet_id}')
-            pet = Pet(name=f'Pet_{pet_id}', kind=kind, age=pet_id % 20)
+            kind = PetKindDog(type="dog", breed=f"Breed_{pet_id}")
+            pet = Pet(name=f"Pet_{pet_id}", kind=kind, age=pet_id % 20)
             return pet.model_dump_json()
 
         # Run many operations concurrently
@@ -199,7 +209,9 @@ class TestConcurrency:
         assert all(len(result) > 0 for result in results)
 
         duration = end_time - start_time
-        print(f"Concurrent creation and serialization of 100 pets took {duration:.3f} seconds")
+        print(
+            f"Concurrent creation and serialization of 100 pets took {duration:.3f} seconds"
+        )
 
     @pytest.mark.asyncio
     async def test_concurrent_validation(self):
@@ -216,13 +228,13 @@ class TestConcurrency:
                 data = {
                     "name": f"Pet_{i}",
                     "kind": {"type": "dog", "breed": "Labrador"},
-                    "age": i % 20
+                    "age": i % 20,
                 }
             else:
                 data = {
                     "name": f"Pet_{i}",
                     "kind": {"type": "cat", "lives": 9},
-                    "age": i % 20
+                    "age": i % 20,
                 }
             test_data.append(data)
 

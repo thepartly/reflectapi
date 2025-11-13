@@ -7,7 +7,11 @@ import time
 from pathlib import Path
 import pytest
 
-from generated import AsyncClient, MyapiModelInputPet as Pet, MyapiModelKindDog as PetKindDog
+from generated import (
+    AsyncClient,
+    MyapiModelInputPet as Pet,
+    MyapiModelKindDog as PetKindDog,
+)
 
 
 @pytest.mark.asyncio
@@ -21,11 +25,7 @@ async def test_client():
     print("✓ Created AsyncClient")
 
     # Test creating data models
-    pet_data = Pet(
-        name="fluffy",
-        kind=PetKindDog(type="dog", breed="Retriever"),
-        age=3
-    )
+    pet_data = Pet(name="fluffy", kind=PetKindDog(type="dog", breed="Retriever"), age=3)
     print(f"✓ Created Pet: {pet_data}")
 
     # Note: PetsCreateRequest was a single-field tuple struct and is now unwrapped
@@ -33,12 +33,12 @@ async def test_client():
     print("✓ Pet data ready for pets_create (unwrapped tuple struct)")
 
     # Test that methods exist
-    assert hasattr(client, 'health')
-    assert hasattr(client.health, 'check')
-    assert hasattr(client, 'pets')
-    assert hasattr(client.pets, 'list')
-    assert hasattr(client.pets, 'create')
-    assert hasattr(client.pets, 'get_first')
+    assert hasattr(client, "health")
+    assert hasattr(client.health, "check")
+    assert hasattr(client, "pets")
+    assert hasattr(client.pets, "list")
+    assert hasattr(client.pets, "create")
+    assert hasattr(client.pets, "get_first")
     print("✓ All expected methods exist")
 
     print("✓ Basic client generation test passed!")
@@ -54,5 +54,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
