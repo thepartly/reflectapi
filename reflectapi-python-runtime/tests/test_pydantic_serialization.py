@@ -16,6 +16,7 @@ from reflectapi_runtime import (
 
 class RequestModel(BaseModel):
     """Test model for request serialization."""
+
     name: str = Field(description="User name")
     age: int = Field(ge=0, description="User age")
     email: str = Field(description="User email")
@@ -24,6 +25,7 @@ class RequestModel(BaseModel):
 
 class ResponseModel(BaseModel):
     """Test model for response deserialization."""
+
     id: int
     message: str
 
@@ -74,17 +76,11 @@ class TestClientBasePydanticSerialization:
         client = ClientBase("http://example.com", client=mock_client)
 
         request_data = RequestModel(
-            name="John Doe",
-            age=30,
-            email="john@example.com",
-            active=True
+            name="John Doe", age=30, email="john@example.com", active=True
         )
 
         result = client._make_request(
-            "POST",
-            "/users",
-            json_model=request_data,
-            response_model=ResponseModel
+            "POST", "/users", json_model=request_data, response_model=ResponseModel
         )
 
         # Verify response
@@ -103,14 +99,18 @@ class TestClientBasePydanticSerialization:
         assert call_args[1]["params"] is None
 
         # Verify content and headers
-        expected_json = '{"name":"John Doe","age":30,"email":"john@example.com","active":true}'
-        assert call_args[1]["content"] == expected_json.encode('utf-8')
+        expected_json = (
+            '{"name":"John Doe","age":30,"email":"john@example.com","active":true}'
+        )
+        assert call_args[1]["content"] == expected_json.encode("utf-8")
         assert call_args[1]["headers"] == {"Content-Type": "application/json"}
 
         # Ensure json parameter was not used
         assert "json" not in call_args[1]
 
-    def test_make_request_with_pydantic_model_no_response_model(self, mock_httpx_client):
+    def test_make_request_with_pydantic_model_no_response_model(
+        self, mock_httpx_client
+    ):
         """Test making a request with Pydantic model but no response model."""
         mock_client, mock_request, mock_response = mock_httpx_client
         mock_response.json.return_value = {"success": True}
@@ -118,41 +118,33 @@ class TestClientBasePydanticSerialization:
 
         client = ClientBase("http://example.com", client=mock_client)
 
-        request_data = RequestModel(
-            name="Jane Smith",
-            age=25,
-            email="jane@example.com"
-        )
+        request_data = RequestModel(name="Jane Smith", age=25, email="jane@example.com")
 
-        result = client._make_request(
-            "POST",
-            "/users",
-            json_model=request_data
-        )
+        result = client._make_request("POST", "/users", json_model=request_data)
 
         # Should return dict when no response model specified
         assert isinstance(result, ApiResponse)
         assert result.value == {"success": True}
 
-    def test_make_request_cannot_specify_both_json_data_and_model(self, mock_httpx_client):
+    def test_make_request_cannot_specify_both_json_data_and_model(
+        self, mock_httpx_client
+    ):
         """Test that specifying both json_data and json_model raises ValueError."""
         mock_client, mock_request, mock_response = mock_httpx_client
 
         client = ClientBase("http://example.com", client=mock_client)
 
-        request_data = RequestModel(
-            name="Test User",
-            age=20,
-            email="test@example.com"
-        )
+        request_data = RequestModel(name="Test User", age=20, email="test@example.com")
 
-        with pytest.raises(ValueError, match="Cannot specify both json_data and json_model"):
+        with pytest.raises(
+            ValueError, match="Cannot specify both json_data and json_model"
+        ):
             client._make_request(
                 "POST",
                 "/users",
                 json_data={"name": "dict data"},
                 json_model=request_data,
-                response_model=ResponseModel
+                response_model=ResponseModel,
             )
 
     def test_make_request_with_json_data_still_works(self, mock_httpx_client):
@@ -165,7 +157,7 @@ class TestClientBasePydanticSerialization:
             "POST",
             "/users",
             json_data={"name": "Dictionary User", "age": 35},
-            response_model=ResponseModel
+            response_model=ResponseModel,
         )
 
         # Verify response
@@ -179,7 +171,6 @@ class TestClientBasePydanticSerialization:
         assert "content" not in call_args[1]
         assert "headers" not in call_args[1]
 
-
     def test_make_request_with_params_and_pydantic_model(self, mock_httpx_client):
         """Test making a request with both query params and Pydantic model."""
         mock_client, mock_request, mock_response = mock_httpx_client
@@ -187,9 +178,7 @@ class TestClientBasePydanticSerialization:
         client = ClientBase("http://example.com", client=mock_client)
 
         request_data = RequestModel(
-            name="Param User",
-            age=40,
-            email="param@example.com"
+            name="Param User", age=40, email="param@example.com"
         )
 
         result = client._make_request(
@@ -197,7 +186,7 @@ class TestClientBasePydanticSerialization:
             "/users",
             params={"source": "api", "version": "v1"},
             json_model=request_data,
-            response_model=ResponseModel
+            response_model=ResponseModel,
         )
 
         # Verify response
@@ -209,8 +198,10 @@ class TestClientBasePydanticSerialization:
         call_args = mock_client.build_request.call_args
         assert call_args[1]["params"] == {"source": "api", "version": "v1"}
 
-        expected_json = '{"name":"Param User","age":40,"email":"param@example.com","active":true}'
-        assert call_args[1]["content"] == expected_json.encode('utf-8')
+        expected_json = (
+            '{"name":"Param User","age":40,"email":"param@example.com","active":true}'
+        )
+        assert call_args[1]["content"] == expected_json.encode("utf-8")
         assert call_args[1]["headers"] == {"Content-Type": "application/json"}
 
 
@@ -225,17 +216,11 @@ class TestAsyncClientBasePydanticSerialization:
         client = AsyncClientBase("http://example.com", client=mock_client)
 
         request_data = RequestModel(
-            name="Async User",
-            age=28,
-            email="async@example.com",
-            active=False
+            name="Async User", age=28, email="async@example.com", active=False
         )
 
         result = await client._make_request(
-            "PUT",
-            "/users/123",
-            json_model=request_data,
-            response_model=ResponseModel
+            "PUT", "/users/123", json_model=request_data, response_model=ResponseModel
         )
 
         # Verify response
@@ -251,34 +236,40 @@ class TestAsyncClientBasePydanticSerialization:
         assert call_args[1]["url"] == "http://example.com/users/123"
 
         # Verify content and headers
-        expected_json = '{"name":"Async User","age":28,"email":"async@example.com","active":false}'
-        assert call_args[1]["content"] == expected_json.encode('utf-8')
+        expected_json = (
+            '{"name":"Async User","age":28,"email":"async@example.com","active":false}'
+        )
+        assert call_args[1]["content"] == expected_json.encode("utf-8")
         assert call_args[1]["headers"] == {"Content-Type": "application/json"}
 
     @pytest.mark.asyncio
-    async def test_make_request_cannot_specify_both_json_data_and_model(self, mock_async_httpx_client):
+    async def test_make_request_cannot_specify_both_json_data_and_model(
+        self, mock_async_httpx_client
+    ):
         """Test that specifying both json_data and json_model raises ValueError in async client."""
         mock_client, mock_request, mock_response = mock_async_httpx_client
 
         client = AsyncClientBase("http://example.com", client=mock_client)
 
         request_data = RequestModel(
-            name="Conflict User",
-            age=30,
-            email="conflict@example.com"
+            name="Conflict User", age=30, email="conflict@example.com"
         )
 
-        with pytest.raises(ValueError, match="Cannot specify both json_data and json_model"):
+        with pytest.raises(
+            ValueError, match="Cannot specify both json_data and json_model"
+        ):
             await client._make_request(
                 "POST",
                 "/users",
                 json_data={"name": "dict data"},
                 json_model=request_data,
-                response_model=ResponseModel
+                response_model=ResponseModel,
             )
 
     @pytest.mark.asyncio
-    async def test_make_request_with_json_data_still_works(self, mock_async_httpx_client):
+    async def test_make_request_with_json_data_still_works(
+        self, mock_async_httpx_client
+    ):
         """Test that traditional json_data parameter still works in async client."""
         mock_client, mock_request, mock_response = mock_async_httpx_client
 
@@ -288,7 +279,7 @@ class TestAsyncClientBasePydanticSerialization:
             "POST",
             "/users",
             json_data={"name": "Async Dict User", "age": 33},
-            response_model=ResponseModel
+            response_model=ResponseModel,
         )
 
         # Verify response
@@ -300,7 +291,6 @@ class TestAsyncClientBasePydanticSerialization:
         call_args = mock_client.build_request.call_args
         assert call_args[1]["json"] == {"name": "Async Dict User", "age": 33}
         assert "content" not in call_args[1]
-
 
 
 class TestPydanticSerializationEdgeCases:
@@ -324,24 +314,14 @@ class TestPydanticSerializationEdgeCases:
         client = ClientBase("http://example.com", client=mock_client)
 
         complex_data = ComplexRequestModel(
-            user=RequestModel(
-                name="Complex User",
-                age=45,
-                email="complex@example.com"
-            ),
-            address=AddressModel(
-                street="123 Main St",
-                city="Anytown"
-            ),
+            user=RequestModel(name="Complex User", age=45, email="complex@example.com"),
+            address=AddressModel(street="123 Main St", city="Anytown"),
             tags=["premium", "verified"],
-            metadata={"source": "test", "priority": "high"}
+            metadata={"source": "test", "priority": "high"},
         )
 
         client._make_request(
-            "POST",
-            "/complex",
-            json_model=complex_data,
-            response_model=ResponseModel
+            "POST", "/complex", json_model=complex_data, response_model=ResponseModel
         )
 
         # Verify the complex model was serialized correctly
@@ -350,7 +330,8 @@ class TestPydanticSerializationEdgeCases:
 
         # Parse the serialized content to verify structure
         import json
-        serialized_content = call_args[1]["content"].decode('utf-8')
+
+        serialized_content = call_args[1]["content"].decode("utf-8")
         parsed_data = json.loads(serialized_content)
 
         assert parsed_data["user"]["name"] == "Complex User"
@@ -372,14 +353,11 @@ class TestPydanticSerializationEdgeCases:
         empty_data = EmptyModel()
 
         client._make_request(
-            "POST",
-            "/empty",
-            json_model=empty_data,
-            response_model=ResponseModel
+            "POST", "/empty", json_model=empty_data, response_model=ResponseModel
         )
 
         # Verify the empty model serializes to empty JSON object
         mock_client.build_request.assert_called_once()
         call_args = mock_client.build_request.call_args
-        assert call_args[1]["content"] == b'{}'
+        assert call_args[1]["content"] == b"{}"
         assert call_args[1]["headers"] == {"Content-Type": "application/json"}

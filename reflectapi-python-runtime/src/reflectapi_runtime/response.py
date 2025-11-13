@@ -62,7 +62,6 @@ class ApiResponse(Generic[T]):
         """Alias for value for ergonomic access (useful when the payload is a dict)."""
         return self._value
 
-
     def __dir__(self) -> list[str]:
         """Provide comprehensive attribute listing for better introspection.
 
@@ -73,15 +72,15 @@ class ApiResponse(Generic[T]):
             List of available attributes from both wrapper and value.
         """
         # Get ApiResponse's own attributes
-        wrapper_attrs = ['value', 'metadata', 'data']
+        wrapper_attrs = ["value", "metadata", "data"]
 
         # Get attributes from the wrapped value
         value_attrs = []
-        if hasattr(self._value, '__dict__'):
+        if hasattr(self._value, "__dict__"):
             value_attrs.extend(self._value.__dict__.keys())
 
         # For Pydantic models, also include field names
-        if hasattr(self._value, 'model_fields'):
+        if hasattr(self._value, "model_fields"):
             # Access from class to avoid deprecation warning
             value_attrs.extend(self._value.__class__.model_fields.keys())
 
@@ -90,11 +89,15 @@ class ApiResponse(Generic[T]):
             value_attrs.extend(self._value.keys())
 
         # Get methods and properties from the wrapped value's class
-        if hasattr(self._value, '__class__'):
-            value_attrs.extend([
-                attr for attr in dir(self._value.__class__)
-                if not attr.startswith('__') or attr in ['__len__', '__getitem__', '__contains__']
-            ])
+        if hasattr(self._value, "__class__"):
+            value_attrs.extend(
+                [
+                    attr
+                    for attr in dir(self._value.__class__)
+                    if not attr.startswith("__")
+                    or attr in ["__len__", "__getitem__", "__contains__"]
+                ]
+            )
 
         # Combine and deduplicate
         all_attrs = list(set(wrapper_attrs + value_attrs))

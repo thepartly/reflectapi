@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING, Any, Generic
+
+
 # Sentinel object for batch operations where no HTTP response exists
 class _BatchNoResponse:
     """Sentinel object representing the absence of an HTTP response in batch operations."""
-    
+
     def __repr__(self) -> str:
         return "<BatchNoResponse>"
+
 
 # Singleton instance
 BATCH_NO_RESPONSE = _BatchNoResponse()

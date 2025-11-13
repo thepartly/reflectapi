@@ -75,8 +75,6 @@ class TestApiResponse:
         assert response.value == value
         assert response.metadata is metadata
 
-
-
     def test_repr(self):
         """Test string representation."""
         value = {"test": "data"}
@@ -142,7 +140,7 @@ class TestApiResponse:
 
     def test_explicit_value_access_preferred(self):
         """Test the preferred explicit .value access pattern."""
-        
+
         class MockObject:
             def __init__(self, name: str, count: int):
                 self.name = name
@@ -165,4 +163,3 @@ class TestApiResponse:
         assert response.value.name == "test"
         assert response.value.count == 42
         assert response.value.get_info() == "test:42"
-

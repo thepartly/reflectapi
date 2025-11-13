@@ -18,15 +18,17 @@ BatchResult = Union["ApiResponse[T]", "ApiError"]
 
 class ReflectapiEmpty(BaseModel):
     """Struct object with no fields.
-    
+
     This represents empty struct types from ReflectAPI schemas.
     """
+
     model_config = ConfigDict(extra="ignore")
 
 
 class ReflectapiInfallible(BaseModel):
     """Error object which is expected to be never returned.
-    
+
     This represents infallible error types that should never occur.
     """
+
     model_config = ConfigDict(extra="ignore")

@@ -66,7 +66,10 @@ class TestRetryMiddleware:
         assert middleware.max_retries == 3
         assert middleware.retry_status_codes == {429, 502, 503, 504}
         assert middleware.backoff_factor == 0.5
-        assert frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE", "TRACE"}) == middleware.IDEMPOTENT_METHODS
+        assert (
+            frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE", "TRACE"})
+            == middleware.IDEMPOTENT_METHODS
+        )
 
     def test_initialization_custom(self):
         middleware = RetryMiddleware(
@@ -311,7 +314,7 @@ class TestRetryMiddleware:
         async def next_handler(request):
             return mock_response
 
-        with patch('asyncio.sleep', side_effect=mock_sleep):
+        with patch("asyncio.sleep", side_effect=mock_sleep):
             result = await middleware.handle(mock_request, next_handler)
 
         # Should have 3 sleep calls (for 3 retry attempts)
@@ -347,7 +350,7 @@ class TestRetryMiddleware:
         async def next_handler(request):
             return mock_response
 
-        with patch('asyncio.sleep', side_effect=mock_sleep):
+        with patch("asyncio.sleep", side_effect=mock_sleep):
             await middleware.handle(mock_request, next_handler)
 
         # All sleep times should be <= 30 seconds (with jitter, max is 30)
@@ -388,7 +391,7 @@ class TestRetryMiddleware:
         middleware = RetryMiddleware(
             max_retries=2,
             retry_status_codes={418, 420},  # Custom status codes
-            backoff_factor=0.01
+            backoff_factor=0.01,
         )
 
         mock_request = Mock(spec=httpx.Request)
@@ -396,6 +399,7 @@ class TestRetryMiddleware:
 
         # Test that custom status code is retried
         call_count = 0
+
         async def next_handler_custom(request):
             nonlocal call_count
             call_count += 1
@@ -414,6 +418,7 @@ class TestRetryMiddleware:
 
         # Test that default retry codes are not retried
         call_count = 0
+
         async def next_handler_default(request):
             nonlocal call_count
             call_count += 1

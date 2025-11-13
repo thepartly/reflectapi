@@ -157,7 +157,10 @@ class RetryMiddleware(AsyncMiddleware):
             try:
                 response = await next_call(request)
 
-                if attempt == self.max_retries or response.status_code not in self.retry_status_codes:
+                if (
+                    attempt == self.max_retries
+                    or response.status_code not in self.retry_status_codes
+                ):
                     return response
 
                 # If we are going to retry, store the response as the last exception
@@ -166,12 +169,15 @@ class RetryMiddleware(AsyncMiddleware):
             except httpx.RequestError as e:
                 last_exception = e
                 # Do not retry non-idempotent methods on network errors
-                if request.method not in self.IDEMPOTENT_METHODS or attempt == self.max_retries:
+                if (
+                    request.method not in self.IDEMPOTENT_METHODS
+                    or attempt == self.max_retries
+                ):
                     raise
 
             # Backoff with Jitter (AWS-recommended approach)
             # Cap the backoff at 30 seconds and add jitter for better distribution
-            temp = min(self.backoff_factor * (2 ** attempt), 30.0)  # Cap backoff
+            temp = min(self.backoff_factor * (2**attempt), 30.0)  # Cap backoff
             sleep_duration = temp / 2 + random.uniform(0, temp / 2)
 
             logger.debug(
@@ -250,5 +256,3 @@ class SyncMiddlewareChain:
 
         handler = create_handler(self.middleware, 0)
         return handler(request)
-
-

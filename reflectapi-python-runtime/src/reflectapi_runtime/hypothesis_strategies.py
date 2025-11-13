@@ -13,6 +13,7 @@ from typing import Any, Union, get_args, get_origin
 try:
     import hypothesis
     from hypothesis import strategies as st
+
     HAS_HYPOTHESIS = True
 except ImportError:
     HAS_HYPOTHESIS = False
@@ -34,10 +35,9 @@ if HAS_HYPOTHESIS:
         """
         return st.one_of(
             st.just(ReflectapiOption(Undefined)),  # Undefined case
-            st.just(ReflectapiOption(None)),       # None case
+            st.just(ReflectapiOption(None)),  # None case
             inner_strategy.map(ReflectapiOption),  # Some(value) case
         )
-
 
     def strategy_for_type(type_hint: type) -> st.SearchStrategy:
         """Generate a Hypothesis strategy for a given type hint.
@@ -70,7 +70,10 @@ if HAS_HYPOTHESIS:
             return st.uuids()
 
         # Handle ReflectapiOption specifically
-        if hasattr(type_hint, '__origin__') and type_hint.__origin__ is ReflectapiOption:
+        if (
+            hasattr(type_hint, "__origin__")
+            and type_hint.__origin__ is ReflectapiOption
+        ):
             inner_type = get_args(type_hint)[0] if get_args(type_hint) else Any
             inner_strategy = strategy_for_type(inner_type)
             return strategy_for_option(inner_strategy)
@@ -97,9 +100,7 @@ if HAS_HYPOTHESIS:
             key_type = args[0] if len(args) > 0 else str
             value_type = args[1] if len(args) > 1 else Any
             return st.dictionaries(
-                strategy_for_type(key_type),
-                strategy_for_type(value_type),
-                max_size=10
+                strategy_for_type(key_type), strategy_for_type(value_type), max_size=10
             )
 
         elif origin is tuple:
@@ -114,7 +115,6 @@ if HAS_HYPOTHESIS:
 
         # Fallback for unknown types
         return st.none()
-
 
     def strategy_for_pydantic_model(model_class: type[BaseModel]) -> st.SearchStrategy:
         """Generate a Hypothesis strategy for a Pydantic model.
@@ -131,16 +131,17 @@ if HAS_HYPOTHESIS:
         field_strategies = {}
 
         # Handle Pydantic models
-        if hasattr(model_class, 'model_fields'):
+        if hasattr(model_class, "model_fields"):
             for field_name, field_info in model_class.model_fields.items():
                 field_type = field_info.annotation
                 field_strategies[field_name] = strategy_for_type(field_type)
         else:
-            raise ValueError(f"Unsupported Pydantic model: {model_class}. Only Pydantic V2 models are supported.")
+            raise ValueError(
+                f"Unsupported Pydantic model: {model_class}. Only Pydantic V2 models are supported."
+            )
 
         # Create a strategy that builds the model
         return st.builds(model_class, **field_strategies)
-
 
     def register_custom_strategy(type_hint: type, strategy: st.SearchStrategy) -> None:
         """Register a custom strategy for a specific type.
@@ -152,10 +153,9 @@ if HAS_HYPOTHESIS:
             type_hint: The type to register a strategy for.
             strategy: The Hypothesis strategy to use for this type.
         """
-        if not hasattr(register_custom_strategy, '_custom_strategies'):
+        if not hasattr(register_custom_strategy, "_custom_strategies"):
             register_custom_strategy._custom_strategies = {}
         register_custom_strategy._custom_strategies[type_hint] = strategy
-
 
     def get_custom_strategy(type_hint: type) -> st.SearchStrategy | None:
         """Get a custom strategy for a type, if registered.
@@ -166,10 +166,9 @@ if HAS_HYPOTHESIS:
         Returns:
             Custom strategy if registered, None otherwise.
         """
-        if hasattr(register_custom_strategy, '_custom_strategies'):
+        if hasattr(register_custom_strategy, "_custom_strategies"):
             return register_custom_strategy._custom_strategies.get(type_hint)
         return None
-
 
     def enhanced_strategy_for_type(type_hint: type) -> st.SearchStrategy:
         """Enhanced strategy generation with custom strategy support.
@@ -191,11 +190,9 @@ if HAS_HYPOTHESIS:
         # Fall back to default logic
         return strategy_for_type(type_hint)
 
-
     # Convenience function for common patterns
     def api_model_strategy(
-        model_class: type[BaseModel],
-        **field_overrides: st.SearchStrategy
+        model_class: type[BaseModel], **field_overrides: st.SearchStrategy
     ) -> st.SearchStrategy:
         """Create a strategy for an API model with field overrides.
 
@@ -222,15 +219,19 @@ if HAS_HYPOTHESIS:
         field_strategies = {}
 
         # Get default strategies for all fields
-        if hasattr(model_class, 'model_fields'):
+        if hasattr(model_class, "model_fields"):
             # Pydantic models
             for field_name, field_info in model_class.model_fields.items():
                 if field_name in field_overrides:
                     field_strategies[field_name] = field_overrides[field_name]
                 else:
-                    field_strategies[field_name] = enhanced_strategy_for_type(field_info.annotation)
+                    field_strategies[field_name] = enhanced_strategy_for_type(
+                        field_info.annotation
+                    )
         else:
-            raise ValueError(f"Unsupported Pydantic model: {model_class}. Only Pydantic V2 models are supported.")
+            raise ValueError(
+                f"Unsupported Pydantic model: {model_class}. Only Pydantic V2 models are supported."
+            )
 
         return st.builds(model_class, **field_strategies)
 
@@ -265,11 +266,11 @@ else:
 
 # Export the main functions
 __all__ = [
-    'HAS_HYPOTHESIS',
-    'strategy_for_option',
-    'strategy_for_type',
-    'strategy_for_pydantic_model',
-    'enhanced_strategy_for_type',
-    'register_custom_strategy',
-    'api_model_strategy',
+    "HAS_HYPOTHESIS",
+    "strategy_for_option",
+    "strategy_for_type",
+    "strategy_for_pydantic_model",
+    "enhanced_strategy_for_type",
+    "register_custom_strategy",
+    "api_model_strategy",
 ]

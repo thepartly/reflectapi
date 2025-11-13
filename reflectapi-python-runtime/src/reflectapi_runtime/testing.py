@@ -29,7 +29,9 @@ class CassetteMiddleware(SyncMiddleware):
     def __init__(self, cassette_client: CassetteClient):
         self.cassette_client = cassette_client
 
-    def handle(self, request: httpx.Request, next_call: SyncNextHandler) -> httpx.Response:
+    def handle(
+        self, request: httpx.Request, next_call: SyncNextHandler
+    ) -> httpx.Response:
         """Handle request through cassette recording/playback."""
         # For now, just pass through to next handler
         # Full implementation would integrate with cassette_client
@@ -68,7 +70,9 @@ class AsyncCassetteMiddleware(AsyncMiddleware):
     def __init__(self, cassette_client: CassetteClient):
         self.cassette_client = cassette_client
 
-    async def handle(self, request: httpx.Request, next_call: AsyncNextHandler) -> httpx.Response:
+    async def handle(
+        self, request: httpx.Request, next_call: AsyncNextHandler
+    ) -> httpx.Response:
         """Handle request through cassette recording/playback."""
         # For now, just pass through to next handler
         # Full implementation would integrate with cassette_client
@@ -160,7 +164,9 @@ def create_api_response(
 class CassetteClient:
     """Client that records and replays HTTP requests for testing."""
 
-    def __init__(self, cassette_path: str | Path, allow_new_requests: bool = True) -> None:
+    def __init__(
+        self, cassette_path: str | Path, allow_new_requests: bool = True
+    ) -> None:
         self.cassette_path = Path(cassette_path)
         self._recorded_interactions: list[dict[str, Any]] = []
         self._playback_interactions: list[dict[str, Any]] = []
@@ -204,7 +210,6 @@ class CassetteClient:
                 indent=2,
             )
 
-
     def get_next_response(self, request: dict[str, Any]) -> Any:  # noqa: ARG002
         """Get the next recorded response for playback."""
         if self._mode != "playback":
@@ -229,7 +234,9 @@ class CassetteClient:
         """Check if the client is in playback mode."""
         return self._mode == "playback"
 
-    def record_interaction(self, request: httpx.Request, response: httpx.Response) -> None:
+    def record_interaction(
+        self, request: httpx.Request, response: httpx.Response
+    ) -> None:
         """Record an HTTP request/response interaction."""
         if not self.is_recording:
             return
@@ -239,21 +246,25 @@ class CassetteClient:
             "method": request.method,
             "url": str(request.url),
             "headers": dict(request.headers),
-            "content": request.content.decode('utf-8', errors='replace') if request.content else None,
+            "content": request.content.decode("utf-8", errors="replace")
+            if request.content
+            else None,
         }
 
         # Serialize response
         response_data = {
             "status_code": response.status_code,
             "headers": dict(response.headers),
-            "content": response.content.decode('utf-8', errors='replace'),
-            "reason_phrase": getattr(response, 'reason_phrase', ''),
+            "content": response.content.decode("utf-8", errors="replace"),
+            "reason_phrase": getattr(response, "reason_phrase", ""),
         }
 
-        self._recorded_interactions.append({
-            "request": request_data,
-            "response": response_data,
-        })
+        self._recorded_interactions.append(
+            {
+                "request": request_data,
+                "response": response_data,
+            }
+        )
 
     def find_matching_response(self, request: httpx.Request) -> httpx.Response | None:
         """Find a recorded response that matches the given request."""
@@ -267,9 +278,10 @@ class CassetteClient:
         # In a more sophisticated implementation, you might want to match headers, body, etc.
         for interaction in self._playback_interactions:
             recorded_request = interaction["request"]
-            if (recorded_request["method"] == request_method and
-                recorded_request["url"] == request_url):
-
+            if (
+                recorded_request["method"] == request_method
+                and recorded_request["url"] == request_url
+            ):
                 # Create a mock response
                 response_data = interaction["response"]
 
@@ -277,10 +289,14 @@ class CassetteClient:
                 mock_response = MagicMock(spec=httpx.Response)
                 mock_response.status_code = response_data["status_code"]
                 mock_response.headers = httpx.Headers(response_data["headers"])
-                mock_response.content = response_data["content"].encode('utf-8')
+                mock_response.content = response_data["content"].encode("utf-8")
                 mock_response.text = response_data["content"]
                 mock_response.reason_phrase = response_data.get("reason_phrase", "")
-                mock_response.json.return_value = json.loads(response_data["content"]) if response_data["content"] else {}
+                mock_response.json.return_value = (
+                    json.loads(response_data["content"])
+                    if response_data["content"]
+                    else {}
+                )
 
                 return mock_response
 
@@ -338,7 +354,9 @@ class TestClientMixin:
         middleware = kwargs.get("middleware", [])
 
         # Determine if this is an async client
-        if hasattr(cls, "__bases__") and any("Async" in base.__name__ for base in cls.__bases__):
+        if hasattr(cls, "__bases__") and any(
+            "Async" in base.__name__ for base in cls.__bases__
+        ):
             cassette_middleware = AsyncCassetteMiddleware(cassette_client)
         else:
             cassette_middleware = CassetteMiddleware(cassette_client)

@@ -3,7 +3,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import tempfile
 from pathlib import Path
@@ -44,18 +44,23 @@ else:
             return f"MockStrategy({value})"
 
     st = MockSt()
+
     def strategy_for_type(x):
         return None
+
     def strategy_for_pydantic_model(x):
         return None
+
     def api_model_strategy(model, **kwargs):
         return lambda: None
+
     def enhanced_strategy_for_type(x):
         return None
 
 
 class TestModel(BaseModel):
     """Test Pydantic model."""
+
     name: str
     value: int
     metadata: dict = {}
@@ -70,7 +75,7 @@ class TestApiResponseDir:
             status_code=200,
             headers=httpx.Headers({"content-type": "application/json"}),
             timing=0.1,
-            raw_response=Mock()
+            raw_response=Mock(),
         )
 
         value = {"name": "test", "id": 123, "active": True}
@@ -93,10 +98,7 @@ class TestApiResponseDir:
     def test_dir_with_pydantic_model_v2(self):
         """Test __dir__ with Pydantic V2 model."""
         metadata = TransportMetadata(
-            status_code=200,
-            headers=httpx.Headers({}),
-            timing=0.1,
-            raw_response=Mock()
+            status_code=200, headers=httpx.Headers({}), timing=0.1, raw_response=Mock()
         )
 
         model = TestModel(name="test", value=42, metadata={"key": "value"})
@@ -113,9 +115,9 @@ class TestApiResponseDir:
         assert "value" in dir_result
 
         # Should contain methods from the model class
-        if hasattr(model, 'model_dump'):
+        if hasattr(model, "model_dump"):
             assert "model_dump" in dir_result
-        if hasattr(model, 'model_validate'):
+        if hasattr(model, "model_validate"):
             assert "model_validate" in dir_result
 
     def test_dir_with_custom_object(self):
@@ -134,10 +136,7 @@ class TestApiResponseDir:
                 return "property"
 
         metadata = TransportMetadata(
-            status_code=200,
-            headers=httpx.Headers({}),
-            timing=0.1,
-            raw_response=Mock()
+            status_code=200, headers=httpx.Headers({}), timing=0.1, raw_response=Mock()
         )
 
         obj = CustomObject()
@@ -157,6 +156,7 @@ class TestApiResponseDir:
 
     def test_dir_deduplication(self):
         """Test that __dir__ properly deduplicates attributes."""
+
         # Create an object with an attribute named 'value' or 'metadata'
         class ConflictObject:
             def __init__(self):
@@ -165,10 +165,7 @@ class TestApiResponseDir:
                 self.unique_attr = "unique"
 
         metadata = TransportMetadata(
-            status_code=200,
-            headers=httpx.Headers({}),
-            timing=0.1,
-            raw_response=Mock()
+            status_code=200, headers=httpx.Headers({}), timing=0.1, raw_response=Mock()
         )
 
         obj = ConflictObject()
@@ -237,6 +234,7 @@ class TestCassetteClient:
 
             # Load and verify content
             import json
+
             with open(cassette_path) as f:
                 data = json.load(f)
 
@@ -254,24 +252,27 @@ class TestCassetteClient:
 
             # Create cassette with recorded interaction
             cassette_data = {
-                "interactions": [{
-                    "request": {
-                        "method": "GET",
-                        "url": "https://example.com/api",
-                        "headers": {},
-                        "content": None
-                    },
-                    "response": {
-                        "status_code": 200,
-                        "headers": {"Content-Type": "application/json"},
-                        "content": '{"result": "success"}',
-                        "reason_phrase": "OK"
+                "interactions": [
+                    {
+                        "request": {
+                            "method": "GET",
+                            "url": "https://example.com/api",
+                            "headers": {},
+                            "content": None,
+                        },
+                        "response": {
+                            "status_code": 200,
+                            "headers": {"Content-Type": "application/json"},
+                            "content": '{"result": "success"}',
+                            "reason_phrase": "OK",
+                        },
                     }
-                }]
+                ]
             }
 
             import json
-            with open(cassette_path, 'w') as f:
+
+            with open(cassette_path, "w") as f:
                 json.dump(cassette_data, f)
 
             client = CassetteClient.playback(cassette_path)
@@ -338,24 +339,27 @@ class TestCassetteMiddleware:
 
             # Create cassette with recorded interaction
             cassette_data = {
-                "interactions": [{
-                    "request": {
-                        "method": "GET",
-                        "url": "https://example.com/api",
-                        "headers": {},
-                        "content": None
-                    },
-                    "response": {
-                        "status_code": 200,
-                        "headers": {"Content-Type": "application/json"},
-                        "content": '{"data": "test"}',
-                        "reason_phrase": "OK"
+                "interactions": [
+                    {
+                        "request": {
+                            "method": "GET",
+                            "url": "https://example.com/api",
+                            "headers": {},
+                            "content": None,
+                        },
+                        "response": {
+                            "status_code": 200,
+                            "headers": {"Content-Type": "application/json"},
+                            "content": '{"data": "test"}',
+                            "reason_phrase": "OK",
+                        },
                     }
-                }]
+                ]
             }
 
             import json
-            with open(cassette_path, 'w') as f:
+
+            with open(cassette_path, "w") as f:
                 json.dump(cassette_data, f)
 
             cassette_client = CassetteClient.playback(cassette_path)
@@ -443,7 +447,7 @@ class TestTestClientMixin:
             client = TestClient(
                 "https://api.example.com",
                 cassette_client=cassette_client,
-                dev_mode=True
+                dev_mode=True,
             )
 
             assert client._dev_mode is True
@@ -480,8 +484,7 @@ class TestTestClientMixin:
             cassette_path = Path(temp_dir) / "test.json"
 
             client = TestClient.record_to_cassette(
-                cassette_path,
-                "https://api.example.com"
+                cassette_path, "https://api.example.com"
             )
 
             assert client.base_url == "https://api.example.com"
@@ -507,14 +510,11 @@ class TestIntegration:
             "name": "test",
             "age": ReflectapiOption(25),
             "email": ReflectapiOption(Undefined),
-            "active": ReflectapiOption(None)
+            "active": ReflectapiOption(None),
         }
 
         metadata = TransportMetadata(
-            status_code=200,
-            headers=httpx.Headers({}),
-            timing=0.1,
-            raw_response=Mock()
+            status_code=200, headers=httpx.Headers({}), timing=0.1, raw_response=Mock()
         )
 
         response = ApiResponse(response_data, metadata)
@@ -528,7 +528,7 @@ class TestIntegration:
         expected = {
             "name": "test",
             "age": 25,
-            "active": None
+            "active": None,
             # email excluded because it's undefined
         }
         assert serialized == expected
@@ -559,10 +559,7 @@ class TestIntegration:
 
         # Create ApiResponse with enhanced __dir__
         metadata = TransportMetadata(
-            status_code=200,
-            headers=httpx.Headers({}),
-            timing=0.1,
-            raw_response=Mock()
+            status_code=200, headers=httpx.Headers({}), timing=0.1, raw_response=Mock()
         )
         response = ApiResponse({"data": "test"}, metadata)
         dir_result = dir(response)

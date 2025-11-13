@@ -40,7 +40,7 @@ def _json_serializer(obj: Any) -> Any:
         return obj.isoformat()
     elif isinstance(obj, datetime.date):
         return obj.isoformat()
-    elif hasattr(obj, 'model_dump'):
+    elif hasattr(obj, "model_dump"):
         return obj.model_dump(exclude_none=True)
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
@@ -107,6 +107,7 @@ class ClientBase(ABC):
     ) -> ClientBase:
         """Create a client with Bearer token authentication."""
         from .auth import BearerTokenAuth
+
         return cls(base_url, auth=BearerTokenAuth(token), **kwargs)
 
     @classmethod
@@ -120,7 +121,10 @@ class ClientBase(ABC):
     ) -> ClientBase:
         """Create a client with API key authentication."""
         from .auth import APIKeyAuth
-        return cls(base_url, auth=APIKeyAuth(api_key, header_name, param_name), **kwargs)
+
+        return cls(
+            base_url, auth=APIKeyAuth(api_key, header_name, param_name), **kwargs
+        )
 
     @classmethod
     def from_basic_auth(
@@ -132,6 +136,7 @@ class ClientBase(ABC):
     ) -> ClientBase:
         """Create a client with HTTP Basic authentication."""
         from .auth import BasicAuth
+
         return cls(base_url, auth=BasicAuth(username, password), **kwargs)
 
     @classmethod
@@ -146,10 +151,13 @@ class ClientBase(ABC):
     ) -> ClientBase:
         """Create a client with OAuth2 client credentials authentication."""
         from .auth import OAuth2ClientCredentialsAuth
+
         return cls(
             base_url,
-            auth=OAuth2ClientCredentialsAuth(token_url, client_id, client_secret, scope),
-            **kwargs
+            auth=OAuth2ClientCredentialsAuth(
+                token_url, client_id, client_secret, scope
+            ),
+            **kwargs,
         )
 
     @overload
@@ -238,26 +246,32 @@ class ClientBase(ABC):
         if json_model is not None and json_data is not None:
             raise ValueError("Cannot specify both json_data and json_model")
 
-    def _serialize_request_body(self, json_model: BaseModel | int | float | str | bool | list | dict) -> tuple[bytes, dict[str, str]]:
+    def _serialize_request_body(
+        self, json_model: BaseModel | int | float | str | bool | list | dict
+    ) -> tuple[bytes, dict[str, str]]:
         """Serialize request body from Pydantic model or primitive type."""
         from .option import ReflectapiOption
-        
+
         # Handle primitive types (for untagged unions)
-        if not hasattr(json_model, 'model_dump'):
-            content = json.dumps(json_model, default=_json_serializer, separators=(',', ':')).encode('utf-8')
+        if not hasattr(json_model, "model_dump"):
+            content = json.dumps(
+                json_model, default=_json_serializer, separators=(",", ":")
+            ).encode("utf-8")
             headers = {"Content-Type": "application/json"}
             return content, headers
 
         # Check if model has any ReflectapiOption fields that need special handling
         raw_data = json_model.model_dump(exclude_none=False)
-        
+
         # Handle case where RootModel serializes to primitive value (e.g., strings for unit variants)
         if not isinstance(raw_data, dict):
             # For primitive values, use Pydantic's built-in JSON serialization
-            content = json_model.model_dump_json(exclude_none=True, by_alias=True).encode('utf-8')
+            content = json_model.model_dump_json(
+                exclude_none=True, by_alias=True
+            ).encode("utf-8")
             headers = {"Content-Type": "application/json"}
             return content, headers
-            
+
         has_reflectapi_options = any(
             isinstance(field_value, ReflectapiOption)
             for field_value in raw_data.values()
@@ -278,15 +292,21 @@ class ClientBase(ABC):
                         processed_fields[field_name] = field_value
 
             # Use json serialization with datetime handler for proper serialization
-            content = json.dumps(processed_fields, default=_json_serializer, separators=(',', ':')).encode('utf-8')
+            content = json.dumps(
+                processed_fields, default=_json_serializer, separators=(",", ":")
+            ).encode("utf-8")
         else:
             # Use Pydantic's built-in JSON serialization with exclude_none and by_alias for proper handling
-            content = json_model.model_dump_json(exclude_none=True, by_alias=True).encode('utf-8')
+            content = json_model.model_dump_json(
+                exclude_none=True, by_alias=True
+            ).encode("utf-8")
 
         headers = {"Content-Type": "application/json"}
         return content, headers
 
-    def _build_headers(self, base_headers: dict[str, str], headers_model: BaseModel | None) -> dict[str, str]:
+    def _build_headers(
+        self, base_headers: dict[str, str], headers_model: BaseModel | None
+    ) -> dict[str, str]:
         """Build complete headers dict including custom headers from headers_model."""
         headers = base_headers.copy()
 
@@ -336,7 +356,7 @@ class ClientBase(ABC):
 
             # Build headers for requests without json_model
             headers = self._build_headers({}, headers_model)
-            
+
             return self._client.build_request(
                 method=method,
                 url=url,
@@ -352,7 +372,9 @@ class ClientBase(ABC):
         else:
             return self._client.send(request)
 
-    def _handle_error_response(self, response: httpx.Response, metadata: TransportMetadata) -> None:
+    def _handle_error_response(
+        self, response: httpx.Response, metadata: TransportMetadata
+    ) -> None:
         """Handle HTTP error responses (4xx, 5xx)."""
         if response.status_code >= 400:
             error_data = None
@@ -397,7 +419,10 @@ class ClientBase(ABC):
         try:
             # Handle Union types (like MyapiModelOutputPet | None)
             import types
-            if hasattr(types, 'UnionType') and isinstance(response_model, types.UnionType):
+
+            if hasattr(types, "UnionType") and isinstance(
+                response_model, types.UnionType
+            ):
                 json_response = self._parse_json_response(response)
                 # For Union types, try to deserialize with each type in the union
                 union_args = response_model.__args__
@@ -408,7 +433,9 @@ class ClientBase(ABC):
 
                 # Try each non-None type in the union
                 for arg_type in union_args:
-                    if arg_type is not type(None) and hasattr(arg_type, "model_validate"):
+                    if arg_type is not type(None) and hasattr(
+                        arg_type, "model_validate"
+                    ):
                         try:
                             validated_data = arg_type.model_validate(json_response)
                             return ApiResponse(validated_data, metadata)
@@ -419,7 +446,10 @@ class ClientBase(ABC):
                 return ApiResponse(json_response, metadata)
 
             # Type guard to ensure we have a model with validation methods
-            if not (isinstance(response_model, type) and hasattr(response_model, "model_validate")):
+            if not (
+                isinstance(response_model, type)
+                and hasattr(response_model, "model_validate")
+            ):
                 # Shouldn't happen, but fallback to JSON parsing
                 json_response = self._parse_json_response(response)
                 return ApiResponse(json_response, metadata)
@@ -457,7 +487,9 @@ class ClientBase(ABC):
 
         # Build URL and request
         url = f"{self.base_url}/{path.lstrip('/')}"
-        request = self._build_request(method, url, params, json_data, json_model, headers_model)
+        request = self._build_request(
+            method, url, params, json_data, json_model, headers_model
+        )
 
         # Execute request with timing
         start_time = time.time()
@@ -542,6 +574,7 @@ class AsyncClientBase(ABC):
     ) -> AsyncClientBase:
         """Create a client with Bearer token authentication."""
         from .auth import BearerTokenAuth
+
         return cls(base_url, auth=BearerTokenAuth(token), **kwargs)
 
     @classmethod
@@ -555,7 +588,10 @@ class AsyncClientBase(ABC):
     ) -> AsyncClientBase:
         """Create a client with API key authentication."""
         from .auth import APIKeyAuth
-        return cls(base_url, auth=APIKeyAuth(api_key, header_name, param_name), **kwargs)
+
+        return cls(
+            base_url, auth=APIKeyAuth(api_key, header_name, param_name), **kwargs
+        )
 
     @classmethod
     def from_basic_auth(
@@ -567,6 +603,7 @@ class AsyncClientBase(ABC):
     ) -> AsyncClientBase:
         """Create a client with HTTP Basic authentication."""
         from .auth import BasicAuth
+
         return cls(base_url, auth=BasicAuth(username, password), **kwargs)
 
     @classmethod
@@ -581,10 +618,13 @@ class AsyncClientBase(ABC):
     ) -> AsyncClientBase:
         """Create a client with OAuth2 client credentials authentication."""
         from .auth import OAuth2ClientCredentialsAuth
+
         return cls(
             base_url,
-            auth=OAuth2ClientCredentialsAuth(token_url, client_id, client_secret, scope),
-            **kwargs
+            auth=OAuth2ClientCredentialsAuth(
+                token_url, client_id, client_secret, scope
+            ),
+            **kwargs,
         )
 
     @overload
@@ -672,26 +712,32 @@ class AsyncClientBase(ABC):
         if json_model is not None and json_data is not None:
             raise ValueError("Cannot specify both json_data and json_model")
 
-    def _serialize_request_body(self, json_model: BaseModel | int | float | str | bool | list | dict) -> tuple[bytes, dict[str, str]]:
+    def _serialize_request_body(
+        self, json_model: BaseModel | int | float | str | bool | list | dict
+    ) -> tuple[bytes, dict[str, str]]:
         """Serialize request body from Pydantic model or primitive type."""
         from .option import ReflectapiOption
-        
+
         # Handle primitive types (for untagged unions)
-        if not hasattr(json_model, 'model_dump'):
-            content = json.dumps(json_model, default=_json_serializer, separators=(',', ':')).encode('utf-8')
+        if not hasattr(json_model, "model_dump"):
+            content = json.dumps(
+                json_model, default=_json_serializer, separators=(",", ":")
+            ).encode("utf-8")
             headers = {"Content-Type": "application/json"}
             return content, headers
 
         # Check if model has any ReflectapiOption fields that need special handling
         raw_data = json_model.model_dump(exclude_none=False)
-        
+
         # Handle case where RootModel serializes to primitive value (e.g., strings for unit variants)
         if not isinstance(raw_data, dict):
             # For primitive values, use Pydantic's built-in JSON serialization
-            content = json_model.model_dump_json(exclude_none=True, by_alias=True).encode('utf-8')
+            content = json_model.model_dump_json(
+                exclude_none=True, by_alias=True
+            ).encode("utf-8")
             headers = {"Content-Type": "application/json"}
             return content, headers
-            
+
         has_reflectapi_options = any(
             isinstance(field_value, ReflectapiOption)
             for field_value in raw_data.values()
@@ -712,16 +758,22 @@ class AsyncClientBase(ABC):
                         processed_fields[field_name] = field_value
 
             # Use json serialization with datetime handler for proper serialization
-            content = json.dumps(processed_fields, default=_json_serializer, separators=(',', ':')).encode('utf-8')
+            content = json.dumps(
+                processed_fields, default=_json_serializer, separators=(",", ":")
+            ).encode("utf-8")
         else:
             # Use Pydantic's built-in JSON serialization with exclude_none and by_alias for proper handling
-            content = json_model.model_dump_json(exclude_none=True, by_alias=True).encode('utf-8')
+            content = json_model.model_dump_json(
+                exclude_none=True, by_alias=True
+            ).encode("utf-8")
 
         headers = {"Content-Type": "application/json"}
 
         return content, headers
 
-    def _build_headers(self, base_headers: dict[str, str], headers_model: BaseModel | None) -> dict[str, str]:
+    def _build_headers(
+        self, base_headers: dict[str, str], headers_model: BaseModel | None
+    ) -> dict[str, str]:
         """Build complete headers dict including custom headers from headers_model."""
         headers = base_headers.copy()
 
@@ -771,7 +823,7 @@ class AsyncClientBase(ABC):
 
             # Build headers for requests without json_model
             headers = self._build_headers({}, headers_model)
-            
+
             return self._client.build_request(
                 method=method,
                 url=url,
@@ -787,7 +839,9 @@ class AsyncClientBase(ABC):
         else:
             return await self._client.send(request)
 
-    def _handle_error_response(self, response: httpx.Response, metadata: TransportMetadata) -> None:
+    def _handle_error_response(
+        self, response: httpx.Response, metadata: TransportMetadata
+    ) -> None:
         """Handle HTTP error responses (4xx, 5xx)."""
         if response.status_code >= 400:
             error_data = None
@@ -832,7 +886,10 @@ class AsyncClientBase(ABC):
         try:
             # Handle Union types (like MyapiModelOutputPet | None)
             import types
-            if hasattr(types, 'UnionType') and isinstance(response_model, types.UnionType):
+
+            if hasattr(types, "UnionType") and isinstance(
+                response_model, types.UnionType
+            ):
                 json_response = self._parse_json_response(response)
                 # For Union types, try to deserialize with each type in the union
                 union_args = response_model.__args__
@@ -843,7 +900,9 @@ class AsyncClientBase(ABC):
 
                 # Try each non-None type in the union
                 for arg_type in union_args:
-                    if arg_type is not type(None) and hasattr(arg_type, "model_validate"):
+                    if arg_type is not type(None) and hasattr(
+                        arg_type, "model_validate"
+                    ):
                         try:
                             validated_data = arg_type.model_validate(json_response)
                             return ApiResponse(validated_data, metadata)
@@ -854,7 +913,10 @@ class AsyncClientBase(ABC):
                 return ApiResponse(json_response, metadata)
 
             # Type guard to ensure we have a model with validation methods
-            if not (isinstance(response_model, type) and hasattr(response_model, "model_validate")):
+            if not (
+                isinstance(response_model, type)
+                and hasattr(response_model, "model_validate")
+            ):
                 # Shouldn't happen, but fallback to JSON parsing
                 json_response = self._parse_json_response(response)
                 return ApiResponse(json_response, metadata)
@@ -898,7 +960,9 @@ class AsyncClientBase(ABC):
 
         # Build URL and request
         url = f"{self.base_url}/{path.lstrip('/')}"
-        request = self._build_request(method, url, params, json_data, json_model, headers_model)
+        request = self._build_request(
+            method, url, params, json_data, json_model, headers_model
+        )
 
         # Execute request with timing
         start_time = time.time()

@@ -3,7 +3,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 from pydantic import BaseModel
@@ -269,11 +269,7 @@ class TestSerializeOptionDict:
 
     def test_simple_dict_with_undefined(self):
         """Test serialization excluding undefined options."""
-        data = {
-            "name": "test",
-            "age": ReflectapiOption(Undefined),
-            "value": 42
-        }
+        data = {"name": "test", "age": ReflectapiOption(Undefined), "value": 42}
         result = serialize_option_dict(data)
 
         expected = {"name": "test", "value": 42}
@@ -281,11 +277,7 @@ class TestSerializeOptionDict:
 
     def test_simple_dict_with_none(self):
         """Test serialization including None options."""
-        data = {
-            "name": "test",
-            "age": ReflectapiOption(None),
-            "value": 42
-        }
+        data = {"name": "test", "age": ReflectapiOption(None), "value": 42}
         result = serialize_option_dict(data)
 
         expected = {"name": "test", "age": None, "value": 42}
@@ -293,11 +285,7 @@ class TestSerializeOptionDict:
 
     def test_simple_dict_with_some(self):
         """Test serialization including Some options."""
-        data = {
-            "name": "test",
-            "age": ReflectapiOption(25),
-            "value": 42
-        }
+        data = {"name": "test", "age": ReflectapiOption(25), "value": 42}
         result = serialize_option_dict(data)
 
         expected = {"name": "test", "age": 25, "value": 42}
@@ -309,24 +297,15 @@ class TestSerializeOptionDict:
             "user": {
                 "name": "test",
                 "age": ReflectapiOption(25),
-                "email": ReflectapiOption(Undefined)
+                "email": ReflectapiOption(Undefined),
             },
-            "metadata": {
-                "version": ReflectapiOption(None),
-                "enabled": True
-            }
+            "metadata": {"version": ReflectapiOption(None), "enabled": True},
         }
         result = serialize_option_dict(data)
 
         expected = {
-            "user": {
-                "name": "test",
-                "age": 25
-            },
-            "metadata": {
-                "version": None,
-                "enabled": True
-            }
+            "user": {"name": "test", "age": 25},
+            "metadata": {"version": None, "enabled": True},
         }
         assert result == expected
 
@@ -338,7 +317,7 @@ class TestSerializeOptionDict:
                 ReflectapiOption(None),
                 ReflectapiOption(Undefined),
                 ReflectapiOption(3),
-                42  # Non-option value
+                42,  # Non-option value
             ]
         }
         result = serialize_option_dict(data)
@@ -355,31 +334,28 @@ class TestSerializeOptionDict:
                 {
                     "name": "Alice",
                     "age": ReflectapiOption(30),
-                    "email": ReflectapiOption(Undefined)
+                    "email": ReflectapiOption(Undefined),
                 },
                 {
                     "name": "Bob",
                     "age": ReflectapiOption(None),
-                    "email": "bob@example.com"
-                }
+                    "email": "bob@example.com",
+                },
             ],
             "config": {
                 "debug": ReflectapiOption(True),
                 "timeout": ReflectapiOption(Undefined),
-                "retries": 3
-            }
+                "retries": 3,
+            },
         }
         result = serialize_option_dict(data)
 
         expected = {
             "users": [
                 {"name": "Alice", "age": 30},
-                {"name": "Bob", "age": None, "email": "bob@example.com"}
+                {"name": "Bob", "age": None, "email": "bob@example.com"},
             ],
-            "config": {
-                "debug": True,
-                "retries": 3
-            }
+            "config": {"debug": True, "retries": 3},
         }
         assert result == expected
 
@@ -396,11 +372,7 @@ class TestPydanticIntegration:
             email: ReflectapiOption[str] = ReflectapiOption(Undefined)
 
         # Test model creation
-        user = UserModel(
-            name="Alice",
-            age=some(30),
-            email=none()
-        )
+        user = UserModel(name="Alice", age=some(30), email=none())
 
         assert user.name == "Alice"
         assert user.age.is_some
@@ -408,14 +380,10 @@ class TestPydanticIntegration:
         assert user.email.is_none
 
         # Test serialization
-        model_dict = user.model_dump() if hasattr(user, 'model_dump') else user.dict()
+        model_dict = user.model_dump() if hasattr(user, "model_dump") else user.dict()
         processed_dict = serialize_option_dict(model_dict)
 
-        expected = {
-            "name": "Alice",
-            "age": 30,
-            "email": None
-        }
+        expected = {"name": "Alice", "age": 30, "email": None}
         assert processed_dict == expected
 
     def test_pydantic_model_with_undefined_fields(self):
@@ -434,7 +402,9 @@ class TestPydanticIntegration:
         assert request.email.is_undefined
 
         # Serialization should exclude undefined fields
-        model_dict = request.model_dump() if hasattr(request, 'model_dump') else request.dict()
+        model_dict = (
+            request.model_dump() if hasattr(request, "model_dump") else request.dict()
+        )
         processed_dict = serialize_option_dict(model_dict)
 
         expected = {"name": "Alice"}
