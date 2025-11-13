@@ -442,6 +442,7 @@ expression: s
           },
           {
             "type": "object",
+            "title": "bird",
             "required": [
               "type"
             ],
