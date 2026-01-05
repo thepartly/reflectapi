@@ -948,14 +948,14 @@ impl Converter<'_> {
                     reflectapi_schema::Fields::None => Inline(Schema::Flat(FlatSchema {
                         description: String::new(),
                         ty: Type::Object {
-                            title: String::new(),
+                            title: variant.serde_name().to_owned(),
                             required: [tag.to_owned()].into(),
                             properties: [(
                                 tag.to_owned(),
                                 Property {
                                     description: String::new(),
                                     deprecated: false,
-                                    schema: mk_tag(&variant.name),
+                                    schema: mk_tag(variant.serde_name()),
                                 },
                             )]
                             .into(),

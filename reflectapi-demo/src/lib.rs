@@ -113,6 +113,8 @@ mod model {
             /// lives left
             lives: u8,
         },
+        /// Test for unit variants in internally tagged enums
+        Bird,
     }
 
     #[derive(

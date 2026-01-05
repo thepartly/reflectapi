@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
-snapshot_kind: text
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -46,6 +45,7 @@ snapshot_kind: text
         "oneOf": [
           {
             "type": "object",
+            "title": "Empty",
             "required": [
               "type"
             ],

@@ -256,6 +256,9 @@ pub mod types {
                     /// lives left
                     lives: u8,
                 },
+                /// Test for unit variants in internally tagged enums
+                #[serde(rename = "bird")]
+                Bird,
             }
             pub mod input {
 
