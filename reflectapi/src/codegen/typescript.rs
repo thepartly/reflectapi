@@ -50,8 +50,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     let mut rendered_types = HashMap::new();
     for original_type_name in schema.consolidate_types() {
         let type_def = schema.get_type(&original_type_name).context(format!(
-            "internal error: failed to get consolidated type definition for type: {}",
-            original_type_name
+            "internal error: failed to get consolidated type definition for type: {original_type_name}"
         ))?;
         if implemented_types.contains_key(&original_type_name) {
             continue;
@@ -675,7 +674,7 @@ fn client_impl_from_function_group(
             .iter()
             .map(|f| {
                 (
-                    f.split('.').last().unwrap().replace('-', "_"),
+                    f.split('.').next_back().unwrap().replace('-', "_"),
                     f.replace('.', "__").replace('-', "_"),
                 )
             })
@@ -742,15 +741,14 @@ fn interfaces_from_function_group(
         let (input_type, input_headers, output_type, error_type) =
             function_signature(function, schema, implemented_types);
         type_template.fields.push(templates::Field {
-            name: function_name.split('.').last().unwrap().replace('-', "_"),
+            name: function_name.split('.').next_back().unwrap().replace('-', "_"),
             description: doc_to_ts_comments(
                 &function.description,
                 function.deprecation_note.as_deref(),
                 4,
             ),
             type_: format!(
-                "(input: {}, headers: {}, options?: RequestOptions)\n        => AsyncResult<{}, {}>",
-                input_type, input_headers, output_type, error_type
+                "(input: {input_type}, headers: {input_headers}, options?: RequestOptions)\n        => AsyncResult<{output_type}, {error_type}>"
             ),
             optional: false,
         });
@@ -979,7 +977,7 @@ fn type_ref_to_ts_ref(
     let type_name_parts = type_ref.name.split("::").collect::<Vec<_>>();
     let n = type_name_parts.join(".");
     let p = type_ref_params_to_ts_ref(&type_ref.arguments, schema, implemented_types);
-    format!("{}{}", n, p)
+    format!("{n}{p}")
 }
 
 fn type_ref_params_to_ts_ref(
@@ -995,7 +993,7 @@ fn type_ref_params_to_ts_ref(
     if p.is_empty() {
         p
     } else {
-        format!("<{}>", p)
+        format!("<{p}>")
     }
 }
 
@@ -1007,7 +1005,7 @@ fn type_to_ts_name(type_: &crate::Type) -> String {
         .unwrap_or_default()
         .to_string();
     let p = type_params_to_ts_name(type_.parameters());
-    format!("{}{}", n, p)
+    format!("{n}{p}")
 }
 
 fn type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParameter>) -> String {
@@ -1018,7 +1016,7 @@ fn type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParameter
     if p.is_empty() {
         p
     } else {
-        format!("<{}>", p)
+        format!("<{p}>")
     }
 }
 

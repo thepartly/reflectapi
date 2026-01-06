@@ -37,9 +37,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
-    let bind_addr = format!("0.0.0.0:{}", port);
+    let bind_addr = format!("0.0.0.0:{port}");
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
-    eprintln!("Listening on http://{}", bind_addr);
+    eprintln!("Listening on http://{bind_addr}");
     axum::serve(listener, axum_app).await?;
 
     Ok(())
