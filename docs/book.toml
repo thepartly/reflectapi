@@ -1,7 +1,6 @@
 [book]
 authors = ["ReflectAPI Contributors"]
 language = "en"
-multilingual = false
 src = "src"
 title = "ReflectAPI Documentation"
 description = "Code-first Rust web service API declaration and client generation"
