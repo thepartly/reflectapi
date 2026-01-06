@@ -14,7 +14,7 @@ pub(crate) fn naive_parse_as_type_reference(s: &str) -> TypeReference {
 
     let mut depth = 0;
     let mut start = 0;
-    for (i, c) in s.chars().enumerate() {
+    for (i, c) in s.char_indices() {
         match c {
             '<' => {
                 if depth == 0 {
