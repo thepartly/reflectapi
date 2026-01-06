@@ -3,7 +3,7 @@ fn reflectapi_timezone(schema: &mut crate::Typespace) -> String {
     if schema.reserve_type(type_name) {
         let type_def = crate::Primitive::new(
             type_name.into(),
-            "chrono-compatible timezone definitions".into(),
+            "A timezone definition".into(),
             vec![],
             Some("std::string::String".into()),
         );

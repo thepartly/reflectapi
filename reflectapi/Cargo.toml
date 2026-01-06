@@ -69,7 +69,8 @@ builder = ["dep:serde_json", "dep:bytes", "dep:http", "dep:mime"]
 msgpack = ["dep:rmp-serde", "builder"]
 # features for implementing reflect traits for foreign types
 uuid = ["dep:uuid"]
-chrono = ["dep:chrono", "dep:chrono-tz"]
+chrono = ["dep:chrono"]
+chrono-tz = ["dep:chrono-tz"]
 url = ["dep:url"]
 rust_decimal = ["dep:rust_decimal"]
 # features for transforming reflect schema to runnable servers

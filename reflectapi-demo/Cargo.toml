@@ -13,6 +13,7 @@ workspace = true
 reflectapi = { workspace = true, features = [
     "uuid",
     "chrono",
+    "chrono-tz",
     "url",
     "builder",
     "axum",
@@ -29,6 +30,7 @@ tower-http = { version = "0.6.2", features = ["trace", "cors", "timeout"] }
 
 uuid = "1.7.0"
 chrono = { version = "0.4.37", features = ["serde"] }
+chrono-tz = { version = "0.10.4", features = ["serde"] }
 bytes = "1.5.0"
 serde = { version = "1.0.218", features = ["derive", "rc"] }
 serde_json = "1.0.139"
