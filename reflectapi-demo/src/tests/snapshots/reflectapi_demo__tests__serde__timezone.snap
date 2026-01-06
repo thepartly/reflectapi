@@ -1,0 +1,89 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::TestStruct"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::TestStruct"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "chrono_tz::Tz",
+        "description": "A timezone definition",
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStruct",
+        "fields": {
+          "named": [
+            {
+              "name": "timezone",
+              "type": {
+                "name": "chrono_tz::Tz"
+              },
+              "required": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "chrono_tz::Tz",
+        "description": "A timezone definition",
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStruct",
+        "fields": {
+          "named": [
+            {
+              "name": "timezone",
+              "type": {
+                "name": "chrono_tz::Tz"
+              },
+              "required": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

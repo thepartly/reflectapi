@@ -4,6 +4,9 @@ mod uuid;
 #[cfg(feature = "chrono")]
 mod chrono;
 
+#[cfg(feature = "chrono-tz")]
+mod chrono_tz;
+
 #[cfg(feature = "url")]
 mod url;
 

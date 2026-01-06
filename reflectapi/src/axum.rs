@@ -51,7 +51,7 @@ where
                 result.into_response()
             }
         };
-        let mount_path = format!("{}/{}", path, name);
+        let mount_path = format!("{path}/{name}");
         if readonly {
             // Partly API over HTTP standard requires to expose readonly methods on GET and POST
             app = app.route(mount_path.as_str(), get(axum_handler.clone()));

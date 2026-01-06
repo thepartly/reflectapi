@@ -706,6 +706,16 @@ fn test_datetime() {
 }
 
 #[test]
+fn test_timezone() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct TestStruct {
+        timezone: chrono_tz::Tz,
+    }
+
+    assert_snapshot!(TestStruct);
+}
+
+#[test]
 fn test_external_impls() {
     #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
     struct Test {

@@ -149,7 +149,7 @@ fn main() -> anyhow::Result<()> {
 
             let schema_path = schema.unwrap_or(std::path::PathBuf::from("reflectapi.json"));
             let schema_as_json = std::fs::read_to_string(schema_path.clone())
-                .context(format!("Failed to read schema file: {:?}", schema_path))?;
+                .context(format!("Failed to read schema file: {schema_path:?}"))?;
             let schema: reflectapi::Schema = serde_json::from_str(&schema_as_json)
                 .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
 
@@ -210,7 +210,7 @@ fn main() -> anyhow::Result<()> {
             if output == Some(std::path::PathBuf::from("-")) {
                 // For stdout, output the first/main file
                 if let Some(content) = files.values().next() {
-                    println!("{}", content);
+                    println!("{content}");
                 }
                 return Ok(());
             }
@@ -229,22 +229,21 @@ fn main() -> anyhow::Result<()> {
                         output_path
                     };
                 let mut file = std::fs::File::create(&final_path)
-                    .context(format!("Failed to create file: {:?}", final_path))?;
+                    .context(format!("Failed to create file: {final_path:?}"))?;
                 file.write_all(content.as_bytes())
-                    .context(format!("Failed to write to file: {:?}", final_path))?;
+                    .context(format!("Failed to write to file: {final_path:?}"))?;
             } else {
                 // Multi-file: create directory and write all files
                 std::fs::create_dir_all(&output_path).context(format!(
-                    "Failed to create output directory: {:?}",
-                    output_path
+                    "Failed to create output directory: {output_path:?}"
                 ))?;
 
                 for (filename, content) in files {
                     let file_path = output_path.join(&filename);
                     let mut file = std::fs::File::create(&file_path)
-                        .context(format!("Failed to create file: {:?}", file_path))?;
+                        .context(format!("Failed to create file: {file_path:?}"))?;
                     file.write_all(content.as_bytes())
-                        .context(format!("Failed to write to file: {:?}", file_path))?;
+                        .context(format!("Failed to write to file: {file_path:?}"))?;
                 }
             }
             Ok(())

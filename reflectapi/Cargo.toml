@@ -38,6 +38,7 @@ rmp-serde = {version = "1.3.0", optional = true }
 # optional 3rd party dependencies for implementing reflects traits for foreign types
 uuid = { version = "1.7.0", optional = true, features = ["serde"] }
 chrono = { version = "0.4.37", optional = true, features = ["serde"] }
+chrono-tz = {  version = "0.10.4", optional = true, features = ["serde"]}
 url = { version = "2.5.0", optional = true, features = ["serde"] }
 rust_decimal = { version = "1.35.0", optional = true, features = ["serde"] }
 
@@ -69,6 +70,7 @@ msgpack = ["dep:rmp-serde", "builder"]
 # features for implementing reflect traits for foreign types
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]
+chrono-tz = ["dep:chrono-tz"]
 url = ["dep:url"]
 rust_decimal = ["dep:rust_decimal"]
 # features for transforming reflect schema to runnable servers

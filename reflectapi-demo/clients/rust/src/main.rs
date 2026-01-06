@@ -24,27 +24,24 @@ async fn main() {
                 println!("Health check failed")
             }
             Error::Network(e) => {
-                println!("Network error: {:?}", e)
+                println!("Network error: {e:?}")
             }
             Error::Protocol { info, stage } => match stage {
                 ProtocolErrorStage::SerializeRequestBody => {
-                    eprint!("Failed to serialize request body: {}", info)
+                    eprint!("Failed to serialize request body: {info}")
                 }
                 ProtocolErrorStage::SerializeRequestHeaders => {
-                    eprint!("Failed to serialize request headers: {}", info)
+                    eprint!("Failed to serialize request headers: {info}")
                 }
                 ProtocolErrorStage::DeserializeResponseBody(body) => {
-                    eprint!("Failed to deserialize response body: {}: {:#?}", info, body)
+                    eprint!("Failed to deserialize response body: {info}: {body:#?}")
                 }
                 ProtocolErrorStage::DeserializeResponseError(status, body) => {
-                    eprint!(
-                        "Failed to deserialize response error: {} at {:?}: {:#?}",
-                        info, status, body
-                    )
+                    eprint!("Failed to deserialize response error: {info} at {status:?}: {body:#?}")
                 }
             },
             Error::Server(status, body) => {
-                println!("Server error: {} with body: {:?}", status, body)
+                println!("Server error: {status} with body: {body:?}")
             }
         },
     }

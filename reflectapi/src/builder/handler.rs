@@ -286,7 +286,7 @@ where
                 return HandlerOutput {
                     code: http::StatusCode::BAD_REQUEST,
                     body: bytes::Bytes::from(
-                        format!("Failed to parse request headers: {}", err).into_bytes(),
+                        format!("Failed to parse request headers: {err}").into_bytes(),
                     ),
                     headers: Default::default(),
                 };

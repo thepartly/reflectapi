@@ -14,7 +14,7 @@ pub(crate) fn naive_parse_as_type_reference(s: &str) -> TypeReference {
 
     let mut depth = 0;
     let mut start = 0;
-    for (i, c) in s.chars().enumerate() {
+    for (i, c) in s.char_indices() {
         match c {
             '<' => {
                 if depth == 0 {
@@ -440,7 +440,7 @@ fn parse_lit_str(
         if !suffix.is_empty() {
             cx.impl_error(
                 lit,
-                format!("unexpected suffix `{}` on string literal", suffix),
+                format!("unexpected suffix `{suffix}` on string literal"),
             );
         }
         Ok(Some(lit.clone()))
@@ -448,8 +448,7 @@ fn parse_lit_str(
         cx.impl_error(
             expr,
             format!(
-                "expected reflect {} attribute to be a string: `{} = \"...\"`",
-                attr_name, meta_item_name
+                "expected reflect {attr_name} attribute to be a string: `{meta_item_name} = \"...\"`"
             ),
         );
         Ok(None)
