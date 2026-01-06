@@ -25,7 +25,7 @@ expression: schema
       {
         "kind": "primitive",
         "name": "chrono_tz::Tz",
-        "description": "chrono-compatible timezone definitions",
+        "description": "A timezone definition",
         "fallback": {
           "name": "std::string::String"
         }
@@ -58,7 +58,7 @@ expression: schema
       {
         "kind": "primitive",
         "name": "chrono_tz::Tz",
-        "description": "chrono-compatible timezone definitions",
+        "description": "A timezone definition",
         "fallback": {
           "name": "std::string::String"
         }
