@@ -37,9 +37,7 @@ async fn main() {
                     eprint!("Failed to deserialize response body: {info}: {body:#?}")
                 }
                 ProtocolErrorStage::DeserializeResponseError(status, body) => {
-                    eprint!(
-                        "Failed to deserialize response error: {info} at {status:?}: {body:#?}"
-                    )
+                    eprint!("Failed to deserialize response error: {info} at {status:?}: {body:#?}")
                 }
             },
             Error::Server(status, body) => {

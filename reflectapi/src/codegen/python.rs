@@ -2780,9 +2780,8 @@ fn render_internally_tagged_enum_core(
     // Patch class header to include Generic inheritance and subscription support
     // Replace the class header in-place
     let header = format!("class {enum_name}(RootModel[{enum_name}Variants])");
-    let replacement = format!(
-        "class {enum_name}(RootModel[{enum_name}Variants]{generic_inherits})"
-    );
+    let replacement =
+        format!("class {enum_name}(RootModel[{enum_name}Variants]{generic_inherits})");
     let result = result.replace(&header, &replacement);
     let mut result = result;
     if !generic_inherits.is_empty() {
@@ -3612,9 +3611,7 @@ fn map_external_type_to_python(type_name: &str) -> String {
 
         // Decimal types (often used for financial data) - JSON serialized as strings
         name if name.contains("Decimal") => {
-            format!(
-                "Annotated[str, \"Rust Decimal type (JSON string): {name}\"]"
-            )
+            format!("Annotated[str, \"Rust Decimal type (JSON string): {name}\"]")
         }
 
         // Common domain-specific types that are typically strings
@@ -3643,9 +3640,7 @@ fn map_external_type_to_python(type_name: &str) -> String {
             || name.contains("Ipv4Addr")
             || name.contains("Ipv6Addr") =>
         {
-            format!(
-                "Annotated[IPv4Address | IPv6Address, \"Rust IP address type: {name}\"]"
-            )
+            format!("Annotated[IPv4Address | IPv6Address, \"Rust IP address type: {name}\"]")
         }
 
         // For completely unmapped types, use Annotated[Any, ...] with metadata
