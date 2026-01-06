@@ -26,8 +26,7 @@ pub fn format_with<'a>(
         stdin.write_all(src.as_bytes())?;
         let output = child.wait_with_output()?;
         if !output.status.success() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
+            return Err(io::Error::other(
                 format!(
                     "command failed with exit code {:?}\nstderr:\n{}",
                     output.status.code(),

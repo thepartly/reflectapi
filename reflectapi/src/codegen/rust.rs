@@ -115,8 +115,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             continue;
         }
         let type_def = schema.get_type(&original_type_name).context(format!(
-            "internal error: failed to get consolidated type definition for type: {}",
-            original_type_name
+            "internal error: failed to get consolidated type definition for type: {original_type_name}"
         ))?;
         if implemented_types.contains_key(&original_type_name) {
             continue;
@@ -436,11 +435,11 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
             match &self.representation {
                 crate::Representation::External => {}
                 crate::Representation::Internal { tag } => {
-                    attrs.push(format!("tag = \"{}\"", tag));
+                    attrs.push(format!("tag = \"{tag}\""));
                 }
                 crate::Representation::Adjacent { tag, content } => {
-                    attrs.push(format!("tag = \"{}\"", tag));
-                    attrs.push(format!("content = \"{}\"", content));
+                    attrs.push(format!("tag = \"{tag}\""));
+                    attrs.push(format!("content = \"{content}\""));
                 }
                 crate::Representation::None => {
                     attrs.push("untagged".into());
@@ -478,7 +477,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
                 self.render_fields()?,
                 brakets.1,
                 self.discriminant
-                    .map(|d| format!(" = {}", d))
+                    .map(|d| format!(" = {d}"))
                     .unwrap_or_default()
             );
             Ok(r)
@@ -591,8 +590,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
                 if self.type_.starts_with("std::collections::") {
                     let type_without_generics = self.type_.split('<').next().unwrap();
                     serde_attrs.push(format!(
-                        "skip_serializing_if = \"{}::is_empty\"",
-                        type_without_generics
+                        "skip_serializing_if = \"{type_without_generics}::is_empty\""
                     ));
                 }
             }
@@ -612,8 +610,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
                     out.push_str("#[deprecated]\n    ");
                 } else {
                     out.push_str(&format!(
-                        "#[deprecated(note = \"{}\")]\n    ",
-                        deprecation_note
+                        "#[deprecated(note = \"{deprecation_note}\")]\n    "
                     ));
                 }
             }
@@ -887,7 +884,7 @@ fn __interface_types_from_function_group(
             name: function
                 .name
                 .split('.')
-                .last()
+                .next_back()
                 .unwrap_or_default()
                 .replace('-', "_"),
             deprecation_note: function.deprecation_note.to_owned(),
@@ -1142,7 +1139,7 @@ fn __type_args_to_ts_ref(
     if p.is_empty() {
         p
     } else {
-        format!("<{}>", p)
+        format!("<{p}>")
     }
 }
 
@@ -1154,7 +1151,7 @@ fn __type_to_ts_name(type_def: &crate::Type) -> String {
         .unwrap_or_default()
         .to_string();
     let p = __type_params_to_ts_name(type_def.parameters());
-    format!("{}{}", n, p)
+    format!("{n}{p}")
 }
 
 fn __type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParameter>) -> String {
@@ -1165,7 +1162,7 @@ fn __type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParamet
     if p.is_empty() {
         p
     } else {
-        format!("<{}>", p)
+        format!("<{p}>")
     }
 }
 
@@ -1222,8 +1219,8 @@ fn __doc_to_ts_comments(doc: &str, offset: u8) -> String {
         .iter()
         .map(|line| format!("///{}{}", sp, line.trim_end()))
         .collect::<Vec<_>>()
-        .join(format!("\n{}", offset).as_str());
-    format!("{}\n{}", doc, offset)
+        .join(format!("\n{offset}").as_str());
+    format!("{doc}\n{offset}")
 }
 
 fn __build_implemented_types() -> HashMap<String, String> {
@@ -1338,7 +1335,7 @@ fn __field_name_to_snake_case(name: &str) -> String {
     }
     // if rust keyword, add underscore
     if check_keyword::CheckKeyword::is_keyword(&result) {
-        format!("{}_", result)
+        format!("{result}_")
     } else {
         result
     }

@@ -42,15 +42,15 @@ pub enum ValidationPointer {
 impl fmt::Display for ValidationPointer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ValidationPointer::Field { type_name, name } => write!(f, "{}.{}", type_name, name),
-            ValidationPointer::Variant { type_name, name } => write!(f, "{}::{}", type_name, name),
+            ValidationPointer::Field { type_name, name } => write!(f, "{type_name}.{name}"),
+            ValidationPointer::Variant { type_name, name } => write!(f, "{type_name}::{name}"),
             ValidationPointer::VariantField {
                 type_name,
                 variant_name,
                 name,
-            } => write!(f, "{}.{}.{}", type_name, variant_name, name),
-            ValidationPointer::Type(name) => write!(f, "{}", name),
-            ValidationPointer::Function(name) => write!(f, "{}", name),
+            } => write!(f, "{type_name}.{variant_name}.{name}"),
+            ValidationPointer::Type(name) => write!(f, "{name}"),
+            ValidationPointer::Function(name) => write!(f, "{name}"),
         }
     }
 }

@@ -421,12 +421,12 @@ impl<V: Output> Output for std::collections::BTreeSet<V> {
 }
 
 fn reflectapi_type_tuple(schema: &mut crate::Typespace, count: usize) -> String {
-    let type_name = format!("std::tuple::Tuple{}", count);
+    let type_name = format!("std::tuple::Tuple{count}");
     if schema.reserve_type(&type_name) {
-        let parameters = (1..(count + 1)).map(|i| format!("T{}", i).into()).collect();
+        let parameters = (1..(count + 1)).map(|i| format!("T{i}").into()).collect();
         let type_def = crate::Primitive::new(
             type_name.clone(),
-            format!("Tuple holding {} elements", count),
+            format!("Tuple holding {count} elements"),
             parameters,
             None,
         );
