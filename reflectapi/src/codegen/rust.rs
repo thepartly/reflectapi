@@ -218,6 +218,7 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
         ("bytes.rs", include_str!("rust-dependency-stubs/bytes.rs")),
         ("http.rs", include_str!("rust-dependency-stubs/http.rs")),
         ("chrono.rs", include_str!("rust-dependency-stubs/chrono.rs")),
+        ("chrono_tz.rs", include_str!("rust-dependency-stubs/chrono_tz.rs")),
         (
             "reflectapi.rs",
             include_str!("rust-dependency-stubs/reflectapi.rs"),
