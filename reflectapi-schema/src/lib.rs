@@ -238,7 +238,7 @@ impl Schema {
 
         for strukt in transparent_types {
             self.input_types.remove_type(strukt.name());
-            SubstVisitor::new(strukt).visit_schema_inputs(self);
+            let _ = SubstVisitor::new(strukt).visit_schema_inputs(self);
         }
 
         let transparent_types = self
@@ -253,7 +253,7 @@ impl Schema {
 
         for strukt in transparent_types {
             self.output_types.remove_type(strukt.name());
-            SubstVisitor::new(strukt).visit_schema_outputs(self);
+            let _ = SubstVisitor::new(strukt).visit_schema_outputs(self);
         }
     }
 }
