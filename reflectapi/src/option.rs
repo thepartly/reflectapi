@@ -90,6 +90,16 @@ impl<T> Option<T> {
         }
     }
 
+    /// Converts the `Option<T>` into a standard `Option<T>`.
+    /// Returning `default` if the value is `Undefined`.
+    pub fn into_option_or(self, default: T) -> std::option::Option<T> {
+        match self {
+            Option::Undefined => Some(default),
+            Option::None => None,
+            Option::Some(value) => Some(value),
+        }
+    }
+
     /// Converts a reference to a `Option<T>` into an `Option<&T>`.
     ///
     /// Note: This is a lossy conversion, as both `Undefined` and `None`
