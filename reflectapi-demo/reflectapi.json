@@ -137,6 +137,25 @@
         "json",
         "msgpack"
       ]
+    },
+    {
+      "name": "pets.cdc-events",
+      "path": "",
+      "description": "Stream of change data capture events for pets",
+      "input_headers": {
+        "name": "myapi::proto::Headers"
+      },
+      "output_type": {
+        "name": "myapi::model::output::Pet"
+      },
+      "error_type": {
+        "name": "myapi::proto::UnauthorizedError"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ],
+      "readonly": true
     }
   ],
   "input_types": {

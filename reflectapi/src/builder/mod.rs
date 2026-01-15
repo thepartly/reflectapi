@@ -4,9 +4,13 @@ mod result;
 use core::fmt;
 use std::{borrow::Borrow, collections::BTreeSet, error::Error};
 
+use futures_util::Stream;
 pub use handler::*;
 use reflectapi_schema::Pattern;
-pub use result::*;
+pub use result::{IntoResult, StatusCode};
+use serde::{de::DeserializeOwned, ser::Serialize};
+
+use crate::{Input, Output};
 
 /// [`Builder`] provides a chained API for defining the overall API specification,
 /// adding individual routes (handlers), and composing multiple builders together.
@@ -140,10 +144,10 @@ where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
         Fut: std::future::Future<Output = R> + Send + 'static,
         R: IntoResult<O, E> + 'static,
-        I: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        H: crate::Input + serde::de::DeserializeOwned + Send + 'static,
-        O: crate::Output + serde::ser::Serialize + Send + 'static,
-        E: crate::Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+        I: Input + DeserializeOwned + Send + 'static,
+        H: Input + DeserializeOwned + Send + 'static,
+        O: Output + Serialize + Send + 'static,
+        E: Output + Serialize + StatusCode + Send + 'static,
     {
         let rb = builder(
             RouteBuilder::new()
@@ -151,6 +155,35 @@ where
                 .path(self.path.clone()),
         );
         let route = crate::Handler::new(rb, handler, &mut self.schema);
+        self.handlers.push(route);
+        self
+    }
+
+    /// Adds a stream route to the API.
+    ///
+    /// This method takes a stream handler function and a closure that configures the
+    /// route's metadata (like its name, path, and description) using a [`RouteBuilder`].
+    pub fn stream_route<F, St, R, I, O, E1, E2, H>(
+        mut self,
+        handler: F,
+        builder: fn(RouteBuilder) -> RouteBuilder,
+    ) -> Self
+    where
+        F: Fn(S, I, H) -> Result<St, E1> + Send + Sync + Copy + 'static,
+        St: Stream<Item = R> + Send + 'static,
+        R: IntoResult<O, E2> + 'static,
+        I: Input + DeserializeOwned + Send + 'static,
+        H: Input + DeserializeOwned + Send + 'static,
+        O: Output + Serialize + Send + 'static,
+        E1: Output + Serialize + StatusCode + Send + 'static,
+        E2: Output + Serialize + Send + 'static,
+    {
+        let rb = builder(
+            RouteBuilder::new()
+                .tags(&self.default_tags)
+                .path(self.path.clone()),
+        );
+        let route = crate::Handler::new_stream(rb, handler, &mut self.schema);
         self.handlers.push(route);
         self
     }
@@ -288,7 +321,7 @@ where
     /// The name of this router, derived from the [`Builder`]'s name.
     pub name: String,
     /// The list of handlers belonging to this router.
-    pub handlers: Vec<crate::Handler<S>>,
+    pub(crate) handlers: Vec<crate::Handler<S>>,
 }
 
 /// A fluent builder for configuring a single route's metadata.

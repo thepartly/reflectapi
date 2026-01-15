@@ -151,9 +151,9 @@ pub mod codegen;
 
 #[cfg(feature = "builder")]
 pub use builder::{
-    BuildError, BuildErrors, Builder, ContentType, Handler, HandlerCallback, HandlerFuture,
-    IntoResult, RouteBuilder, Router, StatusCode,
+    BuildError, BuildErrors, Builder, ContentType, IntoResult, RouteBuilder, Router, StatusCode,
 };
+use builder::{Handler, HandlerCallback};
 pub use empty::*;
 pub use infallible::*;
 pub use option::*;

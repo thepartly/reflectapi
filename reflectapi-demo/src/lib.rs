@@ -1,5 +1,8 @@
 use std::sync::{Arc, Mutex};
 
+use futures_util::Stream;
+use tokio::sync::broadcast;
+
 #[cfg(test)]
 mod tests;
 
@@ -41,6 +44,11 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
             b.name("pets.get-first")
                 .description("Fetch first pet, if any exists")
         })
+        .stream_route(pets_cdc_events, |b| {
+            b.name("pets.cdc-events")
+                .readonly(true)
+                .description("Stream of change data capture events for pets")
+        })
         .rename_types("reflectapi_demo::", "myapi::")
         // and some optional linting rules
         .validate(|schema| {
@@ -68,12 +76,14 @@ async fn health_check(
 #[derive(Debug)]
 pub struct AppState {
     pets: Mutex<Vec<model::Pet>>,
+    tx: broadcast::Sender<model::Pet>,
 }
 
 impl Default for AppState {
     fn default() -> Self {
         Self {
             pets: Mutex::new(Vec::new()),
+            tx: broadcast::channel(100).0,
         }
     }
 }
@@ -191,6 +201,7 @@ async fn pets_create(
         return Err(proto::PetsCreateError::Conflict);
     }
 
+    state.tx.send(request.0.clone()).ok();
     pets.push(request.0);
 
     Ok(().into())
@@ -205,10 +216,10 @@ async fn pets_update(
 
     let mut pets = state.pets.lock().unwrap();
 
-    let Some(possition) = pets.iter().position(|pet| pet.name == request.name) else {
+    let Some(pos) = pets.iter().position(|pet| pet.name == request.name) else {
         return Err(proto::PetsUpdateError::NotFound);
     };
-    let pet = &mut pets[possition];
+    let pet = &mut pets[pos];
 
     if let Some(kind) = request.kind {
         pet.kind = kind;
@@ -223,6 +234,7 @@ async fn pets_update(
     }
 
     pet.updated_at = some_datetime();
+    state.tx.send(pet.clone()).ok();
 
     Ok(().into())
 }
@@ -236,10 +248,11 @@ async fn pets_remove(
 
     let mut pets = state.pets.lock().unwrap();
 
-    let Some(possition) = pets.iter().position(|pet| pet.name == request.name) else {
+    let Some(pos) = pets.iter().position(|pet| pet.name == request.name) else {
         return Err(proto::PetsRemoveError::NotFound);
     };
-    pets.remove(possition);
+    state.tx.send(pets[pos].clone()).ok();
+    pets.remove(pos);
 
     Ok(().into())
 }
@@ -264,8 +277,28 @@ async fn pets_get_first(
     Ok(random_pet)
 }
 
+fn pets_cdc_events(
+    state: Arc<AppState>,
+    _: reflectapi::Empty,
+    headers: proto::Headers,
+) -> Result<impl Stream<Item = model::Pet>, proto::UnauthorizedError> {
+    authorize::<proto::UnauthorizedError>(headers)
+        .expect("todo need to be able to return result here too?");
+
+    let mut rx = state.tx.subscribe();
+    Ok(async_stream::stream! {
+        loop {
+            match rx.recv().await {
+                Ok(pet) => yield pet,
+                Err(broadcast::error::RecvError::Lagged(_)) => {}
+                Err(broadcast::error::RecvError::Closed) => break,
+            }
+        }
+    })
+}
+
 mod proto {
-    #[derive(serde::Serialize, reflectapi::Output)]
+    #[derive(Debug, serde::Serialize, reflectapi::Output)]
     pub struct UnauthorizedError;
 
     impl reflectapi::StatusCode for UnauthorizedError {
