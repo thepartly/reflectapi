@@ -29,7 +29,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiOption
 from reflectapi_runtime import ReflectapiEmpty
-from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
 
 
@@ -37,6 +36,12 @@ from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 T = TypeVar("T")
+
+
+class MyapiHealthCheckFail(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
 class MyapiProtoPetsListError(str, Enum):
@@ -718,6 +723,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
+    MyapiHealthCheckFail.model_rebuild()
     MyapiModelBehavior.model_rebuild()
     MyapiModelInputPet.model_rebuild()
     MyapiModelKind.model_rebuild()
@@ -807,6 +813,13 @@ class MyapiModelKindFactory:
 
 
 # Testing utilities
+
+
+def create_myapihealthcheckfail_response(
+    value: MyapiHealthCheckFail,
+) -> ApiResponse[MyapiHealthCheckFail]:
+    """Create a mock ApiResponse for MyapiHealthCheckFail."""
+    return create_api_response(value)
 
 
 def create_myapimodelbehavior_response(

@@ -61,7 +61,10 @@ pub mod interface {
             &self,
             input: reflectapi::Empty,
             headers: reflectapi::Empty,
-        ) -> Result<reflectapi::Empty, reflectapi::rt::Error<reflectapi::Empty, C::Error>> {
+        ) -> Result<
+            reflectapi::Empty,
+            reflectapi::rt::Error<super::types::myapi::HealthCheckFail, C::Error>,
+        > {
             reflectapi::rt::__request_impl(
                 &self.client,
                 self.base_url
@@ -217,6 +220,18 @@ pub mod interface {
 pub mod types {
 
     pub mod myapi {
+
+        #[derive(Debug, serde::Deserialize, serde::Serialize)]
+        pub struct HealthCheckFail {}
+
+        impl std::fmt::Display for HealthCheckFail {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", reflectapi::rt::error_to_string(self))
+            }
+        }
+
+        impl std::error::Error for HealthCheckFail {}
+
         pub mod model {
 
             #[derive(Debug, serde::Deserialize, serde::Serialize)]
@@ -260,6 +275,7 @@ pub mod types {
                 #[serde(rename = "bird")]
                 Bird,
             }
+
             pub mod input {
 
                 #[derive(Debug, serde::Serialize)]
@@ -330,20 +346,36 @@ pub mod types {
                 pub cursor: std::option::Option<std::string::String>,
             }
 
-            #[derive(Debug, serde::Deserialize)]
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
             pub enum PetsCreateError {
                 Conflict,
                 NotAuthorized,
                 InvalidIdentity { message: std::string::String },
             }
 
+            impl std::fmt::Display for PetsCreateError {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "{}", reflectapi::rt::error_to_string(self))
+                }
+            }
+
+            impl std::error::Error for PetsCreateError {}
+
             pub type PetsCreateRequest = super::super::myapi::model::input::Pet;
 
-            #[derive(Debug, serde::Deserialize)]
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
             pub enum PetsListError {
                 InvalidCursor,
                 Unauthorized,
             }
+
+            impl std::fmt::Display for PetsListError {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "{}", reflectapi::rt::error_to_string(self))
+                }
+            }
+
+            impl std::error::Error for PetsListError {}
 
             #[derive(Debug, serde::Serialize)]
             pub struct PetsListRequest {
@@ -359,11 +391,19 @@ pub mod types {
                 pub cursor: std::option::Option<std::string::String>,
             }
 
-            #[derive(Debug, serde::Deserialize)]
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
             pub enum PetsRemoveError {
                 NotFound,
                 NotAuthorized,
             }
+
+            impl std::fmt::Display for PetsRemoveError {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "{}", reflectapi::rt::error_to_string(self))
+                }
+            }
+
+            impl std::error::Error for PetsRemoveError {}
 
             #[derive(Debug, serde::Serialize)]
             pub struct PetsRemoveRequest {
@@ -371,11 +411,19 @@ pub mod types {
                 pub name: std::string::String,
             }
 
-            #[derive(Debug, serde::Deserialize)]
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
             pub enum PetsUpdateError {
                 NotFound,
                 NotAuthorized,
             }
+
+            impl std::fmt::Display for PetsUpdateError {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "{}", reflectapi::rt::error_to_string(self))
+                }
+            }
+
+            impl std::error::Error for PetsUpdateError {}
 
             #[derive(Debug, serde::Serialize)]
             pub struct PetsUpdateRequest {
@@ -404,6 +452,14 @@ pub mod types {
 
             #[derive(Debug, serde::Deserialize)]
             pub struct UnauthorizedError;
+
+            impl std::fmt::Display for UnauthorizedError {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "UnauthorizedError")
+                }
+            }
+
+            impl std::error::Error for UnauthorizedError {}
         }
     }
 }

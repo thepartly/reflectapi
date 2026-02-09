@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeSet, HashMap},
+    collections::{BTreeSet, HashMap, HashSet},
     process::Command,
 };
 
@@ -78,8 +78,20 @@ impl Config {
     }
 }
 
+fn discover_error_types(schema: &crate::Schema) -> HashSet<String> {
+    let mut error_types = HashSet::new();
+    for function in schema.functions() {
+        if let Some(error_type) = function.error_type.as_ref() {
+            error_types.insert(error_type.name.clone());
+        }
+    }
+
+    error_types
+}
+
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     let mut implemented_types = __build_implemented_types();
+    let error_types = discover_error_types(&schema);
     for type_def in schema
         .input_types()
         .types()
@@ -132,6 +144,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
                 &implemented_types,
                 schema.is_input_type(&original_type_name),
                 schema.is_output_type(&original_type_name),
+                error_types.contains(&original_type_name),
             )?,
         );
     }
@@ -337,13 +350,24 @@ pub use interface::Interface;",
 
     #[derive(Template)]
     #[template(
-        source = "
+        source = r#"
 {{ description }}{{ self.render_attributes_derive() }}
 pub struct {{ name }} {{ self.render_brackets().0 }}
     {%- for field in fields.iter() %}
     {{ field }},
     {%- endfor %}
-{{ self.render_brackets().1 }}",
+{{ self.render_brackets().1 }}
+
+{% if is_error_type %}
+impl std::fmt::Display for {{ name }} {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", reflectapi::rt::error_to_string(self))
+    }
+}
+
+impl std::error::Error for {{ name }} {}
+{% endif %}
+"#,
         ext = "txt"
     )]
     pub(super) struct __Struct {
@@ -353,6 +377,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         pub is_tuple: bool,
         pub is_input_type: bool,
         pub is_output_type: bool,
+        pub is_error_type: bool,
         pub base_derives: BTreeSet<String>,
         pub codegen_config: reflectapi_schema::RustTypeCodegenConfig,
     }
@@ -369,7 +394,8 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         fn render_attributes_derive(&self) -> String {
             let mut attrs = self.codegen_config.additional_derives.clone();
             attrs.extend(self.base_derives.iter().cloned());
-            if self.is_input_type {
+            if self.is_input_type || self.is_error_type {
+                // Need `Serialize` for error types for their generated `Display` implementation.
                 // for client it is the inverse, input types are outgoing types
                 attrs.insert("serde::Serialize".into());
             }
@@ -392,13 +418,24 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
 
     #[derive(Template)]
     #[template(
-        source = "
+        source = r#"
 {{ description }}{{ self.render_attributes_derive() }}
 {{ self.render_attributes() }}pub enum {{ name }} {
     {%- for variant in variants.iter() %}
     {{ variant }}
     {%- endfor %}
-}",
+}
+
+{% if is_error_type %}
+impl std::fmt::Display for {{ name }} {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", reflectapi::rt::error_to_string(self))
+    }
+}
+
+impl std::error::Error for {{ name }} {}
+{% endif %}
+"#,
         ext = "txt"
     )]
     pub(super) struct __Enum {
@@ -408,6 +445,7 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         pub representation: crate::Representation,
         pub is_input_type: bool,
         pub is_output_type: bool,
+        pub is_error_type: bool,
         pub codegen_config: reflectapi_schema::RustTypeCodegenConfig,
         pub base_derives: BTreeSet<String>,
     }
@@ -416,7 +454,8 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
         fn render_attributes_derive(&self) -> String {
             let mut attrs = self.codegen_config.additional_derives.clone();
             attrs.extend(self.base_derives.iter().cloned());
-            if self.is_input_type {
+            if self.is_input_type || self.is_error_type {
+                // Need `Serialize` for error types for their generated `Display` implementation.
                 // for client it is the inverse, input types are outgoing types
                 attrs.insert("serde::Serialize".into());
             }
@@ -639,7 +678,17 @@ pub struct {{ name }} {{ self.render_brackets().0 }}
     #[template(
         source = "
 {{ description }}{{ self.render_attributes_derive() }}
-pub struct {{ name }};",
+pub struct {{ name }};
+
+{% if is_error_type %}
+impl std::fmt::Display for {{ name }} {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, \"{{ name }}\")
+    }
+}
+
+impl std::error::Error for {{ name }} {}
+{% endif %}",
         ext = "txt"
     )]
     pub(super) struct __Unit {
@@ -647,6 +696,7 @@ pub struct {{ name }};",
         pub description: String,
         pub is_input_type: bool,
         pub is_output_type: bool,
+        pub is_error_type: bool,
         pub codegen_config: reflectapi_schema::RustTypeCodegenConfig,
         pub base_derives: BTreeSet<String>,
     }
@@ -826,6 +876,7 @@ fn __interface_types_from_function_group(
         is_tuple: false,
         is_input_type: false,
         is_output_type: false,
+        is_error_type: false,
         codegen_config: Default::default(),
         base_derives: BTreeSet::from_iter(["Debug".into()]),
     };
@@ -965,6 +1016,7 @@ fn __render_type(
     implemented_types: &HashMap<String, String>,
     is_input_type: bool,
     is_output_type: bool,
+    is_error_type: bool,
 ) -> Result<String, anyhow::Error> {
     let type_name = __type_to_ts_name(type_def);
     let type_name_depth = type_def.name().split("::").count() - 1;
@@ -977,6 +1029,7 @@ fn __render_type(
                     description: __doc_to_ts_comments(&struct_def.description, 0),
                     is_input_type,
                     is_output_type,
+                    is_error_type,
                     codegen_config: struct_def.codegen_config.rust.clone(),
                     base_derives: config.base_derives.clone(),
                 };
@@ -1006,6 +1059,7 @@ fn __render_type(
                     is_tuple: struct_def.is_tuple(),
                     is_input_type,
                     is_output_type,
+                    is_error_type,
                     codegen_config: struct_def.codegen_config.rust.clone(),
                     base_derives: config.base_derives.clone(),
                     fields: struct_def
@@ -1041,6 +1095,7 @@ fn __render_type(
                 representation: enum_def.representation.clone(),
                 is_input_type,
                 is_output_type,
+                is_error_type,
                 codegen_config: enum_def.codegen_config.rust.clone(),
                 base_derives: config.base_derives.clone(),
                 variants: enum_def

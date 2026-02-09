@@ -391,7 +391,7 @@ export namespace __definition {
       input: {},
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<{}, {}>;
+    ) => AsyncResult<{}, myapi.HealthCheckFail>;
   }
 
   export interface PetsInterface {
@@ -453,6 +453,8 @@ export namespace __definition {
   }
 }
 export namespace myapi {
+  export interface HealthCheckFail {}
+
   export namespace model {
     export type Behavior =
       | "Calm"
@@ -631,11 +633,6 @@ export namespace reflectapi {
    * Struct object with no fields
    */
   export interface Empty {}
-
-  /**
-   * Error object which is expected to be never returned
-   */
-  export interface Infallible {}
 }
 
 namespace __implementation {
@@ -665,7 +662,7 @@ namespace __implementation {
 
   function health__check(client: Client) {
     return (input: {}, headers: {}, options?: RequestOptions) =>
-      __request<{}, {}, {}, {}>(
+      __request<{}, {}, {}, myapi.HealthCheckFail>(
         client,
         "/health.check",
         input,

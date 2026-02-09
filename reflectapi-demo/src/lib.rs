@@ -57,12 +57,22 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
         })
 }
 
+// Test for struct error returns.
+#[derive(Debug, serde::Serialize, reflectapi::Output)]
+struct HealthCheckFail {}
+
+impl reflectapi::StatusCode for HealthCheckFail {
+    fn status_code(&self) -> http::StatusCode {
+        http::StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
+
 async fn health_check(
     _: Arc<AppState>,
     _request: reflectapi::Empty,
     _headers: reflectapi::Empty,
-) -> reflectapi::Empty {
-    ().into()
+) -> Result<reflectapi::Empty, HealthCheckFail> {
+    Ok(reflectapi::Empty {})
 }
 
 #[derive(Debug)]

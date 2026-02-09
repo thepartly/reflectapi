@@ -6,6 +6,9 @@
       "name": "health.check",
       "path": "",
       "description": "Check the health of the service",
+      "error_type": {
+        "name": "myapi::HealthCheckFail"
+      },
       "serialization": [
         "json",
         "msgpack"
@@ -574,6 +577,13 @@
         "description": "64-bit floating point number"
       },
       {
+        "kind": "struct",
+        "name": "myapi::HealthCheckFail",
+        "fields": {
+          "named": []
+        }
+      },
+      {
         "kind": "enum",
         "name": "myapi::model::Behavior",
         "variants": [
@@ -863,12 +873,6 @@
         "kind": "struct",
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
-        "fields": "none"
-      },
-      {
-        "kind": "struct",
-        "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {

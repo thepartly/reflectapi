@@ -14,6 +14,10 @@ pub fn to_vec<T>(_value: &T) -> Result<Vec<u8>, Error> {
     unimplemented!()
 }
 
+pub fn to_string<T>(_value: &T) -> Result<String, Error> {
+    unimplemented!()
+}
+
 pub fn to_value<T>(_value: &T) -> Result<Value, Error> {
     unimplemented!()
 }

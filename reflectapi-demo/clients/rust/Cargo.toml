@@ -12,4 +12,4 @@ reflectapi-demo-client-generated = { path = "generated" }
 tokio = { version = "1.38.0", features = ["full"] }
 reqwest = { version = "0.12.2" }
 
-reflectapi.workspace = true
+reflectapi = { workspace = true, features = ["rt"] }
