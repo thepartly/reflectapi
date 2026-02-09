@@ -91,7 +91,6 @@ fn discover_error_types(schema: &crate::Schema) -> HashSet<String> {
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     let mut implemented_types = __build_implemented_types();
-    let error_types = discover_error_types(&schema);
     for type_def in schema
         .input_types()
         .types()
@@ -114,7 +113,9 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     }
 
     let mut rendered_types = HashMap::new();
-    for original_type_name in schema.consolidate_types() {
+    let original_type_names = schema.consolidate_types();
+    let error_types = discover_error_types(&schema);
+    for original_type_name in original_type_names {
         if config
             .shared_modules
             .iter()
