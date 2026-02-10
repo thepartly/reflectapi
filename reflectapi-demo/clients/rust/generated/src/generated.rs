@@ -469,7 +469,7 @@ pub mod types {
 
             impl std::error::Error for UnauthorizedError {}
 
-            #[derive(Debug, serde::Deserialize)]
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
             pub struct ValidationError {
                 pub message: std::string::String,
             }

@@ -7,7 +7,7 @@ use std::{
 use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
-use reflectapi_schema::{Function, TypeReference, Visitor};
+use reflectapi_schema::{Function, TypeReference, VisitMut, Visitor};
 
 use super::format_with;
 
@@ -113,7 +113,7 @@ fn types_referenced_by(
                 self.out.insert(type_ref.name.clone());
             }
 
-            ControlFlow::Continue(())
+            type_ref.visit_mut(self)
         }
     }
 
@@ -158,6 +158,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     let error_types = discover_error_types(&schema);
     // Types referenced by error types also need `derive(Serialize)` for their generated `Display` implementation.
     let extra_serializable_types = types_referenced_by(&mut schema, &error_types);
+    dbg!(&error_types, &extra_serializable_types);
 
     for original_type_name in original_type_names {
         if config
