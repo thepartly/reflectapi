@@ -1,12 +1,13 @@
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
+    ops::ControlFlow,
     process::Command,
 };
 
 use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
-use reflectapi_schema::Function;
+use reflectapi_schema::{Function, TypeReference, VisitMut as _, Visitor};
 
 use super::format_with;
 
@@ -79,6 +80,10 @@ impl Config {
 }
 
 fn discover_error_types(schema: &crate::Schema) -> HashSet<String> {
+    // Recursively find all error types returned by functions (and all their nested types) and mark
+    // them as error types so that they get the appropriate `Display` and `Error` trait
+    // implementations.
+
     let mut error_types = HashSet::new();
     for function in schema.functions() {
         if let Some(error_type) = function.error_type.as_ref() {
@@ -87,6 +92,42 @@ fn discover_error_types(schema: &crate::Schema) -> HashSet<String> {
     }
 
     error_types
+}
+
+fn types_referenced_by(
+    schema: &mut crate::Schema,
+    type_names: &HashSet<String>,
+) -> HashSet<String> {
+    struct V {
+        out: HashSet<String>,
+    }
+
+    impl Visitor for V {
+        type Output = ();
+
+        fn visit_type_ref(
+            &mut self,
+            type_ref: &mut TypeReference,
+        ) -> ControlFlow<Self::Output, Self::Output> {
+            if !self.out.contains(&type_ref.name) {
+                self.out.insert(type_ref.name.clone());
+            }
+
+            ControlFlow::Continue(())
+        }
+    }
+
+    let mut v = V {
+        out: HashSet::new(),
+    };
+
+    for type_name in type_names {
+        if let Some(type_def) = schema.get_type_mut(type_name) {
+            type_def.visit_mut(&mut v);
+        }
+    }
+
+    v.out
 }
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
@@ -115,6 +156,9 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     let mut rendered_types = HashMap::new();
     let original_type_names = schema.consolidate_types();
     let error_types = discover_error_types(&schema);
+    // Types referenced by error types also need `derive(Serialize)` for their generated `Display` implementation.
+    let extra_output_types = types_referenced_by(&schema, &error_types);
+
     for original_type_name in original_type_names {
         if config
             .shared_modules
@@ -144,7 +188,8 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
                 &schema,
                 &implemented_types,
                 schema.is_input_type(&original_type_name),
-                schema.is_output_type(&original_type_name),
+                schema.is_output_type(&original_type_name)
+                    || extra_output_types.contains(&original_type_name),
                 error_types.contains(&original_type_name),
             )?,
         );

@@ -163,6 +163,16 @@ impl Schema {
         None
     }
 
+    pub fn get_type_mut(&mut self, name: &str) -> Option<&mut Type> {
+        if let Some(t) = self.input_types.get_type_mut(name) {
+            return Some(t);
+        }
+        if let Some(t) = self.output_types.get_type_mut(name) {
+            return Some(t);
+        }
+        None
+    }
+
     #[cfg(feature = "glob")]
     pub fn glob_rename_types(
         &mut self,
@@ -301,6 +311,18 @@ impl Typespace {
             return None;
         }
         self.types.get(index)
+    }
+
+    pub fn get_type_mut(&mut self, name: &str) -> Option<&mut Type> {
+        self.ensure_types_map();
+        let index = {
+            let b = self.types_map.borrow();
+            b.get(name).copied().unwrap_or(usize::MAX)
+        };
+        if index == usize::MAX {
+            return None;
+        }
+        self.types.get_mut(index)
     }
 
     pub fn reserve_type(&mut self, name: &str) -> bool {
