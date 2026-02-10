@@ -1013,7 +1013,7 @@ impl IntoIterator for Fields {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, Hash)]
 pub struct Field {
     /// Field name, should be a valid Rust field name identifier
     pub name: String,
@@ -1062,6 +1062,32 @@ pub struct Field {
     pub transform_callback: String,
     #[serde(skip, default)]
     pub transform_callback_fn: Option<fn(&mut TypeReference, &Typespace) -> ()>,
+}
+
+impl PartialEq for Field {
+    fn eq(
+        &self,
+        Self {
+            name,
+            serde_name,
+            description,
+            deprecation_note,
+            type_ref,
+            required,
+            flattened,
+            transform_callback,
+            transform_callback_fn: _,
+        }: &Self,
+    ) -> bool {
+        self.name == *name
+            && self.serde_name == *serde_name
+            && self.description == *description
+            && self.deprecation_note == *deprecation_note
+            && self.type_ref == *type_ref
+            && self.required == *required
+            && self.flattened == *flattened
+            && self.transform_callback == *transform_callback
+    }
 }
 
 impl Field {
