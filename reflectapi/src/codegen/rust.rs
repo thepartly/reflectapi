@@ -98,33 +98,41 @@ fn types_referenced_by(
     schema: &mut crate::Schema,
     type_names: &HashSet<String>,
 ) -> HashSet<String> {
-    struct V {
+    struct V<'a> {
         out: HashSet<String>,
+        schema: &'a mut crate::Schema,
     }
 
-    impl Visitor for V {
+    impl Visitor for V<'_> {
         type Output = ();
 
-        fn visit_type_ref(
+        fn visit_top_level_name(
             &mut self,
-            type_ref: &mut TypeReference,
+            name: &mut String,
         ) -> ControlFlow<Self::Output, Self::Output> {
-            if !self.out.contains(&type_ref.name) {
-                self.out.insert(type_ref.name.clone());
+            if !self.out.contains(name) {
+                self.out.insert(name.clone());
+                if let Some(ty) = self.schema.get_type_mut(name) {
+                    // A bit hacky, ideally we'd have a non-mut version of the visitor trait.
+                    let mut ty = ty.clone();
+                    let _ = self.visit_type(&mut ty);
+                }
             }
 
-            type_ref.visit_mut(self)
+            ControlFlow::Continue(())
         }
     }
 
     let mut v = V {
         out: HashSet::new(),
+        schema,
     };
 
     for type_name in type_names {
-        if let Some(ty) = schema.get_type_mut(type_name) {
-            let _ = v.visit_type(ty);
-        }
+        let _ = v.visit_type_ref(&mut TypeReference {
+            name: type_name.clone(),
+            arguments: vec![],
+        });
     }
 
     v.out

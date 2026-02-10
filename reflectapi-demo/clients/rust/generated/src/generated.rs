@@ -458,7 +458,7 @@ pub mod types {
                     reflectapi::Option<std::vec::Vec<super::super::myapi::model::Behavior>>,
             }
 
-            #[derive(Debug, serde::Deserialize)]
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
             pub struct UnauthorizedError;
 
             impl std::fmt::Display for UnauthorizedError {
@@ -469,7 +469,7 @@ pub mod types {
 
             impl std::error::Error for UnauthorizedError {}
 
-            #[derive(Debug, serde::Deserialize)]
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
             pub struct ValidationA {
                 pub message: std::string::String,
             }
