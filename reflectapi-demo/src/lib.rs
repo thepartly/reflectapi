@@ -276,6 +276,17 @@ async fn pets_get_first(
 
 mod proto {
     #[derive(serde::Serialize, reflectapi::Output)]
+    pub struct InternalError {
+        pub message: String,
+    }
+
+    impl reflectapi::StatusCode for InternalError {
+        fn status_code(&self) -> http::StatusCode {
+            http::StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
     pub struct UnauthorizedError;
 
     impl reflectapi::StatusCode for UnauthorizedError {
@@ -311,9 +322,12 @@ mod proto {
     }
 
     #[derive(serde::Serialize, reflectapi::Output)]
+    #[serde(tag = "kind")]
     pub enum PetsListError {
         InvalidCursor,
         Unauthorized,
+        #[allow(dead_code)]
+        Internal(InternalError),
     }
 
     impl reflectapi::StatusCode for PetsListError {
@@ -321,6 +335,7 @@ mod proto {
             match self {
                 PetsListError::InvalidCursor => http::StatusCode::BAD_REQUEST,
                 PetsListError::Unauthorized => http::StatusCode::UNAUTHORIZED,
+                PetsListError::Internal(err) => err.status_code(),
             }
         }
     }

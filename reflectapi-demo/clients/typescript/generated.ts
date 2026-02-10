@@ -565,6 +565,10 @@ export namespace myapi {
       authorization: string;
     }
 
+    export interface InternalError {
+      message: string;
+    }
+
     export interface Paginated<T> {
       /**
        * slice of a collection
@@ -587,7 +591,10 @@ export namespace myapi {
 
     export type PetsCreateRequest = myapi.model.input.Pet;
 
-    export type PetsListError = "InvalidCursor" | "Unauthorized";
+    export type PetsListError =
+      | { kind: "InvalidCursor" }
+      | { kind: "Unauthorized" }
+      | ({ kind: "Internal" } & myapi.proto.InternalError);
 
     export interface PetsListRequest {
       limit?: number /* u8 */ | null;

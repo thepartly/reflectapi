@@ -7,7 +7,7 @@ use std::{
 use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
-use reflectapi_schema::{Function, TypeReference, VisitMut as _, Visitor};
+use reflectapi_schema::{Function, TypeReference, Visitor};
 
 use super::format_with;
 
@@ -122,8 +122,8 @@ fn types_referenced_by(
     };
 
     for type_name in type_names {
-        if let Some(type_def) = schema.get_type_mut(type_name) {
-            type_def.visit_mut(&mut v);
+        if let Some(ty) = schema.get_type_mut(type_name) {
+            let _ = v.visit_type(ty);
         }
     }
 
@@ -157,7 +157,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     let original_type_names = schema.consolidate_types();
     let error_types = discover_error_types(&schema);
     // Types referenced by error types also need `derive(Serialize)` for their generated `Display` implementation.
-    let extra_output_types = types_referenced_by(&schema, &error_types);
+    let extra_serializable_types = types_referenced_by(&mut schema, &error_types);
 
     for original_type_name in original_type_names {
         if config
@@ -187,9 +187,9 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
                 type_def,
                 &schema,
                 &implemented_types,
-                schema.is_input_type(&original_type_name),
-                schema.is_output_type(&original_type_name)
-                    || extra_output_types.contains(&original_type_name),
+                schema.is_input_type(&original_type_name)
+                    || extra_serializable_types.contains(&original_type_name),
+                schema.is_output_type(&original_type_name),
                 error_types.contains(&original_type_name),
             )?,
         );

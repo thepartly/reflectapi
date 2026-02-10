@@ -749,6 +749,21 @@
       },
       {
         "kind": "struct",
+        "name": "myapi::proto::InternalError",
+        "fields": {
+          "named": [
+            {
+              "name": "message",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
         "name": "myapi::proto::Paginated",
         "parameters": [
           {
@@ -816,6 +831,11 @@
       {
         "kind": "enum",
         "name": "myapi::proto::PetsListError",
+        "representation": {
+          "internal": {
+            "tag": "kind"
+          }
+        },
         "variants": [
           {
             "name": "InvalidCursor",
@@ -824,6 +844,20 @@
           {
             "name": "Unauthorized",
             "fields": "none"
+          },
+          {
+            "name": "Internal",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "myapi::proto::InternalError"
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
       },

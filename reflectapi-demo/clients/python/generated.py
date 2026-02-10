@@ -44,13 +44,6 @@ class MyapiHealthCheckFail(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
-class MyapiProtoPetsListError(str, Enum):
-    """Generated enum."""
-
-    INVALID_CURSOR = "InvalidCursor"
-    UNAUTHORIZED = "Unauthorized"
-
-
 class MyapiProtoPetsRemoveError(str, Enum):
     """Generated enum."""
 
@@ -142,6 +135,14 @@ class MyapiProtoHeaders(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     authorization: str
+
+
+class MyapiProtoInternalError(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    message: str
 
 
 class MyapiProtoPetsCreateErrorInvalidIdentityVariant(BaseModel):
@@ -257,6 +258,42 @@ class MyapiProtoPetsListRequest(BaseModel):
 
     limit: int | None = None
     cursor: str | None = None
+
+
+class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    kind: Literal["InvalidCursor"] = "InvalidCursor"
+
+
+class MyapiProtoPetsListErrorUnauthorized(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    kind: Literal["Unauthorized"] = "Unauthorized"
+
+
+class MyapiProtoPetsListErrorInternal(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    kind: Literal["Internal"] = "Internal"
+    message: str
+
+
+class MyapiProtoPetsListError(RootModel):
+    root: Annotated[
+        Union[
+            MyapiProtoPetsListErrorInvalidCursor,
+            MyapiProtoPetsListErrorUnauthorized,
+            MyapiProtoPetsListErrorInternal,
+        ],
+        Field(discriminator="kind"),
+    ]
 
 
 class MyapiModelInputPet(BaseModel):
@@ -729,6 +766,7 @@ try:
     MyapiModelKind.model_rebuild()
     MyapiModelOutputPet.model_rebuild()
     MyapiProtoHeaders.model_rebuild()
+    MyapiProtoInternalError.model_rebuild()
     MyapiProtoPaginated.model_rebuild()
     MyapiProtoPetsCreateError.model_rebuild()
     MyapiProtoPetsListError.model_rebuild()
@@ -812,6 +850,21 @@ class MyapiModelKindFactory:
         return MyapiModelKindCat(lives=lives)
 
 
+class MyapiProtoPetsListErrorFactory:
+    """Factory class for creating MyapiProtoPetsListError variants with ergonomic syntax.
+
+    MyapiProtoPetsListError variants
+    """
+
+    INVALIDCURSOR = MyapiProtoPetsListErrorInvalidCursor()
+    UNAUTHORIZED = MyapiProtoPetsListErrorUnauthorized()
+
+    @staticmethod
+    def internal(field_0) -> MyapiProtoPetsListErrorInternal:
+        """Creates the 'Internal' variant of the MyapiProtoPetsListError enum."""
+        return MyapiProtoPetsListErrorInternal(field_0=field_0)
+
+
 # Testing utilities
 
 
@@ -854,6 +907,13 @@ def create_myapiprotoheaders_response(
     value: MyapiProtoHeaders,
 ) -> ApiResponse[MyapiProtoHeaders]:
     """Create a mock ApiResponse for MyapiProtoHeaders."""
+    return create_api_response(value)
+
+
+def create_myapiprotointernalerror_response(
+    value: MyapiProtoInternalError,
+) -> ApiResponse[MyapiProtoInternalError]:
+    """Create a mock ApiResponse for MyapiProtoInternalError."""
     return create_api_response(value)
 
 

@@ -334,6 +334,11 @@ pub mod types {
                 pub authorization: std::string::String,
             }
 
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
+            pub struct InternalError {
+                pub message: std::string::String,
+            }
+
             #[derive(Debug, serde::Deserialize)]
             pub struct Paginated<T> {
                 /// slice of a collection
@@ -364,9 +369,11 @@ pub mod types {
             pub type PetsCreateRequest = super::super::myapi::model::input::Pet;
 
             #[derive(Debug, serde::Deserialize, serde::Serialize)]
+            #[serde(tag = "kind")]
             pub enum PetsListError {
                 InvalidCursor,
                 Unauthorized,
+                Internal(super::super::myapi::proto::InternalError),
             }
 
             impl std::fmt::Display for PetsListError {
