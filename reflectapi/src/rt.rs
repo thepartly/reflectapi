@@ -1,5 +1,9 @@
 pub use url::{ParseError as UrlParseError, Url};
 
+pub fn error_to_string<T: serde::Serialize>(error: &T) -> String {
+    serde_json::to_string(error).unwrap_or_else(|e| format!("Failed to serialize error: {e}"))
+}
+
 pub trait Client {
     type Error;
 

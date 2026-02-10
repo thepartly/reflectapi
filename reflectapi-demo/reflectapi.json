@@ -6,6 +6,9 @@
       "name": "health.check",
       "path": "",
       "description": "Check the health of the service",
+      "error_type": {
+        "name": "myapi::HealthCheckFail"
+      },
       "serialization": [
         "json",
         "msgpack"
@@ -574,6 +577,13 @@
         "description": "64-bit floating point number"
       },
       {
+        "kind": "struct",
+        "name": "myapi::HealthCheckFail",
+        "fields": {
+          "named": []
+        }
+      },
+      {
         "kind": "enum",
         "name": "myapi::model::Behavior",
         "variants": [
@@ -739,6 +749,21 @@
       },
       {
         "kind": "struct",
+        "name": "myapi::proto::InternalError",
+        "fields": {
+          "named": [
+            {
+              "name": "message",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
         "name": "myapi::proto::Paginated",
         "parameters": [
           {
@@ -806,6 +831,11 @@
       {
         "kind": "enum",
         "name": "myapi::proto::PetsListError",
+        "representation": {
+          "internal": {
+            "tag": "kind"
+          }
+        },
         "variants": [
           {
             "name": "InvalidCursor",
@@ -814,6 +844,20 @@
           {
             "name": "Unauthorized",
             "fields": "none"
+          },
+          {
+            "name": "Internal",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "myapi::proto::InternalError"
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
       },
@@ -842,6 +886,25 @@
           {
             "name": "NotAuthorized",
             "fields": "none"
+          },
+          {
+            "name": "Validation",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "std::vec::Vec",
+                    "arguments": [
+                      {
+                        "name": "myapi::proto::ValidationError"
+                      }
+                    ]
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
       },
@@ -861,14 +924,43 @@
       },
       {
         "kind": "struct",
-        "name": "reflectapi::Empty",
-        "description": "Struct object with no fields",
-        "fields": "none"
+        "name": "myapi::proto::ValidationA",
+        "fields": {
+          "named": [
+            {
+              "name": "message",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "myapi::proto::ValidationError",
+        "variants": [
+          {
+            "name": "ValidationA",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "myapi::proto::ValidationA"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
       },
       {
         "kind": "struct",
-        "name": "reflectapi::Infallible",
-        "description": "Error object which is expected to be never returned",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
         "fields": "none"
       },
       {

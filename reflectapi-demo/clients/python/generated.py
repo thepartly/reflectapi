@@ -29,7 +29,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiOption
 from reflectapi_runtime import ReflectapiEmpty
-from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime.testing import MockClient, create_api_response
 
 
@@ -39,21 +38,13 @@ from reflectapi_runtime.testing import MockClient, create_api_response
 T = TypeVar("T")
 
 
-class MyapiProtoPetsListError(str, Enum):
-    """Generated enum."""
+class MyapiHealthCheckFail(BaseModel):
+    """Generated data model."""
 
-    INVALID_CURSOR = "InvalidCursor"
-    UNAUTHORIZED = "Unauthorized"
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
 class MyapiProtoPetsRemoveError(str, Enum):
-    """Generated enum."""
-
-    NOT_FOUND = "NotFound"
-    NOT_AUTHORIZED = "NotAuthorized"
-
-
-class MyapiProtoPetsUpdateError(str, Enum):
     """Generated enum."""
 
     NOT_FOUND = "NotFound"
@@ -139,6 +130,14 @@ class MyapiProtoHeaders(BaseModel):
     authorization: str
 
 
+class MyapiProtoInternalError(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    message: str
+
+
 class MyapiProtoPetsCreateErrorInvalidIdentityVariant(BaseModel):
     """InvalidIdentity variant"""
 
@@ -203,6 +202,14 @@ class MyapiProtoPetsRemoveRequest(BaseModel):
     name: str
 
 
+class MyapiProtoValidationA(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    message: str
+
+
 class MyapiProtoPaginated(BaseModel, Generic[T]):
     """Generated data model."""
 
@@ -254,6 +261,86 @@ class MyapiProtoPetsListRequest(BaseModel):
     cursor: str | None = None
 
 
+class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    kind: Literal["InvalidCursor"] = "InvalidCursor"
+
+
+class MyapiProtoPetsListErrorUnauthorized(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    kind: Literal["Unauthorized"] = "Unauthorized"
+
+
+class MyapiProtoPetsListErrorInternal(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    kind: Literal["Internal"] = "Internal"
+    message: str
+
+
+class MyapiProtoPetsListError(RootModel):
+    root: Annotated[
+        Union[
+            MyapiProtoPetsListErrorInvalidCursor,
+            MyapiProtoPetsListErrorUnauthorized,
+            MyapiProtoPetsListErrorInternal,
+        ],
+        Field(discriminator="kind"),
+    ]
+
+
+class MyapiProtoValidationErrorValidationAVariant(BaseModel):
+    """ValidationA variant"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    field_0: MyapiProtoValidationA
+
+
+# Externally tagged enum using RootModel
+MyapiProtoValidationErrorVariants = MyapiProtoValidationErrorValidationAVariant
+
+
+class MyapiProtoValidationError(RootModel[MyapiProtoValidationErrorVariants]):
+    """Externally tagged enum"""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_externally_tagged(cls, data):
+        # Handle direct variant instances (for programmatic creation)
+        if isinstance(data, MyapiProtoValidationErrorValidationAVariant):
+            return data
+
+        # Handle JSON data (for deserialization)
+
+        if isinstance(data, dict):
+            if len(data) != 1:
+                raise ValueError("Externally tagged enum must have exactly one key")
+
+            key, value = next(iter(data.items()))
+            if key == "ValidationA":
+                return MyapiProtoValidationErrorValidationAVariant(field_0=value)
+
+        raise ValueError(f"Unknown variant for MyapiProtoValidationError: {data}")
+
+    @model_serializer
+    def _serialize_externally_tagged(self):
+        if isinstance(self.root, MyapiProtoValidationErrorValidationAVariant):
+            return {"ValidationA": self.root.field_0}
+
+        raise ValueError(
+            f"Cannot serialize MyapiProtoValidationError variant: {type(self.root)}"
+        )
+
+
 class MyapiModelInputPet(BaseModel):
     """Generated data model."""
 
@@ -287,6 +374,62 @@ class MyapiProtoPetsUpdateRequest(BaseModel):
     kind: MyapiModelKind | None = None
     age: ReflectapiOption[int] = None
     behaviors: ReflectapiOption[list[MyapiModelBehavior]] = None
+
+
+class MyapiProtoPetsUpdateErrorValidationVariant(BaseModel):
+    """Validation variant"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    field_0: list[MyapiProtoValidationError]
+
+
+# Externally tagged enum using RootModel
+MyapiProtoPetsUpdateErrorVariants = Union[
+    Literal["NotFound"],
+    Literal["NotAuthorized"],
+    MyapiProtoPetsUpdateErrorValidationVariant,
+]
+
+
+class MyapiProtoPetsUpdateError(RootModel[MyapiProtoPetsUpdateErrorVariants]):
+    """Externally tagged enum"""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_externally_tagged(cls, data):
+        # Handle direct variant instances (for programmatic creation)
+        if isinstance(data, MyapiProtoPetsUpdateErrorValidationVariant):
+            return data
+
+        # Handle JSON data (for deserialization)
+        if isinstance(data, str) and data == "NotFound":
+            return data
+        if isinstance(data, str) and data == "NotAuthorized":
+            return data
+
+        if isinstance(data, dict):
+            if len(data) != 1:
+                raise ValueError("Externally tagged enum must have exactly one key")
+
+            key, value = next(iter(data.items()))
+            if key == "Validation":
+                return MyapiProtoPetsUpdateErrorValidationVariant(field_0=value)
+
+        raise ValueError(f"Unknown variant for MyapiProtoPetsUpdateError: {data}")
+
+    @model_serializer
+    def _serialize_externally_tagged(self):
+        if self.root == "NotFound":
+            return "NotFound"
+        if self.root == "NotAuthorized":
+            return "NotAuthorized"
+        if isinstance(self.root, MyapiProtoPetsUpdateErrorValidationVariant):
+            return {"Validation": self.root.field_0}
+
+        raise ValueError(
+            f"Cannot serialize MyapiProtoPetsUpdateError variant: {type(self.root)}"
+        )
 
 
 class AsyncHealthClient:
@@ -718,11 +861,13 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
+    MyapiHealthCheckFail.model_rebuild()
     MyapiModelBehavior.model_rebuild()
     MyapiModelInputPet.model_rebuild()
     MyapiModelKind.model_rebuild()
     MyapiModelOutputPet.model_rebuild()
     MyapiProtoHeaders.model_rebuild()
+    MyapiProtoInternalError.model_rebuild()
     MyapiProtoPaginated.model_rebuild()
     MyapiProtoPetsCreateError.model_rebuild()
     MyapiProtoPetsListError.model_rebuild()
@@ -731,6 +876,8 @@ try:
     MyapiProtoPetsRemoveRequest.model_rebuild()
     MyapiProtoPetsUpdateError.model_rebuild()
     MyapiProtoPetsUpdateRequest.model_rebuild()
+    MyapiProtoValidationA.model_rebuild()
+    MyapiProtoValidationError.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -806,7 +953,67 @@ class MyapiModelKindFactory:
         return MyapiModelKindCat(lives=lives)
 
 
+class MyapiProtoPetsListErrorFactory:
+    """Factory class for creating MyapiProtoPetsListError variants with ergonomic syntax.
+
+    MyapiProtoPetsListError variants
+    """
+
+    INVALIDCURSOR = MyapiProtoPetsListErrorInvalidCursor()
+    UNAUTHORIZED = MyapiProtoPetsListErrorUnauthorized()
+
+    @staticmethod
+    def internal(field_0) -> MyapiProtoPetsListErrorInternal:
+        """Creates the 'Internal' variant of the MyapiProtoPetsListError enum."""
+        return MyapiProtoPetsListErrorInternal(field_0=field_0)
+
+
+class MyapiProtoValidationErrorFactory:
+    """Factory class for creating MyapiProtoValidationError variants with ergonomic syntax.
+
+    MyapiProtoValidationError variants
+    """
+
+    @staticmethod
+    def validation_a(field_0) -> MyapiProtoValidationError:
+        """Creates the 'ValidationA' variant of the MyapiProtoValidationError enum."""
+        return MyapiProtoValidationError(
+            MyapiProtoValidationErrorValidationAVariant(field_0=field_0)
+        )
+
+
+class MyapiProtoPetsUpdateErrorFactory:
+    """Factory class for creating MyapiProtoPetsUpdateError variants with ergonomic syntax.
+
+    MyapiProtoPetsUpdateError variants
+    """
+
+    @staticmethod
+    def not_found() -> MyapiProtoPetsUpdateError:
+        """Creates the 'NotFound' variant of the MyapiProtoPetsUpdateError enum."""
+        return MyapiProtoPetsUpdateError("NotFound")
+
+    @staticmethod
+    def not_authorized() -> MyapiProtoPetsUpdateError:
+        """Creates the 'NotAuthorized' variant of the MyapiProtoPetsUpdateError enum."""
+        return MyapiProtoPetsUpdateError("NotAuthorized")
+
+    @staticmethod
+    def validation(field_0) -> MyapiProtoPetsUpdateError:
+        """Creates the 'Validation' variant of the MyapiProtoPetsUpdateError enum."""
+        return MyapiProtoPetsUpdateError(
+            MyapiProtoPetsUpdateErrorValidationVariant(field_0=field_0)
+        )
+
+
 # Testing utilities
+
+
+def create_myapihealthcheckfail_response(
+    value: MyapiHealthCheckFail,
+) -> ApiResponse[MyapiHealthCheckFail]:
+    """Create a mock ApiResponse for MyapiHealthCheckFail."""
+    return create_api_response(value)
 
 
 def create_myapimodelbehavior_response(
@@ -841,6 +1048,13 @@ def create_myapiprotoheaders_response(
     value: MyapiProtoHeaders,
 ) -> ApiResponse[MyapiProtoHeaders]:
     """Create a mock ApiResponse for MyapiProtoHeaders."""
+    return create_api_response(value)
+
+
+def create_myapiprotointernalerror_response(
+    value: MyapiProtoInternalError,
+) -> ApiResponse[MyapiProtoInternalError]:
+    """Create a mock ApiResponse for MyapiProtoInternalError."""
     return create_api_response(value)
 
 
@@ -897,6 +1111,20 @@ def create_myapiprotopetsupdaterequest_response(
     value: MyapiProtoPetsUpdateRequest,
 ) -> ApiResponse[MyapiProtoPetsUpdateRequest]:
     """Create a mock ApiResponse for MyapiProtoPetsUpdateRequest."""
+    return create_api_response(value)
+
+
+def create_myapiprotovalidationa_response(
+    value: MyapiProtoValidationA,
+) -> ApiResponse[MyapiProtoValidationA]:
+    """Create a mock ApiResponse for MyapiProtoValidationA."""
+    return create_api_response(value)
+
+
+def create_myapiprotovalidationerror_response(
+    value: MyapiProtoValidationError,
+) -> ApiResponse[MyapiProtoValidationError]:
+    """Create a mock ApiResponse for MyapiProtoValidationError."""
     return create_api_response(value)
 
 

@@ -541,6 +541,18 @@ expression: s
           }
         }
       },
+      "myapi.proto.InternalError": {
+        "type": "object",
+        "title": "myapi.proto.InternalError",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
       "myapi.proto.PetsCreateError": {
         "oneOf": [
           {
@@ -583,10 +595,44 @@ expression: s
       "myapi.proto.PetsListError": {
         "oneOf": [
           {
-            "const": "InvalidCursor"
+            "type": "object",
+            "title": "InvalidCursor",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "InvalidCursor"
+              }
+            }
           },
           {
-            "const": "Unauthorized"
+            "type": "object",
+            "title": "Unauthorized",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "Unauthorized"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "myapi.proto.InternalError",
+            "required": [
+              "kind",
+              "message"
+            ],
+            "properties": {
+              "kind": {
+                "const": "Internal"
+              },
+              "message": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
           }
         ]
       },
@@ -648,6 +694,22 @@ expression: s
           },
           {
             "const": "NotAuthorized"
+          },
+          {
+            "type": "object",
+            "title": "Validation",
+            "required": [
+              "Validation"
+            ],
+            "properties": {
+              "Validation": {
+                "description": "Expandable array type",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/myapi.proto.ValidationError"
+                }
+              }
+            }
           }
         ]
       },
@@ -709,6 +771,34 @@ expression: s
         "prefixItems": [
           {
             "$ref": "#/components/schemas/std.tuple.Tuple0"
+          }
+        ]
+      },
+      "myapi.proto.ValidationA": {
+        "type": "object",
+        "title": "myapi.proto.ValidationA",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.proto.ValidationError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "ValidationA",
+            "required": [
+              "ValidationA"
+            ],
+            "properties": {
+              "ValidationA": {
+                "$ref": "#/components/schemas/myapi.proto.ValidationA"
+              }
+            }
           }
         ]
       },

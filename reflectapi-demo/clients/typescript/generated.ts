@@ -391,7 +391,7 @@ export namespace __definition {
       input: {},
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<{}, {}>;
+    ) => AsyncResult<{}, myapi.HealthCheckFail>;
   }
 
   export interface PetsInterface {
@@ -453,6 +453,8 @@ export namespace __definition {
   }
 }
 export namespace myapi {
+  export interface HealthCheckFail {}
+
   export namespace model {
     export type Behavior =
       | "Calm"
@@ -563,6 +565,10 @@ export namespace myapi {
       authorization: string;
     }
 
+    export interface InternalError {
+      message: string;
+    }
+
     export interface Paginated<T> {
       /**
        * slice of a collection
@@ -585,7 +591,10 @@ export namespace myapi {
 
     export type PetsCreateRequest = myapi.model.input.Pet;
 
-    export type PetsListError = "InvalidCursor" | "Unauthorized";
+    export type PetsListError =
+      | { kind: "InvalidCursor" }
+      | { kind: "Unauthorized" }
+      | ({ kind: "Internal" } & myapi.proto.InternalError);
 
     export interface PetsListRequest {
       limit?: number /* u8 */ | null;
@@ -601,7 +610,12 @@ export namespace myapi {
       name: string;
     }
 
-    export type PetsUpdateError = "NotFound" | "NotAuthorized";
+    export type PetsUpdateError =
+      | "NotFound"
+      | "NotAuthorized"
+      | {
+          Validation: Array<myapi.proto.ValidationError>;
+        };
 
     export interface PetsUpdateRequest {
       /**
@@ -623,6 +637,14 @@ export namespace myapi {
     }
 
     export type UnauthorizedError = null;
+
+    export interface ValidationA {
+      message: string;
+    }
+
+    export type ValidationError = {
+      ValidationA: myapi.proto.ValidationA;
+    };
   }
 }
 
@@ -631,11 +653,6 @@ export namespace reflectapi {
    * Struct object with no fields
    */
   export interface Empty {}
-
-  /**
-   * Error object which is expected to be never returned
-   */
-  export interface Infallible {}
 }
 
 namespace __implementation {
@@ -665,7 +682,7 @@ namespace __implementation {
 
   function health__check(client: Client) {
     return (input: {}, headers: {}, options?: RequestOptions) =>
-      __request<{}, {}, {}, {}>(
+      __request<{}, {}, {}, myapi.HealthCheckFail>(
         client,
         "/health.check",
         input,

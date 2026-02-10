@@ -57,12 +57,22 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
         })
 }
 
+// Test for struct error returns.
+#[derive(Debug, serde::Serialize, reflectapi::Output)]
+struct HealthCheckFail {}
+
+impl reflectapi::StatusCode for HealthCheckFail {
+    fn status_code(&self) -> http::StatusCode {
+        http::StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
+
 async fn health_check(
     _: Arc<AppState>,
     _request: reflectapi::Empty,
     _headers: reflectapi::Empty,
-) -> reflectapi::Empty {
-    ().into()
+) -> Result<reflectapi::Empty, HealthCheckFail> {
+    Ok(reflectapi::Empty {})
 }
 
 #[derive(Debug)]
@@ -266,6 +276,17 @@ async fn pets_get_first(
 
 mod proto {
     #[derive(serde::Serialize, reflectapi::Output)]
+    pub struct InternalError {
+        pub message: String,
+    }
+
+    impl reflectapi::StatusCode for InternalError {
+        fn status_code(&self) -> http::StatusCode {
+            http::StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
     pub struct UnauthorizedError;
 
     impl reflectapi::StatusCode for UnauthorizedError {
@@ -301,9 +322,12 @@ mod proto {
     }
 
     #[derive(serde::Serialize, reflectapi::Output)]
+    #[serde(tag = "kind")]
     pub enum PetsListError {
         InvalidCursor,
         Unauthorized,
+        #[allow(dead_code)]
+        Internal(InternalError),
     }
 
     impl reflectapi::StatusCode for PetsListError {
@@ -311,6 +335,7 @@ mod proto {
             match self {
                 PetsListError::InvalidCursor => http::StatusCode::BAD_REQUEST,
                 PetsListError::Unauthorized => http::StatusCode::UNAUTHORIZED,
+                PetsListError::Internal(err) => err.status_code(),
             }
         }
     }
@@ -363,9 +388,22 @@ mod proto {
     }
 
     #[derive(serde::Serialize, reflectapi::Output)]
+    pub struct ValidationA {
+        pub message: String,
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
+    pub enum ValidationError {
+        #[allow(dead_code)]
+        ValidationA(ValidationA),
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
     pub enum PetsUpdateError {
         NotFound,
         NotAuthorized,
+        #[allow(dead_code)]
+        Validation(Vec<ValidationError>),
     }
 
     impl reflectapi::StatusCode for PetsUpdateError {
@@ -373,6 +411,7 @@ mod proto {
             match self {
                 PetsUpdateError::NotFound => http::StatusCode::NOT_FOUND,
                 PetsUpdateError::NotAuthorized => http::StatusCode::UNAUTHORIZED,
+                PetsUpdateError::Validation(_) => http::StatusCode::UNPROCESSABLE_ENTITY,
             }
         }
     }

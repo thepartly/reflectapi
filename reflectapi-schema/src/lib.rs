@@ -163,6 +163,16 @@ impl Schema {
         None
     }
 
+    pub fn get_type_mut(&mut self, name: &str) -> Option<&mut Type> {
+        if let Some(t) = self.input_types.get_type_mut(name) {
+            return Some(t);
+        }
+        if let Some(t) = self.output_types.get_type_mut(name) {
+            return Some(t);
+        }
+        None
+    }
+
     #[cfg(feature = "glob")]
     pub fn glob_rename_types(
         &mut self,
@@ -301,6 +311,18 @@ impl Typespace {
             return None;
         }
         self.types.get(index)
+    }
+
+    pub fn get_type_mut(&mut self, name: &str) -> Option<&mut Type> {
+        self.ensure_types_map();
+        let index = {
+            let b = self.types_map.borrow();
+            b.get(name).copied().unwrap_or(usize::MAX)
+        };
+        if index == usize::MAX {
+            return None;
+        }
+        self.types.get_mut(index)
     }
 
     pub fn reserve_type(&mut self, name: &str) -> bool {
@@ -603,7 +625,7 @@ impl std::hash::Hash for TypeParameter {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum Type {
     Primitive(Primitive),
@@ -811,7 +833,7 @@ impl From<Primitive> for Type {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub struct Struct {
     /// Name of a struct, should be a valid Rust struct name identifier
     pub name: String,
@@ -918,7 +940,7 @@ impl From<Struct> for Type {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash, Default)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum Fields {
     /// Named struct or variant:
@@ -991,7 +1013,7 @@ impl IntoIterator for Fields {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq)]
 pub struct Field {
     /// Field name, should be a valid Rust field name identifier
     pub name: String,
@@ -1040,6 +1062,32 @@ pub struct Field {
     pub transform_callback: String,
     #[serde(skip, default)]
     pub transform_callback_fn: Option<fn(&mut TypeReference, &Typespace) -> ()>,
+}
+
+impl PartialEq for Field {
+    fn eq(
+        &self,
+        Self {
+            name,
+            serde_name,
+            description,
+            deprecation_note,
+            type_ref,
+            required,
+            flattened,
+            transform_callback,
+            transform_callback_fn: _,
+        }: &Self,
+    ) -> bool {
+        self.name == *name
+            && self.serde_name == *serde_name
+            && self.description == *description
+            && self.deprecation_note == *deprecation_note
+            && self.type_ref == *type_ref
+            && self.required == *required
+            && self.flattened == *flattened
+            && self.transform_callback == *transform_callback
+    }
 }
 
 impl Field {
@@ -1119,7 +1167,7 @@ fn is_default<T: Default + PartialEq>(t: &T) -> bool {
     *t == Default::default()
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub struct Enum {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -1189,7 +1237,7 @@ impl From<Enum> for Type {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub struct Variant {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
