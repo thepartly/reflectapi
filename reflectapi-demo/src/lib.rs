@@ -388,9 +388,16 @@ mod proto {
     }
 
     #[derive(serde::Serialize, reflectapi::Output)]
+    pub struct ValidationError {
+        pub message: String,
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
     pub enum PetsUpdateError {
         NotFound,
         NotAuthorized,
+        #[allow(dead_code)]
+        Validation(Vec<ValidationError>),
     }
 
     impl reflectapi::StatusCode for PetsUpdateError {
@@ -398,6 +405,7 @@ mod proto {
             match self {
                 PetsUpdateError::NotFound => http::StatusCode::NOT_FOUND,
                 PetsUpdateError::NotAuthorized => http::StatusCode::UNAUTHORIZED,
+                PetsUpdateError::Validation(_) => http::StatusCode::UNPROCESSABLE_ENTITY,
             }
         }
     }
