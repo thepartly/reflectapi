@@ -610,7 +610,12 @@ export namespace myapi {
       name: string;
     }
 
-    export type PetsUpdateError = "NotFound" | "NotAuthorized";
+    export type PetsUpdateError =
+      | "NotFound"
+      | "NotAuthorized"
+      | {
+          Validation: Array<myapi.proto.ValidationError>;
+        };
 
     export interface PetsUpdateRequest {
       /**
@@ -632,6 +637,10 @@ export namespace myapi {
     }
 
     export type UnauthorizedError = null;
+
+    export interface ValidationError {
+      message: string;
+    }
   }
 }
 

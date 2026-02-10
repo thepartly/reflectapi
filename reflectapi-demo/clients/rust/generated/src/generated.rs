@@ -422,6 +422,7 @@ pub mod types {
             pub enum PetsUpdateError {
                 NotFound,
                 NotAuthorized,
+                Validation(std::vec::Vec<super::super::myapi::proto::ValidationError>),
             }
 
             impl std::fmt::Display for PetsUpdateError {
@@ -467,6 +468,11 @@ pub mod types {
             }
 
             impl std::error::Error for UnauthorizedError {}
+
+            #[derive(Debug, serde::Deserialize)]
+            pub struct ValidationError {
+                pub message: std::string::String,
+            }
         }
     }
 }

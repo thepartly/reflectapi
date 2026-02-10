@@ -886,6 +886,25 @@
           {
             "name": "NotAuthorized",
             "fields": "none"
+          },
+          {
+            "name": "Validation",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "std::vec::Vec",
+                    "arguments": [
+                      {
+                        "name": "myapi::proto::ValidationError"
+                      }
+                    ]
+                  },
+                  "required": true
+                }
+              ]
+            }
           }
         ]
       },
@@ -899,6 +918,21 @@
               "type": {
                 "name": "std::tuple::Tuple0"
               }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::proto::ValidationError",
+        "fields": {
+          "named": [
+            {
+              "name": "message",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
             }
           ]
         }
