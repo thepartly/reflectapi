@@ -202,7 +202,7 @@ class MyapiProtoPetsRemoveRequest(BaseModel):
     name: str
 
 
-class MyapiProtoValidationError(BaseModel):
+class MyapiProtoValidationA(BaseModel):
     """Generated data model."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -297,6 +297,85 @@ class MyapiProtoPetsListError(RootModel):
     ]
 
 
+class MyapiProtoValidationErrorValidationAVariant(BaseModel):
+    """ValidationA variant"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    field_0: MyapiProtoValidationA
+
+
+# Externally tagged enum using RootModel
+MyapiProtoValidationErrorVariants = MyapiProtoValidationErrorValidationAVariant
+
+
+class MyapiProtoValidationError(RootModel[MyapiProtoValidationErrorVariants]):
+    """Externally tagged enum"""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_externally_tagged(cls, data):
+        # Handle direct variant instances (for programmatic creation)
+        if isinstance(data, MyapiProtoValidationErrorValidationAVariant):
+            return data
+
+        # Handle JSON data (for deserialization)
+
+        if isinstance(data, dict):
+            if len(data) != 1:
+                raise ValueError("Externally tagged enum must have exactly one key")
+
+            key, value = next(iter(data.items()))
+            if key == "ValidationA":
+                return MyapiProtoValidationErrorValidationAVariant(field_0=value)
+
+        raise ValueError(f"Unknown variant for MyapiProtoValidationError: {data}")
+
+    @model_serializer
+    def _serialize_externally_tagged(self):
+        if isinstance(self.root, MyapiProtoValidationErrorValidationAVariant):
+            return {"ValidationA": self.root.field_0}
+
+        raise ValueError(
+            f"Cannot serialize MyapiProtoValidationError variant: {type(self.root)}"
+        )
+
+
+class MyapiModelInputPet(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    name: str
+    kind: MyapiModelKind
+    age: int | None = None
+    updated_at: datetime | None = None
+    behaviors: list[MyapiModelBehavior] | None = None
+
+
+class MyapiModelOutputPet(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    name: str
+    kind: MyapiModelKind
+    age: int | None = None
+    updated_at: datetime
+    behaviors: list[MyapiModelBehavior] | None = None
+
+
+class MyapiProtoPetsUpdateRequest(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    name: str
+    kind: MyapiModelKind | None = None
+    age: ReflectapiOption[int] = None
+    behaviors: ReflectapiOption[list[MyapiModelBehavior]] = None
+
+
 class MyapiProtoPetsUpdateErrorValidationVariant(BaseModel):
     """Validation variant"""
 
@@ -351,41 +430,6 @@ class MyapiProtoPetsUpdateError(RootModel[MyapiProtoPetsUpdateErrorVariants]):
         raise ValueError(
             f"Cannot serialize MyapiProtoPetsUpdateError variant: {type(self.root)}"
         )
-
-
-class MyapiModelInputPet(BaseModel):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    name: str
-    kind: MyapiModelKind
-    age: int | None = None
-    updated_at: datetime | None = None
-    behaviors: list[MyapiModelBehavior] | None = None
-
-
-class MyapiModelOutputPet(BaseModel):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    name: str
-    kind: MyapiModelKind
-    age: int | None = None
-    updated_at: datetime
-    behaviors: list[MyapiModelBehavior] | None = None
-
-
-class MyapiProtoPetsUpdateRequest(BaseModel):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    name: str
-    kind: MyapiModelKind | None = None
-    age: ReflectapiOption[int] = None
-    behaviors: ReflectapiOption[list[MyapiModelBehavior]] = None
 
 
 class AsyncHealthClient:
@@ -832,6 +876,7 @@ try:
     MyapiProtoPetsRemoveRequest.model_rebuild()
     MyapiProtoPetsUpdateError.model_rebuild()
     MyapiProtoPetsUpdateRequest.model_rebuild()
+    MyapiProtoValidationA.model_rebuild()
     MyapiProtoValidationError.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
@@ -921,6 +966,20 @@ class MyapiProtoPetsListErrorFactory:
     def internal(field_0) -> MyapiProtoPetsListErrorInternal:
         """Creates the 'Internal' variant of the MyapiProtoPetsListError enum."""
         return MyapiProtoPetsListErrorInternal(field_0=field_0)
+
+
+class MyapiProtoValidationErrorFactory:
+    """Factory class for creating MyapiProtoValidationError variants with ergonomic syntax.
+
+    MyapiProtoValidationError variants
+    """
+
+    @staticmethod
+    def validation_a(field_0) -> MyapiProtoValidationError:
+        """Creates the 'ValidationA' variant of the MyapiProtoValidationError enum."""
+        return MyapiProtoValidationError(
+            MyapiProtoValidationErrorValidationAVariant(field_0=field_0)
+        )
 
 
 class MyapiProtoPetsUpdateErrorFactory:
@@ -1052,6 +1111,13 @@ def create_myapiprotopetsupdaterequest_response(
     value: MyapiProtoPetsUpdateRequest,
 ) -> ApiResponse[MyapiProtoPetsUpdateRequest]:
     """Create a mock ApiResponse for MyapiProtoPetsUpdateRequest."""
+    return create_api_response(value)
+
+
+def create_myapiprotovalidationa_response(
+    value: MyapiProtoValidationA,
+) -> ApiResponse[MyapiProtoValidationA]:
+    """Create a mock ApiResponse for MyapiProtoValidationA."""
     return create_api_response(value)
 
 

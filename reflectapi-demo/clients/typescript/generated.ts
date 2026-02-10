@@ -638,9 +638,13 @@ export namespace myapi {
 
     export type UnauthorizedError = null;
 
-    export interface ValidationError {
+    export interface ValidationA {
       message: string;
     }
+
+    export type ValidationError = {
+      ValidationA: myapi.proto.ValidationA;
+    };
   }
 }
 

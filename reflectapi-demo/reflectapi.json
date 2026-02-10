@@ -924,7 +924,7 @@
       },
       {
         "kind": "struct",
-        "name": "myapi::proto::ValidationError",
+        "name": "myapi::proto::ValidationA",
         "fields": {
           "named": [
             {
@@ -936,6 +936,26 @@
             }
           ]
         }
+      },
+      {
+        "kind": "enum",
+        "name": "myapi::proto::ValidationError",
+        "variants": [
+          {
+            "name": "ValidationA",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "myapi::proto::ValidationA"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
       },
       {
         "kind": "struct",

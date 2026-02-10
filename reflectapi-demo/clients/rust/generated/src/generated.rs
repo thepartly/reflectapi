@@ -469,9 +469,14 @@ pub mod types {
 
             impl std::error::Error for UnauthorizedError {}
 
-            #[derive(Debug, serde::Deserialize, serde::Serialize)]
-            pub struct ValidationError {
+            #[derive(Debug, serde::Deserialize)]
+            pub struct ValidationA {
                 pub message: std::string::String,
+            }
+
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
+            pub enum ValidationError {
+                ValidationA(super::super::myapi::proto::ValidationA),
             }
         }
     }

@@ -770,9 +770,9 @@
           }
         ]
       },
-      "myapi.proto.ValidationError": {
+      "myapi.proto.ValidationA": {
         "type": "object",
-        "title": "myapi.proto.ValidationError",
+        "title": "myapi.proto.ValidationA",
         "required": [
           "message"
         ],
@@ -781,6 +781,22 @@
             "$ref": "#/components/schemas/std.string.String"
           }
         }
+      },
+      "myapi.proto.ValidationError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "ValidationA",
+            "required": [
+              "ValidationA"
+            ],
+            "properties": {
+              "ValidationA": {
+                "$ref": "#/components/schemas/myapi.proto.ValidationA"
+              }
+            }
+          }
+        ]
       },
       "std.string.String": {
         "description": "UTF-8 encoded string",

@@ -694,6 +694,22 @@ expression: s
           },
           {
             "const": "NotAuthorized"
+          },
+          {
+            "type": "object",
+            "title": "Validation",
+            "required": [
+              "Validation"
+            ],
+            "properties": {
+              "Validation": {
+                "description": "Expandable array type",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/myapi.proto.ValidationError"
+                }
+              }
+            }
           }
         ]
       },
@@ -755,6 +771,34 @@ expression: s
         "prefixItems": [
           {
             "$ref": "#/components/schemas/std.tuple.Tuple0"
+          }
+        ]
+      },
+      "myapi.proto.ValidationA": {
+        "type": "object",
+        "title": "myapi.proto.ValidationA",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.proto.ValidationError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "ValidationA",
+            "required": [
+              "ValidationA"
+            ],
+            "properties": {
+              "ValidationA": {
+                "$ref": "#/components/schemas/myapi.proto.ValidationA"
+              }
+            }
           }
         ]
       },

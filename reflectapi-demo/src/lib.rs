@@ -388,8 +388,14 @@ mod proto {
     }
 
     #[derive(serde::Serialize, reflectapi::Output)]
-    pub struct ValidationError {
+    pub struct ValidationA {
         pub message: String,
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
+    pub enum ValidationError {
+        #[allow(dead_code)]
+        ValidationA(ValidationA),
     }
 
     #[derive(serde::Serialize, reflectapi::Output)]
