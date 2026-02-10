@@ -7,7 +7,7 @@ use std::{
 use anyhow::Context;
 use askama::Template;
 use indexmap::IndexMap;
-use reflectapi_schema::{Function, TypeReference, VisitMut, Visitor};
+use reflectapi_schema::{Function, TypeReference, Visitor};
 
 use super::format_with;
 

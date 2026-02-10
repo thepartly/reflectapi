@@ -625,7 +625,7 @@ impl std::hash::Hash for TypeParameter {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum Type {
     Primitive(Primitive),
@@ -833,7 +833,7 @@ impl From<Primitive> for Type {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub struct Struct {
     /// Name of a struct, should be a valid Rust struct name identifier
     pub name: String,
@@ -940,7 +940,7 @@ impl From<Struct> for Type {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash, Default)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum Fields {
     /// Named struct or variant:
@@ -1013,7 +1013,7 @@ impl IntoIterator for Fields {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq)]
 pub struct Field {
     /// Field name, should be a valid Rust field name identifier
     pub name: String,
@@ -1167,7 +1167,7 @@ fn is_default<T: Default + PartialEq>(t: &T) -> bool {
     *t == Default::default()
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub struct Enum {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -1237,7 +1237,7 @@ impl From<Enum> for Type {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub struct Variant {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
