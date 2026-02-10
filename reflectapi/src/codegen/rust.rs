@@ -158,7 +158,6 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     let error_types = discover_error_types(&schema);
     // Types referenced by error types also need `derive(Serialize)` for their generated `Display` implementation.
     let extra_serializable_types = types_referenced_by(&mut schema, &error_types);
-    dbg!(&error_types, &extra_serializable_types);
 
     for original_type_name in original_type_names {
         if config
