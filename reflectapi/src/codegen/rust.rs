@@ -58,6 +58,9 @@ impl Config {
         self
     }
 
+    /// Use [`Builder::shared_modules`] instead to register shared modules at the
+    /// schema level, where they are available to validation steps.
+    #[deprecated(note = "Use Builder::shared_modules(\"rust\", modules) instead")]
     pub fn shared_modules(&mut self, shared_modules: BTreeSet<String>) -> &mut Self {
         self.shared_modules = shared_modules;
         self
@@ -139,14 +142,22 @@ fn types_referenced_by(
 }
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
+    // Merge shared_modules from schema level and (deprecated) config level
+    let mut shared_modules = schema
+        .shared_modules
+        .get("rust")
+        .cloned()
+        .unwrap_or_default();
+    #[allow(deprecated)]
+    shared_modules.extend(config.shared_modules.iter().cloned());
+
     let mut implemented_types = __build_implemented_types();
     for type_def in schema
         .input_types()
         .types()
         .chain(schema.output_types().types())
     {
-        if config
-            .shared_modules
+        if shared_modules
             .iter()
             .any(|m| type_def.name().starts_with(m))
         {
@@ -168,8 +179,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     let extra_serializable_types = types_referenced_by(&mut schema, &error_types);
 
     for original_type_name in original_type_names {
-        if config
-            .shared_modules
+        if shared_modules
             .iter()
             .any(|m| original_type_name.starts_with(m))
         {

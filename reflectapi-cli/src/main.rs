@@ -31,11 +31,12 @@ enum Commands {
         #[arg(short, long)]
         language: Language,
 
-        /// Specific to Rust codegen only.
         /// A module which does not need types generated for a client
         /// because that module is a 3rd party or open source crate
         /// which can be used by the client code directly as a dependency.
         /// Multiple modules can be specified.
+        /// Prefer setting shared_modules in the schema via Builder::shared_modules()
+        /// at the router level instead.
         #[arg(long, value_delimiter = ',')]
         shared_modules: Option<Vec<String>>,
 
@@ -150,7 +151,7 @@ fn main() -> anyhow::Result<()> {
             let schema_path = schema.unwrap_or(std::path::PathBuf::from("reflectapi.json"));
             let schema_as_json = std::fs::read_to_string(schema_path.clone())
                 .context(format!("Failed to read schema file: {schema_path:?}"))?;
-            let schema: reflectapi::Schema = serde_json::from_str(&schema_as_json)
+            let mut schema: reflectapi::Schema = serde_json::from_str(&schema_as_json)
                 .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
 
             let files: std::collections::BTreeMap<String, String> = match language {
@@ -168,6 +169,14 @@ fn main() -> anyhow::Result<()> {
                     files
                 }
                 Language::Rust => {
+                    // CLI --shared-modules flag merges into schema-level shared_modules for Rust
+                    if let Some(modules) = shared_modules {
+                        schema
+                            .shared_modules
+                            .entry("rust".to_string())
+                            .or_default()
+                            .extend(modules);
+                    }
                     let content = reflectapi::codegen::rust::generate(
                         schema,
                         reflectapi::codegen::rust::Config::default()
@@ -175,10 +184,7 @@ fn main() -> anyhow::Result<()> {
                             .typecheck(typecheck)
                             .instrument(instrument)
                             .include_tags(include_tags)
-                            .exclude_tags(exclude_tags)
-                            .shared_modules(
-                                shared_modules.unwrap_or_default().into_iter().collect(),
-                            ),
+                            .exclude_tags(exclude_tags),
                     )?;
                     let mut files = std::collections::BTreeMap::new();
                     files.insert("generated.rs".to_string(), content);
