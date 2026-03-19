@@ -104,10 +104,7 @@ impl Schema {
         self.input_types.extend(input_types);
         self.output_types.extend(output_types);
         for (lang, modules) in shared_modules {
-            self.shared_modules
-                .entry(lang)
-                .or_default()
-                .extend(modules);
+            self.shared_modules.entry(lang).or_default().extend(modules);
         }
     }
 
