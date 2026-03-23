@@ -22,6 +22,8 @@ pub const OUTPUT_SKIP: Symbol = Symbol("output_skip");
 
 pub const DERIVE: Symbol = Symbol("derive");
 
+pub const REQUIRED: Symbol = Symbol("required");
+
 pub const DISCRIMINANT: Symbol = Symbol("discriminant");
 
 impl PartialEq<Symbol> for Ident {
