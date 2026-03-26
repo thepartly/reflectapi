@@ -703,7 +703,12 @@ mod templates {
 
         pub fn render(&self) -> String {
             if self.is_unnamed() {
-                format!("{}{}{}", self.description, self.render_attributes(), self.type_)
+                format!(
+                    "{}{}{}",
+                    self.description,
+                    self.render_attributes(),
+                    self.type_
+                )
             } else {
                 format!(
                     "{}{}{}{}: {}",
@@ -859,7 +864,7 @@ mod templates {
                 "\n            client,\n\
                              base_url,\n\
                          })\n\
-                     }"
+                     }",
             );
             for func in &self.functions {
                 write!(out, "\n    {}", func.render()).unwrap();
@@ -1047,10 +1052,7 @@ fn __interface_types_from_function_group(
         interface_implementation.functions.push(func_impl);
     }
 
-    let mut result = vec![
-        type_template.render(),
-        interface_implementation.render(),
-    ];
+    let mut result = vec![type_template.render(), interface_implementation.render()];
 
     for (subgroup_name, subgroup) in group.subgroups.iter() {
         result.extend(__interface_types_from_function_group(
