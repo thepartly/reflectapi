@@ -35,7 +35,6 @@ export namespace reflectapi {
    */
   export interface Infallible {}
 }
-
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
@@ -44,7 +43,6 @@ export namespace reflectapi_demo {
           _f: number /* u8 */;
         }
       }
-
       export namespace output {
         export interface TestStructWithSerdeSkipSerialize {}
       }

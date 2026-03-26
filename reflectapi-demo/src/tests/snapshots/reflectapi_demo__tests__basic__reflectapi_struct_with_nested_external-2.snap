@@ -35,7 +35,6 @@ export namespace reflectapi {
    */
   export interface Infallible {}
 }
-
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace basic {
@@ -43,7 +42,6 @@ export namespace reflectapi_demo {
         _f: reflectapi_demo.tests.test_lib.TestStructNested;
       }
     }
-
     export namespace test_lib {
       export interface TestStructNested {
         _f: string;

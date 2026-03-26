@@ -35,14 +35,12 @@ export namespace reflectapi {
    */
   export interface Infallible {}
 }
-
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
       export namespace input {
         export type TestEnumWithVariantOther = { type: "V0" };
       }
-
       export namespace output {
         export type TestEnumWithVariantOther =
           | { type: "V0" }

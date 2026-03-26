@@ -35,7 +35,6 @@ export namespace reflectapi {
    */
   export interface Infallible {}
 }
-
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {

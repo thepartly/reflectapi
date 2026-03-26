@@ -28,7 +28,6 @@ export namespace __definition {
 export namespace foos {
   export interface Foo {}
 }
-
 export namespace reflectapi {
   /**
    * Struct object with no fields

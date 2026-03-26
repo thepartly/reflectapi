@@ -218,7 +218,6 @@ pub mod interface {
     }
 }
 pub mod types {
-
     pub mod myapi {
 
         #[derive(Debug, serde::Deserialize, serde::Serialize)]

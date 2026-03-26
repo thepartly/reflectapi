@@ -35,14 +35,12 @@ export namespace reflectapi {
    */
   export interface Infallible {}
 }
-
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
       export namespace input {
         export type TestEnumWithVariantSkipDeserialize = never;
       }
-
       export namespace output {
         export type TestEnumWithVariantSkipDeserialize = "_Variant1";
       }

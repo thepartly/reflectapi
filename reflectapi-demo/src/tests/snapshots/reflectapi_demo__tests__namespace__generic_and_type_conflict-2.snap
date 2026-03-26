@@ -22,7 +22,6 @@ export namespace __definition {
   }
 }
 export type T<I> = I;
-
 export namespace reflectapi {
   /**
    * Struct object with no fields
@@ -34,7 +33,6 @@ export namespace reflectapi {
    */
   export interface Infallible {}
 }
-
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace namespace {
