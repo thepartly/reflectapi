@@ -612,6 +612,99 @@ fn test_flatten_internally_tagged() {
     assert_snapshot!(Test);
 }
 
+/// Regression test for issue #123: flattened internally-tagged enum fields
+/// were silently dropped by the Python codegen.
+#[test]
+fn test_flatten_internally_tagged_enum_field() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(tag = "type")]
+    enum OfferKind {
+        Single { business: String },
+        Group { count: u32 },
+    }
+
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Offer {
+        id: String,
+        #[serde(flatten)]
+        payload: OfferKind,
+    }
+
+    assert_snapshot!(Offer);
+}
+
+#[test]
+fn test_flatten_externally_tagged_enum_field() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    enum Shape {
+        Circle { radius: f64 },
+        Rect { width: f64, height: f64 },
+    }
+
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Drawing {
+        name: String,
+        #[serde(flatten)]
+        shape: Shape,
+    }
+
+    assert_snapshot!(Drawing);
+}
+
+#[test]
+fn test_flatten_adjacently_tagged_enum_field() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(tag = "kind", content = "data")]
+    enum Payload {
+        Text { body: String },
+        Binary { size: u32 },
+    }
+
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Message {
+        id: String,
+        #[serde(flatten)]
+        payload: Payload,
+    }
+
+    assert_snapshot!(Message);
+}
+
+#[test]
+fn test_flatten_untagged_enum_field() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(untagged)]
+    enum Value {
+        Num { value: f64 },
+        Text { text: String },
+    }
+
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Cell {
+        label: String,
+        #[serde(flatten)]
+        content: Value,
+    }
+
+    assert_snapshot!(Cell);
+}
+
 #[test]
 fn test_struct_repr_transparent_generic_inner_type() {
     #[derive(serde::Deserialize, serde::Serialize, reflectapi::Input, reflectapi::Output)]

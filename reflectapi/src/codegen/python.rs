@@ -429,7 +429,13 @@ fn collect_generic_type_vars(
     }
 }
 
-/// Render a struct that contains flattened fields using direct field expansion
+/// Render a struct that contains flattened fields using direct field expansion.
+///
+/// For flattened structs, fields are expanded inline into the parent model.
+/// For flattened internally-tagged enums, we generate per-variant models that
+/// merge the parent's fields with each variant's fields + the tag discriminator,
+/// then emit a discriminated union RootModel. This matches the wire format that
+/// serde produces with `#[serde(flatten)]` on internally-tagged enums.
 fn render_struct_with_flatten(
     struct_def: &reflectapi_schema::Struct,
     schema: &Schema,
@@ -437,32 +443,295 @@ fn render_struct_with_flatten(
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     let struct_name = improve_class_name(&struct_def.name);
-
-    // Collect all fields (regular + flattened) into a single flat model
-    let mut all_fields = Vec::new();
     let active_generics: Vec<String> = struct_def
         .parameters
         .iter()
         .map(|p| p.name.clone())
         .collect();
 
-    // Track used generic type variables
     for generic in &active_generics {
         used_type_vars.insert(generic.clone());
     }
 
-    // Add regular fields
-    for field in struct_def.fields.iter().filter(|f| !f.flattened()) {
-        let field_name = sanitize_field_name_with_alias(field.name());
-        let field_type = type_ref_to_python_type(
-            &field.type_ref,
+    // Check if any flattened field is an internally-tagged enum
+    let flattened_internal_enum =
+        struct_def
+            .fields
+            .iter()
+            .filter(|f| f.flattened())
+            .find_map(|field| {
+                let type_name = resolve_flattened_type_name(&field.type_ref);
+                match schema.get_type(type_name) {
+                    Some(reflectapi_schema::Type::Enum(enum_def)) => {
+                        match &enum_def.representation {
+                            reflectapi_schema::Representation::Internal { tag } => {
+                                Some((field, enum_def.clone(), tag.clone()))
+                            }
+                            _ => None,
+                        }
+                    }
+                    _ => None,
+                }
+            });
+
+    if let Some((_enum_field, enum_def, tag)) = flattened_internal_enum {
+        // Wire-compatible path: generate per-variant models with merged fields
+        render_struct_with_flattened_internal_enum(
+            struct_def,
+            &struct_name,
+            &enum_def,
+            &tag,
             schema,
             implemented_types,
             &active_generics,
             used_type_vars,
-        )?;
+        )
+    } else {
+        // Standard path: expand all flattened fields inline
+        render_struct_with_flatten_standard(
+            struct_def,
+            &struct_name,
+            schema,
+            implemented_types,
+            &active_generics,
+            used_type_vars,
+        )
+    }
+}
 
-        let (python_name, alias) = field_name;
+/// Resolve the target type name for a flattened field, unwrapping Option<T>
+fn resolve_flattened_type_name(type_ref: &TypeReference) -> &str {
+    if (type_ref.name == "std::option::Option" || type_ref.name == "reflectapi::Option")
+        && !type_ref.arguments.is_empty()
+    {
+        &type_ref.arguments[0].name
+    } else {
+        &type_ref.name
+    }
+}
+
+/// Render a struct with a flattened internally-tagged enum by generating
+/// per-variant models that merge parent fields + variant fields + tag.
+#[allow(clippy::too_many_arguments)]
+fn render_struct_with_flattened_internal_enum(
+    struct_def: &reflectapi_schema::Struct,
+    struct_name: &str,
+    enum_def: &reflectapi_schema::Enum,
+    tag: &str,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    active_generics: &[String],
+    used_type_vars: &mut BTreeSet<String>,
+) -> anyhow::Result<String> {
+    use reflectapi_schema::Fields;
+
+    let mut output = String::new();
+    let mut union_variant_names: Vec<String> = Vec::new();
+
+    // Collect the parent struct's non-flattened fields + any flattened struct fields
+    let mut base_fields: Vec<templates::Field> = Vec::new();
+    for field in struct_def.fields.iter().filter(|f| !f.flattened()) {
+        let (python_name, alias) = sanitize_field_name_with_alias(field.name());
+        let field_type = type_ref_to_python_type(
+            &field.type_ref,
+            schema,
+            implemented_types,
+            active_generics,
+            used_type_vars,
+        )?;
+        base_fields.push(templates::Field {
+            name: python_name,
+            type_annotation: if field.required {
+                field_type
+            } else {
+                format!("{field_type} | None")
+            },
+            description: Some(field.description().to_string()),
+            deprecation_note: field.deprecation_note.clone(),
+            optional: !field.required,
+            default_value: if field.required {
+                None
+            } else {
+                Some("None".to_string())
+            },
+            alias,
+        });
+    }
+
+    // Also expand any flattened struct fields (non-enum) into base_fields
+    for field in struct_def.fields.iter().filter(|f| f.flattened()) {
+        let type_name = resolve_flattened_type_name(&field.type_ref);
+        if let Some(reflectapi_schema::Type::Struct(_)) = schema.get_type(type_name) {
+            let flattened = collect_flattened_fields(
+                &field.type_ref,
+                schema,
+                implemented_types,
+                active_generics,
+                field.required,
+                0,
+                used_type_vars,
+                Some(field.name()),
+            )?;
+            base_fields.extend(flattened);
+        }
+        // Enum fields are handled below as variants
+    }
+
+    // Generate per-variant models
+    for variant in &enum_def.variants {
+        let variant_class_name = format!("{}{}", struct_name, to_pascal_case(variant.name()));
+        union_variant_names.push(variant_class_name.clone());
+
+        // Start with base fields from the parent struct
+        let mut fields = base_fields.clone();
+
+        // Add the tag discriminator field
+        fields.push(templates::Field {
+            name: tag.to_string(),
+            type_annotation: format!("Literal['{}']", variant.serde_name()),
+            description: Some("Discriminator field".to_string()),
+            deprecation_note: None,
+            optional: false,
+            default_value: Some(format!("\"{}\"", variant.serde_name())),
+            alias: None,
+        });
+
+        // Add variant-specific fields
+        match &variant.fields {
+            Fields::Named(named_fields) => {
+                for vf in named_fields {
+                    let field_type = type_ref_to_python_type(
+                        &vf.type_ref,
+                        schema,
+                        implemented_types,
+                        active_generics,
+                        used_type_vars,
+                    )?;
+                    let is_option = vf.type_ref.name == "std::option::Option"
+                        || vf.type_ref.name == "reflectapi::Option";
+                    let (optional, default_value, final_type) = if !vf.required {
+                        if is_option {
+                            (true, Some("None".to_string()), field_type)
+                        } else {
+                            (
+                                true,
+                                Some("None".to_string()),
+                                format!("{field_type} | None"),
+                            )
+                        }
+                    } else if is_option {
+                        (true, Some("None".to_string()), field_type)
+                    } else {
+                        (false, None, field_type)
+                    };
+                    let (sanitized, alias) = sanitize_field_name_with_alias(vf.name());
+                    fields.push(templates::Field {
+                        name: sanitized,
+                        type_annotation: final_type,
+                        description: Some(vf.description().to_string()),
+                        deprecation_note: vf.deprecation_note.clone(),
+                        optional,
+                        default_value,
+                        alias,
+                    });
+                }
+            }
+            Fields::Unnamed(unnamed_fields) if unnamed_fields.len() == 1 => {
+                // Tuple variant with one field — expand inner struct fields
+                let inner = &unnamed_fields[0];
+                let inner_name = if inner.type_ref.name == "std::boxed::Box" {
+                    inner
+                        .type_ref
+                        .arguments
+                        .first()
+                        .map(|a| a.name.as_str())
+                        .unwrap_or(&inner.type_ref.name)
+                } else {
+                    &inner.type_ref.name
+                };
+                if let Some(reflectapi_schema::Type::Struct(inner_struct)) =
+                    schema.get_type(inner_name)
+                {
+                    for sf in inner_struct.fields.iter() {
+                        let field_type = type_ref_to_python_type(
+                            &sf.type_ref,
+                            schema,
+                            implemented_types,
+                            active_generics,
+                            used_type_vars,
+                        )?;
+                        let (sanitized, alias) = sanitize_field_name_with_alias(sf.name());
+                        fields.push(templates::Field {
+                            name: sanitized,
+                            type_annotation: if sf.required {
+                                field_type
+                            } else {
+                                format!("{field_type} | None")
+                            },
+                            description: Some(sf.description().to_string()),
+                            deprecation_note: sf.deprecation_note.clone(),
+                            optional: !sf.required,
+                            default_value: if sf.required {
+                                None
+                            } else {
+                                Some("None".to_string())
+                            },
+                            alias,
+                        });
+                    }
+                }
+            }
+            Fields::None => {
+                // Unit variant — no additional fields beyond tag
+            }
+            _ => {
+                // Multi-field tuple variant — not supported for flattening
+            }
+        }
+
+        // Render the variant class
+        let variant_template = templates::DataClass {
+            name: variant_class_name,
+            description: Some(format!("'{}' variant of {}", variant.name(), struct_name)),
+            fields,
+            is_tuple: false,
+            is_generic: !active_generics.is_empty(),
+            generic_params: active_generics.to_vec(),
+        };
+        output.push_str(&variant_template.render()?);
+        output.push('\n');
+    }
+
+    // Render the parent type as a discriminated union RootModel
+    let union_type = union_variant_names.join(",\n            ");
+    output.push_str(&format!(
+        "\nclass {struct_name}(RootModel):\n    root: Annotated[\n        Union[\n            {union_type},\n        ],\n        Field(discriminator=\"{tag}\"),\n    ]\n"
+    ));
+
+    Ok(output)
+}
+
+/// Standard flatten path: expand all flattened struct fields inline into a single model.
+fn render_struct_with_flatten_standard(
+    struct_def: &reflectapi_schema::Struct,
+    struct_name: &str,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    active_generics: &[String],
+    used_type_vars: &mut BTreeSet<String>,
+) -> anyhow::Result<String> {
+    let mut all_fields = Vec::new();
+
+    // Add regular fields
+    for field in struct_def.fields.iter().filter(|f| !f.flattened()) {
+        let (python_name, alias) = sanitize_field_name_with_alias(field.name());
+        let field_type = type_ref_to_python_type(
+            &field.type_ref,
+            schema,
+            implemented_types,
+            active_generics,
+            used_type_vars,
+        )?;
 
         all_fields.push(templates::Field {
             name: python_name,
@@ -489,22 +758,22 @@ fn render_struct_with_flatten(
             &field.type_ref,
             schema,
             implemented_types,
-            &active_generics,
+            active_generics,
             field.required,
-            0, // Start at depth 0
+            0,
             used_type_vars,
+            Some(field.name()),
         )?;
         all_fields.extend(flattened_fields);
     }
 
-    // Generate as a regular Pydantic model with all fields flattened
     let struct_template = templates::DataClass {
-        name: struct_name,
+        name: struct_name.to_string(),
         description: Some(struct_def.description().to_string()),
         fields: all_fields,
         is_tuple: false,
         is_generic: !active_generics.is_empty(),
-        generic_params: active_generics,
+        generic_params: active_generics.to_vec(),
     };
 
     let rendered = struct_template.render()?;
@@ -1213,7 +1482,10 @@ fn render_type_without_factory(
     }
 }
 
-/// Recursively collect fields from flattened structures
+/// Recursively collect fields from flattened structures and enums.
+/// `field_name` is the original Rust field name for the flattened field
+/// (used when emitting enum types as regular fields).
+#[allow(clippy::too_many_arguments)]
 fn collect_flattened_fields(
     type_ref: &TypeReference,
     schema: &Schema,
@@ -1222,6 +1494,7 @@ fn collect_flattened_fields(
     parent_required: bool,
     depth: usize,
     used_type_vars: &mut BTreeSet<String>,
+    field_name: Option<&str>,
 ) -> anyhow::Result<Vec<templates::Field>> {
     // Prevent infinite recursion
     if depth > 10 {
@@ -1248,73 +1521,182 @@ fn collect_flattened_fields(
         &type_ref.name
     };
 
-    if let Some(reflectapi_schema::Type::Struct(struct_def)) = schema.get_type(target_type_name) {
-        for field in struct_def.fields.iter() {
-            if field.flattened() {
-                // Recursively collect fields from nested flattened structures
-                let nested_fields = collect_flattened_fields(
-                    &field.type_ref,
-                    schema,
-                    implemented_types,
-                    active_generics,
-                    parent_required && field.required,
-                    depth + 1,
-                    used_type_vars,
-                )?;
-                collected_fields.extend(nested_fields);
-            } else {
-                // Regular field in flattened struct
-                let field_type = type_ref_to_python_type(
-                    &field.type_ref,
-                    schema,
-                    implemented_types,
-                    active_generics,
-                    used_type_vars,
-                )?;
-
-                let is_option_type = field.type_ref.name == "std::option::Option"
-                    || field.type_ref.name == "reflectapi::Option";
-
-                let (optional, default_value, final_field_type) =
-                    if !field.required || !parent_required {
-                        if is_option_type {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option_type {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
-
-                let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
-                collected_fields.push(templates::Field {
-                    name: sanitized,
-                    type_annotation: final_field_type,
-                    description: Some(format!(
-                        "(flattened{}) {}",
-                        if depth > 1 {
-                            format!(" depth={depth}")
-                        } else {
-                            String::new()
-                        },
-                        field.description()
-                    )),
-                    deprecation_note: field.deprecation_note.clone(),
-                    optional,
-                    default_value,
-                    alias,
-                });
+    match schema.get_type(target_type_name) {
+        Some(reflectapi_schema::Type::Struct(struct_def)) => {
+            for field in struct_def.fields.iter() {
+                if field.flattened() {
+                    // Recursively collect fields from nested flattened structures
+                    let nested_fields = collect_flattened_fields(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        active_generics,
+                        parent_required && field.required,
+                        depth + 1,
+                        used_type_vars,
+                        Some(field.name()),
+                    )?;
+                    collected_fields.extend(nested_fields);
+                } else {
+                    // Regular field in flattened struct
+                    collected_fields.push(make_flattened_field(
+                        field,
+                        schema,
+                        implemented_types,
+                        active_generics,
+                        parent_required,
+                        depth,
+                        used_type_vars,
+                    )?);
+                }
             }
+        }
+        Some(reflectapi_schema::Type::Enum(enum_def)) => {
+            // Flattened enum: expand variant fields into the parent model.
+            // For internally-tagged enums, each variant's fields + the tag field
+            // get merged into the parent struct. For other representations,
+            // we emit the enum as a regular typed field since Pydantic cannot
+            // truly flatten non-internally-tagged unions.
+            collect_flattened_enum_fields(
+                enum_def,
+                type_ref,
+                schema,
+                implemented_types,
+                active_generics,
+                parent_required,
+                used_type_vars,
+                &mut collected_fields,
+                field_name,
+            )?;
+        }
+        Some(reflectapi_schema::Type::Primitive(_)) | None => {
+            // Primitives (including unit types) and unresolved types cannot
+            // be meaningfully flattened — skip them, matching prior behavior.
+            // This handles cases like flattened generic parameters that resolve
+            // to () (std::tuple::Tuple0).
         }
     }
 
     Ok(collected_fields)
+}
+
+/// Create a single flattened field entry from a struct field
+fn make_flattened_field(
+    field: &reflectapi_schema::Field,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    active_generics: &[String],
+    parent_required: bool,
+    depth: usize,
+    used_type_vars: &mut BTreeSet<String>,
+) -> anyhow::Result<templates::Field> {
+    let field_type = type_ref_to_python_type(
+        &field.type_ref,
+        schema,
+        implemented_types,
+        active_generics,
+        used_type_vars,
+    )?;
+
+    let is_option_type =
+        field.type_ref.name == "std::option::Option" || field.type_ref.name == "reflectapi::Option";
+
+    let (optional, default_value, final_field_type) = if !field.required || !parent_required {
+        if is_option_type {
+            (true, Some("None".to_string()), field_type)
+        } else {
+            (
+                true,
+                Some("None".to_string()),
+                format!("{field_type} | None"),
+            )
+        }
+    } else if is_option_type {
+        (true, Some("None".to_string()), field_type)
+    } else {
+        (false, None, field_type)
+    };
+
+    let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+    Ok(templates::Field {
+        name: sanitized,
+        type_annotation: final_field_type,
+        description: Some(format!(
+            "(flattened{}) {}",
+            if depth > 1 {
+                format!(" depth={depth}")
+            } else {
+                String::new()
+            },
+            field.description()
+        )),
+        deprecation_note: field.deprecation_note.clone(),
+        optional,
+        default_value,
+        alias,
+    })
+}
+
+/// Handle flattened enum fields by emitting the enum as a typed field.
+///
+/// For internally-tagged enums (`#[serde(tag = "...")]`), serde merges the
+/// tag + variant fields into the parent struct. Pydantic can't directly
+/// represent this, so we emit the enum's Python union type as a regular field.
+/// The model uses `extra="allow"` to accept the flattened wire format.
+#[allow(clippy::too_many_arguments)]
+fn collect_flattened_enum_fields(
+    enum_def: &reflectapi_schema::Enum,
+    type_ref: &TypeReference,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    active_generics: &[String],
+    parent_required: bool,
+    used_type_vars: &mut BTreeSet<String>,
+    collected_fields: &mut Vec<templates::Field>,
+    original_field_name: Option<&str>,
+) -> anyhow::Result<()> {
+    let enum_python_type = type_ref_to_python_type(
+        type_ref,
+        schema,
+        implemented_types,
+        active_generics,
+        used_type_vars,
+    )?;
+
+    // Use the original Rust field name if available, otherwise derive from type name
+    let field_name = original_field_name
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| {
+            type_ref
+                .name
+                .split("::")
+                .last()
+                .unwrap_or(&type_ref.name)
+                .to_lowercase()
+        });
+    let (sanitized, alias) = sanitize_field_name_with_alias(&field_name);
+
+    let (optional, default_value, final_type) = if !parent_required {
+        (
+            true,
+            Some("None".to_string()),
+            format!("{enum_python_type} | None"),
+        )
+    } else {
+        (false, None, enum_python_type)
+    };
+
+    collected_fields.push(templates::Field {
+        name: sanitized,
+        type_annotation: final_type,
+        description: Some(format!("(flattened enum: {})", enum_def.name)),
+        deprecation_note: None,
+        optional,
+        default_value,
+        alias,
+    });
+
+    Ok(())
 }
 
 fn render_struct(
@@ -1408,6 +1790,7 @@ fn render_struct(
             field.required,
             0,
             used_type_vars,
+            Some(field.name()),
         )?;
         flattened_fields.extend(fields);
     }
@@ -5034,6 +5417,7 @@ def create_mock_client() -> MockClient:
         pub types: Vec<String>,
     }
 
+    #[derive(Clone)]
     pub struct Field {
         pub name: String,
         pub type_annotation: String,

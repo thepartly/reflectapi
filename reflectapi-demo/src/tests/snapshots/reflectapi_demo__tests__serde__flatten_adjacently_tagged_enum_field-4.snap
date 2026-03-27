@@ -1,0 +1,127 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Message"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Message"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.Message": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Payload"
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.Message",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.Payload": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Text",
+            "required": [
+              "data",
+              "kind"
+            ],
+            "properties": {
+              "data": {
+                "type": "object",
+                "title": "Text",
+                "required": [
+                  "body"
+                ],
+                "properties": {
+                  "body": {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                }
+              },
+              "kind": {
+                "const": "Text"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Binary",
+            "required": [
+              "data",
+              "kind"
+            ],
+            "properties": {
+              "data": {
+                "type": "object",
+                "title": "Binary",
+                "required": [
+                  "size"
+                ],
+                "properties": {
+                  "size": {
+                    "$ref": "#/components/schemas/u32"
+                  }
+                }
+              },
+              "kind": {
+                "const": "Binary"
+              }
+            }
+          }
+        ]
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}
