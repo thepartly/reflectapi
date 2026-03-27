@@ -1,0 +1,179 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::Cell"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::Cell"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "f64",
+        "description": "64-bit floating point number"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Cell",
+        "fields": {
+          "named": [
+            {
+              "name": "label",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "content",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::Value"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Value",
+        "representation": "none",
+        "variants": [
+          {
+            "name": "Num",
+            "fields": {
+              "named": [
+                {
+                  "name": "value",
+                  "type": {
+                    "name": "f64"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Text",
+            "fields": {
+              "named": [
+                {
+                  "name": "text",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "f64",
+        "description": "64-bit floating point number"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Cell",
+        "fields": {
+          "named": [
+            {
+              "name": "label",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "content",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::Value"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Value",
+        "representation": "none",
+        "variants": [
+          {
+            "name": "Num",
+            "fields": {
+              "named": [
+                {
+                  "name": "value",
+                  "type": {
+                    "name": "f64"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Text",
+            "fields": {
+              "named": [
+                {
+                  "name": "text",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  }
+}
