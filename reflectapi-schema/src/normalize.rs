@@ -174,19 +174,19 @@ impl NormalizationStage for NamingResolutionStage {
     }
 
     fn transform(&self, schema: &mut Schema) -> Result<(), Vec<NormalizationError>> {
-        let mut name_usage = HashMap::new();
+        let mut name_usage: HashMap<String, Vec<String>> = HashMap::new();
         let mut name_conflicts = HashMap::new();
 
         for ty in schema.input_types.types() {
             let qualified_name = ty.name().to_string();
             let simple_name = extract_simple_name(&qualified_name);
 
-            if let Some(existing) = name_usage.get(&simple_name) {
-                if existing != &qualified_name {
+            let entries = name_usage.entry(simple_name.clone()).or_default();
+            if !entries.contains(&qualified_name) {
+                if !entries.is_empty() {
                     name_conflicts.insert(simple_name.clone(), true);
                 }
-            } else {
-                name_usage.insert(simple_name, qualified_name);
+                entries.push(qualified_name);
             }
         }
 
@@ -222,11 +222,13 @@ fn generate_unique_name(qualified_name: &str) -> String {
     let type_name = parts.last().unwrap();
     let module_parts: Vec<&str> = parts[..parts.len() - 1].to_vec();
 
-    let module_prefix = module_parts
+    let fallback = module_parts.join("_");
+    let module_prefix: &str = module_parts
         .iter()
         .rev()
         .find(|&part| *part != "model" && *part != "proto" && !part.is_empty())
-        .unwrap_or(&module_parts[0]);
+        .copied()
+        .unwrap_or(fallback.as_str());
 
     let capitalized_prefix = capitalize_first_letter(module_prefix);
     format!("{capitalized_prefix}{type_name}")
@@ -242,18 +244,22 @@ fn capitalize_first_letter(s: &str) -> String {
 
 fn update_type_references_in_schema(
     schema: &mut Schema,
-    name_usage: &HashMap<String, String>,
+    name_usage: &HashMap<String, Vec<String>>,
     name_conflicts: &HashMap<String, bool>,
 ) {
     let mut name_mapping = HashMap::new();
 
-    for (simple_name, qualified_name) in name_usage {
-        let resolved_name = if name_conflicts.contains_key(simple_name) {
-            generate_unique_name(qualified_name)
+    for (simple_name, qualified_names) in name_usage {
+        if name_conflicts.contains_key(simple_name) {
+            for qualified_name in qualified_names {
+                let resolved_name = generate_unique_name(qualified_name);
+                name_mapping.insert(qualified_name.clone(), resolved_name);
+            }
         } else {
-            simple_name.clone()
-        };
-        name_mapping.insert(qualified_name.clone(), resolved_name);
+            for qualified_name in qualified_names {
+                name_mapping.insert(qualified_name.clone(), simple_name.clone());
+            }
+        }
     }
 
     for function in &mut schema.functions {
