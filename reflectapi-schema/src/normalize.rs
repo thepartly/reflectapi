@@ -1559,4 +1559,71 @@ mod tests {
         assert!(semantic.types.is_empty());
         assert!(semantic.functions.is_empty());
     }
+
+    #[test]
+    fn test_naming_resolution_all_conflicting_types_have_references_rewritten() {
+        // Regression: NamingResolutionStage only tracked the first qualified name
+        // per simple name in name_usage, leaving references to the second conflicting
+        // type dangling after rename.
+        let mut schema = Schema::new();
+        schema.name = "Test".to_string();
+
+        // Two types sharing simple name "Foo" in different modules
+        let a_foo = Struct::new("a::Foo");
+        let b_foo = Struct::new("b::Foo");
+        schema.input_types.insert_type(a_foo.into());
+        schema.input_types.insert_type(b_foo.into());
+
+        // Function referencing BOTH types
+        let mut func1 = Function::new("use_a_foo".into());
+        func1.input_type = Some(TypeReference::new("a::Foo", vec![]));
+        schema.functions.push(func1);
+
+        let mut func2 = Function::new("use_b_foo".into());
+        func2.input_type = Some(TypeReference::new("b::Foo", vec![]));
+        schema.functions.push(func2);
+
+        let stage = NamingResolutionStage;
+        stage.transform(&mut schema).unwrap();
+
+        // Collect all type names defined in the schema
+        let type_names: std::collections::HashSet<String> = schema
+            .input_types
+            .types()
+            .map(|t| t.name().to_string())
+            .collect();
+
+        // Both function references must point to names that exist in the schema
+        for func in &schema.functions {
+            if let Some(ref input_type) = func.input_type {
+                assert!(
+                    type_names.contains(&input_type.name),
+                    "Function '{}' references type '{}' which doesn't exist in schema. Available: {:?}",
+                    func.name, input_type.name, type_names
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_generate_unique_name_excluded_modules_no_collision() {
+        // Regression: when all module parts are in the exclusion list ("model", "proto"),
+        // the fallback was module_parts[0], causing "model::Foo" and "model::proto::Foo"
+        // to both become "ModelFoo". Now uses joined fallback to avoid collisions.
+        let name1 = generate_unique_name("model::Foo");
+        let name2 = generate_unique_name("model::proto::Foo");
+
+        assert_ne!(
+            name1, name2,
+            "model::Foo and model::proto::Foo must produce different names, got '{}' and '{}'",
+            name1, name2
+        );
+    }
+
+    #[test]
+    fn test_generate_unique_name_with_non_excluded_module() {
+        // Normal case: module part not in exclusion list is used as prefix
+        let name = generate_unique_name("billing::Invoice");
+        assert_eq!(name, "BillingInvoice");
+    }
 }
