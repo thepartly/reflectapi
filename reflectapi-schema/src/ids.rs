@@ -220,4 +220,78 @@ mod tests {
         let known = SymbolId::new(SymbolKind::Struct, vec!["MyType".to_string()]);
         assert!(!known.is_unknown());
     }
+
+    #[test]
+    fn test_pre_assigned_id_member_paths_consistent() {
+        // Regression: when a struct has a pre-assigned ID (e.g. from Struct::new),
+        // field IDs must use the struct's actual ID as their parent, not the
+        // seen-map ID which uses split_path and produces different path segments.
+        use crate::{Field, Fields};
+
+        let mut schema = Schema::new();
+        schema.name = "Test".to_string();
+
+        // Struct::new("api::User") sets id.path = ["api::User"] (single unsplit element)
+        let mut s = crate::Struct::new("api::User");
+        s.fields = Fields::Named(vec![Field::new("name".into(), "String".into())]);
+        schema.input_types.insert_type(s.into());
+
+        ensure_symbol_ids(&mut schema);
+
+        let s = schema
+            .input_types
+            .get_type("api::User")
+            .unwrap()
+            .as_struct()
+            .unwrap();
+
+        // The struct's ID path should be preserved as-is
+        let struct_path = &s.id.path;
+
+        // The field's path should start with the struct's actual path
+        let field = s.fields().next().unwrap();
+        let field_path = &field.id.path;
+
+        assert_eq!(
+            &field_path[..field_path.len() - 1],
+            struct_path.as_slice(),
+            "Field path prefix {:?} should match struct path {:?}",
+            field_path,
+            struct_path
+        );
+    }
+
+    #[test]
+    fn test_pre_assigned_id_enum_member_paths_consistent() {
+        // Same regression test for enums
+        use crate::Variant;
+
+        let mut schema = Schema::new();
+        schema.name = "Test".to_string();
+
+        let mut e = crate::Enum::new("api::Status".into());
+        e.variants = vec![Variant::new("Active".into())];
+        schema.input_types.insert_type(e.into());
+
+        ensure_symbol_ids(&mut schema);
+
+        let e = schema
+            .input_types
+            .get_type("api::Status")
+            .unwrap()
+            .as_enum()
+            .unwrap();
+
+        let enum_path = &e.id.path;
+        let variant = &e.variants[0];
+        let variant_path = &variant.id.path;
+
+        assert_eq!(
+            &variant_path[..variant_path.len() - 1],
+            enum_path.as_slice(),
+            "Variant path prefix {:?} should match enum path {:?}",
+            variant_path,
+            enum_path
+        );
+    }
 }
