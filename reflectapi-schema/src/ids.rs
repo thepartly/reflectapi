@@ -101,13 +101,15 @@ fn assign_type_id(fqn: &str, ty: &mut Type, seen: &mut HashMap<String, SymbolId>
             if s.id.is_unknown() {
                 s.id = id.clone();
             }
-            assign_struct_member_ids(s, &id);
+            let owner = s.id.clone();
+            assign_struct_member_ids(s, &owner);
         }
         Type::Enum(e) => {
             if e.id.is_unknown() {
                 e.id = id.clone();
             }
-            assign_enum_member_ids(e, &id);
+            let owner = e.id.clone();
+            assign_enum_member_ids(e, &owner);
         }
     }
 }
