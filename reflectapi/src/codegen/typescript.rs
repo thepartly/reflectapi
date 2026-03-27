@@ -270,8 +270,7 @@ mod templates {
         pub fn render(&self) -> String {
             let mut out = String::new();
             if !self.name.is_empty() && !self.is_empty() {
-                write!(out, "\nexport namespace {} {{", self.name.replace('-', "_"))
-                    .unwrap();
+                write!(out, "\nexport namespace {} {{", self.name.replace('-', "_")).unwrap();
             }
             for t in &self.types {
                 write!(out, "\n{t}").unwrap();
@@ -347,10 +346,7 @@ mod templates {
 
     impl Enum {
         pub fn render(&self) -> anyhow::Result<String> {
-            let mut out = format!(
-                "\n{}export type {} =",
-                self.description, self.name,
-            );
+            let mut out = format!("\n{}export type {} =", self.description, self.name,);
             for variant in &self.variants {
                 write!(out, "\n    {}", variant.render()?).unwrap();
             }
@@ -567,9 +563,19 @@ mod templates {
             if self.is_unnamed() {
                 format!("{}{}", self.description, self.type_)
             } else if self.optional {
-                format!("{}{}?: {}", self.description, self.normalized_name(), self.type_)
+                format!(
+                    "{}{}?: {}",
+                    self.description,
+                    self.normalized_name(),
+                    self.type_
+                )
             } else {
-                format!("{}{}: {}", self.description, self.normalized_name(), self.type_)
+                format!(
+                    "{}{}: {}",
+                    self.description,
+                    self.normalized_name(),
+                    self.type_
+                )
             }
         }
     }

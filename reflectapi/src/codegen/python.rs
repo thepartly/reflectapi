@@ -4608,7 +4608,7 @@ pub mod templates {
             }
             writeln!(s).unwrap();
             for type_var in &self.global_type_vars {
-                writeln!(s, "{} = TypeVar('{}')", type_var, type_var).unwrap();
+                writeln!(s, "{type_var} = TypeVar('{type_var}')").unwrap();
             }
             writeln!(s).unwrap();
             s
@@ -4635,7 +4635,7 @@ pub mod templates {
             }
             if let Some(desc) = &self.description {
                 if !desc.is_empty() {
-                    writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 } else {
                     writeln!(s, "    \"\"\"Generated data model.\"\"\"").unwrap();
                 }
@@ -4656,29 +4656,26 @@ pub mod templates {
                     if let Some(default) = &field.default_value {
                         write!(
                             s,
-                            "(default={}, serialization_alias='{}', validation_alias='{}')",
-                            default, alias, alias
+                            "(default={default}, serialization_alias='{alias}', validation_alias='{alias}')"
                         )
                         .unwrap();
                     } else if field.optional {
                         write!(
                             s,
-                            "(default=None, serialization_alias='{}', validation_alias='{}')",
-                            alias, alias
+                            "(default=None, serialization_alias='{alias}', validation_alias='{alias}')"
                         )
                         .unwrap();
                     } else {
                         write!(
                             s,
-                            "(serialization_alias='{}', validation_alias='{}')",
-                            alias, alias
+                            "(serialization_alias='{alias}', validation_alias='{alias}')"
                         )
                         .unwrap();
                     }
                 } else if field.optional {
                     write!(s, " = None").unwrap();
                 } else if let Some(default) = &field.default_value {
-                    write!(s, " = {}", default).unwrap();
+                    write!(s, " = {default}").unwrap();
                 }
                 writeln!(s).unwrap();
             }
@@ -4699,7 +4696,7 @@ pub mod templates {
             writeln!(s, "class {}(str, Enum):", self.name).unwrap();
             if let Some(desc) = &self.description {
                 if !desc.is_empty() {
-                    writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 } else {
                     writeln!(s, "    \"\"\"Generated enum.\"\"\"").unwrap();
                 }
@@ -4738,14 +4735,14 @@ pub mod templates {
             let base = if self.is_int_enum { "IntEnum" } else { "Enum" };
             writeln!(s, "class {}({}):", self.name, base).unwrap();
             if let Some(desc) = &self.description {
-                writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 writeln!(s).unwrap();
             }
             for variant in &self.variants {
                 writeln!(s).unwrap();
                 writeln!(s, "    {} = {}", variant.name, variant.value).unwrap();
                 if let Some(desc) = &variant.description {
-                    writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 }
                 writeln!(s).unwrap();
             }
@@ -4774,7 +4771,7 @@ pub mod templates {
                     .description
                     .as_deref()
                     .unwrap_or("Generated discriminated union type.");
-                writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 writeln!(s).unwrap();
                 writeln!(s, "    @classmethod").unwrap();
                 writeln!(s, "    def __class_getitem__(cls, params):").unwrap();
@@ -4804,7 +4801,7 @@ pub mod templates {
                     .iter()
                     .map(|v| {
                         let param_exprs: Vec<String> = (0..self.generic_params.len())
-                            .map(|i| format!("params[{}]", i))
+                            .map(|i| format!("params[{i}]"))
                             .collect();
                         format!("{}[{}]", v.base_name, param_exprs.join(", "))
                     })
@@ -4838,7 +4835,7 @@ pub mod templates {
             if !self.is_generic {
                 if let Some(desc) = &self.description {
                     if !desc.is_empty() {
-                        writeln!(s, "\"\"\"{}\"\"\"", desc).unwrap();
+                        writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
                     }
                 }
             }
@@ -4864,7 +4861,7 @@ pub mod templates {
             writeln!(s, "{} = Union[{}]", self.name, type_annotations.join(", ")).unwrap();
             if let Some(desc) = &self.description {
                 if !desc.is_empty() {
-                    writeln!(s, "\"\"\"{}\"\"\"", desc).unwrap();
+                    writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
                 }
             }
             writeln!(s).unwrap();
@@ -4919,7 +4916,7 @@ pub mod templates {
                 writeln!(s, "    def __init__(").unwrap();
                 writeln!(s, "        self,").unwrap();
                 if let Some(base_url) = &self.base_url {
-                    writeln!(s, "        base_url: str = \"{}\",", base_url).unwrap();
+                    writeln!(s, "        base_url: str = \"{base_url}\",").unwrap();
                 } else {
                     writeln!(s, "        base_url: str,").unwrap();
                 }
@@ -4975,7 +4972,7 @@ pub mod templates {
                 writeln!(s, "    def __init__(").unwrap();
                 writeln!(s, "        self,").unwrap();
                 if let Some(base_url) = &self.base_url {
-                    writeln!(s, "        base_url: str = \"{}\",", base_url).unwrap();
+                    writeln!(s, "        base_url: str = \"{base_url}\",").unwrap();
                 } else {
                     writeln!(s, "        base_url: str,").unwrap();
                 }
@@ -5026,13 +5023,13 @@ pub mod templates {
                 writeln!(s, "        data: Optional[{}] = None,", function.input_type).unwrap();
             }
             if let Some(headers_type) = &function.headers_type {
-                writeln!(s, "        headers: Optional[{}] = None,", headers_type).unwrap();
+                writeln!(s, "        headers: Optional[{headers_type}] = None,").unwrap();
             }
             writeln!(s, "    ) -> ApiResponse[{}]:", function.output_type).unwrap();
 
             // Docstring
             let desc = function.description.as_deref().unwrap_or("");
-            write!(s, "        \"\"\"{}", desc).unwrap();
+            write!(s, "        \"\"\"{desc}").unwrap();
             if function.has_body || !function.path_params.is_empty() {
                 writeln!(s).unwrap();
                 writeln!(s).unwrap();
@@ -5064,7 +5061,7 @@ pub mod templates {
             if let Some(dep_note) = &function.deprecation_note {
                 writeln!(s).unwrap();
                 writeln!(s, "        .. deprecated::").unwrap();
-                writeln!(s, "           {}", dep_note).unwrap();
+                writeln!(s, "           {dep_note}").unwrap();
             }
             writeln!(s, "        \"\"\"").unwrap();
 
@@ -5077,12 +5074,12 @@ pub mod templates {
                     &function.name
                 };
                 let warn_msg = if dep_note.is_empty() {
-                    format!("{} is deprecated", warn_name)
+                    format!("{warn_name} is deprecated")
                 } else {
-                    format!("{} is deprecated: {}", warn_name, dep_note)
+                    format!("{warn_name} is deprecated: {dep_note}")
                 };
                 writeln!(s, "        warnings.warn(").unwrap();
-                writeln!(s, "            \"{}\",", warn_msg).unwrap();
+                writeln!(s, "            \"{warn_msg}\",").unwrap();
                 writeln!(s, "            DeprecationWarning,").unwrap();
                 writeln!(s, "            stacklevel=2,").unwrap();
                 writeln!(s, "        )").unwrap();
@@ -5127,9 +5124,9 @@ pub mod templates {
 
             let client_prefix = if is_group { "self._client." } else { "self." };
             if is_async {
-                writeln!(s, "        return await {}_make_request(", client_prefix).unwrap();
+                writeln!(s, "        return await {client_prefix}_make_request(").unwrap();
             } else {
-                writeln!(s, "        return {}_make_request(", client_prefix).unwrap();
+                writeln!(s, "        return {client_prefix}_make_request(").unwrap();
             }
             writeln!(s, "            \"{}\",", function.method).unwrap();
             writeln!(s, "            path,").unwrap();
@@ -5175,8 +5172,7 @@ pub mod templates {
                 .unwrap();
                 writeln!(
                     s,
-                    "    \"\"\"Create a mock ApiResponse for {}.\"\"\"",
-                    type_name
+                    "    \"\"\"Create a mock ApiResponse for {type_name}.\"\"\""
                 )
                 .unwrap();
                 writeln!(s, "    return create_api_response(value)").unwrap();
@@ -5264,7 +5260,7 @@ pub mod templates {
             writeln!(s, "class {}(BaseModel):", self.name).unwrap();
             if let Some(desc) = &self.description {
                 if !desc.is_empty() {
-                    writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 } else {
                     writeln!(
                         s,
@@ -5314,7 +5310,7 @@ pub mod templates {
             writeln!(s, "class {}(BaseModel):", self.name).unwrap();
             if let Some(desc) = &self.description {
                 if !desc.is_empty() {
-                    writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 } else {
                     writeln!(
                         s,
@@ -5335,7 +5331,7 @@ pub mod templates {
             for field in &self.fields {
                 write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
                 if let Some(default) = &field.default_value {
-                    write!(s, " = {}", default).unwrap();
+                    write!(s, " = {default}").unwrap();
                 } else if field.optional {
                     write!(s, " = None").unwrap();
                 }
@@ -5381,7 +5377,7 @@ pub mod templates {
             writeln!(s, "class {}(BaseModel):", self.name).unwrap();
             if let Some(desc) = &self.description {
                 if !desc.is_empty() {
-                    writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 } else {
                     writeln!(
                         s,
@@ -5401,7 +5397,7 @@ pub mod templates {
             for field in &self.fields {
                 write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
                 if let Some(default) = &field.default_value {
-                    write!(s, " = {}", default).unwrap();
+                    write!(s, " = {default}").unwrap();
                 } else if field.optional {
                     write!(s, " = None").unwrap();
                 }
@@ -5454,7 +5450,7 @@ pub mod templates {
         pub fn render(&self) -> String {
             let mut s = String::new();
             for variant_def in &self.variant_definitions {
-                writeln!(s, "{}", variant_def).unwrap();
+                writeln!(s, "{variant_def}").unwrap();
                 writeln!(s).unwrap();
             }
             writeln!(
@@ -5466,7 +5462,7 @@ pub mod templates {
             .unwrap();
             if let Some(desc) = &self.description {
                 if !desc.is_empty() {
-                    writeln!(s, "\"\"\"{}\"\"\"", desc).unwrap();
+                    writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
                 }
             }
             writeln!(s).unwrap();
@@ -5493,20 +5489,20 @@ pub mod templates {
             writeln!(s, "from typing import Union, Optional").unwrap();
             writeln!(s).unwrap();
             for data_class in &self.data_classes {
-                write!(s, "{}", data_class).unwrap();
+                write!(s, "{data_class}").unwrap();
                 writeln!(s).unwrap();
             }
             writeln!(s, "class {}(str, Enum):", self.enum_name).unwrap();
             if let Some(desc) = &self.description {
                 if !desc.is_empty() {
-                    writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 }
             }
             writeln!(s, "    # Unit variants as enum members").unwrap();
             for variant in &self.unit_variants {
                 write!(s, "    {} = \"{}\"", variant.name, variant.value).unwrap();
                 if let Some(desc) = &variant.description {
-                    write!(s, "  # {}", desc).unwrap();
+                    write!(s, "  # {desc}").unwrap();
                 }
                 writeln!(s).unwrap();
             }
@@ -5519,7 +5515,7 @@ pub mod templates {
             .unwrap();
             writeln!(s, "        return self.value").unwrap();
             for method in &self.factory_methods {
-                write!(s, "{}", method).unwrap();
+                write!(s, "{method}").unwrap();
                 writeln!(s).unwrap();
             }
             writeln!(s).unwrap();
@@ -5550,11 +5546,11 @@ pub mod templates {
             writeln!(s, "class {}:", self.name).unwrap();
             if let Some(desc) = &self.description {
                 if !desc.is_empty() {
-                    writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 }
             }
             for field_type in &self.field_types {
-                writeln!(s, "    {}", field_type).unwrap();
+                writeln!(s, "    {field_type}").unwrap();
             }
             writeln!(s).unwrap();
             writeln!(s, "    def model_dump(self) -> dict:").unwrap();
@@ -5566,7 +5562,7 @@ pub mod templates {
             let field_refs: Vec<String> = self
                 .field_names
                 .iter()
-                .map(|f| format!("self.{}", f))
+                .map(|f| format!("self.{f}"))
                 .collect();
             writeln!(s, "        fields = [{}]", field_refs.join(", ")).unwrap();
             writeln!(s, "        return {{\"{}\": fields}}", self.variant_name).unwrap();
@@ -5594,11 +5590,11 @@ pub mod templates {
             writeln!(s, "class {}:", self.name).unwrap();
             if let Some(desc) = &self.description {
                 if !desc.is_empty() {
-                    writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 }
             }
             for field_def in &self.field_definitions {
-                writeln!(s, "    {}", field_def).unwrap();
+                writeln!(s, "    {field_def}").unwrap();
             }
             writeln!(s).unwrap();
             writeln!(s, "    def model_dump(self) -> dict:").unwrap();
@@ -5611,16 +5607,10 @@ pub mod templates {
             for field_name in &self.field_names {
                 writeln!(
                     s,
-                    "        if hasattr(self, '{}') and self.{} is not None:",
-                    field_name, field_name
+                    "        if hasattr(self, '{field_name}') and self.{field_name} is not None:"
                 )
                 .unwrap();
-                writeln!(
-                    s,
-                    "            result['{}'] = self.{}",
-                    field_name, field_name
-                )
-                .unwrap();
+                writeln!(s, "            result['{field_name}'] = self.{field_name}").unwrap();
             }
             writeln!(s, "        return {{\"{}\": result}}", self.variant_name).unwrap();
             writeln!(s).unwrap();
@@ -5662,12 +5652,12 @@ pub mod templates {
             if self.is_generic {
                 writeln!(s, "# TypeVar definitions for {}", self.union_name).unwrap();
                 for param in &self.generic_params {
-                    writeln!(s, "{} = TypeVar('{}')", param, param).unwrap();
+                    writeln!(s, "{param} = TypeVar('{param}')").unwrap();
                 }
                 writeln!(s).unwrap();
             }
             for variant_model in &self.variant_models {
-                writeln!(s, "{}", variant_model).unwrap();
+                writeln!(s, "{variant_model}").unwrap();
                 writeln!(s).unwrap();
             }
             writeln!(s).unwrap();
@@ -5680,7 +5670,7 @@ pub mod templates {
             )
             .unwrap();
             if let Some(desc) = &self.description {
-                writeln!(s, "\"\"\"{}\"\"\"", desc).unwrap();
+                writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
             }
             s
         }
@@ -5704,7 +5694,7 @@ pub mod templates {
         pub fn render(&self) -> String {
             let mut s = String::new();
             for variant_model in &self.variant_models {
-                writeln!(s, "{}", variant_model).unwrap();
+                writeln!(s, "{variant_model}").unwrap();
                 writeln!(s).unwrap();
             }
             writeln!(s).unwrap();
@@ -5730,7 +5720,7 @@ pub mod templates {
                 .description
                 .as_deref()
                 .unwrap_or("Externally tagged enum");
-            writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+            writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
             writeln!(s).unwrap();
             if self.is_generic {
                 writeln!(s, "    @classmethod").unwrap();
@@ -5809,7 +5799,7 @@ pub mod templates {
                 )
                 .unwrap();
                 for param in &self.generic_params {
-                    writeln!(s, "{} = TypeVar('{}')", param, param).unwrap();
+                    writeln!(s, "{param} = TypeVar('{param}')").unwrap();
                 }
                 writeln!(s).unwrap();
                 writeln!(s, "# Common non-generic base class with discriminator").unwrap();
@@ -5823,7 +5813,7 @@ pub mod templates {
                 writeln!(s, "    _kind: str = PrivateAttr()").unwrap();
                 writeln!(s).unwrap();
                 for variant_model in &self.variant_models {
-                    writeln!(s, "{}", variant_model).unwrap();
+                    writeln!(s, "{variant_model}").unwrap();
                     writeln!(s).unwrap();
                 }
                 writeln!(s).unwrap();
@@ -5844,7 +5834,7 @@ pub mod templates {
                     .description
                     .as_deref()
                     .unwrap_or("Generic externally tagged enum using Approach B");
-                writeln!(s, "    \"\"\"{}", desc).unwrap();
+                writeln!(s, "    \"\"\"{desc}").unwrap();
                 writeln!(s).unwrap();
                 writeln!(
                     s,
@@ -5939,7 +5929,7 @@ pub mod templates {
                     .description
                     .as_deref()
                     .unwrap_or("Externally tagged enum");
-                writeln!(s, "    \"\"\"{}\"\"\"", desc).unwrap();
+                writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 writeln!(s).unwrap();
                 writeln!(s, "    @model_validator(mode='before')").unwrap();
                 writeln!(s, "    @classmethod").unwrap();

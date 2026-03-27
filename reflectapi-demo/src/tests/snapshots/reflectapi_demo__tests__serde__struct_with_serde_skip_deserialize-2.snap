@@ -35,12 +35,14 @@ export namespace reflectapi {
    */
   export interface Infallible {}
 }
+
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
       export namespace input {
         export interface TestStructWithSerdeSkipDeserialize {}
       }
+
       export namespace output {
         export interface TestStructWithSerdeSkipDeserialize {
           f: number /* u8 */;

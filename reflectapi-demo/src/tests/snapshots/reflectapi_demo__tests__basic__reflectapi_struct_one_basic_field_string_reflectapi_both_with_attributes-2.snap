@@ -35,6 +35,7 @@ export namespace reflectapi {
    */
   export interface Infallible {}
 }
+
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace basic {
@@ -43,6 +44,7 @@ export namespace reflectapi_demo {
           _f: number /* i32 */;
         }
       }
+
       export namespace output {
         export interface TestStructOneBasicFieldStringReflectBothDifferently {
           _f: number /* u32 */;

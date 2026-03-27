@@ -35,12 +35,14 @@ export namespace reflectapi {
    */
   export interface Infallible {}
 }
+
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace basic {
       export namespace input {
         export interface TestStructWithSkipFieldInput {}
       }
+
       export namespace output {
         export interface TestStructWithSkipFieldInput {
           _f: number /* u8 */;
