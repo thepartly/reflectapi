@@ -14,7 +14,10 @@ use std::collections::HashMap;
 /// each typespace (e.g., request vs response variants of the same type).
 pub fn ensure_symbol_ids(schema: &mut Schema) {
     if schema.id.is_unknown() {
-        schema.id = SymbolId::new(SymbolKind::Struct, vec![schema.name.clone()]);
+        schema.id = SymbolId::new(
+            SymbolKind::Struct,
+            vec!["__schema__".to_string(), schema.name.clone()],
+        );
     }
 
     let mut seen: HashMap<String, SymbolId> = HashMap::new();
@@ -101,35 +104,66 @@ fn assign_type_id(fqn: &str, ty: &mut Type, seen: &mut HashMap<String, SymbolId>
             if s.id.is_unknown() {
                 s.id = id.clone();
             }
-            let owner = s.id.clone();
-            assign_struct_member_ids(s, &owner);
+            assign_struct_member_ids(s, &s.id.clone());
         }
         Type::Enum(e) => {
             if e.id.is_unknown() {
                 e.id = id.clone();
             }
-            let owner = e.id.clone();
-            assign_enum_member_ids(e, &owner);
+            assign_enum_member_ids(e, &e.id.clone());
         }
     }
 }
 
 /// Reassign the top-level ID of a type in a typespace (for disambiguation)
 fn assign_disambiguated_id(typespace: &mut Typespace, fqn: &str, new_id: &SymbolId) {
-    // Rebuild typespace with the updated ID
     let types: Vec<_> = typespace.types().cloned().collect();
     let mut new_typespace = Typespace::new();
     for mut ty in types {
         if ty.name() == fqn {
             match &mut ty {
                 Type::Primitive(p) => p.id = new_id.clone(),
-                Type::Struct(s) => s.id = new_id.clone(),
-                Type::Enum(e) => e.id = new_id.clone(),
+                Type::Struct(s) => {
+                    s.id = new_id.clone();
+                    // Clear member IDs so they get re-assigned with the new parent
+                    clear_struct_member_ids(s);
+                    assign_struct_member_ids(s, new_id);
+                }
+                Type::Enum(e) => {
+                    e.id = new_id.clone();
+                    clear_enum_member_ids(e);
+                    assign_enum_member_ids(e, new_id);
+                }
             }
         }
         new_typespace.insert_type(ty);
     }
     *typespace = new_typespace;
+}
+
+fn clear_struct_member_ids(s: &mut Struct) {
+    match &mut s.fields {
+        crate::Fields::Named(fields) | crate::Fields::Unnamed(fields) => {
+            for field in fields {
+                field.id = SymbolId::default();
+            }
+        }
+        crate::Fields::None => {}
+    }
+}
+
+fn clear_enum_member_ids(e: &mut Enum) {
+    for variant in &mut e.variants {
+        variant.id = SymbolId::default();
+        match &mut variant.fields {
+            crate::Fields::Named(fields) | crate::Fields::Unnamed(fields) => {
+                for field in fields {
+                    field.id = SymbolId::default();
+                }
+            }
+            crate::Fields::None => {}
+        }
+    }
 }
 
 /// Assign IDs to struct fields
@@ -148,7 +182,7 @@ fn assign_struct_member_ids(s: &mut Struct, owner: &SymbolId) {
             for (i, field) in fields.iter_mut().enumerate() {
                 if field.id.is_unknown() {
                     let mut path = owner.path.clone();
-                    path.push(format!("arg{i}"));
+                    path.push(format!("arg{i:02}"));
                     field.id = SymbolId::new(SymbolKind::Field, path);
                 }
             }
@@ -180,7 +214,7 @@ fn assign_enum_member_ids(e: &mut Enum, owner: &SymbolId) {
                 for (i, field) in fields.iter_mut().enumerate() {
                     if field.id.is_unknown() {
                         let mut path = variant.id.path.clone();
-                        path.push(format!("arg{i}"));
+                        path.push(format!("arg{i:02}"));
                         field.id = SymbolId::new(SymbolKind::Field, path);
                     }
                 }

@@ -98,7 +98,7 @@ impl NormalizationStage for TypeConsolidationStage {
 
             if name_conflicts.contains_key(&simple_name) {
                 let old_name = ty.name().to_string();
-                let new_name = format!("input.{simple_name}");
+                let new_name = format!("input.{}", ty.name().replace("::", "."));
                 rename_type(&mut new_type, &new_name);
                 rename_map.insert(old_name, new_name);
             }
@@ -112,7 +112,7 @@ impl NormalizationStage for TypeConsolidationStage {
 
             if name_conflicts.contains_key(&simple_name) {
                 let old_name = ty.name().to_string();
-                let new_name = format!("output.{simple_name}");
+                let new_name = format!("output.{}", ty.name().replace("::", "."));
                 rename_type(&mut new_type, &new_name);
                 rename_map.insert(old_name, new_name);
                 consolidated.insert_type(new_type);
@@ -852,7 +852,7 @@ impl Normalizer {
             let field_info = SymbolInfo {
                 id: field.id.clone(),
                 name: field.name.clone(),
-                path: vec![strukt.name.clone(), field.name.clone()],
+                path: field.id.path.clone(),
                 kind: SymbolKind::Field,
                 resolved: false,
                 dependencies: BTreeSet::new(),
@@ -866,7 +866,7 @@ impl Normalizer {
             let variant_info = SymbolInfo {
                 id: variant.id.clone(),
                 name: variant.name.clone(),
-                path: vec![enm.name.clone(), variant.name.clone()],
+                path: variant.id.path.clone(),
                 kind: SymbolKind::Variant,
                 resolved: false,
                 dependencies: BTreeSet::new(),
@@ -877,7 +877,7 @@ impl Normalizer {
                 let field_info = SymbolInfo {
                     id: field.id.clone(),
                     name: field.name.clone(),
-                    path: vec![enm.name.clone(), variant.name.clone(), field.name.clone()],
+                    path: field.id.path.clone(),
                     kind: SymbolKind::Field,
                     resolved: false,
                     dependencies: BTreeSet::new(),
@@ -889,6 +889,15 @@ impl Normalizer {
 
     fn resolve_types(&mut self) -> Result<(), Vec<NormalizationError>> {
         for symbol_info in self.context.symbol_table.symbols.values() {
+            if !matches!(
+                symbol_info.kind,
+                SymbolKind::Struct
+                    | SymbolKind::Enum
+                    | SymbolKind::Primitive
+                    | SymbolKind::TypeAlias
+            ) {
+                continue;
+            }
             self.context
                 .resolution_cache
                 .insert(symbol_info.name.clone(), symbol_info.id.clone());
