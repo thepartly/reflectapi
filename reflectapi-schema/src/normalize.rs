@@ -68,6 +68,8 @@ impl NormalizationStage for TypeConsolidationStage {
 
         let mut consolidated = Typespace::new();
         let mut name_conflicts = HashMap::new();
+        // Tracks old_name -> new_name for type reference rewriting
+        let mut rename_map: HashMap<String, String> = HashMap::new();
 
         let mut input_type_names = HashMap::new();
         let mut output_type_names = HashMap::new();
@@ -95,8 +97,10 @@ impl NormalizationStage for TypeConsolidationStage {
             let mut new_type = ty.clone();
 
             if name_conflicts.contains_key(&simple_name) {
+                let old_name = ty.name().to_string();
                 let new_name = format!("input.{simple_name}");
                 rename_type(&mut new_type, &new_name);
+                rename_map.insert(old_name, new_name);
             }
 
             consolidated.insert_type(new_type);
@@ -107,8 +111,10 @@ impl NormalizationStage for TypeConsolidationStage {
             let mut new_type = ty.clone();
 
             if name_conflicts.contains_key(&simple_name) {
+                let old_name = ty.name().to_string();
                 let new_name = format!("output.{simple_name}");
                 rename_type(&mut new_type, &new_name);
+                rename_map.insert(old_name, new_name);
                 consolidated.insert_type(new_type);
             } else if !input_type_names.contains_key(&simple_name) {
                 consolidated.insert_type(new_type);
@@ -117,6 +123,23 @@ impl NormalizationStage for TypeConsolidationStage {
 
         schema.input_types = consolidated;
         schema.output_types = Typespace::new();
+
+        // Rewrite type references that still point to old names
+        if !rename_map.is_empty() {
+            for function in &mut schema.functions {
+                update_type_reference_in_option(&mut function.input_type, &rename_map);
+                update_type_reference_in_option(&mut function.input_headers, &rename_map);
+                update_type_reference_in_option(&mut function.output_type, &rename_map);
+                update_type_reference_in_option(&mut function.error_type, &rename_map);
+            }
+
+            let types_to_update: Vec<_> = schema.input_types.types().cloned().collect();
+            schema.input_types = Typespace::new();
+            for mut ty in types_to_update {
+                update_type_references_in_type(&mut ty, &rename_map);
+                schema.input_types.insert_type(ty);
+            }
+        }
 
         Ok(())
     }
