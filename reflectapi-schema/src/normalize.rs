@@ -1615,8 +1615,7 @@ mod tests {
 
         assert_ne!(
             name1, name2,
-            "model::Foo and model::proto::Foo must produce different names, got '{}' and '{}'",
-            name1, name2
+            "model::Foo and model::proto::Foo must produce different names, got '{name1}' and '{name2}'"
         );
     }
 

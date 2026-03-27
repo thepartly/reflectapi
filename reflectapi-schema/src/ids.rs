@@ -255,9 +255,7 @@ mod tests {
         assert_eq!(
             &field_path[..field_path.len() - 1],
             struct_path.as_slice(),
-            "Field path prefix {:?} should match struct path {:?}",
-            field_path,
-            struct_path
+            "Field path prefix {field_path:?} should match struct path {struct_path:?}"
         );
     }
 
@@ -289,9 +287,7 @@ mod tests {
         assert_eq!(
             &variant_path[..variant_path.len() - 1],
             enum_path.as_slice(),
-            "Variant path prefix {:?} should match enum path {:?}",
-            variant_path,
-            enum_path
+            "Variant path prefix {variant_path:?} should match enum path {enum_path:?}"
         );
     }
 }
