@@ -45,11 +45,8 @@ pub fn ensure_symbol_ids(schema: &mut Schema) {
                 if let (Some(input_ty), Some(output_ty)) = (input_ty, output_ty) {
                     if input_ty != output_ty {
                         // Different types with same name — disambiguate output
-                        let disambiguated = SymbolId::with_disambiguator(
-                            output_id.kind,
-                            output_id.path.clone(),
-                            1,
-                        );
+                        let disambiguated =
+                            SymbolId::with_disambiguator(output_id.kind, output_id.path.clone(), 1);
                         assign_disambiguated_id(&mut schema.output_types, fqn, &disambiguated);
                     }
                 }
