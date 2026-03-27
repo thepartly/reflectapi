@@ -117,6 +117,7 @@ impl ToTokens for TokenizableField<'_> {
         }
         tokens.extend(quote::quote! {
             reflectapi::Field {
+                id: Default::default(),
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
@@ -168,6 +169,7 @@ impl ToTokens for TokenizableVariant<'_> {
         let untagged = self.inner.untagged;
         tokens.extend(quote::quote! {
             reflectapi::Variant {
+                id: Default::default(),
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
@@ -239,6 +241,7 @@ impl ToTokens for TokenizableEnum<'_> {
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
             reflectapi::Enum {
+                id: Default::default(),
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
@@ -313,6 +316,7 @@ impl ToTokens for TokenizableStruct<'_> {
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
             reflectapi::Struct {
+                id: Default::default(),
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
@@ -347,6 +351,7 @@ impl ToTokens for TokenizablePrimitive<'_> {
             .map(TokenizableTypeReference::new);
         tokens.extend(quote::quote! {
             reflectapi::Primitive {
+                id: Default::default(),
                 name: #name.into(),
                 description: #description.into(),
                 parameters: vec![#(#parameters),*],
