@@ -17,7 +17,14 @@ from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    PrivateAttr,
+    RootModel,
+    model_serializer,
+    model_validator,
+)
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse

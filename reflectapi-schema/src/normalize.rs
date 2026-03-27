@@ -222,16 +222,22 @@ fn generate_unique_name(qualified_name: &str) -> String {
     let type_name = parts.last().unwrap();
     let module_parts: Vec<&str> = parts[..parts.len() - 1].to_vec();
 
-    let fallback = module_parts.join("_");
-    let module_prefix: &str = module_parts
+    let non_excluded: Vec<&str> = module_parts
         .iter()
-        .rev()
-        .find(|&part| *part != "model" && *part != "proto" && !part.is_empty())
+        .filter(|&&part| part != "model" && part != "proto" && !part.is_empty())
         .copied()
-        .unwrap_or(fallback.as_str());
+        .collect();
 
-    let capitalized_prefix = capitalize_first_letter(module_prefix);
-    format!("{capitalized_prefix}{type_name}")
+    let prefix = if non_excluded.is_empty() {
+        module_parts.join("_")
+    } else {
+        non_excluded
+            .iter()
+            .map(|s| capitalize_first_letter(s))
+            .collect::<Vec<_>>()
+            .join("")
+    };
+    format!("{prefix}{type_name}")
 }
 
 fn capitalize_first_letter(s: &str) -> String {
@@ -792,7 +798,7 @@ impl Normalizer {
             let function_info = SymbolInfo {
                 id: function.id.clone(),
                 name: function.name.clone(),
-                path: function.path.split('/').map(|s| s.to_string()).collect(),
+                path: function.id.path.clone(),
                 kind: SymbolKind::Endpoint,
                 resolved: false,
                 dependencies: BTreeSet::new(),

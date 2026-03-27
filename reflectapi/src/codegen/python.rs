@@ -1085,7 +1085,8 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
                         has_literal = true;
                         has_discriminated_unions = true;
                     }
-                    reflectapi_schema::Representation::External => {
+                    reflectapi_schema::Representation::External
+                    | reflectapi_schema::Representation::Adjacent { .. } => {
                         // Check if this enum has complex variants that need RootModel
                         let has_complex_variants =
                             enum_def.variants.iter().any(|v| match &v.fields {
