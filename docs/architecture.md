@@ -4,6 +4,21 @@
 
 ReflectAPI is a Rust framework for defining web API services and generating type-safe clients in multiple languages. Developers write Rust handler functions with typed inputs and outputs. Derive macros capture type metadata into a JSON schema (`reflectapi.json`). Code generation backends produce idiomatic clients for TypeScript, Rust, and Python, plus OpenAPI specifications.
 
+Handler functions follow a fixed signature convention:
+
+```rust
+async fn handler(state: State, input: Input, headers: Headers) -> Result<Output, Error>
+```
+
+- **Input** — the request body type (implements `reflectapi::Input + DeserializeOwned`)
+- **Headers** — typed header extraction (implements `reflectapi::Input`; struct fields map to HTTP header names)
+- **Output** — the success response type (implements `reflectapi::Output + Serialize`)
+- **Error** — the error response type (implements `reflectapi::Output + Serialize + StatusCode`)
+- **`reflectapi::Empty`** — sentinel for no input/output body
+- **`reflectapi::Infallible`** — sentinel for handlers that cannot fail
+
+The `Input` and `Output` traits (defined in `reflectapi/src/traits.rs`) are the mechanism by which types self-register into the schema. Each trait provides a `reflectapi_input_type(schema: &mut Typespace) -> TypeReference` (or `_output_type`) method that the derive macros implement.
+
 The system is a multi-stage pipeline:
 
 1. **Derive macros** extract type metadata at compile time into a `Schema`.
@@ -48,6 +63,12 @@ Key source files:
 - `derive.rs` -- the derive implementation
 - `tokenizable_schema.rs` -- converts schema types to token streams
 
+Beyond serde attributes, the macros recognize `#[reflectapi(...)]` attributes:
+
+**Type-level:** `type = "..."` (override reflected type), `input_type` / `output_type` (per-direction override), `discriminant` (use Rust enum discriminant values), `derive(...)` (add derives to codegen config).
+
+**Field-level:** `skip` / `input_skip` / `output_skip` (omit from schema), `type = "..."` / `input_type` / `output_type` (override field type), `input_transform` / `output_transform` (transform callbacks).
+
 ### reflectapi
 
 The main user-facing crate. Contains:
@@ -68,7 +89,7 @@ Flags control output formatting, type checking, tag-based endpoint filtering, sh
 
 ### reflectapi-demo
 
-A working demo server with snapshot tests. The `reflectapi.json` file and generated clients (TypeScript, Rust, Python) are checked in and validated by `cargo insta` snapshot tests. Each test type produces 5 snapshots: JSON schema, TypeScript, Rust, OpenAPI, and Python.
+A working demo server with snapshot tests. The `reflectapi.json` file and generated clients (TypeScript, Rust, Python) are checked in and validated by `cargo insta` snapshot tests. The `assert_snapshot!` macro in `src/tests/assert.rs` generates **5 snapshots** per test: JSON schema, TypeScript, Rust, OpenAPI, and Python. Tests are organized in `basic.rs`, `enums.rs`, `generics.rs`, `serde.rs`, and `namespace.rs`. Compile-fail and compile-pass tests use `trybuild`.
 
 ### reflectapi-python-runtime
 
@@ -149,6 +170,30 @@ pub enum Representation {
     None,                                  // untagged
 }
 ```
+
+### Primitive and the Fallback Mechanism
+
+`Primitive` types are opaque to codegen — they have no inspectable fields. The `fallback` field enables codegen backends to resolve types they do not natively handle:
+
+```rust
+pub struct Primitive {
+    pub name: String,
+    pub parameters: Vec<TypeParameter>,
+    pub fallback: Option<TypeReference>,  // e.g., NonZeroU8 -> u8, BTreeMap -> HashMap
+}
+```
+
+`TypeReference::fallback_recursively()` follows the fallback chain until reaching a type the backend supports. Examples: `Arc<T>` falls back to `T`, `BTreeMap<K,V>` falls back to `HashMap<K,V>`, `HashSet<T>` falls back to `Vec<T>`.
+
+### reflectapi::Option\<T\>
+
+A three-state type (`Undefined | None | Some(T)`) defined in `reflectapi/src/option.rs`. Essential for PATCH-style APIs where "field absent" differs from "field set to null":
+
+- **Undefined** — field not present in the request body
+- **None** — field explicitly set to `null`
+- **Some(T)** — field present with a value
+
+Each codegen backend represents this distinctly: TypeScript uses `T | null | undefined`, Python uses `ReflectapiOption` from the runtime library.
 
 ### Fields, Field, Variant
 
