@@ -1,3 +1,5 @@
 /target
 docs/book
 .vscode/settings.json
+*.pyc
+__pycache__/

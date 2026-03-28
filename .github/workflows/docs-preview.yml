@@ -28,15 +28,12 @@ jobs:
 
       - name: Install mdBook and mdbook-keeper
         run: |
-          # Only install if not already cached
           if ! command -v mdbook &> /dev/null; then
-            cargo install mdbook
+            cargo install mdbook --version "~0.4"
           fi
-          
           if ! command -v mdbook-keeper &> /dev/null; then
-            cargo install mdbook-keeper
+            cargo install mdbook-keeper --version "~0.5"
           fi
-
 
       - name: Build mdBook documentation
         run: |
