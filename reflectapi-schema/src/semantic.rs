@@ -309,6 +309,34 @@ impl Default for SymbolTable {
     }
 }
 
+impl SemanticSchema {
+    /// Look up a type by its name. This provides a bridge for codegen backends
+    /// transitioning from string-based `Schema::get_type()` to SymbolId-based lookups.
+    pub fn get_type_by_name(&self, name: &str) -> Option<&SemanticType> {
+        self.types.values().find(|t| t.name() == name)
+    }
+
+    /// Look up a type by SymbolId.
+    pub fn get_type(&self, id: &SymbolId) -> Option<&SemanticType> {
+        self.types.get(id)
+    }
+
+    /// Iterate all types in deterministic order.
+    pub fn types(&self) -> impl Iterator<Item = &SemanticType> {
+        self.types.values()
+    }
+
+    /// Iterate all functions in deterministic order.
+    pub fn functions(&self) -> impl Iterator<Item = &SemanticFunction> {
+        self.functions.values()
+    }
+
+    /// Get an ordered list of type names (for backward compat with codegen iteration).
+    pub fn type_names(&self) -> Vec<String> {
+        self.types.values().map(|t| t.name().to_string()).collect()
+    }
+}
+
 impl SemanticType {
     pub fn id(&self) -> &SymbolId {
         match self {

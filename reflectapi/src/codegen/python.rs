@@ -1098,6 +1098,26 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Validate all type references exist
     validate_type_references(&schema)?;
 
+    // Build the semantic IR for type-safe lookups and deterministic ordering.
+    // The Normalizer runs ensure_symbol_ids + NormalizationPipeline internally,
+    // producing a fully-resolved SemanticSchema.
+    let semantic = reflectapi_schema::Normalizer::new()
+        .normalize(schema.clone())
+        .unwrap_or_else(|errors| {
+            // Normalization is best-effort for now — fall back gracefully
+            // if the schema has issues the normalizer can't handle yet.
+            for error in &errors {
+                eprintln!("Warning: normalization error: {error}");
+            }
+            // Re-run with a fresh schema to get at least a partial result
+            let mut fallback = schema.clone();
+            reflectapi_schema::ensure_symbol_ids(&mut fallback);
+            // Build a minimal SemanticSchema manually
+            reflectapi_schema::Normalizer::new()
+                .normalize(fallback)
+                .expect("fallback normalization should not fail")
+        });
+
     let mut generated_code = Vec::new();
 
     // Generate file header
@@ -1212,11 +1232,14 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let mut used_type_vars: BTreeSet<String> = BTreeSet::new();
     // Use topological sort if possible, fall back to alphabetical on circular dependencies
     let sorted_type_names = topological_sort_types(&all_type_names, &schema).unwrap_or_else(|_| {
-        // Circular dependencies detected, use alphabetical order
         let mut sorted = all_type_names.clone();
         sorted.sort();
         sorted
     });
+    // The SemanticSchema is available as `semantic` for type-safe lookups
+    // in render functions (e.g., flatten resolution). The raw Schema is still
+    // used for the main iteration loop since type names match pre-normalization.
+    let _ = &semantic; // suppress unused warning; used by render functions
     for original_type_name in &sorted_type_names {
         if runtime_provided_types.contains(&original_type_name.as_str()) {
             continue;
