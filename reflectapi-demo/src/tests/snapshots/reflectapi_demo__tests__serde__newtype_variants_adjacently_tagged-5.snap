@@ -274,7 +274,7 @@ class reflectapi_demo_tests_serde_TestNewtypeVariantsAdjacentlyTaggedFactory:
     """
 
     @staticmethod
-    def int(
+    def int_(
         field_0: int,
     ) -> reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged:
         """Creates the 'int' variant of the reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged enum."""
@@ -296,7 +296,7 @@ class reflectapi_demo_tests_serde_TestNewtypeVariantsAdjacentlyTaggedFactory:
         )
 
     @staticmethod
-    def bool(
+    def bool_(
         field_0: bool,
     ) -> reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged:
         """Creates the 'bool' variant of the reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged enum."""

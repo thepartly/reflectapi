@@ -3,6 +3,13 @@ use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 use crate::{Schema, TypeReference};
 use reflectapi_schema::{Function, Type};
 
+/// Sanitize text for inclusion in a Python triple-quoted docstring.
+/// Escapes backslashes (which act as line continuation) and triple-quote
+/// sequences (which would close the docstring prematurely).
+fn sanitize_for_docstring(text: &str) -> String {
+    text.replace('\\', "\\\\").replace("\"\"\"", "\\\"\\\"\\\"")
+}
+
 /// Information needed to generate a factory class later
 #[derive(Clone, Debug)]
 struct FactoryInfo {
@@ -2674,7 +2681,8 @@ fn generate_factory_class_with_representation(
                         reflectapi_schema::Representation::Adjacent { tag, .. } => {
                             // For adjacently tagged enums, unit variants need to be created as static methods
                             // returning the RootModel with dictionary format that the validator expects
-                            let method_name = to_snake_case(variant.name());
+                            let method_name =
+                                safe_python_identifier(&to_snake_case(variant.name()));
                             static_methods.push(format!(
                                 r#"    @staticmethod
     def {}() -> {}:
@@ -2691,7 +2699,8 @@ fn generate_factory_class_with_representation(
                         }
                         reflectapi_schema::Representation::External => {
                             // For externally tagged enums, unit variants are also static methods
-                            let method_name = to_snake_case(variant.name());
+                            let method_name =
+                                safe_python_identifier(&to_snake_case(variant.name()));
                             static_methods.push(format!(
                                 r#"    @staticmethod
     def {}() -> {}:
@@ -2719,7 +2728,7 @@ fn generate_factory_class_with_representation(
             }
             Fields::Unnamed(_) | Fields::Named(_) => {
                 // Complex variant - create static method
-                let method_name = to_snake_case(variant.name());
+                let method_name = safe_python_identifier(&to_snake_case(variant.name()));
                 let method_params = generate_factory_method_params(
                     variant,
                     schema,
@@ -2836,7 +2845,7 @@ fn generate_internally_tagged_factory_class(
             }
             Fields::Unnamed(_) | Fields::Named(_) => {
                 // Complex variant - create static method
-                let method_name = to_snake_case(variant_name);
+                let method_name = safe_python_identifier(&to_snake_case(variant_name));
                 let method_params = generate_factory_method_params(
                     variant,
                     schema,
@@ -2910,7 +2919,7 @@ fn generate_externally_tagged_factory_class(
             }
             Fields::Unnamed(_) | Fields::Named(_) => {
                 // Complex variant - create static method that returns wrapped RootModel
-                let method_name = to_snake_case(variant_name);
+                let method_name = safe_python_identifier(&to_snake_case(variant_name));
                 let variant_class_name =
                     format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
                 let method_params = generate_factory_method_params(
@@ -2993,7 +3002,7 @@ fn generate_factory_method_params(
             let mut optional_params: Vec<String> = Vec::new();
 
             for field in named_fields {
-                let param_name = to_snake_case(field.serde_name());
+                let param_name = safe_python_identifier(&to_snake_case(field.serde_name()));
                 let type_annotation = type_ref_to_python_type(
                     &field.type_ref,
                     schema,
@@ -3039,7 +3048,7 @@ fn generate_factory_method_args(variant: &reflectapi_schema::Variant) -> anyhow:
                 .iter()
                 .map(|field| {
                     let serde_name = field.serde_name();
-                    let param_name = to_snake_case(serde_name);
+                    let param_name = safe_python_identifier(&to_snake_case(serde_name));
                     let field_name = sanitize_field_name(field.name());
                     format!("{field_name}={param_name}")
                 })
@@ -5211,6 +5220,7 @@ pub mod templates {
                 writeln!(s, "class {}(BaseModel):", self.name).unwrap();
             }
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 } else {
@@ -5272,6 +5282,7 @@ pub mod templates {
             let mut s = String::new();
             writeln!(s, "class {}(str, Enum):", self.name).unwrap();
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 } else {
@@ -5312,6 +5323,7 @@ pub mod templates {
             let base = if self.is_int_enum { "IntEnum" } else { "Enum" };
             writeln!(s, "class {}({}):", self.name, base).unwrap();
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 writeln!(s).unwrap();
             }
@@ -5319,6 +5331,7 @@ pub mod templates {
                 writeln!(s).unwrap();
                 writeln!(s, "    {} = {}", variant.name, variant.value).unwrap();
                 if let Some(desc) = &variant.description {
+                    let desc = super::sanitize_for_docstring(desc);
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 }
                 writeln!(s).unwrap();
@@ -5344,10 +5357,11 @@ pub mod templates {
                 let params = self.generic_params.join(", ");
                 writeln!(s).unwrap();
                 writeln!(s, "class {}(Generic[{}]):", self.name, params).unwrap();
-                let desc = self
-                    .description
-                    .as_deref()
-                    .unwrap_or("Generated discriminated union type.");
+                let desc = super::sanitize_for_docstring(
+                    self.description
+                        .as_deref()
+                        .unwrap_or("Generated discriminated union type."),
+                );
                 writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 writeln!(s).unwrap();
                 writeln!(s, "    @classmethod").unwrap();
@@ -5411,6 +5425,7 @@ pub mod templates {
             writeln!(s).unwrap();
             if !self.is_generic {
                 if let Some(desc) = &self.description {
+                    let desc = super::sanitize_for_docstring(desc);
                     if !desc.is_empty() {
                         writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
                     }
@@ -5437,6 +5452,7 @@ pub mod templates {
                 .collect();
             writeln!(s, "{} = Union[{}]", self.name, type_annotations.join(", ")).unwrap();
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
                 }
@@ -5605,7 +5621,7 @@ pub mod templates {
             writeln!(s, "    ) -> ApiResponse[{}]:", function.output_type).unwrap();
 
             // Docstring
-            let desc = function.description.as_deref().unwrap_or("");
+            let desc = super::sanitize_for_docstring(function.description.as_deref().unwrap_or(""));
             write!(s, "        \"\"\"{desc}").unwrap();
             if function.has_body || !function.path_params.is_empty() {
                 writeln!(s).unwrap();
@@ -5620,7 +5636,9 @@ pub mod templates {
                     .unwrap();
                 }
                 for param in &function.path_params {
-                    let param_desc = param.description.as_deref().unwrap_or("Path parameter");
+                    let param_desc = super::sanitize_for_docstring(
+                        param.description.as_deref().unwrap_or("Path parameter"),
+                    );
                     writeln!(s, "            {}: {}", param.name, param_desc).unwrap();
                 }
                 writeln!(s).unwrap();
@@ -5636,6 +5654,7 @@ pub mod templates {
             )
             .unwrap();
             if let Some(dep_note) = &function.deprecation_note {
+                let dep_note = super::sanitize_for_docstring(dep_note);
                 writeln!(s).unwrap();
                 writeln!(s, "        .. deprecated::").unwrap();
                 writeln!(s, "           {dep_note}").unwrap();
@@ -5836,6 +5855,7 @@ pub mod templates {
             let mut s = String::new();
             writeln!(s, "class {}(BaseModel):", self.name).unwrap();
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 } else {
@@ -5886,6 +5906,7 @@ pub mod templates {
             let mut s = String::new();
             writeln!(s, "class {}(BaseModel):", self.name).unwrap();
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 } else {
@@ -5953,6 +5974,7 @@ pub mod templates {
             let mut s = String::new();
             writeln!(s, "class {}(BaseModel):", self.name).unwrap();
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 } else {
@@ -6038,6 +6060,7 @@ pub mod templates {
             )
             .unwrap();
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
                 }
@@ -6071,6 +6094,7 @@ pub mod templates {
             }
             writeln!(s, "class {}(str, Enum):", self.enum_name).unwrap();
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 }
@@ -6122,6 +6146,7 @@ pub mod templates {
             writeln!(s, "@dataclass").unwrap();
             writeln!(s, "class {}:", self.name).unwrap();
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 }
@@ -6166,6 +6191,7 @@ pub mod templates {
             writeln!(s, "@dataclass").unwrap();
             writeln!(s, "class {}:", self.name).unwrap();
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 }
@@ -6247,6 +6273,7 @@ pub mod templates {
             )
             .unwrap();
             if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
                 writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
             }
             s
@@ -6293,10 +6320,11 @@ pub mod templates {
             } else {
                 writeln!(s, "class {}(RootModel[{}Variants]):", self.name, self.name).unwrap();
             }
-            let desc = self
-                .description
-                .as_deref()
-                .unwrap_or("Externally tagged enum");
+            let desc = super::sanitize_for_docstring(
+                self.description
+                    .as_deref()
+                    .unwrap_or("Externally tagged enum"),
+            );
             writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
             writeln!(s).unwrap();
             if self.is_generic {
@@ -6407,10 +6435,11 @@ pub mod templates {
                 )
                 .unwrap();
                 writeln!(s, "class {}(Generic[{}]):", self.name, params).unwrap();
-                let desc = self
-                    .description
-                    .as_deref()
-                    .unwrap_or("Generic externally tagged enum using Approach B");
+                let desc = super::sanitize_for_docstring(
+                    self.description
+                        .as_deref()
+                        .unwrap_or("Generic externally tagged enum using Approach B"),
+                );
                 writeln!(s, "    \"\"\"{desc}").unwrap();
                 writeln!(s).unwrap();
                 writeln!(
@@ -6502,10 +6531,11 @@ pub mod templates {
                     writeln!(s, "{}Variants = Union[{}]", self.name, self.union_variants).unwrap();
                 }
                 writeln!(s, "class {}(RootModel[{}Variants]):", self.name, self.name).unwrap();
-                let desc = self
-                    .description
-                    .as_deref()
-                    .unwrap_or("Externally tagged enum");
+                let desc = super::sanitize_for_docstring(
+                    self.description
+                        .as_deref()
+                        .unwrap_or("Externally tagged enum"),
+                );
                 writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
                 writeln!(s).unwrap();
                 writeln!(s, "    @model_validator(mode='before')").unwrap();
