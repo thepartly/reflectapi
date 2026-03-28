@@ -81,13 +81,6 @@ class ReflectapiDemoTestsSerdeTask(RootModel):
     ]
 
 
-try:
-    ReflectapiDemoTestsSerdeTaskHigh.model_rebuild()
-    ReflectapiDemoTestsSerdeTaskLow.model_rebuild()
-except AttributeError:
-    pass
-
-
 # Namespace classes for dotted access to types
 class reflectapi_demo:
     """Namespace for reflectapi_demo types."""

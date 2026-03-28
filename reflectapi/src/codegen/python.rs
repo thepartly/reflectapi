@@ -828,12 +828,10 @@ fn render_struct_with_flattened_internal_enum(
         "\nclass {struct_name}(RootModel):\n    root: Annotated[\n        Union[\n            {union_type},\n        ],\n        Field(discriminator=\"{sanitized_tag}\"),\n    ]\n"
     ));
 
-    // Rebuild per-variant models to resolve forward references
-    output.push_str("\ntry:\n");
-    for variant_name in &union_variant_names {
-        output.push_str(&format!("    {variant_name}.model_rebuild()\n"));
-    }
-    output.push_str("except AttributeError:\n    pass\n");
+    // Note: model_rebuild() for per-variant classes is handled by the global
+    // rebuild section after namespace classes are defined. Inline rebuild here
+    // would fail because dotted namespace references (used in type annotations)
+    // cannot be resolved until namespace classes exist.
 
     Ok(output)
 }
