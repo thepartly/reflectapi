@@ -30,7 +30,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdePayloadTextVariant(BaseModel):
@@ -224,47 +223,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class reflectapi_demo_tests_serde_PayloadFactory:
-    """Factory class for creating reflectapi_demo.tests.serde.Payload variants with ergonomic syntax.
-
-    reflectapi_demo.tests.serde.Payload variants
-    """
-
-    @staticmethod
-    def text(body: str) -> reflectapi_demo.tests.serde.Payload:
-        """Creates the 'Text' variant of the reflectapi_demo.tests.serde.Payload enum."""
-        return reflectapi_demo.tests.serde.Payload(
-            reflectapi_demo.tests.serde.PayloadTextVariant(body=body)
-        )
-
-    @staticmethod
-    def binary(size: int) -> reflectapi_demo.tests.serde.Payload:
-        """Creates the 'Binary' variant of the reflectapi_demo.tests.serde.Payload enum."""
-        return reflectapi_demo.tests.serde.Payload(
-            reflectapi_demo.tests.serde.PayloadBinaryVariant(size=size)
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_serde_message_response(
-    value: reflectapi_demo.tests.serde.Message,
-) -> ApiResponse[reflectapi_demo.tests.serde.Message]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Message."""
-    return create_api_response(value)
-
-
-def create_reflectapi_demo_tests_serde_payload_response(
-    value: reflectapi_demo.tests.serde.Payload,
-) -> ApiResponse[reflectapi_demo.tests.serde.Payload]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Payload."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

@@ -23,7 +23,6 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeOfferKindSingle(BaseModel):
@@ -211,43 +210,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class reflectapi_demo_tests_serde_OfferKindFactory:
-    """Factory class for creating reflectapi_demo.tests.serde.OfferKind variants with ergonomic syntax.
-
-    reflectapi_demo.tests.serde.OfferKind variants
-    """
-
-    @staticmethod
-    def single(business: str) -> reflectapi_demo.tests.serde.OfferKindSingle:
-        """Creates the 'Single' variant of the reflectapi_demo.tests.serde.OfferKind enum."""
-        return reflectapi_demo.tests.serde.OfferKindSingle(business=business)
-
-    @staticmethod
-    def group(count: int) -> reflectapi_demo.tests.serde.OfferKindGroup:
-        """Creates the 'Group' variant of the reflectapi_demo.tests.serde.OfferKind enum."""
-        return reflectapi_demo.tests.serde.OfferKindGroup(count=count)
-
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_serde_offer_response(
-    value: reflectapi_demo.tests.serde.Offer,
-) -> ApiResponse[reflectapi_demo.tests.serde.Offer]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Offer."""
-    return create_api_response(value)
-
-
-def create_reflectapi_demo_tests_serde_offerkind_response(
-    value: reflectapi_demo.tests.serde.OfferKind,
-) -> ApiResponse[reflectapi_demo.tests.serde.OfferKind]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.OfferKind."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

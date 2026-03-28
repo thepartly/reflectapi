@@ -30,7 +30,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeTestEnumRenameVariantFieldVariant2Variant(BaseModel):
@@ -207,37 +206,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class reflectapi_demo_tests_serde_TestEnumRenameVariantFieldFactory:
-    """Factory class for creating reflectapi_demo.tests.serde.TestEnumRenameVariantField variants with ergonomic syntax.
-
-    reflectapi_demo.tests.serde.TestEnumRenameVariantField variants
-    """
-
-    @staticmethod
-    def variant2(
-        variant2_field_name: int,
-    ) -> reflectapi_demo.tests.serde.TestEnumRenameVariantField:
-        """Creates the 'Variant2' variant of the reflectapi_demo.tests.serde.TestEnumRenameVariantField enum."""
-        return reflectapi_demo.tests.serde.TestEnumRenameVariantField(
-            reflectapi_demo.tests.serde.TestEnumRenameVariantFieldVariant2Variant(
-                variant2_field_name=variant2_field_name
-            )
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_serde_testenumrenamevariantfield_response(
-    value: reflectapi_demo.tests.serde.TestEnumRenameVariantField,
-) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumRenameVariantField]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.TestEnumRenameVariantField."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

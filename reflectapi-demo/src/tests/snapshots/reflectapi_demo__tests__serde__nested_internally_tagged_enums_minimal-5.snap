@@ -23,7 +23,6 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeV1A(BaseModel):
@@ -169,52 +168,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class reflectapi_demo_tests_serde_V1Factory:
-    """Factory class for creating reflectapi_demo.tests.serde.V1 variants with ergonomic syntax.
-
-    reflectapi_demo.tests.serde.V1 variants
-    """
-
-    @staticmethod
-    def a(a: int) -> reflectapi_demo.tests.serde.V1A:
-        """Creates the 'A' variant of the reflectapi_demo.tests.serde.V1 enum."""
-        return reflectapi_demo.tests.serde.V1A(a=a)
-
-
-class reflectapi_demo_tests_serde_TestFactory:
-    """Factory class for creating reflectapi_demo.tests.serde.Test variants with ergonomic syntax.
-
-    reflectapi_demo.tests.serde.Test variants
-    """
-
-    @staticmethod
-    def v1(
-        field_0: reflectapi_demo.tests.serde.V1,
-    ) -> reflectapi_demo.tests.serde.TestV1:
-        """Creates the 'v1' variant of the reflectapi_demo.tests.serde.Test enum."""
-        return reflectapi_demo.tests.serde.TestV1(field_0=field_0)
-
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_serde_test_response(
-    value: reflectapi_demo.tests.serde.Test,
-) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Test."""
-    return create_api_response(value)
-
-
-def create_reflectapi_demo_tests_serde_v1_response(
-    value: reflectapi_demo.tests.serde.V1,
-) -> ApiResponse[reflectapi_demo.tests.serde.V1]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.V1."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

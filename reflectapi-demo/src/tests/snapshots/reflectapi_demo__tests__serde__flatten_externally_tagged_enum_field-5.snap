@@ -30,7 +30,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeShapeCircleVariant(BaseModel):
@@ -218,47 +217,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class reflectapi_demo_tests_serde_ShapeFactory:
-    """Factory class for creating reflectapi_demo.tests.serde.Shape variants with ergonomic syntax.
-
-    reflectapi_demo.tests.serde.Shape variants
-    """
-
-    @staticmethod
-    def circle(radius: float) -> reflectapi_demo.tests.serde.Shape:
-        """Creates the 'Circle' variant of the reflectapi_demo.tests.serde.Shape enum."""
-        return reflectapi_demo.tests.serde.Shape(
-            reflectapi_demo.tests.serde.ShapeCircleVariant(radius=radius)
-        )
-
-    @staticmethod
-    def rect(width: float, height: float) -> reflectapi_demo.tests.serde.Shape:
-        """Creates the 'Rect' variant of the reflectapi_demo.tests.serde.Shape enum."""
-        return reflectapi_demo.tests.serde.Shape(
-            reflectapi_demo.tests.serde.ShapeRectVariant(width=width, height=height)
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_serde_drawing_response(
-    value: reflectapi_demo.tests.serde.Drawing,
-) -> ApiResponse[reflectapi_demo.tests.serde.Drawing]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Drawing."""
-    return create_api_response(value)
-
-
-def create_reflectapi_demo_tests_serde_shape_response(
-    value: reflectapi_demo.tests.serde.Shape,
-) -> ApiResponse[reflectapi_demo.tests.serde.Shape]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Shape."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

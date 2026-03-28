@@ -30,7 +30,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Variant(BaseModel):
@@ -237,48 +236,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class reflectapi_demo_tests_serde_TestEnumTagContentRenameAllFactory:
-    """Factory class for creating reflectapi_demo.tests.serde.TestEnumTagContentRenameAll variants with ergonomic syntax.
-
-    reflectapi_demo.tests.serde.TestEnumTagContentRenameAll variants
-    """
-
-    @staticmethod
-    def variant1(
-        field_name: int,
-    ) -> reflectapi_demo.tests.serde.TestEnumTagContentRenameAll:
-        """Creates the 'variant1' variant of the reflectapi_demo.tests.serde.TestEnumTagContentRenameAll enum."""
-        return reflectapi_demo.tests.serde.TestEnumTagContentRenameAll(
-            reflectapi_demo.tests.serde.TestEnumTagContentRenameAllVariant1Variant(
-                field_name=field_name
-            )
-        )
-
-    @staticmethod
-    def variant2(
-        field_0: int,
-    ) -> reflectapi_demo.tests.serde.TestEnumTagContentRenameAll:
-        """Creates the 'variant2' variant of the reflectapi_demo.tests.serde.TestEnumTagContentRenameAll enum."""
-        return reflectapi_demo.tests.serde.TestEnumTagContentRenameAll(
-            reflectapi_demo.tests.serde.TestEnumTagContentRenameAllVariant2Variant(
-                field_0=field_0
-            )
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_serde_testenumtagcontentrenameall_response(
-    value: reflectapi_demo.tests.serde.TestEnumTagContentRenameAll,
-) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumTagContentRenameAll]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.TestEnumTagContentRenameAll."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

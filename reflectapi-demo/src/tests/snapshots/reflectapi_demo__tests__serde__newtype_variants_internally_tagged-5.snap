@@ -23,7 +23,6 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeStrukt2(BaseModel):
@@ -188,54 +187,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class reflectapi_demo_tests_serde_EnumFactory:
-    """Factory class for creating reflectapi_demo.tests.serde.Enum variants with ergonomic syntax.
-
-    reflectapi_demo.tests.serde.Enum variants
-    """
-
-    @staticmethod
-    def a(
-        field_0: reflectapi_demo.tests.serde.Strukt1,
-    ) -> reflectapi_demo.tests.serde.EnumA:
-        """Creates the 'a' variant of the reflectapi_demo.tests.serde.Enum enum."""
-        return reflectapi_demo.tests.serde.EnumA(field_0=field_0)
-
-    @staticmethod
-    def b(
-        field_0: reflectapi_demo.tests.serde.Strukt2,
-    ) -> reflectapi_demo.tests.serde.EnumB:
-        """Creates the 'b' variant of the reflectapi_demo.tests.serde.Enum enum."""
-        return reflectapi_demo.tests.serde.EnumB(field_0=field_0)
-
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_serde_enum_response(
-    value: reflectapi_demo.tests.serde.Enum,
-) -> ApiResponse[reflectapi_demo.tests.serde.Enum]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Enum."""
-    return create_api_response(value)
-
-
-def create_reflectapi_demo_tests_serde_strukt1_response(
-    value: reflectapi_demo.tests.serde.Strukt1,
-) -> ApiResponse[reflectapi_demo.tests.serde.Strukt1]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Strukt1."""
-    return create_api_response(value)
-
-
-def create_reflectapi_demo_tests_serde_strukt2_response(
-    value: reflectapi_demo.tests.serde.Strukt2,
-) -> ApiResponse[reflectapi_demo.tests.serde.Strukt2]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Strukt2."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

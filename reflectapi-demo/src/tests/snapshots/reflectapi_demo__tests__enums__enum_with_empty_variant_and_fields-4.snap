@@ -30,7 +30,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFieldsVariant2Variant(
@@ -218,42 +217,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class reflectapi_demo_tests_enums_TestEnumWithEmptyVariantAndFieldsFactory:
-    """Factory class for creating reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields variants with ergonomic syntax.
-
-    reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields variants
-    """
-
-    @staticmethod
-    def variant1() -> reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields:
-        """Creates the 'Variant1' variant of the reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields enum."""
-        return reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields("Variant1")
-
-    @staticmethod
-    def variant2(
-        field_0: int,
-    ) -> reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields:
-        """Creates the 'Variant2' variant of the reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields enum."""
-        return reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields(
-            reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFieldsVariant2Variant(
-                field_0=field_0
-            )
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_enums_testenumwithemptyvariantandfields_response(
-    value: reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields,
-) -> ApiResponse[reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

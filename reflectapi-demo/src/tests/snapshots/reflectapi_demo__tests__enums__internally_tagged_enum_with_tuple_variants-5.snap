@@ -23,7 +23,6 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsEnumsA(str, Enum):
@@ -160,38 +159,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class reflectapi_demo_tests_enums_EFactory:
-    """Factory class for creating reflectapi_demo.tests.enums.E variants with ergonomic syntax.
-
-    reflectapi_demo.tests.enums.E variants
-    """
-
-    @staticmethod
-    def a(field_0: reflectapi_demo.tests.enums.A) -> reflectapi_demo.tests.enums.EA:
-        """Creates the 'a' variant of the reflectapi_demo.tests.enums.E enum."""
-        return reflectapi_demo.tests.enums.EA(field_0=field_0)
-
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_enums_a_response(
-    value: reflectapi_demo.tests.enums.A,
-) -> ApiResponse[reflectapi_demo.tests.enums.A]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.enums.A."""
-    return create_api_response(value)
-
-
-def create_reflectapi_demo_tests_enums_e_response(
-    value: reflectapi_demo.tests.enums.E,
-) -> ApiResponse[reflectapi_demo.tests.enums.E]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.enums.E."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

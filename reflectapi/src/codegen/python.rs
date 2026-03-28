@@ -19,88 +19,6 @@ fn sanitize_for_string_literal(text: &str) -> String {
         .replace('\r', "\\r")
 }
 
-/// Information needed to generate a factory class later
-#[derive(Clone, Debug)]
-struct FactoryInfo {
-    enum_def: reflectapi_schema::Enum,
-    enum_name: String,
-    union_members: Vec<String>,
-    is_internally_tagged: bool,
-}
-
-/// Convert a dotted Python type reference to a valid Python identifier
-/// for use as a class name (e.g., for factory classes at the top level).
-///
-/// Example: `"reflectapi_demo.tests.serde.OfferKind"` → `"reflectapi_demo_tests_serde_OfferKindFactory"`
-fn dotted_to_flat_identifier(dotted: &str, suffix: &str) -> String {
-    format!("{}{}", dotted.replace('.', "_"), suffix)
-}
-
-/// Compute the dotted namespace prefix for a Rust qualified name.
-///
-/// For `"a::b::Leaf"` returns `"a.b."`. For a single-segment name returns `""`.
-fn namespace_prefix_for(original_name: &str) -> String {
-    let parts: Vec<&str> = original_name.split("::").collect();
-    if parts.len() <= 1 {
-        return String::new();
-    }
-    let ns_parts = &parts[..parts.len() - 1];
-    let mut prefix = ns_parts.join(".");
-    prefix.push('.');
-    prefix
-}
-
-/// Convert flat union member names to dotted namespace references.
-///
-/// The flat names (like `ReflectapiDemoTestsSerdeOfferKindSingle`) have the
-/// PascalCase namespace prefix stripped to produce leaf names (like
-/// `OfferKindSingle`), then the dotted namespace prefix is prepended to
-/// produce `reflectapi_demo.tests.serde.OfferKindSingle`.
-///
-/// Members that already contain a dot are left unchanged. Literal types are
-/// also left unchanged since they are values, not class references.
-fn prefix_union_members(members: &[String], original_name: &str) -> Vec<String> {
-    let dotted_prefix = namespace_prefix_for(original_name);
-    if dotted_prefix.is_empty() {
-        return members.to_vec();
-    }
-
-    // Compute the flat PascalCase prefix that was prepended by improve_class_name.
-    // For "reflectapi_demo::tests::serde::OfferKind", the namespace segments are
-    // ["reflectapi_demo", "tests", "serde"], and the flat prefix is "ReflectapiDemoTestsSerde".
-    let ns_segments: Vec<&str> = original_name.split("::").collect();
-    let flat_prefix: String = ns_segments[..ns_segments.len() - 1]
-        .iter()
-        .map(|seg| to_pascal_case(seg))
-        .collect::<Vec<_>>()
-        .join("");
-
-    members
-        .iter()
-        .map(|m| {
-            if m.contains('.') || m.starts_with("Literal[") {
-                m.clone()
-            } else {
-                // Strip the flat namespace prefix to get the leaf name, then
-                // prepend the dotted namespace prefix.
-                let (base, generics_suffix) = if let Some(bracket_pos) = m.find('[') {
-                    (&m[..bracket_pos], &m[bracket_pos..])
-                } else {
-                    (m.as_str(), "")
-                };
-
-                let leaf = if base.starts_with(&flat_prefix) {
-                    &base[flat_prefix.len()..]
-                } else {
-                    base
-                };
-
-                format!("{dotted_prefix}{leaf}{generics_suffix}")
-            }
-        })
-        .collect()
-}
-
 /// Configuration for Python client generation
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -122,7 +40,7 @@ impl Default for Config {
             package_name: "api_client".to_string(),
             generate_async: true,
             generate_sync: true,
-            generate_testing: true,
+            generate_testing: false,
             base_url: None,
         }
     }
@@ -1357,9 +1275,8 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         generated_code.push("".to_string());
     }
 
-    // Render all types (models and enums) without factories first
+    // Render all types (models and enums)
     let mut rendered_types = BTreeMap::new();
-    let mut factory_data = Vec::new(); // Collect factory data for later generation
 
     // Sort types topologically to handle dependencies, fall back to alphabetical on circular deps
     let sorted_type_names = topological_sort_types(&all_type_names, &schema).unwrap_or_else(|_| {
@@ -1382,17 +1299,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
         // TypeVars have already been collected, use empty set for rendering
         let mut dummy_type_vars = BTreeSet::new();
-        let (rendered, factory_info) = render_type_without_factory(
-            type_def,
-            &schema,
-            &implemented_types,
-            &mut dummy_type_vars,
-        )?;
-
-        // Store factory info for later generation
-        if let Some(info) = factory_info {
-            factory_data.push(info);
-        }
+        let rendered = render_type(type_def, &schema, &implemented_types, &mut dummy_type_vars)?;
 
         // Only store non-empty renders (excludes unwrapped tuple structs)
         if !rendered.trim().is_empty() {
@@ -1496,36 +1403,6 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         .push("    # Some types may not have model_rebuild method".to_string());
     external_types_and_rebuilds.push("    pass".to_string());
     external_types_and_rebuilds.push("".to_string());
-    external_types_and_rebuilds.push(
-        "# Factory classes (generated after model rebuild to avoid forward references)".to_string(),
-    );
-
-    // Generate all factory classes now that types are defined and rebuilt
-    for factory_info in &factory_data {
-        let mut factory_type_vars = BTreeSet::new();
-        let factory_code = if factory_info.is_internally_tagged {
-            generate_internally_tagged_factory_class(
-                &factory_info.enum_def,
-                &factory_info.enum_name,
-                &factory_info.union_members,
-                &schema,
-                &implemented_types,
-                &mut factory_type_vars,
-            )?
-        } else {
-            generate_factory_class_with_representation(
-                &factory_info.enum_def,
-                &factory_info.enum_name,
-                &factory_info.union_members,
-                &factory_info.enum_def.representation,
-                &schema,
-                &implemented_types,
-                &mut factory_type_vars,
-            )?
-        };
-        external_types_and_rebuilds.push(factory_code);
-        external_types_and_rebuilds.push("".to_string());
-    }
 
     generated_code.push(external_types_and_rebuilds.join("\n"));
 
@@ -1634,21 +1511,18 @@ fn infer_enum_generic_params(enum_def: &reflectapi_schema::Enum, schema: &Schema
     result
 }
 
-fn render_type_without_factory(
+fn render_type(
     type_def: &Type,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<(String, Option<FactoryInfo>)> {
+) -> anyhow::Result<String> {
     match type_def {
-        Type::Struct(s) => Ok((
-            render_struct(s, schema, implemented_types, used_type_vars)?,
-            None,
-        )),
-        Type::Enum(e) => render_enum_without_factory(e, schema, implemented_types, used_type_vars),
+        Type::Struct(s) => render_struct(s, schema, implemented_types, used_type_vars),
+        Type::Enum(e) => render_enum(e, schema, implemented_types, used_type_vars),
         Type::Primitive(_p) => {
             // Primitive types are handled by implemented_types mapping
-            Ok((String::new(), None)) // This shouldn't be reached normally
+            Ok(String::new()) // This shouldn't be reached normally
         }
     }
 }
@@ -1987,19 +1861,18 @@ fn render_struct(
     Ok(class_template.render())
 }
 
-fn render_enum_without_factory(
+fn render_enum(
     enum_def: &reflectapi_schema::Enum,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<(String, Option<FactoryInfo>)> {
+) -> anyhow::Result<String> {
     use reflectapi_schema::{Fields, Representation};
 
     // Check if this is a tagged enum (internally tagged)
     match &enum_def.representation {
         Representation::Internal { tag } => {
-            // Internally tagged enums need factories but they're generated after model rebuild
-            let (rendered, union_variant_names) = render_internally_tagged_enum_without_factory(
+            let (rendered, _union_variant_names) = render_internally_tagged_enum(
                 enum_def,
                 tag,
                 schema,
@@ -2007,21 +1880,11 @@ fn render_enum_without_factory(
                 used_type_vars,
             )?;
 
-            // Return factory info so it can be generated later.
-            // Use dotted path for the enum name so factory classes can reference
-            // types that live inside namespace classes.
-            let factory_info = FactoryInfo {
-                enum_def: enum_def.clone(),
-                enum_name: type_name_to_python_ref(&enum_def.name),
-                union_members: prefix_union_members(&union_variant_names, &enum_def.name),
-                is_internally_tagged: true,
-            };
-
-            Ok((rendered, Some(factory_info)))
+            Ok(rendered)
         }
         Representation::Adjacent { tag, content } => {
             // Adjacently tagged enums are represented as { tag: "Variant", content: ... }
-            let (rendered, union_variant_names) = render_adjacently_tagged_enum_without_factory(
+            let (rendered, _union_variant_names) = render_adjacently_tagged_enum(
                 enum_def,
                 tag,
                 content,
@@ -2030,30 +1893,18 @@ fn render_enum_without_factory(
                 used_type_vars,
             )?;
 
-            // Return factory info so it can be generated later
-            let factory_info = FactoryInfo {
-                enum_def: enum_def.clone(),
-                enum_name: type_name_to_python_ref(&enum_def.name),
-                union_members: prefix_union_members(&union_variant_names, &enum_def.name),
-                is_internally_tagged: false, // Adjacent tagged, not internal
-            };
-
-            Ok((rendered, Some(factory_info)))
+            Ok(rendered)
         }
         Representation::None => {
-            // Untagged enums don't use factories
-            let rendered =
-                render_untagged_enum(enum_def, schema, implemented_types, used_type_vars)?;
-            Ok((rendered, None))
+            // Untagged enums
+            render_untagged_enum(enum_def, schema, implemented_types, used_type_vars)
         }
         _ => {
             // Check if this is a primitive-represented enum (has discriminant values)
             let has_discriminants = enum_def.variants.iter().any(|v| v.discriminant.is_some());
 
             if has_discriminants {
-                // Primitive enums don't use factories
-                let rendered = render_primitive_enum(enum_def)?;
-                Ok((rendered, None))
+                render_primitive_enum(enum_def)
             } else {
                 // Check if this has complex variants (tuple or struct variants)
                 let has_complex_variants = enum_def.variants.iter().any(|v| {
@@ -2065,22 +1916,15 @@ fn render_enum_without_factory(
                 });
 
                 if has_complex_variants {
-                    // This is an externally tagged enum with complex variants - needs factory
-                    let (rendered, union_members) = render_externally_tagged_enum_without_factory(
+                    // This is an externally tagged enum with complex variants
+                    render_externally_tagged_enum(
                         enum_def,
                         schema,
                         implemented_types,
                         used_type_vars,
-                    )?;
-                    let factory_info = FactoryInfo {
-                        enum_def: enum_def.clone(),
-                        enum_name: type_name_to_python_ref(&enum_def.name),
-                        union_members: prefix_union_members(&union_members, &enum_def.name),
-                        is_internally_tagged: false,
-                    };
-                    Ok((rendered, Some(factory_info)))
+                    )
                 } else {
-                    // Simple string enum - no factory needed
+                    // Simple string enum
                     let variants = enum_def
                         .variants
                         .iter()
@@ -2097,15 +1941,14 @@ fn render_enum_without_factory(
                         variants,
                     };
 
-                    let rendered = enum_template.render();
-                    Ok((rendered, None))
+                    Ok(enum_template.render())
                 }
             }
         }
     }
 }
 
-fn render_adjacently_tagged_enum_without_factory(
+fn render_adjacently_tagged_enum(
     enum_def: &reflectapi_schema::Enum,
     tag: &str,
     content: &str,
@@ -2349,53 +2192,6 @@ fn generate_adjacent_serialize_cases(
     Ok(cases.join("\n"))
 }
 
-fn render_externally_tagged_enum_without_factory(
-    enum_def: &reflectapi_schema::Enum,
-    schema: &Schema,
-    implemented_types: &BTreeMap<String, String>,
-    used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<(String, Vec<String>)> {
-    // Generate the full enum (with factory)
-    let full_enum =
-        render_externally_tagged_enum(enum_def, schema, implemented_types, used_type_vars)?;
-
-    // Extract just the part before the factory class (more specific split)
-    let enum_name = improve_class_name(&enum_def.name);
-    let factory_class_pattern = format!("\n\nclass {enum_name}Factory:");
-    let parts: Vec<&str> = full_enum.split(&factory_class_pattern).collect();
-    let enum_without_factory = parts[0].to_string();
-
-    // Extract union member names for factory generation later
-    let union_variants = extract_union_members_from_enum(enum_def)?;
-
-    Ok((enum_without_factory, union_variants))
-}
-
-fn extract_union_members_from_enum(
-    enum_def: &reflectapi_schema::Enum,
-) -> anyhow::Result<Vec<String>> {
-    use reflectapi_schema::Fields;
-
-    let enum_name = improve_class_name(&enum_def.name);
-    let mut union_variants = Vec::new();
-
-    for variant in &enum_def.variants {
-        let variant_name = variant.name();
-        match &variant.fields {
-            Fields::None => {
-                union_variants.push(format!("Literal[\"{variant_name}\"]"));
-            }
-            Fields::Unnamed(_) | Fields::Named(_) => {
-                let variant_class_name =
-                    format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
-                union_variants.push(variant_class_name);
-            }
-        }
-    }
-
-    Ok(union_variants)
-}
-
 fn render_externally_tagged_enum(
     enum_def: &reflectapi_schema::Enum,
     schema: &Schema,
@@ -2618,15 +2414,6 @@ fn render_externally_tagged_enum(
     };
     let enum_code = template.render();
 
-    // Generate factory class for ergonomic instantiation
-    let factory_class_code = generate_externally_tagged_factory_class(
-        enum_def,
-        &enum_name,
-        schema,
-        implemented_types,
-        used_type_vars,
-    )?;
-
     // Combine all parts
     let mut result = String::new();
 
@@ -2638,431 +2425,8 @@ fn render_externally_tagged_enum(
 
     // Add the enum code
     result.push_str(&enum_code);
-    result.push_str("\n\n");
-
-    // Add the factory code
-    result.push_str(&factory_class_code);
 
     Ok(result)
-}
-
-fn generate_factory_class_with_representation(
-    enum_def: &reflectapi_schema::Enum,
-    enum_name: &str,
-    union_members: &[String],
-    representation: &reflectapi_schema::Representation,
-    schema: &Schema,
-    implemented_types: &BTreeMap<String, String>,
-    used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
-    let factory_name = dotted_to_flat_identifier(enum_name, "Factory");
-    let mut class_attributes = Vec::new();
-    let mut static_methods = Vec::new();
-
-    // Check if this enum is generic
-    let is_generic = !enum_def.parameters.is_empty();
-    let generic_params: Vec<String> = if is_generic {
-        enum_def.parameters.iter().map(|p| p.name.clone()).collect()
-    } else {
-        Vec::new()
-    };
-
-    let generic_type_params = if is_generic {
-        format!("[{}]", generic_params.join(", "))
-    } else {
-        String::new()
-    };
-
-    for (i, variant) in enum_def.variants.iter().enumerate() {
-        let variant_class_name = &union_members[i];
-
-        match &variant.fields {
-            Fields::None => {
-                // For generic enums, skip unit variants as they cannot be instantiated
-                // (Generic externally tagged enums use Approach B which doesn't support unit variant instantiation)
-                if !is_generic {
-                    // Unit variant - creation method depends on representation
-                    match representation {
-                        reflectapi_schema::Representation::Adjacent { tag, .. } => {
-                            // For adjacently tagged enums, unit variants need to be created as static methods
-                            // returning the RootModel with dictionary format that the validator expects
-                            let method_name =
-                                safe_python_identifier(&to_snake_case(variant.name()));
-                            static_methods.push(format!(
-                                r#"    @staticmethod
-    def {}() -> {}:
-        '''Creates the '{}' variant of the {} enum.'''
-        return {}.model_validate({{"{}": "{}"}})"#,
-                                method_name,
-                                enum_name,
-                                variant.name(),
-                                enum_name,
-                                enum_name,
-                                tag,
-                                variant.name()
-                            ));
-                        }
-                        reflectapi_schema::Representation::External => {
-                            // For externally tagged enums, unit variants are also static methods
-                            let method_name =
-                                safe_python_identifier(&to_snake_case(variant.name()));
-                            static_methods.push(format!(
-                                r#"    @staticmethod
-    def {}() -> {}:
-        '''Creates the '{}' variant of the {} enum.'''
-        return {}("{}")"#,
-                                method_name,
-                                enum_name,
-                                variant.name(),
-                                enum_name,
-                                enum_name,
-                                variant.name()
-                            ));
-                        }
-                        _ => {
-                            // For other representations, create as class attribute directly
-                            class_attributes.push(format!(
-                                "    {} = {}(\"{}\")",
-                                variant.name().to_uppercase(),
-                                enum_name,
-                                variant.name()
-                            ));
-                        }
-                    }
-                }
-            }
-            Fields::Unnamed(_) | Fields::Named(_) => {
-                // Complex variant - create static method
-                let method_name = safe_python_identifier(&to_snake_case(variant.name()));
-                let method_params = generate_factory_method_params(
-                    variant,
-                    schema,
-                    implemented_types,
-                    &generic_params,
-                    used_type_vars,
-                )?;
-                let method_args = generate_factory_method_args(variant)?;
-
-                // For discriminated unions, methods should return the main enum type
-                let (return_type, factory_body) = match representation {
-                    reflectapi_schema::Representation::Internal { .. }
-                    | reflectapi_schema::Representation::Adjacent { .. }
-                    | reflectapi_schema::Representation::External => {
-                        // For discriminated unions, return the main enum type and wrap the variant
-                        let main_return_type = if is_generic {
-                            format!("{enum_name}{generic_type_params}")
-                        } else {
-                            enum_name.to_string()
-                        };
-                        let variant_type = if is_generic && !variant_class_name.contains('[') {
-                            format!("{variant_class_name}{generic_type_params}")
-                        } else {
-                            variant_class_name.clone()
-                        };
-                        let factory_body =
-                            format!("return {enum_name}({variant_type}({method_args}))");
-                        (main_return_type, factory_body)
-                    }
-                    _ => {
-                        // For other representations, return the variant type directly
-                        let return_type = if is_generic && !variant_class_name.contains('[') {
-                            format!("{variant_class_name}{generic_type_params}")
-                        } else {
-                            variant_class_name.clone()
-                        };
-                        let factory_body = format!("return {return_type}({method_args})");
-                        (return_type, factory_body)
-                    }
-                };
-
-                static_methods.push(format!(
-                    r#"    @staticmethod
-    def {}({}) -> {}:
-        '''Creates the '{}' variant of the {} enum.'''
-        {}"#,
-                    method_name,
-                    method_params,
-                    return_type,
-                    variant.name(),
-                    enum_name,
-                    factory_body
-                ));
-            }
-        }
-    }
-
-    let enum_description = if enum_def.description().is_empty() {
-        format!("{enum_name} variants")
-    } else {
-        sanitize_description(enum_def.description())
-    };
-
-    let mut factory_code = format!(
-        r#"class {factory_name}:
-    '''Factory class for creating {enum_name} variants with ergonomic syntax.
-
-    {enum_description}
-    '''"#
-    );
-
-    if !class_attributes.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&class_attributes.join("\n"));
-    }
-
-    if !static_methods.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&static_methods.join("\n\n"));
-    }
-
-    Ok(factory_code)
-}
-
-fn generate_internally_tagged_factory_class(
-    enum_def: &reflectapi_schema::Enum,
-    enum_name: &str,
-    union_variant_names: &[String],
-    schema: &Schema,
-    implemented_types: &BTreeMap<String, String>,
-    used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
-    let factory_name = dotted_to_flat_identifier(enum_name, "Factory");
-    let mut class_attributes = Vec::new();
-    let mut static_methods = Vec::new();
-
-    let active_generics: Vec<String> = enum_def.parameters.iter().map(|p| p.name.clone()).collect();
-
-    for (i, variant) in enum_def.variants.iter().enumerate() {
-        let variant_name = variant.name();
-        let variant_class_name = &union_variant_names[i];
-
-        match &variant.fields {
-            Fields::None => {
-                // Unit variant - instantiate the variant class directly
-                // For internally tagged enums, unit variants are BaseModel classes
-                class_attributes.push(format!(
-                    "    {} = {}()",
-                    variant_name.to_uppercase(),
-                    variant_class_name
-                ));
-            }
-            Fields::Unnamed(_) | Fields::Named(_) => {
-                // Complex variant - create static method
-                let method_name = safe_python_identifier(&to_snake_case(variant_name));
-                let method_params = generate_factory_method_params(
-                    variant,
-                    schema,
-                    implemented_types,
-                    &active_generics,
-                    used_type_vars,
-                )?;
-                let method_args = generate_factory_method_args(variant)?;
-
-                static_methods.push(format!(
-                    r#"    @staticmethod
-    def {method_name}({method_params}) -> {variant_class_name}:
-        '''Creates the '{variant_name}' variant of the {enum_name} enum.'''
-        return {variant_class_name}({method_args})"#
-                ));
-            }
-        }
-    }
-
-    let enum_description = if enum_def.description().is_empty() {
-        format!("{enum_name} variants")
-    } else {
-        sanitize_description(enum_def.description())
-    };
-
-    let mut factory_code = format!(
-        r#"class {factory_name}:
-    '''Factory class for creating {enum_name} variants with ergonomic syntax.
-
-    {enum_description}
-    '''"#
-    );
-
-    if !class_attributes.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&class_attributes.join("\n"));
-    }
-
-    if !static_methods.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&static_methods.join("\n\n"));
-    }
-
-    Ok(factory_code)
-}
-
-fn generate_externally_tagged_factory_class(
-    enum_def: &reflectapi_schema::Enum,
-    enum_name: &str,
-    schema: &Schema,
-    implemented_types: &BTreeMap<String, String>,
-    used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
-    let factory_name = dotted_to_flat_identifier(enum_name, "Factory");
-    let class_attributes: Vec<String> = Vec::new();
-    let mut static_methods = Vec::new();
-
-    let active_generics: Vec<String> = enum_def.parameters.iter().map(|p| p.name.clone()).collect();
-
-    for variant in &enum_def.variants {
-        let variant_name = variant.name();
-
-        match &variant.fields {
-            Fields::None => {
-                // Skip unit variants for externally tagged enums
-                // They're already handled by the RootModel validator and instantiating
-                // them here can cause forward reference issues
-                // Users can create them with: EnumName("variant_name")
-            }
-            Fields::Unnamed(_) | Fields::Named(_) => {
-                // Complex variant - create static method that returns wrapped RootModel
-                let method_name = safe_python_identifier(&to_snake_case(variant_name));
-                let variant_class_name =
-                    format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
-                let method_params = generate_factory_method_params(
-                    variant,
-                    schema,
-                    implemented_types,
-                    &active_generics,
-                    used_type_vars,
-                )?;
-                let method_args = generate_factory_method_args(variant)?;
-
-                static_methods.push(format!(
-                    "    @staticmethod\n    def {method_name}({method_params}) -> {enum_name}:\n        \"\"\"Creates the '{variant_name}' variant of the {enum_name} enum.\"\"\"\n        return {enum_name}({variant_class_name}({method_args}))"
-                ));
-            }
-        }
-    }
-
-    let mut factory_code = format!(
-        "class {factory_name}:\n    \"\"\"Factory class for creating {enum_name} variants with ergonomic syntax.\n\n    {enum_name} variants\n    \"\"\""
-    );
-
-    if !class_attributes.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&class_attributes.join("\n"));
-    }
-
-    if !static_methods.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&static_methods.join("\n\n"));
-    }
-
-    Ok(factory_code)
-}
-
-fn generate_factory_method_params(
-    variant: &reflectapi_schema::Variant,
-    schema: &Schema,
-    implemented_types: &BTreeMap<String, String>,
-    active_generics: &[String],
-    used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
-    match &variant.fields {
-        Fields::None => Ok(String::new()),
-        Fields::Unnamed(unnamed_fields) => {
-            let params: Vec<String> = unnamed_fields
-                .iter()
-                .enumerate()
-                .map(|(i, field)| {
-                    let param_name = format!("field_{i}");
-                    let type_annotation = type_ref_to_python_type(
-                        &field.type_ref,
-                        schema,
-                        implemented_types,
-                        active_generics,
-                        used_type_vars,
-                    )
-                    .unwrap_or_else(|_| "Any".to_string());
-                    let full_type = if field.required {
-                        type_annotation
-                    } else {
-                        format!("{type_annotation} | None")
-                    };
-                    if field.required {
-                        format!("{param_name}: {full_type}")
-                    } else {
-                        format!("{param_name}: {full_type} = None")
-                    }
-                })
-                .collect();
-            Ok(params.join(", "))
-        }
-        Fields::Named(named_fields) => {
-            let mut params: Vec<String> = Vec::new();
-
-            // Separate required and optional parameters for better ergonomics
-            let mut required_params: Vec<String> = Vec::new();
-            let mut optional_params: Vec<String> = Vec::new();
-
-            for field in named_fields {
-                let param_name = safe_python_identifier(&to_snake_case(field.serde_name()));
-                let type_annotation = type_ref_to_python_type(
-                    &field.type_ref,
-                    schema,
-                    implemented_types,
-                    active_generics,
-                    used_type_vars,
-                )
-                .unwrap_or_else(|_| "Any".to_string());
-                let full_type = if field.required {
-                    type_annotation
-                } else {
-                    format!("{type_annotation} | None")
-                };
-                if field.required {
-                    required_params.push(format!("{param_name}: {full_type}"));
-                } else {
-                    optional_params.push(format!("{param_name}: {full_type} = None"));
-                }
-            }
-
-            // Put required parameters first, then optional ones
-            params.extend(required_params);
-            params.extend(optional_params);
-
-            Ok(params.join(", "))
-        }
-    }
-}
-
-fn generate_factory_method_args(variant: &reflectapi_schema::Variant) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
-    match &variant.fields {
-        Fields::None => Ok(String::new()),
-        Fields::Unnamed(unnamed_fields) => {
-            let args: Vec<String> = (0..unnamed_fields.len())
-                .map(|i| format!("field_{i}=field_{i}"))
-                .collect();
-            Ok(args.join(", "))
-        }
-        Fields::Named(named_fields) => {
-            let args: Vec<String> = named_fields
-                .iter()
-                .map(|field| {
-                    let serde_name = field.serde_name();
-                    let param_name = safe_python_identifier(&to_snake_case(serde_name));
-                    let field_name = sanitize_field_name(field.name());
-                    format!("{field_name}={param_name}")
-                })
-                .collect();
-            Ok(args.join(", "))
-        }
-    }
 }
 
 fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<String> {
@@ -3099,7 +2463,7 @@ fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<S
     Ok(enum_template.render())
 }
 
-fn render_internally_tagged_enum_without_factory(
+fn render_internally_tagged_enum(
     enum_def: &reflectapi_schema::Enum,
     tag: &str,
     schema: &Schema,
@@ -3423,9 +2787,6 @@ fn render_internally_tagged_enum_core(
         }
     }
 
-    // Don't generate factory inline - it will be generated after model rebuild
-    // to avoid forward reference issues
-
     Ok((result, union_variant_names))
 }
 
@@ -3577,7 +2938,7 @@ fn render_untagged_enum(
     }
     result.push_str(&union_definition);
 
-    // Untagged enums don't use factory classes - variants serialize directly to their values
+    // Untagged enums - variants serialize directly to their values
 
     Ok(result)
 }
@@ -4031,18 +3392,6 @@ fn improve_class_name_part(name_part: &str) -> String {
 
 fn to_screaming_snake_case(s: &str) -> String {
     to_snake_case(s).to_uppercase()
-}
-
-fn sanitize_field_name(s: &str) -> String {
-    let mut result = safe_python_identifier(&to_snake_case(s));
-    // Strip leading underscores - Pydantic v2 treats _-prefixed fields as private
-    result = result.trim_start_matches('_').to_string();
-    if result.is_empty() {
-        // Edge case: name was all underscores
-        "field".to_string()
-    } else {
-        result
-    }
 }
 
 fn sanitize_field_name_with_alias(name: &str, serde_name: &str) -> (String, Option<String>) {
@@ -6103,68 +5452,6 @@ pub mod templates {
         }
     }
 
-    // Hybrid enum templates for Pythonic data-carrying enum variants
-    pub struct HybridEnumClass {
-        pub enum_name: String,
-        pub description: Option<String>,
-        pub unit_variants: Vec<EnumVariant>,
-        pub factory_methods: Vec<String>,
-        pub data_classes: Vec<String>,
-        pub union_members: Vec<String>,
-        pub union_name: String,
-    }
-
-    impl HybridEnumClass {
-        pub fn render(&self) -> String {
-            let mut s = String::new();
-            writeln!(s, "from enum import Enum").unwrap();
-            writeln!(s, "from dataclasses import dataclass").unwrap();
-            writeln!(s, "from typing import Union, Optional").unwrap();
-            writeln!(s).unwrap();
-            for data_class in &self.data_classes {
-                write!(s, "{data_class}").unwrap();
-                writeln!(s).unwrap();
-            }
-            writeln!(s, "class {}(str, Enum):", self.enum_name).unwrap();
-            if let Some(desc) = &self.description {
-                let desc = super::sanitize_for_docstring(desc);
-                if !desc.is_empty() {
-                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
-                }
-            }
-            writeln!(s, "    # Unit variants as enum members").unwrap();
-            for variant in &self.unit_variants {
-                write!(s, "    {} = \"{}\"", variant.name, variant.value).unwrap();
-                if let Some(desc) = &variant.description {
-                    write!(s, "  # {desc}").unwrap();
-                }
-                writeln!(s).unwrap();
-            }
-            writeln!(s).unwrap();
-            writeln!(s, "    def model_dump(self):").unwrap();
-            writeln!(
-                s,
-                "        \"\"\"Handle serialization for simple enum values.\"\"\""
-            )
-            .unwrap();
-            writeln!(s, "        return self.value").unwrap();
-            for method in &self.factory_methods {
-                write!(s, "{method}").unwrap();
-                writeln!(s).unwrap();
-            }
-            writeln!(s).unwrap();
-            writeln!(s, "# Type annotation for the union").unwrap();
-            writeln!(
-                s,
-                "{} = Union[{}]",
-                self.union_name,
-                self.union_members.join(", ")
-            )
-            .unwrap();
-            s
-        }
-    }
-
     pub struct TupleVariantDataClass {
         pub name: String,
         pub variant_name: String,
@@ -6255,21 +5542,6 @@ pub mod templates {
             writeln!(s, "        import json").unwrap();
             writeln!(s, "        return json.dumps(self.model_dump())").unwrap();
             s
-        }
-    }
-
-    pub struct FactoryMethod {
-        pub method_name: String,
-        pub variant_name: String,
-        pub class_name: String,
-        pub parameters: Vec<String>,
-        pub field_names: Vec<String>,
-        pub description: Option<String>,
-    }
-
-    impl FactoryMethod {
-        pub fn render(&self) -> String {
-            self.method_name.clone()
         }
     }
 

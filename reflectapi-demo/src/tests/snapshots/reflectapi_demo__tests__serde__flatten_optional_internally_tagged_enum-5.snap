@@ -23,7 +23,6 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdePriorityHigh(BaseModel):
@@ -198,40 +197,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class reflectapi_demo_tests_serde_PriorityFactory:
-    """Factory class for creating reflectapi_demo.tests.serde.Priority variants with ergonomic syntax.
-
-    reflectapi_demo.tests.serde.Priority variants
-    """
-
-    LOW = reflectapi_demo.tests.serde.PriorityLow()
-
-    @staticmethod
-    def high(deadline: str) -> reflectapi_demo.tests.serde.PriorityHigh:
-        """Creates the 'High' variant of the reflectapi_demo.tests.serde.Priority enum."""
-        return reflectapi_demo.tests.serde.PriorityHigh(deadline=deadline)
-
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_serde_priority_response(
-    value: reflectapi_demo.tests.serde.Priority,
-) -> ApiResponse[reflectapi_demo.tests.serde.Priority]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Priority."""
-    return create_api_response(value)
-
-
-def create_reflectapi_demo_tests_serde_task_response(
-    value: reflectapi_demo.tests.serde.Task,
-) -> ApiResponse[reflectapi_demo.tests.serde.Task]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Task."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

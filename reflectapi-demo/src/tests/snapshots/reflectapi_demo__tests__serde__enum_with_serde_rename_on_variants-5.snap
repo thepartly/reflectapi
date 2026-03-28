@@ -30,7 +30,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeActionCreateItemVariant(BaseModel):
@@ -211,40 +210,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class reflectapi_demo_tests_serde_ActionFactory:
-    """Factory class for creating reflectapi_demo.tests.serde.Action variants with ergonomic syntax.
-
-    reflectapi_demo.tests.serde.Action variants
-    """
-
-    @staticmethod
-    def create_item(name: str) -> reflectapi_demo.tests.serde.Action:
-        """Creates the 'create_item' variant of the reflectapi_demo.tests.serde.Action enum."""
-        return reflectapi_demo.tests.serde.Action(
-            reflectapi_demo.tests.serde.ActionCreateItemVariant(name=name)
-        )
-
-    @staticmethod
-    def delete_item(id: int) -> reflectapi_demo.tests.serde.Action:
-        """Creates the 'delete_item' variant of the reflectapi_demo.tests.serde.Action enum."""
-        return reflectapi_demo.tests.serde.Action(
-            reflectapi_demo.tests.serde.ActionDeleteItemVariant(id=id)
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_serde_action_response(
-    value: reflectapi_demo.tests.serde.Action,
-) -> ApiResponse[reflectapi_demo.tests.serde.Action]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Action."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

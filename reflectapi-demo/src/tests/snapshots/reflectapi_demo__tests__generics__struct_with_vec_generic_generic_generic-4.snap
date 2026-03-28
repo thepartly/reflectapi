@@ -22,7 +22,6 @@ from pydantic import BaseModel, ConfigDict
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 # Type variables for generic types
@@ -172,26 +171,3 @@ try:
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapi_demo_tests_generics_teststructwithvecgeneric_response(
-    value: reflectapi_demo.tests.generics.TestStructWithVecGeneric,
-) -> ApiResponse[reflectapi_demo.tests.generics.TestStructWithVecGeneric]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.generics.TestStructWithVecGeneric."""
-    return create_api_response(value)
-
-
-def create_reflectapi_demo_tests_generics_teststructwithvecgenericgenericgeneric_response(
-    value: reflectapi_demo.tests.generics.TestStructWithVecGenericGenericGeneric,
-) -> ApiResponse[reflectapi_demo.tests.generics.TestStructWithVecGenericGenericGeneric]:
-    """Create a mock ApiResponse for reflectapi_demo.tests.generics.TestStructWithVecGenericGenericGeneric."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()
