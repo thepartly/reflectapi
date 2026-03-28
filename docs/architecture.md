@@ -282,14 +282,14 @@ Downstream codegen backends query the detected cycles to emit forward-reference 
 
 ### Normalizer
 
-The `Normalizer` orchestrates the full conversion from `Schema` to `SemanticSchema`:
+The `Normalizer` orchestrates the full conversion from `Schema` to `SemanticSchema`. It accepts a custom pipeline via `normalize_with_pipeline()`, or uses `NormalizationPipeline::standard()` by default. Codegen backends that handle their own naming use `NormalizationPipeline::for_codegen()` (CircularDependency only, no TypeConsolidation or NamingResolution).
 
-1. **Phase 0**: Calls `ensure_symbol_ids()` and runs `NormalizationPipeline::standard()`.
-2. **Phase 1 (Symbol Discovery)**: Walks the schema and registers every type, function, field, and variant in the `SymbolTable`.
-3. **Phase 2 (Type Resolution)**: Resolves all `TypeReference` names to `SymbolId` targets, producing `ResolvedTypeReference` values.
-4. **Phase 3 (Dependency Analysis)**: Builds a dependency graph in the `SymbolTable` and performs topological sorting.
+1. **Phase 0**: Calls `ensure_symbol_ids()` and runs the selected pipeline.
+2. **Phase 1 (Symbol Discovery)**: Registers all types, functions, fields, and variants in the `SymbolTable`.
+3. **Phase 2 (Type Resolution)**: Resolves `TypeReference` names to `SymbolId` targets.
+4. **Phase 3 (Dependency Analysis)**: Builds dependency graph and performs topological sorting.
 5. **Phase 4 (Semantic Validation)**: Checks for semantic errors.
-6. **Phase 5 (IR Construction)**: Builds the final `SemanticSchema` with `BTreeMap`-ordered collections for deterministic output.
+6. **Phase 5 (IR Construction)**: Builds the `SemanticSchema` with `BTreeMap`-ordered collections.
 
 ### SemanticSchema
 
@@ -314,7 +314,7 @@ Key properties compared to `Schema`:
 
 ## 5. Code Generation Backends
 
-All backends live in `reflectapi/src/codegen/`. Each reads the `Schema` directly and produces language-specific output.
+All backends live in `reflectapi/src/codegen/`. The Python backend uses `SemanticSchema` for type iteration ordering and the consolidated raw `Schema` for rendering. TypeScript, Rust, and OpenAPI backends read the `Schema` directly.
 
 ### TypeScript
 
@@ -338,17 +338,18 @@ Mirrors the source Rust types, re-emitting struct/enum definitions with appropri
 
 ### Python
 
-Generates Pydantic v2 models with namespace classes mirroring the Rust module structure. Key features:
+Generates Pydantic v2 models with namespace classes mirroring the Rust module structure. Uses `SemanticSchema` for type iteration ordering via `NormalizationPipeline::for_codegen()` (skips NamingResolution since Python handles its own naming via `improve_class_name`). The consolidated raw `Schema` provides concrete type data for rendering.
 
 - **BaseModel classes** for structs, with `ConfigDict(extra="ignore", populate_by_name=True)`.
 - **Namespace alias classes** mirror the Rust module hierarchy for dotted access (e.g., `auth.UsersSignInRequest`). Type definitions are at module top-level with flat PascalCase names; namespace classes provide aliases.
 - **Discriminated unions** (`Union[..., Field(discriminator="tag")]`) for internally-tagged enums.
 - **RootModel** wrappers with `model_validator`/`model_serializer` for externally-tagged and adjacently-tagged enums.
 - **Per-variant model expansion** for `#[serde(flatten)]` with internally-tagged enums (see Section 6).
+- **Field descriptions** via `Field(description="...")` propagated from the schema.
+- **Typed error returns** — `ApiResponse[OutputType, ErrorType]` in method signatures.
 - **Field aliases** via `Field(serialization_alias=..., validation_alias=...)` for serde-renamed fields and underscore-prefixed fields.
 - **Literal types** for discriminator fields, with alias handling for Python reserved words (e.g., `type` becomes `type_`).
-- **Factory classes** with type-annotated parameters for ergonomic enum variant construction.
-- **Docstring escaping** for descriptions containing backslashes or triple-quotes.
+- **TypeVar collision resolution** — renames TypeVars that collide with class names (e.g., `Identity` → `_T_Identity`).
 - Python reserved words are sanitized in field names, method names, and parameters.
 - Output is formatted with `ruff`.
 
@@ -473,9 +474,9 @@ Preserves the original `#[serde(flatten)]` attribute on the field, since the gen
 
 ## 7. Limitations and Design Gaps
 
-### Codegen backends consume `Schema` directly
+### TypeScript, Rust, and OpenAPI backends use raw Schema
 
-The `SymbolId`, `ensure_symbol_ids()`, `NormalizationPipeline`, `Normalizer`, and `SemanticSchema` infrastructure exists in `reflectapi-schema` but the codegen backends in `reflectapi/src/codegen/` consume the `Schema` directly. Migrating backends to consume `SemanticSchema` would provide guaranteed resolved references, deterministic ordering, dependency-aware topological ordering, and a single unified typespace.
+The Python backend uses `SemanticSchema` for iteration ordering with `NormalizationPipeline::for_codegen()`. The TypeScript, Rust, and OpenAPI backends still consume the raw `Schema` directly. Migrating them to `SemanticSchema` would provide deterministic ordering and dependency-aware topological sorting.
 
 ### Flattened enum handling varies by representation
 
