@@ -85,10 +85,6 @@ fn prefix_union_members(members: &[String], original_name: &str) -> Vec<String> 
         .collect()
 }
 
-fn to_valid_python_identifier(name: &str) -> String {
-    safe_python_identifier(name)
-}
-
 /// Configuration for Python client generation
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -1224,13 +1220,6 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Validate all type references exist
     validate_type_references(&schema)?;
 
-    // Build the semantic IR. The Normalizer runs ensure_symbol_ids +
-    // NormalizationPipeline internally. The SemanticSchema is available
-    // for render functions that need type-safe SymbolId-based lookups;
-    // the raw Schema is still used for the main iteration loop since
-    // the Normalizer's NamingResolutionStage transforms type names.
-    let _semantic = reflectapi_schema::Normalizer::new().normalize(&schema).ok();
-
     let mut generated_code = Vec::new();
 
     // Generate file header
@@ -1293,9 +1282,6 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let has_reflectapi_infallible =
         schema_uses_type(&schema, &all_type_names, "reflectapi::Infallible");
 
-    // Flatten support uses direct field expansion in generated models
-    let has_flatten_support = false;
-
     // Check if we need warnings import (for deprecated functions)
     let has_warnings = schema.functions().any(|f| f.deprecation_note.is_some());
 
@@ -1314,7 +1300,6 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         has_reflectapi_option,
         has_reflectapi_empty,
         has_reflectapi_infallible,
-        has_flatten_support,
         has_warnings,
         has_datetime,
         has_uuid,
@@ -1411,11 +1396,11 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         }
     }
 
+    // Collect rendered type keys before passing ownership to the module tree builder.
+    let rendered_type_keys: Vec<String> = rendered_types.keys().cloned().collect();
+
     // Build namespace module tree and render it
-    let module_tree = modules_from_rendered_types(
-        rendered_original_names_in_order.clone(),
-        rendered_types.clone(),
-    );
+    let module_tree = modules_from_rendered_types(rendered_original_names_in_order, rendered_types);
     let module_tree_code = module_tree.render();
     if !module_tree_code.trim().is_empty() {
         generated_code.push(module_tree_code);
@@ -1450,7 +1435,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
             nested_function.original_name = Some(rendered_function.name.clone());
 
             function_groups
-                .entry(to_valid_python_identifier(group_name))
+                .entry(safe_python_identifier(group_name))
                 .or_default()
                 .push(nested_function);
         } else {
@@ -1493,9 +1478,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         "# Rebuild models to resolve forward references".to_string(),
         "try:".to_string(),
     ];
-    let mut sorted_type_names: Vec<_> = rendered_types.keys().collect();
+    let mut sorted_type_names: Vec<&String> = rendered_type_keys.iter().collect();
     sorted_type_names.sort();
-    for original_name in sorted_type_names {
+    for original_name in &sorted_type_names {
         if !original_name.starts_with("std::") && !original_name.starts_with("reflectapi::") {
             let dotted = type_name_to_python_ref(original_name);
             external_types_and_rebuilds.push(format!("    {dotted}.model_rebuild()"));
@@ -1543,8 +1528,8 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     if config.generate_testing {
         // contains user-defined types that have Pydantic classes generated for them.
         // Note types with fallbacks to primitives are not added.
-        let mut user_defined_types: Vec<String> = rendered_types
-            .keys()
+        let mut user_defined_types: Vec<String> = rendered_type_keys
+            .iter()
             .map(|original_name| type_name_to_python_ref(original_name))
             .collect();
         user_defined_types.sort();
@@ -4042,7 +4027,7 @@ fn to_screaming_snake_case(s: &str) -> String {
 }
 
 fn sanitize_field_name(s: &str) -> String {
-    let mut result = to_valid_python_identifier(&to_snake_case(s));
+    let mut result = safe_python_identifier(&to_snake_case(s));
     // Strip leading underscores - Pydantic v2 treats _-prefixed fields as private
     result = result.trim_start_matches('_').to_string();
     if result.is_empty() {
@@ -4055,7 +4040,7 @@ fn sanitize_field_name(s: &str) -> String {
 
 fn sanitize_field_name_with_alias(name: &str, serde_name: &str) -> (String, Option<String>) {
     let snake_case = to_snake_case(name);
-    let sanitized = to_valid_python_identifier(&snake_case);
+    let sanitized = safe_python_identifier(&snake_case);
 
     // Strip leading underscores - Pydantic v2 treats _-prefixed fields as private
     let sanitized = sanitized.trim_start_matches('_').to_string();
@@ -5089,11 +5074,16 @@ pub mod templates {
                     }
                 } else if let Some(eq_pos) = trimmed.find(" = ") {
                     let name = &trimmed[..eq_pos];
+                    let value = trimmed[eq_pos + 3..].trim();
                     // Only match PascalCase type aliases (not enum members, constants,
-                    // or internal *Variants union aliases)
+                    // or internal *Variants union aliases).
+                    // Skip short names (1-2 chars) which are likely TypeVars, and
+                    // also skip any assignment whose value contains `TypeVar`.
                     if name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
                         && !name.chars().all(|c| c.is_ascii_uppercase() || c == '_')
                         && !name.ends_with("Variants")
+                        && name.len() > 2
+                        && !value.contains("TypeVar")
                     {
                         names.push(name.to_string());
                     }
@@ -5202,7 +5192,6 @@ pub mod templates {
         pub has_reflectapi_option: bool,
         pub has_reflectapi_empty: bool,
         pub has_reflectapi_infallible: bool,
-        pub has_flatten_support: bool,
         pub has_warnings: bool,
         pub has_datetime: bool,
         pub has_uuid: bool,
@@ -5214,105 +5203,6 @@ pub mod templates {
         pub has_discriminated_unions: bool,
         pub has_externally_tagged_enums: bool,
         pub global_type_vars: Vec<String>,
-    }
-
-    impl Imports {
-        pub fn render(&self) -> String {
-            let mut s = String::new();
-            writeln!(s).unwrap();
-            writeln!(s, "# Standard library imports").unwrap();
-            if self.has_datetime {
-                write!(s, "from datetime import datetime").unwrap();
-                if self.has_date {
-                    write!(s, ", date").unwrap();
-                }
-                if self.has_timedelta {
-                    write!(s, ", timedelta").unwrap();
-                }
-                writeln!(s).unwrap();
-            } else if self.has_date {
-                write!(s, "from datetime import date").unwrap();
-                if self.has_timedelta {
-                    write!(s, ", timedelta").unwrap();
-                }
-                writeln!(s).unwrap();
-            } else if self.has_timedelta {
-                writeln!(s, "from datetime import timedelta").unwrap();
-            }
-            if self.has_enums {
-                writeln!(s, "from enum import Enum").unwrap();
-            }
-            write!(
-                s,
-                "from typing import Any, Optional, TypeVar, Generic, Union"
-            )
-            .unwrap();
-            if self.has_annotated {
-                write!(s, ", Annotated").unwrap();
-            }
-            if self.has_literal {
-                write!(s, ", Literal").unwrap();
-            }
-            writeln!(s).unwrap();
-            if self.has_uuid {
-                writeln!(s, "from uuid import UUID").unwrap();
-            }
-            if self.has_warnings {
-                writeln!(s, "import warnings").unwrap();
-            }
-            writeln!(s).unwrap();
-            writeln!(s, "# Third-party imports").unwrap();
-            write!(s, "from pydantic import BaseModel, ConfigDict, Field").unwrap();
-            if self.has_externally_tagged_enums {
-                write!(
-                    s,
-                    ", RootModel, model_validator, model_serializer, PrivateAttr"
-                )
-                .unwrap();
-            }
-            writeln!(s).unwrap();
-            writeln!(s).unwrap();
-            writeln!(s, "# Runtime imports").unwrap();
-            if self.has_async {
-                if self.has_sync {
-                    writeln!(
-                        s,
-                        "from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse"
-                    )
-                    .unwrap();
-                } else {
-                    writeln!(
-                        s,
-                        "from reflectapi_runtime import AsyncClientBase, ApiResponse"
-                    )
-                    .unwrap();
-                }
-            } else if self.has_sync {
-                writeln!(s, "from reflectapi_runtime import ClientBase, ApiResponse").unwrap();
-            }
-            if self.has_reflectapi_option {
-                writeln!(s, "from reflectapi_runtime import ReflectapiOption").unwrap();
-            }
-            if self.has_reflectapi_empty {
-                writeln!(s, "from reflectapi_runtime import ReflectapiEmpty").unwrap();
-            }
-            if self.has_reflectapi_infallible {
-                writeln!(s, "from reflectapi_runtime import ReflectapiInfallible").unwrap();
-            }
-            if self.has_testing {
-                writeln!(
-                    s,
-                    "from reflectapi_runtime.testing import MockClient, create_api_response"
-                )
-                .unwrap();
-            }
-            writeln!(s).unwrap();
-            for type_var in &self.global_type_vars {
-                writeln!(s, "{type_var} = TypeVar('{type_var}')").unwrap();
-            }
-            writeln!(s).unwrap();
-            s
-        }
     }
 
     pub struct DataClass {
