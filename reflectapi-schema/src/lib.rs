@@ -11,8 +11,9 @@ mod visit;
 pub use self::codegen::*;
 pub use self::ids::ensure_symbol_ids;
 pub use self::normalize::{
-    CircularDependencyResolutionStage, NamingResolutionStage, NormalizationError,
-    NormalizationPipeline, NormalizationStage, Normalizer, TypeConsolidationStage,
+    CircularDependencyResolutionStage, Consolidation, Naming, NamingResolutionStage,
+    NormalizationError, NormalizationPipeline, NormalizationStage, Normalizer, PipelineBuilder,
+    ResolutionStrategy, TypeConsolidationStage,
 };
 pub use self::semantic::*;
 pub use self::subst::{mk_subst, Instantiate, Substitute};

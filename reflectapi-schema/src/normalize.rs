@@ -41,12 +41,11 @@ impl NormalizationPipeline {
         Ok(())
     }
 
-    /// Create the standard normalization pipeline
+    /// Create the standard normalization pipeline.
+    ///
+    /// Delegates to `PipelineBuilder` with all default settings.
     pub fn standard() -> Self {
-        Self::new()
-            .add_stage(TypeConsolidationStage)
-            .add_stage(NamingResolutionStage)
-            .add_stage(CircularDependencyResolutionStage::new())
+        PipelineBuilder::new().build()
     }
 
     /// Create a codegen-oriented pipeline that only runs CircularDependencyResolution.
@@ -55,8 +54,159 @@ impl NormalizationPipeline {
     /// `schema.consolidate_types()` and does not want NamingResolution
     /// (which would rename types and create a name-domain mismatch
     /// between the SemanticSchema and the raw Schema used for rendering).
+    ///
+    /// Delegates to `PipelineBuilder` with consolidation and naming skipped.
     pub fn for_codegen() -> Self {
-        Self::new().add_stage(CircularDependencyResolutionStage::new())
+        PipelineBuilder::new()
+            .consolidation(Consolidation::Skip)
+            .naming(Naming::Skip)
+            .build()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// PipelineBuilder: configurable pipeline construction
+// ---------------------------------------------------------------------------
+
+/// Controls whether and how input/output types are merged.
+#[derive(Debug, Clone, Default)]
+pub enum Consolidation {
+    /// Run the standard `TypeConsolidationStage`.
+    #[default]
+    Standard,
+    /// Skip type consolidation entirely.
+    Skip,
+}
+
+/// Controls how type names are resolved.
+#[derive(Default)]
+pub enum Naming {
+    /// Run the standard `NamingResolutionStage`.
+    #[default]
+    Standard,
+    /// Skip naming resolution entirely.
+    Skip,
+    /// Use a custom naming stage.
+    Custom(Box<dyn NormalizationStage>),
+}
+
+impl std::fmt::Debug for Naming {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Naming::Standard => write!(f, "Naming::Standard"),
+            Naming::Skip => write!(f, "Naming::Skip"),
+            Naming::Custom(_) => write!(f, "Naming::Custom(...)"),
+        }
+    }
+}
+
+/// Builder for configuring a normalization pipeline.
+///
+/// Provides fine-grained control over which normalization stages are included
+/// and in what order. The default configuration matches `NormalizationPipeline::standard()`.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Standard pipeline (equivalent to NormalizationPipeline::standard())
+/// let pipeline = PipelineBuilder::new().build();
+///
+/// // Codegen pipeline (equivalent to NormalizationPipeline::for_codegen())
+/// let pipeline = PipelineBuilder::new()
+///     .consolidation(Consolidation::Skip)
+///     .naming(Naming::Skip)
+///     .build();
+///
+/// // Custom pipeline with extra stages
+/// let pipeline = PipelineBuilder::new()
+///     .circular_dependency_strategy(ResolutionStrategy::Boxing)
+///     .add_stage(MyCustomStage)
+///     .build();
+/// ```
+pub struct PipelineBuilder {
+    consolidation: Consolidation,
+    naming: Naming,
+    circular_dependency_strategy: ResolutionStrategy,
+    extra_stages: Vec<Box<dyn NormalizationStage>>,
+}
+
+impl Default for PipelineBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PipelineBuilder {
+    /// Create a new builder with default settings (all stages enabled).
+    pub fn new() -> Self {
+        Self {
+            consolidation: Consolidation::default(),
+            naming: Naming::default(),
+            circular_dependency_strategy: ResolutionStrategy::default(),
+            extra_stages: Vec::new(),
+        }
+    }
+
+    /// Set the consolidation strategy.
+    pub fn consolidation(mut self, consolidation: Consolidation) -> Self {
+        self.consolidation = consolidation;
+        self
+    }
+
+    /// Set the naming resolution strategy.
+    pub fn naming(mut self, naming: Naming) -> Self {
+        self.naming = naming;
+        self
+    }
+
+    /// Set the circular dependency resolution strategy.
+    pub fn circular_dependency_strategy(mut self, strategy: ResolutionStrategy) -> Self {
+        self.circular_dependency_strategy = strategy;
+        self
+    }
+
+    /// Append a custom stage that will run after the built-in stages.
+    pub fn add_stage<S: NormalizationStage + 'static>(mut self, stage: S) -> Self {
+        self.extra_stages.push(Box::new(stage));
+        self
+    }
+
+    /// Build the configured `NormalizationPipeline`.
+    ///
+    /// Stages are added in order:
+    /// 1. Type consolidation (if not skipped)
+    /// 2. Naming resolution (if not skipped, or custom stage)
+    /// 3. Circular dependency resolution (always included)
+    /// 4. Any extra stages added via `add_stage()`
+    pub fn build(self) -> NormalizationPipeline {
+        let mut pipeline = NormalizationPipeline::new();
+
+        match self.consolidation {
+            Consolidation::Standard => {
+                pipeline = pipeline.add_stage(TypeConsolidationStage);
+            }
+            Consolidation::Skip => {}
+        }
+
+        match self.naming {
+            Naming::Standard => {
+                pipeline = pipeline.add_stage(NamingResolutionStage);
+            }
+            Naming::Skip => {}
+            Naming::Custom(stage) => {
+                pipeline.stages.push(stage);
+            }
+        }
+
+        pipeline = pipeline.add_stage(CircularDependencyResolutionStage::with_strategy(
+            self.circular_dependency_strategy,
+        ));
+
+        for stage in self.extra_stages {
+            pipeline.stages.push(stage);
+        }
+
+        pipeline
     }
 }
 
@@ -782,9 +932,8 @@ impl Normalizer {
 
     /// Normalize a raw schema into a semantic schema using a custom pipeline.
     ///
-    /// Use `NormalizationPipeline::for_codegen()` when the caller has already
-    /// consolidated types on the raw Schema and wants SemanticType names to
-    /// match the raw Schema names exactly (no NamingResolution renaming).
+    /// Use `PipelineBuilder` to configure which stages run, or the convenience
+    /// methods `NormalizationPipeline::standard()` / `NormalizationPipeline::for_codegen()`.
     pub fn normalize_with_pipeline(
         mut self,
         schema: &Schema,

@@ -225,9 +225,18 @@ The pipeline transforms a deserialized `Schema` into a validated, immutable `Sem
   |  ensure_symbol_ids()     |  Assign stable SymbolIds
   +--------------------------+
         |
+        v
+  +-------------------------------+
+  |       PipelineBuilder         |  Configures which stages run
+  |  .consolidation(Standard|Skip)|
+  |  .naming(Standard|Skip|Custom)|
+  |  .circular_dependency_strategy|
+  |  .add_stage(custom)           |
+  +-------------------------------+
+        |  .build()
         +--------------------------------------------------+
         |  standard()                                      |  for_codegen()
-        |  (Normalizer default)                            |  (Python backend)
+        |  (all defaults)                                  |  (Skip, Skip)
         v                                                  v
   +---------------------------+         +------------------------------+
   | 1. TypeConsolidation      |         | Schema::consolidate_types()  |
@@ -257,7 +266,14 @@ The pipeline transforms a deserialized `Schema` into a validated, immutable `Sem
                  +-------------------+
 ```
 
-The `standard()` pipeline is used by `Normalizer::normalize()`. The `for_codegen()` pipeline is used by backends that handle their own naming (Python calls `consolidate_types()` first, then normalizes with `for_codegen()` to preserve qualified type names).
+Pipelines are configured via `PipelineBuilder`. The convenience methods `NormalizationPipeline::standard()` and `for_codegen()` delegate to the builder internally. The Python backend uses `PipelineBuilder` directly:
+
+```rust
+PipelineBuilder::new()
+    .consolidation(Consolidation::Skip)
+    .naming(Naming::Skip)
+    .build()
+```
 
 ### SymbolId
 
@@ -283,7 +299,15 @@ When a schema is deserialized from JSON, all `SymbolId` fields have their defaul
 4. When the same FQN appears in both typespaces with different type definitions, the output typespace's copy receives a disambiguated ID (`disambiguator = 1`).
 5. Assigns IDs to struct fields and enum variants as children of their parent's path.
 
-### NormalizationPipeline
+### NormalizationPipeline and PipelineBuilder
+
+Pipelines are assembled via `PipelineBuilder`, which controls three dimensions:
+
+- **`Consolidation`** (`Standard` | `Skip`) -- whether to run `TypeConsolidationStage`.
+- **`Naming`** (`Standard` | `Skip` | `Custom(Box<dyn NormalizationStage>)`) -- whether/how to run naming resolution.
+- **`ResolutionStrategy`** (`Intelligent` | `Boxing` | `ForwardDeclarations` | `OptionalBreaking` | `ReferenceCounted`) -- passed to `CircularDependencyResolutionStage`.
+
+Additional custom stages can be appended via `add_stage()`. The convenience methods `NormalizationPipeline::standard()` and `for_codegen()` delegate to `PipelineBuilder` internally and remain the recommended shorthand for common configurations.
 
 The standard pipeline applies three stages in sequence:
 
@@ -300,7 +324,7 @@ Downstream codegen backends query the detected cycles to emit forward-reference 
 
 ### Normalizer
 
-The `Normalizer` orchestrates the full conversion from `Schema` to `SemanticSchema`. It accepts a custom pipeline via `normalize_with_pipeline()`, or uses `NormalizationPipeline::standard()` by default. Codegen backends that handle their own naming use `NormalizationPipeline::for_codegen()` (CircularDependency only, no TypeConsolidation or NamingResolution).
+The `Normalizer` orchestrates the full conversion from `Schema` to `SemanticSchema`. It accepts a custom pipeline via `normalize_with_pipeline()`, or uses `NormalizationPipeline::standard()` by default. Codegen backends that handle their own naming build a pipeline with `PipelineBuilder` (skipping consolidation and naming) and pass it to `normalize_with_pipeline()`.
 
 1. **Phase 0**: Calls `ensure_symbol_ids()` and runs the selected pipeline.
 2. **Phase 1 (Symbol Discovery)**: Registers all types, functions, fields, and variants in the `SymbolTable`.
@@ -356,7 +380,7 @@ Mirrors the source Rust types, re-emitting struct/enum definitions with appropri
 
 ### Python
 
-Generates Pydantic v2 models with namespace classes mirroring the Rust module structure. Uses `SemanticSchema` for type iteration ordering via `NormalizationPipeline::for_codegen()` (skips NamingResolution since Python handles its own naming via `improve_class_name`). The consolidated raw `Schema` provides concrete type data for rendering.
+Generates Pydantic v2 models with namespace classes mirroring the Rust module structure. Uses `SemanticSchema` for type iteration ordering via `PipelineBuilder::new().consolidation(Consolidation::Skip).naming(Naming::Skip).build()` (skips NamingResolution since Python handles its own naming via `improve_class_name`). The consolidated raw `Schema` provides concrete type data for rendering.
 
 - **BaseModel classes** for structs, with `ConfigDict(extra="ignore", populate_by_name=True)`.
 - **Namespace alias classes** mirror the Rust module hierarchy for dotted access (e.g., `auth.UsersSignInRequest`). Type definitions are at module top-level with flat PascalCase names; namespace classes provide aliases.
@@ -494,7 +518,7 @@ Preserves the original `#[serde(flatten)]` attribute on the field, since the gen
 
 ### TypeScript, Rust, and OpenAPI backends use raw Schema
 
-The Python backend uses `SemanticSchema` for iteration ordering with `NormalizationPipeline::for_codegen()`. The TypeScript, Rust, and OpenAPI backends still consume the raw `Schema` directly. Migrating them to `SemanticSchema` would provide deterministic ordering and dependency-aware topological sorting.
+The Python backend uses `SemanticSchema` for iteration ordering via `PipelineBuilder` (with consolidation and naming skipped). The TypeScript, Rust, and OpenAPI backends still consume the raw `Schema` directly. Migrating them to `SemanticSchema` would provide deterministic ordering and dependency-aware topological sorting.
 
 ### Flattened enum handling varies by representation
 

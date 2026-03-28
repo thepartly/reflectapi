@@ -1028,7 +1028,10 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let semantic = reflectapi_schema::Normalizer::new()
         .normalize_with_pipeline(
             &schema,
-            reflectapi_schema::NormalizationPipeline::for_codegen(),
+            reflectapi_schema::PipelineBuilder::new()
+                .consolidation(reflectapi_schema::Consolidation::Skip)
+                .naming(reflectapi_schema::Naming::Skip)
+                .build(),
         )
         .map_err(|errors| {
             anyhow::anyhow!(
