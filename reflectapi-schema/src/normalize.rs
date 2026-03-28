@@ -154,10 +154,20 @@ fn extract_simple_name(qualified_name: &str) -> String {
 }
 
 fn rename_type(ty: &mut Type, new_name: &str) {
+    let new_path: Vec<String> = new_name.split("::").map(|s| s.to_string()).collect();
     match ty {
-        Type::Struct(s) => s.name = new_name.to_string(),
-        Type::Enum(e) => e.name = new_name.to_string(),
-        Type::Primitive(p) => p.name = new_name.to_string(),
+        Type::Struct(s) => {
+            s.name = new_name.to_string();
+            s.id.path = new_path;
+        }
+        Type::Enum(e) => {
+            e.name = new_name.to_string();
+            e.id.path = new_path;
+        }
+        Type::Primitive(p) => {
+            p.name = new_name.to_string();
+            p.id.path = new_path;
+        }
     }
 }
 
@@ -787,7 +797,7 @@ impl Normalizer {
         let schema_info = SymbolInfo {
             id: schema.id.clone(),
             name: schema.name.clone(),
-            path: vec![schema.name.clone()],
+            path: schema.id.path.clone(),
             kind: SymbolKind::Struct,
             resolved: false,
             dependencies: BTreeSet::new(),

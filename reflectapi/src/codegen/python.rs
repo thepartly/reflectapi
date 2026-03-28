@@ -573,8 +573,42 @@ fn render_struct_with_flattened_internal_enum(
                 Some(field.name()),
             )?;
             base_fields.extend(flattened);
-        }
         // Enum fields are handled below as variants
+        } else if let Some(reflectapi_schema::Type::Enum(enum_def)) = schema.get_type(type_name) {
+            // Check if this is the internally-tagged enum we're expanding
+            // (it's handled below as variants). Other enums get emitted as regular fields.
+            let is_the_expanding_enum = matches!(
+                &enum_def.representation,
+                reflectapi_schema::Representation::Internal { .. }
+            );
+            if !is_the_expanding_enum {
+                let field_type = type_ref_to_python_type(
+                    &field.type_ref,
+                    schema,
+                    implemented_types,
+                    active_generics,
+                    used_type_vars,
+                )?;
+                let (python_name, alias) = sanitize_field_name_with_alias(field.name());
+                base_fields.push(templates::Field {
+                    name: python_name,
+                    type_annotation: if field.required {
+                        field_type
+                    } else {
+                        format!("{field_type} | None")
+                    },
+                    description: Some(field.description().to_string()),
+                    deprecation_note: field.deprecation_note.clone(),
+                    optional: !field.required,
+                    default_value: if field.required {
+                        None
+                    } else {
+                        Some("None".to_string())
+                    },
+                    alias,
+                });
+            }
+        }
     }
 
     // Generate per-variant models
