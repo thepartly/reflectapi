@@ -60,7 +60,9 @@ class ReflectapiDemoTestsSerdeOfferSingle(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: str
-    type: Literal["Single"] = "Single"
+    type_: Literal["Single"] = Field(
+        default="Single", serialization_alias="type", validation_alias="type"
+    )
     business: str
 
 
@@ -70,7 +72,9 @@ class ReflectapiDemoTestsSerdeOfferGroup(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: str
-    type: Literal["Group"] = "Group"
+    type_: Literal["Group"] = Field(
+        default="Group", serialization_alias="type", validation_alias="type"
+    )
     count: int
 
 
@@ -80,8 +84,15 @@ class ReflectapiDemoTestsSerdeOffer(RootModel):
             ReflectapiDemoTestsSerdeOfferSingle,
             ReflectapiDemoTestsSerdeOfferGroup,
         ],
-        Field(discriminator="type"),
+        Field(discriminator="type_"),
     ]
+
+
+try:
+    ReflectapiDemoTestsSerdeOfferSingle.model_rebuild()
+    ReflectapiDemoTestsSerdeOfferGroup.model_rebuild()
+except AttributeError:
+    pass
 
 
 class AsyncInoutClient:

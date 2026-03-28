@@ -586,14 +586,15 @@ fn render_struct_with_flattened_internal_enum(
         let mut fields = base_fields.clone();
 
         // Add the tag discriminator field
+        let (sanitized_tag, tag_alias) = sanitize_field_name_with_alias(tag);
         fields.push(templates::Field {
-            name: tag.to_string(),
+            name: sanitized_tag.clone(),
             type_annotation: format!("Literal['{}']", variant.serde_name()),
             description: Some("Discriminator field".to_string()),
             deprecation_note: None,
             optional: false,
             default_value: Some(format!("\"{}\"", variant.serde_name())),
-            alias: None,
+            alias: tag_alias.clone(),
         });
 
         // Add variant-specific fields
@@ -702,11 +703,27 @@ fn render_struct_with_flattened_internal_enum(
         output.push('\n');
     }
 
+    // Handle empty enum (no variants)
+    if union_variant_names.is_empty() {
+        output.push_str(&format!(
+            "\nclass {struct_name}(RootModel):\n    \"\"\"Empty discriminated union (no variants)\"\"\"\n    root: None = None\n"
+        ));
+        return Ok(output);
+    }
+
     // Render the parent type as a discriminated union RootModel
+    let (sanitized_tag, _) = sanitize_field_name_with_alias(tag);
     let union_type = union_variant_names.join(",\n            ");
     output.push_str(&format!(
-        "\nclass {struct_name}(RootModel):\n    root: Annotated[\n        Union[\n            {union_type},\n        ],\n        Field(discriminator=\"{tag}\"),\n    ]\n"
+        "\nclass {struct_name}(RootModel):\n    root: Annotated[\n        Union[\n            {union_type},\n        ],\n        Field(discriminator=\"{sanitized_tag}\"),\n    ]\n"
     ));
+
+    // Rebuild per-variant models to resolve forward references
+    output.push_str("\ntry:\n");
+    for variant_name in &union_variant_names {
+        output.push_str(&format!("    {variant_name}.model_rebuild()\n"));
+    }
+    output.push_str("except AttributeError:\n    pass\n");
 
     Ok(output)
 }
