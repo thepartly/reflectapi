@@ -1016,11 +1016,20 @@ fn modules_from_rendered_types(
 pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let implemented_types = build_implemented_types();
 
-    // Build the semantic IR FIRST — from the original schema before
-    // consolidate_types mutates it. The Normalizer runs its own
-    // TypeConsolidation + NamingResolution internally.
+    // Consolidate input/output types FIRST so both the SemanticSchema and
+    // the raw Schema share the same unified type names.
+    let all_type_names = schema.consolidate_types();
+    validate_type_references(&schema)?;
+
+    // Build the semantic IR with a codegen-specific pipeline that skips
+    // TypeConsolidation (already done above) and NamingResolution (which
+    // would rename types and create a name-domain mismatch with the raw
+    // Schema). Only CircularDependencyResolution runs.
     let semantic = reflectapi_schema::Normalizer::new()
-        .normalize(&schema)
+        .normalize_with_pipeline(
+            &schema,
+            reflectapi_schema::NormalizationPipeline::for_codegen(),
+        )
         .map_err(|errors| {
             anyhow::anyhow!(
                 "Schema normalization failed: {}",
@@ -1031,12 +1040,6 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
                     .join("; ")
             )
         })?;
-
-    // Now consolidate the raw schema — needed for legacy rendering functions
-    // that still use schema.get_type(). This must happen AFTER the Normalizer
-    // clones the original schema.
-    let all_type_names = schema.consolidate_types();
-    validate_type_references(&schema)?;
 
     let mut generated_code = Vec::new();
 
@@ -1135,20 +1138,25 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         "std::option::Option",
     ];
 
-    // Collect TypeVars used across all types, using semantic IR ordering
+    // Build the set of Python class names that will be emitted, so we can
+    // detect TypeVar-vs-class name collisions below.
+    let emitted_class_names: HashSet<String> = semantic
+        .types()
+        .filter(|st| !runtime_provided_types.contains(&st.name()))
+        .filter_map(|st| schema.get_type(st.name()))
+        .map(|t| improve_class_name(t.name()))
+        .collect();
+
+    // Collect TypeVars used across all types, using semantic IR ordering.
+    // Since the codegen pipeline skips NamingResolution, sem_type.name()
+    // matches the raw Schema's type names exactly — no original_name bridging needed.
     let mut used_type_vars: BTreeSet<String> = BTreeSet::new();
     for sem_type in semantic.types() {
-        let original_name = sem_type.original_name();
-        let resolved_name = sem_type.name();
-        if runtime_provided_types.contains(&original_name)
-            || runtime_provided_types.contains(&resolved_name)
-        {
+        let type_name = sem_type.name();
+        if runtime_provided_types.contains(&type_name) {
             continue;
         }
-        let type_def = match schema
-            .get_type(original_name)
-            .or_else(|| schema.get_type(resolved_name))
-        {
+        let type_def = match schema.get_type(type_name) {
             Some(t) => t,
             None => continue,
         };
@@ -1157,12 +1165,42 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         collect_type_vars_from_type(type_def, &schema, &implemented_types, &mut used_type_vars)?;
     }
 
+    // Build a rename map for TypeVars that collide with class names.
+    // When a Rust type parameter has the same name as a top-level type
+    // (e.g., `Identity` is both a type parameter and a struct), the class
+    // definition would overwrite the TypeVar. We prefix these with `_T_`
+    // so the TypeVar and class can coexist in Python's single namespace.
+    let typevar_rename_map: BTreeMap<String, String> = used_type_vars
+        .iter()
+        .filter(|tv| emitted_class_names.contains(tv.as_str()))
+        .map(|tv| (tv.clone(), format!("_T_{tv}")))
+        .collect();
+
+    // Apply the rename map to the schema's type parameter names and type
+    // references. This ensures all downstream rendering functions
+    // automatically use the renamed TypeVar names without needing to
+    // thread a rename map through every function signature.
+    if !typevar_rename_map.is_empty() {
+        rename_type_params_in_schema(&mut schema, &typevar_rename_map);
+    }
+
+    // Apply renames to the used_type_vars set
+    let renamed_type_vars: BTreeSet<String> = used_type_vars
+        .iter()
+        .map(|tv| {
+            typevar_rename_map
+                .get(tv)
+                .cloned()
+                .unwrap_or_else(|| tv.clone())
+        })
+        .collect();
+
     // Generate TypeVar declarations
-    if !used_type_vars.is_empty() {
+    if !renamed_type_vars.is_empty() {
         generated_code.push("".to_string());
         generated_code.push("# Type variables for generic types".to_string());
         generated_code.push("".to_string());
-        for type_var in &used_type_vars {
+        for type_var in &renamed_type_vars {
             generated_code.push(format!("{type_var} = TypeVar(\"{type_var}\")"));
         }
         generated_code.push("".to_string());
@@ -1173,25 +1211,17 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
     // Use SemanticSchema for type ordering — it provides deterministic
     // BTreeMap ordering from the Normalizer's dependency analysis.
-    // Look up original names to find raw types in the Schema for rendering.
-    let mut rendered_original_names_in_order: Vec<String> = Vec::new();
+    // Names match the raw Schema directly (no NamingResolution was applied).
+    let mut rendered_type_names_in_order: Vec<String> = Vec::new();
 
     for sem_type in semantic.types() {
-        let original_type_name = sem_type.original_name().to_string();
-        let resolved_name = sem_type.name().to_string();
+        let type_name = sem_type.name().to_string();
 
-        if runtime_provided_types.contains(&original_type_name.as_str())
-            || runtime_provided_types.contains(&resolved_name.as_str())
-        {
+        if runtime_provided_types.contains(&type_name.as_str()) {
             continue;
         }
 
-        // Look up the raw Type for rendering. Try original name first
-        // (pre-normalization, with module prefix), then resolved name.
-        let type_def = match schema
-            .get_type(&original_type_name)
-            .or_else(|| schema.get_type(&resolved_name))
-        {
+        let type_def = match schema.get_type(&type_name) {
             Some(t) => t,
             None => {
                 continue;
@@ -1204,8 +1234,8 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
         // Only store non-empty renders (excludes unwrapped tuple structs)
         if !rendered.trim().is_empty() {
-            rendered_types.insert(original_type_name.clone(), rendered);
-            rendered_original_names_in_order.push(original_type_name);
+            rendered_types.insert(type_name.clone(), rendered);
+            rendered_type_names_in_order.push(type_name);
         }
     }
 
@@ -1213,7 +1243,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let rendered_type_keys: Vec<String> = rendered_types.keys().cloned().collect();
 
     // Build namespace module tree and render it
-    let module_tree = modules_from_rendered_types(rendered_original_names_in_order, rendered_types);
+    let module_tree = modules_from_rendered_types(rendered_type_names_in_order, rendered_types);
     let module_tree_code = module_tree.render();
     if !module_tree_code.trim().is_empty() {
         generated_code.push(module_tree_code);
@@ -1329,6 +1359,137 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
     // Format with black if available
     format_python_code(&result)
+}
+
+/// Rename type parameters in the schema to avoid TypeVar/class name collisions.
+///
+/// When a Rust type parameter (e.g., `Identity`) has the same name as a
+/// top-level type, the Python codegen would produce both a TypeVar and a
+/// class with the same name, causing the class to shadow the TypeVar.
+///
+/// This function renames the parameters in-place in the schema's type
+/// definitions and updates all type references that point to those
+/// parameters, so all downstream rendering automatically uses the safe names.
+fn rename_type_params_in_schema(schema: &mut Schema, rename_map: &BTreeMap<String, String>) {
+    // Process both input_types and output_types since consolidate_types()
+    // keeps non-conflicting types in their original typespace.
+    let input_type_names: Vec<String> = schema
+        .input_types
+        .types()
+        .map(|t| t.name().to_string())
+        .collect();
+    for type_name in input_type_names {
+        if let Some(type_def) = schema.input_types.get_type_mut(&type_name) {
+            rename_type_params_in_type(type_def, rename_map);
+        }
+    }
+
+    let output_type_names: Vec<String> = schema
+        .output_types
+        .types()
+        .map(|t| t.name().to_string())
+        .collect();
+    for type_name in output_type_names {
+        if let Some(type_def) = schema.output_types.get_type_mut(&type_name) {
+            rename_type_params_in_type(type_def, rename_map);
+        }
+    }
+}
+
+/// Rename type parameters within a single type definition.
+fn rename_type_params_in_type(
+    type_def: &mut reflectapi_schema::Type,
+    rename_map: &BTreeMap<String, String>,
+) {
+    match type_def {
+        reflectapi_schema::Type::Struct(s) => {
+            // Check if this struct has any parameters that need renaming
+            let has_renames = s
+                .parameters
+                .iter()
+                .any(|p| rename_map.contains_key(&p.name));
+            if !has_renames {
+                return;
+            }
+            // Rename parameters
+            for param in &mut s.parameters {
+                if let Some(new_name) = rename_map.get(&param.name) {
+                    param.name = new_name.clone();
+                }
+            }
+            // Rename type references in fields
+            match &mut s.fields {
+                reflectapi_schema::Fields::Named(fields)
+                | reflectapi_schema::Fields::Unnamed(fields) => {
+                    for field in fields {
+                        rename_type_ref(&mut field.type_ref, rename_map);
+                    }
+                }
+                reflectapi_schema::Fields::None => {}
+            }
+        }
+        reflectapi_schema::Type::Enum(e) => {
+            let has_renames = e
+                .parameters
+                .iter()
+                .any(|p| rename_map.contains_key(&p.name));
+            if !has_renames {
+                return;
+            }
+            for param in &mut e.parameters {
+                if let Some(new_name) = rename_map.get(&param.name) {
+                    param.name = new_name.clone();
+                }
+            }
+            for variant in &mut e.variants {
+                match &mut variant.fields {
+                    reflectapi_schema::Fields::Named(fields)
+                    | reflectapi_schema::Fields::Unnamed(fields) => {
+                        for field in fields {
+                            rename_type_ref(&mut field.type_ref, rename_map);
+                        }
+                    }
+                    reflectapi_schema::Fields::None => {}
+                }
+            }
+        }
+        reflectapi_schema::Type::Primitive(p) => {
+            let has_renames = p
+                .parameters
+                .iter()
+                .any(|pp| rename_map.contains_key(&pp.name));
+            if !has_renames {
+                return;
+            }
+            for param in &mut p.parameters {
+                if let Some(new_name) = rename_map.get(&param.name) {
+                    param.name = new_name.clone();
+                }
+            }
+            if let Some(fallback) = &mut p.fallback {
+                rename_type_ref(fallback, rename_map);
+            }
+        }
+    }
+}
+
+/// Recursively rename type parameter references in a TypeReference tree.
+///
+/// Only renames bare references (no generic arguments) that match the rename
+/// map, since type parameters are always leaf references with no arguments.
+/// A reference like `Identity` with arguments would be a concrete type
+/// instantiation, not a type parameter usage.
+fn rename_type_ref(type_ref: &mut TypeReference, rename_map: &BTreeMap<String, String>) {
+    // Only rename bare names (no arguments) — these are type parameter usages.
+    // References with arguments are concrete type instantiations (e.g., Vec<T>).
+    if type_ref.arguments.is_empty() {
+        if let Some(new_name) = rename_map.get(&type_ref.name) {
+            type_ref.name = new_name.clone();
+        }
+    }
+    for arg in &mut type_ref.arguments {
+        rename_type_ref(arg, rename_map);
+    }
 }
 
 /// Check if a type name looks like a generic type variable
@@ -2286,17 +2447,6 @@ fn render_externally_tagged_enum(
     // Check if this enum is generic
     let is_generic = !generic_params.is_empty();
 
-    // Generate TypeVar definitions if generic
-    let type_var_definitions = if is_generic {
-        generic_params
-            .iter()
-            .map(|param| format!("{param} = TypeVar('{param}')"))
-            .collect::<Vec<_>>()
-            .join("\n")
-    } else {
-        String::new()
-    };
-
     // Always use RootModel approach; add Generic[...] when needed
     let template = templates::ExternallyTaggedEnumRootModel {
         name: enum_name.clone(),
@@ -2317,17 +2467,9 @@ fn render_externally_tagged_enum(
     };
     let enum_code = template.render();
 
-    // Combine all parts
-    let mut result = String::new();
-
-    // Add TypeVar definitions at the top if generic
-    if !type_var_definitions.is_empty() {
-        result.push_str(&type_var_definitions);
-        result.push_str("\n\n");
-    }
-
-    // Add the enum code
-    result.push_str(&enum_code);
+    // TypeVar definitions are emitted once at the top of the file;
+    // inline declarations are suppressed to avoid collisions with class names.
+    let result = enum_code;
 
     Ok(result)
 }
@@ -2406,16 +2548,8 @@ fn render_internally_tagged_enum_core(
 
     let is_generic = !generic_params.is_empty();
 
-    // Generate TypeVar definitions if generic
-    let type_var_definitions = if is_generic {
-        generic_params
-            .iter()
-            .map(|param| format!("{param} = TypeVar('{param}')"))
-            .collect::<Vec<_>>()
-            .join("\n")
-    } else {
-        String::new()
-    };
+    // TypeVar definitions are emitted once at the top of the file;
+    // inline declarations are suppressed to avoid collisions with class names.
 
     // Generate individual classes for each variant
     for variant in &enum_def.variants {
@@ -2647,12 +2781,6 @@ fn render_internally_tagged_enum_core(
 
     // Combine all parts
     let mut result = String::new();
-
-    // Add TypeVar definitions at the top if generic
-    if !type_var_definitions.is_empty() {
-        result.push_str(&type_var_definitions);
-        result.push_str("\n\n");
-    }
 
     // Add variant classes
     result.push_str(&variant_class_definitions.join("\n\n"));
@@ -5463,13 +5591,8 @@ pub mod templates {
     impl DiscriminatedUnionEnum {
         pub fn render(&self) -> String {
             let mut s = String::new();
-            if self.is_generic {
-                writeln!(s, "# TypeVar definitions for {}", self.union_name).unwrap();
-                for param in &self.generic_params {
-                    writeln!(s, "{param} = TypeVar('{param}')").unwrap();
-                }
-                writeln!(s).unwrap();
-            }
+            // TypeVar definitions are emitted once at the top of the file;
+            // inline declarations are suppressed to avoid collisions with class names.
             for variant_model in &self.variant_models {
                 writeln!(s, "{variant_model}").unwrap();
                 writeln!(s).unwrap();
@@ -5614,9 +5737,8 @@ pub mod templates {
                     "# Generic externally tagged enum using Approach B: Generic Variant Models"
                 )
                 .unwrap();
-                for param in &self.generic_params {
-                    writeln!(s, "{param} = TypeVar('{param}')").unwrap();
-                }
+                // TypeVar definitions are emitted once at the top of the file;
+                // inline declarations are suppressed to avoid collisions with class names.
                 writeln!(s).unwrap();
                 writeln!(s, "# Common non-generic base class with discriminator").unwrap();
                 writeln!(s, "class {}Base(BaseModel):", self.name).unwrap();

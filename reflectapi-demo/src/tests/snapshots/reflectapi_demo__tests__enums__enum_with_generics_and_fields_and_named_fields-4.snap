@@ -38,9 +38,6 @@ from reflectapi_runtime import ReflectapiInfallible
 T = TypeVar("T")
 
 
-T = TypeVar("T")
-
-
 class ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsAndNamedFieldsVariant1Variant(
     BaseModel, Generic[T]
 ):

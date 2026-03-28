@@ -43,6 +43,140 @@ class MyapiHealthCheckFail(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
+class MyapiModelBehaviorAggressiveVariant(BaseModel):
+    """Aggressive variant"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    field_0: float = Field(description="aggressiveness level")
+    field_1: str = Field(description="some notes")
+
+
+class MyapiModelBehaviorOtherVariant(BaseModel):
+    """Other variant"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    description: str = Field(description="Custom provided description of a behavior")
+    notes: str | None = Field(
+        default=None, description="Additional notes\nUp to a user to put free text here"
+    )
+
+
+# Externally tagged enum using RootModel
+MyapiModelBehaviorVariants = Union[
+    Literal["Calm"], MyapiModelBehaviorAggressiveVariant, MyapiModelBehaviorOtherVariant
+]
+
+
+class MyapiModelBehavior(RootModel[MyapiModelBehaviorVariants]):
+    """Externally tagged enum"""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_externally_tagged(cls, data):
+        # Handle direct variant instances (for programmatic creation)
+        if isinstance(data, MyapiModelBehaviorAggressiveVariant):
+            return data
+        if isinstance(data, MyapiModelBehaviorOtherVariant):
+            return data
+
+        # Handle JSON data (for deserialization)
+        if isinstance(data, str) and data == "Calm":
+            return data
+
+        if isinstance(data, dict):
+            if len(data) != 1:
+                raise ValueError("Externally tagged enum must have exactly one key")
+
+            key, value = next(iter(data.items()))
+            if key == "Aggressive":
+                if isinstance(value, list):
+                    return MyapiModelBehaviorAggressiveVariant(
+                        field_0=value[0], field_1=value[1]
+                    )
+                else:
+                    raise ValueError("Expected list for tuple variant Aggressive")
+            if key == "Other":
+                return MyapiModelBehaviorOtherVariant(**value)
+
+        raise ValueError(f"Unknown variant for MyapiModelBehavior: {data}")
+
+    @model_serializer
+    def _serialize_externally_tagged(self):
+        if self.root == "Calm":
+            return "Calm"
+        if isinstance(self.root, MyapiModelBehaviorAggressiveVariant):
+            return {"Aggressive": [self.root.field_0, self.root.field_1]}
+        if isinstance(self.root, MyapiModelBehaviorOtherVariant):
+            return {"Other": self.root.model_dump()}
+
+        raise ValueError(
+            f"Cannot serialize MyapiModelBehavior variant: {type(self.root)}"
+        )
+
+
+class MyapiModelKindDog(BaseModel):
+    """A dog"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    type: Literal["dog"] = Field(default="dog", description="Discriminator field")
+    breed: str = Field(description="breed of the dog")
+
+
+class MyapiModelKindCat(BaseModel):
+    """A cat"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    type: Literal["cat"] = Field(default="cat", description="Discriminator field")
+    lives: int = Field(description="lives left")
+
+
+class MyapiModelKindBird(BaseModel):
+    """Test for unit variants in internally tagged enums"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    type: Literal["bird"] = Field(default="bird", description="Discriminator field")
+
+
+class MyapiModelKind(RootModel):
+    root: Annotated[
+        Union[MyapiModelKindDog, MyapiModelKindCat, MyapiModelKindBird],
+        Field(discriminator="type"),
+    ]
+
+
+class MyapiModelInputPet(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    name: str = Field(description="identity")
+    kind: myapi.model.Kind = Field(description="kind of pet")
+    age: int | None = Field(default=None, description="age of the pet")
+    updated_at: datetime | None = None
+    behaviors: list[myapi.model.Behavior] | None = Field(
+        default=None, description="behaviors of the pet"
+    )
+
+
+class MyapiModelOutputPet(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    name: str = Field(description="identity")
+    kind: myapi.model.Kind = Field(description="kind of pet")
+    age: int | None = Field(default=None, description="age of the pet")
+    updated_at: datetime
+    behaviors: list[myapi.model.Behavior] | None = Field(
+        default=None, description="behaviors of the pet"
+    )
+
+
 class MyapiProtoHeaders(BaseModel):
     """Generated data model."""
 
@@ -320,6 +454,27 @@ class myapi:
     """Namespace for myapi types."""
 
     HealthCheckFail = MyapiHealthCheckFail
+
+    class model:
+        """Namespace for model types."""
+
+        BehaviorAggressiveVariant = MyapiModelBehaviorAggressiveVariant
+        BehaviorOtherVariant = MyapiModelBehaviorOtherVariant
+        Behavior = MyapiModelBehavior
+        KindDog = MyapiModelKindDog
+        KindCat = MyapiModelKindCat
+        KindBird = MyapiModelKindBird
+        Kind = MyapiModelKind
+
+        class input:
+            """Namespace for input types."""
+
+            Pet = MyapiModelInputPet
+
+        class output:
+            """Namespace for output types."""
+
+            Pet = MyapiModelOutputPet
 
     class proto:
         """Namespace for proto types."""
@@ -777,6 +932,10 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     myapi.HealthCheckFail.model_rebuild()
+    myapi.model.Behavior.model_rebuild()
+    myapi.model.Kind.model_rebuild()
+    myapi.model.input.Pet.model_rebuild()
+    myapi.model.output.Pet.model_rebuild()
     myapi.proto.Headers.model_rebuild()
     myapi.proto.InternalError.model_rebuild()
     myapi.proto.Paginated.model_rebuild()

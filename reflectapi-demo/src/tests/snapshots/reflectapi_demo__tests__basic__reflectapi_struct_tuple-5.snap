@@ -24,6 +24,27 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
+class ReflectapiDemoTestsBasicTestStructTuple(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    0: int
+    1: str
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+            TestStructTuple = ReflectapiDemoTestsBasicTestStructTuple
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -120,6 +141,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
+    reflectapi_demo.tests.basic.TestStructTuple.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
