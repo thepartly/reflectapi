@@ -213,33 +213,51 @@ The pipeline transforms a deserialized `Schema` into a validated, immutable `Sem
 ### Pipeline Overview
 
 ```
-                                +--------------------------+
-  reflectapi.json  ----------> |    JSON Deserialization   |
-                                +--------------------------+
-                                            |
-                                            v
-                                +--------------------------+
-                                |   ensure_symbol_ids()    |  Assign stable SymbolIds
-                                +--------------------------+
-                                            |
-                                            v
-                                +--------------------------+
-                                | NormalizationPipeline    |
-                                |  1. TypeConsolidation    |  Merge input/output typespaces
-                                |  2. NamingResolution     |  Strip module paths, resolve conflicts
-                                |  3. CircularDependency   |  Detect cycles via Tarjan's SCC
-                                +--------------------------+
-                                            |
-                                            v
-                                +--------------------------+
-                                |       Normalizer         |  5-phase conversion to SemanticSchema
-                                +--------------------------+
-                                            |
-                                            v
-                                +--------------------------+
-                                |    SemanticSchema        |  Immutable, validated IR
-                                +--------------------------+
+  reflectapi.json
+        |
+        v
+  +--------------------------+
+  |  JSON Deserialization    |
+  +--------------------------+
+        |
+        v
+  +--------------------------+
+  |  ensure_symbol_ids()     |  Assign stable SymbolIds
+  +--------------------------+
+        |
+        +--------------------------------------------------+
+        |  standard()                                      |  for_codegen()
+        |  (Normalizer default)                            |  (Python backend)
+        v                                                  v
+  +---------------------------+         +------------------------------+
+  | 1. TypeConsolidation      |         | Schema::consolidate_types()  |
+  | 2. NamingResolution       |         | (caller runs separately)     |
+  | 3. CircularDependency     |         +------------------------------+
+  +---------------------------+                    |
+        |                                          v
+        |                               +------------------------------+
+        |                               | CircularDependency only      |
+        |                               +------------------------------+
+        |                                          |
+        +------------------+-----------------------+
+                           |
+                           v
+                 +-------------------+
+                 |    Normalizer     |
+                 |  1. Discovery     |  Register symbols
+                 |  2. Resolution    |  Resolve type references
+                 |  3. Dependencies  |  Build dependency graph
+                 |  4. Validation    |  Semantic checks
+                 |  5. IR Build      |  Construct SemanticSchema
+                 +-------------------+
+                           |
+                           v
+                 +-------------------+
+                 |  SemanticSchema   |  Immutable, validated IR
+                 +-------------------+
 ```
+
+The `standard()` pipeline is used by `Normalizer::normalize()`. The `for_codegen()` pipeline is used by backends that handle their own naming (Python calls `consolidate_types()` first, then normalizes with `for_codegen()` to preserve qualified type names).
 
 ### SymbolId
 
