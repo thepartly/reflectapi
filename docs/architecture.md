@@ -318,7 +318,7 @@ All backends live in `reflectapi/src/codegen/`. Each reads the `Schema` directly
 
 ### TypeScript
 
-Uses the `askama` template engine. Key design decisions:
+Uses `std::fmt::Write` for code generation. Key design decisions:
 
 - **Interfaces** for struct types with named fields.
 - **Type aliases** for tuple structs and transparent wrappers.
@@ -336,17 +336,20 @@ Mirrors the source Rust types, re-emitting struct/enum definitions with appropri
 - Generates a client module with async functions for each endpoint.
 - Output is formatted with `rustfmt`.
 
-### Python (experimental)
+### Python
 
-Generates Pydantic v2 models. Key features:
+Generates Pydantic v2 models with namespace classes mirroring the Rust module structure. Key features:
 
-- **BaseModel classes** for structs.
+- **BaseModel classes** for structs, with `ConfigDict(extra="ignore", populate_by_name=True)`.
+- **Namespace alias classes** mirror the Rust module hierarchy for dotted access (e.g., `auth.UsersSignInRequest`). Type definitions are at module top-level with flat PascalCase names; namespace classes provide aliases.
 - **Discriminated unions** (`Union[..., Field(discriminator="tag")]`) for internally-tagged enums.
-- **RootModel** wrappers for union types and single-field tuple structs.
+- **RootModel** wrappers with `model_validator`/`model_serializer` for externally-tagged and adjacently-tagged enums.
 - **Per-variant model expansion** for `#[serde(flatten)]` with internally-tagged enums (see Section 6).
-- **Field aliases** for serde-renamed fields.
-- **Literal types** for discriminator fields.
-- Python reserved words are sanitized in field names with alias mapping.
+- **Field aliases** via `Field(serialization_alias=..., validation_alias=...)` for serde-renamed fields and underscore-prefixed fields.
+- **Literal types** for discriminator fields, with alias handling for Python reserved words (e.g., `type` becomes `type_`).
+- **Factory classes** with type-annotated parameters for ergonomic enum variant construction.
+- **Docstring escaping** for descriptions containing backslashes or triple-quotes.
+- Python reserved words are sanitized in field names, method names, and parameters.
 - Output is formatted with `ruff`.
 
 ### OpenAPI
@@ -419,19 +422,19 @@ When a struct flattens an internally-tagged enum, per-variant models are generat
 class RequestCreate(BaseModel):
     """'Create' variant of Request"""
     id: str
-    type: Literal['Create'] = "Create"
+    type_: Literal['Create'] = Field(default="Create", serialization_alias='type', validation_alias='type')
     name: str
 
 class RequestDelete(BaseModel):
     """'Delete' variant of Request"""
     id: str
-    type: Literal['Delete'] = "Delete"
+    type_: Literal['Delete'] = Field(default="Delete", serialization_alias='type', validation_alias='type')
     reason: str | None = None
 
 class Request(RootModel):
     root: Annotated[
         Union[RequestCreate, RequestDelete],
-        Field(discriminator="type"),
+        Field(discriminator="type_"),
     ]
 ```
 
@@ -484,4 +487,4 @@ Cycle detection uses Tarjan's SCC algorithm. The `Boxing` strategy is a no-op be
 
 ### Python codegen coverage
 
-Marked experimental. Generics and complex nested flatten scenarios have incomplete coverage.
+Validated against a production 284-endpoint API (Partly's core-server). DX improvements tracked in #127: field descriptions, namespace reduction, compact error types, typed error returns.
