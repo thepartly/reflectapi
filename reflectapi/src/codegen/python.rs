@@ -104,11 +104,12 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
         typing_imports.insert("Literal");
     }
 
-    // Pydantic imports
+    // Pydantic imports — Field is always imported since it's used for
+    // descriptions, aliases, discriminators, and defaults across many contexts.
     third_party_imports.insert("BaseModel");
     third_party_imports.insert("ConfigDict");
+    third_party_imports.insert("Field");
     if imports.has_discriminated_unions {
-        third_party_imports.insert("Field");
         third_party_imports.insert("RootModel");
     }
     if imports.has_externally_tagged_enums {

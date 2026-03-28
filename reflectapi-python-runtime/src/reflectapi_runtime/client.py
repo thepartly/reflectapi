@@ -430,12 +430,9 @@ class ClientBase(ABC):
             json_response = self._parse_json_response(response)
             return ApiResponse(json_response, metadata)
 
-        try:
-            if response_model is Any:
-                json_response = self._parse_json_response(response)
-                return ApiResponse(json_response, metadata)
-        except Exception:
-            pass
+        if response_model is Any:
+            json_response = self._parse_json_response(response)
+            return ApiResponse(json_response, metadata)
 
         try:
             ta = TypeAdapter(response_model)
@@ -871,12 +868,9 @@ class AsyncClientBase(ABC):
             json_response = self._parse_json_response(response)
             return ApiResponse(json_response, metadata)
 
-        try:
-            if response_model is Any:
-                json_response = self._parse_json_response(response)
-                return ApiResponse(json_response, metadata)
-        except Exception:
-            pass
+        if response_model is Any:
+            json_response = self._parse_json_response(response)
+            return ApiResponse(json_response, metadata)
 
         try:
             ta = TypeAdapter(response_model)

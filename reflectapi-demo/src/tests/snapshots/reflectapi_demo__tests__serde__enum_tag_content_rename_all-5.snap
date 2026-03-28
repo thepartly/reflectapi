@@ -20,6 +20,7 @@ from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 from pydantic import (
     BaseModel,
     ConfigDict,
+    Field,
     PrivateAttr,
     RootModel,
     model_serializer,

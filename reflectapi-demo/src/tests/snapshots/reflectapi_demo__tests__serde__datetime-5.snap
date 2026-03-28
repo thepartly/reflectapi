@@ -17,7 +17,7 @@ from datetime import datetime, date, timedelta
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
