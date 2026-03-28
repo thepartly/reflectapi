@@ -56,8 +56,6 @@ class reflectapi_demo:
                 TestEnumWithSkipVariant = (
                     ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant
                 )
-                A = A
-                I = I
 
             class output:
                 """Namespace for output types."""
@@ -65,8 +63,6 @@ class reflectapi_demo:
                 TestEnumWithSkipVariant = (
                     ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant
                 )
-                A = A
-                O = O
 
 
 class AsyncInoutClient:

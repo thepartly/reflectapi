@@ -100,9 +100,6 @@ class reflectapi_demo:
             TestEnumWithFieldSkipVariant1Variant = (
                 ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariant1Variant
             )
-            TestEnumWithFieldSkipVariants = (
-                ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariants
-            )
             TestEnumWithFieldSkip = ReflectapiDemoTestsSerdeTestEnumWithFieldSkip
 
 

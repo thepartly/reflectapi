@@ -130,15 +130,11 @@ class reflectapi_demo:
         class basic:
             """Namespace for basic types."""
 
-            T = T
             TestEnumDocumentedVariant1Variant = (
                 ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant
             )
             TestEnumDocumentedVariant2Variant = (
                 ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant
-            )
-            TestEnumDocumentedVariants = (
-                ReflectapiDemoTestsBasicTestEnumDocumentedVariants
             )
             TestEnumDocumented = ReflectapiDemoTestsBasicTestEnumDocumented
 

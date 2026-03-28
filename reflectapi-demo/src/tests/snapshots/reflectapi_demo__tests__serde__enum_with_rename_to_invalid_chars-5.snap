@@ -78,7 +78,6 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
             TestEnumWithRenameToInvalidCharsVariant1Variant = ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidCharsVariant1Variant
-            TestEnumWithRenameToInvalidCharsVariants = ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidCharsVariants
             TestEnumWithRenameToInvalidChars = ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidChars
 
 

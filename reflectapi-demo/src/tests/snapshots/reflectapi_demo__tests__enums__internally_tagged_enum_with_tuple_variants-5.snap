@@ -57,8 +57,6 @@ class reflectapi_demo:
             """Namespace for enums types."""
 
             A = ReflectapiDemoTestsEnumsA
-            X = X
-            Y = Y
             EA = ReflectapiDemoTestsEnumsEA
             E = ReflectapiDemoTestsEnumsE
 

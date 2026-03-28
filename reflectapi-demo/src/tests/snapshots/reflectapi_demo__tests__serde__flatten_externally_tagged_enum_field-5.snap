@@ -115,7 +115,6 @@ class reflectapi_demo:
 
             ShapeCircleVariant = ReflectapiDemoTestsSerdeShapeCircleVariant
             ShapeRectVariant = ReflectapiDemoTestsSerdeShapeRectVariant
-            ShapeVariants = ReflectapiDemoTestsSerdeShapeVariants
             Shape = ReflectapiDemoTestsSerdeShape
             Drawing = ReflectapiDemoTestsSerdeDrawing
 

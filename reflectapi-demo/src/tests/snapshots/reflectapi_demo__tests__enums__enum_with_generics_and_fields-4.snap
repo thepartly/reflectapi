@@ -143,15 +143,11 @@ class reflectapi_demo:
         class enums:
             """Namespace for enums types."""
 
-            T = T
             TestEnumWithGenericsAndFieldsVariant1Variant = (
                 ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsVariant1Variant
             )
             TestEnumWithGenericsAndFieldsVariant2Variant = (
                 ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsVariant2Variant
-            )
-            TestEnumWithGenericsAndFieldsVariants = (
-                ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsVariants
             )
             TestEnumWithGenericsAndFields = (
                 ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFields

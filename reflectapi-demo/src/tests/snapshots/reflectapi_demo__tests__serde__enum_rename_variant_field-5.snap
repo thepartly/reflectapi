@@ -104,9 +104,6 @@ class reflectapi_demo:
             TestEnumRenameVariantFieldVariant2Variant = (
                 ReflectapiDemoTestsSerdeTestEnumRenameVariantFieldVariant2Variant
             )
-            TestEnumRenameVariantFieldVariants = (
-                ReflectapiDemoTestsSerdeTestEnumRenameVariantFieldVariants
-            )
             TestEnumRenameVariantField = (
                 ReflectapiDemoTestsSerdeTestEnumRenameVariantField
             )

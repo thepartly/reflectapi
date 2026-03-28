@@ -43,7 +43,6 @@ class reflectapi_demo:
             """Namespace for serde types."""
 
             TestEnumRenameAll = ReflectapiDemoTestsSerdeTestEnumRenameAll
-            FIELD_NAME = FIELD_NAME
 
 
 class AsyncInoutClient:

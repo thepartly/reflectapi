@@ -161,9 +161,6 @@ class reflectapi_demo:
             TestNewtypeVariantsExternallyTaggedBoolVariant = (
                 ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedBoolVariant
             )
-            TestNewtypeVariantsExternallyTaggedVariants = (
-                ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedVariants
-            )
             TestNewtypeVariantsExternallyTagged = (
                 ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTagged
             )

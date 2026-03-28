@@ -121,7 +121,6 @@ class reflectapi_demo:
 
             PayloadTextVariant = ReflectapiDemoTestsSerdePayloadTextVariant
             PayloadBinaryVariant = ReflectapiDemoTestsSerdePayloadBinaryVariant
-            PayloadVariants = ReflectapiDemoTestsSerdePayloadVariants
             Payload = ReflectapiDemoTestsSerdePayload
             Message = ReflectapiDemoTestsSerdeMessage
 

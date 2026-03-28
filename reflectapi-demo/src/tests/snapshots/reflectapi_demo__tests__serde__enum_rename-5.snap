@@ -44,8 +44,6 @@ class reflectapi_demo:
             """Namespace for serde types."""
 
             MyEnum = ReflectapiDemoTestsSerdeMyEnum
-            V1 = V1
-            V2 = V2
 
 
 class AsyncInoutClient:

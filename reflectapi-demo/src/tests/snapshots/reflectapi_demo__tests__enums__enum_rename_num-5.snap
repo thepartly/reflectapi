@@ -44,8 +44,6 @@ class reflectapi_demo:
             """Namespace for enums types."""
 
             Nums = ReflectapiDemoTestsEnumsNums
-            ZERO = ZERO
-            A = A
 
 
 class AsyncInoutClient:

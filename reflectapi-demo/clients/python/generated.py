@@ -442,14 +442,11 @@ class myapi:
         """Namespace for proto types."""
 
         PetsRemoveError = MyapiProtoPetsRemoveError
-        NOT_FOUND = NOT_FOUND
-        NOT_AUTHORIZED = NOT_AUTHORIZED
         Headers = MyapiProtoHeaders
         InternalError = MyapiProtoInternalError
         PetsCreateErrorInvalidIdentityVariant = (
             MyapiProtoPetsCreateErrorInvalidIdentityVariant
         )
-        PetsCreateErrorVariants = MyapiProtoPetsCreateErrorVariants
         PetsCreateError = MyapiProtoPetsCreateError
         PetsRemoveRequest = MyapiProtoPetsRemoveRequest
         ValidationA = MyapiProtoValidationA
@@ -460,11 +457,9 @@ class myapi:
         PetsListErrorInternal = MyapiProtoPetsListErrorInternal
         PetsListError = MyapiProtoPetsListError
         ValidationErrorValidationAVariant = MyapiProtoValidationErrorValidationAVariant
-        ValidationErrorVariants = MyapiProtoValidationErrorVariants
         ValidationError = MyapiProtoValidationError
         PetsUpdateRequest = MyapiProtoPetsUpdateRequest
         PetsUpdateErrorValidationVariant = MyapiProtoPetsUpdateErrorValidationVariant
-        PetsUpdateErrorVariants = MyapiProtoPetsUpdateErrorVariants
         PetsUpdateError = MyapiProtoPetsUpdateError
 
     class model:
@@ -472,7 +467,6 @@ class myapi:
 
         BehaviorAggressiveVariant = MyapiModelBehaviorAggressiveVariant
         BehaviorOtherVariant = MyapiModelBehaviorOtherVariant
-        BehaviorVariants = MyapiModelBehaviorVariants
         Behavior = MyapiModelBehavior
         KindDog = MyapiModelKindDog
         KindCat = MyapiModelKindCat

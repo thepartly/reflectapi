@@ -126,9 +126,6 @@ class reflectapi_demo:
             TestEnumWithFieldsVariant2Variant = (
                 ReflectapiDemoTestsEnumsTestEnumWithFieldsVariant2Variant
             )
-            TestEnumWithFieldsVariants = (
-                ReflectapiDemoTestsEnumsTestEnumWithFieldsVariants
-            )
             TestEnumWithFields = ReflectapiDemoTestsEnumsTestEnumWithFields
 
 

@@ -50,8 +50,6 @@ class reflectapi_demo:
             """Namespace for enums types."""
 
             TestEnumWithDiscriminant = ReflectapiDemoTestsEnumsTestEnumWithDiscriminant
-            VARIANT1 = VARIANT1
-            VARIANT2 = VARIANT2
 
 
 class AsyncInputClient:

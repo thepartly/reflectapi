@@ -54,7 +54,6 @@ class reflectapi_demo:
                 TestEnumWithVariantSkipSerialize = (
                     ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize
                 )
-                VARIANT1 = VARIANT1
 
             class output:
                 """Namespace for output types."""

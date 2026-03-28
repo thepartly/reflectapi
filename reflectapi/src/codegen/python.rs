@@ -5069,6 +5069,11 @@ pub mod templates {
         fn extract_defined_names(type_code: &str) -> Vec<String> {
             let mut names = Vec::new();
             for line in type_code.lines() {
+                // Only match top-level definitions (no leading whitespace)
+                // to avoid leaking enum members or nested assignments
+                if line.starts_with(' ') || line.starts_with('\t') {
+                    continue;
+                }
                 let trimmed = line.trim();
                 if let Some(rest) = trimmed.strip_prefix("class ") {
                     if let Some(paren) = rest.find('(') {
@@ -5084,7 +5089,12 @@ pub mod templates {
                     }
                 } else if let Some(eq_pos) = trimmed.find(" = ") {
                     let name = &trimmed[..eq_pos];
-                    if name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
+                    // Only match PascalCase type aliases (not enum members, constants,
+                    // or internal *Variants union aliases)
+                    if name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+                        && !name.chars().all(|c| c.is_ascii_uppercase() || c == '_')
+                        && !name.ends_with("Variants")
+                    {
                         names.push(name.to_string());
                     }
                 }

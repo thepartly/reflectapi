@@ -130,9 +130,6 @@ class reflectapi_demo:
 
             TestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant = ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant
             TestEmptyVariantsAdjacentlyTaggedEmptyStructVariant = ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructVariant
-            TestEmptyVariantsAdjacentlyTaggedVariants = (
-                ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedVariants
-            )
             TestEmptyVariantsAdjacentlyTagged = (
                 ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged
             )

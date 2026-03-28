@@ -46,8 +46,6 @@ class reflectapi_demo:
             TestEnumWithDiscriminantIgnored = (
                 ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored
             )
-            VARIANT1 = VARIANT1
-            VARIANT2 = VARIANT2
 
 
 class AsyncOutputClient:

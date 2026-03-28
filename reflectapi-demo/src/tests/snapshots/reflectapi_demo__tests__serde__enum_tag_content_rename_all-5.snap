@@ -134,9 +134,6 @@ class reflectapi_demo:
             TestEnumTagContentRenameAllVariant2Variant = (
                 ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant
             )
-            TestEnumTagContentRenameAllVariants = (
-                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariants
-            )
             TestEnumTagContentRenameAll = (
                 ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll
             )

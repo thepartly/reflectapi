@@ -157,9 +157,6 @@ class reflectapi_demo:
             TestNewtypeVariantsAdjacentlyTaggedBoolVariant = (
                 ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedBoolVariant
             )
-            TestNewtypeVariantsAdjacentlyTaggedVariants = (
-                ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedVariants
-            )
             TestNewtypeVariantsAdjacentlyTagged = (
                 ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged
             )

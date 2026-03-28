@@ -105,9 +105,6 @@ class reflectapi_demo:
             TestEnumWithVariantUntaggedVariant1Variant = (
                 ReflectapiDemoTestsSerdeTestEnumWithVariantUntaggedVariant1Variant
             )
-            TestEnumWithVariantUntaggedVariants = (
-                ReflectapiDemoTestsSerdeTestEnumWithVariantUntaggedVariants
-            )
             TestEnumWithVariantUntagged = (
                 ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged
             )
