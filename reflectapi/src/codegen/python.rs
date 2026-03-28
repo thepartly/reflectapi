@@ -1,8 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 
-use anyhow::Context;
-use askama::Template;
-
 use crate::{Schema, TypeReference};
 use reflectapi_schema::{Function, Type};
 
@@ -733,7 +730,7 @@ fn render_struct_with_flattened_internal_enum(
             is_generic: !active_generics.is_empty(),
             generic_params: active_generics.to_vec(),
         };
-        output.push_str(&variant_template.render()?);
+        output.push_str(&variant_template.render());
         output.push('\n');
     }
 
@@ -827,7 +824,7 @@ fn render_struct_with_flatten_standard(
         generic_params: active_generics.to_vec(),
     };
 
-    let rendered = struct_template.render()?;
+    let rendered = struct_template.render();
     Ok(rendered)
 }
 
@@ -1107,11 +1104,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let file_header = templates::FileHeader {
         package_name: config.package_name.clone(),
     };
-    generated_code.push(
-        file_header
-            .render()
-            .context("Failed to render file header")?,
-    );
+    generated_code.push(file_header.render());
 
     // Check if we have enums in the schema
     let all_type_names = schema.consolidate_types();
@@ -1346,11 +1339,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         generate_sync: config.generate_sync,
         base_url: config.base_url.clone(),
     };
-    generated_code.push(
-        client_template
-            .render()
-            .context("Failed to render client class")?,
-    );
+    generated_code.push(client_template.render());
 
     // Generate nested class structure
     let nested_classes = generate_nested_class_structure(&rendered_types, &schema);
@@ -1419,11 +1408,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         let testing_template = templates::TestingModule {
             types: user_defined_types,
         };
-        generated_code.push(
-            testing_template
-                .render()
-                .context("Failed to render testing module")?,
-        );
+        generated_code.push(testing_template.render());
     }
 
     let result = generated_code.join("\n\n");
@@ -1864,7 +1849,7 @@ fn render_struct(
         generic_params: active_generics.clone(),
     };
 
-    class_template.render().context("Failed to render struct")
+    Ok(class_template.render())
 }
 
 fn render_enum_without_factory(
@@ -1975,7 +1960,7 @@ fn render_enum_without_factory(
                         variants,
                     };
 
-                    let rendered = enum_template.render().context("Failed to render enum")?;
+                    let rendered = enum_template.render();
                     Ok((rendered, None))
                 }
             }
@@ -2039,7 +2024,7 @@ fn render_adjacently_tagged_enum_without_factory(
                     is_generic: !generic_params.is_empty(),
                     generic_params: generic_params.clone(),
                 };
-                variant_models.push(variant_model.render()?);
+                variant_models.push(variant_model.render());
                 union_variants.push(variant_class_name);
             }
             Fields::Named(named_fields) => {
@@ -2090,7 +2075,7 @@ fn render_adjacently_tagged_enum_without_factory(
                     is_generic: !generic_params.is_empty(),
                     generic_params: generic_params.clone(),
                 };
-                variant_models.push(variant_model.render()?);
+                variant_models.push(variant_model.render());
                 union_variants.push(variant_class_name);
             }
         }
@@ -2353,7 +2338,7 @@ fn render_externally_tagged_enum(
                     generic_params: generic_params.clone(),
                 };
 
-                variant_models.push(variant_model.render()?);
+                variant_models.push(variant_model.render());
                 let union_member = if !generic_params.is_empty() {
                     format!("{}[{}]", variant_class_name, generic_params.join(", "))
                 } else {
@@ -2436,7 +2421,7 @@ fn render_externally_tagged_enum(
                     generic_params: generic_params.clone(),
                 };
 
-                variant_models.push(variant_model.render()?);
+                variant_models.push(variant_model.render());
                 let union_member = if !generic_params.is_empty() {
                     format!("{}[{}]", variant_class_name, generic_params.join(", "))
                 } else {
@@ -2492,9 +2477,7 @@ fn render_externally_tagged_enum(
         is_generic,
         generic_params: generic_params.clone(),
     };
-    let enum_code = template
-        .render()
-        .context("Failed to render externally tagged enum")?;
+    let enum_code = template.render();
 
     // Generate factory class for ergonomic instantiation
     let factory_class_code = generate_externally_tagged_factory_class(enum_def, &enum_name)?;
@@ -2903,9 +2886,7 @@ fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<S
         is_int_enum: !is_float_enum,
     };
 
-    enum_template
-        .render()
-        .context("Failed to render primitive enum")
+    Ok(enum_template.render())
 }
 
 fn render_internally_tagged_enum_without_factory(
@@ -3152,11 +3133,7 @@ fn render_internally_tagged_enum_core(
             generic_params: generic_params.clone(),
         };
 
-        variant_class_definitions.push(
-            variant_template
-                .render()
-                .context("Failed to render variant class")?,
-        );
+        variant_class_definitions.push(variant_template.render());
     }
 
     // Generate the discriminated union
@@ -3186,7 +3163,7 @@ fn render_internally_tagged_enum_core(
         generic_params: generic_params.clone(),
     };
 
-    let union_definition = union_template.render().context("Failed to render union")?;
+    let union_definition = union_template.render();
 
     // Combine all parts
     let mut result = String::new();
@@ -3362,11 +3339,7 @@ fn render_untagged_enum(
             generic_params: vec![],
         };
 
-        variant_classes.push(
-            variant_template
-                .render()
-                .context("Failed to render untagged variant class")?,
-        );
+        variant_classes.push(variant_template.render());
         union_variants.push(templates::UnionVariant {
             name: variant.name().to_string(),
             type_annotation: variant_class_name.clone(),
@@ -3381,9 +3354,7 @@ fn render_untagged_enum(
         description: Some(enum_def.description().to_string()),
         variants: union_variants,
     };
-    let union_definition = union_template
-        .render()
-        .context("Failed to render untagged union")?;
+    let union_definition = union_template.render();
 
     // Combine all parts
     let mut result = variant_classes.join("\n\n");
@@ -4945,54 +4916,21 @@ fn sanitize_description(desc: &str) -> String {
 }
 
 pub mod templates {
-    use super::*;
+    use std::fmt::Write;
 
-    #[derive(Template)]
-    #[template(
-        source = r#"'''
-Generated Python client for {{ package_name }}.
-
-DO NOT MODIFY THIS FILE MANUALLY.
-This file is automatically generated by ReflectAPI.
-'''
-
-from __future__ import annotations
-"#,
-        ext = "txt"
-    )]
     pub struct FileHeader {
         pub package_name: String,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"
-# Standard library imports
-{% if has_datetime %}from datetime import datetime{% if has_date %}, date{% endif %}{% if has_timedelta %}, timedelta{% endif %}
-{% else if has_date %}from datetime import date{% if has_timedelta %}, timedelta{% endif %}
-{% else if has_timedelta %}from datetime import timedelta
-{% endif %}{% if has_enums %}from enum import Enum
-{% endif %}from typing import Any, Optional, TypeVar, Generic, Union{% if has_annotated %}, Annotated{% endif %}{% if has_literal %}, Literal{% endif %}
-{% if has_uuid %}from uuid import UUID
-{% endif %}{% if has_warnings %}import warnings
-{% endif %}
+    impl FileHeader {
+        pub fn render(&self) -> String {
+            format!(
+                "'''\nGenerated Python client for {}.\n\nDO NOT MODIFY THIS FILE MANUALLY.\nThis file is automatically generated by ReflectAPI.\n'''\n\nfrom __future__ import annotations\n",
+                self.package_name
+            )
+        }
+    }
 
-# Third-party imports
-from pydantic import BaseModel, ConfigDict, Field{% if has_externally_tagged_enums %}, RootModel, model_validator, model_serializer, PrivateAttr{% endif %}
-
-# Runtime imports
-{% if has_async %}{% if has_sync %}from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse{% else %}from reflectapi_runtime import AsyncClientBase, ApiResponse{% endif %}{% else %}{% if has_sync %}from reflectapi_runtime import ClientBase, ApiResponse{% endif %}{% endif %}
-{% if has_reflectapi_option %}from reflectapi_runtime import ReflectapiOption
-{% endif %}{% if has_reflectapi_empty %}from reflectapi_runtime import ReflectapiEmpty
-{% endif %}{% if has_reflectapi_infallible %}from reflectapi_runtime import ReflectapiInfallible
-{% endif %}{% if has_testing %}from reflectapi_runtime.testing import MockClient, create_api_response
-{% endif %}
-
-{% for type_var in global_type_vars %}{{ type_var }} = TypeVar('{{ type_var }}')
-{% endfor %}
-"#,
-        ext = "txt"
-    )]
     pub struct Imports {
         pub has_async: bool,
         pub has_sync: bool,
@@ -5015,19 +4953,105 @@ from pydantic import BaseModel, ConfigDict, Field{% if has_externally_tagged_enu
         pub global_type_vars: Vec<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"class {{ name }}(BaseModel{% if is_generic %}, Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]{% endif %}):
-{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
-{% else %}    """Generated data model."""
-{% endif %}
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    impl Imports {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s).unwrap();
+            writeln!(s, "# Standard library imports").unwrap();
+            if self.has_datetime {
+                write!(s, "from datetime import datetime").unwrap();
+                if self.has_date {
+                    write!(s, ", date").unwrap();
+                }
+                if self.has_timedelta {
+                    write!(s, ", timedelta").unwrap();
+                }
+                writeln!(s).unwrap();
+            } else if self.has_date {
+                write!(s, "from datetime import date").unwrap();
+                if self.has_timedelta {
+                    write!(s, ", timedelta").unwrap();
+                }
+                writeln!(s).unwrap();
+            } else if self.has_timedelta {
+                writeln!(s, "from datetime import timedelta").unwrap();
+            }
+            if self.has_enums {
+                writeln!(s, "from enum import Enum").unwrap();
+            }
+            write!(
+                s,
+                "from typing import Any, Optional, TypeVar, Generic, Union"
+            )
+            .unwrap();
+            if self.has_annotated {
+                write!(s, ", Annotated").unwrap();
+            }
+            if self.has_literal {
+                write!(s, ", Literal").unwrap();
+            }
+            writeln!(s).unwrap();
+            if self.has_uuid {
+                writeln!(s, "from uuid import UUID").unwrap();
+            }
+            if self.has_warnings {
+                writeln!(s, "import warnings").unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "# Third-party imports").unwrap();
+            write!(s, "from pydantic import BaseModel, ConfigDict, Field").unwrap();
+            if self.has_externally_tagged_enums {
+                write!(
+                    s,
+                    ", RootModel, model_validator, model_serializer, PrivateAttr"
+                )
+                .unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "# Runtime imports").unwrap();
+            if self.has_async {
+                if self.has_sync {
+                    writeln!(
+                        s,
+                        "from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse"
+                    )
+                    .unwrap();
+                } else {
+                    writeln!(
+                        s,
+                        "from reflectapi_runtime import AsyncClientBase, ApiResponse"
+                    )
+                    .unwrap();
+                }
+            } else if self.has_sync {
+                writeln!(s, "from reflectapi_runtime import ClientBase, ApiResponse").unwrap();
+            }
+            if self.has_reflectapi_option {
+                writeln!(s, "from reflectapi_runtime import ReflectapiOption").unwrap();
+            }
+            if self.has_reflectapi_empty {
+                writeln!(s, "from reflectapi_runtime import ReflectapiEmpty").unwrap();
+            }
+            if self.has_reflectapi_infallible {
+                writeln!(s, "from reflectapi_runtime import ReflectapiInfallible").unwrap();
+            }
+            if self.has_testing {
+                writeln!(
+                    s,
+                    "from reflectapi_runtime.testing import MockClient, create_api_response"
+                )
+                .unwrap();
+            }
+            writeln!(s).unwrap();
+            for type_var in &self.global_type_vars {
+                writeln!(s, "{type_var} = TypeVar('{type_var}')").unwrap();
+            }
+            writeln!(s).unwrap();
+            s
+        }
+    }
 
-{% for field in fields %}    {{ field.name }}: {{ field.type_annotation }}{% if field.alias.is_some() %} = Field{% if field.default_value.is_some() %}(default={{ field.default_value.as_ref().unwrap() }}, serialization_alias='{{ field.alias.as_deref().unwrap() }}', validation_alias='{{ field.alias.as_deref().unwrap() }}'){% else if field.optional %}(default=None, serialization_alias='{{ field.alias.as_deref().unwrap() }}', validation_alias='{{ field.alias.as_deref().unwrap() }}'){% else %}(serialization_alias='{{ field.alias.as_deref().unwrap() }}', validation_alias='{{ field.alias.as_deref().unwrap() }}'){% endif %}{% else %}{% if field.optional %} = None{% else if field.default_value.is_some() %} = {{ field.default_value.as_ref().unwrap() }}{% endif %}{% endif %}
-{% endfor %}
-"#,
-        ext = "txt"
-    )]
     pub struct DataClass {
         pub name: String,
         pub description: Option<String>,
@@ -5037,40 +5061,98 @@ from pydantic import BaseModel, ConfigDict, Field{% if has_externally_tagged_enu
         pub generic_params: Vec<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"class {{ name }}(str, Enum):
-{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
-{% else %}    """Generated enum."""
-{% endif %}
+    impl DataClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            if self.is_generic {
+                let params = self.generic_params.join(", ");
+                writeln!(s, "class {}(BaseModel, Generic[{}]):", self.name, params).unwrap();
+            } else {
+                writeln!(s, "class {}(BaseModel):", self.name).unwrap();
+            }
+            if let Some(desc) = &self.description {
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                } else {
+                    writeln!(s, "    \"\"\"Generated data model.\"\"\"").unwrap();
+                }
+            } else {
+                writeln!(s, "    \"\"\"Generated data model.\"\"\"").unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(
+                s,
+                "    model_config = ConfigDict(extra=\"ignore\", populate_by_name=True)"
+            )
+            .unwrap();
+            writeln!(s).unwrap();
+            for field in &self.fields {
+                write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
+                if let Some(alias) = &field.alias {
+                    write!(s, " = Field").unwrap();
+                    if let Some(default) = &field.default_value {
+                        write!(
+                            s,
+                            "(default={default}, serialization_alias='{alias}', validation_alias='{alias}')"
+                        )
+                        .unwrap();
+                    } else if field.optional {
+                        write!(
+                            s,
+                            "(default=None, serialization_alias='{alias}', validation_alias='{alias}')"
+                        )
+                        .unwrap();
+                    } else {
+                        write!(
+                            s,
+                            "(serialization_alias='{alias}', validation_alias='{alias}')"
+                        )
+                        .unwrap();
+                    }
+                } else if field.optional {
+                    write!(s, " = None").unwrap();
+                } else if let Some(default) = &field.default_value {
+                    write!(s, " = {default}").unwrap();
+                }
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            s
+        }
+    }
 
-{% if variants.is_empty() %}    pass
-{% else %}{% for variant in variants %}    {{ variant.name }} = "{{ variant.value }}"
-{% endfor %}{% endif %}
-"#,
-        ext = "txt"
-    )]
     pub struct EnumClass {
         pub name: String,
         pub description: Option<String>,
         pub variants: Vec<EnumVariant>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% if is_int_enum %}from enum import IntEnum{% else %}from enum import Enum{% endif %}
+    impl EnumClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "class {}(str, Enum):", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                } else {
+                    writeln!(s, "    \"\"\"Generated enum.\"\"\"").unwrap();
+                }
+            } else {
+                writeln!(s, "    \"\"\"Generated enum.\"\"\"").unwrap();
+            }
+            writeln!(s).unwrap();
+            if self.variants.is_empty() {
+                writeln!(s, "    pass").unwrap();
+            } else {
+                for variant in &self.variants {
+                    writeln!(s, "    {} = \"{}\"", variant.name, variant.value).unwrap();
+                }
+            }
+            writeln!(s).unwrap();
+            s
+        }
+    }
 
-class {{ name }}({% if is_int_enum %}IntEnum{% else %}Enum{% endif %}):
-{% if description.is_some() %}    """{{ description.as_deref().unwrap() }}"""
-
-{% endif %}{% for variant in variants %}
-    {{ variant.name }} = {{ variant.value }}
-{% if variant.description.is_some() %}    """{{ variant.description.as_deref().unwrap() }}"""
-{% endif %}
-{% endfor %}
-"#,
-        ext = "txt"
-    )]
     pub struct PrimitiveEnumClass {
         pub name: String,
         pub description: Option<String>,
@@ -5078,32 +5160,34 @@ class {{ name }}({% if is_int_enum %}IntEnum{% else %}Enum{% endif %}):
         pub is_int_enum: bool,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% if is_generic %}
-class {{ name }}(Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]):
-    """{{ description.as_deref().unwrap_or("Generated discriminated union type.") }}"""
+    impl PrimitiveEnumClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            if self.is_int_enum {
+                writeln!(s, "from enum import IntEnum").unwrap();
+            } else {
+                writeln!(s, "from enum import Enum").unwrap();
+            }
+            writeln!(s).unwrap();
+            let base = if self.is_int_enum { "IntEnum" } else { "Enum" };
+            writeln!(s, "class {}({}):", self.name, base).unwrap();
+            if let Some(desc) = &self.description {
+                writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                writeln!(s).unwrap();
+            }
+            for variant in &self.variants {
+                writeln!(s).unwrap();
+                writeln!(s, "    {} = {}", variant.name, variant.value).unwrap();
+                if let Some(desc) = &variant.description {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                }
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            s
+        }
+    }
 
-    @classmethod
-    def __class_getitem__(cls, params):
-        """Enable subscripting for generic discriminated union."""
-        if not isinstance(params, tuple):
-            params = (params,)
-        if len(params) != {{ generic_params.len() }}:
-            raise TypeError(f"Expected {{ generic_params.len() }} type parameters, got {len(params)}")
-
-        return Annotated[
-            Union[{% for variant in variants %}{{ variant.base_name }}[{% for param in generic_params %}params[{{ loop.index0 }}]{% if !loop.last %}, {% endif %}{% endfor %}]{% if !loop.last %}, {% endif %}{% endfor %}],
-            Field(discriminator='{{ discriminator_field }}')
-        ]
-{% else %}
-class {{ name }}(RootModel):
-    root: Annotated[Union[{% for variant in variants %}{{ variant.type_annotation }}{% if !loop.last %}, {% endif %}{% endfor %}], Field(discriminator='{{ discriminator_field }}')]
-{% endif %}
-{% if description.is_some() && !description.as_deref().unwrap_or("").is_empty() && !is_generic %}"""{{ description.as_deref().unwrap() }}"""{% endif %}
-"#,
-        ext = "txt"
-    )]
     pub struct UnionClass {
         pub name: String,
         pub description: Option<String>,
@@ -5113,333 +5197,115 @@ class {{ name }}(RootModel):
         pub generic_params: Vec<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{{ name }} = Union[{% for variant in variants %}{{ variant.type_annotation }}{% if !loop.last %}, {% endif %}{% endfor %}]
-{% if description.is_some() && !description.as_deref().unwrap_or("").is_empty() %}"""{{ description.as_deref().unwrap() }}"""{% endif %}
-"#,
-        ext = "txt"
-    )]
+    impl UnionClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            if self.is_generic {
+                let params = self.generic_params.join(", ");
+                writeln!(s).unwrap();
+                writeln!(s, "class {}(Generic[{}]):", self.name, params).unwrap();
+                let desc = self
+                    .description
+                    .as_deref()
+                    .unwrap_or("Generated discriminated union type.");
+                writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    @classmethod").unwrap();
+                writeln!(s, "    def __class_getitem__(cls, params):").unwrap();
+                writeln!(
+                    s,
+                    "        \"\"\"Enable subscripting for generic discriminated union.\"\"\""
+                )
+                .unwrap();
+                writeln!(s, "        if not isinstance(params, tuple):").unwrap();
+                writeln!(s, "            params = (params,)").unwrap();
+                writeln!(
+                    s,
+                    "        if len(params) != {}:",
+                    self.generic_params.len()
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "            raise TypeError(f\"Expected {} type parameters, got {{len(params)}}\")",
+                    self.generic_params.len()
+                )
+                .unwrap();
+                writeln!(s).unwrap();
+                // Build the Union expression
+                let variant_exprs: Vec<String> = self
+                    .variants
+                    .iter()
+                    .map(|v| {
+                        let param_exprs: Vec<String> = (0..self.generic_params.len())
+                            .map(|i| format!("params[{i}]"))
+                            .collect();
+                        format!("{}[{}]", v.base_name, param_exprs.join(", "))
+                    })
+                    .collect();
+                writeln!(s, "        return Annotated[").unwrap();
+                writeln!(s, "            Union[{}],", variant_exprs.join(", ")).unwrap();
+                writeln!(
+                    s,
+                    "            Field(discriminator='{}')",
+                    self.discriminator_field
+                )
+                .unwrap();
+                writeln!(s, "        ]").unwrap();
+            } else {
+                writeln!(s).unwrap();
+                writeln!(s, "class {}(RootModel):", self.name).unwrap();
+                let type_annotations: Vec<&str> = self
+                    .variants
+                    .iter()
+                    .map(|v| v.type_annotation.as_str())
+                    .collect();
+                writeln!(
+                    s,
+                    "    root: Annotated[Union[{}], Field(discriminator='{}')]",
+                    type_annotations.join(", "),
+                    self.discriminator_field
+                )
+                .unwrap();
+            }
+            writeln!(s).unwrap();
+            if !self.is_generic {
+                if let Some(desc) = &self.description {
+                    if !desc.is_empty() {
+                        writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
+                    }
+                }
+            }
+            writeln!(s).unwrap();
+            s
+        }
+    }
+
     pub struct UntaggedUnionClass {
         pub name: String,
         pub description: Option<String>,
         pub variants: Vec<UnionVariant>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% if generate_async %}
-{% for group in function_groups %}
-class Async{{ group.class_name }}:
-    """Async client for {{ group.name }} operations."""
-
-    def __init__(self, client: AsyncClientBase) -> None:
-        self._client = client
-{% for function in group.functions %}
-
-    async def {{ function.name }}(
-        self,
-{%- for param in function.path_params %}
-        {{ param.name }}: {{ param.type_annotation }},
-{%- endfor %}
-{%- if function.has_body %}
-        data: Optional[{{ function.input_type }}] = None,
-{%- endif %}
-{%- if function.headers_type.is_some() %}
-        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{%- endif %}
-    ) -> ApiResponse[{{ function.output_type }}]:
-        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body || !function.path_params.is_empty() %}
-
-        Args:{% if function.has_body %}
-            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
-{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}{% endif %}
-
-        Returns:
-            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-
-        .. deprecated::
-           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
-        """
-        {% if function.deprecation_note.is_some() %}
-        warnings.warn(
-            "{% if function.original_name.is_some() %}{{ function.original_name.as_deref().unwrap() }}{% else %}{{ function.name }}{% endif %} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        {% endif -%}
-        path = "{{ function.path }}"
-{% if !function.path_params.is_empty() %}
-        # Format path parameters using safer string formatting
-        path_params = {
-{% for param in function.path_params %}
-            "{{ param.raw_name }}": str({{ param.name }}),
-{% endfor %}
+    impl UntaggedUnionClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            let type_annotations: Vec<&str> = self
+                .variants
+                .iter()
+                .map(|v| v.type_annotation.as_str())
+                .collect();
+            writeln!(s, "{} = Union[{}]", self.name, type_annotations.join(", ")).unwrap();
+            if let Some(desc) = &self.description {
+                if !desc.is_empty() {
+                    writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
+                }
+            }
+            writeln!(s).unwrap();
+            s
         }
-        for param_name, param_value in path_params.items():
-            path = path.replace("{" + param_name + "}", param_value)
-{% endif %}
-        params: dict[str, Any] = {}
-        return await self._client._make_request(
-            "{{ function.method }}",
-            path,
-            params=params if params else None,
-{% if function.has_body -%}
-{% if function.is_input_primitive %}            json_data=data,
-{% else %}            json_model=data,
-{% endif -%}
-{% endif -%}
-{% if function.headers_type.is_some() %}            headers_model=headers,
-{% endif -%}
-{% if function.output_type == "Any" %}            response_model=None,
-{% else %}            response_model={{ function.output_type }},
-{% endif -%}
-        )
+    }
 
-{% endfor %}
-
-{% endfor %}
-class {{ async_class_name }}(AsyncClientBase):
-    """Async client for the API."""
-
-    def __init__(
-        self,
-        base_url: str{% if base_url.is_some() %} = "{{ base_url.as_ref().unwrap() }}"{% endif %},
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(base_url, **kwargs)
-{% for group in function_groups %}
-        self.{{ group.name }} = Async{{ group.class_name }}(self)
-{% endfor %}
-
-{% for function in top_level_functions %}
-    async def {{ function.name }}(
-        self,
-{%- for param in function.path_params %}
-        {{ param.name }}: {{ param.type_annotation }},
-{%- endfor %}
-{%- if function.has_body %}
-        data: Optional[{{ function.input_type }}] = None,
-{%- endif %}
-{%- if function.headers_type.is_some() %}
-        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{%- endif %}
-    ) -> ApiResponse[{{ function.output_type }}]:
-        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
-
-        Args:
-            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
-{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}
-
-        Returns:
-            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-
-        .. deprecated::
-           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
-        """
-        {% if function.deprecation_note.is_some() %}
-        warnings.warn(
-            "{{ function.name }} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        {% endif -%}
-        path = "{{ function.path }}"
-{% if !function.path_params.is_empty() %}
-        # Format path parameters using safer string formatting
-        path_params = {
-{% for param in function.path_params %}
-            "{{ param.name }}": str({{ param.name }}),
-{% endfor %}
-        }
-        for param_name, param_value in path_params.items():
-            path = path.replace("{" + param_name + "}", param_value)
-{% endif %}
-        params: dict[str, Any] = {}
-        return await self._make_request(
-            "{{ function.method }}",
-            path,
-            params=params if params else None,
-{% if function.has_body -%}
-{% if function.is_input_primitive %}            json_data=data,
-{% else %}            json_model=data,
-{% endif -%}
-{% endif -%}
-{% if function.headers_type.is_some() %}            headers_model=headers,
-{% endif -%}
-{% if function.output_type == "Any" %}            response_model=None,
-{% else %}            response_model={{ function.output_type }},
-{% endif -%}
-        )
-
-{% endfor %}
-
-{% endif %}
-
-{% if generate_sync %}
-{% for group in function_groups %}
-class {{ group.class_name }}:
-    """Synchronous client for {{ group.name }} operations."""
-
-    def __init__(self, client: ClientBase) -> None:
-        self._client = client
-{% for function in group.functions %}
-
-    def {{ function.name }}(
-        self,
-{%- for param in function.path_params %}
-        {{ param.name }}: {{ param.type_annotation }},
-{%- endfor %}
-{%- if function.has_body %}
-        data: Optional[{{ function.input_type }}] = None,
-{%- endif %}
-{%- if function.headers_type.is_some() %}
-        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{%- endif %}
-    ) -> ApiResponse[{{ function.output_type }}]:
-        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body || !function.path_params.is_empty() %}
-
-        Args:{% if function.has_body %}
-            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
-{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}{% endif %}
-
-        Returns:
-            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-
-        .. deprecated::
-           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
-        """
-        {% if function.deprecation_note.is_some() %}
-        warnings.warn(
-            "{% if function.original_name.is_some() %}{{ function.original_name.as_deref().unwrap() }}{% else %}{{ function.name }}{% endif %} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        {% endif -%}
-        path = "{{ function.path }}"
-{% if !function.path_params.is_empty() %}
-        # Format path parameters using safer string formatting
-        path_params = {
-{% for param in function.path_params %}
-            "{{ param.raw_name }}": str({{ param.name }}),
-{% endfor %}
-        }
-        for param_name, param_value in path_params.items():
-            path = path.replace("{" + param_name + "}", param_value)
-{% endif %}
-        params: dict[str, Any] = {}
-        return self._client._make_request(
-            "{{ function.method }}",
-            path,
-            params=params if params else None,
-{% if function.has_body -%}
-{% if function.is_input_primitive %}            json_data=data,
-{% else %}            json_model=data,
-{% endif -%}
-{% endif -%}
-{% if function.headers_type.is_some() %}            headers_model=headers,
-{% endif -%}
-{% if function.output_type == "Any" %}            response_model=None,
-{% else %}            response_model={{ function.output_type }},
-{% endif -%}
-        )
-
-{% endfor %}
-
-{% endfor %}
-class {{ class_name }}(ClientBase):
-    """Synchronous client for the API."""
-
-    def __init__(
-        self,
-        base_url: str{% if base_url.is_some() %} = "{{ base_url.as_ref().unwrap() }}"{% endif %},
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(base_url, **kwargs)
-{% for group in function_groups %}
-        self.{{ group.name }} = {{ group.class_name }}(self)
-{% endfor %}
-
-{% for function in top_level_functions %}
-    def {{ function.name }}(
-        self,
-{%- for param in function.path_params %}
-        {{ param.name }}: {{ param.type_annotation }},
-{%- endfor %}
-{%- if function.has_body %}
-        data: Optional[{{ function.input_type }}] = None,
-{%- endif %}
-{%- if function.headers_type.is_some() %}
-        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{%- endif %}
-    ) -> ApiResponse[{{ function.output_type }}]:
-        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
-
-        Args:
-            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
-{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}
-
-        Returns:
-            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-
-        .. deprecated::
-           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
-        """
-        {% if function.deprecation_note.is_some() %}
-        warnings.warn(
-            "{{ function.name }} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        {% endif %}
-        path = "{{ function.path }}"
-{% if !function.path_params.is_empty() %}
-        # Format path parameters using safer string formatting
-        path_params = {
-{% for param in function.path_params %}
-            "{{ param.name }}": str({{ param.name }}),
-{% endfor %}
-        }
-        for param_name, param_value in path_params.items():
-            path = path.replace("{" + param_name + "}", param_value)
-{% endif %}
-
-        params: dict[str, Any] = {}
-
-        return await self._make_request(
-            "{{ function.method }}",
-            path,
-            params=params if params else None,
-{% if function.has_body %}
-{% if function.is_input_primitive %}
-            json_data=data,
-{% else %}
-            json_model=data,
-{% endif %}
-{% endif %}
-{% if function.headers_type.is_some() %}
-            headers_model=headers,
-{% endif %}
-{% if function.output_type == "Any" %}
-            response_model=None,
-{% else %}
-            response_model={{ function.output_type }},
-{% endif %}
-        )
-
-{% endfor %}
-
-{% endif %}
-"#,
-        ext = "txt"
-    )]
     pub struct ClientClass {
         pub class_name: String,
         pub async_class_name: String,
@@ -5450,25 +5316,311 @@ class {{ class_name }}(ClientBase):
         pub base_url: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"# Testing utilities
+    impl ClientClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
 
-{% for type_name in types %}
-def create_{{ type_name.to_lowercase() }}_response(value: {{ type_name }}) -> ApiResponse[{{ type_name }}]:
-    """Create a mock ApiResponse for {{ type_name }}."""
-    return create_api_response(value)
+            if self.generate_async {
+                // Async group classes
+                for group in &self.function_groups {
+                    writeln!(s).unwrap();
+                    writeln!(s, "class Async{}:", group.class_name).unwrap();
+                    writeln!(
+                        s,
+                        "    \"\"\"Async client for {} operations.\"\"\"",
+                        group.name
+                    )
+                    .unwrap();
+                    writeln!(s).unwrap();
+                    writeln!(
+                        s,
+                        "    def __init__(self, client: AsyncClientBase) -> None:"
+                    )
+                    .unwrap();
+                    writeln!(s, "        self._client = client").unwrap();
 
-{% endfor %}
+                    for function in &group.functions {
+                        Self::write_function(&mut s, function, true, true, true);
+                    }
+                    writeln!(s).unwrap();
+                }
 
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()
-"#,
-        ext = "txt"
-    )]
+                // Async client class
+                writeln!(s).unwrap();
+                writeln!(s, "class {}(AsyncClientBase):", self.async_class_name).unwrap();
+                writeln!(s, "    \"\"\"Async client for the API.\"\"\"").unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    def __init__(").unwrap();
+                writeln!(s, "        self,").unwrap();
+                if let Some(base_url) = &self.base_url {
+                    writeln!(s, "        base_url: str = \"{base_url}\",").unwrap();
+                } else {
+                    writeln!(s, "        base_url: str,").unwrap();
+                }
+                writeln!(s, "        **kwargs: Any,").unwrap();
+                writeln!(s, "    ) -> None:").unwrap();
+                writeln!(s, "        super().__init__(base_url, **kwargs)").unwrap();
+                writeln!(s).unwrap();
+                for group in &self.function_groups {
+                    writeln!(s).unwrap();
+                    writeln!(
+                        s,
+                        "        self.{} = Async{}(self)",
+                        group.name, group.class_name
+                    )
+                    .unwrap();
+                }
+                writeln!(s).unwrap();
+
+                for function in &self.top_level_functions {
+                    Self::write_function(&mut s, function, true, false, true);
+                }
+                writeln!(s).unwrap();
+            }
+
+            writeln!(s).unwrap();
+
+            if self.generate_sync {
+                // Sync group classes
+                for group in &self.function_groups {
+                    writeln!(s).unwrap();
+                    writeln!(s, "class {}:", group.class_name).unwrap();
+                    writeln!(
+                        s,
+                        "    \"\"\"Synchronous client for {} operations.\"\"\"",
+                        group.name
+                    )
+                    .unwrap();
+                    writeln!(s).unwrap();
+                    writeln!(s, "    def __init__(self, client: ClientBase) -> None:").unwrap();
+                    writeln!(s, "        self._client = client").unwrap();
+
+                    for function in &group.functions {
+                        Self::write_function(&mut s, function, false, true, true);
+                    }
+                    writeln!(s).unwrap();
+                }
+
+                // Sync client class
+                writeln!(s).unwrap();
+                writeln!(s, "class {}(ClientBase):", self.class_name).unwrap();
+                writeln!(s, "    \"\"\"Synchronous client for the API.\"\"\"").unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    def __init__(").unwrap();
+                writeln!(s, "        self,").unwrap();
+                if let Some(base_url) = &self.base_url {
+                    writeln!(s, "        base_url: str = \"{base_url}\",").unwrap();
+                } else {
+                    writeln!(s, "        base_url: str,").unwrap();
+                }
+                writeln!(s, "        **kwargs: Any,").unwrap();
+                writeln!(s, "    ) -> None:").unwrap();
+                writeln!(s, "        super().__init__(base_url, **kwargs)").unwrap();
+                writeln!(s).unwrap();
+                for group in &self.function_groups {
+                    writeln!(s).unwrap();
+                    writeln!(
+                        s,
+                        "        self.{} = {}(self)",
+                        group.name, group.class_name
+                    )
+                    .unwrap();
+                }
+                writeln!(s).unwrap();
+
+                for function in &self.top_level_functions {
+                    Self::write_function(&mut s, function, false, false, false);
+                }
+                writeln!(s).unwrap();
+            }
+
+            writeln!(s).unwrap();
+            s
+        }
+
+        fn write_function(
+            s: &mut String,
+            function: &Function,
+            is_async: bool,
+            is_group: bool,
+            use_raw_name_for_path_params: bool,
+        ) {
+            writeln!(s).unwrap();
+            // Method signature
+            if is_async {
+                writeln!(s, "    async def {}(", function.name).unwrap();
+            } else {
+                writeln!(s, "    def {}(", function.name).unwrap();
+            }
+            writeln!(s, "        self,").unwrap();
+            for param in &function.path_params {
+                writeln!(s, "        {}: {},", param.name, param.type_annotation).unwrap();
+            }
+            if function.has_body {
+                writeln!(s, "        data: Optional[{}] = None,", function.input_type).unwrap();
+            }
+            if let Some(headers_type) = &function.headers_type {
+                writeln!(s, "        headers: Optional[{headers_type}] = None,").unwrap();
+            }
+            writeln!(s, "    ) -> ApiResponse[{}]:", function.output_type).unwrap();
+
+            // Docstring
+            let desc = function.description.as_deref().unwrap_or("");
+            write!(s, "        \"\"\"{desc}").unwrap();
+            if function.has_body || !function.path_params.is_empty() {
+                writeln!(s).unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "        Args:").unwrap();
+                if function.has_body {
+                    writeln!(
+                        s,
+                        "            data: Request data for the {} operation.",
+                        function.name
+                    )
+                    .unwrap();
+                }
+                for param in &function.path_params {
+                    let param_desc = param.description.as_deref().unwrap_or("Path parameter");
+                    writeln!(s, "            {}: {}", param.name, param_desc).unwrap();
+                }
+                writeln!(s).unwrap();
+            } else {
+                writeln!(s).unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s, "        Returns:").unwrap();
+            writeln!(
+                s,
+                "            ApiResponse[{}]: Response containing {} data",
+                function.output_type, function.output_type
+            )
+            .unwrap();
+            if let Some(dep_note) = &function.deprecation_note {
+                writeln!(s).unwrap();
+                writeln!(s, "        .. deprecated::").unwrap();
+                writeln!(s, "           {dep_note}").unwrap();
+            }
+            writeln!(s, "        \"\"\"").unwrap();
+
+            // Deprecation warning
+            if let Some(dep_note) = &function.deprecation_note {
+                writeln!(s).unwrap();
+                let warn_name = if is_group {
+                    function.original_name.as_deref().unwrap_or(&function.name)
+                } else {
+                    &function.name
+                };
+                let warn_msg = if dep_note.is_empty() {
+                    format!("{warn_name} is deprecated")
+                } else {
+                    format!("{warn_name} is deprecated: {dep_note}")
+                };
+                writeln!(s, "        warnings.warn(").unwrap();
+                writeln!(s, "            \"{warn_msg}\",").unwrap();
+                writeln!(s, "            DeprecationWarning,").unwrap();
+                writeln!(s, "            stacklevel=2,").unwrap();
+                writeln!(s, "        )").unwrap();
+                writeln!(s).unwrap();
+            }
+
+            // Path
+            writeln!(s, "        path = \"{}\"", function.path).unwrap();
+
+            // Path parameters
+            if !function.path_params.is_empty() {
+                writeln!(
+                    s,
+                    "        # Format path parameters using safer string formatting"
+                )
+                .unwrap();
+                writeln!(s, "        path_params = {{").unwrap();
+                for param in &function.path_params {
+                    let key = if use_raw_name_for_path_params {
+                        &param.raw_name
+                    } else {
+                        &param.name
+                    };
+                    writeln!(s, "            \"{}\": str({}),", key, param.name).unwrap();
+                }
+                writeln!(s, "        }}").unwrap();
+                writeln!(
+                    s,
+                    "        for param_name, param_value in path_params.items():"
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "            path = path.replace(\"{{\" + param_name + \"}}\", param_value)"
+                )
+                .unwrap();
+            }
+            writeln!(s).unwrap();
+
+            // Request call
+            writeln!(s, "        params: dict[str, Any] = {{}}").unwrap();
+
+            let client_prefix = if is_group { "self._client." } else { "self." };
+            if is_async {
+                writeln!(s, "        return await {client_prefix}_make_request(").unwrap();
+            } else {
+                writeln!(s, "        return {client_prefix}_make_request(").unwrap();
+            }
+            writeln!(s, "            \"{}\",", function.method).unwrap();
+            writeln!(s, "            path,").unwrap();
+            writeln!(s, "            params=params if params else None,").unwrap();
+            if function.has_body {
+                if function.is_input_primitive {
+                    writeln!(s, "            json_data=data,").unwrap();
+                } else {
+                    writeln!(s, "            json_model=data,").unwrap();
+                }
+            }
+            if function.headers_type.is_some() {
+                writeln!(s, "            headers_model=headers,").unwrap();
+            }
+            if function.output_type == "Any" {
+                writeln!(s, "            response_model=None,").unwrap();
+            } else {
+                writeln!(s, "            response_model={},", function.output_type).unwrap();
+            }
+            writeln!(s, "        )").unwrap();
+            writeln!(s).unwrap();
+        }
+    }
+
     pub struct TestingModule {
         pub types: Vec<String>,
+    }
+
+    impl TestingModule {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "# Testing utilities").unwrap();
+            writeln!(s).unwrap();
+            for type_name in &self.types {
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "def create_{}_response(value: {}) -> ApiResponse[{}]:",
+                    type_name.to_lowercase(),
+                    type_name,
+                    type_name
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "    \"\"\"Create a mock ApiResponse for {type_name}.\"\"\""
+                )
+                .unwrap();
+                writeln!(s, "    return create_api_response(value)").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "def create_mock_client() -> MockClient:").unwrap();
+            writeln!(s, "    \"\"\"Create a mock client for testing.\"\"\"").unwrap();
+            writeln!(s, "    return MockClient()").unwrap();
+            s
+        }
     }
 
     #[derive(Clone)]
@@ -5534,55 +5686,55 @@ def create_mock_client() -> MockClient:
     }
 
     // Templates for externally tagged enum variants
-    #[derive(Template)]
-    #[template(
-        source = r#"class {{ name }}(BaseModel):
-{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
-{% else %}    """Unit variant for externally tagged enum."""
-{% endif %}
-    model_config = ConfigDict(extra="ignore")
-
-    def model_dump(self, **kwargs):
-        """Serialize as just the variant name string for unit variants."""
-        return "{{ variant_name }}"
-
-    def model_dump_json(self, **kwargs):
-        """Serialize as JSON string for unit variants."""
-        import json
-        return json.dumps(self.model_dump(**kwargs))
-"#,
-        ext = "txt"
-    )]
     pub struct UnitVariantClass {
         pub name: String,
         pub variant_name: String,
         pub description: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"class {{ name }}(BaseModel):
-{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
-{% else %}    """Tuple variant for externally tagged enum."""
-{% endif %}
+    impl UnitVariantClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "class {}(BaseModel):", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                } else {
+                    writeln!(
+                        s,
+                        "    \"\"\"Unit variant for externally tagged enum.\"\"\""
+                    )
+                    .unwrap();
+                }
+            } else {
+                writeln!(
+                    s,
+                    "    \"\"\"Unit variant for externally tagged enum.\"\"\""
+                )
+                .unwrap();
+            }
+            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as just the variant name string for unit variants.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        return \"{}\"", self.variant_name).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump_json(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as JSON string for unit variants.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        import json").unwrap();
+            writeln!(s, "        return json.dumps(self.model_dump(**kwargs))").unwrap();
+            s
+        }
+    }
 
-    model_config = ConfigDict(extra="ignore")
-
-{% for field in fields %}    {{ field.name }}: {{ field.type_annotation }}{% if field.default_value.is_some() %} = {{ field.default_value.as_ref().unwrap() }}{% else %}{% if field.optional %} = None{% endif %}{% endif %}
-{% endfor %}
-
-    def model_dump(self, **kwargs):
-        """Serialize as externally tagged tuple variant."""
-        fields = [{% for field in fields %}self.{{ field.name }}{% if !loop.last %}, {% endif %}{% endfor %}]
-        return {"{{ variant_name }}": fields}
-
-    def model_dump_json(self, **kwargs):
-        """Serialize as JSON for externally tagged tuple variant."""
-        import json
-        return json.dumps(self.model_dump(**kwargs))
-"#,
-        ext = "txt"
-    )]
     pub struct TupleVariantClass {
         pub name: String,
         pub variant_name: String,
@@ -5590,32 +5742,66 @@ def create_mock_client() -> MockClient:
         pub description: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"class {{ name }}(BaseModel):
-{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
-{% else %}    """Struct variant for externally tagged enum."""
-{% endif %}
-    model_config = ConfigDict(extra="ignore")
+    impl TupleVariantClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "class {}(BaseModel):", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                } else {
+                    writeln!(
+                        s,
+                        "    \"\"\"Tuple variant for externally tagged enum.\"\"\""
+                    )
+                    .unwrap();
+                }
+            } else {
+                writeln!(
+                    s,
+                    "    \"\"\"Tuple variant for externally tagged enum.\"\"\""
+                )
+                .unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(s).unwrap();
+            for field in &self.fields {
+                write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
+                if let Some(default) = &field.default_value {
+                    write!(s, " = {default}").unwrap();
+                } else if field.optional {
+                    write!(s, " = None").unwrap();
+                }
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as externally tagged tuple variant.\"\"\""
+            )
+            .unwrap();
+            let field_refs: Vec<String> = self
+                .fields
+                .iter()
+                .map(|f| format!("self.{}", f.name))
+                .collect();
+            writeln!(s, "        fields = [{}]", field_refs.join(", ")).unwrap();
+            writeln!(s, "        return {{\"{}\": fields}}", self.variant_name).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump_json(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as JSON for externally tagged tuple variant.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        import json").unwrap();
+            writeln!(s, "        return json.dumps(self.model_dump(**kwargs))").unwrap();
+            s
+        }
+    }
 
-{% for field in fields %}    {{ field.name }}: {{ field.type_annotation }}{% if field.default_value.is_some() %} = {{ field.default_value.as_ref().unwrap() }}{% else %}{% if field.optional %} = None{% endif %}{% endif %}
-{% endfor %}
-
-    def model_dump(self, **kwargs):
-        """Serialize as externally tagged struct variant."""
-        fields = {}
-{% for field in fields %}        if hasattr(self, '{{ field.name }}') and self.{{ field.name }} is not None:
-            fields['{{ field.name }}'] = self.{{ field.name }}
-{% endfor %}
-        return {"{{ variant_name }}": fields}
-
-    def model_dump_json(self, **kwargs):
-        """Serialize as JSON for externally tagged struct variant."""
-        import json
-        return json.dumps(self.model_dump(**kwargs))
-"#,
-        ext = "txt"
-    )]
     pub struct StructVariantClass {
         pub name: String,
         pub variant_name: String,
@@ -5623,15 +5809,74 @@ def create_mock_client() -> MockClient:
         pub description: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% for variant_def in variant_definitions %}{{ variant_def }}
+    impl StructVariantClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "class {}(BaseModel):", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                } else {
+                    writeln!(
+                        s,
+                        "    \"\"\"Struct variant for externally tagged enum.\"\"\""
+                    )
+                    .unwrap();
+                }
+            } else {
+                writeln!(
+                    s,
+                    "    \"\"\"Struct variant for externally tagged enum.\"\"\""
+                )
+                .unwrap();
+            }
+            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(s).unwrap();
+            for field in &self.fields {
+                write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
+                if let Some(default) = &field.default_value {
+                    write!(s, " = {default}").unwrap();
+                } else if field.optional {
+                    write!(s, " = None").unwrap();
+                }
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as externally tagged struct variant.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        fields = {{}}").unwrap();
+            for field in &self.fields {
+                writeln!(
+                    s,
+                    "        if hasattr(self, '{}') and self.{} is not None:",
+                    field.name, field.name
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "            fields['{}'] = self.{}",
+                    field.name, field.name
+                )
+                .unwrap();
+            }
+            writeln!(s, "        return {{\"{}\": fields}}", self.variant_name).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump_json(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as JSON for externally tagged struct variant.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        import json").unwrap();
+            writeln!(s, "        return json.dumps(self.model_dump(**kwargs))").unwrap();
+            s
+        }
+    }
 
-{% endfor %}{{ name }} = Union[{{ union_variant_names|join(", ") }}]
-{% if description.is_some() && !description.as_deref().unwrap_or("").is_empty() %}"""{{ description.as_deref().unwrap() }}"""{% endif %}
-"#,
-        ext = "txt"
-    )]
     pub struct ExternallyTaggedUnionClass {
         pub name: String,
         pub description: Option<String>,
@@ -5639,37 +5884,31 @@ def create_mock_client() -> MockClient:
         pub union_variant_names: Vec<String>,
     }
 
+    impl ExternallyTaggedUnionClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            for variant_def in &self.variant_definitions {
+                writeln!(s, "{variant_def}").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(
+                s,
+                "{} = Union[{}]",
+                self.name,
+                self.union_variant_names.join(", ")
+            )
+            .unwrap();
+            if let Some(desc) = &self.description {
+                if !desc.is_empty() {
+                    writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
+                }
+            }
+            writeln!(s).unwrap();
+            s
+        }
+    }
+
     // Hybrid enum templates for Pythonic data-carrying enum variants
-    #[derive(Template)]
-    #[template(
-        source = r#"from enum import Enum
-from dataclasses import dataclass
-from typing import Union, Optional
-
-{% for data_class in data_classes -%}
-{{ data_class }}
-
-{% endfor -%}
-class {{ enum_name }}(str, Enum):
-    {% if description.is_some() && !description.as_deref().unwrap().is_empty() -%}
-    """{{ description.as_deref().unwrap() }}"""
-    {% endif -%}
-    # Unit variants as enum members
-{% for variant in unit_variants %}    {{ variant.name }} = "{{ variant.value }}"{% if variant.description.is_some() %}  # {{ variant.description.as_deref().unwrap() }}{% endif %}
-{% endfor %}
-
-    def model_dump(self):
-        """Handle serialization for simple enum values."""
-        return self.value
-{% for method in factory_methods -%}
-{{ method }}
-{% endfor %}
-
-# Type annotation for the union
-{{ union_name }} = Union[{{ union_members|join(", ") }}]
-"#,
-        ext = "txt"
-    )]
     pub struct HybridEnumClass {
         pub enum_name: String,
         pub description: Option<String>,
@@ -5680,27 +5919,56 @@ class {{ enum_name }}(str, Enum):
         pub union_name: String,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"@dataclass
-class {{ name }}:
-    {% if description.is_some() && !description.as_deref().unwrap().is_empty() %}"""{{ description.as_deref().unwrap() }}"""
-    {% endif %}{%- for field_type in field_types %}
-    {{ field_type }}
-{%- endfor %}
+    impl HybridEnumClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "from enum import Enum").unwrap();
+            writeln!(s, "from dataclasses import dataclass").unwrap();
+            writeln!(s, "from typing import Union, Optional").unwrap();
+            writeln!(s).unwrap();
+            for data_class in &self.data_classes {
+                write!(s, "{data_class}").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s, "class {}(str, Enum):", self.enum_name).unwrap();
+            if let Some(desc) = &self.description {
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                }
+            }
+            writeln!(s, "    # Unit variants as enum members").unwrap();
+            for variant in &self.unit_variants {
+                write!(s, "    {} = \"{}\"", variant.name, variant.value).unwrap();
+                if let Some(desc) = &variant.description {
+                    write!(s, "  # {desc}").unwrap();
+                }
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump(self):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Handle serialization for simple enum values.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        return self.value").unwrap();
+            for method in &self.factory_methods {
+                write!(s, "{method}").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "# Type annotation for the union").unwrap();
+            writeln!(
+                s,
+                "{} = Union[{}]",
+                self.union_name,
+                self.union_members.join(", ")
+            )
+            .unwrap();
+            s
+        }
+    }
 
-    def model_dump(self) -> dict:
-        """Serialize tuple variant as externally tagged."""
-        fields = [{% for field in field_names %}self.{{ field }}{% if !loop.last %}, {% endif %}{% endfor %}]
-        return {"{{ variant_name }}": fields}
-
-    def model_dump_json(self, **kwargs) -> str:
-        """Serialize as JSON."""
-        import json
-        return json.dumps(self.model_dump())
-"#,
-        ext = "txt"
-    )]
     pub struct TupleVariantDataClass {
         pub name: String,
         pub variant_name: String,
@@ -5709,31 +5977,42 @@ class {{ name }}:
         pub description: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"@dataclass
-class {{ name }}:
-    {% if description.is_some() && !description.as_deref().unwrap().is_empty() %}"""{{ description.as_deref().unwrap() }}"""
-    {% endif %}{%- for field_def in field_definitions %}
-    {{ field_def }}
-{%- endfor %}
+    impl TupleVariantDataClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "@dataclass").unwrap();
+            writeln!(s, "class {}:", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                }
+            }
+            for field_type in &self.field_types {
+                writeln!(s, "    {field_type}").unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump(self) -> dict:").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize tuple variant as externally tagged.\"\"\""
+            )
+            .unwrap();
+            let field_refs: Vec<String> = self
+                .field_names
+                .iter()
+                .map(|f| format!("self.{f}"))
+                .collect();
+            writeln!(s, "        fields = [{}]", field_refs.join(", ")).unwrap();
+            writeln!(s, "        return {{\"{}\": fields}}", self.variant_name).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump_json(self, **kwargs) -> str:").unwrap();
+            writeln!(s, "        \"\"\"Serialize as JSON.\"\"\"").unwrap();
+            writeln!(s, "        import json").unwrap();
+            writeln!(s, "        return json.dumps(self.model_dump())").unwrap();
+            s
+        }
+    }
 
-    def model_dump(self) -> dict:
-        """Serialize struct variant as externally tagged."""
-        result = {}
-{%- for field_name in field_names %}
-        if hasattr(self, '{{ field_name }}') and self.{{ field_name }} is not None:
-            result['{{ field_name }}'] = self.{{ field_name }}
-{%- endfor %}
-        return {"{{ variant_name }}": result}
-
-    def model_dump_json(self, **kwargs) -> str:
-        """Serialize as JSON."""
-        import json
-        return json.dumps(self.model_dump())
-"#,
-        ext = "txt"
-    )]
     pub struct StructVariantDataClass {
         pub name: String,
         pub variant_name: String,
@@ -5742,8 +6021,45 @@ class {{ name }}:
         pub description: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(source = r#"{{ method_name }}"#, ext = "txt")]
+    impl StructVariantDataClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "@dataclass").unwrap();
+            writeln!(s, "class {}:", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                }
+            }
+            for field_def in &self.field_definitions {
+                writeln!(s, "    {field_def}").unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump(self) -> dict:").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize struct variant as externally tagged.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        result = {{}}").unwrap();
+            for field_name in &self.field_names {
+                writeln!(
+                    s,
+                    "        if hasattr(self, '{field_name}') and self.{field_name} is not None:"
+                )
+                .unwrap();
+                writeln!(s, "            result['{field_name}'] = self.{field_name}").unwrap();
+            }
+            writeln!(s, "        return {{\"{}\": result}}", self.variant_name).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump_json(self, **kwargs) -> str:").unwrap();
+            writeln!(s, "        \"\"\"Serialize as JSON.\"\"\"").unwrap();
+            writeln!(s, "        import json").unwrap();
+            writeln!(s, "        return json.dumps(self.model_dump())").unwrap();
+            s
+        }
+    }
+
     pub struct FactoryMethod {
         pub method_name: String,
         pub variant_name: String,
@@ -5753,25 +6069,12 @@ class {{ name }}:
         pub description: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% if is_generic -%}
-# TypeVar definitions for {{ union_name }}
-{% for param in generic_params -%}
-{{ param }} = TypeVar('{{ param }}')
-{% endfor %}
+    impl FactoryMethod {
+        pub fn render(&self) -> String {
+            self.method_name.clone()
+        }
+    }
 
-{% endif -%}
-{% for variant_model in variant_models %}{{ variant_model }}
-
-{% endfor %}
-# Discriminated union for {{ union_name }}
-{{ union_name }} = Annotated[Union[{{ union_members|join(", ") }}], Field(discriminator='kind')]
-{% if description.is_some() -%}
-"""{{ description.as_deref().unwrap() }}"""
-{% endif %}"#,
-        ext = "txt"
-    )]
     pub struct DiscriminatedUnionEnum {
         pub variant_models: Vec<String>,
         pub union_members: Vec<String>,
@@ -5781,49 +6084,36 @@ class {{ name }}:
         pub generic_params: Vec<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% for variant_model in variant_models %}{{ variant_model }}
+    impl DiscriminatedUnionEnum {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            if self.is_generic {
+                writeln!(s, "# TypeVar definitions for {}", self.union_name).unwrap();
+                for param in &self.generic_params {
+                    writeln!(s, "{param} = TypeVar('{param}')").unwrap();
+                }
+                writeln!(s).unwrap();
+            }
+            for variant_model in &self.variant_models {
+                writeln!(s, "{variant_model}").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "# Discriminated union for {}", self.union_name).unwrap();
+            writeln!(
+                s,
+                "{} = Annotated[Union[{}], Field(discriminator='kind')]",
+                self.union_name,
+                self.union_members.join(", ")
+            )
+            .unwrap();
+            if let Some(desc) = &self.description {
+                writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
+            }
+            s
+        }
+    }
 
-{% endfor %}
-# Externally tagged enum using RootModel
-{% if is_single_variant %}{{ name }}Variants = {{ union_variants }}
-{% else %}{{ name }}Variants = Union[{{ union_variants }}]
-{% endif %}
-class {{ name }}(RootModel[{{ name }}Variants]{% if is_generic %}, Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]{% endif %}):
-    """{% if description.is_some() %}{{ description.as_deref().unwrap() }}{% else %}Externally tagged enum{% endif %}"""
-
-{% if is_generic %}    @classmethod
-    def __class_getitem__(cls, params):
-        return cls
-{% endif %}
-
-    @model_validator(mode='before')
-    @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-{{ instance_validator_cases }}
-
-        # Handle JSON data (for deserialization)
-{{ validator_cases }}
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-{{ dict_validator_cases }}
-
-        raise ValueError(f"Unknown variant for {{ name }}: {data}")
-
-    @model_serializer
-    def _serialize_externally_tagged(self):
-{{ serializer_cases }}
-
-        raise ValueError(f"Cannot serialize {{ name }} variant: {type(self.root)}")
-"#,
-        ext = "txt"
-    )]
     pub struct ExternallyTaggedEnumRootModel {
         pub name: String,
         pub description: Option<String>,
@@ -5838,84 +6128,89 @@ class {{ name }}(RootModel[{{ name }}Variants]{% if is_generic %}, Generic[{% fo
         pub generic_params: Vec<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% if is_generic %}
-# Generic externally tagged enum using Approach B: Generic Variant Models
-{% for param in generic_params -%}
-{{ param }} = TypeVar('{{ param }}')
-{% endfor %}
+    impl ExternallyTaggedEnumRootModel {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            for variant_model in &self.variant_models {
+                writeln!(s, "{variant_model}").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "# Externally tagged enum using RootModel").unwrap();
+            if self.is_single_variant {
+                writeln!(s, "{}Variants = {}", self.name, self.union_variants).unwrap();
+            } else {
+                writeln!(s, "{}Variants = Union[{}]", self.name, self.union_variants).unwrap();
+            }
+            writeln!(s).unwrap();
+            if self.is_generic {
+                let params = self.generic_params.join(", ");
+                writeln!(
+                    s,
+                    "class {}(RootModel[{}Variants], Generic[{}]):",
+                    self.name, self.name, params
+                )
+                .unwrap();
+            } else {
+                writeln!(s, "class {}(RootModel[{}Variants]):", self.name, self.name).unwrap();
+            }
+            let desc = self
+                .description
+                .as_deref()
+                .unwrap_or("Externally tagged enum");
+            writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+            writeln!(s).unwrap();
+            if self.is_generic {
+                writeln!(s, "    @classmethod").unwrap();
+                writeln!(s, "    def __class_getitem__(cls, params):").unwrap();
+                writeln!(s, "        return cls").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s, "    @model_validator(mode='before')").unwrap();
+            writeln!(s, "    @classmethod").unwrap();
+            writeln!(s, "    def _validate_externally_tagged(cls, data):").unwrap();
+            writeln!(
+                s,
+                "        # Handle direct variant instances (for programmatic creation)"
+            )
+            .unwrap();
+            writeln!(s, "{}", self.instance_validator_cases).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "        # Handle JSON data (for deserialization)").unwrap();
+            writeln!(s, "{}", self.validator_cases).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "        if isinstance(data, dict):").unwrap();
+            writeln!(s, "            if len(data) != 1:").unwrap();
+            writeln!(
+                s,
+                "                raise ValueError(\"Externally tagged enum must have exactly one key\")"
+            )
+            .unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "            key, value = next(iter(data.items()))").unwrap();
+            writeln!(s, "{}", self.dict_validator_cases).unwrap();
+            writeln!(s).unwrap();
+            writeln!(
+                s,
+                "        raise ValueError(f\"Unknown variant for {}: {{data}}\")",
+                self.name
+            )
+            .unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    @model_serializer").unwrap();
+            writeln!(s, "    def _serialize_externally_tagged(self):").unwrap();
+            writeln!(s, "{}", self.serializer_cases).unwrap();
+            writeln!(s).unwrap();
+            writeln!(
+                s,
+                "        raise ValueError(f\"Cannot serialize {} variant: {{type(self.root)}}\")",
+                self.name
+            )
+            .unwrap();
+            s
+        }
+    }
 
-# Common non-generic base class with discriminator
-class {{ name }}Base(BaseModel):
-    """Base class for {{ name }} variants with shared discriminator."""
-    _kind: str = PrivateAttr()
-
-{% for variant_model in variant_models %}{{ variant_model }}
-
-{% endfor %}
-# Type alias for parameterized union - users can create specific unions as needed
-# Example: {{ name }}[SomeType, AnotherType] = Union[{{ name }}Variant1[SomeType], {{ name }}Variant2[AnotherType]]
-class {{ name }}(Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]):
-    """{% if description.is_some() %}{{ description.as_deref().unwrap() }}{% else %}Generic externally tagged enum using Approach B{% endif %}
-
-    This is a generic enum where each variant is a separate generic class.
-    To create a specific instance, use the variant classes directly.
-    To create a union type, use Union[VariantClass[Type1], OtherVariant[Type2]].
-    """
-
-    @classmethod
-    def __class_getitem__(cls, params):
-        """Create documentation about parameterized types."""
-        if not isinstance(params, tuple):
-            params = (params,)
-        if len(params) != {{ generic_params.len() }}:
-            raise TypeError(f"Expected {{ generic_params.len() }} type parameters, got {len(params)}")
-
-        # For Approach B, users should create unions directly using variant classes
-        # This method serves as documentation
-        variant_examples = [
-            {% for variant_info in variant_info_list %}"{{ variant_info.class_name }}[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]"{% if !loop.last %},
-            {% endif %}{% endfor %}
-        ]
-
-        # Return a helpful hint rather than NotImplementedError
-        return f"Union[{', '.join(variant_examples)}]  # Use this pattern to create specific unions"
-{% else %}
-# Non-generic externally tagged enum - use existing RootModel approach
-{% if is_single_variant %}{{ name }}Variants = {{ union_variants }}
-{% else %}{{ name }}Variants = Union[{{ union_variants }}]
-{% endif %}
-class {{ name }}(RootModel[{{ name }}Variants]):
-    """{% if description.is_some() %}{{ description.as_deref().unwrap() }}{% else %}Externally tagged enum{% endif %}"""
-
-    @model_validator(mode='before')
-    @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-{{ instance_validator_cases }}
-
-        # Handle JSON data (for deserialization)
-{{ validator_cases }}
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-{{ dict_validator_cases }}
-
-        raise ValueError(f"Unknown variant for {{ name }}: {data}")
-
-    @model_serializer
-    def _serialize_externally_tagged(self):
-{{ serializer_cases }}
-
-        raise ValueError(f"Cannot serialize {{ name }} variant: {type(self.root)}")
-{% endif %}
-"#,
-        ext = "txt"
-    )]
     pub struct GenericExternallyTaggedEnumApproachB {
         pub name: String,
         pub description: Option<String>,
@@ -5929,6 +6224,196 @@ class {{ name }}(RootModel[{{ name }}Variants]):
         pub is_generic: bool,
         pub generic_params: Vec<String>,
         pub variant_info_list: Vec<VariantInfo>,
+    }
+
+    impl GenericExternallyTaggedEnumApproachB {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            if self.is_generic {
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "# Generic externally tagged enum using Approach B: Generic Variant Models"
+                )
+                .unwrap();
+                for param in &self.generic_params {
+                    writeln!(s, "{param} = TypeVar('{param}')").unwrap();
+                }
+                writeln!(s).unwrap();
+                writeln!(s, "# Common non-generic base class with discriminator").unwrap();
+                writeln!(s, "class {}Base(BaseModel):", self.name).unwrap();
+                writeln!(
+                    s,
+                    "    \"\"\"Base class for {} variants with shared discriminator.\"\"\"",
+                    self.name
+                )
+                .unwrap();
+                writeln!(s, "    _kind: str = PrivateAttr()").unwrap();
+                writeln!(s).unwrap();
+                for variant_model in &self.variant_models {
+                    writeln!(s, "{variant_model}").unwrap();
+                    writeln!(s).unwrap();
+                }
+                writeln!(s).unwrap();
+                let params = self.generic_params.join(", ");
+                writeln!(
+                    s,
+                    "# Type alias for parameterized union - users can create specific unions as needed"
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "# Example: {}[SomeType, AnotherType] = Union[{}Variant1[SomeType], {}Variant2[AnotherType]]",
+                    self.name, self.name, self.name
+                )
+                .unwrap();
+                writeln!(s, "class {}(Generic[{}]):", self.name, params).unwrap();
+                let desc = self
+                    .description
+                    .as_deref()
+                    .unwrap_or("Generic externally tagged enum using Approach B");
+                writeln!(s, "    \"\"\"{desc}").unwrap();
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "    This is a generic enum where each variant is a separate generic class."
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "    To create a specific instance, use the variant classes directly."
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "    To create a union type, use Union[VariantClass[Type1], OtherVariant[Type2]]."
+                )
+                .unwrap();
+                writeln!(s, "    \"\"\"").unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    @classmethod").unwrap();
+                writeln!(s, "    def __class_getitem__(cls, params):").unwrap();
+                writeln!(
+                    s,
+                    "        \"\"\"Create documentation about parameterized types.\"\"\""
+                )
+                .unwrap();
+                writeln!(s, "        if not isinstance(params, tuple):").unwrap();
+                writeln!(s, "            params = (params,)").unwrap();
+                writeln!(
+                    s,
+                    "        if len(params) != {}:",
+                    self.generic_params.len()
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "            raise TypeError(f\"Expected {} type parameters, got {{len(params)}}\")",
+                    self.generic_params.len()
+                )
+                .unwrap();
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "        # For Approach B, users should create unions directly using variant classes"
+                )
+                .unwrap();
+                writeln!(s, "        # This method serves as documentation").unwrap();
+                writeln!(s, "        variant_examples = [").unwrap();
+                for (i, variant_info) in self.variant_info_list.iter().enumerate() {
+                    let generic_params_str = self.generic_params.join(", ");
+                    if i < self.variant_info_list.len() - 1 {
+                        writeln!(
+                            s,
+                            "            \"{}[{}]\",",
+                            variant_info.class_name, generic_params_str
+                        )
+                        .unwrap();
+                    } else {
+                        writeln!(
+                            s,
+                            "            \"{}[{}]\"",
+                            variant_info.class_name, generic_params_str
+                        )
+                        .unwrap();
+                    }
+                }
+                writeln!(s, "        ]").unwrap();
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "        # Return a helpful hint rather than NotImplementedError"
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "        return f\"Union[{{', '.join(variant_examples)}}]  # Use this pattern to create specific unions\""
+                )
+                .unwrap();
+            } else {
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "# Non-generic externally tagged enum - use existing RootModel approach"
+                )
+                .unwrap();
+                if self.is_single_variant {
+                    writeln!(s, "{}Variants = {}", self.name, self.union_variants).unwrap();
+                } else {
+                    writeln!(s, "{}Variants = Union[{}]", self.name, self.union_variants).unwrap();
+                }
+                writeln!(s, "class {}(RootModel[{}Variants]):", self.name, self.name).unwrap();
+                let desc = self
+                    .description
+                    .as_deref()
+                    .unwrap_or("Externally tagged enum");
+                writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    @model_validator(mode='before')").unwrap();
+                writeln!(s, "    @classmethod").unwrap();
+                writeln!(s, "    def _validate_externally_tagged(cls, data):").unwrap();
+                writeln!(
+                    s,
+                    "        # Handle direct variant instances (for programmatic creation)"
+                )
+                .unwrap();
+                writeln!(s, "{}", self.instance_validator_cases).unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "        # Handle JSON data (for deserialization)").unwrap();
+                writeln!(s, "{}", self.validator_cases).unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "        if isinstance(data, dict):").unwrap();
+                writeln!(s, "            if len(data) != 1:").unwrap();
+                writeln!(
+                    s,
+                    "                raise ValueError(\"Externally tagged enum must have exactly one key\")"
+                )
+                .unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "            key, value = next(iter(data.items()))").unwrap();
+                writeln!(s, "{}", self.dict_validator_cases).unwrap();
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "        raise ValueError(f\"Unknown variant for {}: {{data}}\")",
+                    self.name
+                )
+                .unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    @model_serializer").unwrap();
+                writeln!(s, "    def _serialize_externally_tagged(self):").unwrap();
+                writeln!(s, "{}", self.serializer_cases).unwrap();
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "        raise ValueError(f\"Cannot serialize {} variant: {{type(self.root)}}\")",
+                    self.name
+                )
+                .unwrap();
+            }
+            writeln!(s).unwrap();
+            s
+        }
     }
 
     #[derive(Clone)]
