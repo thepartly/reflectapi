@@ -56,7 +56,7 @@ class MyapiProtoHeaders(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    authorization: str
+    authorization: str = Field(description="Authorization header")
 
 
 class MyapiProtoInternalError(BaseModel):
@@ -128,7 +128,7 @@ class MyapiProtoPetsRemoveRequest(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    name: str
+    name: str = Field(description="identity")
 
 
 class MyapiProtoValidationA(BaseModel):
@@ -144,8 +144,8 @@ class MyapiProtoPaginated(BaseModel, Generic[T]):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    items: list[T]
-    cursor: str | None = None
+    items: list[T] = Field(description="slice of a collection")
+    cursor: str | None = Field(default=None, description="cursor for getting next page")
 
 
 class MyapiProtoPetsListRequest(BaseModel):
@@ -162,7 +162,9 @@ class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    kind: Literal["InvalidCursor"] = "InvalidCursor"
+    kind: Literal["InvalidCursor"] = Field(
+        default="InvalidCursor", description="Discriminator field"
+    )
 
 
 class MyapiProtoPetsListErrorUnauthorized(BaseModel):
@@ -170,7 +172,9 @@ class MyapiProtoPetsListErrorUnauthorized(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    kind: Literal["Unauthorized"] = "Unauthorized"
+    kind: Literal["Unauthorized"] = Field(
+        default="Unauthorized", description="Discriminator field"
+    )
 
 
 class MyapiProtoPetsListErrorInternal(BaseModel):
@@ -178,7 +182,9 @@ class MyapiProtoPetsListErrorInternal(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    kind: Literal["Internal"] = "Internal"
+    kind: Literal["Internal"] = Field(
+        default="Internal", description="Discriminator field"
+    )
     message: str
 
 
@@ -242,10 +248,16 @@ class MyapiProtoPetsUpdateRequest(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    name: str
-    kind: myapi.model.Kind | None = None
-    age: ReflectapiOption[int] = None
-    behaviors: ReflectapiOption[list[myapi.model.Behavior]] = None
+    name: str = Field(description="identity")
+    kind: myapi.model.Kind | None = Field(
+        default=None, description="kind of pet, non nullable in the model"
+    )
+    age: ReflectapiOption[int] = Field(
+        default=None, description="age of the pet, nullable in the model"
+    )
+    behaviors: ReflectapiOption[list[myapi.model.Behavior]] = Field(
+        default=None, description="behaviors of the pet, nullable in the model"
+    )
 
 
 class MyapiProtoPetsUpdateErrorValidationVariant(BaseModel):
@@ -309,8 +321,8 @@ class MyapiModelBehaviorAggressiveVariant(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: float
-    field_1: str
+    field_0: float = Field(description="aggressiveness level")
+    field_1: str = Field(description="some notes")
 
 
 class MyapiModelBehaviorOtherVariant(BaseModel):
@@ -318,8 +330,10 @@ class MyapiModelBehaviorOtherVariant(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    description: str
-    notes: str | None = None
+    description: str = Field(description="Custom provided description of a behavior")
+    notes: str | None = Field(
+        default=None, description="Additional notes\nUp to a user to put free text here"
+    )
 
 
 # Externally tagged enum using RootModel
@@ -380,8 +394,8 @@ class MyapiModelKindDog(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["dog"] = "dog"
-    breed: str
+    type: Literal["dog"] = Field(default="dog", description="Discriminator field")
+    breed: str = Field(description="breed of the dog")
 
 
 class MyapiModelKindCat(BaseModel):
@@ -389,8 +403,8 @@ class MyapiModelKindCat(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["cat"] = "cat"
-    lives: int
+    type: Literal["cat"] = Field(default="cat", description="Discriminator field")
+    lives: int = Field(description="lives left")
 
 
 class MyapiModelKindBird(BaseModel):
@@ -398,7 +412,7 @@ class MyapiModelKindBird(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["bird"] = "bird"
+    type: Literal["bird"] = Field(default="bird", description="Discriminator field")
 
 
 class MyapiModelKind(RootModel):
@@ -413,11 +427,13 @@ class MyapiModelInputPet(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    name: str
-    kind: myapi.model.Kind
-    age: int | None = None
+    name: str = Field(description="identity")
+    kind: myapi.model.Kind = Field(description="kind of pet")
+    age: int | None = Field(default=None, description="age of the pet")
     updated_at: datetime | None = None
-    behaviors: list[myapi.model.Behavior] | None = None
+    behaviors: list[myapi.model.Behavior] | None = Field(
+        default=None, description="behaviors of the pet"
+    )
 
 
 class MyapiModelOutputPet(BaseModel):
@@ -425,11 +441,13 @@ class MyapiModelOutputPet(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    name: str
-    kind: myapi.model.Kind
-    age: int | None = None
+    name: str = Field(description="identity")
+    kind: myapi.model.Kind = Field(description="kind of pet")
+    age: int | None = Field(default=None, description="age of the pet")
     updated_at: datetime
-    behaviors: list[myapi.model.Behavior] | None = None
+    behaviors: list[myapi.model.Behavior] | None = Field(
+        default=None, description="behaviors of the pet"
+    )
 
 
 # Namespace classes for dotted access to types
@@ -492,11 +510,11 @@ class AsyncHealthClient:
 
     async def check(
         self,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.HealthCheckFail]:
         """Check the health of the service
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.HealthCheckFail]: Success=Any, Error=myapi.HealthCheckFail
         """
         path = "/health.check"
 
@@ -519,14 +537,14 @@ class AsyncPetsClient:
         self,
         data: Optional[myapi.model.input.Pet] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.proto.PetsCreateError]:
         """Create a new pet
 
         Args:
             data: Request data for the create operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsCreateError]: Success=Any, Error=myapi.proto.PetsCreateError
         """
         path = "/pets.create"
 
@@ -544,14 +562,14 @@ class AsyncPetsClient:
         self,
         data: Optional[myapi.proto.PetsRemoveRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
         """Remove an existing pet
 
         Args:
             data: Request data for the delete operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
 
         .. deprecated::
            Use pets.remove instead
@@ -578,11 +596,11 @@ class AsyncPetsClient:
     async def get_first(
         self,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[myapi.model.output.Pet | None]:
+    ) -> ApiResponse[myapi.model.output.Pet | None, None]:
         """Fetch first pet, if any exists
 
         Returns:
-            ApiResponse[myapi.model.output.Pet | None]: Response containing myapi.model.output.Pet | None data
+            ApiResponse[myapi.model.output.Pet | None, None]: Success=myapi.model.output.Pet | None, Error=None
         """
         path = "/pets.get-first"
 
@@ -599,14 +617,16 @@ class AsyncPetsClient:
         self,
         data: Optional[myapi.proto.PetsListRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet]]:
+    ) -> ApiResponse[
+        myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError
+    ]:
         """List available pets
 
         Args:
             data: Request data for the list operation.
 
         Returns:
-            ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet]]: Response containing myapi.proto.Paginated[myapi.model.output.Pet] data
+            ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError]: Success=myapi.proto.Paginated[myapi.model.output.Pet], Error=myapi.proto.PetsListError
         """
         path = "/pets.list"
 
@@ -624,14 +644,14 @@ class AsyncPetsClient:
         self,
         data: Optional[myapi.proto.PetsRemoveRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
         """Remove an existing pet
 
         Args:
             data: Request data for the remove operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
         """
         path = "/pets.remove"
 
@@ -649,14 +669,14 @@ class AsyncPetsClient:
         self,
         data: Optional[myapi.proto.PetsUpdateRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.proto.PetsUpdateError]:
         """Update an existing pet
 
         Args:
             data: Request data for the update operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsUpdateError]: Success=Any, Error=myapi.proto.PetsUpdateError
         """
         path = "/pets.update"
 
@@ -694,11 +714,11 @@ class HealthClient:
 
     def check(
         self,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.HealthCheckFail]:
         """Check the health of the service
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.HealthCheckFail]: Success=Any, Error=myapi.HealthCheckFail
         """
         path = "/health.check"
 
@@ -721,14 +741,14 @@ class PetsClient:
         self,
         data: Optional[myapi.model.input.Pet] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.proto.PetsCreateError]:
         """Create a new pet
 
         Args:
             data: Request data for the create operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsCreateError]: Success=Any, Error=myapi.proto.PetsCreateError
         """
         path = "/pets.create"
 
@@ -746,14 +766,14 @@ class PetsClient:
         self,
         data: Optional[myapi.proto.PetsRemoveRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
         """Remove an existing pet
 
         Args:
             data: Request data for the delete operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
 
         .. deprecated::
            Use pets.remove instead
@@ -780,11 +800,11 @@ class PetsClient:
     def get_first(
         self,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[myapi.model.output.Pet | None]:
+    ) -> ApiResponse[myapi.model.output.Pet | None, None]:
         """Fetch first pet, if any exists
 
         Returns:
-            ApiResponse[myapi.model.output.Pet | None]: Response containing myapi.model.output.Pet | None data
+            ApiResponse[myapi.model.output.Pet | None, None]: Success=myapi.model.output.Pet | None, Error=None
         """
         path = "/pets.get-first"
 
@@ -801,14 +821,16 @@ class PetsClient:
         self,
         data: Optional[myapi.proto.PetsListRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet]]:
+    ) -> ApiResponse[
+        myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError
+    ]:
         """List available pets
 
         Args:
             data: Request data for the list operation.
 
         Returns:
-            ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet]]: Response containing myapi.proto.Paginated[myapi.model.output.Pet] data
+            ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError]: Success=myapi.proto.Paginated[myapi.model.output.Pet], Error=myapi.proto.PetsListError
         """
         path = "/pets.list"
 
@@ -826,14 +848,14 @@ class PetsClient:
         self,
         data: Optional[myapi.proto.PetsRemoveRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
         """Remove an existing pet
 
         Args:
             data: Request data for the remove operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
         """
         path = "/pets.remove"
 
@@ -851,14 +873,14 @@ class PetsClient:
         self,
         data: Optional[myapi.proto.PetsUpdateRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.proto.PetsUpdateError]:
         """Update an existing pet
 
         Args:
             data: Request data for the update operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsUpdateError]: Success=Any, Error=myapi.proto.PetsUpdateError
         """
         path = "/pets.update"
 

@@ -10,6 +10,15 @@ fn sanitize_for_docstring(text: &str) -> String {
     text.replace('\\', "\\\\").replace("\"\"\"", "\\\"\\\"\\\"")
 }
 
+/// Sanitize text for inclusion in a Python double-quoted string literal.
+/// Escapes backslashes, double quotes, and replaces newlines with \n.
+fn sanitize_for_string_literal(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+}
+
 /// Information needed to generate a factory class later
 #[derive(Clone, Debug)]
 struct FactoryInfo {
@@ -5236,27 +5245,35 @@ pub mod templates {
             writeln!(s).unwrap();
             for field in &self.fields {
                 write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
-                if let Some(alias) = &field.alias {
-                    write!(s, " = Field").unwrap();
+
+                // Build Field() kwargs: description, alias, default
+                let desc = field
+                    .description
+                    .as_ref()
+                    .filter(|d| !d.is_empty() && !d.starts_with("(flattened"))
+                    .map(|d| super::sanitize_for_string_literal(d));
+                let has_field_args = desc.is_some()
+                    || field.alias.is_some()
+                    || (field.optional && field.alias.is_none());
+
+                if has_field_args && (desc.is_some() || field.alias.is_some()) {
+                    // Need Field() with named arguments
+                    write!(s, " = Field(").unwrap();
+                    let mut args = Vec::new();
                     if let Some(default) = &field.default_value {
-                        write!(
-                            s,
-                            "(default={default}, serialization_alias='{alias}', validation_alias='{alias}')"
-                        )
-                        .unwrap();
+                        args.push(format!("default={default}"));
                     } else if field.optional {
-                        write!(
-                            s,
-                            "(default=None, serialization_alias='{alias}', validation_alias='{alias}')"
-                        )
-                        .unwrap();
-                    } else {
-                        write!(
-                            s,
-                            "(serialization_alias='{alias}', validation_alias='{alias}')"
-                        )
-                        .unwrap();
+                        args.push("default=None".to_string());
                     }
+                    if let Some(alias) = &field.alias {
+                        args.push(format!("serialization_alias='{alias}'"));
+                        args.push(format!("validation_alias='{alias}'"));
+                    }
+                    if let Some(ref d) = desc {
+                        args.push(format!("description=\"{d}\""));
+                    }
+                    write!(s, "{}", args.join(", ")).unwrap();
+                    write!(s, ")").unwrap();
                 } else if field.optional {
                     write!(s, " = None").unwrap();
                 } else if let Some(default) = &field.default_value {
@@ -5616,7 +5633,16 @@ pub mod templates {
             if let Some(headers_type) = &function.headers_type {
                 writeln!(s, "        headers: Optional[{headers_type}] = None,").unwrap();
             }
-            writeln!(s, "    ) -> ApiResponse[{}]:", function.output_type).unwrap();
+            if let Some(error_type) = &function.error_type {
+                writeln!(
+                    s,
+                    "    ) -> ApiResponse[{}, {}]:",
+                    function.output_type, error_type
+                )
+                .unwrap();
+            } else {
+                writeln!(s, "    ) -> ApiResponse[{}]:", function.output_type).unwrap();
+            }
 
             // Docstring
             let desc = super::sanitize_for_docstring(function.description.as_deref().unwrap_or(""));
@@ -5645,12 +5671,21 @@ pub mod templates {
                 writeln!(s).unwrap();
             }
             writeln!(s, "        Returns:").unwrap();
-            writeln!(
-                s,
-                "            ApiResponse[{}]: Response containing {} data",
-                function.output_type, function.output_type
-            )
-            .unwrap();
+            if let Some(error_type) = &function.error_type {
+                writeln!(
+                    s,
+                    "            ApiResponse[{}, {}]: Success={}, Error={}",
+                    function.output_type, error_type, function.output_type, error_type
+                )
+                .unwrap();
+            } else {
+                writeln!(
+                    s,
+                    "            ApiResponse[{}]: Response containing {} data",
+                    function.output_type, function.output_type
+                )
+                .unwrap();
+            }
             if let Some(dep_note) = &function.deprecation_note {
                 let dep_note = super::sanitize_for_docstring(dep_note);
                 writeln!(s).unwrap();

@@ -31,7 +31,7 @@ class ReflectapiDemoTestsSerdePriorityHigh(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    kind: Literal["High"] = "High"
+    kind: Literal["High"] = Field(default="High", description="Discriminator field")
     deadline: str
 
 
@@ -40,7 +40,7 @@ class ReflectapiDemoTestsSerdePriorityLow(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    kind: Literal["Low"] = "Low"
+    kind: Literal["Low"] = Field(default="Low", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdePriority(RootModel):
@@ -58,7 +58,7 @@ class ReflectapiDemoTestsSerdeTaskHigh(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     title: str
-    kind: Literal["High"] = "High"
+    kind: Literal["High"] = Field(default="High", description="Discriminator field")
     deadline: str
 
 
@@ -68,7 +68,7 @@ class ReflectapiDemoTestsSerdeTaskLow(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     title: str
-    kind: Literal["Low"] = "Low"
+    kind: Literal["Low"] = Field(default="Low", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeTask(RootModel):

@@ -47,7 +47,7 @@ class ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant(BaseModel, Gener
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: T
+    field_0: T = Field(description="variant1 field docs")
 
 
 class ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant(BaseModel, Generic[T]):
@@ -55,7 +55,7 @@ class ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant(BaseModel, Gener
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    named_field: T
+    named_field: T = Field(description="named field variant2 field docs")
 
 
 # Externally tagged enum using RootModel

@@ -31,7 +31,7 @@ class ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTaggedEmpty(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Empty"] = "Empty"
+    type: Literal["Empty"] = Field(default="Empty", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTaggedEmptyStruct(BaseModel):
@@ -39,7 +39,9 @@ class ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTaggedEmptyStruct(BaseMo
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["EmptyStruct"] = "EmptyStruct"
+    type: Literal["EmptyStruct"] = Field(
+        default="EmptyStruct", description="Discriminator field"
+    )
 
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTagged(RootModel):

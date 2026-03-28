@@ -61,7 +61,7 @@ class ReflectapiDemoTestsSerdeTestS(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["S"] = "S"
+    type: Literal["S"] = Field(default="S", description="Discriminator field")
     payload: Annotated[Any, "External type: Payload"]
     additional: Annotated[Any, "External type: Additional"]
 

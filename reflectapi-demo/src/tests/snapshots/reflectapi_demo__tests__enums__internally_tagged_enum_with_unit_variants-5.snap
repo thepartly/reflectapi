@@ -31,7 +31,7 @@ class ReflectapiDemoTestsEnumsAX(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["X"] = "X"
+    type: Literal["X"] = Field(default="X", description="Discriminator field")
 
 
 class ReflectapiDemoTestsEnumsAY(BaseModel):
@@ -39,8 +39,8 @@ class ReflectapiDemoTestsEnumsAY(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Y"] = "Y"
-    value: None
+    type: Literal["Y"] = Field(default="Y", description="Discriminator field")
+    value: None = Field(description="Tuple variant value")
 
 
 class ReflectapiDemoTestsEnumsA(RootModel):

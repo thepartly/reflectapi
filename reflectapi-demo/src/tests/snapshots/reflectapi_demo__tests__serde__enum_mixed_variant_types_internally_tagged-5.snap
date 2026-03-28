@@ -31,7 +31,7 @@ class ReflectapiDemoTestsSerdeMixedUnit(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Unit"] = "Unit"
+    type: Literal["Unit"] = Field(default="Unit", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeMixedWrap(BaseModel):
@@ -39,7 +39,7 @@ class ReflectapiDemoTestsSerdeMixedWrap(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Wrap"] = "Wrap"
+    type: Literal["Wrap"] = Field(default="Wrap", description="Discriminator field")
     value: str
 
 
@@ -48,7 +48,7 @@ class ReflectapiDemoTestsSerdeMixedFull(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Full"] = "Full"
+    type: Literal["Full"] = Field(default="Full", description="Discriminator field")
     x: int
     y: int
 

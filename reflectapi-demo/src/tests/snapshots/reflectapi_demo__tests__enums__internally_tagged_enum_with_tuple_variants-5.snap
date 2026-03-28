@@ -38,8 +38,8 @@ class ReflectapiDemoTestsEnumsEA(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["a"] = "a"
-    value: reflectapi_demo.tests.enums.A
+    type: Literal["a"] = Field(default="a", description="Discriminator field")
+    value: reflectapi_demo.tests.enums.A = Field(description="Tuple variant value")
 
 
 class ReflectapiDemoTestsEnumsE(RootModel):

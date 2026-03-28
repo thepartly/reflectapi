@@ -31,7 +31,7 @@ class ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherV0(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["V0"] = "V0"
+    type: Literal["V0"] = Field(default="V0", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther(RootModel):
@@ -46,7 +46,7 @@ class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherV0(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["V0"] = "V0"
+    type: Literal["V0"] = Field(default="V0", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherVariant1(BaseModel):
@@ -54,7 +54,9 @@ class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherVariant1(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Variant1"] = "Variant1"
+    type: Literal["Variant1"] = Field(
+        default="Variant1", description="Discriminator field"
+    )
 
 
 class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther(RootModel):

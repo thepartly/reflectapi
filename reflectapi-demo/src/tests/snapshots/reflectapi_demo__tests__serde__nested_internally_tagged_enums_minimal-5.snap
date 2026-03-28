@@ -31,7 +31,7 @@ class ReflectapiDemoTestsSerdeV1A(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["A"] = "A"
+    type: Literal["A"] = Field(default="A", description="Discriminator field")
     a: int
 
 
@@ -44,8 +44,8 @@ class ReflectapiDemoTestsSerdeTestV1(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    version: Literal["v1"] = "v1"
-    value: reflectapi_demo.tests.serde.V1
+    version: Literal["v1"] = Field(default="v1", description="Discriminator field")
+    value: reflectapi_demo.tests.serde.V1 = Field(description="Tuple variant value")
 
 
 class ReflectapiDemoTestsSerdeTest(RootModel):

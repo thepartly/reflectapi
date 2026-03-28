@@ -31,7 +31,7 @@ class ReflectapiDemoTestsSerdeOfferKindSingle(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Single"] = "Single"
+    type: Literal["Single"] = Field(default="Single", description="Discriminator field")
     business: str
 
 
@@ -40,7 +40,7 @@ class ReflectapiDemoTestsSerdeOfferKindGroup(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Group"] = "Group"
+    type: Literal["Group"] = Field(default="Group", description="Discriminator field")
     count: int
 
 
@@ -61,7 +61,10 @@ class ReflectapiDemoTestsSerdeOfferSingle(BaseModel):
 
     id: str
     type_: Literal["Single"] = Field(
-        default="Single", serialization_alias="type", validation_alias="type"
+        default="Single",
+        serialization_alias="type",
+        validation_alias="type",
+        description="Discriminator field",
     )
     business: str
 
@@ -73,7 +76,10 @@ class ReflectapiDemoTestsSerdeOfferGroup(BaseModel):
 
     id: str
     type_: Literal["Group"] = Field(
-        default="Group", serialization_alias="type", validation_alias="type"
+        default="Group",
+        serialization_alias="type",
+        validation_alias="type",
+        description="Discriminator field",
     )
     count: int
 

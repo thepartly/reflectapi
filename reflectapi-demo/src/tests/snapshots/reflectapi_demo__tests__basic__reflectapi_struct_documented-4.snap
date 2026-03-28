@@ -32,7 +32,7 @@ class ReflectapiDemoTestsBasicTestStructDocumented(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    f: int
+    f: int = Field(description="field docs\nmultiline")
 
 
 # Namespace classes for dotted access to types

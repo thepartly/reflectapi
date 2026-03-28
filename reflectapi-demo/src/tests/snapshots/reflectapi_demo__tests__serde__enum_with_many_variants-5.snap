@@ -31,7 +31,7 @@ class ReflectapiDemoTestsSerdeLargeEnumAlpha(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Alpha"] = "Alpha"
+    type: Literal["Alpha"] = Field(default="Alpha", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumBeta(BaseModel):
@@ -39,7 +39,7 @@ class ReflectapiDemoTestsSerdeLargeEnumBeta(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Beta"] = "Beta"
+    type: Literal["Beta"] = Field(default="Beta", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumGamma(BaseModel):
@@ -47,7 +47,7 @@ class ReflectapiDemoTestsSerdeLargeEnumGamma(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Gamma"] = "Gamma"
+    type: Literal["Gamma"] = Field(default="Gamma", description="Discriminator field")
     x: int
 
 
@@ -56,7 +56,7 @@ class ReflectapiDemoTestsSerdeLargeEnumDelta(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Delta"] = "Delta"
+    type: Literal["Delta"] = Field(default="Delta", description="Discriminator field")
     value: str
 
 
@@ -65,7 +65,9 @@ class ReflectapiDemoTestsSerdeLargeEnumEpsilon(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Epsilon"] = "Epsilon"
+    type: Literal["Epsilon"] = Field(
+        default="Epsilon", description="Discriminator field"
+    )
 
 
 class ReflectapiDemoTestsSerdeLargeEnumZeta(BaseModel):
@@ -73,7 +75,7 @@ class ReflectapiDemoTestsSerdeLargeEnumZeta(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Zeta"] = "Zeta"
+    type: Literal["Zeta"] = Field(default="Zeta", description="Discriminator field")
     y: bool
 
 
@@ -82,7 +84,7 @@ class ReflectapiDemoTestsSerdeLargeEnumEta(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Eta"] = "Eta"
+    type: Literal["Eta"] = Field(default="Eta", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumTheta(BaseModel):
@@ -90,7 +92,7 @@ class ReflectapiDemoTestsSerdeLargeEnumTheta(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Theta"] = "Theta"
+    type: Literal["Theta"] = Field(default="Theta", description="Discriminator field")
     value: int
 
 
@@ -99,7 +101,7 @@ class ReflectapiDemoTestsSerdeLargeEnumIota(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Iota"] = "Iota"
+    type: Literal["Iota"] = Field(default="Iota", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumKappa(BaseModel):
@@ -107,7 +109,7 @@ class ReflectapiDemoTestsSerdeLargeEnumKappa(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Kappa"] = "Kappa"
+    type: Literal["Kappa"] = Field(default="Kappa", description="Discriminator field")
     z: float
 
 
@@ -116,7 +118,7 @@ class ReflectapiDemoTestsSerdeLargeEnumLambda(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Lambda"] = "Lambda"
+    type: Literal["Lambda"] = Field(default="Lambda", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumMu(BaseModel):
@@ -124,7 +126,7 @@ class ReflectapiDemoTestsSerdeLargeEnumMu(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Mu"] = "Mu"
+    type: Literal["Mu"] = Field(default="Mu", description="Discriminator field")
     w: str
     v: int
 

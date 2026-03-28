@@ -49,7 +49,7 @@ class ReflectapiDemoTestsSerdeEnumA(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["a"] = "a"
+    type: Literal["a"] = Field(default="a", description="Discriminator field")
     a: int
     b: int
 
@@ -59,7 +59,7 @@ class ReflectapiDemoTestsSerdeEnumB(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["b"] = "b"
+    type: Literal["b"] = Field(default="b", description="Discriminator field")
     c: int
     d: int
 

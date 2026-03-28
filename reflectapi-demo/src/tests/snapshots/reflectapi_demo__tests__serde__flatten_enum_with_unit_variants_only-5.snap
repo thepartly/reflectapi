@@ -31,7 +31,9 @@ class ReflectapiDemoTestsSerdeStatusActive(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    status: Literal["Active"] = "Active"
+    status: Literal["Active"] = Field(
+        default="Active", description="Discriminator field"
+    )
 
 
 class ReflectapiDemoTestsSerdeStatusInactive(BaseModel):
@@ -39,7 +41,9 @@ class ReflectapiDemoTestsSerdeStatusInactive(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    status: Literal["Inactive"] = "Inactive"
+    status: Literal["Inactive"] = Field(
+        default="Inactive", description="Discriminator field"
+    )
 
 
 class ReflectapiDemoTestsSerdeStatusPending(BaseModel):
@@ -47,7 +51,9 @@ class ReflectapiDemoTestsSerdeStatusPending(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    status: Literal["Pending"] = "Pending"
+    status: Literal["Pending"] = Field(
+        default="Pending", description="Discriminator field"
+    )
 
 
 class ReflectapiDemoTestsSerdeStatus(RootModel):
@@ -67,7 +73,9 @@ class ReflectapiDemoTestsSerdeItemActive(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str
-    status: Literal["Active"] = "Active"
+    status: Literal["Active"] = Field(
+        default="Active", description="Discriminator field"
+    )
 
 
 class ReflectapiDemoTestsSerdeItemInactive(BaseModel):
@@ -76,7 +84,9 @@ class ReflectapiDemoTestsSerdeItemInactive(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str
-    status: Literal["Inactive"] = "Inactive"
+    status: Literal["Inactive"] = Field(
+        default="Inactive", description="Discriminator field"
+    )
 
 
 class ReflectapiDemoTestsSerdeItemPending(BaseModel):
@@ -85,7 +95,9 @@ class ReflectapiDemoTestsSerdeItemPending(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str
-    status: Literal["Pending"] = "Pending"
+    status: Literal["Pending"] = Field(
+        default="Pending", description="Discriminator field"
+    )
 
 
 class ReflectapiDemoTestsSerdeItem(RootModel):

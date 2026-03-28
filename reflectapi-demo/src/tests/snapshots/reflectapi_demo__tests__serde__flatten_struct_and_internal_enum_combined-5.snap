@@ -39,7 +39,7 @@ class ReflectapiDemoTestsSerdeContentText(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Text"] = "Text"
+    type: Literal["Text"] = Field(default="Text", description="Discriminator field")
     body: str
 
 
@@ -48,7 +48,7 @@ class ReflectapiDemoTestsSerdeContentImage(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Image"] = "Image"
+    type: Literal["Image"] = Field(default="Image", description="Discriminator field")
     url: str
     width: int
 
@@ -70,7 +70,10 @@ class ReflectapiDemoTestsSerdePostText(BaseModel):
     id: str
     modified_by: str
     type_: Literal["Text"] = Field(
-        default="Text", serialization_alias="type", validation_alias="type"
+        default="Text",
+        serialization_alias="type",
+        validation_alias="type",
+        description="Discriminator field",
     )
     body: str
 
@@ -83,7 +86,10 @@ class ReflectapiDemoTestsSerdePostImage(BaseModel):
     id: str
     modified_by: str
     type_: Literal["Image"] = Field(
-        default="Image", serialization_alias="type", validation_alias="type"
+        default="Image",
+        serialization_alias="type",
+        validation_alias="type",
+        description="Discriminator field",
     )
     url: str
     width: int
