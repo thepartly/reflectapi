@@ -1,0 +1,121 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::Wrapper",
+        "arguments": [
+          {
+            "name": "std::string::String"
+          }
+        ]
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::Wrapper",
+        "arguments": [
+          {
+            "name": "std::string::String"
+          }
+        ]
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Wrapper",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "variants": [
+          {
+            "name": "Value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Empty",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Wrapper",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "variants": [
+          {
+            "name": "Value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Empty",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  }
+}

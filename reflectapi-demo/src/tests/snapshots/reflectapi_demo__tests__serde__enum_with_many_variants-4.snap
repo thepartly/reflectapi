@@ -1,0 +1,242 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.LargeEnum"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.LargeEnum"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "bool": {
+        "description": "Boolean value",
+        "type": "boolean"
+      },
+      "f64": {
+        "description": "64-bit floating point number",
+        "type": "number"
+      },
+      "i32": {
+        "description": "32-bit signed integer",
+        "type": "integer"
+      },
+      "reflectapi_demo.tests.serde.LargeEnum": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Alpha",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "Alpha"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Beta",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "Beta"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Gamma",
+            "required": [
+              "type",
+              "x"
+            ],
+            "properties": {
+              "type": {
+                "const": "Gamma"
+              },
+              "x": {
+                "$ref": "#/components/schemas/i32"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Delta",
+            "required": [
+              "type",
+              "value"
+            ],
+            "properties": {
+              "type": {
+                "const": "Delta"
+              },
+              "value": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Epsilon",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "Epsilon"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Zeta",
+            "required": [
+              "type",
+              "y"
+            ],
+            "properties": {
+              "type": {
+                "const": "Zeta"
+              },
+              "y": {
+                "$ref": "#/components/schemas/bool"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Eta",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "Eta"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Theta",
+            "required": [
+              "type",
+              "value"
+            ],
+            "properties": {
+              "type": {
+                "const": "Theta"
+              },
+              "value": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Iota",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "Iota"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Kappa",
+            "required": [
+              "type",
+              "z"
+            ],
+            "properties": {
+              "type": {
+                "const": "Kappa"
+              },
+              "z": {
+                "$ref": "#/components/schemas/f64"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Lambda",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "Lambda"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Mu",
+            "required": [
+              "type",
+              "v",
+              "w"
+            ],
+            "properties": {
+              "type": {
+                "const": "Mu"
+              },
+              "v": {
+                "$ref": "#/components/schemas/i32"
+              },
+              "w": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          }
+        ]
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

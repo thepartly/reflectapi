@@ -1,0 +1,207 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::TreeNode"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::TreeNode"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TreeNode",
+        "fields": {
+          "named": [
+            {
+              "name": "label",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "child",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::boxed::Box",
+                    "arguments": [
+                      {
+                        "name": "reflectapi_demo::tests::serde::TreeNode"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::boxed::Box",
+        "description": "std::boxed::Box pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TreeNode",
+        "fields": {
+          "named": [
+            {
+              "name": "label",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "child",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::boxed::Box",
+                    "arguments": [
+                      {
+                        "name": "reflectapi_demo::tests::serde::TreeNode"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::boxed::Box",
+        "description": "std::boxed::Box pointer type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  }
+}

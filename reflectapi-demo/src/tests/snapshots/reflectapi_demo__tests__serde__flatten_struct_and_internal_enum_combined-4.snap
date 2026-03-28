@@ -1,0 +1,128 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.Audit": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.Audit",
+        "required": [
+          "modified_by"
+        ],
+        "properties": {
+          "modified_by": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.Content": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Text",
+            "required": [
+              "body",
+              "type"
+            ],
+            "properties": {
+              "body": {
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "type": {
+                "const": "Text"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Image",
+            "required": [
+              "type",
+              "url",
+              "width"
+            ],
+            "properties": {
+              "type": {
+                "const": "Image"
+              },
+              "url": {
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "width": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.Post": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Audit"
+          },
+          {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Content"
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.Post",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          }
+        ]
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

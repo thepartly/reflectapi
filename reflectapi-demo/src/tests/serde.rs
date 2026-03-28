@@ -820,3 +820,377 @@ fn test_external_impls() {
 
     assert_snapshot!(Test);
 }
+
+// ──────────────────────────────────────────────────────────────────────
+// Group 1: Namespace Edge Cases
+// ──────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_namespace_single_segment_type() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct SimpleTopLevel {
+        value: u32,
+    }
+    assert_snapshot!(SimpleTopLevel);
+}
+
+#[test]
+fn test_namespace_deeply_nested_modules() {
+    mod deep {
+        pub mod nested {
+            pub mod inner {
+                #[derive(
+                    serde::Serialize,
+                    serde::Deserialize,
+                    Debug,
+                    reflectapi::Input,
+                    reflectapi::Output,
+                )]
+                pub struct DeepType {
+                    pub data: String,
+                }
+            }
+        }
+    }
+    assert_snapshot!(deep::nested::inner::DeepType);
+}
+
+#[test]
+fn test_namespace_with_numeric_start() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct TypeWithNumbers {
+        #[serde(rename = "123start")]
+        field_123: String,
+        #[serde(rename = "kebab-field")]
+        kebab_field: u32,
+    }
+    assert_snapshot!(TypeWithNumbers);
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Group 2: Flatten Edge Cases
+// ──────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_flatten_struct_with_nested_flatten() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Inner {
+        z: String,
+    }
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Middle {
+        y: u32,
+        #[serde(flatten)]
+        inner: Inner,
+    }
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Outer {
+        x: String,
+        #[serde(flatten)]
+        nested: Middle,
+    }
+    assert_snapshot!(Outer);
+}
+
+#[test]
+fn test_flatten_optional_internally_tagged_enum() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(tag = "kind")]
+    enum Priority {
+        High { deadline: String },
+        Low,
+    }
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Task {
+        title: String,
+        #[serde(flatten)]
+        priority: Option<Priority>,
+    }
+    assert_snapshot!(Task);
+}
+
+#[test]
+fn test_flatten_multiple_structs() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Timestamps {
+        created_at: String,
+        updated_at: String,
+    }
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Metadata {
+        author: String,
+        version: u32,
+    }
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Document {
+        title: String,
+        #[serde(flatten)]
+        timestamps: Timestamps,
+        #[serde(flatten)]
+        meta: Metadata,
+    }
+    assert_snapshot!(Document);
+}
+
+#[test]
+fn test_flatten_struct_and_internal_enum_combined() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Audit {
+        modified_by: String,
+    }
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(tag = "type")]
+    enum Content {
+        Text { body: String },
+        Image { url: String, width: u32 },
+    }
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Post {
+        id: String,
+        #[serde(flatten)]
+        audit: Audit,
+        #[serde(flatten)]
+        content: Content,
+    }
+    assert_snapshot!(Post);
+}
+
+#[test]
+fn test_flatten_enum_with_unit_variants_only() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(tag = "status")]
+    enum Status {
+        Active,
+        Inactive,
+        Pending,
+    }
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Item {
+        name: String,
+        #[serde(flatten)]
+        status: Status,
+    }
+    assert_snapshot!(Item);
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Group 3: Enum Representation Edge Cases
+// ──────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_generic_externally_tagged_enum() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    enum Wrapper<T: reflectapi::Input + reflectapi::Output> {
+        Value(T),
+        Empty,
+    }
+    assert_snapshot!(Wrapper<String>);
+}
+
+#[test]
+fn test_generic_adjacently_tagged_enum() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(tag = "t", content = "c")]
+    enum Tagged<T: reflectapi::Input + reflectapi::Output> {
+        Item(T),
+        Nothing,
+    }
+    assert_snapshot!(Tagged<u32>);
+}
+
+#[test]
+fn test_enum_mixed_variant_types_internally_tagged() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(tag = "type")]
+    enum Mixed {
+        Unit,
+        // Note: tuple variants are not allowed in internally-tagged representation,
+        // so we use a struct variant instead.
+        Wrap { value: String },
+        Full { x: i32, y: i32 },
+    }
+    assert_snapshot!(Mixed);
+}
+
+#[test]
+fn test_enum_with_serde_rename_on_variants() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(tag = "kind", content = "data")]
+    enum Action {
+        #[serde(rename = "create_item")]
+        Create { name: String },
+        #[serde(rename = "delete_item")]
+        Delete { id: u32 },
+    }
+    assert_snapshot!(Action);
+}
+
+// ── Group 4: Type Reference Edge Cases ──────────────────────────────────────
+
+#[test]
+fn test_box_field_unwrapping() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct TreeNode {
+        label: String,
+        child: Option<Box<TreeNode>>,
+    }
+    assert_snapshot!(TreeNode);
+}
+
+#[test]
+fn test_nested_generic_containers() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Complex {
+        matrix: Vec<Vec<u32>>,
+        lookup: std::collections::HashMap<String, Vec<Option<i32>>>,
+    }
+    assert_snapshot!(Complex);
+}
+
+#[test]
+fn test_self_referential_struct() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Category {
+        name: String,
+        subcategories: Vec<Category>,
+    }
+    assert_snapshot!(Category);
+}
+
+#[test]
+fn test_option_of_option() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Nested {
+        value: Option<Option<String>>,
+    }
+    assert_snapshot!(Nested);
+}
+
+// ── Group 5: Field Sanitization Edge Cases ──────────────────────────────────
+
+#[test]
+fn test_field_all_python_keywords() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Keywords {
+        #[serde(rename = "type")]
+        type_field: String,
+        #[serde(rename = "class")]
+        class_field: String,
+        #[serde(rename = "from")]
+        from_field: String,
+        #[serde(rename = "import")]
+        import_field: String,
+    }
+    assert_snapshot!(Keywords);
+}
+
+#[test]
+fn test_field_names_with_special_chars() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct SpecialNames {
+        #[serde(rename = "Content-Type")]
+        content_type: String,
+        #[serde(rename = "x.nested.key")]
+        nested_key: String,
+        #[serde(rename = "has spaces")]
+        has_spaces: u32,
+    }
+    assert_snapshot!(SpecialNames);
+}
+
+#[test]
+fn test_multiple_underscore_prefix_fields() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Underscored {
+        _single: u32,
+        __double: String,
+        ___triple: bool,
+    }
+    assert_snapshot!(Underscored);
+}
+
+// ── Group 6: Factory & Client Edge Cases ────────────────────────────────────
+
+#[test]
+fn test_enum_with_many_variants() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(tag = "type")]
+    enum LargeEnum {
+        Alpha,
+        Beta,
+        Gamma { x: i32 },
+        Delta { value: String },
+        Epsilon,
+        Zeta { y: bool },
+        Eta,
+        Theta { value: u32 },
+        Iota,
+        Kappa { z: f64 },
+        Lambda,
+        Mu { w: String, v: i32 },
+    }
+    assert_snapshot!(LargeEnum);
+}
+
+#[test]
+fn test_empty_enum() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    enum Never {}
+    assert_snapshot!(Never);
+}

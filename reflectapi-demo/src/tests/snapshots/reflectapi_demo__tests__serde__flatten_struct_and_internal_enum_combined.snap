@@ -1,0 +1,247 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::Post"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::Post"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Audit",
+        "fields": {
+          "named": [
+            {
+              "name": "modified_by",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Content",
+        "representation": {
+          "internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "Text",
+            "fields": {
+              "named": [
+                {
+                  "name": "body",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Image",
+            "fields": {
+              "named": [
+                {
+                  "name": "url",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                },
+                {
+                  "name": "width",
+                  "type": {
+                    "name": "u32"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Post",
+        "fields": {
+          "named": [
+            {
+              "name": "id",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "audit",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::Audit"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "content",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::Content"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Audit",
+        "fields": {
+          "named": [
+            {
+              "name": "modified_by",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Content",
+        "representation": {
+          "internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "Text",
+            "fields": {
+              "named": [
+                {
+                  "name": "body",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Image",
+            "fields": {
+              "named": [
+                {
+                  "name": "url",
+                  "type": {
+                    "name": "std::string::String"
+                  },
+                  "required": true
+                },
+                {
+                  "name": "width",
+                  "type": {
+                    "name": "u32"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Post",
+        "fields": {
+          "named": [
+            {
+              "name": "id",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "audit",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::Audit"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "content",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::Content"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  }
+}

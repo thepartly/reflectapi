@@ -1,0 +1,133 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::Tagged",
+        "arguments": [
+          {
+            "name": "u32"
+          }
+        ]
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::Tagged",
+        "arguments": [
+          {
+            "name": "u32"
+          }
+        ]
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Tagged",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": {
+          "adjacent": {
+            "tag": "t",
+            "content": "c"
+          }
+        },
+        "variants": [
+          {
+            "name": "Item",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Nothing",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Tagged",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": {
+          "adjacent": {
+            "tag": "t",
+            "content": "c"
+          }
+        },
+        "variants": [
+          {
+            "name": "Item",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Nothing",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "title": "Value<std.string.String>",
+                    "required": [
+                      "Value"
+                    ],
+                    "properties": {
+                      "Value": {
+                        "$ref": "#/components/schemas/std.string.String"
+                      }
+                    }
+                  },
+                  {
+                    "const": "Empty"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "title": "Value<std.string.String>",
+                      "required": [
+                        "Value"
+                      ],
+                      "properties": {
+                        "Value": {
+                          "$ref": "#/components/schemas/std.string.String"
+                        }
+                      }
+                    },
+                    {
+                      "const": "Empty"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      }
+    }
+  }
+}
