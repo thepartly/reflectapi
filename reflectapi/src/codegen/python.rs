@@ -2144,18 +2144,19 @@ fn generate_adjacent_dispatch_cases(
     use reflectapi_schema::Fields;
     let mut cases = Vec::new();
     for variant in &enum_def.variants {
-        let vname = variant.name();
+        let wire_name = variant.serde_name();
+        let rust_name = variant.name();
         match &variant.fields {
             Fields::None => {
                 cases.push(format!(
-                    "            if tag == \"{vname}\":\n                return \"{vname}\""
+                    "            if tag == \"{wire_name}\":\n                return \"{wire_name}\""
                 ));
             }
             Fields::Unnamed(unnamed_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(vname));
+                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
                 if unnamed_fields.len() == 1 {
                     cases.push(format!(
-                        "            if tag == \"{vname}\":\n                return {class_name}(field_0=content)"
+                        "            if tag == \"{wire_name}\":\n                return {class_name}(field_0=content)"
                     ));
                 } else {
                     let assigns = (0..unnamed_fields.len())
@@ -2163,14 +2164,14 @@ fn generate_adjacent_dispatch_cases(
                         .collect::<Vec<_>>()
                         .join(", ");
                     cases.push(format!(
-                        "            if tag == \"{vname}\":\n                if isinstance(content, list):\n                    return {class_name}({assigns})\n                else:\n                    raise ValueError(\"Expected list for tuple variant {vname}\")"
+                        "            if tag == \"{wire_name}\":\n                if isinstance(content, list):\n                    return {class_name}({assigns})\n                else:\n                    raise ValueError(\"Expected list for tuple variant {wire_name}\")"
                     ));
                 }
             }
             Fields::Named(_named_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(vname));
+                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
                 cases.push(format!(
-                    "            if tag == \"{vname}\":\n                return {class_name}(**content)"
+                    "            if tag == \"{wire_name}\":\n                return {class_name}(**content)"
                 ));
             }
         }
@@ -2187,20 +2188,21 @@ fn generate_adjacent_serialize_cases(
     use reflectapi_schema::Fields;
     let mut cases = Vec::new();
     for variant in &enum_def.variants {
-        let vname = variant.name();
+        let wire_name = variant.serde_name();
+        let rust_name = variant.name();
         match &variant.fields {
             Fields::None => {
                 cases.push(format!(
-                    "        if self.root == \"{vname}\":\n            return {{\"{tag}\": \"{vname}\"}}"
+                    "        if self.root == \"{wire_name}\":\n            return {{\"{tag}\": \"{wire_name}\"}}"
                 ));
             }
             Fields::Unnamed(unnamed_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(vname));
+                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
                 // For tuple variants in adjacently tagged enums, serialize the content properly
                 if unnamed_fields.len() == 1 {
                     // Single field tuple: serialize the field value directly
                     cases.push(format!(
-                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{vname}\", \"{content}\": self.root.field_0}}"
+                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.field_0}}"
                     ));
                 } else {
                     // Multiple field tuple: serialize as array
@@ -2208,15 +2210,15 @@ fn generate_adjacent_serialize_cases(
                         .map(|i| format!("self.root.field_{i}"))
                         .collect();
                     cases.push(format!(
-                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{vname}\", \"{content}\": [{}]}}",
+                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": [{}]}}",
                         field_accesses.join(", ")
                     ));
                 }
             }
             Fields::Named(_named_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(vname));
+                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
                 cases.push(format!(
-                    "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{vname}\", \"{content}\": self.root.model_dump(exclude_none=True)}}"
+                    "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.model_dump(exclude_none=True)}}"
                 ));
             }
         }
