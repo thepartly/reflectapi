@@ -1323,8 +1323,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         "# Rebuild models to resolve forward references".to_string(),
         "try:".to_string(),
     ];
-    let mut sorted_type_names: Vec<&String> = rendered_type_keys.iter().collect();
-    sorted_type_names.sort();
+    let sorted_type_names: Vec<&String> = rendered_type_keys.iter().collect();
     for original_name in &sorted_type_names {
         if !original_name.starts_with("std::") && !original_name.starts_with("reflectapi::") {
             let dotted = type_name_to_python_ref(original_name);
