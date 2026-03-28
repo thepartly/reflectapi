@@ -5124,6 +5124,9 @@ pub mod templates {
             } else {
                 writeln!(s, "            response_model={},", function.output_type).unwrap();
             }
+            if let Some(error_type) = &function.error_type {
+                writeln!(s, "            error_model={error_type},").unwrap();
+            }
             writeln!(s, "        )").unwrap();
             writeln!(s).unwrap();
         }

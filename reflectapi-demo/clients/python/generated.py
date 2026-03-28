@@ -523,6 +523,7 @@ class AsyncHealthClient:
             path,
             params=params if params else None,
             response_model=None,
+            error_model=myapi.HealthCheckFail,
         )
 
 
@@ -555,6 +556,7 @@ class AsyncPetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsCreateError,
         )
 
     async def delete(
@@ -590,6 +592,7 @@ class AsyncPetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsRemoveError,
         )
 
     async def get_first(
@@ -610,6 +613,7 @@ class AsyncPetsClient:
             params=params if params else None,
             headers_model=headers,
             response_model=myapi.model.output.Pet | None,
+            error_model=None,
         )
 
     async def list(
@@ -637,6 +641,7 @@ class AsyncPetsClient:
             json_model=data,
             headers_model=headers,
             response_model=myapi.proto.Paginated[myapi.model.output.Pet],
+            error_model=myapi.proto.PetsListError,
         )
 
     async def remove(
@@ -662,6 +667,7 @@ class AsyncPetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsRemoveError,
         )
 
     async def update(
@@ -687,6 +693,7 @@ class AsyncPetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsUpdateError,
         )
 
 
@@ -727,6 +734,7 @@ class HealthClient:
             path,
             params=params if params else None,
             response_model=None,
+            error_model=myapi.HealthCheckFail,
         )
 
 
@@ -759,6 +767,7 @@ class PetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsCreateError,
         )
 
     def delete(
@@ -794,6 +803,7 @@ class PetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsRemoveError,
         )
 
     def get_first(
@@ -814,6 +824,7 @@ class PetsClient:
             params=params if params else None,
             headers_model=headers,
             response_model=myapi.model.output.Pet | None,
+            error_model=None,
         )
 
     def list(
@@ -841,6 +852,7 @@ class PetsClient:
             json_model=data,
             headers_model=headers,
             response_model=myapi.proto.Paginated[myapi.model.output.Pet],
+            error_model=myapi.proto.PetsListError,
         )
 
     def remove(
@@ -866,6 +878,7 @@ class PetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsRemoveError,
         )
 
     def update(
@@ -891,6 +904,7 @@ class PetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsUpdateError,
         )
 
 

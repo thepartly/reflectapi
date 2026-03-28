@@ -78,9 +78,11 @@ class ApplicationError(ApiError):
         *,
         metadata: TransportMetadata,
         error_data: Any | None = None,
+        typed_error: Any | None = None,
     ) -> None:
         super().__init__(message, metadata=metadata)
         self.error_data = error_data
+        self.typed_error = typed_error
 
     @property
     def status_code(self) -> int:
@@ -93,8 +95,14 @@ class ApplicationError(ApiError):
         response: httpx.Response,
         metadata: TransportMetadata,
         error_data: Any | None = None,
+        typed_error: Any | None = None,
     ) -> ApplicationError:
-        """Create an ApplicationError from an HTTP response."""
+        """Create an ApplicationError from an HTTP response.
+
+        Args:
+            typed_error: If provided, the error body deserialized into the
+                typed error model from the API schema. Access via .typed_error.
+        """
         message = f"API error {response.status_code}: {response.reason_phrase}"
         if error_data:
             message += f" - {error_data}"
@@ -103,6 +111,7 @@ class ApplicationError(ApiError):
             message,
             metadata=metadata,
             error_data=error_data,
+            typed_error=typed_error,
         )
 
 
