@@ -487,4 +487,4 @@ Cycle detection uses Tarjan's SCC algorithm. The `Boxing` strategy is a no-op be
 
 ### Python codegen coverage
 
-Validated against a production 284-endpoint API (Partly's core-server). DX improvements tracked in #127: field descriptions, namespace reduction, compact error types, typed error returns.
+Validated against a production 284-endpoint API (57K-line generated client, 284 endpoints). Remaining gaps: field descriptions not propagated to Pydantic `Field(description=...)`, externally-tagged enums generate more boilerplate than TypeScript equivalents, error types not included in client method return signatures.
