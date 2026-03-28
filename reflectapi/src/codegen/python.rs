@@ -1891,25 +1891,9 @@ fn render_struct(
         })
         .collect::<Result<Vec<_>, anyhow::Error>>()?;
 
-    // Collect flattened fields recursively using the new helper function
-    let mut flattened_fields: Vec<templates::Field> = Vec::new();
-    for field in struct_def.fields.iter().filter(|f| f.flattened()) {
-        let fields = collect_flattened_fields(
-            &field.type_ref,
-            schema,
-            implemented_types,
-            &active_generics,
-            field.required,
-            0,
-            used_type_vars,
-            Some(field.name()),
-        )?;
-        flattened_fields.extend(fields);
-    }
-
-    // Combine regular fields with flattened field information
-    let mut all_fields = regular_fields;
-    all_fields.extend(flattened_fields);
+    // Note: flattened fields are handled by render_struct_with_flatten (early return
+    // at the top of this function). This path only handles non-flattened structs.
+    let all_fields = regular_fields;
 
     // Check if this is a generic struct (has type parameters)
     let has_generics = !struct_def.parameters.is_empty();
