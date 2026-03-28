@@ -30,14 +30,6 @@ from reflectapi_runtime import ReflectapiInfallible
 A = TypeVar("A")
 
 
-class ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric(BaseModel, Generic[A]):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    f: A = Field(serialization_alias="_f", validation_alias="_f")
-
-
 class ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice(BaseModel):
     """Generated data model."""
 
@@ -51,6 +43,14 @@ class ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice(BaseMode
     )
 
 
+class ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric(BaseModel, Generic[A]):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    f: A = Field(serialization_alias="_f", validation_alias="_f")
+
+
 # Namespace classes for dotted access to types
 class reflectapi_demo:
     """Namespace for reflectapi_demo types."""
@@ -61,11 +61,11 @@ class reflectapi_demo:
         class generics:
             """Namespace for generics types."""
 
-            TestStructWithSimpleGeneric = (
-                ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric
-            )
             TestStructWithNestedGenericStructTwice = (
                 ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice
+            )
+            TestStructWithSimpleGeneric = (
+                ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric
             )
 
 

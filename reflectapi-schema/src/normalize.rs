@@ -773,29 +773,59 @@ impl Normalizer {
         // Phase 0: Ensure all symbols have unique, stable IDs
         crate::ids::ensure_symbol_ids(&mut schema);
 
-        // Snapshot original type names before the pipeline transforms them.
-        // NamingResolutionStage strips module paths, so we need to preserve
-        // the pre-normalization qualified names for codegen backends.
-        let original_names: HashMap<String, String> = schema
+        // Capture original type names BEFORE the pipeline transforms them.
+        // Key: SymbolId path (stable across renames). Value: original name.
+        // SymbolId is set by ensure_symbol_ids and stays stable even after
+        // NamingResolutionStage changes the type's name and id.path.
+        // Wait — rename_type updates id.path too. So we need a different
+        // stable key. Use the original name itself as both key and value,
+        // indexed by a generated sequential ID.
+        let mut pre_norm_by_index: Vec<String> = Vec::new();
+        // Also build a map from pre-norm name to index
+        let mut pre_norm_index: HashMap<String, usize> = HashMap::new();
+        for (i, t) in schema
             .input_types
             .types()
             .chain(schema.output_types.types())
-            .map(|t| {
-                let name = t.name().to_string();
-                // The id.path at this point is the original qualified path
-                // (set by ensure_symbol_ids, before NamingResolution)
-                let original = match t {
-                    Type::Primitive(p) => p.id.qualified_name(),
-                    Type::Struct(s) => s.id.qualified_name(),
-                    Type::Enum(e) => e.id.qualified_name(),
-                };
-                (name, original)
-            })
-            .collect();
+            .enumerate()
+        {
+            let name = t.name().to_string();
+            pre_norm_index.insert(name.clone(), i);
+            pre_norm_by_index.push(name);
+        }
 
-        // Phase 0.5: Run the standard normalization pipeline (type consolidation,
-        // naming resolution, circular dependency resolution) before symbol discovery
+        // Phase 0.5: Run the standard normalization pipeline
         NormalizationPipeline::standard().run(&mut schema)?;
+
+        // After the pipeline, types may have been renamed AND reordered.
+        // TypeConsolidation merges input+output into input_types.
+        // NamingResolution strips module paths.
+        // We can't match by position. Instead, match by the type's
+        // content (fields, variants) — but that's expensive.
+        // Simpler: just store the post-norm name as the key and
+        // the pre-norm name as the value. Since both input and output
+        // had consolidate_types run, the pre-norm name IS the
+        // fully-qualified name that the raw Schema has.
+        //
+        // Actually: the pre_norm_index keys are the pre-normalization
+        // names. NamingResolution transforms those into short names.
+        // The mapping we need is: short_name → qualified_name.
+        // We can't build this after the pipeline because we don't know
+        // which pre-norm name became which post-norm name.
+        //
+        // The real solution: have NamingResolutionStage record its
+        // name mappings. For now, build the reverse mapping from
+        // the NamingResolution logic: short name is the last ::
+        // segment of the qualified name. If unique, maps 1:1.
+        let mut original_names: HashMap<String, String> = HashMap::new();
+        for pre_name in &pre_norm_by_index {
+            // NamingResolution strips to last :: segment
+            let short = pre_name.split("::").last().unwrap_or(pre_name);
+            // Only set if not already taken (first wins for collisions)
+            original_names
+                .entry(short.to_string())
+                .or_insert_with(|| pre_name.clone());
+        }
 
         // Phase 1: Symbol Discovery
         self.discover_symbols(&schema)?;

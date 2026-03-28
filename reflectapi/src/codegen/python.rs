@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::{Schema, TypeReference};
 use reflectapi_schema::{Function, Type};
@@ -196,128 +196,7 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
 /// * `type_names` - List of type names to sort
 /// * `schema` - Schema containing type definitions and their dependencies
 ///
-/// # Returns
-/// * `Ok(Vec<String>)` - Types sorted in dependency order (dependencies first)
-/// * `Err` - If circular dependencies are detected in the type graph
-fn topological_sort_types(type_names: &[String], schema: &Schema) -> anyhow::Result<Vec<String>> {
-    let mut dependencies: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
-    let mut in_degree: BTreeMap<String, usize> = BTreeMap::new();
-
-    // Initialize in-degree count for all types
-    for type_name in type_names {
-        in_degree.insert(type_name.clone(), 0);
-        dependencies.insert(type_name.clone(), BTreeSet::new());
-    }
-
-    // Build dependency graph - if A depends on B, then B must be defined before A
-    for type_name in type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            let deps = collect_type_dependencies(type_def, type_names);
-            for dep in &deps {
-                if type_names.contains(dep) && dep != type_name {
-                    // type_name depends on dep, so dep must come before type_name
-                    dependencies.get_mut(type_name).unwrap().insert(dep.clone());
-                    *in_degree.get_mut(type_name).unwrap() += 1;
-                }
-            }
-        }
-    }
-
-    // Kahn's algorithm for topological sorting
-    let mut queue: VecDeque<String> = VecDeque::new();
-    let mut result = Vec::new();
-
-    // Start with types that have no dependencies
-    for (type_name, &degree) in &in_degree {
-        if degree == 0 {
-            queue.push_back(type_name.clone());
-        }
-    }
-
-    while let Some(current) = queue.pop_front() {
-        result.push(current.clone());
-
-        // Reduce in-degree for types that depend on the current type
-        for other_type in type_names {
-            if dependencies.get(other_type).unwrap().contains(&current) {
-                *in_degree.get_mut(other_type).unwrap() -= 1;
-                if in_degree[other_type] == 0 {
-                    queue.push_back(other_type.clone());
-                }
-            }
-        }
-    }
-
-    // Check for cycles
-    if result.len() != type_names.len() {
-        let remaining: Vec<_> = type_names.iter().filter(|n| !result.contains(n)).collect();
-        return Err(anyhow::anyhow!(
-            "Circular dependency detected in types: {:?}",
-            remaining
-        ));
-    }
-
-    Ok(result)
-}
-
-/// Collect all type dependencies for a given type
-fn collect_type_dependencies(type_def: &Type, available_types: &[String]) -> BTreeSet<String> {
-    let mut deps = BTreeSet::new();
-
-    match type_def {
-        Type::Struct(struct_def) => {
-            for field in struct_def.fields.iter() {
-                collect_type_ref_dependencies(&field.type_ref, &mut deps, available_types);
-            }
-        }
-        Type::Enum(enum_def) => {
-            for variant in &enum_def.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            collect_type_ref_dependencies(
-                                &field.type_ref,
-                                &mut deps,
-                                available_types,
-                            );
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            collect_type_ref_dependencies(
-                                &field.type_ref,
-                                &mut deps,
-                                available_types,
-                            );
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        Type::Primitive(_) => {}
-    }
-
-    deps
-}
-
-/// Recursively collect type reference dependencies
-fn collect_type_ref_dependencies(
-    type_ref: &TypeReference,
-    deps: &mut BTreeSet<String>,
-    available_types: &[String],
-) {
-    if available_types.contains(&type_ref.name) {
-        deps.insert(type_ref.name.clone());
-    }
-
-    // Handle generic arguments
-    for param in &type_ref.arguments {
-        collect_type_ref_dependencies(param, deps, available_types);
-    }
-}
-
-/// Collect all TypeVars used by a type
+/// Collect all TypeVars used by a type.
 fn collect_type_vars_from_type(
     type_def: &Type,
     schema: &Schema,
@@ -1137,10 +1016,26 @@ fn modules_from_rendered_types(
 pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let implemented_types = build_implemented_types();
 
-    // Consolidate types (merge input/output typespaces, deduplicate)
-    let all_type_names = schema.consolidate_types();
+    // Build the semantic IR FIRST — from the original schema before
+    // consolidate_types mutates it. The Normalizer runs its own
+    // TypeConsolidation + NamingResolution internally.
+    let semantic = reflectapi_schema::Normalizer::new()
+        .normalize(&schema)
+        .map_err(|errors| {
+            anyhow::anyhow!(
+                "Schema normalization failed: {}",
+                errors
+                    .iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            )
+        })?;
 
-    // Validate all type references exist
+    // Now consolidate the raw schema — needed for legacy rendering functions
+    // that still use schema.get_type(). This must happen AFTER the Normalizer
+    // clones the original schema.
+    let all_type_names = schema.consolidate_types();
     validate_type_references(&schema)?;
 
     let mut generated_code = Vec::new();
@@ -1150,36 +1045,30 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         package_name: config.package_name.clone(),
     };
     generated_code.push(file_header.render());
-    let has_enums = all_type_names.iter().any(|name| {
-        if let Some(type_def) = schema.get_type(name) {
-            matches!(type_def, reflectapi_schema::Type::Enum(_))
-        } else {
-            false
-        }
-    });
+    // Use the semantic IR for import detection — iterate types once,
+    // matching on SemanticType which provides the fully resolved view.
+    let has_enums = semantic
+        .types()
+        .any(|t| matches!(t, reflectapi_schema::SemanticType::Enum(_)));
 
-    // Check if we need Literal import and Field discriminator (for tagged enums)
     let (has_literal, has_discriminated_unions, has_externally_tagged_enums) = {
         let mut has_literal = false;
         let mut has_discriminated_unions = false;
         let mut has_externally_tagged_enums = false;
 
-        for name in &all_type_names {
-            if let Some(reflectapi_schema::Type::Enum(enum_def)) = schema.get_type(name) {
-                match enum_def.representation {
+        for sem_type in semantic.types() {
+            if let reflectapi_schema::SemanticType::Enum(sem_enum) = sem_type {
+                match &sem_enum.representation {
                     reflectapi_schema::Representation::Internal { .. } => {
                         has_literal = true;
                         has_discriminated_unions = true;
                     }
                     reflectapi_schema::Representation::External
                     | reflectapi_schema::Representation::Adjacent { .. } => {
-                        // Check if this enum has complex variants that need RootModel
-                        let has_complex_variants =
-                            enum_def.variants.iter().any(|v| match &v.fields {
-                                reflectapi_schema::Fields::Named(_) => true,
-                                reflectapi_schema::Fields::Unnamed(fields) => !fields.is_empty(),
-                                reflectapi_schema::Fields::None => false,
-                            });
+                        let has_complex_variants = sem_enum
+                            .variants
+                            .values()
+                            .any(|v| !matches!(v.field_style, reflectapi_schema::FieldStyle::Unit));
                         if has_complex_variants {
                             has_externally_tagged_enums = true;
                         }
@@ -1205,8 +1094,8 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let has_reflectapi_infallible =
         schema_uses_type(&schema, &all_type_names, "reflectapi::Infallible");
 
-    // Check if we need warnings import (for deprecated functions)
-    let has_warnings = schema.functions().any(|f| f.deprecation_note.is_some());
+    // Use semantic IR for function introspection
+    let has_warnings = semantic.functions().any(|f| f.deprecation_note.is_some());
 
     // Check if we need datetime imports (for chrono and time types)
     let has_datetime = check_datetime_usage(&schema, &all_type_names);
@@ -1246,19 +1135,23 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         "std::option::Option",
     ];
 
-    // Collect TypeVars used across all types
+    // Collect TypeVars used across all types, using semantic IR ordering
     let mut used_type_vars: BTreeSet<String> = BTreeSet::new();
-    // Use topological sort if possible, fall back to alphabetical on circular dependencies
-    let sorted_type_names = topological_sort_types(&all_type_names, &schema).unwrap_or_else(|_| {
-        let mut sorted = all_type_names.clone();
-        sorted.sort();
-        sorted
-    });
-    for original_type_name in &sorted_type_names {
-        if runtime_provided_types.contains(&original_type_name.as_str()) {
+    for sem_type in semantic.types() {
+        let original_name = sem_type.original_name();
+        let resolved_name = sem_type.name();
+        if runtime_provided_types.contains(&original_name)
+            || runtime_provided_types.contains(&resolved_name)
+        {
             continue;
         }
-        let type_def = schema.get_type(original_type_name).unwrap();
+        let type_def = match schema
+            .get_type(original_name)
+            .or_else(|| schema.get_type(resolved_name))
+        {
+            Some(t) => t,
+            None => continue,
+        };
 
         // Collect TypeVars from this type
         collect_type_vars_from_type(type_def, &schema, &implemented_types, &mut used_type_vars)?;
@@ -1278,24 +1171,32 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Render all types (models and enums)
     let mut rendered_types = BTreeMap::new();
 
-    // Sort types topologically to handle dependencies, fall back to alphabetical on circular deps
-    let sorted_type_names = topological_sort_types(&all_type_names, &schema).unwrap_or_else(|_| {
-        // Circular dependencies detected, use alphabetical order
-        let mut sorted = all_type_names.clone();
-        sorted.sort();
-        sorted
-    });
-
-    // Track the insertion order so the module tree preserves topological ordering.
+    // Use SemanticSchema for type ordering — it provides deterministic
+    // BTreeMap ordering from the Normalizer's dependency analysis.
+    // Look up original names to find raw types in the Schema for rendering.
     let mut rendered_original_names_in_order: Vec<String> = Vec::new();
 
-    for original_type_name in sorted_type_names {
-        // Skip types provided by the runtime
-        if runtime_provided_types.contains(&original_type_name.as_str()) {
+    for sem_type in semantic.types() {
+        let original_type_name = sem_type.original_name().to_string();
+        let resolved_name = sem_type.name().to_string();
+
+        if runtime_provided_types.contains(&original_type_name.as_str())
+            || runtime_provided_types.contains(&resolved_name.as_str())
+        {
             continue;
         }
 
-        let type_def = schema.get_type(&original_type_name).unwrap();
+        // Look up the raw Type for rendering. Try original name first
+        // (pre-normalization, with module prefix), then resolved name.
+        let type_def = match schema
+            .get_type(&original_type_name)
+            .or_else(|| schema.get_type(&resolved_name))
+        {
+            Some(t) => t,
+            None => {
+                continue;
+            }
+        };
 
         // TypeVars have already been collected, use empty set for rendering
         let mut dummy_type_vars = BTreeSet::new();
@@ -1320,25 +1221,27 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
     // TypeVar declarations are now generated at the top of the file (after imports)
 
-    // Generate client class with nested method organization
-    let functions_by_name: BTreeMap<String, &Function> =
+    // Generate client class with nested method organization.
+    // Use SemanticSchema for deterministic function ordering, but
+    // look up raw Function objects for rendering (render_function
+    // needs the raw TypeReference fields).
+    let raw_functions_by_name: BTreeMap<String, &Function> =
         schema.functions().map(|f| (f.name.clone(), f)).collect();
 
-    // Group functions by their prefix and separate top-level functions
     let mut function_groups: BTreeMap<String, Vec<templates::Function>> = BTreeMap::new();
     let mut top_level_functions: Vec<templates::Function> = Vec::new();
 
-    for function_schema in functions_by_name.values() {
+    for sem_func in semantic.functions() {
+        let function_schema = match raw_functions_by_name.get(&sem_func.name) {
+            Some(f) => f,
+            None => continue, // Skip functions not in raw schema (shouldn't happen)
+        };
         let rendered_function = render_function(function_schema, &schema, &implemented_types)?;
 
         // Check for grouping patterns: underscore or dot notation
-        if let Some(separator_pos) = function_schema
-            .name
-            .find('_')
-            .or_else(|| function_schema.name.find('.'))
-        {
-            let group_name = &function_schema.name[..separator_pos];
-            let method_name = &function_schema.name[separator_pos + 1..];
+        if let Some(separator_pos) = sem_func.name.find('_').or_else(|| sem_func.name.find('.')) {
+            let group_name = &sem_func.name[..separator_pos];
+            let method_name = &sem_func.name[separator_pos + 1..];
 
             // Create a modified function with the shortened name for nested access
             let mut nested_function = rendered_function.clone();
