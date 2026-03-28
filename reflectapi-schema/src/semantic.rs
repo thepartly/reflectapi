@@ -58,6 +58,7 @@ pub enum SemanticType {
 pub struct SemanticPrimitive {
     pub id: SymbolId,
     pub name: String,
+    pub original_name: String,
     pub description: String,
 
     /// Resolved generic parameters
@@ -71,6 +72,7 @@ pub struct SemanticPrimitive {
 pub struct SemanticStruct {
     pub id: SymbolId,
     pub name: String,
+    pub original_name: String,
     pub serde_name: String,
     pub description: String,
 
@@ -93,6 +95,7 @@ pub struct SemanticStruct {
 pub struct SemanticEnum {
     pub id: SymbolId,
     pub name: String,
+    pub original_name: String,
     pub serde_name: String,
     pub description: String,
 
@@ -312,6 +315,7 @@ impl Default for SymbolTable {
 impl SemanticSchema {
     /// Look up a type by its name via the symbol table's resolution cache.
     /// Falls back to linear scan if the name isn't in the symbol table.
+    /// Also checks original_name for lookups by pre-normalization qualified name.
     pub fn get_type_by_name(&self, name: &str) -> Option<&SemanticType> {
         // Try symbol table lookup first (O(log n))
         let path = name.split("::").map(|s| s.to_string()).collect::<Vec<_>>();
@@ -321,7 +325,11 @@ impl SemanticSchema {
             }
         }
         // Fallback: linear scan by name (handles post-normalization name changes)
-        self.types.values().find(|t| t.name() == name)
+        if let Some(ty) = self.types.values().find(|t| t.name() == name) {
+            return Some(ty);
+        }
+        // Fallback: linear scan by original_name (handles pre-normalization lookups)
+        self.types.values().find(|t| t.original_name() == name)
     }
 
     /// Look up a type by SymbolId.
@@ -359,6 +367,14 @@ impl SemanticType {
             SemanticType::Primitive(p) => &p.name,
             SemanticType::Struct(s) => &s.name,
             SemanticType::Enum(e) => &e.name,
+        }
+    }
+
+    pub fn original_name(&self) -> &str {
+        match self {
+            SemanticType::Primitive(p) => &p.original_name,
+            SemanticType::Struct(s) => &s.original_name,
+            SemanticType::Enum(e) => &e.original_name,
         }
     }
 }

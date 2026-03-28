@@ -30,7 +30,7 @@ class ReflectapiDemoTestsBasicTestStructWithHashMap(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: dict[int, str]
+    f: dict[int, str] = Field(serialization_alias="_f", validation_alias="_f")
 
 
 class AsyncInoutClient:

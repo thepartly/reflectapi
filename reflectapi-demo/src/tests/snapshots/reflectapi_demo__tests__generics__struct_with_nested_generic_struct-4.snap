@@ -36,7 +36,7 @@ class ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric(BaseModel, Generic[
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: A
+    f: A = Field(serialization_alias="_f", validation_alias="_f")
 
 
 class ReflectapiDemoTestsGenericsTestStructWithNestedGenericStruct(BaseModel):
@@ -44,9 +44,9 @@ class ReflectapiDemoTestsGenericsTestStructWithNestedGenericStruct(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric[
+    f: ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric[
         ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric[int]
-    ]
+    ] = Field(serialization_alias="_f", validation_alias="_f")
 
 
 class AsyncInputClient:

@@ -38,7 +38,9 @@ class ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant1Variant(BaseMode
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_name: int
+    field_name: int = Field(
+        serialization_alias="fieldName", validation_alias="fieldName"
+    )
 
 
 class ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant2Variant(BaseModel):
@@ -103,7 +105,7 @@ class ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant(
         if isinstance(
             self.root, ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant1Variant
         ):
-            return {"Variant1": self.root.model_dump(exclude_none=True)}
+            return {"Variant1": self.root.model_dump()}
         if isinstance(
             self.root, ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant2Variant
         ):
@@ -222,7 +224,7 @@ class ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantFactory:
     """
 
     @staticmethod
-    def variant1(field_name) -> ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant:
+    def variant1(field_name: int) -> ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant:
         """Creates the 'Variant1' variant of the ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant enum."""
         return ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant(
             ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant1Variant(
@@ -231,7 +233,7 @@ class ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantFactory:
         )
 
     @staticmethod
-    def variant2(field_0) -> ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant:
+    def variant2(field_0: int) -> ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant:
         """Creates the 'Variant2' variant of the ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant enum."""
         return ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant(
             ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant2Variant(

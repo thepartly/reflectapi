@@ -215,7 +215,9 @@ class ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFieldsFactory:
         return ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields("Variant1")
 
     @staticmethod
-    def variant2(field_0) -> ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields:
+    def variant2(
+        field_0: int,
+    ) -> ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields:
         """Creates the 'Variant2' variant of the ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields enum."""
         return ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields(
             ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFieldsVariant2Variant(

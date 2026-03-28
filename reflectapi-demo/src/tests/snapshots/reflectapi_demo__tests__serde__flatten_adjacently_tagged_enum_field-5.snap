@@ -92,9 +92,9 @@ class ReflectapiDemoTestsSerdePayload(
     @model_serializer
     def _serialize_adjacently_tagged(self):
         if isinstance(self.root, ReflectapiDemoTestsSerdePayloadTextVariant):
-            return {"kind": "Text", "data": self.root.model_dump(exclude_none=True)}
+            return {"kind": "Text", "data": self.root.model_dump()}
         if isinstance(self.root, ReflectapiDemoTestsSerdePayloadBinaryVariant):
-            return {"kind": "Binary", "data": self.root.model_dump(exclude_none=True)}
+            return {"kind": "Binary", "data": self.root.model_dump()}
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsSerdePayload variant: {type(self.root)}"
         )
@@ -218,14 +218,14 @@ class ReflectapiDemoTestsSerdePayloadFactory:
     """
 
     @staticmethod
-    def text(body) -> ReflectapiDemoTestsSerdePayload:
+    def text(body: str) -> ReflectapiDemoTestsSerdePayload:
         """Creates the 'Text' variant of the ReflectapiDemoTestsSerdePayload enum."""
         return ReflectapiDemoTestsSerdePayload(
             ReflectapiDemoTestsSerdePayloadTextVariant(body=body)
         )
 
     @staticmethod
-    def binary(size) -> ReflectapiDemoTestsSerdePayload:
+    def binary(size: int) -> ReflectapiDemoTestsSerdePayload:
         """Creates the 'Binary' variant of the ReflectapiDemoTestsSerdePayload enum."""
         return ReflectapiDemoTestsSerdePayload(
             ReflectapiDemoTestsSerdePayloadBinaryVariant(size=size)

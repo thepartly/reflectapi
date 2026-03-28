@@ -31,7 +31,7 @@ class ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidCharsVariant1Variant(Ba
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    f: int
+    f: int = Field(serialization_alias='field-name&&', validation_alias='field-name&&')
 
 
 # Externally tagged enum using RootModel
@@ -63,7 +63,7 @@ class ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidChars(RootModel[Reflect
     @model_serializer
     def _serialize_externally_tagged(self):
         if isinstance(self.root, ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidCharsVariant1Variant):
-            return {"Variant1": self.root.model_dump(exclude_none=True)}
+            return {"Variant1": self.root.model_dump()}
 
         raise ValueError(f"Cannot serialize ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidChars variant: {type(self.root)}")
 
@@ -177,7 +177,7 @@ class ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidCharsFactory:
     '''
 
     @staticmethod
-    def variant1(field_name&&) -> ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidChars:
+    def variant1(field_name&&: int) -> ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidChars:
         '''Creates the 'Variant1' variant of the ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidChars enum.'''
         return ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidChars(ReflectapiDemoTestsSerdeTestEnumWithRenameToInvalidCharsVariant1Variant(f=field_name&&))
 

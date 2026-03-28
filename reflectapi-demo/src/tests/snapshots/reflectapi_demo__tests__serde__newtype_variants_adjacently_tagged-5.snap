@@ -250,7 +250,9 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedFactory:
     """
 
     @staticmethod
-    def int(field_0) -> ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged:
+    def int(
+        field_0: int,
+    ) -> ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged:
         """Creates the 'int' variant of the ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged enum."""
         return ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged(
             ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedIntVariant(
@@ -259,7 +261,9 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedFactory:
         )
 
     @staticmethod
-    def string(field_0) -> ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged:
+    def string(
+        field_0: str,
+    ) -> ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged:
         """Creates the 'string' variant of the ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged enum."""
         return ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged(
             ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedStringVariant(
@@ -268,7 +272,9 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedFactory:
         )
 
     @staticmethod
-    def bool(field_0) -> ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged:
+    def bool(
+        field_0: bool,
+    ) -> ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged:
         """Creates the 'bool' variant of the ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged enum."""
         return ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged(
             ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedBoolVariant(

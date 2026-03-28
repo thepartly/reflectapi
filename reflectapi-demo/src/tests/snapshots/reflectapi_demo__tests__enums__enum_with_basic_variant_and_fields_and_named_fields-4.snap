@@ -123,7 +123,7 @@ class ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFields(
             self.root,
             ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFieldsVariant2Variant,
         ):
-            return {"Variant2": self.root.model_dump(exclude_none=True)}
+            return {"Variant2": self.root.model_dump()}
 
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFields variant: {type(self.root)}"
@@ -252,7 +252,7 @@ class ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFieldsFac
 
     @staticmethod
     def variant1(
-        field_0, field_1
+        field_0: int, field_1: str
     ) -> ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFields:
         """Creates the 'Variant1' variant of the ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFields enum."""
         return ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFields(
@@ -263,7 +263,7 @@ class ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFieldsFac
 
     @staticmethod
     def variant2(
-        field1, field2
+        field1: int, field2: str
     ) -> ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFields:
         """Creates the 'Variant2' variant of the ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFields enum."""
         return ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFields(

@@ -113,7 +113,7 @@ class ReflectapiDemoTestsBasicTestEnumDocumented(
         if isinstance(
             self.root, ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant
         ):
-            return {"Variant2": self.root.model_dump(exclude_none=True)}
+            return {"Variant2": self.root.model_dump()}
 
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsBasicTestEnumDocumented variant: {type(self.root)}"
@@ -229,7 +229,7 @@ class ReflectapiDemoTestsBasicTestEnumDocumentedFactory:
     """
 
     @staticmethod
-    def variant1(field_0) -> ReflectapiDemoTestsBasicTestEnumDocumented[T]:
+    def variant1(field_0: T) -> ReflectapiDemoTestsBasicTestEnumDocumented[T]:
         """Creates the 'Variant1' variant of the ReflectapiDemoTestsBasicTestEnumDocumented enum."""
         return ReflectapiDemoTestsBasicTestEnumDocumented(
             ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant[T](
@@ -238,7 +238,7 @@ class ReflectapiDemoTestsBasicTestEnumDocumentedFactory:
         )
 
     @staticmethod
-    def variant2(named_field) -> ReflectapiDemoTestsBasicTestEnumDocumented[T]:
+    def variant2(named_field: T) -> ReflectapiDemoTestsBasicTestEnumDocumented[T]:
         """Creates the 'Variant2' variant of the ReflectapiDemoTestsBasicTestEnumDocumented enum."""
         return ReflectapiDemoTestsBasicTestEnumDocumented(
             ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant[T](

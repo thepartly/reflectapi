@@ -200,7 +200,7 @@ class ReflectapiDemoTestsSerdeTestEnumWithVariantUntaggedFactory:
     """
 
     @staticmethod
-    def variant1(field_0) -> ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged:
+    def variant1(field_0: int) -> ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged:
         """Creates the 'Variant1' variant of the ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged enum."""
         return ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged(
             ReflectapiDemoTestsSerdeTestEnumWithVariantUntaggedVariant1Variant(

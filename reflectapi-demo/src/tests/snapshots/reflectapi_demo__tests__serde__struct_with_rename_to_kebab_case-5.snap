@@ -30,7 +30,9 @@ class ReflectapiDemoTestsSerdeStructName(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_name: int
+    field_name: int = Field(
+        serialization_alias="field-name", validation_alias="field-name"
+    )
 
 
 class AsyncInoutClient:

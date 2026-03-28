@@ -30,7 +30,9 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReference(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: ReflectapiDemoTestsGenericsTestStructWithCircularReference
+    f: ReflectapiDemoTestsGenericsTestStructWithCircularReference = Field(
+        serialization_alias="_f", validation_alias="_f"
+    )
 
 
 class AsyncInputClient:

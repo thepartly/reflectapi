@@ -115,7 +115,7 @@ class MyapiModelBehavior(RootModel[MyapiModelBehaviorVariants]):
         if isinstance(self.root, MyapiModelBehaviorAggressiveVariant):
             return {"Aggressive": [self.root.field_0, self.root.field_1]}
         if isinstance(self.root, MyapiModelBehaviorOtherVariant):
-            return {"Other": self.root.model_dump(exclude_none=True)}
+            return {"Other": self.root.model_dump()}
 
         raise ValueError(
             f"Cannot serialize MyapiModelBehavior variant: {type(self.root)}"
@@ -187,7 +187,7 @@ class MyapiProtoPetsCreateError(RootModel[MyapiProtoPetsCreateErrorVariants]):
         if self.root == "NotAuthorized":
             return "NotAuthorized"
         if isinstance(self.root, MyapiProtoPetsCreateErrorInvalidIdentityVariant):
-            return {"InvalidIdentity": self.root.model_dump(exclude_none=True)}
+            return {"InvalidIdentity": self.root.model_dump()}
 
         raise ValueError(
             f"Cannot serialize MyapiProtoPetsCreateError variant: {type(self.root)}"
@@ -896,14 +896,14 @@ class MyapiModelBehaviorFactory:
         return MyapiModelBehavior("Calm")
 
     @staticmethod
-    def aggressive(field_0, field_1) -> MyapiModelBehavior:
+    def aggressive(field_0: float, field_1: str) -> MyapiModelBehavior:
         """Creates the 'Aggressive' variant of the MyapiModelBehavior enum."""
         return MyapiModelBehavior(
             MyapiModelBehaviorAggressiveVariant(field_0=field_0, field_1=field_1)
         )
 
     @staticmethod
-    def other(description, notes=None) -> MyapiModelBehavior:
+    def other(description: str, notes: str | None = None) -> MyapiModelBehavior:
         """Creates the 'Other' variant of the MyapiModelBehavior enum."""
         return MyapiModelBehavior(
             MyapiModelBehaviorOtherVariant(description=description, notes=notes)
@@ -927,7 +927,7 @@ class MyapiProtoPetsCreateErrorFactory:
         return MyapiProtoPetsCreateError("NotAuthorized")
 
     @staticmethod
-    def invalid_identity(message) -> MyapiProtoPetsCreateError:
+    def invalid_identity(message: str) -> MyapiProtoPetsCreateError:
         """Creates the 'InvalidIdentity' variant of the MyapiProtoPetsCreateError enum."""
         return MyapiProtoPetsCreateError(
             MyapiProtoPetsCreateErrorInvalidIdentityVariant(message=message)
@@ -943,12 +943,12 @@ class MyapiModelKindFactory:
     BIRD = MyapiModelKindBird()
 
     @staticmethod
-    def dog(breed) -> MyapiModelKindDog:
+    def dog(breed: str) -> MyapiModelKindDog:
         """Creates the 'dog' variant of the MyapiModelKind enum."""
         return MyapiModelKindDog(breed=breed)
 
     @staticmethod
-    def cat(lives) -> MyapiModelKindCat:
+    def cat(lives: int) -> MyapiModelKindCat:
         """Creates the 'cat' variant of the MyapiModelKind enum."""
         return MyapiModelKindCat(lives=lives)
 
@@ -963,7 +963,7 @@ class MyapiProtoPetsListErrorFactory:
     UNAUTHORIZED = MyapiProtoPetsListErrorUnauthorized()
 
     @staticmethod
-    def internal(field_0) -> MyapiProtoPetsListErrorInternal:
+    def internal(field_0: MyapiProtoInternalError) -> MyapiProtoPetsListErrorInternal:
         """Creates the 'Internal' variant of the MyapiProtoPetsListError enum."""
         return MyapiProtoPetsListErrorInternal(field_0=field_0)
 
@@ -975,7 +975,7 @@ class MyapiProtoValidationErrorFactory:
     """
 
     @staticmethod
-    def validation_a(field_0) -> MyapiProtoValidationError:
+    def validation_a(field_0: MyapiProtoValidationA) -> MyapiProtoValidationError:
         """Creates the 'ValidationA' variant of the MyapiProtoValidationError enum."""
         return MyapiProtoValidationError(
             MyapiProtoValidationErrorValidationAVariant(field_0=field_0)
@@ -999,7 +999,9 @@ class MyapiProtoPetsUpdateErrorFactory:
         return MyapiProtoPetsUpdateError("NotAuthorized")
 
     @staticmethod
-    def validation(field_0) -> MyapiProtoPetsUpdateError:
+    def validation(
+        field_0: list[MyapiProtoValidationError],
+    ) -> MyapiProtoPetsUpdateError:
         """Creates the 'Validation' variant of the MyapiProtoPetsUpdateError enum."""
         return MyapiProtoPetsUpdateError(
             MyapiProtoPetsUpdateErrorValidationVariant(field_0=field_0)

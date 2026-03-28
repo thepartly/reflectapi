@@ -218,14 +218,16 @@ class ReflectapiDemoTestsEnumsTestEnumWithFieldsFactory:
     """
 
     @staticmethod
-    def variant1(field_0) -> ReflectapiDemoTestsEnumsTestEnumWithFields:
+    def variant1(field_0: int) -> ReflectapiDemoTestsEnumsTestEnumWithFields:
         """Creates the 'Variant1' variant of the ReflectapiDemoTestsEnumsTestEnumWithFields enum."""
         return ReflectapiDemoTestsEnumsTestEnumWithFields(
             ReflectapiDemoTestsEnumsTestEnumWithFieldsVariant1Variant(field_0=field_0)
         )
 
     @staticmethod
-    def variant2(field_0, field_1) -> ReflectapiDemoTestsEnumsTestEnumWithFields:
+    def variant2(
+        field_0: str, field_1: float
+    ) -> ReflectapiDemoTestsEnumsTestEnumWithFields:
         """Creates the 'Variant2' variant of the ReflectapiDemoTestsEnumsTestEnumWithFields enum."""
         return ReflectapiDemoTestsEnumsTestEnumWithFields(
             ReflectapiDemoTestsEnumsTestEnumWithFieldsVariant2Variant(

@@ -204,12 +204,12 @@ class ReflectapiDemoTestsSerdeOfferKindFactory:
     """
 
     @staticmethod
-    def single(business) -> ReflectapiDemoTestsSerdeOfferKindSingle:
+    def single(business: str) -> ReflectapiDemoTestsSerdeOfferKindSingle:
         """Creates the 'Single' variant of the ReflectapiDemoTestsSerdeOfferKind enum."""
         return ReflectapiDemoTestsSerdeOfferKindSingle(business=business)
 
     @staticmethod
-    def group(count) -> ReflectapiDemoTestsSerdeOfferKindGroup:
+    def group(count: int) -> ReflectapiDemoTestsSerdeOfferKindGroup:
         """Creates the 'Group' variant of the ReflectapiDemoTestsSerdeOfferKind enum."""
         return ReflectapiDemoTestsSerdeOfferKindGroup(count=count)
 

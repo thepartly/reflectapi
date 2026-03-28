@@ -766,12 +766,32 @@ impl Normalizer {
     }
 
     /// Normalize a raw schema into a semantic schema
-    pub fn normalize(
-        mut self,
-        mut schema: Schema,
-    ) -> Result<SemanticSchema, Vec<NormalizationError>> {
+    pub fn normalize(mut self, schema: &Schema) -> Result<SemanticSchema, Vec<NormalizationError>> {
+        // Clone so that pipeline stages can mutate without affecting the caller
+        let mut schema = schema.clone();
+
         // Phase 0: Ensure all symbols have unique, stable IDs
         crate::ids::ensure_symbol_ids(&mut schema);
+
+        // Snapshot original type names before the pipeline transforms them.
+        // NamingResolutionStage strips module paths, so we need to preserve
+        // the pre-normalization qualified names for codegen backends.
+        let original_names: HashMap<String, String> = schema
+            .input_types
+            .types()
+            .chain(schema.output_types.types())
+            .map(|t| {
+                let name = t.name().to_string();
+                // The id.path at this point is the original qualified path
+                // (set by ensure_symbol_ids, before NamingResolution)
+                let original = match t {
+                    Type::Primitive(p) => p.id.qualified_name(),
+                    Type::Struct(s) => s.id.qualified_name(),
+                    Type::Enum(e) => e.id.qualified_name(),
+                };
+                (name, original)
+            })
+            .collect();
 
         // Phase 0.5: Run the standard normalization pipeline (type consolidation,
         // naming resolution, circular dependency resolution) before symbol discovery
@@ -790,7 +810,7 @@ impl Normalizer {
         self.validate_semantics()?;
 
         // Phase 5: IR Construction
-        self.build_semantic_ir(schema)
+        self.build_semantic_ir(&schema, &original_names)
     }
 
     fn discover_symbols(&mut self, schema: &Schema) -> Result<(), Vec<NormalizationError>> {
@@ -1044,7 +1064,11 @@ impl Normalizer {
         Ok(())
     }
 
-    fn build_semantic_ir(self, schema: Schema) -> Result<SemanticSchema, Vec<NormalizationError>> {
+    fn build_semantic_ir(
+        self,
+        schema: &Schema,
+        original_names: &HashMap<String, String>,
+    ) -> Result<SemanticSchema, Vec<NormalizationError>> {
         let mut semantic_types = BTreeMap::new();
         let mut semantic_functions = BTreeMap::new();
 
@@ -1055,7 +1079,7 @@ impl Normalizer {
 
         for symbol_id in sorted_symbols {
             if let Some(raw_type) = self.context.raw_types.get(&symbol_id) {
-                let semantic_type = self.build_semantic_type(raw_type)?;
+                let semantic_type = self.build_semantic_type(raw_type, original_names)?;
                 semantic_types.insert(symbol_id, semantic_type);
             }
         }
@@ -1066,9 +1090,9 @@ impl Normalizer {
         }
 
         Ok(SemanticSchema {
-            id: schema.id,
-            name: schema.name,
-            description: schema.description,
+            id: schema.id.clone(),
+            name: schema.name.clone(),
+            description: schema.description.clone(),
             functions: semantic_functions,
             types: semantic_types,
             symbol_table: self.context.symbol_table,
@@ -1078,26 +1102,40 @@ impl Normalizer {
     fn build_semantic_type(
         &self,
         raw_type: &Type,
+        original_names: &HashMap<String, String>,
     ) -> Result<SemanticType, Vec<NormalizationError>> {
         match raw_type {
-            Type::Primitive(p) => Ok(SemanticType::Primitive(self.build_semantic_primitive(p)?)),
-            Type::Struct(s) => Ok(SemanticType::Struct(self.build_semantic_struct(s)?)),
-            Type::Enum(e) => Ok(SemanticType::Enum(self.build_semantic_enum(e)?)),
+            Type::Primitive(p) => Ok(SemanticType::Primitive(
+                self.build_semantic_primitive(p, original_names)?,
+            )),
+            Type::Struct(s) => Ok(SemanticType::Struct(
+                self.build_semantic_struct(s, original_names)?,
+            )),
+            Type::Enum(e) => Ok(SemanticType::Enum(
+                self.build_semantic_enum(e, original_names)?,
+            )),
         }
     }
 
     fn build_semantic_primitive(
         &self,
         primitive: &Primitive,
+        original_names: &HashMap<String, String>,
     ) -> Result<SemanticPrimitive, Vec<NormalizationError>> {
         let fallback = primitive
             .fallback
             .as_ref()
             .and_then(|tr| self.resolve_global_type_reference(&tr.name));
 
+        let original_name = original_names
+            .get(&primitive.name)
+            .cloned()
+            .unwrap_or_else(|| primitive.name.clone());
+
         Ok(SemanticPrimitive {
             id: primitive.id.clone(),
             name: primitive.name.clone(),
+            original_name,
             description: primitive.description.clone(),
             parameters: primitive
                 .parameters
@@ -1116,6 +1154,7 @@ impl Normalizer {
     fn build_semantic_struct(
         &self,
         strukt: &Struct,
+        original_names: &HashMap<String, String>,
     ) -> Result<SemanticStruct, Vec<NormalizationError>> {
         let mut fields = BTreeMap::new();
 
@@ -1124,9 +1163,15 @@ impl Normalizer {
             fields.insert(field.id.clone(), semantic_field);
         }
 
+        let original_name = original_names
+            .get(&strukt.name)
+            .cloned()
+            .unwrap_or_else(|| strukt.name.clone());
+
         Ok(SemanticStruct {
             id: strukt.id.clone(),
             name: strukt.name.clone(),
+            original_name,
             serde_name: strukt.serde_name.clone(),
             description: strukt.description.clone(),
             parameters: strukt
@@ -1147,7 +1192,11 @@ impl Normalizer {
         })
     }
 
-    fn build_semantic_enum(&self, enm: &Enum) -> Result<SemanticEnum, Vec<NormalizationError>> {
+    fn build_semantic_enum(
+        &self,
+        enm: &Enum,
+        original_names: &HashMap<String, String>,
+    ) -> Result<SemanticEnum, Vec<NormalizationError>> {
         let mut variants = BTreeMap::new();
 
         for variant in enm.variants() {
@@ -1155,9 +1204,15 @@ impl Normalizer {
             variants.insert(variant.id.clone(), semantic_variant);
         }
 
+        let original_name = original_names
+            .get(&enm.name)
+            .cloned()
+            .unwrap_or_else(|| enm.name.clone());
+
         Ok(SemanticEnum {
             id: enm.id.clone(),
             name: enm.name.clone(),
+            original_name,
             serde_name: enm.serde_name.clone(),
             description: enm.description.clone(),
             parameters: enm
@@ -1316,7 +1371,7 @@ mod tests {
         schema.input_types = input_types;
 
         let normalizer = Normalizer::new();
-        let result = normalizer.normalize(schema);
+        let result = normalizer.normalize(&schema);
 
         assert!(
             result.is_ok(),
@@ -1338,7 +1393,7 @@ mod tests {
         schema.functions.push(function);
 
         let normalizer = Normalizer::new();
-        let result = normalizer.normalize(schema);
+        let result = normalizer.normalize(&schema);
 
         assert!(
             result.is_ok(),
@@ -1377,7 +1432,7 @@ mod tests {
         schema.functions.push(function);
 
         let normalizer = Normalizer::new();
-        let result = normalizer.normalize(schema);
+        let result = normalizer.normalize(&schema);
         assert!(result.is_ok(), "Normalization failed: {:?}", result.err());
 
         let semantic = result.unwrap();
@@ -1407,7 +1462,7 @@ mod tests {
         schema.functions.push(function);
 
         let normalizer = Normalizer::new();
-        let semantic = normalizer.normalize(schema).unwrap();
+        let semantic = normalizer.normalize(&schema).unwrap();
 
         let func = semantic.functions.values().next().unwrap();
         assert!(func.input_type.is_some());
@@ -1586,7 +1641,7 @@ mod tests {
     fn test_empty_schema_normalization() {
         let schema = Schema::new();
         let normalizer = Normalizer::new();
-        let result = normalizer.normalize(schema);
+        let result = normalizer.normalize(&schema);
         assert!(result.is_ok());
 
         let semantic = result.unwrap();
@@ -1694,7 +1749,7 @@ mod tests {
         schema.input_types.insert_type(tree_node.into());
 
         let normalizer = Normalizer::new();
-        let result = normalizer.normalize(schema);
+        let result = normalizer.normalize(&schema);
 
         assert!(
             result.is_ok(),
@@ -1744,7 +1799,7 @@ mod tests {
         schema.input_types.insert_type(employee.into());
 
         let normalizer = Normalizer::new();
-        let result = normalizer.normalize(schema);
+        let result = normalizer.normalize(&schema);
 
         assert!(
             result.is_ok(),
@@ -1848,7 +1903,7 @@ mod tests {
         schema.functions.push(function);
 
         let normalizer = Normalizer::new();
-        let result = normalizer.normalize(schema);
+        let result = normalizer.normalize(&schema);
         assert!(
             result.is_ok(),
             "Normalization should succeed: {:?}",
@@ -1910,7 +1965,7 @@ mod tests {
 
         let normalizer = Normalizer::new();
         let semantic = normalizer
-            .normalize(schema)
+            .normalize(&schema)
             .expect("Normalization should succeed");
 
         // Get the function's ID

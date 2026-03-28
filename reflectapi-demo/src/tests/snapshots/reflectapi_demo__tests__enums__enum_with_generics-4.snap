@@ -239,7 +239,7 @@ class ReflectapiDemoTestsEnumsTestEnumWithGenericsFactory:
     """
 
     @staticmethod
-    def variant1(field_0) -> ReflectapiDemoTestsEnumsTestEnumWithGenerics[T]:
+    def variant1(field_0: T) -> ReflectapiDemoTestsEnumsTestEnumWithGenerics[T]:
         """Creates the 'Variant1' variant of the ReflectapiDemoTestsEnumsTestEnumWithGenerics enum."""
         return ReflectapiDemoTestsEnumsTestEnumWithGenerics(
             ReflectapiDemoTestsEnumsTestEnumWithGenericsVariant1Variant[T](
@@ -248,7 +248,9 @@ class ReflectapiDemoTestsEnumsTestEnumWithGenericsFactory:
         )
 
     @staticmethod
-    def variant2(field_0, field_1) -> ReflectapiDemoTestsEnumsTestEnumWithGenerics[T]:
+    def variant2(
+        field_0: T, field_1: T
+    ) -> ReflectapiDemoTestsEnumsTestEnumWithGenerics[T]:
         """Creates the 'Variant2' variant of the ReflectapiDemoTestsEnumsTestEnumWithGenerics enum."""
         return ReflectapiDemoTestsEnumsTestEnumWithGenerics(
             ReflectapiDemoTestsEnumsTestEnumWithGenericsVariant2Variant[T](

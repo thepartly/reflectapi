@@ -30,7 +30,9 @@ class ReflectapiDemoTestsBasicTestStructWithArcPointerOnly(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f_pointer_arc: int
+    f_pointer_arc: int = Field(
+        serialization_alias="_f_pointer_arc", validation_alias="_f_pointer_arc"
+    )
 
 
 class AsyncInoutClient:

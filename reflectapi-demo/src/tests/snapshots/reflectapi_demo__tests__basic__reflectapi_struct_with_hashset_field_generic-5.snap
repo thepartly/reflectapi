@@ -36,7 +36,9 @@ class ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric(BaseModel, Gener
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f_hashset: list[G]
+    f_hashset: list[G] = Field(
+        serialization_alias="_f_hashset", validation_alias="_f_hashset"
+    )
 
 
 class AsyncInoutClient:

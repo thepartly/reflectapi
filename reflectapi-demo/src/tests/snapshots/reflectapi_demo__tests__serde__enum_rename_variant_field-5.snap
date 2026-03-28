@@ -84,7 +84,7 @@ class ReflectapiDemoTestsSerdeTestEnumRenameVariantField(
         if isinstance(
             self.root, ReflectapiDemoTestsSerdeTestEnumRenameVariantFieldVariant2Variant
         ):
-            return {"Variant2": self.root.model_dump(exclude_none=True)}
+            return {"Variant2": self.root.model_dump()}
 
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsSerdeTestEnumRenameVariantField variant: {type(self.root)}"
@@ -200,7 +200,7 @@ class ReflectapiDemoTestsSerdeTestEnumRenameVariantFieldFactory:
 
     @staticmethod
     def variant2(
-        variant2_field_name,
+        variant2_field_name: int,
     ) -> ReflectapiDemoTestsSerdeTestEnumRenameVariantField:
         """Creates the 'Variant2' variant of the ReflectapiDemoTestsSerdeTestEnumRenameVariantField enum."""
         return ReflectapiDemoTestsSerdeTestEnumRenameVariantField(

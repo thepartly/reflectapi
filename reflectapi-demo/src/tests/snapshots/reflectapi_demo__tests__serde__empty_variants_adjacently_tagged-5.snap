@@ -112,7 +112,7 @@ class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged(
             self.root,
             ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructVariant,
         ):
-            return {"t": "EmptyStruct", "c": self.root.model_dump(exclude_none=True)}
+            return {"t": "EmptyStruct", "c": self.root.model_dump()}
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged variant: {type(self.root)}"
         )

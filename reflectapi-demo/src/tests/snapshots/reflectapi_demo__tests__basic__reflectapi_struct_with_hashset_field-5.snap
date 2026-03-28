@@ -30,7 +30,9 @@ class ReflectapiDemoTestsBasicTestStructWithHashSetField(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f_hashset: bytes
+    f_hashset: bytes = Field(
+        serialization_alias="_f_hashset", validation_alias="_f_hashset"
+    )
 
 
 class AsyncInoutClient:

@@ -80,7 +80,7 @@ class ReflectapiDemoTestsSerdeTestEnumWithFieldSkip(
         if isinstance(
             self.root, ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariant1Variant
         ):
-            return {"Variant1": self.root.model_dump(exclude_none=True)}
+            return {"Variant1": self.root.model_dump()}
 
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsSerdeTestEnumWithFieldSkip variant: {type(self.root)}"

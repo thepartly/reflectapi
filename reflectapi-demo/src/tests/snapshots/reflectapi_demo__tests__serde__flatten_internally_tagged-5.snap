@@ -181,7 +181,11 @@ class ReflectapiDemoTestsSerdeTestFactory:
     """
 
     @staticmethod
-    def s(field_0) -> ReflectapiDemoTestsSerdeTestS:
+    def s(
+        field_0: ReflectapiDemoTestsSerdeS[
+            ReflectapiDemoTestsSerdeA, ReflectapiDemoTestsSerdeB
+        ],
+    ) -> ReflectapiDemoTestsSerdeTestS:
         """Creates the 'S' variant of the ReflectapiDemoTestsSerdeTest enum."""
         return ReflectapiDemoTestsSerdeTestS(field_0=field_0)
 

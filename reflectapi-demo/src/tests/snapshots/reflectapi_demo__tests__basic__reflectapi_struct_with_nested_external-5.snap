@@ -30,7 +30,7 @@ class ReflectapiDemoTestsTestLibTestStructNested(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: str
+    f: str = Field(serialization_alias="_f", validation_alias="_f")
 
 
 class ReflectapiDemoTestsBasicTestStructWithNestedExternal(BaseModel):
@@ -38,7 +38,9 @@ class ReflectapiDemoTestsBasicTestStructWithNestedExternal(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: ReflectapiDemoTestsTestLibTestStructNested
+    f: ReflectapiDemoTestsTestLibTestStructNested = Field(
+        serialization_alias="_f", validation_alias="_f"
+    )
 
 
 class AsyncInoutClient:

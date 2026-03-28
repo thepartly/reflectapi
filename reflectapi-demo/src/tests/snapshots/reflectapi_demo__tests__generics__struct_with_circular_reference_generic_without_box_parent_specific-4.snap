@@ -40,8 +40,8 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBo
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f1: A
-    _f2: B
+    f1: A = Field(serialization_alias="_f1", validation_alias="_f1")
+    f2: B = Field(serialization_alias="_f2", validation_alias="_f2")
 
 
 class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBoxParentSpecific(
@@ -51,14 +51,14 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBo
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
+    f: ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
         ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
             int, int
         ],
         ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
             str, int
         ],
-    ]
+    ] = Field(serialization_alias="_f", validation_alias="_f")
 
 
 class AsyncInputClient:

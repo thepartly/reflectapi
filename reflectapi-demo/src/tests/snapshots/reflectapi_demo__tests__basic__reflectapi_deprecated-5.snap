@@ -30,9 +30,9 @@ class ReflectapiDemoTestsBasicStructWithDeprecatedField(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: int
-    _g: int
-    _h: int
+    f: int = Field(serialization_alias="_f", validation_alias="_f")
+    g: int = Field(serialization_alias="_g", validation_alias="_g")
+    h: int = Field(serialization_alias="_h", validation_alias="_h")
 
 
 class AsyncInoutClient:

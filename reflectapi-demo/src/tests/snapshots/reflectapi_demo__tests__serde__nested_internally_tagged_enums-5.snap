@@ -211,12 +211,12 @@ class ReflectapiDemoTestsSerdeV2Factory:
     """
 
     @staticmethod
-    def c(c) -> ReflectapiDemoTestsSerdeV2C:
+    def c(c: int) -> ReflectapiDemoTestsSerdeV2C:
         """Creates the 'C' variant of the ReflectapiDemoTestsSerdeV2 enum."""
         return ReflectapiDemoTestsSerdeV2C(c=c)
 
     @staticmethod
-    def d(d) -> ReflectapiDemoTestsSerdeV2D:
+    def d(d: int) -> ReflectapiDemoTestsSerdeV2D:
         """Creates the 'D' variant of the ReflectapiDemoTestsSerdeV2 enum."""
         return ReflectapiDemoTestsSerdeV2D(d=d)
 
@@ -228,12 +228,12 @@ class ReflectapiDemoTestsSerdeV1Factory:
     """
 
     @staticmethod
-    def a(a) -> ReflectapiDemoTestsSerdeV1A:
+    def a(a: int) -> ReflectapiDemoTestsSerdeV1A:
         """Creates the 'A' variant of the ReflectapiDemoTestsSerdeV1 enum."""
         return ReflectapiDemoTestsSerdeV1A(a=a)
 
     @staticmethod
-    def b(b) -> ReflectapiDemoTestsSerdeV1B:
+    def b(b: int) -> ReflectapiDemoTestsSerdeV1B:
         """Creates the 'B' variant of the ReflectapiDemoTestsSerdeV1 enum."""
         return ReflectapiDemoTestsSerdeV1B(b=b)
 
@@ -245,12 +245,12 @@ class ReflectapiDemoTestsSerdeTestFactory:
     """
 
     @staticmethod
-    def v1(field_0) -> ReflectapiDemoTestsSerdeTestV1:
+    def v1(field_0: ReflectapiDemoTestsSerdeV1) -> ReflectapiDemoTestsSerdeTestV1:
         """Creates the 'v1' variant of the ReflectapiDemoTestsSerdeTest enum."""
         return ReflectapiDemoTestsSerdeTestV1(field_0=field_0)
 
     @staticmethod
-    def v2(field_0) -> ReflectapiDemoTestsSerdeTestV2:
+    def v2(field_0: ReflectapiDemoTestsSerdeV2) -> ReflectapiDemoTestsSerdeTestV2:
         """Creates the 'v2' variant of the ReflectapiDemoTestsSerdeTest enum."""
         return ReflectapiDemoTestsSerdeTestV2(field_0=field_0)
 

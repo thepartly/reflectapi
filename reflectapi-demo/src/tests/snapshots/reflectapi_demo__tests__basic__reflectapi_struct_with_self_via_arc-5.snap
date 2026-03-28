@@ -30,7 +30,9 @@ class ReflectapiDemoTestsBasicTestStructWithSelfViaArc(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: ReflectapiDemoTestsBasicTestStructWithSelfViaArc
+    f: ReflectapiDemoTestsBasicTestStructWithSelfViaArc = Field(
+        serialization_alias="_f", validation_alias="_f"
+    )
 
 
 class AsyncInoutClient:

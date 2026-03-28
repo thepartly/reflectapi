@@ -528,7 +528,7 @@ fn render_struct_with_flattened_internal_enum(
     // Collect the parent struct's non-flattened fields + any flattened struct fields
     let mut base_fields: Vec<templates::Field> = Vec::new();
     for field in struct_def.fields.iter().filter(|f| !f.flattened()) {
-        let (python_name, alias) = sanitize_field_name_with_alias(field.name());
+        let (python_name, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
         let field_type = type_ref_to_python_type(
             &field.type_ref,
             schema,
@@ -586,7 +586,8 @@ fn render_struct_with_flattened_internal_enum(
                     active_generics,
                     used_type_vars,
                 )?;
-                let (python_name, alias) = sanitize_field_name_with_alias(field.name());
+                let (python_name, alias) =
+                    sanitize_field_name_with_alias(field.name(), field.serde_name());
                 base_fields.push(templates::Field {
                     name: python_name,
                     type_annotation: if field.required {
@@ -617,7 +618,7 @@ fn render_struct_with_flattened_internal_enum(
         let mut fields = base_fields.clone();
 
         // Add the tag discriminator field
-        let (sanitized_tag, tag_alias) = sanitize_field_name_with_alias(tag);
+        let (sanitized_tag, tag_alias) = sanitize_field_name_with_alias(tag, tag);
         fields.push(templates::Field {
             name: sanitized_tag.clone(),
             type_annotation: format!("Literal['{}']", variant.serde_name()),
@@ -656,7 +657,8 @@ fn render_struct_with_flattened_internal_enum(
                     } else {
                         (false, None, field_type)
                     };
-                    let (sanitized, alias) = sanitize_field_name_with_alias(vf.name());
+                    let (sanitized, alias) =
+                        sanitize_field_name_with_alias(vf.name(), vf.serde_name());
                     fields.push(templates::Field {
                         name: sanitized,
                         type_annotation: final_type,
@@ -692,7 +694,8 @@ fn render_struct_with_flattened_internal_enum(
                             active_generics,
                             used_type_vars,
                         )?;
-                        let (sanitized, alias) = sanitize_field_name_with_alias(sf.name());
+                        let (sanitized, alias) =
+                            sanitize_field_name_with_alias(sf.name(), sf.serde_name());
                         fields.push(templates::Field {
                             name: sanitized,
                             type_annotation: if sf.required {
@@ -743,7 +746,7 @@ fn render_struct_with_flattened_internal_enum(
     }
 
     // Render the parent type as a discriminated union RootModel
-    let (sanitized_tag, _) = sanitize_field_name_with_alias(tag);
+    let (sanitized_tag, _) = sanitize_field_name_with_alias(tag, tag);
     let union_type = union_variant_names.join(",\n            ");
     output.push_str(&format!(
         "\nclass {struct_name}(RootModel):\n    root: Annotated[\n        Union[\n            {union_type},\n        ],\n        Field(discriminator=\"{sanitized_tag}\"),\n    ]\n"
@@ -772,7 +775,7 @@ fn render_struct_with_flatten_standard(
 
     // Add regular fields
     for field in struct_def.fields.iter().filter(|f| !f.flattened()) {
-        let (python_name, alias) = sanitize_field_name_with_alias(field.name());
+        let (python_name, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
         let field_type = type_ref_to_python_type(
             &field.type_ref,
             schema,
@@ -1103,9 +1106,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // for render functions that need type-safe SymbolId-based lookups;
     // the raw Schema is still used for the main iteration loop since
     // the Normalizer's NamingResolutionStage transforms type names.
-    let _semantic = reflectapi_schema::Normalizer::new()
-        .normalize(schema.clone())
-        .ok();
+    let _semantic = reflectapi_schema::Normalizer::new().normalize(&schema).ok();
 
     let mut generated_code = Vec::new();
 
@@ -1383,11 +1384,15 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
     // Generate all factory classes now that types are defined and rebuilt
     for factory_info in &factory_data {
+        let mut factory_type_vars = BTreeSet::new();
         let factory_code = if factory_info.is_internally_tagged {
             generate_internally_tagged_factory_class(
                 &factory_info.enum_def,
                 &factory_info.enum_name,
                 &factory_info.union_members,
+                &schema,
+                &implemented_types,
+                &mut factory_type_vars,
             )?
         } else {
             generate_factory_class_with_representation(
@@ -1395,6 +1400,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
                 &factory_info.enum_name,
                 &factory_info.union_members,
                 &factory_info.enum_def.representation,
+                &schema,
+                &implemented_types,
+                &mut factory_type_vars,
             )?
         };
         external_types_and_rebuilds.push(factory_code);
@@ -1659,7 +1667,7 @@ fn make_flattened_field(
         (false, None, field_type)
     };
 
-    let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+    let (sanitized, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
     Ok(templates::Field {
         name: sanitized,
         type_annotation: final_field_type,
@@ -1716,7 +1724,7 @@ fn collect_flattened_enum_fields(
                 .unwrap_or(&type_ref.name)
                 .to_lowercase()
         });
-    let (sanitized, alias) = sanitize_field_name_with_alias(&field_name);
+    let (sanitized, alias) = sanitize_field_name_with_alias(&field_name, &field_name);
 
     let (optional, default_value, final_type) = if !parent_required {
         (
@@ -1808,7 +1816,8 @@ fn render_struct(
                 (false, None, base_field_type)
             };
 
-            let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+            let (sanitized, alias) =
+                sanitize_field_name_with_alias(field.name(), field.serde_name());
             Ok(templates::Field {
                 name: sanitized,
                 type_annotation: field_type,
@@ -2061,7 +2070,8 @@ fn render_adjacently_tagged_enum_without_factory(
                     } else {
                         (false, None, field_type)
                     };
-                    let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+                    let (sanitized, alias) =
+                        sanitize_field_name_with_alias(field.name(), field.serde_name());
                     fields.push(templates::Field {
                         name: sanitized,
                         type_annotation: final_field_type,
@@ -2208,7 +2218,7 @@ fn generate_adjacent_serialize_cases(
             Fields::Named(_named_fields) => {
                 let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
                 cases.push(format!(
-                    "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.model_dump(exclude_none=True)}}"
+                    "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.model_dump()}}"
                 ));
             }
         }
@@ -2405,7 +2415,8 @@ fn render_externally_tagged_enum(
                         (false, None, field_type)
                     };
 
-                    let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+                    let (sanitized, alias) =
+                        sanitize_field_name_with_alias(field.name(), field.serde_name());
                     fields.push(templates::Field {
                         name: sanitized,
                         type_annotation: final_field_type,
@@ -2444,7 +2455,7 @@ fn render_externally_tagged_enum(
                 ));
 
                 serializer_cases.push(format!(
-                    "        if isinstance(self.root, {variant_class_name}):\n            return {{\"{variant_name}\": self.root.model_dump(exclude_none=True)}}"
+                    "        if isinstance(self.root, {variant_class_name}):\n            return {{\"{variant_name}\": self.root.model_dump()}}"
                 ));
             }
         }
@@ -2485,7 +2496,13 @@ fn render_externally_tagged_enum(
     let enum_code = template.render();
 
     // Generate factory class for ergonomic instantiation
-    let factory_class_code = generate_externally_tagged_factory_class(enum_def, &enum_name)?;
+    let factory_class_code = generate_externally_tagged_factory_class(
+        enum_def,
+        &enum_name,
+        schema,
+        implemented_types,
+        used_type_vars,
+    )?;
 
     // Combine all parts
     let mut result = String::new();
@@ -2511,6 +2528,9 @@ fn generate_factory_class_with_representation(
     enum_name: &str,
     union_members: &[String],
     representation: &reflectapi_schema::Representation,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
@@ -2591,7 +2611,13 @@ fn generate_factory_class_with_representation(
             Fields::Unnamed(_) | Fields::Named(_) => {
                 // Complex variant - create static method
                 let method_name = to_snake_case(variant.name());
-                let method_params = generate_factory_method_params(variant)?;
+                let method_params = generate_factory_method_params(
+                    variant,
+                    schema,
+                    implemented_types,
+                    &generic_params,
+                    used_type_vars,
+                )?;
                 let method_args = generate_factory_method_args(variant)?;
 
                 // For discriminated unions, methods should return the main enum type
@@ -2673,12 +2699,17 @@ fn generate_internally_tagged_factory_class(
     enum_def: &reflectapi_schema::Enum,
     enum_name: &str,
     union_variant_names: &[String],
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
     let factory_name = format!("{enum_name}Factory");
     let mut class_attributes = Vec::new();
     let mut static_methods = Vec::new();
+
+    let active_generics: Vec<String> = enum_def.parameters.iter().map(|p| p.name.clone()).collect();
 
     for (i, variant) in enum_def.variants.iter().enumerate() {
         let variant_name = variant.name();
@@ -2697,7 +2728,13 @@ fn generate_internally_tagged_factory_class(
             Fields::Unnamed(_) | Fields::Named(_) => {
                 // Complex variant - create static method
                 let method_name = to_snake_case(variant_name);
-                let method_params = generate_factory_method_params(variant)?;
+                let method_params = generate_factory_method_params(
+                    variant,
+                    schema,
+                    implemented_types,
+                    &active_generics,
+                    used_type_vars,
+                )?;
                 let method_args = generate_factory_method_args(variant)?;
 
                 static_methods.push(format!(
@@ -2740,12 +2777,17 @@ fn generate_internally_tagged_factory_class(
 fn generate_externally_tagged_factory_class(
     enum_def: &reflectapi_schema::Enum,
     enum_name: &str,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
     let factory_name = format!("{enum_name}Factory");
     let class_attributes: Vec<String> = Vec::new();
     let mut static_methods = Vec::new();
+
+    let active_generics: Vec<String> = enum_def.parameters.iter().map(|p| p.name.clone()).collect();
 
     for variant in &enum_def.variants {
         let variant_name = variant.name();
@@ -2762,7 +2804,13 @@ fn generate_externally_tagged_factory_class(
                 let method_name = to_snake_case(variant_name);
                 let variant_class_name =
                     format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
-                let method_params = generate_factory_method_params(variant)?;
+                let method_params = generate_factory_method_params(
+                    variant,
+                    schema,
+                    implemented_types,
+                    &active_generics,
+                    used_type_vars,
+                )?;
                 let method_args = generate_factory_method_args(variant)?;
 
                 static_methods.push(format!(
@@ -2789,7 +2837,13 @@ fn generate_externally_tagged_factory_class(
     Ok(factory_code)
 }
 
-fn generate_factory_method_params(variant: &reflectapi_schema::Variant) -> anyhow::Result<String> {
+fn generate_factory_method_params(
+    variant: &reflectapi_schema::Variant,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    active_generics: &[String],
+    used_type_vars: &mut BTreeSet<String>,
+) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
     match &variant.fields {
@@ -2800,10 +2854,23 @@ fn generate_factory_method_params(variant: &reflectapi_schema::Variant) -> anyho
                 .enumerate()
                 .map(|(i, field)| {
                     let param_name = format!("field_{i}");
-                    if field.required {
-                        param_name
+                    let type_annotation = type_ref_to_python_type(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        active_generics,
+                        used_type_vars,
+                    )
+                    .unwrap_or_else(|_| "Any".to_string());
+                    let full_type = if field.required {
+                        type_annotation
                     } else {
-                        format!("{param_name} = None")
+                        format!("{type_annotation} | None")
+                    };
+                    if field.required {
+                        format!("{param_name}: {full_type}")
+                    } else {
+                        format!("{param_name}: {full_type} = None")
                     }
                 })
                 .collect();
@@ -2818,10 +2885,23 @@ fn generate_factory_method_params(variant: &reflectapi_schema::Variant) -> anyho
 
             for field in named_fields {
                 let param_name = to_snake_case(field.serde_name());
-                if field.required {
-                    required_params.push(param_name);
+                let type_annotation = type_ref_to_python_type(
+                    &field.type_ref,
+                    schema,
+                    implemented_types,
+                    active_generics,
+                    used_type_vars,
+                )
+                .unwrap_or_else(|_| "Any".to_string());
+                let full_type = if field.required {
+                    type_annotation
                 } else {
-                    optional_params.push(format!("{param_name} = None"));
+                    format!("{type_annotation} | None")
+                };
+                if field.required {
+                    required_params.push(format!("{param_name}: {full_type}"));
+                } else {
+                    optional_params.push(format!("{param_name}: {full_type} = None"));
                 }
             }
 
@@ -3046,8 +3126,10 @@ fn render_internally_tagged_enum_core(
                                     (false, None, field_type)
                                 };
 
-                            let (sanitized, alias) =
-                                sanitize_field_name_with_alias(struct_field.name());
+                            let (sanitized, alias) = sanitize_field_name_with_alias(
+                                struct_field.name(),
+                                struct_field.serde_name(),
+                            );
                             fields.push(templates::Field {
                                 name: sanitized,
                                 type_annotation: final_field_type,
@@ -3111,7 +3193,8 @@ fn render_internally_tagged_enum_core(
                         (false, None, field_type)
                     };
 
-                    let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+                    let (sanitized, alias) =
+                        sanitize_field_name_with_alias(field.name(), field.serde_name());
                     fields.push(templates::Field {
                         name: sanitized,
                         type_annotation: final_field_type,
@@ -3277,7 +3360,8 @@ fn render_untagged_enum(
                         (false, None, field_type)
                     };
 
-                    let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+                    let (sanitized, alias) =
+                        sanitize_field_name_with_alias(field.name(), field.serde_name());
                     fields.push(templates::Field {
                         name: sanitized,
                         type_annotation: final_field_type,
@@ -3992,17 +4076,35 @@ fn extract_error_suffix(error_name: &str) -> Option<String> {
 }
 
 fn sanitize_field_name(s: &str) -> String {
-    to_valid_python_identifier(&to_snake_case(s))
+    let mut result = to_valid_python_identifier(&to_snake_case(s));
+    // Strip leading underscores - Pydantic v2 treats _-prefixed fields as private
+    result = result.trim_start_matches('_').to_string();
+    if result.is_empty() {
+        // Edge case: name was all underscores
+        "field".to_string()
+    } else {
+        result
+    }
 }
 
-fn sanitize_field_name_with_alias(s: &str) -> (String, Option<String>) {
-    let snake_case = to_snake_case(s);
+fn sanitize_field_name_with_alias(name: &str, serde_name: &str) -> (String, Option<String>) {
+    let snake_case = to_snake_case(name);
     let sanitized = to_valid_python_identifier(&snake_case);
 
-    // If the sanitized name is different from the snake_case version,
-    // it means we had to modify it due to Python keywords/builtins
-    if sanitized != snake_case {
-        (sanitized, Some(snake_case))
+    // Strip leading underscores - Pydantic v2 treats _-prefixed fields as private
+    let sanitized = sanitized.trim_start_matches('_').to_string();
+    let sanitized = if sanitized.is_empty() {
+        // Edge case: name was all underscores
+        "field".to_string()
+    } else {
+        sanitized
+    };
+
+    // The wire name (serde_name) is what goes over JSON.
+    // We need an alias whenever the Python field name differs from the wire name.
+    let wire_name = serde_name;
+    if sanitized != wire_name {
+        (sanitized, Some(wire_name.to_string()))
     } else {
         (sanitized, None)
     }

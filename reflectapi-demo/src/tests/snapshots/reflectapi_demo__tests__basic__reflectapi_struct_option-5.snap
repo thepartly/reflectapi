@@ -31,7 +31,7 @@ class ReflectapiDemoTestsBasicTestStructOption(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: int | None = None
+    f: int | None = Field(default=None, serialization_alias="_f", validation_alias="_f")
 
 
 class AsyncInoutClient:

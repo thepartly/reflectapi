@@ -30,7 +30,9 @@ class ReflectapiDemoTestsBasicTestStructWithTuple12(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: StdTupleTuple12[int, str, int, str, int, str, int, str, int, str, int, str]
+    f: StdTupleTuple12[int, str, int, str, int, str, int, str, int, str, int, str] = (
+        Field(serialization_alias="_f", validation_alias="_f")
+    )
 
 
 class AsyncInoutClient:

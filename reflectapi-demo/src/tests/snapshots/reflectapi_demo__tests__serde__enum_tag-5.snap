@@ -162,12 +162,12 @@ class ReflectapiDemoTestsSerdeTestEnumTagFactory:
     """
 
     @staticmethod
-    def variant1(field_name) -> ReflectapiDemoTestsSerdeTestEnumTagVariant1:
+    def variant1(field_name: int) -> ReflectapiDemoTestsSerdeTestEnumTagVariant1:
         """Creates the 'Variant1' variant of the ReflectapiDemoTestsSerdeTestEnumTag enum."""
         return ReflectapiDemoTestsSerdeTestEnumTagVariant1(field_name=field_name)
 
     @staticmethod
-    def variant2(field_name) -> ReflectapiDemoTestsSerdeTestEnumTagVariant2:
+    def variant2(field_name: int) -> ReflectapiDemoTestsSerdeTestEnumTagVariant2:
         """Creates the 'Variant2' variant of the ReflectapiDemoTestsSerdeTestEnumTag enum."""
         return ReflectapiDemoTestsSerdeTestEnumTagVariant2(field_name=field_name)
 

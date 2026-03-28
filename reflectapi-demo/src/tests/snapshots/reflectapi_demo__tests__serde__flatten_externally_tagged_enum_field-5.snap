@@ -85,9 +85,9 @@ class ReflectapiDemoTestsSerdeShape(RootModel[ReflectapiDemoTestsSerdeShapeVaria
     @model_serializer
     def _serialize_externally_tagged(self):
         if isinstance(self.root, ReflectapiDemoTestsSerdeShapeCircleVariant):
-            return {"Circle": self.root.model_dump(exclude_none=True)}
+            return {"Circle": self.root.model_dump()}
         if isinstance(self.root, ReflectapiDemoTestsSerdeShapeRectVariant):
-            return {"Rect": self.root.model_dump(exclude_none=True)}
+            return {"Rect": self.root.model_dump()}
 
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsSerdeShape variant: {type(self.root)}"
@@ -212,14 +212,14 @@ class ReflectapiDemoTestsSerdeShapeFactory:
     """
 
     @staticmethod
-    def circle(radius) -> ReflectapiDemoTestsSerdeShape:
+    def circle(radius: float) -> ReflectapiDemoTestsSerdeShape:
         """Creates the 'Circle' variant of the ReflectapiDemoTestsSerdeShape enum."""
         return ReflectapiDemoTestsSerdeShape(
             ReflectapiDemoTestsSerdeShapeCircleVariant(radius=radius)
         )
 
     @staticmethod
-    def rect(width, height) -> ReflectapiDemoTestsSerdeShape:
+    def rect(width: float, height: float) -> ReflectapiDemoTestsSerdeShape:
         """Creates the 'Rect' variant of the ReflectapiDemoTestsSerdeShape enum."""
         return ReflectapiDemoTestsSerdeShape(
             ReflectapiDemoTestsSerdeShapeRectVariant(width=width, height=height)

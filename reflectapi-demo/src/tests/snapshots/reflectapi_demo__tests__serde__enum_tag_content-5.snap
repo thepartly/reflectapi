@@ -102,10 +102,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContent(
         if isinstance(
             self.root, ReflectapiDemoTestsSerdeTestEnumTagContentVariant1Variant
         ):
-            return {
-                "type": "Variant1",
-                "content": self.root.model_dump(exclude_none=True),
-            }
+            return {"type": "Variant1", "content": self.root.model_dump()}
         if isinstance(
             self.root, ReflectapiDemoTestsSerdeTestEnumTagContentVariant2Variant
         ):
@@ -223,7 +220,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentFactory:
     """
 
     @staticmethod
-    def variant1(field_name) -> ReflectapiDemoTestsSerdeTestEnumTagContent:
+    def variant1(field_name: int) -> ReflectapiDemoTestsSerdeTestEnumTagContent:
         """Creates the 'Variant1' variant of the ReflectapiDemoTestsSerdeTestEnumTagContent enum."""
         return ReflectapiDemoTestsSerdeTestEnumTagContent(
             ReflectapiDemoTestsSerdeTestEnumTagContentVariant1Variant(
@@ -232,7 +229,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentFactory:
         )
 
     @staticmethod
-    def variant2(field_0) -> ReflectapiDemoTestsSerdeTestEnumTagContent:
+    def variant2(field_0: int) -> ReflectapiDemoTestsSerdeTestEnumTagContent:
         """Creates the 'Variant2' variant of the ReflectapiDemoTestsSerdeTestEnumTagContent enum."""
         return ReflectapiDemoTestsSerdeTestEnumTagContent(
             ReflectapiDemoTestsSerdeTestEnumTagContentVariant2Variant(field_0=field_0)

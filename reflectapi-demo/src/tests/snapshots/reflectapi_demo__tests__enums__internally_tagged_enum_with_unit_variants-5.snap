@@ -160,7 +160,7 @@ class ReflectapiDemoTestsEnumsAFactory:
     X = ReflectapiDemoTestsEnumsAX()
 
     @staticmethod
-    def y(field_0) -> ReflectapiDemoTestsEnumsAY:
+    def y(field_0: None) -> ReflectapiDemoTestsEnumsAY:
         """Creates the 'Y' variant of the ReflectapiDemoTestsEnumsA enum."""
         return ReflectapiDemoTestsEnumsAY(field_0=field_0)
 

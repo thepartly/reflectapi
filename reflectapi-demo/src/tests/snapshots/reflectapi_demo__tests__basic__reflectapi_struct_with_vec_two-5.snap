@@ -30,8 +30,8 @@ class ReflectapiDemoTestsBasicTestStructWithVecTwo(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: bytes
-    _f2: list[int]
+    f: bytes = Field(serialization_alias="_f", validation_alias="_f")
+    f2: list[int] = Field(serialization_alias="_f2", validation_alias="_f2")
 
 
 class AsyncInoutClient:
