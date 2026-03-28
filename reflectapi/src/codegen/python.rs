@@ -1193,17 +1193,8 @@ fn modules_from_rendered_types(
                 });
         }
         if let Some(rendered_type) = rendered_types.remove(&original_type_name) {
-            let flat_name = improve_class_name(&original_type_name);
-            let leaf_name = improve_class_name_part(
-                original_type_name
-                    .split("::")
-                    .last()
-                    .unwrap_or(&original_type_name),
-            );
             module.types.push(templates::ModuleType {
                 rendered: rendered_type,
-                flat_name,
-                leaf_name,
             });
         }
     }
@@ -4993,10 +4984,6 @@ pub mod templates {
     pub struct ModuleType {
         /// The rendered Python source code for this type.
         pub rendered: String,
-        /// The flat class name used at module top-level (e.g., `ReflectapiDemoTestsSerdeOffer`).
-        pub flat_name: String,
-        /// The PascalCase leaf name for namespace aliases (e.g., `Offer`).
-        pub leaf_name: String,
     }
 
     pub struct Module {
