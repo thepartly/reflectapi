@@ -310,9 +310,17 @@ impl Default for SymbolTable {
 }
 
 impl SemanticSchema {
-    /// Look up a type by its name. This provides a bridge for codegen backends
-    /// transitioning from string-based `Schema::get_type()` to SymbolId-based lookups.
+    /// Look up a type by its name via the symbol table's resolution cache.
+    /// Falls back to linear scan if the name isn't in the symbol table.
     pub fn get_type_by_name(&self, name: &str) -> Option<&SemanticType> {
+        // Try symbol table lookup first (O(log n))
+        let path = name.split("::").map(|s| s.to_string()).collect::<Vec<_>>();
+        if let Some(info) = self.symbol_table.get_by_path(&path) {
+            if let Some(ty) = self.types.get(&info.id) {
+                return Some(ty);
+            }
+        }
+        // Fallback: linear scan by name (handles post-normalization name changes)
         self.types.values().find(|t| t.name() == name)
     }
 
@@ -331,9 +339,9 @@ impl SemanticSchema {
         self.functions.values()
     }
 
-    /// Get an ordered list of type names (for backward compat with codegen iteration).
-    pub fn type_names(&self) -> Vec<String> {
-        self.types.values().map(|t| t.name().to_string()).collect()
+    /// Ordered type names (deterministic via BTreeMap).
+    pub fn type_names(&self) -> impl Iterator<Item = &str> {
+        self.types.values().map(|t| t.name())
     }
 }
 

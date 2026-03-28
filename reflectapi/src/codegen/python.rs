@@ -1101,22 +1101,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Build the semantic IR for type-safe lookups and deterministic ordering.
     // The Normalizer runs ensure_symbol_ids + NormalizationPipeline internally,
     // producing a fully-resolved SemanticSchema.
-    let semantic = reflectapi_schema::Normalizer::new()
+    let _semantic = reflectapi_schema::Normalizer::new()
         .normalize(schema.clone())
-        .unwrap_or_else(|errors| {
-            // Normalization is best-effort for now — fall back gracefully
-            // if the schema has issues the normalizer can't handle yet.
-            for error in &errors {
-                eprintln!("Warning: normalization error: {error}");
-            }
-            // Re-run with a fresh schema to get at least a partial result
-            let mut fallback = schema.clone();
-            reflectapi_schema::ensure_symbol_ids(&mut fallback);
-            // Build a minimal SemanticSchema manually
-            reflectapi_schema::Normalizer::new()
-                .normalize(fallback)
-                .expect("fallback normalization should not fail")
-        });
+        .ok();
 
     let mut generated_code = Vec::new();
 
@@ -1236,10 +1223,6 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         sorted.sort();
         sorted
     });
-    // The SemanticSchema is available as `semantic` for type-safe lookups
-    // in render functions (e.g., flatten resolution). The raw Schema is still
-    // used for the main iteration loop since type names match pre-normalization.
-    let _ = &semantic; // suppress unused warning; used by render functions
     for original_type_name in &sorted_type_names {
         if runtime_provided_types.contains(&original_type_name.as_str()) {
             continue;
