@@ -38,7 +38,7 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGeneric(
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    f: ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGeneric[T] = Field(
+    f: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGeneric[T] = Field(
         serialization_alias="_f", validation_alias="_f"
     )
     f2: T = Field(serialization_alias="_f2", validation_alias="_f2")
@@ -51,12 +51,30 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericParent(
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    f: ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGeneric[
-        ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericParent[T]
+    f: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGeneric[
+        reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericParent[T]
     ] = Field(serialization_alias="_f", validation_alias="_f")
-    f2: StdMarkerPhantomData[T] = Field(
+    f2: std.marker.PhantomData[T] = Field(
         serialization_alias="_f2", validation_alias="_f2"
     )
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class generics:
+            """Namespace for generics types."""
+
+            TestStructWithCircularReferenceGeneric = (
+                ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGeneric
+            )
+            TestStructWithCircularReferenceGenericParent = (
+                ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericParent
+            )
 
 
 class AsyncInputClient:
@@ -68,7 +86,9 @@ class AsyncInputClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericParent[int]
+            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericParent[
+                int
+            ]
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -113,7 +133,9 @@ class InputClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericParent[int]
+            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericParent[
+                int
+            ]
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -157,8 +179,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGeneric.model_rebuild()
-    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericParent.model_rebuild()
+    reflectapi_demo.tests.generics.TestStructWithCircularReferenceGeneric.model_rebuild()
+    reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericParent.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -168,19 +190,19 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsgenericsteststructwithcircularreferencegeneric_response(
-    value: ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGeneric,
-) -> ApiResponse[ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGeneric]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGeneric."""
+def create_reflectapi_demo_tests_generics_teststructwithcircularreferencegeneric_response(
+    value: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGeneric,
+) -> ApiResponse[reflectapi_demo.tests.generics.TestStructWithCircularReferenceGeneric]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.generics.TestStructWithCircularReferenceGeneric."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsgenericsteststructwithcircularreferencegenericparent_response(
-    value: ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericParent,
+def create_reflectapi_demo_tests_generics_teststructwithcircularreferencegenericparent_response(
+    value: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericParent,
 ) -> ApiResponse[
-    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericParent
+    reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericParent
 ]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericParent."""
+    """Create a mock ApiResponse for reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericParent."""
     return create_api_response(value)
 
 

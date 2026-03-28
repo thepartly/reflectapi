@@ -116,6 +116,30 @@ class ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant(
         )
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestEnumRenameAllOnVariantVariant1Variant = (
+                ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant1Variant
+            )
+            TestEnumRenameAllOnVariantVariant2Variant = (
+                ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant2Variant
+            )
+            TestEnumRenameAllOnVariantVariants = (
+                ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariants
+            )
+            TestEnumRenameAllOnVariant = (
+                ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant
+            )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -124,15 +148,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant]: Response containing ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant]: Response containing reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant data
         """
         path = "/inout_test"
 
@@ -142,7 +166,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant,
+            response_model=reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant,
         )
 
 
@@ -167,15 +191,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant]: Response containing ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant]: Response containing reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant data
         """
         path = "/inout_test"
 
@@ -185,7 +209,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant,
+            response_model=reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant,
         )
 
 
@@ -210,33 +234,37 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant.model_rebuild()
+    reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
 
 
 # Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_TestEnumRenameAllOnVariantFactory:
+    """Factory class for creating reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant variants
+    reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant variants
     """
 
     @staticmethod
-    def variant1(field_name: int) -> ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant:
-        """Creates the 'Variant1' variant of the ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant enum."""
-        return ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant(
-            ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant1Variant(
+    def variant1(
+        field_name: int,
+    ) -> reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant:
+        """Creates the 'Variant1' variant of the reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant enum."""
+        return reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant(
+            reflectapi_demo.tests.serde.TestEnumRenameAllOnVariantVariant1Variant(
                 field_name=field_name
             )
         )
 
     @staticmethod
-    def variant2(field_0: int) -> ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant:
-        """Creates the 'Variant2' variant of the ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant enum."""
-        return ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant(
-            ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant2Variant(
+    def variant2(
+        field_0: int,
+    ) -> reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant:
+        """Creates the 'Variant2' variant of the reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant enum."""
+        return reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant(
+            reflectapi_demo.tests.serde.TestEnumRenameAllOnVariantVariant2Variant(
                 field_0=field_0
             )
         )
@@ -245,10 +273,10 @@ class ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantFactory:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdetestenumrenameallonvariant_response(
-    value: ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant."""
+def create_reflectapi_demo_tests_serde_testenumrenameallonvariant_response(
+    value: reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant,
+) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant."""
     return create_api_response(value)
 
 

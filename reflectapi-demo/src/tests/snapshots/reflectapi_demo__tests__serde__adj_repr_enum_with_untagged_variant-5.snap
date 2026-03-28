@@ -53,6 +53,21 @@ class ReflectapiDemoTestsSerdeTest(RootModel):
     ]
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestVariant1 = ReflectapiDemoTestsSerdeTestVariant1
+            TestVariant2 = ReflectapiDemoTestsSerdeTestVariant2
+            Test = ReflectapiDemoTestsSerdeTest
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -61,15 +76,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
+        data: Optional[reflectapi_demo.tests.serde.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
+            ApiResponse[reflectapi_demo.tests.serde.Test]: Response containing reflectapi_demo.tests.serde.Test data
         """
         path = "/inout_test"
 
@@ -79,7 +94,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTest,
+            response_model=reflectapi_demo.tests.serde.Test,
         )
 
 
@@ -104,15 +119,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
+        data: Optional[reflectapi_demo.tests.serde.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
+            ApiResponse[reflectapi_demo.tests.serde.Test]: Response containing reflectapi_demo.tests.serde.Test data
         """
         path = "/inout_test"
 
@@ -122,7 +137,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTest,
+            response_model=reflectapi_demo.tests.serde.Test,
         )
 
 
@@ -147,37 +162,37 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTest.model_rebuild()
+    reflectapi_demo.tests.serde.Test.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
 
 
 # Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeTestFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeTest variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_TestFactory:
+    """Factory class for creating reflectapi_demo.tests.serde.Test variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdeTest variants
+    reflectapi_demo.tests.serde.Test variants
     """
 
     @staticmethod
-    def variant1(field_name: int) -> ReflectapiDemoTestsSerdeTestVariant1:
-        """Creates the 'Variant1' variant of the ReflectapiDemoTestsSerdeTest enum."""
-        return ReflectapiDemoTestsSerdeTestVariant1(field_name=field_name)
+    def variant1(field_name: int) -> reflectapi_demo.tests.serde.TestVariant1:
+        """Creates the 'Variant1' variant of the reflectapi_demo.tests.serde.Test enum."""
+        return reflectapi_demo.tests.serde.TestVariant1(field_name=field_name)
 
     @staticmethod
-    def variant2(field_0: str) -> ReflectapiDemoTestsSerdeTestVariant2:
-        """Creates the 'Variant2' variant of the ReflectapiDemoTestsSerdeTest enum."""
-        return ReflectapiDemoTestsSerdeTestVariant2(field_0=field_0)
+    def variant2(field_0: str) -> reflectapi_demo.tests.serde.TestVariant2:
+        """Creates the 'Variant2' variant of the reflectapi_demo.tests.serde.Test enum."""
+        return reflectapi_demo.tests.serde.TestVariant2(field_0=field_0)
 
 
 # Testing utilities
 
 
-def create_reflectapidemotestsserdetest_response(
-    value: ReflectapiDemoTestsSerdeTest,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTest."""
+def create_reflectapi_demo_tests_serde_test_response(
+    value: reflectapi_demo.tests.serde.Test,
+) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Test."""
     return create_api_response(value)
 
 

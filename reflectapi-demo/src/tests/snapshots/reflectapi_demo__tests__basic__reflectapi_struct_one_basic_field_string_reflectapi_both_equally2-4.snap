@@ -35,6 +35,21 @@ class ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually(
     f: int = Field(serialization_alias="_f", validation_alias="_f")
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructOneBasicFieldStringReflectBothEqually = (
+                ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually
+            )
+
+
 class AsyncInputClient:
     """Async client for input_ operations."""
 
@@ -44,7 +59,7 @@ class AsyncInputClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually
+            reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -89,7 +104,7 @@ class InputClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually
+            reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -133,7 +148,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -143,12 +158,12 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicteststructonebasicfieldstringreflectbothequally_response(
-    value: ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually,
+def create_reflectapi_demo_tests_basic_teststructonebasicfieldstringreflectbothequally_response(
+    value: reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually,
 ) -> ApiResponse[
-    ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually
+    reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually
 ]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually."""
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually."""
     return create_api_response(value)
 
 

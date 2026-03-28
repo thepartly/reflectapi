@@ -44,6 +44,19 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBo
     f2: B = Field(serialization_alias="_f2", validation_alias="_f2")
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class generics:
+            """Namespace for generics types."""
+
+            TestStructWithCircularReferenceGenericWithoutBox = ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox
+
+
 class AsyncInputClient:
     """Async client for input_ operations."""
 
@@ -53,11 +66,11 @@ class AsyncInputClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
-                ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
+            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
+                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
                     int, int
                 ],
-                ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
+                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
                     str, int
                 ],
             ]
@@ -105,11 +118,11 @@ class InputClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
-                ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
+            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
+                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
                     int, int
                 ],
-                ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
+                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
                     str, int
                 ],
             ]
@@ -156,7 +169,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox.model_rebuild()
+    reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -166,12 +179,12 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsgenericsteststructwithcircularreferencegenericwithoutbox_response(
-    value: ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox,
+def create_reflectapi_demo_tests_generics_teststructwithcircularreferencegenericwithoutbox_response(
+    value: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox,
 ) -> ApiResponse[
-    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox
+    reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox
 ]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox."""
+    """Create a mock ApiResponse for reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox."""
     return create_api_response(value)
 
 

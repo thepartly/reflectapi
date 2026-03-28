@@ -41,6 +41,20 @@ class ReflectapiDemoTestsSerdeTestStructTryFrom(BaseModel):
     f: int
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestStructTryFormProxy = ReflectapiDemoTestsSerdeTestStructTryFormProxy
+            TestStructTryFrom = ReflectapiDemoTestsSerdeTestStructTryFrom
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -49,15 +63,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestStructTryFrom] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructTryFormProxy]:
+        data: Optional[reflectapi_demo.tests.serde.TestStructTryFrom] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStructTryFormProxy]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestStructTryFormProxy]: Response containing ReflectapiDemoTestsSerdeTestStructTryFormProxy data
+            ApiResponse[reflectapi_demo.tests.serde.TestStructTryFormProxy]: Response containing reflectapi_demo.tests.serde.TestStructTryFormProxy data
         """
         path = "/inout_test"
 
@@ -67,7 +81,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestStructTryFormProxy,
+            response_model=reflectapi_demo.tests.serde.TestStructTryFormProxy,
         )
 
 
@@ -92,15 +106,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestStructTryFrom] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructTryFormProxy]:
+        data: Optional[reflectapi_demo.tests.serde.TestStructTryFrom] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStructTryFormProxy]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestStructTryFormProxy]: Response containing ReflectapiDemoTestsSerdeTestStructTryFormProxy data
+            ApiResponse[reflectapi_demo.tests.serde.TestStructTryFormProxy]: Response containing reflectapi_demo.tests.serde.TestStructTryFormProxy data
         """
         path = "/inout_test"
 
@@ -110,7 +124,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestStructTryFormProxy,
+            response_model=reflectapi_demo.tests.serde.TestStructTryFormProxy,
         )
 
 
@@ -135,8 +149,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestStructTryFormProxy.model_rebuild()
-    ReflectapiDemoTestsSerdeTestStructTryFrom.model_rebuild()
+    reflectapi_demo.tests.serde.TestStructTryFormProxy.model_rebuild()
+    reflectapi_demo.tests.serde.TestStructTryFrom.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -146,17 +160,17 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdeteststructtryformproxy_response(
-    value: ReflectapiDemoTestsSerdeTestStructTryFormProxy,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructTryFormProxy]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestStructTryFormProxy."""
+def create_reflectapi_demo_tests_serde_teststructtryformproxy_response(
+    value: reflectapi_demo.tests.serde.TestStructTryFormProxy,
+) -> ApiResponse[reflectapi_demo.tests.serde.TestStructTryFormProxy]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.TestStructTryFormProxy."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdeteststructtryfrom_response(
-    value: ReflectapiDemoTestsSerdeTestStructTryFrom,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructTryFrom]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestStructTryFrom."""
+def create_reflectapi_demo_tests_serde_teststructtryfrom_response(
+    value: reflectapi_demo.tests.serde.TestStructTryFrom,
+) -> ApiResponse[reflectapi_demo.tests.serde.TestStructTryFrom]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.TestStructTryFrom."""
     return create_api_response(value)
 
 

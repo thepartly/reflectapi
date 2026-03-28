@@ -47,6 +47,20 @@ class ReflectapiDemoTestsSerdeK(BaseModel):
     a: int
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            S = ReflectapiDemoTestsSerdeS
+            K = ReflectapiDemoTestsSerdeK
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -56,16 +70,18 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeS[ReflectapiDemoTestsSerdeK, None]
+            reflectapi_demo.tests.serde.S[reflectapi_demo.tests.serde.K, None]
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeS[ReflectapiDemoTestsSerdeK, None]]:
+    ) -> ApiResponse[
+        reflectapi_demo.tests.serde.S[reflectapi_demo.tests.serde.K, None]
+    ]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeS[ReflectapiDemoTestsSerdeK, None]]: Response containing ReflectapiDemoTestsSerdeS[ReflectapiDemoTestsSerdeK, None] data
+            ApiResponse[reflectapi_demo.tests.serde.S[reflectapi_demo.tests.serde.K, None]]: Response containing reflectapi_demo.tests.serde.S[reflectapi_demo.tests.serde.K, None] data
         """
         path = "/inout_test"
 
@@ -75,7 +91,9 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeS[ReflectapiDemoTestsSerdeK, None],
+            response_model=reflectapi_demo.tests.serde.S[
+                reflectapi_demo.tests.serde.K, None
+            ],
         )
 
 
@@ -101,16 +119,18 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeS[ReflectapiDemoTestsSerdeK, None]
+            reflectapi_demo.tests.serde.S[reflectapi_demo.tests.serde.K, None]
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeS[ReflectapiDemoTestsSerdeK, None]]:
+    ) -> ApiResponse[
+        reflectapi_demo.tests.serde.S[reflectapi_demo.tests.serde.K, None]
+    ]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeS[ReflectapiDemoTestsSerdeK, None]]: Response containing ReflectapiDemoTestsSerdeS[ReflectapiDemoTestsSerdeK, None] data
+            ApiResponse[reflectapi_demo.tests.serde.S[reflectapi_demo.tests.serde.K, None]]: Response containing reflectapi_demo.tests.serde.S[reflectapi_demo.tests.serde.K, None] data
         """
         path = "/inout_test"
 
@@ -120,7 +140,9 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeS[ReflectapiDemoTestsSerdeK, None],
+            response_model=reflectapi_demo.tests.serde.S[
+                reflectapi_demo.tests.serde.K, None
+            ],
         )
 
 
@@ -145,8 +167,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeK.model_rebuild()
-    ReflectapiDemoTestsSerdeS.model_rebuild()
+    reflectapi_demo.tests.serde.K.model_rebuild()
+    reflectapi_demo.tests.serde.S.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -156,17 +178,17 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdek_response(
-    value: ReflectapiDemoTestsSerdeK,
-) -> ApiResponse[ReflectapiDemoTestsSerdeK]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeK."""
+def create_reflectapi_demo_tests_serde_k_response(
+    value: reflectapi_demo.tests.serde.K,
+) -> ApiResponse[reflectapi_demo.tests.serde.K]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.K."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdes_response(
-    value: ReflectapiDemoTestsSerdeS,
-) -> ApiResponse[ReflectapiDemoTestsSerdeS]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeS."""
+def create_reflectapi_demo_tests_serde_s_response(
+    value: reflectapi_demo.tests.serde.S,
+) -> ApiResponse[reflectapi_demo.tests.serde.S]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.S."""
     return create_api_response(value)
 
 

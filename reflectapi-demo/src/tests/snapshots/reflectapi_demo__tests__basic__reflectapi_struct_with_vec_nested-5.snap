@@ -38,9 +38,27 @@ class ReflectapiDemoTestsBasicTestStructWithVecNested(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    f: list[list[ReflectapiDemoTestsTestLibTestStructNested]] = Field(
+    f: list[list[reflectapi_demo.tests.test_lib.TestStructNested]] = Field(
         serialization_alias="_f", validation_alias="_f"
     )
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class test_lib:
+            """Namespace for test_lib types."""
+
+            TestStructNested = ReflectapiDemoTestsTestLibTestStructNested
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructWithVecNested = ReflectapiDemoTestsBasicTestStructWithVecNested
 
 
 class AsyncInoutClient:
@@ -51,15 +69,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructWithVecNested] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithVecNested]:
+        data: Optional[reflectapi_demo.tests.basic.TestStructWithVecNested] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithVecNested]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructWithVecNested]: Response containing ReflectapiDemoTestsBasicTestStructWithVecNested data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructWithVecNested]: Response containing reflectapi_demo.tests.basic.TestStructWithVecNested data
         """
         path = "/inout_test"
 
@@ -69,7 +87,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructWithVecNested,
+            response_model=reflectapi_demo.tests.basic.TestStructWithVecNested,
         )
 
 
@@ -94,15 +112,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructWithVecNested] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithVecNested]:
+        data: Optional[reflectapi_demo.tests.basic.TestStructWithVecNested] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithVecNested]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructWithVecNested]: Response containing ReflectapiDemoTestsBasicTestStructWithVecNested data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructWithVecNested]: Response containing reflectapi_demo.tests.basic.TestStructWithVecNested data
         """
         path = "/inout_test"
 
@@ -112,7 +130,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructWithVecNested,
+            response_model=reflectapi_demo.tests.basic.TestStructWithVecNested,
         )
 
 
@@ -137,8 +155,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructWithVecNested.model_rebuild()
-    ReflectapiDemoTestsTestLibTestStructNested.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructWithVecNested.model_rebuild()
+    reflectapi_demo.tests.test_lib.TestStructNested.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -148,17 +166,17 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicteststructwithvecnested_response(
-    value: ReflectapiDemoTestsBasicTestStructWithVecNested,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithVecNested]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructWithVecNested."""
+def create_reflectapi_demo_tests_basic_teststructwithvecnested_response(
+    value: reflectapi_demo.tests.basic.TestStructWithVecNested,
+) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithVecNested]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.TestStructWithVecNested."""
     return create_api_response(value)
 
 
-def create_reflectapidemoteststestlibteststructnested_response(
-    value: ReflectapiDemoTestsTestLibTestStructNested,
-) -> ApiResponse[ReflectapiDemoTestsTestLibTestStructNested]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsTestLibTestStructNested."""
+def create_reflectapi_demo_tests_test_lib_teststructnested_response(
+    value: reflectapi_demo.tests.test_lib.TestStructNested,
+) -> ApiResponse[reflectapi_demo.tests.test_lib.TestStructNested]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.test_lib.TestStructNested."""
     return create_api_response(value)
 
 

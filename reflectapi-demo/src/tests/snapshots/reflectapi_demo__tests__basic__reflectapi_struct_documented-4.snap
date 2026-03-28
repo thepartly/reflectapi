@@ -35,6 +35,19 @@ class ReflectapiDemoTestsBasicTestStructDocumented(BaseModel):
     f: int
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructDocumented = ReflectapiDemoTestsBasicTestStructDocumented
+
+
 class AsyncInputClient:
     """Async client for input_ operations."""
 
@@ -43,7 +56,7 @@ class AsyncInputClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructDocumented] = None,
+        data: Optional[reflectapi_demo.tests.basic.TestStructDocumented] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -86,7 +99,7 @@ class InputClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructDocumented] = None,
+        data: Optional[reflectapi_demo.tests.basic.TestStructDocumented] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -129,7 +142,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructDocumented.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructDocumented.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -139,10 +152,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicteststructdocumented_response(
-    value: ReflectapiDemoTestsBasicTestStructDocumented,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructDocumented]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructDocumented."""
+def create_reflectapi_demo_tests_basic_teststructdocumented_response(
+    value: reflectapi_demo.tests.basic.TestStructDocumented,
+) -> ApiResponse[reflectapi_demo.tests.basic.TestStructDocumented]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.TestStructDocumented."""
     return create_api_response(value)
 
 

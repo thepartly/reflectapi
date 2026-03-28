@@ -33,6 +33,21 @@ class ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr(BaseModel):
     f: str = Field(serialization_alias="_f", validation_alias="_f")
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructOneBasicFieldStaticStr = (
+                ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr
+            )
+
+
 class AsyncOutputClient:
     """Async client for output operations."""
 
@@ -41,11 +56,11 @@ class AsyncOutputClient:
 
     async def test(
         self,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr]:
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr]:
         """
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr]: Response containing ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr]: Response containing reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr data
         """
         path = "/output_test"
 
@@ -54,7 +69,7 @@ class AsyncOutputClient:
             "POST",
             path,
             params=params if params else None,
-            response_model=ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr,
+            response_model=reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr,
         )
 
 
@@ -79,11 +94,11 @@ class OutputClient:
 
     def test(
         self,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr]:
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr]:
         """
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr]: Response containing ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr]: Response containing reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr data
         """
         path = "/output_test"
 
@@ -92,7 +107,7 @@ class OutputClient:
             "POST",
             path,
             params=params if params else None,
-            response_model=ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr,
+            response_model=reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr,
         )
 
 
@@ -117,7 +132,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -127,10 +142,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicteststructonebasicfieldstaticstr_response(
-    value: ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr."""
+def create_reflectapi_demo_tests_basic_teststructonebasicfieldstaticstr_response(
+    value: reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr,
+) -> ApiResponse[reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr."""
     return create_api_response(value)
 
 

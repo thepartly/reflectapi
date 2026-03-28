@@ -131,6 +131,29 @@ class ReflectapiDemoTestsEnumsTestEnumWithGenerics(
         )
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class enums:
+            """Namespace for enums types."""
+
+            T = T
+            TestEnumWithGenericsVariant1Variant = (
+                ReflectapiDemoTestsEnumsTestEnumWithGenericsVariant1Variant
+            )
+            TestEnumWithGenericsVariant2Variant = (
+                ReflectapiDemoTestsEnumsTestEnumWithGenericsVariant2Variant
+            )
+            TestEnumWithGenericsVariants = (
+                ReflectapiDemoTestsEnumsTestEnumWithGenericsVariants
+            )
+            TestEnumWithGenerics = ReflectapiDemoTestsEnumsTestEnumWithGenerics
+
+
 class AsyncInputClient:
     """Async client for input_ operations."""
 
@@ -139,7 +162,7 @@ class AsyncInputClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsTestEnumWithGenerics[int]] = None,
+        data: Optional[reflectapi_demo.tests.enums.TestEnumWithGenerics[int]] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -182,7 +205,7 @@ class InputClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsTestEnumWithGenerics[int]] = None,
+        data: Optional[reflectapi_demo.tests.enums.TestEnumWithGenerics[int]] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -225,24 +248,24 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsEnumsTestEnumWithGenerics.model_rebuild()
+    reflectapi_demo.tests.enums.TestEnumWithGenerics.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
 
 
 # Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsEnumsTestEnumWithGenericsFactory:
-    """Factory class for creating ReflectapiDemoTestsEnumsTestEnumWithGenerics variants with ergonomic syntax.
+class reflectapi_demo_tests_enums_TestEnumWithGenericsFactory:
+    """Factory class for creating reflectapi_demo.tests.enums.TestEnumWithGenerics variants with ergonomic syntax.
 
-    ReflectapiDemoTestsEnumsTestEnumWithGenerics variants
+    reflectapi_demo.tests.enums.TestEnumWithGenerics variants
     """
 
     @staticmethod
-    def variant1(field_0: T) -> ReflectapiDemoTestsEnumsTestEnumWithGenerics[T]:
-        """Creates the 'Variant1' variant of the ReflectapiDemoTestsEnumsTestEnumWithGenerics enum."""
-        return ReflectapiDemoTestsEnumsTestEnumWithGenerics(
-            ReflectapiDemoTestsEnumsTestEnumWithGenericsVariant1Variant[T](
+    def variant1(field_0: T) -> reflectapi_demo.tests.enums.TestEnumWithGenerics[T]:
+        """Creates the 'Variant1' variant of the reflectapi_demo.tests.enums.TestEnumWithGenerics enum."""
+        return reflectapi_demo.tests.enums.TestEnumWithGenerics(
+            reflectapi_demo.tests.enums.TestEnumWithGenericsVariant1Variant[T](
                 field_0=field_0
             )
         )
@@ -250,10 +273,10 @@ class ReflectapiDemoTestsEnumsTestEnumWithGenericsFactory:
     @staticmethod
     def variant2(
         field_0: T, field_1: T
-    ) -> ReflectapiDemoTestsEnumsTestEnumWithGenerics[T]:
-        """Creates the 'Variant2' variant of the ReflectapiDemoTestsEnumsTestEnumWithGenerics enum."""
-        return ReflectapiDemoTestsEnumsTestEnumWithGenerics(
-            ReflectapiDemoTestsEnumsTestEnumWithGenericsVariant2Variant[T](
+    ) -> reflectapi_demo.tests.enums.TestEnumWithGenerics[T]:
+        """Creates the 'Variant2' variant of the reflectapi_demo.tests.enums.TestEnumWithGenerics enum."""
+        return reflectapi_demo.tests.enums.TestEnumWithGenerics(
+            reflectapi_demo.tests.enums.TestEnumWithGenericsVariant2Variant[T](
                 field_0=field_0, field_1=field_1
             )
         )
@@ -262,10 +285,10 @@ class ReflectapiDemoTestsEnumsTestEnumWithGenericsFactory:
 # Testing utilities
 
 
-def create_reflectapidemotestsenumstestenumwithgenerics_response(
-    value: ReflectapiDemoTestsEnumsTestEnumWithGenerics,
-) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithGenerics]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsEnumsTestEnumWithGenerics."""
+def create_reflectapi_demo_tests_enums_testenumwithgenerics_response(
+    value: reflectapi_demo.tests.enums.TestEnumWithGenerics,
+) -> ApiResponse[reflectapi_demo.tests.enums.TestEnumWithGenerics]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.enums.TestEnumWithGenerics."""
     return create_api_response(value)
 
 

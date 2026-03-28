@@ -67,6 +67,40 @@ class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther(RootModel):
     ]
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            class input:
+                """Namespace for input types."""
+
+                TestEnumWithVariantOtherV0 = (
+                    ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherV0
+                )
+                TestEnumWithVariantOther = (
+                    ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther
+                )
+
+            class output:
+                """Namespace for output types."""
+
+                TestEnumWithVariantOtherV0 = (
+                    ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherV0
+                )
+                TestEnumWithVariantOtherVariant1 = (
+                    ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherVariant1
+                )
+                TestEnumWithVariantOther = (
+                    ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther
+                )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -75,15 +109,17 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther]:
+        data: Optional[
+            reflectapi_demo.tests.serde.input.TestEnumWithVariantOther
+        ] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TestEnumWithVariantOther]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther]: Response containing ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestEnumWithVariantOther]: Response containing reflectapi_demo.tests.serde.output.TestEnumWithVariantOther data
         """
         path = "/inout_test"
 
@@ -93,7 +129,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther,
+            response_model=reflectapi_demo.tests.serde.output.TestEnumWithVariantOther,
         )
 
 
@@ -118,15 +154,17 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther]:
+        data: Optional[
+            reflectapi_demo.tests.serde.input.TestEnumWithVariantOther
+        ] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TestEnumWithVariantOther]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther]: Response containing ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestEnumWithVariantOther]: Response containing reflectapi_demo.tests.serde.output.TestEnumWithVariantOther data
         """
         path = "/inout_test"
 
@@ -136,7 +174,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther,
+            response_model=reflectapi_demo.tests.serde.output.TestEnumWithVariantOther,
         )
 
 
@@ -161,47 +199,47 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther.model_rebuild()
-    ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther.model_rebuild()
+    reflectapi_demo.tests.serde.input.TestEnumWithVariantOther.model_rebuild()
+    reflectapi_demo.tests.serde.output.TestEnumWithVariantOther.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
 
 
 # Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_input_TestEnumWithVariantOtherFactory:
+    """Factory class for creating reflectapi_demo.tests.serde.input.TestEnumWithVariantOther variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther variants
+    reflectapi_demo.tests.serde.input.TestEnumWithVariantOther variants
     """
 
-    V0 = ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherV0()
+    V0 = reflectapi_demo.tests.serde.input.TestEnumWithVariantOtherV0()
 
 
-class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_output_TestEnumWithVariantOtherFactory:
+    """Factory class for creating reflectapi_demo.tests.serde.output.TestEnumWithVariantOther variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther variants
+    reflectapi_demo.tests.serde.output.TestEnumWithVariantOther variants
     """
 
-    V0 = ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherV0()
-    VARIANT1 = ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherVariant1()
+    V0 = reflectapi_demo.tests.serde.output.TestEnumWithVariantOtherV0()
+    VARIANT1 = reflectapi_demo.tests.serde.output.TestEnumWithVariantOtherVariant1()
 
 
 # Testing utilities
 
 
-def create_reflectapidemotestsserdeinputtestenumwithvariantother_response(
-    value: ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther,
-) -> ApiResponse[ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther."""
+def create_reflectapi_demo_tests_serde_input_testenumwithvariantother_response(
+    value: reflectapi_demo.tests.serde.input.TestEnumWithVariantOther,
+) -> ApiResponse[reflectapi_demo.tests.serde.input.TestEnumWithVariantOther]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.input.TestEnumWithVariantOther."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdeoutputtestenumwithvariantother_response(
-    value: ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther,
-) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther."""
+def create_reflectapi_demo_tests_serde_output_testenumwithvariantother_response(
+    value: reflectapi_demo.tests.serde.output.TestEnumWithVariantOther,
+) -> ApiResponse[reflectapi_demo.tests.serde.output.TestEnumWithVariantOther]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.output.TestEnumWithVariantOther."""
     return create_api_response(value)
 
 

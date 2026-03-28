@@ -70,6 +70,23 @@ class ReflectapiDemoTestsSerdeTest(RootModel):
     root: Annotated[Union[ReflectapiDemoTestsSerdeTestS], Field(discriminator="type")]
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            S = ReflectapiDemoTestsSerdeS
+            A = ReflectapiDemoTestsSerdeA
+            B = ReflectapiDemoTestsSerdeB
+            TestS = ReflectapiDemoTestsSerdeTestS
+            Test = ReflectapiDemoTestsSerdeTest
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -78,15 +95,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
+        data: Optional[reflectapi_demo.tests.serde.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
+            ApiResponse[reflectapi_demo.tests.serde.Test]: Response containing reflectapi_demo.tests.serde.Test data
         """
         path = "/inout_test"
 
@@ -96,7 +113,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTest,
+            response_model=reflectapi_demo.tests.serde.Test,
         )
 
 
@@ -121,15 +138,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
+        data: Optional[reflectapi_demo.tests.serde.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
+            ApiResponse[reflectapi_demo.tests.serde.Test]: Response containing reflectapi_demo.tests.serde.Test data
         """
         path = "/inout_test"
 
@@ -139,7 +156,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTest,
+            response_model=reflectapi_demo.tests.serde.Test,
         )
 
 
@@ -164,60 +181,60 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeA.model_rebuild()
-    ReflectapiDemoTestsSerdeB.model_rebuild()
-    ReflectapiDemoTestsSerdeS.model_rebuild()
-    ReflectapiDemoTestsSerdeTest.model_rebuild()
+    reflectapi_demo.tests.serde.A.model_rebuild()
+    reflectapi_demo.tests.serde.B.model_rebuild()
+    reflectapi_demo.tests.serde.S.model_rebuild()
+    reflectapi_demo.tests.serde.Test.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
 
 
 # Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeTestFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeTest variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_TestFactory:
+    """Factory class for creating reflectapi_demo.tests.serde.Test variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdeTest variants
+    reflectapi_demo.tests.serde.Test variants
     """
 
     @staticmethod
     def s(
-        field_0: ReflectapiDemoTestsSerdeS[
-            ReflectapiDemoTestsSerdeA, ReflectapiDemoTestsSerdeB
+        field_0: reflectapi_demo.tests.serde.S[
+            reflectapi_demo.tests.serde.A, reflectapi_demo.tests.serde.B
         ],
-    ) -> ReflectapiDemoTestsSerdeTestS:
-        """Creates the 'S' variant of the ReflectapiDemoTestsSerdeTest enum."""
-        return ReflectapiDemoTestsSerdeTestS(field_0=field_0)
+    ) -> reflectapi_demo.tests.serde.TestS:
+        """Creates the 'S' variant of the reflectapi_demo.tests.serde.Test enum."""
+        return reflectapi_demo.tests.serde.TestS(field_0=field_0)
 
 
 # Testing utilities
 
 
-def create_reflectapidemotestsserdea_response(
-    value: ReflectapiDemoTestsSerdeA,
-) -> ApiResponse[ReflectapiDemoTestsSerdeA]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeA."""
+def create_reflectapi_demo_tests_serde_a_response(
+    value: reflectapi_demo.tests.serde.A,
+) -> ApiResponse[reflectapi_demo.tests.serde.A]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.A."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdeb_response(
-    value: ReflectapiDemoTestsSerdeB,
-) -> ApiResponse[ReflectapiDemoTestsSerdeB]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeB."""
+def create_reflectapi_demo_tests_serde_b_response(
+    value: reflectapi_demo.tests.serde.B,
+) -> ApiResponse[reflectapi_demo.tests.serde.B]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.B."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdes_response(
-    value: ReflectapiDemoTestsSerdeS,
-) -> ApiResponse[ReflectapiDemoTestsSerdeS]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeS."""
+def create_reflectapi_demo_tests_serde_s_response(
+    value: reflectapi_demo.tests.serde.S,
+) -> ApiResponse[reflectapi_demo.tests.serde.S]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.S."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdetest_response(
-    value: ReflectapiDemoTestsSerdeTest,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTest."""
+def create_reflectapi_demo_tests_serde_test_response(
+    value: reflectapi_demo.tests.serde.Test,
+) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Test."""
     return create_api_response(value)
 
 

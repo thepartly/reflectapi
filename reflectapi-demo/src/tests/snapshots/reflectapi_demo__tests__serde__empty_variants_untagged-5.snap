@@ -51,6 +51,30 @@ ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged = Union[
 ]
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestEmptyVariantsUntaggedEmpty = (
+                ReflectapiDemoTestsSerdeTestEmptyVariantsUntaggedEmpty
+            )
+            TestEmptyVariantsUntaggedEmptyUnit = (
+                ReflectapiDemoTestsSerdeTestEmptyVariantsUntaggedEmptyUnit
+            )
+            TestEmptyVariantsUntaggedEmptyStruct = (
+                ReflectapiDemoTestsSerdeTestEmptyVariantsUntaggedEmptyStruct
+            )
+            TestEmptyVariantsUntagged = (
+                ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged
+            )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -59,15 +83,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged]:
+        data: Optional[reflectapi_demo.tests.serde.TestEmptyVariantsUntagged] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEmptyVariantsUntagged]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged]: Response containing ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged data
+            ApiResponse[reflectapi_demo.tests.serde.TestEmptyVariantsUntagged]: Response containing reflectapi_demo.tests.serde.TestEmptyVariantsUntagged data
         """
         path = "/inout_test"
 
@@ -77,7 +101,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged,
+            response_model=reflectapi_demo.tests.serde.TestEmptyVariantsUntagged,
         )
 
 
@@ -102,15 +126,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged]:
+        data: Optional[reflectapi_demo.tests.serde.TestEmptyVariantsUntagged] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEmptyVariantsUntagged]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged]: Response containing ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged data
+            ApiResponse[reflectapi_demo.tests.serde.TestEmptyVariantsUntagged]: Response containing reflectapi_demo.tests.serde.TestEmptyVariantsUntagged data
         """
         path = "/inout_test"
 
@@ -120,7 +144,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged,
+            response_model=reflectapi_demo.tests.serde.TestEmptyVariantsUntagged,
         )
 
 
@@ -145,7 +169,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged.model_rebuild()
+    reflectapi_demo.tests.serde.TestEmptyVariantsUntagged.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -155,10 +179,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdetestemptyvariantsuntagged_response(
-    value: ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestEmptyVariantsUntagged."""
+def create_reflectapi_demo_tests_serde_testemptyvariantsuntagged_response(
+    value: reflectapi_demo.tests.serde.TestEmptyVariantsUntagged,
+) -> ApiResponse[reflectapi_demo.tests.serde.TestEmptyVariantsUntagged]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.TestEmptyVariantsUntagged."""
     return create_api_response(value)
 
 

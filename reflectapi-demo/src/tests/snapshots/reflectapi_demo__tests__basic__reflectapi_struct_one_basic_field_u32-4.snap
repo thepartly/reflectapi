@@ -33,6 +33,21 @@ class ReflectapiDemoTestsBasicTestStructOneBasicFieldU32(BaseModel):
     f: int = Field(serialization_alias="_f", validation_alias="_f")
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructOneBasicFieldU32 = (
+                ReflectapiDemoTestsBasicTestStructOneBasicFieldU32
+            )
+
+
 class AsyncInputClient:
     """Async client for input_ operations."""
 
@@ -41,7 +56,7 @@ class AsyncInputClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructOneBasicFieldU32] = None,
+        data: Optional[reflectapi_demo.tests.basic.TestStructOneBasicFieldU32] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -84,7 +99,7 @@ class InputClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructOneBasicFieldU32] = None,
+        data: Optional[reflectapi_demo.tests.basic.TestStructOneBasicFieldU32] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -127,7 +142,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructOneBasicFieldU32.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructOneBasicFieldU32.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -137,10 +152,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicteststructonebasicfieldu32_response(
-    value: ReflectapiDemoTestsBasicTestStructOneBasicFieldU32,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructOneBasicFieldU32]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructOneBasicFieldU32."""
+def create_reflectapi_demo_tests_basic_teststructonebasicfieldu32_response(
+    value: reflectapi_demo.tests.basic.TestStructOneBasicFieldU32,
+) -> ApiResponse[reflectapi_demo.tests.basic.TestStructOneBasicFieldU32]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.TestStructOneBasicFieldU32."""
     return create_api_response(value)
 
 

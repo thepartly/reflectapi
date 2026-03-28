@@ -53,7 +53,23 @@ class ReflectapiDemoTestsSerdeCell(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     label: str
-    content: ReflectapiDemoTestsSerdeValue
+    content: reflectapi_demo.tests.serde.Value
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            ValueNum = ReflectapiDemoTestsSerdeValueNum
+            ValueText = ReflectapiDemoTestsSerdeValueText
+            Value = ReflectapiDemoTestsSerdeValue
+            Cell = ReflectapiDemoTestsSerdeCell
 
 
 class AsyncInoutClient:
@@ -64,15 +80,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeCell] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeCell]:
+        data: Optional[reflectapi_demo.tests.serde.Cell] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Cell]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeCell]: Response containing ReflectapiDemoTestsSerdeCell data
+            ApiResponse[reflectapi_demo.tests.serde.Cell]: Response containing reflectapi_demo.tests.serde.Cell data
         """
         path = "/inout_test"
 
@@ -82,7 +98,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeCell,
+            response_model=reflectapi_demo.tests.serde.Cell,
         )
 
 
@@ -107,15 +123,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeCell] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeCell]:
+        data: Optional[reflectapi_demo.tests.serde.Cell] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Cell]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeCell]: Response containing ReflectapiDemoTestsSerdeCell data
+            ApiResponse[reflectapi_demo.tests.serde.Cell]: Response containing reflectapi_demo.tests.serde.Cell data
         """
         path = "/inout_test"
 
@@ -125,7 +141,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeCell,
+            response_model=reflectapi_demo.tests.serde.Cell,
         )
 
 
@@ -150,8 +166,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeCell.model_rebuild()
-    ReflectapiDemoTestsSerdeValue.model_rebuild()
+    reflectapi_demo.tests.serde.Cell.model_rebuild()
+    reflectapi_demo.tests.serde.Value.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -161,17 +177,17 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdecell_response(
-    value: ReflectapiDemoTestsSerdeCell,
-) -> ApiResponse[ReflectapiDemoTestsSerdeCell]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeCell."""
+def create_reflectapi_demo_tests_serde_cell_response(
+    value: reflectapi_demo.tests.serde.Cell,
+) -> ApiResponse[reflectapi_demo.tests.serde.Cell]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Cell."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdevalue_response(
-    value: ReflectapiDemoTestsSerdeValue,
-) -> ApiResponse[ReflectapiDemoTestsSerdeValue]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeValue."""
+def create_reflectapi_demo_tests_serde_value_response(
+    value: reflectapi_demo.tests.serde.Value,
+) -> ApiResponse[reflectapi_demo.tests.serde.Value]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Value."""
     return create_api_response(value)
 
 

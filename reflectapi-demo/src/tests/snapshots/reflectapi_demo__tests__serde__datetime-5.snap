@@ -49,6 +49,28 @@ class ReflectapiDemoTestsSerdeTestStruct(BaseModel):
     date_time_local: datetime
 
 
+# Namespace classes for dotted access to types
+class std:
+    """Namespace for std types."""
+
+    class time:
+        """Namespace for time types."""
+
+        Duration = StdTimeDuration
+
+
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestStruct = ReflectapiDemoTestsSerdeTestStruct
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -57,15 +79,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestStruct] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStruct]:
+        data: Optional[reflectapi_demo.tests.serde.TestStruct] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStruct]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestStruct]: Response containing ReflectapiDemoTestsSerdeTestStruct data
+            ApiResponse[reflectapi_demo.tests.serde.TestStruct]: Response containing reflectapi_demo.tests.serde.TestStruct data
         """
         path = "/inout_test"
 
@@ -75,7 +97,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestStruct,
+            response_model=reflectapi_demo.tests.serde.TestStruct,
         )
 
 
@@ -100,15 +122,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestStruct] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStruct]:
+        data: Optional[reflectapi_demo.tests.serde.TestStruct] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStruct]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestStruct]: Response containing ReflectapiDemoTestsSerdeTestStruct data
+            ApiResponse[reflectapi_demo.tests.serde.TestStruct]: Response containing reflectapi_demo.tests.serde.TestStruct data
         """
         path = "/inout_test"
 
@@ -118,7 +140,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestStruct,
+            response_model=reflectapi_demo.tests.serde.TestStruct,
         )
 
 
@@ -143,8 +165,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestStruct.model_rebuild()
-    StdTimeDuration.model_rebuild()
+    reflectapi_demo.tests.serde.TestStruct.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -154,17 +175,17 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdeteststruct_response(
-    value: ReflectapiDemoTestsSerdeTestStruct,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestStruct]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestStruct."""
+def create_reflectapi_demo_tests_serde_teststruct_response(
+    value: reflectapi_demo.tests.serde.TestStruct,
+) -> ApiResponse[reflectapi_demo.tests.serde.TestStruct]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.TestStruct."""
     return create_api_response(value)
 
 
-def create_stdtimeduration_response(
-    value: StdTimeDuration,
-) -> ApiResponse[StdTimeDuration]:
-    """Create a mock ApiResponse for StdTimeDuration."""
+def create_std_time_duration_response(
+    value: std.time.Duration,
+) -> ApiResponse[std.time.Duration]:
+    """Create a mock ApiResponse for std.time.Duration."""
     return create_api_response(value)
 
 

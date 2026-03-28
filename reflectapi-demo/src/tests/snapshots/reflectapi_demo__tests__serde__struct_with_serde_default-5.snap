@@ -41,6 +41,31 @@ class ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault(BaseModel):
     f: int
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            class input:
+                """Namespace for input types."""
+
+                TestStructWithSerdeDefault = (
+                    ReflectapiDemoTestsSerdeInputTestStructWithSerdeDefault
+                )
+
+            class output:
+                """Namespace for output types."""
+
+                TestStructWithSerdeDefault = (
+                    ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault
+                )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -49,15 +74,17 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeInputTestStructWithSerdeDefault] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault]:
+        data: Optional[
+            reflectapi_demo.tests.serde.input.TestStructWithSerdeDefault
+        ] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault]: Response containing ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault]: Response containing reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault data
         """
         path = "/inout_test"
 
@@ -67,7 +94,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault,
+            response_model=reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault,
         )
 
 
@@ -92,15 +119,17 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeInputTestStructWithSerdeDefault] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault]:
+        data: Optional[
+            reflectapi_demo.tests.serde.input.TestStructWithSerdeDefault
+        ] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault]: Response containing ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault]: Response containing reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault data
         """
         path = "/inout_test"
 
@@ -110,7 +139,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault,
+            response_model=reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault,
         )
 
 
@@ -135,8 +164,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeInputTestStructWithSerdeDefault.model_rebuild()
-    ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault.model_rebuild()
+    reflectapi_demo.tests.serde.input.TestStructWithSerdeDefault.model_rebuild()
+    reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -146,17 +175,17 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdeinputteststructwithserdedefault_response(
-    value: ReflectapiDemoTestsSerdeInputTestStructWithSerdeDefault,
-) -> ApiResponse[ReflectapiDemoTestsSerdeInputTestStructWithSerdeDefault]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeInputTestStructWithSerdeDefault."""
+def create_reflectapi_demo_tests_serde_input_teststructwithserdedefault_response(
+    value: reflectapi_demo.tests.serde.input.TestStructWithSerdeDefault,
+) -> ApiResponse[reflectapi_demo.tests.serde.input.TestStructWithSerdeDefault]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.input.TestStructWithSerdeDefault."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdeoutputteststructwithserdedefault_response(
-    value: ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault,
-) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefault."""
+def create_reflectapi_demo_tests_serde_output_teststructwithserdedefault_response(
+    value: reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault,
+) -> ApiResponse[reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.output.TestStructWithSerdeDefault."""
     return create_api_response(value)
 
 

@@ -33,6 +33,21 @@ class ReflectapiDemoTestsSerdeMyEnum(str, Enum):
     V2 = "V2"
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            MyEnum = ReflectapiDemoTestsSerdeMyEnum
+            V1 = V1
+            V2 = V2
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -41,15 +56,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeMyEnum] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeMyEnum]:
+        data: Optional[reflectapi_demo.tests.serde.MyEnum] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.MyEnum]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeMyEnum]: Response containing ReflectapiDemoTestsSerdeMyEnum data
+            ApiResponse[reflectapi_demo.tests.serde.MyEnum]: Response containing reflectapi_demo.tests.serde.MyEnum data
         """
         path = "/inout_test"
 
@@ -59,7 +74,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeMyEnum,
+            response_model=reflectapi_demo.tests.serde.MyEnum,
         )
 
 
@@ -84,15 +99,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeMyEnum] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeMyEnum]:
+        data: Optional[reflectapi_demo.tests.serde.MyEnum] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.MyEnum]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeMyEnum]: Response containing ReflectapiDemoTestsSerdeMyEnum data
+            ApiResponse[reflectapi_demo.tests.serde.MyEnum]: Response containing reflectapi_demo.tests.serde.MyEnum data
         """
         path = "/inout_test"
 
@@ -102,7 +117,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeMyEnum,
+            response_model=reflectapi_demo.tests.serde.MyEnum,
         )
 
 
@@ -127,7 +142,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeMyEnum.model_rebuild()
+    reflectapi_demo.tests.serde.MyEnum.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -137,10 +152,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdemyenum_response(
-    value: ReflectapiDemoTestsSerdeMyEnum,
-) -> ApiResponse[ReflectapiDemoTestsSerdeMyEnum]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeMyEnum."""
+def create_reflectapi_demo_tests_serde_myenum_response(
+    value: reflectapi_demo.tests.serde.MyEnum,
+) -> ApiResponse[reflectapi_demo.tests.serde.MyEnum]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.MyEnum."""
     return create_api_response(value)
 
 

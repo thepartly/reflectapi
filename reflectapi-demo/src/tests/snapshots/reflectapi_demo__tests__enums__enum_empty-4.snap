@@ -32,6 +32,19 @@ class ReflectapiDemoTestsEnumsTestEnumEmpty(str, Enum):
     pass
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class enums:
+            """Namespace for enums types."""
+
+            TestEnumEmpty = ReflectapiDemoTestsEnumsTestEnumEmpty
+
+
 class AsyncInputClient:
     """Async client for input_ operations."""
 
@@ -40,7 +53,7 @@ class AsyncInputClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsTestEnumEmpty] = None,
+        data: Optional[reflectapi_demo.tests.enums.TestEnumEmpty] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -83,7 +96,7 @@ class InputClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsTestEnumEmpty] = None,
+        data: Optional[reflectapi_demo.tests.enums.TestEnumEmpty] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -126,7 +139,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsEnumsTestEnumEmpty.model_rebuild()
+    reflectapi_demo.tests.enums.TestEnumEmpty.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -136,10 +149,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsenumstestenumempty_response(
-    value: ReflectapiDemoTestsEnumsTestEnumEmpty,
-) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumEmpty]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsEnumsTestEnumEmpty."""
+def create_reflectapi_demo_tests_enums_testenumempty_response(
+    value: reflectapi_demo.tests.enums.TestEnumEmpty,
+) -> ApiResponse[reflectapi_demo.tests.enums.TestEnumEmpty]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.enums.TestEnumEmpty."""
     return create_api_response(value)
 
 

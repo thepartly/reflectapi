@@ -32,6 +32,19 @@ class ReflectapiDemoTestsSerdeTestEnumWithVariantSkip(str, Enum):
     pass
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestEnumWithVariantSkip = ReflectapiDemoTestsSerdeTestEnumWithVariantSkip
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -40,15 +53,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumWithVariantSkip] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantSkip]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip]: Response containing ReflectapiDemoTestsSerdeTestEnumWithVariantSkip data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantSkip]: Response containing reflectapi_demo.tests.serde.TestEnumWithVariantSkip data
         """
         path = "/inout_test"
 
@@ -58,7 +71,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumWithVariantSkip,
+            response_model=reflectapi_demo.tests.serde.TestEnumWithVariantSkip,
         )
 
 
@@ -83,15 +96,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumWithVariantSkip] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantSkip]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip]: Response containing ReflectapiDemoTestsSerdeTestEnumWithVariantSkip data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantSkip]: Response containing reflectapi_demo.tests.serde.TestEnumWithVariantSkip data
         """
         path = "/inout_test"
 
@@ -101,7 +114,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumWithVariantSkip,
+            response_model=reflectapi_demo.tests.serde.TestEnumWithVariantSkip,
         )
 
 
@@ -126,7 +139,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestEnumWithVariantSkip.model_rebuild()
+    reflectapi_demo.tests.serde.TestEnumWithVariantSkip.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -136,10 +149,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdetestenumwithvariantskip_response(
-    value: ReflectapiDemoTestsSerdeTestEnumWithVariantSkip,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestEnumWithVariantSkip."""
+def create_reflectapi_demo_tests_serde_testenumwithvariantskip_response(
+    value: reflectapi_demo.tests.serde.TestEnumWithVariantSkip,
+) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantSkip]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.TestEnumWithVariantSkip."""
     return create_api_response(value)
 
 

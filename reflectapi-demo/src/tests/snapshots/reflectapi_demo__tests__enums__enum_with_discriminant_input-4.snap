@@ -39,6 +39,21 @@ class ReflectapiDemoTestsEnumsTestEnumWithDiscriminant(IntEnum):
     """"""
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class enums:
+            """Namespace for enums types."""
+
+            TestEnumWithDiscriminant = ReflectapiDemoTestsEnumsTestEnumWithDiscriminant
+            VARIANT1 = VARIANT1
+            VARIANT2 = VARIANT2
+
+
 class AsyncInputClient:
     """Async client for input_ operations."""
 
@@ -47,7 +62,7 @@ class AsyncInputClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant] = None,
+        data: Optional[reflectapi_demo.tests.enums.TestEnumWithDiscriminant] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -90,7 +105,7 @@ class InputClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant] = None,
+        data: Optional[reflectapi_demo.tests.enums.TestEnumWithDiscriminant] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -133,7 +148,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsEnumsTestEnumWithDiscriminant.model_rebuild()
+    reflectapi_demo.tests.enums.TestEnumWithDiscriminant.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -143,10 +158,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsenumstestenumwithdiscriminant_response(
-    value: ReflectapiDemoTestsEnumsTestEnumWithDiscriminant,
-) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminant]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsEnumsTestEnumWithDiscriminant."""
+def create_reflectapi_demo_tests_enums_testenumwithdiscriminant_response(
+    value: reflectapi_demo.tests.enums.TestEnumWithDiscriminant,
+) -> ApiResponse[reflectapi_demo.tests.enums.TestEnumWithDiscriminant]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.enums.TestEnumWithDiscriminant."""
     return create_api_response(value)
 
 

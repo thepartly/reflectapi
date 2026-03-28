@@ -33,6 +33,21 @@ class ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested(BaseModel):
     f: int = Field(serialization_alias="_f", validation_alias="_f")
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructWithTransformFallbackNested = (
+                ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested
+            )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -42,16 +57,16 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested
+            reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested]:
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested]: Response containing ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested]: Response containing reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested data
         """
         path = "/inout_test"
 
@@ -61,7 +76,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested,
+            response_model=reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested,
         )
 
 
@@ -87,16 +102,16 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested
+            reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested]:
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested]: Response containing ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested]: Response containing reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested data
         """
         path = "/inout_test"
 
@@ -106,7 +121,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested,
+            response_model=reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested,
         )
 
 
@@ -131,7 +146,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -141,10 +156,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicteststructwithtransformfallbacknested_response(
-    value: ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructWithTransformFallbackNested."""
+def create_reflectapi_demo_tests_basic_teststructwithtransformfallbacknested_response(
+    value: reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested,
+) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.TestStructWithTransformFallbackNested."""
     return create_api_response(value)
 
 

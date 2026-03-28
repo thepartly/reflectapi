@@ -82,7 +82,7 @@ class ReflectapiDemoTestsSerdeTestV1(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     version: Literal["v1"] = "v1"
-    value: ReflectapiDemoTestsSerdeV1
+    value: reflectapi_demo.tests.serde.V1
 
 
 class ReflectapiDemoTestsSerdeTestV2(BaseModel):
@@ -91,7 +91,7 @@ class ReflectapiDemoTestsSerdeTestV2(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     version: Literal["v2"] = "v2"
-    value: ReflectapiDemoTestsSerdeV2
+    value: reflectapi_demo.tests.serde.V2
 
 
 class ReflectapiDemoTestsSerdeTest(RootModel):
@@ -99,6 +99,27 @@ class ReflectapiDemoTestsSerdeTest(RootModel):
         Union[ReflectapiDemoTestsSerdeTestV1, ReflectapiDemoTestsSerdeTestV2],
         Field(discriminator="version"),
     ]
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            V2C = ReflectapiDemoTestsSerdeV2C
+            V2D = ReflectapiDemoTestsSerdeV2D
+            V2 = ReflectapiDemoTestsSerdeV2
+            V1A = ReflectapiDemoTestsSerdeV1A
+            V1B = ReflectapiDemoTestsSerdeV1B
+            V1 = ReflectapiDemoTestsSerdeV1
+            TestV1 = ReflectapiDemoTestsSerdeTestV1
+            TestV2 = ReflectapiDemoTestsSerdeTestV2
+            Test = ReflectapiDemoTestsSerdeTest
 
 
 class AsyncInoutClient:
@@ -109,15 +130,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
+        data: Optional[reflectapi_demo.tests.serde.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
+            ApiResponse[reflectapi_demo.tests.serde.Test]: Response containing reflectapi_demo.tests.serde.Test data
         """
         path = "/inout_test"
 
@@ -127,7 +148,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTest,
+            response_model=reflectapi_demo.tests.serde.Test,
         )
 
 
@@ -152,15 +173,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
+        data: Optional[reflectapi_demo.tests.serde.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
+            ApiResponse[reflectapi_demo.tests.serde.Test]: Response containing reflectapi_demo.tests.serde.Test data
         """
         path = "/inout_test"
 
@@ -170,7 +191,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTest,
+            response_model=reflectapi_demo.tests.serde.Test,
         )
 
 
@@ -195,87 +216,91 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTest.model_rebuild()
-    ReflectapiDemoTestsSerdeV1.model_rebuild()
-    ReflectapiDemoTestsSerdeV2.model_rebuild()
+    reflectapi_demo.tests.serde.Test.model_rebuild()
+    reflectapi_demo.tests.serde.V1.model_rebuild()
+    reflectapi_demo.tests.serde.V2.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
 
 
 # Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeV2Factory:
-    """Factory class for creating ReflectapiDemoTestsSerdeV2 variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_V2Factory:
+    """Factory class for creating reflectapi_demo.tests.serde.V2 variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdeV2 variants
+    reflectapi_demo.tests.serde.V2 variants
     """
 
     @staticmethod
-    def c(c: int) -> ReflectapiDemoTestsSerdeV2C:
-        """Creates the 'C' variant of the ReflectapiDemoTestsSerdeV2 enum."""
-        return ReflectapiDemoTestsSerdeV2C(c=c)
+    def c(c: int) -> reflectapi_demo.tests.serde.V2C:
+        """Creates the 'C' variant of the reflectapi_demo.tests.serde.V2 enum."""
+        return reflectapi_demo.tests.serde.V2C(c=c)
 
     @staticmethod
-    def d(d: int) -> ReflectapiDemoTestsSerdeV2D:
-        """Creates the 'D' variant of the ReflectapiDemoTestsSerdeV2 enum."""
-        return ReflectapiDemoTestsSerdeV2D(d=d)
+    def d(d: int) -> reflectapi_demo.tests.serde.V2D:
+        """Creates the 'D' variant of the reflectapi_demo.tests.serde.V2 enum."""
+        return reflectapi_demo.tests.serde.V2D(d=d)
 
 
-class ReflectapiDemoTestsSerdeV1Factory:
-    """Factory class for creating ReflectapiDemoTestsSerdeV1 variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_V1Factory:
+    """Factory class for creating reflectapi_demo.tests.serde.V1 variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdeV1 variants
+    reflectapi_demo.tests.serde.V1 variants
     """
 
     @staticmethod
-    def a(a: int) -> ReflectapiDemoTestsSerdeV1A:
-        """Creates the 'A' variant of the ReflectapiDemoTestsSerdeV1 enum."""
-        return ReflectapiDemoTestsSerdeV1A(a=a)
+    def a(a: int) -> reflectapi_demo.tests.serde.V1A:
+        """Creates the 'A' variant of the reflectapi_demo.tests.serde.V1 enum."""
+        return reflectapi_demo.tests.serde.V1A(a=a)
 
     @staticmethod
-    def b(b: int) -> ReflectapiDemoTestsSerdeV1B:
-        """Creates the 'B' variant of the ReflectapiDemoTestsSerdeV1 enum."""
-        return ReflectapiDemoTestsSerdeV1B(b=b)
+    def b(b: int) -> reflectapi_demo.tests.serde.V1B:
+        """Creates the 'B' variant of the reflectapi_demo.tests.serde.V1 enum."""
+        return reflectapi_demo.tests.serde.V1B(b=b)
 
 
-class ReflectapiDemoTestsSerdeTestFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeTest variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_TestFactory:
+    """Factory class for creating reflectapi_demo.tests.serde.Test variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdeTest variants
+    reflectapi_demo.tests.serde.Test variants
     """
 
     @staticmethod
-    def v1(field_0: ReflectapiDemoTestsSerdeV1) -> ReflectapiDemoTestsSerdeTestV1:
-        """Creates the 'v1' variant of the ReflectapiDemoTestsSerdeTest enum."""
-        return ReflectapiDemoTestsSerdeTestV1(field_0=field_0)
+    def v1(
+        field_0: reflectapi_demo.tests.serde.V1,
+    ) -> reflectapi_demo.tests.serde.TestV1:
+        """Creates the 'v1' variant of the reflectapi_demo.tests.serde.Test enum."""
+        return reflectapi_demo.tests.serde.TestV1(field_0=field_0)
 
     @staticmethod
-    def v2(field_0: ReflectapiDemoTestsSerdeV2) -> ReflectapiDemoTestsSerdeTestV2:
-        """Creates the 'v2' variant of the ReflectapiDemoTestsSerdeTest enum."""
-        return ReflectapiDemoTestsSerdeTestV2(field_0=field_0)
+    def v2(
+        field_0: reflectapi_demo.tests.serde.V2,
+    ) -> reflectapi_demo.tests.serde.TestV2:
+        """Creates the 'v2' variant of the reflectapi_demo.tests.serde.Test enum."""
+        return reflectapi_demo.tests.serde.TestV2(field_0=field_0)
 
 
 # Testing utilities
 
 
-def create_reflectapidemotestsserdetest_response(
-    value: ReflectapiDemoTestsSerdeTest,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTest."""
+def create_reflectapi_demo_tests_serde_test_response(
+    value: reflectapi_demo.tests.serde.Test,
+) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Test."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdev1_response(
-    value: ReflectapiDemoTestsSerdeV1,
-) -> ApiResponse[ReflectapiDemoTestsSerdeV1]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeV1."""
+def create_reflectapi_demo_tests_serde_v1_response(
+    value: reflectapi_demo.tests.serde.V1,
+) -> ApiResponse[reflectapi_demo.tests.serde.V1]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.V1."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdev2_response(
-    value: ReflectapiDemoTestsSerdeV2,
-) -> ApiResponse[ReflectapiDemoTestsSerdeV2]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeV2."""
+def create_reflectapi_demo_tests_serde_v2_response(
+    value: reflectapi_demo.tests.serde.V2,
+) -> ApiResponse[reflectapi_demo.tests.serde.V2]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.V2."""
     return create_api_response(value)
 
 

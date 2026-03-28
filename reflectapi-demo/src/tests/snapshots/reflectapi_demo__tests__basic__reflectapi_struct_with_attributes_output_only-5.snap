@@ -33,6 +33,21 @@ class ReflectapiDemoTestsBasicTestStructWithAttributesOutputOnly(BaseModel):
     f: str = Field(serialization_alias="_f", validation_alias="_f")
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructWithAttributesOutputOnly = (
+                ReflectapiDemoTestsBasicTestStructWithAttributesOutputOnly
+            )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -42,7 +57,7 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicTestStructWithAttributesOutputOnly
+            reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly
         ] = None,
     ) -> ApiResponse[str]:
         """
@@ -87,7 +102,7 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicTestStructWithAttributesOutputOnly
+            reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly
         ] = None,
     ) -> ApiResponse[str]:
         """
@@ -131,7 +146,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructWithAttributesOutputOnly.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -141,10 +156,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicteststructwithattributesoutputonly_response(
-    value: ReflectapiDemoTestsBasicTestStructWithAttributesOutputOnly,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithAttributesOutputOnly]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructWithAttributesOutputOnly."""
+def create_reflectapi_demo_tests_basic_teststructwithattributesoutputonly_response(
+    value: reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly,
+) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.TestStructWithAttributesOutputOnly."""
     return create_api_response(value)
 
 

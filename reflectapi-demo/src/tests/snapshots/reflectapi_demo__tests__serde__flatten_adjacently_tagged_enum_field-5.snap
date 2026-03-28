@@ -106,7 +106,24 @@ class ReflectapiDemoTestsSerdeMessage(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: str
-    payload: ReflectapiDemoTestsSerdePayload
+    payload: reflectapi_demo.tests.serde.Payload
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            PayloadTextVariant = ReflectapiDemoTestsSerdePayloadTextVariant
+            PayloadBinaryVariant = ReflectapiDemoTestsSerdePayloadBinaryVariant
+            PayloadVariants = ReflectapiDemoTestsSerdePayloadVariants
+            Payload = ReflectapiDemoTestsSerdePayload
+            Message = ReflectapiDemoTestsSerdeMessage
 
 
 class AsyncInoutClient:
@@ -117,15 +134,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeMessage] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeMessage]:
+        data: Optional[reflectapi_demo.tests.serde.Message] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Message]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeMessage]: Response containing ReflectapiDemoTestsSerdeMessage data
+            ApiResponse[reflectapi_demo.tests.serde.Message]: Response containing reflectapi_demo.tests.serde.Message data
         """
         path = "/inout_test"
 
@@ -135,7 +152,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeMessage,
+            response_model=reflectapi_demo.tests.serde.Message,
         )
 
 
@@ -160,15 +177,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeMessage] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeMessage]:
+        data: Optional[reflectapi_demo.tests.serde.Message] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Message]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeMessage]: Response containing ReflectapiDemoTestsSerdeMessage data
+            ApiResponse[reflectapi_demo.tests.serde.Message]: Response containing reflectapi_demo.tests.serde.Message data
         """
         path = "/inout_test"
 
@@ -178,7 +195,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeMessage,
+            response_model=reflectapi_demo.tests.serde.Message,
         )
 
 
@@ -203,49 +220,49 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeMessage.model_rebuild()
-    ReflectapiDemoTestsSerdePayload.model_rebuild()
+    reflectapi_demo.tests.serde.Message.model_rebuild()
+    reflectapi_demo.tests.serde.Payload.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
 
 
 # Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdePayloadFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdePayload variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_PayloadFactory:
+    """Factory class for creating reflectapi_demo.tests.serde.Payload variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdePayload variants
+    reflectapi_demo.tests.serde.Payload variants
     """
 
     @staticmethod
-    def text(body: str) -> ReflectapiDemoTestsSerdePayload:
-        """Creates the 'Text' variant of the ReflectapiDemoTestsSerdePayload enum."""
-        return ReflectapiDemoTestsSerdePayload(
-            ReflectapiDemoTestsSerdePayloadTextVariant(body=body)
+    def text(body: str) -> reflectapi_demo.tests.serde.Payload:
+        """Creates the 'Text' variant of the reflectapi_demo.tests.serde.Payload enum."""
+        return reflectapi_demo.tests.serde.Payload(
+            reflectapi_demo.tests.serde.PayloadTextVariant(body=body)
         )
 
     @staticmethod
-    def binary(size: int) -> ReflectapiDemoTestsSerdePayload:
-        """Creates the 'Binary' variant of the ReflectapiDemoTestsSerdePayload enum."""
-        return ReflectapiDemoTestsSerdePayload(
-            ReflectapiDemoTestsSerdePayloadBinaryVariant(size=size)
+    def binary(size: int) -> reflectapi_demo.tests.serde.Payload:
+        """Creates the 'Binary' variant of the reflectapi_demo.tests.serde.Payload enum."""
+        return reflectapi_demo.tests.serde.Payload(
+            reflectapi_demo.tests.serde.PayloadBinaryVariant(size=size)
         )
 
 
 # Testing utilities
 
 
-def create_reflectapidemotestsserdemessage_response(
-    value: ReflectapiDemoTestsSerdeMessage,
-) -> ApiResponse[ReflectapiDemoTestsSerdeMessage]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeMessage."""
+def create_reflectapi_demo_tests_serde_message_response(
+    value: reflectapi_demo.tests.serde.Message,
+) -> ApiResponse[reflectapi_demo.tests.serde.Message]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Message."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdepayload_response(
-    value: ReflectapiDemoTestsSerdePayload,
-) -> ApiResponse[ReflectapiDemoTestsSerdePayload]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdePayload."""
+def create_reflectapi_demo_tests_serde_payload_response(
+    value: reflectapi_demo.tests.serde.Payload,
+) -> ApiResponse[reflectapi_demo.tests.serde.Payload]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Payload."""
     return create_api_response(value)
 
 

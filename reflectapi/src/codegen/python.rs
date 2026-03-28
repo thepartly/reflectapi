@@ -12,6 +12,79 @@ struct FactoryInfo {
     is_internally_tagged: bool,
 }
 
+/// Convert a dotted Python type reference to a valid Python identifier
+/// for use as a class name (e.g., for factory classes at the top level).
+///
+/// Example: `"reflectapi_demo.tests.serde.OfferKind"` → `"reflectapi_demo_tests_serde_OfferKindFactory"`
+fn dotted_to_flat_identifier(dotted: &str, suffix: &str) -> String {
+    format!("{}{}", dotted.replace('.', "_"), suffix)
+}
+
+/// Compute the dotted namespace prefix for a Rust qualified name.
+///
+/// For `"a::b::Leaf"` returns `"a.b."`. For a single-segment name returns `""`.
+fn namespace_prefix_for(original_name: &str) -> String {
+    let parts: Vec<&str> = original_name.split("::").collect();
+    if parts.len() <= 1 {
+        return String::new();
+    }
+    let ns_parts = &parts[..parts.len() - 1];
+    let mut prefix = ns_parts.join(".");
+    prefix.push('.');
+    prefix
+}
+
+/// Convert flat union member names to dotted namespace references.
+///
+/// The flat names (like `ReflectapiDemoTestsSerdeOfferKindSingle`) have the
+/// PascalCase namespace prefix stripped to produce leaf names (like
+/// `OfferKindSingle`), then the dotted namespace prefix is prepended to
+/// produce `reflectapi_demo.tests.serde.OfferKindSingle`.
+///
+/// Members that already contain a dot are left unchanged. Literal types are
+/// also left unchanged since they are values, not class references.
+fn prefix_union_members(members: &[String], original_name: &str) -> Vec<String> {
+    let dotted_prefix = namespace_prefix_for(original_name);
+    if dotted_prefix.is_empty() {
+        return members.to_vec();
+    }
+
+    // Compute the flat PascalCase prefix that was prepended by improve_class_name.
+    // For "reflectapi_demo::tests::serde::OfferKind", the namespace segments are
+    // ["reflectapi_demo", "tests", "serde"], and the flat prefix is "ReflectapiDemoTestsSerde".
+    let ns_segments: Vec<&str> = original_name.split("::").collect();
+    let flat_prefix: String = ns_segments[..ns_segments.len() - 1]
+        .iter()
+        .map(|seg| to_pascal_case(seg))
+        .collect::<Vec<_>>()
+        .join("");
+
+    members
+        .iter()
+        .map(|m| {
+            if m.contains('.') || m.starts_with("Literal[") {
+                m.clone()
+            } else {
+                // Strip the flat namespace prefix to get the leaf name, then
+                // prepend the dotted namespace prefix.
+                let (base, generics_suffix) = if let Some(bracket_pos) = m.find('[') {
+                    (&m[..bracket_pos], &m[bracket_pos..])
+                } else {
+                    (m.as_str(), "")
+                };
+
+                let leaf = if base.starts_with(&flat_prefix) {
+                    &base[flat_prefix.len()..]
+                } else {
+                    base
+                };
+
+                format!("{dotted_prefix}{leaf}{generics_suffix}")
+            }
+        })
+        .collect()
+}
+
 fn to_valid_python_identifier(name: &str) -> String {
     safe_python_identifier(name)
 }
@@ -1092,6 +1165,56 @@ __all__ = {}
     )
 }
 
+/// Build a tree of namespace modules from rendered type strings.
+///
+/// Each original type name is split on `::`.  The last segment is the leaf
+/// type (already rendered); the preceding segments define the namespace path.
+/// The rendered code for each type is placed into the leaf module.
+fn modules_from_rendered_types(
+    original_type_names: Vec<String>,
+    mut rendered_types: BTreeMap<String, String>,
+) -> templates::Module {
+    use indexmap::IndexMap;
+
+    let mut root_module = templates::Module {
+        name: String::new(),
+        types: vec![],
+        submodules: IndexMap::new(),
+    };
+
+    for original_type_name in original_type_names {
+        let mut module = &mut root_module;
+        let mut parts: Vec<&str> = original_type_name.split("::").collect();
+        parts.pop(); // Remove the leaf type name — already embedded in the rendered code.
+        for part in parts {
+            module = module
+                .submodules
+                .entry(part.to_string())
+                .or_insert_with(|| templates::Module {
+                    name: part.to_string(),
+                    types: vec![],
+                    submodules: IndexMap::new(),
+                });
+        }
+        if let Some(rendered_type) = rendered_types.remove(&original_type_name) {
+            let flat_name = improve_class_name(&original_type_name);
+            let leaf_name = improve_class_name_part(
+                original_type_name
+                    .split("::")
+                    .last()
+                    .unwrap_or(&original_type_name),
+            );
+            module.types.push(templates::ModuleType {
+                rendered: rendered_type,
+                flat_name,
+                leaf_name,
+            });
+        }
+    }
+
+    root_module
+}
+
 pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let implemented_types = build_implemented_types();
 
@@ -1256,6 +1379,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         sorted
     });
 
+    // Track the insertion order so the module tree preserves topological ordering.
+    let mut rendered_original_names_in_order: Vec<String> = Vec::new();
+
     for original_type_name in sorted_type_names {
         // Skip types provided by the runtime
         if runtime_provided_types.contains(&original_type_name.as_str()) {
@@ -1263,7 +1389,6 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         }
 
         let type_def = schema.get_type(&original_type_name).unwrap();
-        let name = improve_class_name(type_def.name());
 
         // TypeVars have already been collected, use empty set for rendering
         let mut dummy_type_vars = BTreeSet::new();
@@ -1281,9 +1406,19 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
         // Only store non-empty renders (excludes unwrapped tuple structs)
         if !rendered.trim().is_empty() {
-            rendered_types.insert(name.clone(), rendered.clone());
-            generated_code.push(rendered);
+            rendered_types.insert(original_type_name.clone(), rendered);
+            rendered_original_names_in_order.push(original_type_name);
         }
+    }
+
+    // Build namespace module tree and render it
+    let module_tree = modules_from_rendered_types(
+        rendered_original_names_in_order.clone(),
+        rendered_types.clone(),
+    );
+    let module_tree_code = module_tree.render();
+    if !module_tree_code.trim().is_empty() {
+        generated_code.push(module_tree_code);
     }
 
     // TypeVar declarations are now generated at the top of the file (after imports)
@@ -1347,14 +1482,6 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     };
     generated_code.push(client_template.render());
 
-    // Generate nested class structure
-    let nested_classes = generate_nested_class_structure(&rendered_types, &schema);
-    if !nested_classes.is_empty() {
-        generated_code.push("# Nested class definitions for better organization".to_string());
-        generated_code.push(nested_classes);
-        generated_code.push("".to_string());
-    }
-
     // Add external type definitions and model rebuilds for Pydantic forward references
     let mut external_types_and_rebuilds = vec![
         "# External type definitions".to_string(),
@@ -1368,9 +1495,10 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     ];
     let mut sorted_type_names: Vec<_> = rendered_types.keys().collect();
     sorted_type_names.sort();
-    for type_name in sorted_type_names {
-        if !type_name.starts_with("std::") && !type_name.starts_with("reflectapi::") {
-            external_types_and_rebuilds.push(format!("    {type_name}.model_rebuild()"));
+    for original_name in sorted_type_names {
+        if !original_name.starts_with("std::") && !original_name.starts_with("reflectapi::") {
+            let dotted = type_name_to_python_ref(original_name);
+            external_types_and_rebuilds.push(format!("    {dotted}.model_rebuild()"));
         }
     }
     external_types_and_rebuilds.push("except AttributeError:".to_string());
@@ -1415,7 +1543,10 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     if config.generate_testing {
         // contains user-defined types that have Pydantic classes generated for them.
         // Note types with fallbacks to primitives are not added.
-        let mut user_defined_types: Vec<String> = rendered_types.keys().cloned().collect();
+        let mut user_defined_types: Vec<String> = rendered_types
+            .keys()
+            .map(|original_name| type_name_to_python_ref(original_name))
+            .collect();
         user_defined_types.sort();
 
         let testing_template = templates::TestingModule {
@@ -1886,11 +2017,13 @@ fn render_enum_without_factory(
                 used_type_vars,
             )?;
 
-            // Return factory info so it can be generated later
+            // Return factory info so it can be generated later.
+            // Use dotted path for the enum name so factory classes can reference
+            // types that live inside namespace classes.
             let factory_info = FactoryInfo {
                 enum_def: enum_def.clone(),
-                enum_name: improve_class_name(&enum_def.name),
-                union_members: union_variant_names,
+                enum_name: type_name_to_python_ref(&enum_def.name),
+                union_members: prefix_union_members(&union_variant_names, &enum_def.name),
                 is_internally_tagged: true,
             };
 
@@ -1910,8 +2043,8 @@ fn render_enum_without_factory(
             // Return factory info so it can be generated later
             let factory_info = FactoryInfo {
                 enum_def: enum_def.clone(),
-                enum_name: improve_class_name(&enum_def.name),
-                union_members: union_variant_names,
+                enum_name: type_name_to_python_ref(&enum_def.name),
+                union_members: prefix_union_members(&union_variant_names, &enum_def.name),
                 is_internally_tagged: false, // Adjacent tagged, not internal
             };
 
@@ -1951,8 +2084,8 @@ fn render_enum_without_factory(
                     )?;
                     let factory_info = FactoryInfo {
                         enum_def: enum_def.clone(),
-                        enum_name: improve_class_name(&enum_def.name),
-                        union_members,
+                        enum_name: type_name_to_python_ref(&enum_def.name),
+                        union_members: prefix_union_members(&union_members, &enum_def.name),
                         is_internally_tagged: false,
                     };
                     Ok((rendered, Some(factory_info)))
@@ -2534,7 +2667,7 @@ fn generate_factory_class_with_representation(
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
-    let factory_name = format!("{enum_name}Factory");
+    let factory_name = dotted_to_flat_identifier(enum_name, "Factory");
     let mut class_attributes = Vec::new();
     let mut static_methods = Vec::new();
 
@@ -2705,7 +2838,7 @@ fn generate_internally_tagged_factory_class(
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
-    let factory_name = format!("{enum_name}Factory");
+    let factory_name = dotted_to_flat_identifier(enum_name, "Factory");
     let mut class_attributes = Vec::new();
     let mut static_methods = Vec::new();
 
@@ -2783,7 +2916,7 @@ fn generate_externally_tagged_factory_class(
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
-    let factory_name = format!("{enum_name}Factory");
+    let factory_name = dotted_to_flat_identifier(enum_name, "Factory");
     let class_attributes: Vec<String> = Vec::new();
     let mut static_methods = Vec::new();
 
@@ -3782,12 +3915,18 @@ fn to_pascal_case(s: &str) -> String {
         .collect()
 }
 
-/// Improve Python class names to be more readable and Pythonic
+/// Produce a unique flat Python class name from a potentially-qualified Rust
+/// type name.
+///
+/// For qualified names (containing `::`), ALL segments are joined into a
+/// single PascalCase identifier to guarantee uniqueness across namespaces.
+/// For example: `"reflectapi_demo::tests::serde::Offer"` → `"ReflectapiDemoTestsSerdeOffer"`.
+///
+/// For type *references* (in annotations), use [`type_name_to_python_ref`]
+/// instead, which produces a dotted path like `reflectapi_demo.tests.serde.Offer`.
 fn improve_class_name(original_name: &str) -> String {
-    // Handle Rust module paths with :: (e.g., "nomatches::IfConflictOnInsert" -> "NomatchesIfConflictOnInsert")
+    // Handle Rust module paths with ::
     if original_name.contains("::") {
-        // Convert Rust-style module paths to PascalCase
-        // e.g., "nomatches::IfConflictOnInsertRequired" -> "NomatchesIfConflictOnInsertRequired"
         let parts: Vec<&str> = original_name.split("::").collect();
         return parts
             .iter()
@@ -3798,13 +3937,33 @@ fn improve_class_name(original_name: &str) -> String {
 
     // Handle dotted namespaces (e.g., "myapi.model.Pet" -> "Pet")
     if original_name.contains('.') {
-        let parts: Vec<&str> = original_name.split('.').collect();
-        if let Some(last_part) = parts.last() {
-            return improve_class_name_part(last_part);
+        if let Some(pos) = original_name.rfind('.') {
+            return improve_class_name_part(&original_name[pos + 1..]);
         }
     }
 
     improve_class_name_part(original_name)
+}
+
+/// Convert a fully-qualified Rust type name to a dotted Python reference.
+///
+/// Each `::` segment becomes a dot-separated component.  Namespace segments
+/// keep their original casing (typically snake_case), while the final leaf
+/// segment is run through `improve_class_name_part` (PascalCase).
+///
+/// Example: `"reflectapi_demo::tests::serde::Offer"` → `"reflectapi_demo.tests.serde.Offer"`
+fn type_name_to_python_ref(original_name: &str) -> String {
+    let parts: Vec<&str> = original_name.split("::").collect();
+    if parts.len() <= 1 {
+        // No namespace — just return the PascalCase leaf.
+        return improve_class_name(original_name);
+    }
+    // Namespace segments keep their original casing; the leaf gets PascalCase.
+    let namespace_parts = &parts[..parts.len() - 1];
+    let leaf = parts.last().unwrap();
+    let mut dotted_parts: Vec<String> = namespace_parts.iter().map(|p| p.to_string()).collect();
+    dotted_parts.push(improve_class_name_part(leaf));
+    dotted_parts.join(".")
 }
 
 /// Improve a single part of a class name
@@ -3880,199 +4039,6 @@ fn improve_class_name_part(name_part: &str) -> String {
 
 fn to_screaming_snake_case(s: &str) -> String {
     to_snake_case(s).to_uppercase()
-}
-
-/// Generate nested class structure for better Python ergonomics
-fn generate_nested_class_structure(
-    rendered_types: &BTreeMap<String, String>,
-    _schema: &Schema,
-) -> String {
-    let mut nested_classes = Vec::new();
-    let mut namespace_groups: BTreeMap<String, Vec<String>> = BTreeMap::new();
-
-    // Group types by their namespace
-    for type_name in rendered_types.keys() {
-        if let Some(namespace) = extract_namespace_from_type_name(type_name) {
-            namespace_groups
-                .entry(namespace)
-                .or_default()
-                .push(type_name.clone());
-        }
-    }
-
-    // Special handling for Kind unions - try to associate them with their related Input/Output types
-    if let Some(unknown_kinds) = namespace_groups.remove("UnknownKind") {
-        for kind_type in unknown_kinds {
-            if kind_type == "MyapiModelKind" {
-                // Look for related Pet types
-                if namespace_groups.contains_key("Pet") {
-                    namespace_groups.get_mut("Pet").unwrap().push(kind_type);
-                }
-            }
-        }
-    }
-
-    // Generate nested classes for each namespace group
-    let mut namespace_pairs: Vec<_> = namespace_groups.into_iter().collect();
-    namespace_pairs.sort_by(|a, b| a.0.cmp(&b.0)); // Sort by namespace name for deterministic output
-    for (namespace, type_names) in namespace_pairs {
-        if type_names.len() >= 2 {
-            // Only create nested classes if there are enough related types
-            let nested_class = generate_namespace_class(&namespace, &type_names, rendered_types);
-            if !nested_class.is_empty() {
-                nested_classes.push(nested_class);
-            }
-        }
-    }
-
-    nested_classes.join("\n\n")
-}
-
-/// Extract namespace from a type name (e.g., "MyapiModelInputPet" -> "Pet")
-fn extract_namespace_from_type_name(type_name: &str) -> Option<String> {
-    // Look for patterns like "MyapiModelXxxYyy" -> "Yyy"
-    if let Some(without_prefix) = type_name.strip_prefix("MyapiModel") {
-        // Look for common patterns
-        if let Some(stripped) = without_prefix.strip_prefix("Input") {
-            return Some(stripped.to_string()); // Remove "Input"
-        } else if let Some(stripped) = without_prefix.strip_prefix("Output") {
-            return Some(stripped.to_string()); // Remove "Output"
-        } else if let Some(remainder) = without_prefix.strip_prefix("Kind") {
-            if remainder.is_empty() {
-                // This is the main Kind union type like "MyapiModelKind" - assign to a generic namespace
-                // We need to infer which namespace this belongs to from the schema context
-                // For now, return a generic namespace that we can map later
-                return Some("UnknownKind".to_string());
-            } else {
-                return Some(remainder.to_string()); // Return the variant name
-            }
-        } else {
-            return Some(without_prefix.to_string());
-        }
-    } else if let Some(without_prefix) = type_name.strip_prefix("MyapiProto") {
-        // Extract base name from request/response patterns
-        if let Some(pos) = without_prefix.find("Request") {
-            return Some(without_prefix[..pos].to_string());
-        } else if let Some(pos) = without_prefix.find("Response") {
-            return Some(without_prefix[..pos].to_string());
-        } else if let Some(pos) = without_prefix.find("Error") {
-            return Some(without_prefix[..pos].to_string());
-        }
-    }
-
-    None
-}
-
-/// Generate a namespace class containing related types
-fn generate_namespace_class(
-    namespace: &str,
-    type_names: &[String],
-    _rendered_types: &BTreeMap<String, String>,
-) -> String {
-    let mut class_content = Vec::new();
-
-    // Find the main types for this namespace
-    let mut input_type = None;
-    let mut output_type = None;
-    let mut kind_variants = Vec::new();
-    let mut request_types = Vec::new();
-    let mut error_types = Vec::new();
-
-    for type_name in type_names {
-        if type_name.contains("Input") {
-            input_type = Some(type_name);
-        } else if type_name.contains("Output") {
-            output_type = Some(type_name);
-        } else if type_name.contains("Kind") {
-            // Include both individual variants (MyapiModelKindDog) and the union type (MyapiModelKind)
-            kind_variants.push(type_name);
-        } else if type_name.contains("Request") {
-            request_types.push(type_name);
-        } else if type_name.contains("Error") {
-            error_types.push(type_name);
-        }
-    }
-
-    // Only generate if we have meaningful groupings
-    if input_type.is_some() || output_type.is_some() || !kind_variants.is_empty() {
-        class_content.push(format!("class {namespace}:"));
-        class_content.push("    \"\"\"Grouped types for better organization.\"\"\"".to_string());
-
-        // Add type aliases for the main types
-        if let Some(input) = input_type {
-            class_content.push(format!("    Input = {input}"));
-        }
-        if let Some(output) = output_type {
-            class_content.push(format!("    Output = {output}"));
-        }
-
-        // Special handling for Kind types - check if there's a main union type we should expose
-        let main_kind_type = "MyapiModelKind".to_string();
-        if kind_variants.contains(&(&main_kind_type)) {
-            class_content.push("    ".to_string());
-            class_content.push("    class Kind:".to_string());
-            class_content.push("        \"\"\"Kind variants for this type.\"\"\"".to_string());
-            class_content.push(format!("        Union = {main_kind_type}"));
-
-            // Also manually add the variants we know exist for common types
-            if namespace == "Pet" {
-                class_content.push("        Dog = MyapiModelKindDog".to_string());
-                class_content.push("        Cat = MyapiModelKindCat".to_string());
-            }
-        }
-
-        // Add requests nested class if we have request types
-        if !request_types.is_empty() {
-            class_content.push("    ".to_string());
-            class_content.push("    class Requests:".to_string());
-            class_content.push("        \"\"\"Request types for this namespace.\"\"\"".to_string());
-
-            for request_name in &request_types {
-                if let Some(request_suffix) = extract_request_suffix(request_name) {
-                    class_content.push(format!("        {request_suffix} = {request_name}"));
-                }
-            }
-        }
-
-        // Add errors nested class if we have error types
-        if !error_types.is_empty() {
-            class_content.push("    ".to_string());
-            class_content.push("    class Errors:".to_string());
-            class_content.push("        \"\"\"Error types for this namespace.\"\"\"".to_string());
-
-            for error_name in &error_types {
-                if let Some(error_suffix) = extract_error_suffix(error_name) {
-                    class_content.push(format!("        {error_suffix} = {error_name}"));
-                }
-            }
-        }
-
-        return class_content.join("\n");
-    }
-
-    String::new()
-}
-
-/// Extract meaningful suffix from request type name
-fn extract_request_suffix(request_name: &str) -> Option<String> {
-    if let Some(pos) = request_name.find("Request") {
-        let prefix = &request_name[..pos];
-        if let Some(stripped) = prefix.strip_prefix("MyapiProto") {
-            return Some(stripped.to_string());
-        }
-    }
-    None
-}
-
-/// Extract meaningful suffix from error type name
-fn extract_error_suffix(error_name: &str) -> Option<String> {
-    if let Some(pos) = error_name.find("Error") {
-        let prefix = &error_name[..pos];
-        if let Some(stripped) = prefix.strip_prefix("MyapiProto") {
-            return Some(stripped.to_string());
-        }
-    }
-    None
 }
 
 fn sanitize_field_name(s: &str) -> String {
@@ -4272,7 +4238,8 @@ fn type_ref_to_python_type(
             }
         }
 
-        let base_type = improve_class_name(&type_ref.name);
+        // Use dotted namespace path for type references (e.g. "mod::Sub::Ty" → "mod.Sub.Ty")
+        let base_type = type_name_to_python_ref(&type_ref.name);
 
         // Handle generic types with arguments - follow TypeScript pattern
         if !type_ref.arguments.is_empty() {
@@ -5025,6 +4992,185 @@ fn sanitize_description(desc: &str) -> String {
 pub mod templates {
     use std::fmt::Write;
 
+    use indexmap::IndexMap;
+
+    /// A tree node representing a Python namespace.
+    ///
+    /// Types are always rendered at the module top-level (no nesting) to
+    /// avoid Python class-scope resolution issues.  The namespace hierarchy
+    /// is then rendered as a separate set of namespace `class` wrappers
+    /// that contain type aliases pointing to the top-level definitions.
+    /// This allows dotted access like `reflectapi_demo.tests.serde.Offer`
+    /// while keeping all type definitions in the module globals where
+    /// Pydantic can resolve forward-reference annotation strings.
+    /// Entry in a Module's type list: the rendered code plus metadata
+    /// needed for namespace alias generation.
+    pub struct ModuleType {
+        /// The rendered Python source code for this type.
+        pub rendered: String,
+        /// The flat class name used at module top-level (e.g., `ReflectapiDemoTestsSerdeOffer`).
+        pub flat_name: String,
+        /// The PascalCase leaf name for namespace aliases (e.g., `Offer`).
+        pub leaf_name: String,
+    }
+
+    pub struct Module {
+        pub name: String,
+        pub types: Vec<ModuleType>,
+        pub submodules: IndexMap<String, Module>,
+    }
+
+    impl Module {
+        fn is_empty(&self) -> bool {
+            self.types.is_empty() && self.submodules.values().all(|m| m.is_empty())
+        }
+
+        fn has_namespaces(&self) -> bool {
+            !self.submodules.is_empty()
+        }
+
+        /// Render this module tree as Python source code.
+        ///
+        /// Produces two sections:
+        /// 1. All type definitions at module top-level (flat)
+        /// 2. Namespace class hierarchy with aliases for dotted access
+        pub fn render(&self) -> String {
+            let mut out = String::new();
+
+            // Part 1: Emit all types at the top level (flat).
+            self.collect_types_flat(&mut out);
+
+            // Part 2: Emit namespace class hierarchy with aliases.
+            if self.has_namespaces() {
+                writeln!(out).unwrap();
+                writeln!(out, "# Namespace classes for dotted access to types").unwrap();
+                self.render_namespace_aliases(&mut out, 0);
+            }
+
+            out
+        }
+
+        /// Recursively collect all type definitions from the tree and emit
+        /// them at the top level (no indentation wrapping).
+        fn collect_types_flat(&self, out: &mut String) {
+            for mt in &self.types {
+                out.push_str(&mt.rendered);
+                out.push('\n');
+            }
+            for sub in self.submodules.values() {
+                sub.collect_types_flat(out);
+            }
+        }
+
+        /// Extract class and type-alias names defined in rendered type code.
+        ///
+        /// Looks for patterns like `class FooBar(` or `FooBarVariants = `
+        /// at the start of lines.
+        fn extract_defined_names(type_code: &str) -> Vec<String> {
+            let mut names = Vec::new();
+            for line in type_code.lines() {
+                let trimmed = line.trim();
+                if let Some(rest) = trimmed.strip_prefix("class ") {
+                    if let Some(paren) = rest.find('(') {
+                        let name = &rest[..paren];
+                        if !name.is_empty() {
+                            names.push(name.to_string());
+                        }
+                    } else if let Some(colon) = rest.find(':') {
+                        let name = &rest[..colon];
+                        if !name.is_empty() {
+                            names.push(name.to_string());
+                        }
+                    }
+                } else if let Some(eq_pos) = trimmed.find(" = ") {
+                    let name = &trimmed[..eq_pos];
+                    if name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
+                        names.push(name.to_string());
+                    }
+                }
+            }
+            names
+        }
+
+        /// Render namespace alias classes for dotted access.
+        ///
+        /// `ns_path` accumulates the namespace segments for computing the
+        /// flat name prefix that needs to be stripped.
+        fn render_namespace_aliases(&self, out: &mut String, indent_level: usize) {
+            self.render_namespace_aliases_inner(out, indent_level, &[]);
+        }
+
+        fn render_namespace_aliases_inner(
+            &self,
+            out: &mut String,
+            indent_level: usize,
+            ns_path: &[&str],
+        ) {
+            for sub in self.submodules.values() {
+                if sub.is_empty() {
+                    continue;
+                }
+                let indent = " ".repeat(indent_level * 4);
+                let inner_indent = " ".repeat((indent_level + 1) * 4);
+
+                writeln!(out, "{indent}class {}:", sub.name).unwrap();
+                writeln!(
+                    out,
+                    "{inner_indent}\"\"\"Namespace for {} types.\"\"\"",
+                    sub.name
+                )
+                .unwrap();
+
+                // Compute the flat PascalCase prefix for this namespace level.
+                // e.g., for path ["reflectapi_demo", "tests", "serde"], prefix = "ReflectapiDemoTestsSerde"
+                let mut full_path: Vec<&str> = ns_path.to_vec();
+                full_path.push(&sub.name);
+                let flat_prefix: String = full_path
+                    .iter()
+                    .map(|seg| {
+                        // PascalCase each segment (same logic as to_pascal_case)
+                        seg.replace("::", "_")
+                            .split('_')
+                            .map(|word| {
+                                let mut chars = word.chars();
+                                match chars.next() {
+                                    None => String::new(),
+                                    Some(first) => first.to_uppercase().chain(chars).collect(),
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                            .join("")
+                    })
+                    .collect::<Vec<_>>()
+                    .join("");
+
+                // Add aliases for ALL names defined in this module's type code.
+                // Strip the flat namespace prefix to produce leaf alias names.
+                for mt in &sub.types {
+                    for flat_name in Self::extract_defined_names(&mt.rendered) {
+                        let leaf = if flat_name.starts_with(&flat_prefix) {
+                            &flat_name[flat_prefix.len()..]
+                        } else {
+                            &flat_name
+                        };
+                        // Skip empty leaves (shouldn't happen, but be safe)
+                        if !leaf.is_empty() {
+                            writeln!(out, "{inner_indent}{leaf} = {flat_name}").unwrap();
+                        }
+                    }
+                }
+
+                // Recurse into submodules
+                if !sub.submodules.is_empty() {
+                    writeln!(out).unwrap();
+                    sub.render_namespace_aliases_inner(out, indent_level + 1, &full_path);
+                }
+
+                writeln!(out).unwrap();
+            }
+        }
+    }
+
     pub struct FileHeader {
         pub package_name: String,
     }
@@ -5705,13 +5851,12 @@ pub mod templates {
             writeln!(s, "# Testing utilities").unwrap();
             writeln!(s).unwrap();
             for type_name in &self.types {
+                // Convert dotted type ref to a valid Python function name fragment
+                let func_suffix = type_name.replace('.', "_").to_lowercase();
                 writeln!(s).unwrap();
                 writeln!(
                     s,
-                    "def create_{}_response(value: {}) -> ApiResponse[{}]:",
-                    type_name.to_lowercase(),
-                    type_name,
-                    type_name
+                    "def create_{func_suffix}_response(value: {type_name}) -> ApiResponse[{type_name}]:",
                 )
                 .unwrap();
                 writeln!(

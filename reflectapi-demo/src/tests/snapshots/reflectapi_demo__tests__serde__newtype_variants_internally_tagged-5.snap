@@ -71,6 +71,23 @@ class ReflectapiDemoTestsSerdeEnum(RootModel):
     ]
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            Strukt2 = ReflectapiDemoTestsSerdeStrukt2
+            Strukt1 = ReflectapiDemoTestsSerdeStrukt1
+            EnumA = ReflectapiDemoTestsSerdeEnumA
+            EnumB = ReflectapiDemoTestsSerdeEnumB
+            Enum = ReflectapiDemoTestsSerdeEnum
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -79,15 +96,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeEnum] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeEnum]:
+        data: Optional[reflectapi_demo.tests.serde.Enum] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Enum]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeEnum]: Response containing ReflectapiDemoTestsSerdeEnum data
+            ApiResponse[reflectapi_demo.tests.serde.Enum]: Response containing reflectapi_demo.tests.serde.Enum data
         """
         path = "/inout_test"
 
@@ -97,7 +114,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeEnum,
+            response_model=reflectapi_demo.tests.serde.Enum,
         )
 
 
@@ -122,15 +139,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeEnum] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeEnum]:
+        data: Optional[reflectapi_demo.tests.serde.Enum] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Enum]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeEnum]: Response containing ReflectapiDemoTestsSerdeEnum data
+            ApiResponse[reflectapi_demo.tests.serde.Enum]: Response containing reflectapi_demo.tests.serde.Enum data
         """
         path = "/inout_test"
 
@@ -140,7 +157,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeEnum,
+            response_model=reflectapi_demo.tests.serde.Enum,
         )
 
 
@@ -165,53 +182,57 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeEnum.model_rebuild()
-    ReflectapiDemoTestsSerdeStrukt1.model_rebuild()
-    ReflectapiDemoTestsSerdeStrukt2.model_rebuild()
+    reflectapi_demo.tests.serde.Enum.model_rebuild()
+    reflectapi_demo.tests.serde.Strukt1.model_rebuild()
+    reflectapi_demo.tests.serde.Strukt2.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
 
 
 # Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeEnumFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeEnum variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_EnumFactory:
+    """Factory class for creating reflectapi_demo.tests.serde.Enum variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdeEnum variants
+    reflectapi_demo.tests.serde.Enum variants
     """
 
     @staticmethod
-    def a(field_0: ReflectapiDemoTestsSerdeStrukt1) -> ReflectapiDemoTestsSerdeEnumA:
-        """Creates the 'a' variant of the ReflectapiDemoTestsSerdeEnum enum."""
-        return ReflectapiDemoTestsSerdeEnumA(field_0=field_0)
+    def a(
+        field_0: reflectapi_demo.tests.serde.Strukt1,
+    ) -> reflectapi_demo.tests.serde.EnumA:
+        """Creates the 'a' variant of the reflectapi_demo.tests.serde.Enum enum."""
+        return reflectapi_demo.tests.serde.EnumA(field_0=field_0)
 
     @staticmethod
-    def b(field_0: ReflectapiDemoTestsSerdeStrukt2) -> ReflectapiDemoTestsSerdeEnumB:
-        """Creates the 'b' variant of the ReflectapiDemoTestsSerdeEnum enum."""
-        return ReflectapiDemoTestsSerdeEnumB(field_0=field_0)
+    def b(
+        field_0: reflectapi_demo.tests.serde.Strukt2,
+    ) -> reflectapi_demo.tests.serde.EnumB:
+        """Creates the 'b' variant of the reflectapi_demo.tests.serde.Enum enum."""
+        return reflectapi_demo.tests.serde.EnumB(field_0=field_0)
 
 
 # Testing utilities
 
 
-def create_reflectapidemotestsserdeenum_response(
-    value: ReflectapiDemoTestsSerdeEnum,
-) -> ApiResponse[ReflectapiDemoTestsSerdeEnum]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeEnum."""
+def create_reflectapi_demo_tests_serde_enum_response(
+    value: reflectapi_demo.tests.serde.Enum,
+) -> ApiResponse[reflectapi_demo.tests.serde.Enum]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Enum."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdestrukt1_response(
-    value: ReflectapiDemoTestsSerdeStrukt1,
-) -> ApiResponse[ReflectapiDemoTestsSerdeStrukt1]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeStrukt1."""
+def create_reflectapi_demo_tests_serde_strukt1_response(
+    value: reflectapi_demo.tests.serde.Strukt1,
+) -> ApiResponse[reflectapi_demo.tests.serde.Strukt1]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Strukt1."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdestrukt2_response(
-    value: ReflectapiDemoTestsSerdeStrukt2,
-) -> ApiResponse[ReflectapiDemoTestsSerdeStrukt2]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeStrukt2."""
+def create_reflectapi_demo_tests_serde_strukt2_response(
+    value: reflectapi_demo.tests.serde.Strukt2,
+) -> ApiResponse[reflectapi_demo.tests.serde.Strukt2]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Strukt2."""
     return create_api_response(value)
 
 

@@ -33,6 +33,23 @@ class ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored(str, Enum):
     VARIANT2 = "Variant2"
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class enums:
+            """Namespace for enums types."""
+
+            TestEnumWithDiscriminantIgnored = (
+                ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored
+            )
+            VARIANT1 = VARIANT1
+            VARIANT2 = VARIANT2
+
+
 class AsyncOutputClient:
     """Async client for output operations."""
 
@@ -41,11 +58,11 @@ class AsyncOutputClient:
 
     async def test(
         self,
-    ) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]:
+    ) -> ApiResponse[reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored]:
         """
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]: Response containing ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored data
+            ApiResponse[reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored]: Response containing reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored data
         """
         path = "/output_test"
 
@@ -54,7 +71,7 @@ class AsyncOutputClient:
             "POST",
             path,
             params=params if params else None,
-            response_model=ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored,
+            response_model=reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored,
         )
 
 
@@ -79,11 +96,11 @@ class OutputClient:
 
     def test(
         self,
-    ) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]:
+    ) -> ApiResponse[reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored]:
         """
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]: Response containing ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored data
+            ApiResponse[reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored]: Response containing reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored data
         """
         path = "/output_test"
 
@@ -92,7 +109,7 @@ class OutputClient:
             "POST",
             path,
             params=params if params else None,
-            response_model=ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored,
+            response_model=reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored,
         )
 
 
@@ -117,7 +134,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored.model_rebuild()
+    reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -127,10 +144,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsenumstestenumwithdiscriminantignored_response(
-    value: ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored,
-) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsEnumsTestEnumWithDiscriminantIgnored."""
+def create_reflectapi_demo_tests_enums_testenumwithdiscriminantignored_response(
+    value: reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored,
+) -> ApiResponse[reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored."""
     return create_api_response(value)
 
 

@@ -30,9 +30,22 @@ class ReflectapiDemoTestsBasicTestStructWithTuple12(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    f: StdTupleTuple12[int, str, int, str, int, str, int, str, int, str, int, str] = (
+    f: std.tuple.Tuple12[int, str, int, str, int, str, int, str, int, str, int, str] = (
         Field(serialization_alias="_f", validation_alias="_f")
     )
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructWithTuple12 = ReflectapiDemoTestsBasicTestStructWithTuple12
 
 
 class AsyncInoutClient:
@@ -43,15 +56,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructWithTuple12] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithTuple12]:
+        data: Optional[reflectapi_demo.tests.basic.TestStructWithTuple12] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithTuple12]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructWithTuple12]: Response containing ReflectapiDemoTestsBasicTestStructWithTuple12 data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructWithTuple12]: Response containing reflectapi_demo.tests.basic.TestStructWithTuple12 data
         """
         path = "/inout_test"
 
@@ -61,7 +74,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructWithTuple12,
+            response_model=reflectapi_demo.tests.basic.TestStructWithTuple12,
         )
 
 
@@ -86,15 +99,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructWithTuple12] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithTuple12]:
+        data: Optional[reflectapi_demo.tests.basic.TestStructWithTuple12] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithTuple12]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructWithTuple12]: Response containing ReflectapiDemoTestsBasicTestStructWithTuple12 data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructWithTuple12]: Response containing reflectapi_demo.tests.basic.TestStructWithTuple12 data
         """
         path = "/inout_test"
 
@@ -104,7 +117,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructWithTuple12,
+            response_model=reflectapi_demo.tests.basic.TestStructWithTuple12,
         )
 
 
@@ -129,7 +142,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructWithTuple12.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructWithTuple12.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -139,10 +152,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicteststructwithtuple12_response(
-    value: ReflectapiDemoTestsBasicTestStructWithTuple12,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithTuple12]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructWithTuple12."""
+def create_reflectapi_demo_tests_basic_teststructwithtuple12_response(
+    value: reflectapi_demo.tests.basic.TestStructWithTuple12,
+) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithTuple12]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.TestStructWithTuple12."""
     return create_api_response(value)
 
 

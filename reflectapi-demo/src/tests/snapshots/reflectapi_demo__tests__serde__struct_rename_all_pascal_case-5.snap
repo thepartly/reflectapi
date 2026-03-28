@@ -35,6 +35,21 @@ class ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase(BaseModel):
     )
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestStructRenameAllPascalCase = (
+                ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase
+            )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -43,15 +58,17 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase]:
+        data: Optional[
+            reflectapi_demo.tests.serde.TestStructRenameAllPascalCase
+        ] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStructRenameAllPascalCase]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase]: Response containing ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase data
+            ApiResponse[reflectapi_demo.tests.serde.TestStructRenameAllPascalCase]: Response containing reflectapi_demo.tests.serde.TestStructRenameAllPascalCase data
         """
         path = "/inout_test"
 
@@ -61,7 +78,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase,
+            response_model=reflectapi_demo.tests.serde.TestStructRenameAllPascalCase,
         )
 
 
@@ -86,15 +103,17 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase]:
+        data: Optional[
+            reflectapi_demo.tests.serde.TestStructRenameAllPascalCase
+        ] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStructRenameAllPascalCase]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase]: Response containing ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase data
+            ApiResponse[reflectapi_demo.tests.serde.TestStructRenameAllPascalCase]: Response containing reflectapi_demo.tests.serde.TestStructRenameAllPascalCase data
         """
         path = "/inout_test"
 
@@ -104,7 +123,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase,
+            response_model=reflectapi_demo.tests.serde.TestStructRenameAllPascalCase,
         )
 
 
@@ -129,7 +148,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase.model_rebuild()
+    reflectapi_demo.tests.serde.TestStructRenameAllPascalCase.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -139,10 +158,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdeteststructrenameallpascalcase_response(
-    value: ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestStructRenameAllPascalCase."""
+def create_reflectapi_demo_tests_serde_teststructrenameallpascalcase_response(
+    value: reflectapi_demo.tests.serde.TestStructRenameAllPascalCase,
+) -> ApiResponse[reflectapi_demo.tests.serde.TestStructRenameAllPascalCase]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.TestStructRenameAllPascalCase."""
     return create_api_response(value)
 
 

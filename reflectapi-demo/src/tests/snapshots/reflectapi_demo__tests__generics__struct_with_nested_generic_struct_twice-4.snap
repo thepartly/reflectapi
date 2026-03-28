@@ -44,12 +44,30 @@ class ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice(BaseMode
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    f: ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric[int] = Field(
+    f: reflectapi_demo.tests.generics.TestStructWithSimpleGeneric[int] = Field(
         serialization_alias="_f", validation_alias="_f"
     )
-    f2: ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric[str] = Field(
+    f2: reflectapi_demo.tests.generics.TestStructWithSimpleGeneric[str] = Field(
         serialization_alias="_f2", validation_alias="_f2"
     )
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class generics:
+            """Namespace for generics types."""
+
+            TestStructWithSimpleGeneric = (
+                ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric
+            )
+            TestStructWithNestedGenericStructTwice = (
+                ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice
+            )
 
 
 class AsyncInputClient:
@@ -61,7 +79,7 @@ class AsyncInputClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice
+            reflectapi_demo.tests.generics.TestStructWithNestedGenericStructTwice
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -106,7 +124,7 @@ class InputClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice
+            reflectapi_demo.tests.generics.TestStructWithNestedGenericStructTwice
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -150,8 +168,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice.model_rebuild()
-    ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric.model_rebuild()
+    reflectapi_demo.tests.generics.TestStructWithNestedGenericStructTwice.model_rebuild()
+    reflectapi_demo.tests.generics.TestStructWithSimpleGeneric.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -161,17 +179,17 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsgenericsteststructwithnestedgenericstructtwice_response(
-    value: ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice,
-) -> ApiResponse[ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice."""
+def create_reflectapi_demo_tests_generics_teststructwithnestedgenericstructtwice_response(
+    value: reflectapi_demo.tests.generics.TestStructWithNestedGenericStructTwice,
+) -> ApiResponse[reflectapi_demo.tests.generics.TestStructWithNestedGenericStructTwice]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.generics.TestStructWithNestedGenericStructTwice."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsgenericsteststructwithsimplegeneric_response(
-    value: ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric,
-) -> ApiResponse[ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric."""
+def create_reflectapi_demo_tests_generics_teststructwithsimplegeneric_response(
+    value: reflectapi_demo.tests.generics.TestStructWithSimpleGeneric,
+) -> ApiResponse[reflectapi_demo.tests.generics.TestStructWithSimpleGeneric]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.generics.TestStructWithSimpleGeneric."""
     return create_api_response(value)
 
 

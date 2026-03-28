@@ -118,6 +118,30 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll(
         )
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestEnumTagContentRenameAllVariant1Variant = (
+                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Variant
+            )
+            TestEnumTagContentRenameAllVariant2Variant = (
+                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant
+            )
+            TestEnumTagContentRenameAllVariants = (
+                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariants
+            )
+            TestEnumTagContentRenameAll = (
+                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll
+            )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -126,15 +150,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumTagContentRenameAll] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumTagContentRenameAll]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]: Response containing ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumTagContentRenameAll]: Response containing reflectapi_demo.tests.serde.TestEnumTagContentRenameAll data
         """
         path = "/inout_test"
 
@@ -144,7 +168,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll,
+            response_model=reflectapi_demo.tests.serde.TestEnumTagContentRenameAll,
         )
 
 
@@ -169,15 +193,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumTagContentRenameAll] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumTagContentRenameAll]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]: Response containing ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumTagContentRenameAll]: Response containing reflectapi_demo.tests.serde.TestEnumTagContentRenameAll data
         """
         path = "/inout_test"
 
@@ -187,7 +211,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll,
+            response_model=reflectapi_demo.tests.serde.TestEnumTagContentRenameAll,
         )
 
 
@@ -212,35 +236,37 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll.model_rebuild()
+    reflectapi_demo.tests.serde.TestEnumTagContentRenameAll.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
 
 
 # Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_TestEnumTagContentRenameAllFactory:
+    """Factory class for creating reflectapi_demo.tests.serde.TestEnumTagContentRenameAll variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll variants
+    reflectapi_demo.tests.serde.TestEnumTagContentRenameAll variants
     """
 
     @staticmethod
     def variant1(
         field_name: int,
-    ) -> ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll:
-        """Creates the 'variant1' variant of the ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll enum."""
-        return ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll(
-            ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Variant(
+    ) -> reflectapi_demo.tests.serde.TestEnumTagContentRenameAll:
+        """Creates the 'variant1' variant of the reflectapi_demo.tests.serde.TestEnumTagContentRenameAll enum."""
+        return reflectapi_demo.tests.serde.TestEnumTagContentRenameAll(
+            reflectapi_demo.tests.serde.TestEnumTagContentRenameAllVariant1Variant(
                 field_name=field_name
             )
         )
 
     @staticmethod
-    def variant2(field_0: int) -> ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll:
-        """Creates the 'variant2' variant of the ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll enum."""
-        return ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll(
-            ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant(
+    def variant2(
+        field_0: int,
+    ) -> reflectapi_demo.tests.serde.TestEnumTagContentRenameAll:
+        """Creates the 'variant2' variant of the reflectapi_demo.tests.serde.TestEnumTagContentRenameAll enum."""
+        return reflectapi_demo.tests.serde.TestEnumTagContentRenameAll(
+            reflectapi_demo.tests.serde.TestEnumTagContentRenameAllVariant2Variant(
                 field_0=field_0
             )
         )
@@ -249,10 +275,10 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllFactory:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdetestenumtagcontentrenameall_response(
-    value: ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll."""
+def create_reflectapi_demo_tests_serde_testenumtagcontentrenameall_response(
+    value: reflectapi_demo.tests.serde.TestEnumTagContentRenameAll,
+) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumTagContentRenameAll]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.TestEnumTagContentRenameAll."""
     return create_api_response(value)
 
 

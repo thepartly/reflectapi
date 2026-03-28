@@ -31,6 +31,19 @@ class ReflectapiDemoTestsBasicTestStructEmpty(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructEmpty = ReflectapiDemoTestsBasicTestStructEmpty
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -39,15 +52,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructEmpty] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructEmpty]:
+        data: Optional[reflectapi_demo.tests.basic.TestStructEmpty] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructEmpty]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructEmpty]: Response containing ReflectapiDemoTestsBasicTestStructEmpty data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructEmpty]: Response containing reflectapi_demo.tests.basic.TestStructEmpty data
         """
         path = "/inout_test"
 
@@ -57,7 +70,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructEmpty,
+            response_model=reflectapi_demo.tests.basic.TestStructEmpty,
         )
 
 
@@ -82,15 +95,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructEmpty] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructEmpty]:
+        data: Optional[reflectapi_demo.tests.basic.TestStructEmpty] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructEmpty]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructEmpty]: Response containing ReflectapiDemoTestsBasicTestStructEmpty data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructEmpty]: Response containing reflectapi_demo.tests.basic.TestStructEmpty data
         """
         path = "/inout_test"
 
@@ -100,7 +113,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructEmpty,
+            response_model=reflectapi_demo.tests.basic.TestStructEmpty,
         )
 
 
@@ -125,7 +138,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructEmpty.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructEmpty.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -135,10 +148,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicteststructempty_response(
-    value: ReflectapiDemoTestsBasicTestStructEmpty,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructEmpty]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructEmpty."""
+def create_reflectapi_demo_tests_basic_teststructempty_response(
+    value: reflectapi_demo.tests.basic.TestStructEmpty,
+) -> ApiResponse[reflectapi_demo.tests.basic.TestStructEmpty]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.TestStructEmpty."""
     return create_api_response(value)
 
 

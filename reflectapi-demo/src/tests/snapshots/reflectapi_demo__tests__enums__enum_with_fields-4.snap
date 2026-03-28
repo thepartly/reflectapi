@@ -110,6 +110,28 @@ class ReflectapiDemoTestsEnumsTestEnumWithFields(
         )
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class enums:
+            """Namespace for enums types."""
+
+            TestEnumWithFieldsVariant1Variant = (
+                ReflectapiDemoTestsEnumsTestEnumWithFieldsVariant1Variant
+            )
+            TestEnumWithFieldsVariant2Variant = (
+                ReflectapiDemoTestsEnumsTestEnumWithFieldsVariant2Variant
+            )
+            TestEnumWithFieldsVariants = (
+                ReflectapiDemoTestsEnumsTestEnumWithFieldsVariants
+            )
+            TestEnumWithFields = ReflectapiDemoTestsEnumsTestEnumWithFields
+
+
 class AsyncInputClient:
     """Async client for input_ operations."""
 
@@ -118,7 +140,7 @@ class AsyncInputClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsTestEnumWithFields] = None,
+        data: Optional[reflectapi_demo.tests.enums.TestEnumWithFields] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -161,7 +183,7 @@ class InputClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsTestEnumWithFields] = None,
+        data: Optional[reflectapi_demo.tests.enums.TestEnumWithFields] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -204,33 +226,35 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsEnumsTestEnumWithFields.model_rebuild()
+    reflectapi_demo.tests.enums.TestEnumWithFields.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
 
 
 # Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsEnumsTestEnumWithFieldsFactory:
-    """Factory class for creating ReflectapiDemoTestsEnumsTestEnumWithFields variants with ergonomic syntax.
+class reflectapi_demo_tests_enums_TestEnumWithFieldsFactory:
+    """Factory class for creating reflectapi_demo.tests.enums.TestEnumWithFields variants with ergonomic syntax.
 
-    ReflectapiDemoTestsEnumsTestEnumWithFields variants
+    reflectapi_demo.tests.enums.TestEnumWithFields variants
     """
 
     @staticmethod
-    def variant1(field_0: int) -> ReflectapiDemoTestsEnumsTestEnumWithFields:
-        """Creates the 'Variant1' variant of the ReflectapiDemoTestsEnumsTestEnumWithFields enum."""
-        return ReflectapiDemoTestsEnumsTestEnumWithFields(
-            ReflectapiDemoTestsEnumsTestEnumWithFieldsVariant1Variant(field_0=field_0)
+    def variant1(field_0: int) -> reflectapi_demo.tests.enums.TestEnumWithFields:
+        """Creates the 'Variant1' variant of the reflectapi_demo.tests.enums.TestEnumWithFields enum."""
+        return reflectapi_demo.tests.enums.TestEnumWithFields(
+            reflectapi_demo.tests.enums.TestEnumWithFieldsVariant1Variant(
+                field_0=field_0
+            )
         )
 
     @staticmethod
     def variant2(
         field_0: str, field_1: float
-    ) -> ReflectapiDemoTestsEnumsTestEnumWithFields:
-        """Creates the 'Variant2' variant of the ReflectapiDemoTestsEnumsTestEnumWithFields enum."""
-        return ReflectapiDemoTestsEnumsTestEnumWithFields(
-            ReflectapiDemoTestsEnumsTestEnumWithFieldsVariant2Variant(
+    ) -> reflectapi_demo.tests.enums.TestEnumWithFields:
+        """Creates the 'Variant2' variant of the reflectapi_demo.tests.enums.TestEnumWithFields enum."""
+        return reflectapi_demo.tests.enums.TestEnumWithFields(
+            reflectapi_demo.tests.enums.TestEnumWithFieldsVariant2Variant(
                 field_0=field_0, field_1=field_1
             )
         )
@@ -239,10 +263,10 @@ class ReflectapiDemoTestsEnumsTestEnumWithFieldsFactory:
 # Testing utilities
 
 
-def create_reflectapidemotestsenumstestenumwithfields_response(
-    value: ReflectapiDemoTestsEnumsTestEnumWithFields,
-) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithFields]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsEnumsTestEnumWithFields."""
+def create_reflectapi_demo_tests_enums_testenumwithfields_response(
+    value: reflectapi_demo.tests.enums.TestEnumWithFields,
+) -> ApiResponse[reflectapi_demo.tests.enums.TestEnumWithFields]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.enums.TestEnumWithFields."""
     return create_api_response(value)
 
 

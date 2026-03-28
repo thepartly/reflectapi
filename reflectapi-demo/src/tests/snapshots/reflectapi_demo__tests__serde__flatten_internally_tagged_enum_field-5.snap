@@ -95,6 +95,24 @@ except AttributeError:
     pass
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            OfferKindSingle = ReflectapiDemoTestsSerdeOfferKindSingle
+            OfferKindGroup = ReflectapiDemoTestsSerdeOfferKindGroup
+            OfferKind = ReflectapiDemoTestsSerdeOfferKind
+            OfferSingle = ReflectapiDemoTestsSerdeOfferSingle
+            OfferGroup = ReflectapiDemoTestsSerdeOfferGroup
+            Offer = ReflectapiDemoTestsSerdeOffer
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -103,15 +121,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeOffer] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOffer]:
+        data: Optional[reflectapi_demo.tests.serde.Offer] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Offer]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOffer]: Response containing ReflectapiDemoTestsSerdeOffer data
+            ApiResponse[reflectapi_demo.tests.serde.Offer]: Response containing reflectapi_demo.tests.serde.Offer data
         """
         path = "/inout_test"
 
@@ -121,7 +139,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOffer,
+            response_model=reflectapi_demo.tests.serde.Offer,
         )
 
 
@@ -146,15 +164,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeOffer] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOffer]:
+        data: Optional[reflectapi_demo.tests.serde.Offer] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Offer]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOffer]: Response containing ReflectapiDemoTestsSerdeOffer data
+            ApiResponse[reflectapi_demo.tests.serde.Offer]: Response containing reflectapi_demo.tests.serde.Offer data
         """
         path = "/inout_test"
 
@@ -164,7 +182,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOffer,
+            response_model=reflectapi_demo.tests.serde.Offer,
         )
 
 
@@ -189,45 +207,45 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeOffer.model_rebuild()
-    ReflectapiDemoTestsSerdeOfferKind.model_rebuild()
+    reflectapi_demo.tests.serde.Offer.model_rebuild()
+    reflectapi_demo.tests.serde.OfferKind.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
 
 
 # Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeOfferKindFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeOfferKind variants with ergonomic syntax.
+class reflectapi_demo_tests_serde_OfferKindFactory:
+    """Factory class for creating reflectapi_demo.tests.serde.OfferKind variants with ergonomic syntax.
 
-    ReflectapiDemoTestsSerdeOfferKind variants
+    reflectapi_demo.tests.serde.OfferKind variants
     """
 
     @staticmethod
-    def single(business: str) -> ReflectapiDemoTestsSerdeOfferKindSingle:
-        """Creates the 'Single' variant of the ReflectapiDemoTestsSerdeOfferKind enum."""
-        return ReflectapiDemoTestsSerdeOfferKindSingle(business=business)
+    def single(business: str) -> reflectapi_demo.tests.serde.OfferKindSingle:
+        """Creates the 'Single' variant of the reflectapi_demo.tests.serde.OfferKind enum."""
+        return reflectapi_demo.tests.serde.OfferKindSingle(business=business)
 
     @staticmethod
-    def group(count: int) -> ReflectapiDemoTestsSerdeOfferKindGroup:
-        """Creates the 'Group' variant of the ReflectapiDemoTestsSerdeOfferKind enum."""
-        return ReflectapiDemoTestsSerdeOfferKindGroup(count=count)
+    def group(count: int) -> reflectapi_demo.tests.serde.OfferKindGroup:
+        """Creates the 'Group' variant of the reflectapi_demo.tests.serde.OfferKind enum."""
+        return reflectapi_demo.tests.serde.OfferKindGroup(count=count)
 
 
 # Testing utilities
 
 
-def create_reflectapidemotestsserdeoffer_response(
-    value: ReflectapiDemoTestsSerdeOffer,
-) -> ApiResponse[ReflectapiDemoTestsSerdeOffer]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeOffer."""
+def create_reflectapi_demo_tests_serde_offer_response(
+    value: reflectapi_demo.tests.serde.Offer,
+) -> ApiResponse[reflectapi_demo.tests.serde.Offer]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.Offer."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdeofferkind_response(
-    value: ReflectapiDemoTestsSerdeOfferKind,
-) -> ApiResponse[ReflectapiDemoTestsSerdeOfferKind]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeOfferKind."""
+def create_reflectapi_demo_tests_serde_offerkind_response(
+    value: reflectapi_demo.tests.serde.OfferKind,
+) -> ApiResponse[reflectapi_demo.tests.serde.OfferKind]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.OfferKind."""
     return create_api_response(value)
 
 

@@ -39,6 +39,31 @@ class ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput(BaseModel):
     f: int = Field(serialization_alias="_f", validation_alias="_f")
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            class input:
+                """Namespace for input types."""
+
+                TestStructWithSkipFieldInput = (
+                    ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput
+                )
+
+            class output:
+                """Namespace for output types."""
+
+                TestStructWithSkipFieldInput = (
+                    ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput
+                )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -48,16 +73,16 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput
+            reflectapi_demo.tests.basic.input.TestStructWithSkipFieldInput
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput]:
+    ) -> ApiResponse[reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput]: Response containing ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput]: Response containing reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput data
         """
         path = "/inout_test"
 
@@ -67,7 +92,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput,
+            response_model=reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput,
         )
 
 
@@ -93,16 +118,16 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput
+            reflectapi_demo.tests.basic.input.TestStructWithSkipFieldInput
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput]:
+    ) -> ApiResponse[reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput]: Response containing ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput]: Response containing reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput data
         """
         path = "/inout_test"
 
@@ -112,7 +137,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput,
+            response_model=reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput,
         )
 
 
@@ -137,8 +162,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput.model_rebuild()
-    ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput.model_rebuild()
+    reflectapi_demo.tests.basic.input.TestStructWithSkipFieldInput.model_rebuild()
+    reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -148,17 +173,17 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicinputteststructwithskipfieldinput_response(
-    value: ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput,
-) -> ApiResponse[ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput."""
+def create_reflectapi_demo_tests_basic_input_teststructwithskipfieldinput_response(
+    value: reflectapi_demo.tests.basic.input.TestStructWithSkipFieldInput,
+) -> ApiResponse[reflectapi_demo.tests.basic.input.TestStructWithSkipFieldInput]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.input.TestStructWithSkipFieldInput."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsbasicoutputteststructwithskipfieldinput_response(
-    value: ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput,
-) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput."""
+def create_reflectapi_demo_tests_basic_output_teststructwithskipfieldinput_response(
+    value: reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput,
+) -> ApiResponse[reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput."""
     return create_api_response(value)
 
 

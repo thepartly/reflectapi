@@ -41,6 +41,21 @@ class ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric(BaseModel, Gener
     )
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructWithHashSetFieldGeneric = (
+                ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric
+            )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -50,16 +65,18 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric[str]
+            reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric[str]
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric[str]]:
+    ) -> ApiResponse[
+        reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric[str]
+    ]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric[str]]: Response containing ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric[str] data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric[str]]: Response containing reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric[str] data
         """
         path = "/inout_test"
 
@@ -69,7 +86,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric[
+            response_model=reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric[
                 str
             ],
         )
@@ -97,16 +114,18 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric[str]
+            reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric[str]
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric[str]]:
+    ) -> ApiResponse[
+        reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric[str]
+    ]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric[str]]: Response containing ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric[str] data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric[str]]: Response containing reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric[str] data
         """
         path = "/inout_test"
 
@@ -116,7 +135,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric[
+            response_model=reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric[
                 str
             ],
         )
@@ -143,7 +162,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -153,10 +172,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicteststructwithhashsetfieldgeneric_response(
-    value: ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric."""
+def create_reflectapi_demo_tests_basic_teststructwithhashsetfieldgeneric_response(
+    value: reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric,
+) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.TestStructWithHashSetFieldGeneric."""
     return create_api_response(value)
 
 

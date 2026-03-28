@@ -34,6 +34,19 @@ class ReflectapiDemoTestsBasicTestStructOption(BaseModel):
     f: int | None = Field(default=None, serialization_alias="_f", validation_alias="_f")
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructOption = ReflectapiDemoTestsBasicTestStructOption
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -42,15 +55,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructOption] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructOption]:
+        data: Optional[reflectapi_demo.tests.basic.TestStructOption] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructOption]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructOption]: Response containing ReflectapiDemoTestsBasicTestStructOption data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructOption]: Response containing reflectapi_demo.tests.basic.TestStructOption data
         """
         path = "/inout_test"
 
@@ -60,7 +73,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructOption,
+            response_model=reflectapi_demo.tests.basic.TestStructOption,
         )
 
 
@@ -85,15 +98,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructOption] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructOption]:
+        data: Optional[reflectapi_demo.tests.basic.TestStructOption] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructOption]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructOption]: Response containing ReflectapiDemoTestsBasicTestStructOption data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructOption]: Response containing reflectapi_demo.tests.basic.TestStructOption data
         """
         path = "/inout_test"
 
@@ -103,7 +116,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructOption,
+            response_model=reflectapi_demo.tests.basic.TestStructOption,
         )
 
 
@@ -128,7 +141,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructOption.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructOption.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -138,10 +151,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasicteststructoption_response(
-    value: ReflectapiDemoTestsBasicTestStructOption,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructOption]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructOption."""
+def create_reflectapi_demo_tests_basic_teststructoption_response(
+    value: reflectapi_demo.tests.basic.TestStructOption,
+) -> ApiResponse[reflectapi_demo.tests.basic.TestStructOption]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.TestStructOption."""
     return create_api_response(value)
 
 

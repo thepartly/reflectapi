@@ -43,6 +43,31 @@ class ReflectapiDemoTestsSerdeOutputTestStructRenameField(BaseModel):
     field_name: int
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            class input:
+                """Namespace for input types."""
+
+                TestStructRenameField = (
+                    ReflectapiDemoTestsSerdeInputTestStructRenameField
+                )
+
+            class output:
+                """Namespace for output types."""
+
+                TestStructRenameField = (
+                    ReflectapiDemoTestsSerdeOutputTestStructRenameField
+                )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -51,15 +76,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeInputTestStructRenameField] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructRenameField]:
+        data: Optional[reflectapi_demo.tests.serde.input.TestStructRenameField] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TestStructRenameField]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructRenameField]: Response containing ReflectapiDemoTestsSerdeOutputTestStructRenameField data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestStructRenameField]: Response containing reflectapi_demo.tests.serde.output.TestStructRenameField data
         """
         path = "/inout_test"
 
@@ -69,7 +94,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestStructRenameField,
+            response_model=reflectapi_demo.tests.serde.output.TestStructRenameField,
         )
 
 
@@ -94,15 +119,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeInputTestStructRenameField] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructRenameField]:
+        data: Optional[reflectapi_demo.tests.serde.input.TestStructRenameField] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TestStructRenameField]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructRenameField]: Response containing ReflectapiDemoTestsSerdeOutputTestStructRenameField data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestStructRenameField]: Response containing reflectapi_demo.tests.serde.output.TestStructRenameField data
         """
         path = "/inout_test"
 
@@ -112,7 +137,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestStructRenameField,
+            response_model=reflectapi_demo.tests.serde.output.TestStructRenameField,
         )
 
 
@@ -137,8 +162,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeInputTestStructRenameField.model_rebuild()
-    ReflectapiDemoTestsSerdeOutputTestStructRenameField.model_rebuild()
+    reflectapi_demo.tests.serde.input.TestStructRenameField.model_rebuild()
+    reflectapi_demo.tests.serde.output.TestStructRenameField.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -148,17 +173,17 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdeinputteststructrenamefield_response(
-    value: ReflectapiDemoTestsSerdeInputTestStructRenameField,
-) -> ApiResponse[ReflectapiDemoTestsSerdeInputTestStructRenameField]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeInputTestStructRenameField."""
+def create_reflectapi_demo_tests_serde_input_teststructrenamefield_response(
+    value: reflectapi_demo.tests.serde.input.TestStructRenameField,
+) -> ApiResponse[reflectapi_demo.tests.serde.input.TestStructRenameField]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.input.TestStructRenameField."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsserdeoutputteststructrenamefield_response(
-    value: ReflectapiDemoTestsSerdeOutputTestStructRenameField,
-) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructRenameField]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeOutputTestStructRenameField."""
+def create_reflectapi_demo_tests_serde_output_teststructrenamefield_response(
+    value: reflectapi_demo.tests.serde.output.TestStructRenameField,
+) -> ApiResponse[reflectapi_demo.tests.serde.output.TestStructRenameField]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.output.TestStructRenameField."""
     return create_api_response(value)
 
 

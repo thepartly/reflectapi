@@ -51,14 +51,28 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBo
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    f: ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
-        ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
+    f: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
+        reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
             int, int
         ],
-        ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox[
+        reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
             str, int
         ],
     ] = Field(serialization_alias="_f", validation_alias="_f")
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class generics:
+            """Namespace for generics types."""
+
+            TestStructWithCircularReferenceGenericWithoutBox = ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox
+            TestStructWithCircularReferenceGenericWithoutBoxParentSpecific = ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBoxParentSpecific
 
 
 class AsyncInputClient:
@@ -70,7 +84,7 @@ class AsyncInputClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBoxParentSpecific
+            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParentSpecific
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -115,7 +129,7 @@ class InputClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBoxParentSpecific
+            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParentSpecific
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -159,8 +173,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox.model_rebuild()
-    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBoxParentSpecific.model_rebuild()
+    reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox.model_rebuild()
+    reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParentSpecific.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -170,21 +184,21 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsgenericsteststructwithcircularreferencegenericwithoutbox_response(
-    value: ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox,
+def create_reflectapi_demo_tests_generics_teststructwithcircularreferencegenericwithoutbox_response(
+    value: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox,
 ) -> ApiResponse[
-    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox
+    reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox
 ]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox."""
+    """Create a mock ApiResponse for reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsgenericsteststructwithcircularreferencegenericwithoutboxparentspecific_response(
-    value: ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBoxParentSpecific,
+def create_reflectapi_demo_tests_generics_teststructwithcircularreferencegenericwithoutboxparentspecific_response(
+    value: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParentSpecific,
 ) -> ApiResponse[
-    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBoxParentSpecific
+    reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParentSpecific
 ]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBoxParentSpecific."""
+    """Create a mock ApiResponse for reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParentSpecific."""
     return create_api_response(value)
 
 

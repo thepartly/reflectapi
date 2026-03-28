@@ -44,8 +44,24 @@ class ReflectapiDemoTestsBasicTest(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     us: list[None]
-    xs: list[ReflectapiDemoTestsBasicX]
-    ys: list[ReflectapiDemoTestsBasicY]
+    xs: list[reflectapi_demo.tests.basic.X]
+    ys: list[reflectapi_demo.tests.basic.Y]
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            X = ReflectapiDemoTestsBasicX
+            Y = ReflectapiDemoTestsBasicY
+            Y = Y
+            Test = ReflectapiDemoTestsBasicTest
 
 
 class AsyncInoutClient:
@@ -56,15 +72,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
+        data: Optional[reflectapi_demo.tests.basic.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTest]: Response containing ReflectapiDemoTestsBasicTest data
+            ApiResponse[reflectapi_demo.tests.basic.Test]: Response containing reflectapi_demo.tests.basic.Test data
         """
         path = "/inout_test"
 
@@ -74,7 +90,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTest,
+            response_model=reflectapi_demo.tests.basic.Test,
         )
 
 
@@ -99,15 +115,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
+        data: Optional[reflectapi_demo.tests.basic.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTest]: Response containing ReflectapiDemoTestsBasicTest data
+            ApiResponse[reflectapi_demo.tests.basic.Test]: Response containing reflectapi_demo.tests.basic.Test data
         """
         path = "/inout_test"
 
@@ -117,7 +133,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTest,
+            response_model=reflectapi_demo.tests.basic.Test,
         )
 
 
@@ -142,9 +158,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTest.model_rebuild()
-    ReflectapiDemoTestsBasicX.model_rebuild()
-    ReflectapiDemoTestsBasicY.model_rebuild()
+    reflectapi_demo.tests.basic.Test.model_rebuild()
+    reflectapi_demo.tests.basic.X.model_rebuild()
+    reflectapi_demo.tests.basic.Y.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -154,24 +170,24 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsbasictest_response(
-    value: ReflectapiDemoTestsBasicTest,
-) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTest."""
+def create_reflectapi_demo_tests_basic_test_response(
+    value: reflectapi_demo.tests.basic.Test,
+) -> ApiResponse[reflectapi_demo.tests.basic.Test]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.Test."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsbasicx_response(
-    value: ReflectapiDemoTestsBasicX,
-) -> ApiResponse[ReflectapiDemoTestsBasicX]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicX."""
+def create_reflectapi_demo_tests_basic_x_response(
+    value: reflectapi_demo.tests.basic.X,
+) -> ApiResponse[reflectapi_demo.tests.basic.X]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.X."""
     return create_api_response(value)
 
 
-def create_reflectapidemotestsbasicy_response(
-    value: ReflectapiDemoTestsBasicY,
-) -> ApiResponse[ReflectapiDemoTestsBasicY]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicY."""
+def create_reflectapi_demo_tests_basic_y_response(
+    value: reflectapi_demo.tests.basic.Y,
+) -> ApiResponse[reflectapi_demo.tests.basic.Y]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.basic.Y."""
     return create_api_response(value)
 
 

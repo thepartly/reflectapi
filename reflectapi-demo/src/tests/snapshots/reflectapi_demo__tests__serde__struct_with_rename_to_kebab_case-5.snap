@@ -35,6 +35,19 @@ class ReflectapiDemoTestsSerdeStructName(BaseModel):
     )
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            StructName = ReflectapiDemoTestsSerdeStructName
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -43,15 +56,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeStructName] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeStructName]:
+        data: Optional[reflectapi_demo.tests.serde.StructName] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.StructName]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeStructName]: Response containing ReflectapiDemoTestsSerdeStructName data
+            ApiResponse[reflectapi_demo.tests.serde.StructName]: Response containing reflectapi_demo.tests.serde.StructName data
         """
         path = "/inout_test"
 
@@ -61,7 +74,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeStructName,
+            response_model=reflectapi_demo.tests.serde.StructName,
         )
 
 
@@ -86,15 +99,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeStructName] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeStructName]:
+        data: Optional[reflectapi_demo.tests.serde.StructName] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.StructName]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeStructName]: Response containing ReflectapiDemoTestsSerdeStructName data
+            ApiResponse[reflectapi_demo.tests.serde.StructName]: Response containing reflectapi_demo.tests.serde.StructName data
         """
         path = "/inout_test"
 
@@ -104,7 +117,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeStructName,
+            response_model=reflectapi_demo.tests.serde.StructName,
         )
 
 
@@ -129,7 +142,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeStructName.model_rebuild()
+    reflectapi_demo.tests.serde.StructName.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
@@ -139,10 +152,10 @@ except AttributeError:
 # Testing utilities
 
 
-def create_reflectapidemotestsserdestructname_response(
-    value: ReflectapiDemoTestsSerdeStructName,
-) -> ApiResponse[ReflectapiDemoTestsSerdeStructName]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeStructName."""
+def create_reflectapi_demo_tests_serde_structname_response(
+    value: reflectapi_demo.tests.serde.StructName,
+) -> ApiResponse[reflectapi_demo.tests.serde.StructName]:
+    """Create a mock ApiResponse for reflectapi_demo.tests.serde.StructName."""
     return create_api_response(value)
 
 
