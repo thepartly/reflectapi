@@ -1092,15 +1092,17 @@ __all__ = {}
 pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let implemented_types = build_implemented_types();
 
-    // Consolidate types to avoid duplicates
-    schema.consolidate_types();
+    // Consolidate types (merge input/output typespaces, deduplicate)
+    let all_type_names = schema.consolidate_types();
 
     // Validate all type references exist
     validate_type_references(&schema)?;
 
-    // Build the semantic IR for type-safe lookups and deterministic ordering.
-    // The Normalizer runs ensure_symbol_ids + NormalizationPipeline internally,
-    // producing a fully-resolved SemanticSchema.
+    // Build the semantic IR. The Normalizer runs ensure_symbol_ids +
+    // NormalizationPipeline internally. The SemanticSchema is available
+    // for render functions that need type-safe SymbolId-based lookups;
+    // the raw Schema is still used for the main iteration loop since
+    // the Normalizer's NamingResolutionStage transforms type names.
     let _semantic = reflectapi_schema::Normalizer::new()
         .normalize(schema.clone())
         .ok();
@@ -1112,9 +1114,6 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         package_name: config.package_name.clone(),
     };
     generated_code.push(file_header.render());
-
-    // Check if we have enums in the schema
-    let all_type_names = schema.consolidate_types();
     let has_enums = all_type_names.iter().any(|name| {
         if let Some(type_def) = schema.get_type(name) {
             matches!(type_def, reflectapi_schema::Type::Enum(_))
