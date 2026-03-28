@@ -324,4 +324,135 @@ mod tests {
             "Variant path prefix {variant_path:?} should match enum path {enum_path:?}"
         );
     }
+
+    #[test]
+    fn test_zero_padded_tuple_field_ordering() {
+        // Regression: unnamed (tuple) fields with >= 10 elements must use zero-padded
+        // indices so that lexicographic sorting preserves declaration order.
+        use crate::{Field, Fields};
+
+        let mut schema = Schema::new();
+        schema.name = "Test".to_string();
+
+        let mut tuple_struct = crate::Struct::new("BigTuple");
+        // Create 12 unnamed fields
+        let fields: Vec<Field> = (0..12)
+            .map(|i| Field::new(format!("{i}"), format!("u{}", 8 + i).into()))
+            .collect();
+        tuple_struct.fields = Fields::Unnamed(fields);
+        schema.input_types.insert_type(tuple_struct.into());
+
+        ensure_symbol_ids(&mut schema);
+
+        let s = schema
+            .input_types
+            .get_type("BigTuple")
+            .unwrap()
+            .as_struct()
+            .unwrap();
+
+        let field_ids: Vec<String> = s
+            .fields()
+            .map(|f| f.id.path.last().unwrap().clone())
+            .collect();
+
+        // Verify zero-padded format: arg00, arg01, ..., arg09, arg10, arg11
+        assert_eq!(field_ids.len(), 12);
+        assert_eq!(field_ids[0], "arg00");
+        assert_eq!(field_ids[1], "arg01");
+        assert_eq!(field_ids[2], "arg02");
+        assert_eq!(field_ids[9], "arg09");
+        assert_eq!(field_ids[10], "arg10");
+        assert_eq!(field_ids[11], "arg11");
+
+        // Verify lexicographic sort preserves declaration order:
+        // arg02 < arg10 (not arg10 < arg2 which would happen without padding)
+        let mut sorted_ids = field_ids.clone();
+        sorted_ids.sort();
+        assert_eq!(
+            field_ids, sorted_ids,
+            "Zero-padded field IDs should sort in declaration order"
+        );
+    }
+
+    #[test]
+    fn test_disambiguated_id_updates_member_ids() {
+        // Regression: when a type in the output typespace is disambiguated (because
+        // a type with the same name but different fields exists in the input typespace),
+        // the field IDs of the disambiguated type must reflect the new parent ID.
+        use crate::{Field, Fields};
+
+        let mut schema = Schema::new();
+        schema.name = "Test".to_string();
+
+        // Input "Foo" has field "a"
+        let mut input_foo = crate::Struct::new("Foo");
+        input_foo.fields = Fields::Named(vec![Field::new("a".into(), "u32".into())]);
+        schema.input_types.insert_type(input_foo.into());
+
+        // Output "Foo" has field "b" (different structure triggers disambiguation)
+        let mut output_foo = crate::Struct::new("Foo");
+        output_foo.fields = Fields::Named(vec![Field::new("b".into(), "u64".into())]);
+        schema.output_types.insert_type(output_foo.into());
+
+        ensure_symbol_ids(&mut schema);
+
+        // The output Foo should have disambiguator=1
+        let output_struct = schema
+            .output_types
+            .get_type("Foo")
+            .unwrap()
+            .as_struct()
+            .unwrap();
+        assert_eq!(
+            output_struct.id.disambiguator, 1,
+            "Output Foo should have disambiguator=1, got {:?}",
+            output_struct.id
+        );
+
+        // The field "b" should have a path consistent with the disambiguated parent
+        let field_b = output_struct.fields().next().unwrap();
+        let field_path_prefix = &field_b.id.path[..field_b.id.path.len() - 1];
+        assert_eq!(
+            field_path_prefix,
+            output_struct.id.path.as_slice(),
+            "Field path prefix {:?} should match disambiguated parent path {:?}",
+            field_b.id.path,
+            output_struct.id.path
+        );
+    }
+
+    #[test]
+    fn test_schema_root_id_does_not_collide_with_type() {
+        // Regression: a schema named "User" with a struct also named "User"
+        // should not produce colliding IDs. The schema root uses the "__schema__"
+        // sentinel in its path to avoid this.
+        let mut schema = Schema::new();
+        schema.name = "User".to_string();
+
+        let user_struct = crate::Struct::new("User");
+        schema.input_types.insert_type(user_struct.into());
+
+        ensure_symbol_ids(&mut schema);
+
+        let struct_type = schema
+            .input_types
+            .get_type("User")
+            .unwrap()
+            .as_struct()
+            .unwrap();
+
+        assert_ne!(
+            schema.id, struct_type.id,
+            "Schema root ID {:?} should not collide with struct ID {:?}",
+            schema.id, struct_type.id
+        );
+
+        // Verify the schema root uses the __schema__ sentinel
+        assert!(
+            schema.id.path.contains(&"__schema__".to_string()),
+            "Schema root ID path should contain '__schema__' sentinel, got {:?}",
+            schema.id.path
+        );
+    }
 }

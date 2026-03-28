@@ -1749,4 +1749,178 @@ mod tests {
             "Both Department and Employee types should be present"
         );
     }
+
+    #[test]
+    fn test_type_consolidation_qualified_name_uniqueness() {
+        // Regression: when input types `a::Foo` and `b::Foo` both conflict with
+        // an output type `c::Foo`, all three must receive distinct names after
+        // consolidation — no silent drops.
+        let mut schema = Schema::new();
+        schema.name = "Test".to_string();
+
+        let a_foo = Struct::new("a::Foo");
+        let b_foo = Struct::new("b::Foo");
+        let c_foo = Struct::new("c::Foo");
+
+        schema.input_types.insert_type(a_foo.into());
+        schema.input_types.insert_type(b_foo.into());
+        schema.output_types.insert_type(c_foo.into());
+
+        let stage = TypeConsolidationStage;
+        stage.transform(&mut schema).unwrap();
+
+        let type_names: Vec<String> = schema
+            .input_types
+            .types()
+            .map(|t| t.name().to_string())
+            .collect();
+
+        // All three should be present with distinct names
+        assert_eq!(
+            type_names.len(),
+            3,
+            "All three Foo types should survive consolidation, got: {type_names:?}"
+        );
+
+        // Verify uniqueness — no two names are the same
+        let unique_names: std::collections::HashSet<&String> = type_names.iter().collect();
+        assert_eq!(
+            unique_names.len(),
+            3,
+            "All three names should be distinct, got: {type_names:?}"
+        );
+
+        // Verify the naming convention: input types get "input." prefix,
+        // output types get "output." prefix
+        let has_input_a = type_names
+            .iter()
+            .any(|n| n.contains("input") && n.contains("a"));
+        let has_input_b = type_names
+            .iter()
+            .any(|n| n.contains("input") && n.contains("b"));
+        let has_output_c = type_names
+            .iter()
+            .any(|n| n.contains("output") && n.contains("c"));
+        assert!(
+            has_input_a,
+            "Expected an input.a.Foo variant, got: {type_names:?}"
+        );
+        assert!(
+            has_input_b,
+            "Expected an input.b.Foo variant, got: {type_names:?}"
+        );
+        assert!(
+            has_output_c,
+            "Expected an output.c.Foo variant, got: {type_names:?}"
+        );
+    }
+
+    #[test]
+    fn test_resolve_types_does_not_confuse_variant_with_type() {
+        // Regression: the resolve_types phase should resolve a function's type
+        // reference "Status" to the Struct named "Status", not to an enum variant
+        // that happens to also be named "Status".
+        let mut schema = Schema::new();
+        schema.name = "Test".to_string();
+
+        // A struct named "Status"
+        let status_struct = Struct::new("Status");
+        schema.input_types.insert_type(status_struct.into());
+
+        // An enum with a variant named "Status"
+        let mut state_enum = Enum::new("State".into());
+        state_enum.variants = vec![Variant::new("Status".into()), Variant::new("Error".into())];
+        schema.input_types.insert_type(state_enum.into());
+
+        // A function that references "Status" — should resolve to the Struct
+        let mut function = Function::new("get_status".into());
+        function.input_type = Some(TypeReference::new("Status", vec![]));
+        schema.functions.push(function);
+
+        let normalizer = Normalizer::new();
+        let result = normalizer.normalize(schema);
+        assert!(
+            result.is_ok(),
+            "Normalization should succeed: {:?}",
+            result.err()
+        );
+
+        let semantic = result.unwrap();
+        let func = semantic.functions.values().next().unwrap();
+
+        // The function's input_type should resolve to the Status struct's ID
+        let resolved_id = func
+            .input_type
+            .as_ref()
+            .expect("input_type should be resolved");
+
+        // It should be a Struct kind, not a Variant kind
+        assert_eq!(
+            resolved_id.kind,
+            crate::SymbolKind::Struct,
+            "Function's input_type should resolve to a Struct, not a Variant. Got: {resolved_id:?}"
+        );
+    }
+
+    #[test]
+    fn test_generate_unique_name_same_inner_module() {
+        // Regression: two types with the same inner module and type name but
+        // different outer modules must produce different unique names.
+        let name_a = generate_unique_name("services::user::Profile");
+        let name_b = generate_unique_name("auth::user::Profile");
+
+        assert_ne!(
+            name_a, name_b,
+            "services::user::Profile and auth::user::Profile must produce different names, \
+             got '{name_a}' and '{name_b}'"
+        );
+
+        // Verify they follow the expected PascalCase convention
+        assert!(
+            name_a.contains("Services") || name_a.contains("services"),
+            "Expected 'services' component in name, got '{name_a}'"
+        );
+        assert!(
+            name_b.contains("Auth") || name_b.contains("auth"),
+            "Expected 'auth' component in name, got '{name_b}'"
+        );
+    }
+
+    #[test]
+    fn test_function_symbol_path_matches_id() {
+        // Regression: after normalization, a function's SymbolId should be
+        // retrievable from the symbol table via its path.
+        let mut schema = Schema::new();
+        schema.name = "API".to_string();
+
+        let mut function = Function::new("get_user".into());
+        function.input_type = None;
+        function.output_type = None;
+        schema.functions.push(function);
+
+        let normalizer = Normalizer::new();
+        let semantic = normalizer
+            .normalize(schema)
+            .expect("Normalization should succeed");
+
+        // Get the function's ID
+        let (function_id, _) = semantic.functions.iter().next().unwrap();
+
+        // Verify the symbol table can find it by path
+        let found = semantic.symbol_table.get_by_path(&function_id.path);
+        assert!(
+            found.is_some(),
+            "symbol_table.get_by_path({:?}) should return Some, but got None. \
+             Function ID: {function_id:?}",
+            function_id.path
+        );
+
+        let symbol_info = found.unwrap();
+        assert_eq!(
+            symbol_info.kind,
+            crate::SymbolKind::Endpoint,
+            "Symbol should be an Endpoint, got {:?}",
+            symbol_info.kind
+        );
+    }
 }
