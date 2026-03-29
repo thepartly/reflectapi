@@ -14,18 +14,10 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Annotated, Any, Generic, Optional, TypeVar, Union
+from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    PrivateAttr,
-    RootModel,
-    model_serializer,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -39,59 +31,37 @@ from reflectapi_runtime import ReflectapiInfallible
 T = TypeVar("T")
 
 
-class ReflectapiDemoTestsSerdeTaggedItemVariant(BaseModel, Generic[T]):
-    """Item variant"""
-
+class ReflectapiDemoTestsSerdeTaggedItem(BaseModel, Generic[T]):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    value: T
+    t: Literal["Item"] = Field(default="Item", description="Discriminator field")
+    c: T
 
 
-# Adjacently tagged enum using RootModel
-ReflectapiDemoTestsSerdeTaggedVariants = Union[
-    ReflectapiDemoTestsSerdeTaggedItemVariant, Literal["Nothing"]
-]
+class ReflectapiDemoTestsSerdeTaggedNothing(BaseModel, Generic[T]):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    t: Literal["Nothing"] = Field(default="Nothing", description="Discriminator field")
 
 
-class ReflectapiDemoTestsSerdeTagged(
-    RootModel[ReflectapiDemoTestsSerdeTaggedVariants], Generic[T]
-):
-    """Adjacently tagged enum"""
+class ReflectapiDemoTestsSerdeTagged(Generic[T]):
+    """"""
 
-    @model_validator(mode="before")
     @classmethod
-    def _validate_adjacently_tagged(cls, data):
-        # Handle direct variant instances
-        if isinstance(data, (ReflectapiDemoTestsSerdeTaggedItemVariant)):
-            return data
-        if isinstance(data, dict):
-            tag = data.get("t")
-            content = data.get("c")
-            if tag is None:
-                raise ValueError("Missing tag field 't'")
-            if content is None and tag not in ("Nothing"):
-                raise ValueError("Missing content field 'c' for tag: {}".format(tag))
-            # Dispatch based on tag
-            if tag == "Item":
-                return ReflectapiDemoTestsSerdeTaggedItemVariant(value=content)
-            if tag == "Nothing":
-                return "Nothing"
-        raise ValueError(
-            "Unknown variant for ReflectapiDemoTestsSerdeTagged: {}".format(data)
-        )
-
-    @model_serializer
-    def _serialize_adjacently_tagged(self):
-        if isinstance(self.root, ReflectapiDemoTestsSerdeTaggedItemVariant):
-            return {"t": "Item", "c": self.root.value}
-        if self.root == "Nothing":
-            return {"t": "Nothing"}
-        raise ValueError(
-            f"Cannot serialize ReflectapiDemoTestsSerdeTagged variant: {type(self.root)}"
-        )
-
     def __class_getitem__(cls, params):
-        return cls
+        """Enable subscripting for generic discriminated union."""
+        if not isinstance(params, tuple):
+            params = (params,)
+        if len(params) != 1:
+            raise TypeError(f"Expected 1 type parameters, got {len(params)}")
+
+        return Annotated[
+            Union[
+                ReflectapiDemoTestsSerdeTaggedItem[params[0]],
+                ReflectapiDemoTestsSerdeTaggedNothing[params[0]],
+            ],
+            Field(discriminator="t"),
+        ]
 
 
 # Namespace classes for dotted access to types
@@ -104,7 +74,8 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            TaggedItemVariant = ReflectapiDemoTestsSerdeTaggedItemVariant
+            TaggedItem = ReflectapiDemoTestsSerdeTaggedItem
+            TaggedNothing = ReflectapiDemoTestsSerdeTaggedNothing
             Tagged = ReflectapiDemoTestsSerdeTagged
 
 

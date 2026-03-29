@@ -14,18 +14,10 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Annotated, Any, Generic, Optional, TypeVar, Union
+from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    PrivateAttr,
-    RootModel,
-    model_serializer,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -33,89 +25,49 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
-class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant(
+class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmpty(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    t: Literal["Empty"] = Field(default="Empty", description="Discriminator field")
+
+
+class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnit(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    t: Literal["EmptyUnit"] = Field(
+        default="EmptyUnit", description="Discriminator field"
+    )
+    c: list[Any] = Field(description="Tuple variant fields")
+
+
+class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructContent(
     BaseModel
 ):
-    """EmptyUnit variant"""
+    """EmptyStruct content"""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
-class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructVariant(
-    BaseModel
-):
-    """EmptyStruct variant"""
-
+class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStruct(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
+    t: Literal["EmptyStruct"] = Field(
+        default="EmptyStruct", description="Discriminator field"
+    )
+    c: ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructContent = (
+        Field(description="EmptyStruct content")
+    )
 
-# Adjacently tagged enum using RootModel
-ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedVariants = Union[
-    Literal["Empty"],
-    ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant,
-    ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructVariant,
-]
 
-
-class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged(
-    RootModel[ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedVariants]
-):
-    """Adjacently tagged enum"""
-
-    @model_validator(mode="before")
-    @classmethod
-    def _validate_adjacently_tagged(cls, data):
-        # Handle direct variant instances
-        if isinstance(
-            data,
-            (
-                ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant,
-                ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructVariant,
-            ),
-        ):
-            return data
-        if isinstance(data, dict):
-            tag = data.get("t")
-            content = data.get("c")
-            if tag is None:
-                raise ValueError("Missing tag field 't'")
-            if content is None and tag not in ("Empty"):
-                raise ValueError("Missing content field 'c' for tag: {}".format(tag))
-            # Dispatch based on tag
-            if tag == "Empty":
-                return "Empty"
-            if tag == "EmptyUnit":
-                if isinstance(content, list):
-                    return ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant()
-                else:
-                    raise ValueError("Expected list for tuple variant EmptyUnit")
-            if tag == "EmptyStruct":
-                return ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructVariant(
-                    **content
-                )
-        raise ValueError(
-            "Unknown variant for ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged: {}".format(
-                data
-            )
-        )
-
-    @model_serializer
-    def _serialize_adjacently_tagged(self):
-        if self.root == "Empty":
-            return {"t": "Empty"}
-        if isinstance(
-            self.root,
-            ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant,
-        ):
-            return {"t": "EmptyUnit", "c": []}
-        if isinstance(
-            self.root,
-            ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructVariant,
-        ):
-            return {"t": "EmptyStruct", "c": self.root.model_dump()}
-        raise ValueError(
-            f"Cannot serialize ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged variant: {type(self.root)}"
-        )
+class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged(RootModel):
+    root: Annotated[
+        Union[
+            ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmpty,
+            ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnit,
+            ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStruct,
+        ],
+        Field(discriminator="t"),
+    ]
 
 
 # Namespace classes for dotted access to types
@@ -128,8 +80,16 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            TestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant = ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant
-            TestEmptyVariantsAdjacentlyTaggedEmptyStructVariant = ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructVariant
+            TestEmptyVariantsAdjacentlyTaggedEmpty = (
+                ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmpty
+            )
+            TestEmptyVariantsAdjacentlyTaggedEmptyUnit = (
+                ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnit
+            )
+            TestEmptyVariantsAdjacentlyTaggedEmptyStructContent = ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructContent
+            TestEmptyVariantsAdjacentlyTaggedEmptyStruct = (
+                ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStruct
+            )
             TestEmptyVariantsAdjacentlyTagged = (
                 ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged
             )

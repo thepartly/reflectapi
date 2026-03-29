@@ -33,6 +33,35 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
+# Helper functions for externally tagged enum serialization/deserialization
+def _parse_externally_tagged(data, variants: dict, types: tuple, enum_name: str):
+    """Parse an externally tagged enum from {key: value} format."""
+    if types and isinstance(data, types):
+        return data
+    if isinstance(data, str) and data in variants:
+        handler = variants[data]
+        if handler == "_unit":
+            return data
+    if isinstance(data, dict):
+        if len(data) != 1:
+            raise ValueError("Externally tagged enum must have exactly one key")
+        key, value = next(iter(data.items()))
+        if key in variants:
+            handler = variants[key]
+            if handler == "_unit":
+                return key
+            return handler(value)
+    raise ValueError(f"Unknown variant for {enum_name}: {data}")
+
+
+def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
+    """Serialize an externally tagged enum to {key: value} format."""
+    for variant_name, (check, serialize) in serializers.items():
+        if check(root):
+            return serialize(root)
+    raise ValueError(f"Cannot serialize {enum_name} variant: {type(root)}")
+
+
 class ReflectapiDemoTestsSerdeDrawing(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -68,36 +97,35 @@ class ReflectapiDemoTestsSerdeShape(RootModel[ReflectapiDemoTestsSerdeShapeVaria
 
     @model_validator(mode="before")
     @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-        if isinstance(data, ReflectapiDemoTestsSerdeShapeCircleVariant):
-            return data
-        if isinstance(data, ReflectapiDemoTestsSerdeShapeRectVariant):
-            return data
-
-        # Handle JSON data (for deserialization)
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-            if key == "Circle":
-                return ReflectapiDemoTestsSerdeShapeCircleVariant(**value)
-            if key == "Rect":
-                return ReflectapiDemoTestsSerdeShapeRectVariant(**value)
-
-        raise ValueError(f"Unknown variant for ReflectapiDemoTestsSerdeShape: {data}")
+    def _validate(cls, data):
+        return _parse_externally_tagged(
+            data,
+            {
+                "Circle": lambda v: ReflectapiDemoTestsSerdeShapeCircleVariant(**v),
+                "Rect": lambda v: ReflectapiDemoTestsSerdeShapeRectVariant(**v),
+            },
+            (
+                ReflectapiDemoTestsSerdeShapeCircleVariant,
+                ReflectapiDemoTestsSerdeShapeRectVariant,
+            ),
+            "ReflectapiDemoTestsSerdeShape",
+        )
 
     @model_serializer
-    def _serialize_externally_tagged(self):
-        if isinstance(self.root, ReflectapiDemoTestsSerdeShapeCircleVariant):
-            return {"Circle": self.root.model_dump()}
-        if isinstance(self.root, ReflectapiDemoTestsSerdeShapeRectVariant):
-            return {"Rect": self.root.model_dump()}
-
-        raise ValueError(
-            f"Cannot serialize ReflectapiDemoTestsSerdeShape variant: {type(self.root)}"
+    def _serialize(self):
+        return _serialize_externally_tagged(
+            self.root,
+            {
+                "Circle": (
+                    lambda r: isinstance(r, ReflectapiDemoTestsSerdeShapeCircleVariant),
+                    lambda r: {"Circle": r.model_dump()},
+                ),
+                "Rect": (
+                    lambda r: isinstance(r, ReflectapiDemoTestsSerdeShapeRectVariant),
+                    lambda r: {"Rect": r.model_dump()},
+                ),
+            },
+            "ReflectapiDemoTestsSerdeShape",
         )
 
 

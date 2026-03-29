@@ -14,18 +14,10 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Annotated, Any, Generic, Optional, TypeVar, Union
+from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    PrivateAttr,
-    RootModel,
-    model_serializer,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -33,69 +25,52 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
-class ReflectapiDemoTestsSerdeActionCreateItemVariant(BaseModel):
-    """create_item variant"""
+class ReflectapiDemoTestsSerdeActionCreateItemContent(BaseModel):
+    """create_item content"""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str
 
 
-class ReflectapiDemoTestsSerdeActionDeleteItemVariant(BaseModel):
-    """delete_item variant"""
+class ReflectapiDemoTestsSerdeActionCreateItem(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    kind: Literal["create_item"] = Field(
+        default="create_item", description="Discriminator field"
+    )
+    data: ReflectapiDemoTestsSerdeActionCreateItemContent = Field(
+        description="create_item content"
+    )
+
+
+class ReflectapiDemoTestsSerdeActionDeleteItemContent(BaseModel):
+    """delete_item content"""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: int
 
 
-# Adjacently tagged enum using RootModel
-ReflectapiDemoTestsSerdeActionVariants = Union[
-    ReflectapiDemoTestsSerdeActionCreateItemVariant,
-    ReflectapiDemoTestsSerdeActionDeleteItemVariant,
-]
+class ReflectapiDemoTestsSerdeActionDeleteItem(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    kind: Literal["delete_item"] = Field(
+        default="delete_item", description="Discriminator field"
+    )
+    data: ReflectapiDemoTestsSerdeActionDeleteItemContent = Field(
+        description="delete_item content"
+    )
 
 
-class ReflectapiDemoTestsSerdeAction(RootModel[ReflectapiDemoTestsSerdeActionVariants]):
-    """Adjacently tagged enum"""
-
-    @model_validator(mode="before")
-    @classmethod
-    def _validate_adjacently_tagged(cls, data):
-        # Handle direct variant instances
-        if isinstance(
-            data,
-            (
-                ReflectapiDemoTestsSerdeActionCreateItemVariant,
-                ReflectapiDemoTestsSerdeActionDeleteItemVariant,
-            ),
-        ):
-            return data
-        if isinstance(data, dict):
-            tag = data.get("kind")
-            content = data.get("data")
-            if tag is None:
-                raise ValueError("Missing tag field 'kind'")
-            if content is None and tag not in ():
-                raise ValueError("Missing content field 'data' for tag: {}".format(tag))
-            # Dispatch based on tag
-            if tag == "create_item":
-                return ReflectapiDemoTestsSerdeActionCreateItemVariant(**content)
-            if tag == "delete_item":
-                return ReflectapiDemoTestsSerdeActionDeleteItemVariant(**content)
-        raise ValueError(
-            "Unknown variant for ReflectapiDemoTestsSerdeAction: {}".format(data)
-        )
-
-    @model_serializer
-    def _serialize_adjacently_tagged(self):
-        if isinstance(self.root, ReflectapiDemoTestsSerdeActionCreateItemVariant):
-            return {"kind": "create_item", "data": self.root.model_dump()}
-        if isinstance(self.root, ReflectapiDemoTestsSerdeActionDeleteItemVariant):
-            return {"kind": "delete_item", "data": self.root.model_dump()}
-        raise ValueError(
-            f"Cannot serialize ReflectapiDemoTestsSerdeAction variant: {type(self.root)}"
-        )
+class ReflectapiDemoTestsSerdeAction(RootModel):
+    root: Annotated[
+        Union[
+            ReflectapiDemoTestsSerdeActionCreateItem,
+            ReflectapiDemoTestsSerdeActionDeleteItem,
+        ],
+        Field(discriminator="kind"),
+    ]
 
 
 # Namespace classes for dotted access to types
@@ -108,8 +83,10 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            ActionCreateItemVariant = ReflectapiDemoTestsSerdeActionCreateItemVariant
-            ActionDeleteItemVariant = ReflectapiDemoTestsSerdeActionDeleteItemVariant
+            ActionCreateItemContent = ReflectapiDemoTestsSerdeActionCreateItemContent
+            ActionCreateItem = ReflectapiDemoTestsSerdeActionCreateItem
+            ActionDeleteItemContent = ReflectapiDemoTestsSerdeActionDeleteItemContent
+            ActionDeleteItem = ReflectapiDemoTestsSerdeActionDeleteItem
             Action = ReflectapiDemoTestsSerdeAction
 
 
