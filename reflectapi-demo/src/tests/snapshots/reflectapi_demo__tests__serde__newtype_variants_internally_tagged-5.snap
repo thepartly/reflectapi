@@ -173,9 +173,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 for _model in [
-    reflectapi_demo.tests.serde.Enum,
-    reflectapi_demo.tests.serde.Strukt1,
-    reflectapi_demo.tests.serde.Strukt2,
+    ReflectapiDemoTestsSerdeEnum,
+    ReflectapiDemoTestsSerdeStrukt1,
+    ReflectapiDemoTestsSerdeStrukt2,
 ]:
     try:
         _model.model_rebuild()
