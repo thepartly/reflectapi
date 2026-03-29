@@ -168,8 +168,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 for _model in [
-    reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox,
-    reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParentSpecific,
+    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox,
+    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be8128373c471ff6,
 ]:
     try:
         _model.model_rebuild()

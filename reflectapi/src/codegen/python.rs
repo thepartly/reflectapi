@@ -1364,11 +1364,12 @@ def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
         "# Rebuild models to resolve forward references".to_string(),
     ];
     // Rebuild models in a loop — per-type try/except so one failure
-    // doesn't skip all rebuilds.
+    // doesn't skip all rebuilds. Use flat class names (improve_class_name),
+    // not namespace-dotted refs, since these are module-level definitions.
     let rebuild_models: Vec<String> = rendered_type_keys
         .iter()
         .filter(|n| !n.starts_with("std::") && !n.starts_with("reflectapi::"))
-        .map(|n| type_name_to_python_ref(n))
+        .map(|n| improve_class_name(n))
         .collect();
     if !rebuild_models.is_empty() {
         external_types_and_rebuilds.push(format!(
