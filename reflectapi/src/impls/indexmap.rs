@@ -13,7 +13,7 @@ fn reflectapi_type_indexset(schema: &mut crate::Typespace) -> String {
                 vec!["V".into()],
             )),
         );
-        if let Some(config) = crate::traits::python_codegen_config_for_type(type_name) {
+        if let Some(config) = crate::traits::python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());
@@ -33,7 +33,7 @@ fn reflectapi_type_indexmap(schema: &mut crate::Typespace) -> String {
                 vec!["K".into(), "V".into()],
             )),
         );
-        if let Some(config) = crate::traits::python_codegen_config_for_type(type_name) {
+        if let Some(config) = crate::traits::python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());

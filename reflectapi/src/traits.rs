@@ -63,7 +63,7 @@ pub(crate) fn reflectapi_type_empty(
     if schema.reserve_type(type_name) {
         let mut type_def = crate::Struct::new(type_name);
         type_def.description = description.into();
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());
@@ -220,6 +220,23 @@ pub(crate) fn python_codegen_config_for_type(
     }
 }
 
+pub(crate) fn python_reflection_codegen_config_for_type(
+    type_name: &str,
+) -> Option<crate::LanguageSpecificTypeCodegenConfig> {
+    let config = python_codegen_config_for_type(type_name)?;
+    let python = &config.python;
+
+    if python.imports.is_empty()
+        && python.runtime_imports.is_empty()
+        && !python.provided_by_runtime
+        && !python.ignore_type_arguments
+    {
+        return None;
+    }
+
+    Some(config)
+}
+
 pub(crate) fn reflectapi_type_simple(
     schema: &mut crate::Typespace,
     type_name: &str,
@@ -230,7 +247,7 @@ pub(crate) fn reflectapi_type_simple(
         let mut type_def =
             crate::Primitive::new(type_name.into(), description.into(), Vec::new(), None);
         type_def.fallback = fallback;
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());
@@ -370,7 +387,7 @@ fn reflectapi_type_vector(schema: &mut crate::Typespace) -> String {
             vec!["T".into()],
             None,
         );
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());
@@ -401,7 +418,7 @@ fn reflectapi_type_option(schema: &mut crate::Typespace) -> String {
         type_def.parameters.push("T".into());
         type_def.description = "Optional nullable type".into();
         type_def.representation = crate::Representation::None;
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
 
@@ -447,7 +464,7 @@ fn reflectapi_type_btreemap(schema: &mut crate::Typespace) -> String {
                 vec!["K".into(), "V".into()],
             )),
         );
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());
@@ -488,7 +505,7 @@ pub(super) fn reflectapi_type_hashmap(schema: &mut crate::Typespace) -> String {
             vec!["K".into(), "V".into()],
             None,
         );
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());
@@ -531,7 +548,7 @@ pub(crate) fn reflectapi_type_hashset(schema: &mut crate::Typespace) -> String {
                 vec!["V".into()],
             )),
         );
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());
@@ -567,7 +584,7 @@ fn reflectapi_type_btreeset(schema: &mut crate::Typespace) -> String {
                 vec!["V".into()],
             )),
         );
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());
@@ -603,7 +620,7 @@ fn reflectapi_type_tuple(schema: &mut crate::Typespace, count: usize) -> String 
             parameters,
             None,
         );
-        if let Some(config) = python_codegen_config_for_type(&type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(&type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());
@@ -665,7 +682,7 @@ fn reflectapi_type_array(schema: &mut crate::Typespace) -> String {
                 vec!["T".into()],
             )),
         );
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());
@@ -701,7 +718,7 @@ fn reflectapi_type_pointer(
             vec!["T".into()],
             Some("T".into()),
         );
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         if with_lifetime {
@@ -833,7 +850,7 @@ fn reflectapi_type_phantom_data(schema: &mut crate::Typespace) -> String {
             vec!["T".into()],
             None,
         );
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());
@@ -898,7 +915,7 @@ fn reflectapi_duration(schema: &mut crate::Typespace) -> crate::TypeReference {
             transparent: Default::default(),
             codegen_config: Default::default(),
         };
-        if let Some(config) = python_codegen_config_for_type(type_name) {
+        if let Some(config) = python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
 
