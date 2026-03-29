@@ -106,14 +106,27 @@ pub(crate) fn python_codegen_config_for_type(
     type_name: &str,
 ) -> Option<crate::LanguageSpecificTypeCodegenConfig> {
     match type_name {
-        "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64"
-        | "isize" | "usize" | "std::num::NonZeroU8" | "std::num::NonZeroU16"
-        | "std::num::NonZeroU32" | "std::num::NonZeroU64" | "std::num::NonZeroU128" => {
-            Some(python_type_codegen_config("int"))
-        }
+        "i8"
+        | "i16"
+        | "i32"
+        | "i64"
+        | "u8"
+        | "u16"
+        | "u32"
+        | "u64"
+        | "isize"
+        | "usize"
+        | "std::num::NonZeroU8"
+        | "std::num::NonZeroU16"
+        | "std::num::NonZeroU32"
+        | "std::num::NonZeroU64"
+        | "std::num::NonZeroU128" => Some(python_type_codegen_config("int")),
         "f32" | "f64" => Some(python_type_codegen_config("float")),
         "bool" => Some(python_type_codegen_config("bool")),
-        "String" | "std::string::String" | "url::Url" | "rust_decimal::Decimal"
+        "String"
+        | "std::string::String"
+        | "url::Url"
+        | "rust_decimal::Decimal"
         | "chrono_tz::Tz" => Some(python_type_codegen_config("str")),
         "std::vec::Vec" => Some(python_type_codegen_config("list[T]")),
         "std::collections::HashMap" | "std::collections::BTreeMap" | "indexmap::IndexMap" => {
