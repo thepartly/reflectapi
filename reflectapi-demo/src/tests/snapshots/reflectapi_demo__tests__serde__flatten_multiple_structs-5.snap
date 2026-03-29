@@ -156,15 +156,12 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.serde.Document.model_rebuild()
-except Exception:
-    pass
-try:
-    reflectapi_demo.tests.serde.Metadata.model_rebuild()
-except Exception:
-    pass
-try:
-    reflectapi_demo.tests.serde.Timestamps.model_rebuild()
-except Exception:
-    pass
+for _model in [
+    reflectapi_demo.tests.serde.Document,
+    reflectapi_demo.tests.serde.Metadata,
+    reflectapi_demo.tests.serde.Timestamps,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

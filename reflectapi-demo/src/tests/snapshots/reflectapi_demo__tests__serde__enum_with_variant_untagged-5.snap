@@ -107,7 +107,7 @@ class ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged(
                         r,
                         ReflectapiDemoTestsSerdeTestEnumWithVariantUntaggedVariant1Variant,
                     ),
-                    lambda r: {"Variant1": r.value},
+                    lambda r: {"Variant1": r.field_0},
                 )
             },
             "ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged",
@@ -225,7 +225,10 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.serde.TestEnumWithVariantUntagged.model_rebuild()
-except Exception:
-    pass
+for _model in [
+    reflectapi_demo.tests.serde.TestEnumWithVariantUntagged,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

@@ -115,7 +115,7 @@ class ReflectapiDemoTestsSerdeWrapper(
                     lambda r: isinstance(
                         r, ReflectapiDemoTestsSerdeWrapperValueVariant
                     ),
-                    lambda r: {"Value": r.value},
+                    lambda r: {"Value": r.field_0},
                 ),
                 "Empty": (lambda r: r == "Empty", lambda r: "Empty"),
             },
@@ -230,7 +230,10 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.serde.Wrapper.model_rebuild()
-except Exception:
-    pass
+for _model in [
+    reflectapi_demo.tests.serde.Wrapper,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

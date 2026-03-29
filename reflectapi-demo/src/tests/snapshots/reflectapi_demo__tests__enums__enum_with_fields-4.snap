@@ -126,7 +126,7 @@ class ReflectapiDemoTestsEnumsTestEnumWithFields(
                     lambda r: isinstance(
                         r, ReflectapiDemoTestsEnumsTestEnumWithFieldsVariant1Variant
                     ),
-                    lambda r: {"Variant1": r.value},
+                    lambda r: {"Variant1": r.field_0},
                 ),
                 "Variant2": (
                     lambda r: isinstance(
@@ -251,7 +251,10 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.enums.TestEnumWithFields.model_rebuild()
-except Exception:
-    pass
+for _model in [
+    reflectapi_demo.tests.enums.TestEnumWithFields,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass
