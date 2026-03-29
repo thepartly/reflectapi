@@ -26,8 +26,6 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeAudit(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     modified_by: str
@@ -77,8 +75,6 @@ class ReflectapiDemoTestsSerdePost(RootModel):
 
 
 class ReflectapiDemoTestsSerdeContentText(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Text"] = Field(default="Text", description="Discriminator field")
@@ -86,8 +82,6 @@ class ReflectapiDemoTestsSerdeContentText(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeContentImage(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Image"] = Field(default="Image", description="Discriminator field")
@@ -218,8 +212,13 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.Audit.model_rebuild()
+except Exception:
+    pass
+try:
     reflectapi_demo.tests.serde.Content.model_rebuild()
+except Exception:
+    pass
+try:
     reflectapi_demo.tests.serde.Post.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

@@ -26,24 +26,18 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeLargeEnumAlpha(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Alpha"] = Field(default="Alpha", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumBeta(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Beta"] = Field(default="Beta", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumGamma(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Gamma"] = Field(default="Gamma", description="Discriminator field")
@@ -51,8 +45,6 @@ class ReflectapiDemoTestsSerdeLargeEnumGamma(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeLargeEnumDelta(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Delta"] = Field(default="Delta", description="Discriminator field")
@@ -60,8 +52,6 @@ class ReflectapiDemoTestsSerdeLargeEnumDelta(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeLargeEnumEpsilon(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Epsilon"] = Field(
@@ -70,8 +60,6 @@ class ReflectapiDemoTestsSerdeLargeEnumEpsilon(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeLargeEnumZeta(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Zeta"] = Field(default="Zeta", description="Discriminator field")
@@ -79,16 +67,12 @@ class ReflectapiDemoTestsSerdeLargeEnumZeta(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeLargeEnumEta(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Eta"] = Field(default="Eta", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumTheta(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Theta"] = Field(default="Theta", description="Discriminator field")
@@ -96,16 +80,12 @@ class ReflectapiDemoTestsSerdeLargeEnumTheta(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeLargeEnumIota(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Iota"] = Field(default="Iota", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumKappa(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Kappa"] = Field(default="Kappa", description="Discriminator field")
@@ -113,16 +93,12 @@ class ReflectapiDemoTestsSerdeLargeEnumKappa(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeLargeEnumLambda(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Lambda"] = Field(default="Lambda", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumMu(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Mu"] = Field(default="Mu", description="Discriminator field")
@@ -270,6 +246,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.LargeEnum.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

@@ -86,7 +86,7 @@ class ReflectapiDemoTestsSerdeWrapper(
     @model_serializer
     def _serialize_externally_tagged(self):
         if isinstance(self.root, ReflectapiDemoTestsSerdeWrapperValueVariant):
-            return {"Value": self.root.field_0}
+            return {"Value": self.root.value}
         if self.root == "Empty":
             return "Empty"
 
@@ -204,6 +204,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.Wrapper.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

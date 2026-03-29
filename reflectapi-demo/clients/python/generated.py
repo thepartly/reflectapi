@@ -38,8 +38,6 @@ T = TypeVar("T")
 
 
 class MyapiHealthCheckFail(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
@@ -150,8 +148,6 @@ class MyapiModelKind(RootModel):
 
 
 class MyapiModelInputPet(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str = Field(description="identity")
@@ -164,8 +160,6 @@ class MyapiModelInputPet(BaseModel):
 
 
 class MyapiModelOutputPet(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str = Field(description="identity")
@@ -178,24 +172,18 @@ class MyapiModelOutputPet(BaseModel):
 
 
 class MyapiProtoHeaders(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     authorization: str = Field(description="Authorization header")
 
 
 class MyapiProtoInternalError(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     message: str
 
 
 class MyapiProtoPaginated(BaseModel, Generic[T]):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     items: list[T] = Field(description="slice of a collection")
@@ -203,8 +191,6 @@ class MyapiProtoPaginated(BaseModel, Generic[T]):
 
 
 class MyapiProtoPetsListRequest(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     limit: int | None = None
@@ -212,16 +198,12 @@ class MyapiProtoPetsListRequest(BaseModel):
 
 
 class MyapiProtoPetsRemoveRequest(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str = Field(description="identity")
 
 
 class MyapiProtoPetsUpdateRequest(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str = Field(description="identity")
@@ -237,8 +219,6 @@ class MyapiProtoPetsUpdateRequest(BaseModel):
 
 
 class MyapiProtoValidationA(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     message: str
@@ -301,8 +281,6 @@ class MyapiProtoPetsCreateError(RootModel[MyapiProtoPetsCreateErrorVariants]):
 
 
 class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     kind: Literal["InvalidCursor"] = Field(
@@ -311,8 +289,6 @@ class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
 
 
 class MyapiProtoPetsListErrorUnauthorized(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     kind: Literal["Unauthorized"] = Field(
@@ -321,8 +297,6 @@ class MyapiProtoPetsListErrorUnauthorized(BaseModel):
 
 
 class MyapiProtoPetsListErrorInternal(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     kind: Literal["Internal"] = Field(
@@ -398,7 +372,7 @@ class MyapiProtoPetsUpdateError(RootModel[MyapiProtoPetsUpdateErrorVariants]):
         if self.root == "NotAuthorized":
             return "NotAuthorized"
         if isinstance(self.root, MyapiProtoPetsUpdateErrorValidationVariant):
-            return {"Validation": self.root.field_0}
+            return {"Validation": self.root.value}
 
         raise ValueError(
             f"Cannot serialize MyapiProtoPetsUpdateError variant: {type(self.root)}"
@@ -442,7 +416,7 @@ class MyapiProtoValidationError(RootModel[MyapiProtoValidationErrorVariants]):
     @model_serializer
     def _serialize_externally_tagged(self):
         if isinstance(self.root, MyapiProtoValidationErrorValidationAVariant):
-            return {"ValidationA": self.root.field_0}
+            return {"ValidationA": self.root.value}
 
         raise ValueError(
             f"Cannot serialize MyapiProtoValidationError variant: {type(self.root)}"
@@ -932,22 +906,69 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     myapi.HealthCheckFail.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.model.Behavior.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.model.Kind.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.model.input.Pet.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.model.output.Pet.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.Headers.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.InternalError.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.Paginated.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.PetsCreateError.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.PetsListError.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.PetsListRequest.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.PetsRemoveError.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.PetsRemoveRequest.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.PetsUpdateError.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.PetsUpdateRequest.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.ValidationA.model_rebuild()
+except Exception:
+    pass
+try:
     myapi.proto.ValidationError.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

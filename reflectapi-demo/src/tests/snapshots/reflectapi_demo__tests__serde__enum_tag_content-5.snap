@@ -46,7 +46,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentVariant2Variant(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: int
+    value: int
 
 
 # Adjacently tagged enum using RootModel
@@ -89,7 +89,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContent(
                 )
             if tag == "Variant2":
                 return ReflectapiDemoTestsSerdeTestEnumTagContentVariant2Variant(
-                    field_0=content
+                    value=content
                 )
         raise ValueError(
             "Unknown variant for ReflectapiDemoTestsSerdeTestEnumTagContent: {}".format(
@@ -106,7 +106,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContent(
         if isinstance(
             self.root, ReflectapiDemoTestsSerdeTestEnumTagContentVariant2Variant
         ):
-            return {"type": "Variant2", "content": self.root.field_0}
+            return {"type": "Variant2", "content": self.root.value}
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsSerdeTestEnumTagContent variant: {type(self.root)}"
         )
@@ -226,6 +226,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.TestEnumTagContent.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

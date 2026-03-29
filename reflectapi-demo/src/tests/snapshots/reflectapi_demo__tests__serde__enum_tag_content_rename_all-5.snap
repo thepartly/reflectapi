@@ -46,7 +46,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant(BaseMod
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: int
+    value: int
 
 
 # Adjacently tagged enum using RootModel
@@ -92,7 +92,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll(
             if tag == "variant2":
                 return (
                     ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant(
-                        field_0=content
+                        value=content
                     )
                 )
         raise ValueError(
@@ -112,7 +112,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll(
             self.root,
             ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant,
         ):
-            return {"type": "variant2", "content": self.root.field_0}
+            return {"type": "variant2", "content": self.root.value}
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll variant: {type(self.root)}"
         )
@@ -234,6 +234,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.TestEnumTagContentRenameAll.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

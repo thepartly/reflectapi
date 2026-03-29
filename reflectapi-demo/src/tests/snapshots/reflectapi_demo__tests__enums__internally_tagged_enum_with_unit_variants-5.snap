@@ -26,16 +26,12 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsEnumsAX(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["X"] = Field(default="X", description="Discriminator field")
 
 
 class ReflectapiDemoTestsEnumsAY(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Y"] = Field(default="Y", description="Discriminator field")
@@ -159,6 +155,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.enums.A.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

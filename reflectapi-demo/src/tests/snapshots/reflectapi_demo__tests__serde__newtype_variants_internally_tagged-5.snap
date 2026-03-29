@@ -26,8 +26,6 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeStrukt1(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     a: int
@@ -35,8 +33,6 @@ class ReflectapiDemoTestsSerdeStrukt1(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeStrukt2(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     c: int
@@ -44,8 +40,6 @@ class ReflectapiDemoTestsSerdeStrukt2(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeEnumA(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["a"] = Field(default="a", description="Discriminator field")
@@ -54,8 +48,6 @@ class ReflectapiDemoTestsSerdeEnumA(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeEnumB(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["b"] = Field(default="b", description="Discriminator field")
@@ -182,8 +174,13 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.Enum.model_rebuild()
+except Exception:
+    pass
+try:
     reflectapi_demo.tests.serde.Strukt1.model_rebuild()
+except Exception:
+    pass
+try:
     reflectapi_demo.tests.serde.Strukt2.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass
