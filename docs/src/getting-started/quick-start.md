@@ -16,15 +16,14 @@ cd my-api
 
 ## Add Dependencies
 
-Add `reflectapi` to your `Cargo.toml`:
+Add the dependencies used by this example:
 
-```toml
-[dependencies]
-reflectapi = { version = "0.15", features = ["builder", "axum"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tokio = { version = "1.0", features = ["full"] }
-axum = "0.7"
+```bash
+cargo add reflectapi --features builder,axum
+cargo add serde --features derive
+cargo add serde_json
+cargo add tokio --features full
+cargo add axum
 ```
 
 ## Define Your API
@@ -33,12 +32,6 @@ Replace the contents of `src/main.rs`:
 
 ```rust,ignore
 // This is a complete example for src/main.rs
-// Add these dependencies to your Cargo.toml first:
-// [dependencies]
-// reflectapi = { version = "0.15", features = ["builder", "axum"] }
-// serde = { version = "1.0", features = ["derive"] }
-// serde_json = "1.0"
-// tokio = { version = "1.0", features = ["full"] }
 
 use reflectapi::{Builder, Input, Output};
 use serde::{Deserialize, Serialize};
@@ -100,9 +93,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Save schema for client generation
     let schema_json = serde_json::to_string_pretty(&schema)?;
-    std::fs::write("reflectapi-schema.json", schema_json)?;
-    
-    println!("✅ API schema generated at reflectapi-schema.json");
+    std::fs::write("reflectapi.json", schema_json)?;
+
+    println!("✅ API schema generated at reflectapi.json");
     
     // Start the HTTP server
     let app_state = (); // No state needed for this example
@@ -126,7 +119,7 @@ cargo run
 
 You should see:
 ```text
-✅ API schema generated at reflectapi-schema.json
+✅ API schema generated at reflectapi.json
 🚀 Server running on http://0.0.0.0:3000
 📖 Ready to generate clients!
 ```
@@ -141,11 +134,11 @@ First, install the CLI:
 cargo install reflectapi-cli
 ```
 
-Then generate a TypeScript client:
+This installs the `reflectapi` binary. Then generate a TypeScript client:
 
 ```bash
-mkdir clients
-reflectapi-cli codegen --language typescript --schema reflectapi-schema.json --output clients/typescript
+mkdir -p clients/typescript
+reflectapi codegen --language typescript --schema reflectapi.json --output clients/typescript/
 ```
 
 ## Use Your Generated Client
@@ -153,17 +146,18 @@ reflectapi-cli codegen --language typescript --schema reflectapi-schema.json --o
 The generated TypeScript client will be fully typed:
 
 ```typescript
-import { client } from './clients/typescript';
+import { client } from "./clients/typescript/generated";
 
 const c = client('http://localhost:3000');
 
-// Create a user - fully type-safe!
-const newUser = await c.users.create({
+// Create a user. Generated methods take typed input and typed headers.
+const created = await c.users.create({
   name: 'Bob',
   email: 'bob@example.com'
-});
+}, {});
 
-// Get a user
-const user = await c.users.get(1);
+if (created.is_ok()) {
+  console.log(created.unwrap_ok());
+}
 ```
 That's it!
