@@ -143,21 +143,21 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTagged(
                         r,
                         ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedIntVariant,
                     ),
-                    lambda r: {"int": r.value},
+                    lambda r: {"int": r.field_0},
                 ),
                 "string": (
                     lambda r: isinstance(
                         r,
                         ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedStringVariant,
                     ),
-                    lambda r: {"string": r.value},
+                    lambda r: {"string": r.field_0},
                 ),
                 "bool": (
                     lambda r: isinstance(
                         r,
                         ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedBoolVariant,
                     ),
-                    lambda r: {"bool": r.value},
+                    lambda r: {"bool": r.field_0},
                 ),
                 "unit": (lambda r: r == "unit", lambda r: "unit"),
             },
@@ -286,7 +286,10 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.serde.TestNewtypeVariantsExternallyTagged.model_rebuild()
-except Exception:
-    pass
+for _model in [
+    reflectapi_demo.tests.serde.TestNewtypeVariantsExternallyTagged,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

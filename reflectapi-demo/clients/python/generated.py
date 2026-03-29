@@ -394,7 +394,7 @@ class MyapiProtoPetsUpdateError(RootModel[MyapiProtoPetsUpdateErrorVariants]):
                 ),
                 "Validation": (
                     lambda r: isinstance(r, MyapiProtoPetsUpdateErrorValidationVariant),
-                    lambda r: {"Validation": r.value},
+                    lambda r: {"Validation": r.field_0},
                 ),
             },
             "MyapiProtoPetsUpdateError",
@@ -439,7 +439,7 @@ class MyapiProtoValidationError(RootModel[MyapiProtoValidationErrorVariants]):
                     lambda r: isinstance(
                         r, MyapiProtoValidationErrorValidationAVariant
                     ),
-                    lambda r: {"ValidationA": r.value},
+                    lambda r: {"ValidationA": r.field_0},
                 )
             },
             "MyapiProtoValidationError",
@@ -927,71 +927,26 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    myapi.HealthCheckFail.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.model.Behavior.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.model.Kind.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.model.input.Pet.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.model.output.Pet.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.Headers.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.InternalError.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.Paginated.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.PetsCreateError.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.PetsListError.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.PetsListRequest.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.PetsRemoveError.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.PetsRemoveRequest.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.PetsUpdateError.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.PetsUpdateRequest.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.ValidationA.model_rebuild()
-except Exception:
-    pass
-try:
-    myapi.proto.ValidationError.model_rebuild()
-except Exception:
-    pass
+for _model in [
+    myapi.HealthCheckFail,
+    myapi.model.Behavior,
+    myapi.model.Kind,
+    myapi.model.input.Pet,
+    myapi.model.output.Pet,
+    myapi.proto.Headers,
+    myapi.proto.InternalError,
+    myapi.proto.Paginated,
+    myapi.proto.PetsCreateError,
+    myapi.proto.PetsListError,
+    myapi.proto.PetsListRequest,
+    myapi.proto.PetsRemoveError,
+    myapi.proto.PetsRemoveRequest,
+    myapi.proto.PetsUpdateError,
+    myapi.proto.PetsUpdateRequest,
+    myapi.proto.ValidationA,
+    myapi.proto.ValidationError,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

@@ -1363,15 +1363,18 @@ def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
         "".to_string(),
         "# Rebuild models to resolve forward references".to_string(),
     ];
-    let sorted_type_names: Vec<&String> = rendered_type_keys.iter().collect();
-    for original_name in &sorted_type_names {
-        if !original_name.starts_with("std::") && !original_name.starts_with("reflectapi::") {
-            let dotted = type_name_to_python_ref(original_name);
-            // Per-type try/except so one failure doesn't skip all rebuilds
-            external_types_and_rebuilds.push(format!(
-                "try:\n    {dotted}.model_rebuild()\nexcept Exception:\n    pass"
-            ));
-        }
+    // Rebuild models in a loop — per-type try/except so one failure
+    // doesn't skip all rebuilds.
+    let rebuild_models: Vec<String> = rendered_type_keys
+        .iter()
+        .filter(|n| !n.starts_with("std::") && !n.starts_with("reflectapi::"))
+        .map(|n| type_name_to_python_ref(n))
+        .collect();
+    if !rebuild_models.is_empty() {
+        external_types_and_rebuilds.push(format!(
+            "for _model in [\n    {},\n]:\n    try:\n        _model.model_rebuild()\n    except Exception:\n        pass",
+            rebuild_models.join(",\n    ")
+        ));
     }
     external_types_and_rebuilds.push("".to_string());
 
@@ -2377,7 +2380,7 @@ fn render_externally_tagged_enum(
                         "\"{wire_name}\": lambda v: {variant_class_name}(field_0=v)"
                     ));
                     serializer_entries.push(format!(
-                        "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": r.value}})"
+                        "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": r.field_0}})"
                     ));
                 } else {
                     let assigns = field_names
