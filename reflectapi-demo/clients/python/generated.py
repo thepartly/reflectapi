@@ -9,9 +9,9 @@ from __future__ import annotations
 
 
 # Standard library imports
+import warnings
 from datetime import datetime
 from enum import Enum
-import warnings
 from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
@@ -26,8 +26,8 @@ from pydantic import (
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
-from reflectapi_runtime import ReflectapiOption
 from reflectapi_runtime import ReflectapiEmpty
+from reflectapi_runtime import ReflectapiOption
 
 
 # Helper functions for externally tagged enum serialization/deserialization

@@ -12,6 +12,7 @@ pub struct SymbolId {
     Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
 pub enum SymbolKind {
+    Schema,
     Struct,
     Enum,
     TypeAlias,
@@ -58,7 +59,7 @@ pub const STDLIB_TYPE_PREFIXES: &[&str] = &["std::", "chrono::", "uuid::"];
 impl Default for SymbolId {
     fn default() -> Self {
         Self {
-            kind: SymbolKind::Struct,
+            kind: SymbolKind::Schema,
             path: vec!["unknown".to_string()],
             disambiguator: 0,
         }

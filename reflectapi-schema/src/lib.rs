@@ -688,6 +688,14 @@ impl Type {
         }
     }
 
+    pub fn codegen_config(&self) -> &LanguageSpecificTypeCodegenConfig {
+        match self {
+            Type::Primitive(p) => &p.codegen_config,
+            Type::Struct(s) => &s.codegen_config,
+            Type::Enum(e) => &e.codegen_config,
+        }
+    }
+
     pub fn as_struct(&self) -> Option<&Struct> {
         match self {
             Type::Struct(s) => Some(s),
@@ -762,6 +770,12 @@ pub struct Primitive {
     /// Fallback type to use when the type is not supported by the target language
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub fallback: Option<TypeReference>,
+
+    #[serde(
+        skip_serializing_if = "LanguageSpecificTypeCodegenConfig::is_serialization_default",
+        default
+    )]
+    pub codegen_config: LanguageSpecificTypeCodegenConfig,
 }
 
 impl Primitive {
@@ -778,6 +792,7 @@ impl Primitive {
             description,
             parameters,
             fallback,
+            codegen_config: Default::default(),
         }
     }
 
@@ -860,6 +875,7 @@ impl PartialEq for Primitive {
             && self.description == other.description
             && self.parameters == other.parameters
             && self.fallback == other.fallback
+            && self.codegen_config == other.codegen_config
     }
 }
 
@@ -869,6 +885,7 @@ impl std::hash::Hash for Primitive {
         self.description.hash(state);
         self.parameters.hash(state);
         self.fallback.hash(state);
+        self.codegen_config.hash(state);
     }
 }
 
@@ -905,7 +922,10 @@ pub struct Struct {
     #[serde(skip_serializing_if = "is_false", default)]
     pub transparent: bool,
 
-    #[serde(skip_serializing_if = "is_default", default)]
+    #[serde(
+        skip_serializing_if = "LanguageSpecificTypeCodegenConfig::is_serialization_default",
+        default
+    )]
     pub codegen_config: LanguageSpecificTypeCodegenConfig,
 }
 
@@ -1244,10 +1264,6 @@ fn is_false(b: &bool) -> bool {
     !*b
 }
 
-fn is_default<T: Default + PartialEq>(t: &T) -> bool {
-    *t == Default::default()
-}
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq)]
 pub struct Enum {
     #[serde(skip_serializing, default)]
@@ -1269,7 +1285,10 @@ pub struct Enum {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub variants: Vec<Variant>,
 
-    #[serde(skip_serializing_if = "is_default", default)]
+    #[serde(
+        skip_serializing_if = "LanguageSpecificTypeCodegenConfig::is_serialization_default",
+        default
+    )]
     pub codegen_config: LanguageSpecificTypeCodegenConfig,
 }
 

@@ -15,8 +15,11 @@ impl crate::Output for serde_json::Value {
 fn reflectapi_type_json_value(schema: &mut crate::Typespace) -> String {
     let type_name = "serde_json::Value";
     if schema.reserve_type(type_name) {
-        let type_def =
+        let mut type_def =
             crate::Primitive::new(type_name.into(), "JSON value type".into(), Vec::new(), None);
+        if let Some(config) = crate::traits::python_codegen_config_for_type(type_name) {
+            type_def.codegen_config = config;
+        }
         schema.insert_type(type_def.into());
     }
     type_name.into()

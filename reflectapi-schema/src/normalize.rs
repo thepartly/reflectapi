@@ -521,7 +521,7 @@ pub enum ResolutionStrategy {
     /// Try boxing first, then forward declarations
     #[default]
     Intelligent,
-    /// Always use Box<T> for self-references
+    /// Always use `Box<T>` for self-references
     Boxing,
     /// Always use forward declarations
     ForwardDeclarations,
@@ -993,7 +993,7 @@ impl Normalizer {
             id: schema.id.clone(),
             name: schema.name.clone(),
             path: schema.id.path.clone(),
-            kind: SymbolKind::Struct,
+            kind: SymbolKind::Schema,
             resolved: false,
             dependencies: BTreeSet::new(),
         };
@@ -1323,6 +1323,7 @@ impl Normalizer {
                 })
                 .collect(),
             fallback,
+            codegen_config: primitive.codegen_config.clone(),
         })
     }
 

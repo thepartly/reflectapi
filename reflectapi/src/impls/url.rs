@@ -1,12 +1,15 @@
 fn reflectapi_url(schema: &mut crate::Typespace) -> String {
     let type_name = "url::Url";
     if schema.reserve_type(type_name) {
-        let type_def = crate::Primitive::new(
+        let mut type_def = crate::Primitive::new(
             type_name.into(),
             "URL value type".to_string(),
             vec![],
             Some("std::string::String".into()),
         );
+        if let Some(config) = crate::traits::python_codegen_config_for_type(type_name) {
+            type_def.codegen_config = config;
+        }
         schema.insert_type(type_def.into());
     }
     type_name.into()
