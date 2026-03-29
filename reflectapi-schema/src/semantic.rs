@@ -66,6 +66,9 @@ pub struct SemanticPrimitive {
 
     /// Resolved fallback type reference
     pub fallback: Option<SymbolId>,
+
+    /// Language-specific configuration
+    pub codegen_config: crate::LanguageSpecificTypeCodegenConfig,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

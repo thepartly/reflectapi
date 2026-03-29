@@ -606,6 +606,7 @@ impl Converter<'_> {
                         description: "UTF-8 encoded string".into(),
                         parameters: vec![],
                         fallback: None,
+                        codegen_config: Default::default(),
                     })
                 });
             };

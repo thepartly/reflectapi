@@ -15,7 +15,7 @@ use std::collections::HashMap;
 pub fn ensure_symbol_ids(schema: &mut Schema) {
     if schema.id.is_unknown() {
         schema.id = SymbolId::new(
-            SymbolKind::Struct,
+            SymbolKind::Schema,
             vec!["__schema__".to_string(), schema.name.clone()],
         );
     }
@@ -454,5 +454,6 @@ mod tests {
             "Schema root ID path should contain '__schema__' sentinel, got {:?}",
             schema.id.path
         );
+        assert_eq!(schema.id.kind, SymbolKind::Schema);
     }
 }

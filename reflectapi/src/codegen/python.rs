@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::{Schema, TypeReference};
-use reflectapi_schema::{Function, Type};
+use reflectapi_schema::{Function, PythonTypeCodegenConfig, Type};
 
 /// Sanitize text for inclusion in a Python triple-quoted docstring.
 /// Escapes backslashes (which act as line continuation) and triple-quote
@@ -46,47 +46,72 @@ impl Default for Config {
     }
 }
 
+#[derive(Default)]
+struct PythonMetadataUsage {
+    stdlib_imports: BTreeSet<String>,
+    runtime_imports: BTreeSet<String>,
+    runtime_provided_types: BTreeSet<String>,
+}
+
+fn python_codegen_config(type_def: &Type) -> Option<&PythonTypeCodegenConfig> {
+    let config = &type_def.codegen_config().python;
+    (!config.is_empty()).then_some(config)
+}
+
+fn default_python_metadata_for_type_name(type_name: &str) -> Option<PythonTypeCodegenConfig> {
+    crate::traits::python_codegen_config_for_type(type_name).map(|config| config.python)
+}
+
+fn default_python_type_hint(type_name: &str) -> Option<String> {
+    default_python_metadata_for_type_name(type_name).and_then(|config| config.type_hint)
+}
+
+fn collect_python_metadata_usage(schema: &Schema, all_type_names: &[String]) -> PythonMetadataUsage {
+    let mut usage = PythonMetadataUsage::default();
+
+    for type_name in all_type_names {
+        let Some(type_def) = schema.get_type(type_name) else {
+            continue;
+        };
+        let Some(config) = python_codegen_config(type_def)
+            .cloned()
+            .or_else(|| default_python_metadata_for_type_name(type_name))
+        else {
+            continue;
+        };
+
+        usage.stdlib_imports.extend(config.imports.iter().cloned());
+        usage
+            .runtime_imports
+            .extend(config.runtime_imports.iter().cloned());
+        if config.provided_by_runtime {
+            usage.runtime_provided_types.insert(type_name.clone());
+        }
+    }
+
+    usage
+}
+
 /// Generate optimized imports with proper sorting and deduplication
 fn generate_optimized_imports(imports: &templates::Imports) -> String {
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeMap, BTreeSet};
 
     let mut stdlib_imports = BTreeSet::new();
     let mut typing_imports = BTreeSet::new();
     let mut third_party_imports = BTreeSet::new();
-    let mut runtime_imports = BTreeSet::new();
-
-    // Standard library - datetime
-    if imports.has_datetime || imports.has_date || imports.has_timedelta {
-        let mut datetime_parts = vec![];
-        if imports.has_datetime {
-            datetime_parts.push("datetime");
-        }
-        if imports.has_date {
-            datetime_parts.push("date");
-        }
-        if imports.has_timedelta {
-            datetime_parts.push("timedelta");
-        }
-        stdlib_imports.insert(format!(
-            "from datetime import {}",
-            datetime_parts.join(", ")
-        ));
-    }
+    let mut runtime_imports: BTreeSet<String> = BTreeSet::new();
 
     // Standard library - enum
     if imports.has_enums {
         stdlib_imports.insert("from enum import Enum".to_string());
     }
 
-    // Standard library - uuid
-    if imports.has_uuid {
-        stdlib_imports.insert("from uuid import UUID".to_string());
-    }
-
     // Standard library - warnings
     if imports.has_warnings {
         stdlib_imports.insert("import warnings".to_string());
     }
+
+    stdlib_imports.extend(imports.extra_stdlib_imports.iter().cloned());
 
     // Typing imports - always include base ones
     typing_imports.insert("Any");
@@ -120,32 +145,52 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
 
     // Runtime imports - client bases
     if imports.has_async && imports.has_sync {
-        runtime_imports.insert("AsyncClientBase, ClientBase, ApiResponse");
+        runtime_imports.insert("AsyncClientBase, ClientBase, ApiResponse".to_string());
     } else if imports.has_async {
-        runtime_imports.insert("AsyncClientBase, ApiResponse");
+        runtime_imports.insert("AsyncClientBase, ApiResponse".to_string());
     } else if imports.has_sync {
-        runtime_imports.insert("ClientBase, ApiResponse");
+        runtime_imports.insert("ClientBase, ApiResponse".to_string());
     }
 
-    // Runtime imports - special types
-    let mut special_types = vec![];
-    if imports.has_reflectapi_option {
-        special_types.push("ReflectapiOption");
-    }
-    if imports.has_reflectapi_empty {
-        special_types.push("ReflectapiEmpty");
-    }
-    if imports.has_reflectapi_infallible {
-        special_types.push("ReflectapiInfallible");
-    }
+    runtime_imports.extend(imports.extra_runtime_imports.iter().cloned());
 
     // Build the final import string
     let mut result = Vec::new();
 
     // Add header
     result.push("# Standard library imports".to_string());
+    let mut merged_from_imports: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut plain_stdlib_imports = Vec::new();
     for import in stdlib_imports {
+        if let Some(rest) = import.strip_prefix("from ") {
+            if let Some((module, names)) = rest.split_once(" import ") {
+                let entry = merged_from_imports.entry(module.to_string()).or_default();
+                for name in names.split(", ") {
+                    entry.insert(name.to_string());
+                }
+                continue;
+            }
+        }
+        plain_stdlib_imports.push(import);
+    }
+    for import in plain_stdlib_imports {
         result.push(import);
+    }
+    for (module, names) in merged_from_imports {
+        let mut names = names.into_iter().collect::<Vec<_>>();
+        if module == "datetime" {
+            let rank = |name: &str| match name {
+                "datetime" => 0,
+                "date" => 1,
+                "timedelta" => 2,
+                _ => 99,
+            };
+            names.sort_by_key(|name| (rank(name), name.clone()));
+        }
+        result.push(format!(
+            "from {module} import {}",
+            names.join(", ")
+        ));
     }
 
     // Add typing imports
@@ -169,11 +214,6 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
     // Add runtime imports
     for import in runtime_imports {
         result.push(format!("from reflectapi_runtime import {import}"));
-    }
-
-    // Add special types as separate imports for clarity
-    for special_type in special_types {
-        result.push(format!("from reflectapi_runtime import {special_type}"));
     }
 
     // Add testing imports
@@ -378,7 +418,7 @@ fn render_struct_with_flatten(
     }
 }
 
-/// Resolve the target type name for a flattened field, unwrapping Option<T>
+/// Resolve the target type name for a flattened field, unwrapping `Option<T>`
 fn resolve_flattened_type_name(type_ref: &TypeReference) -> &str {
     if (type_ref.name == "std::option::Option" || type_ref.name == "reflectapi::Option")
         && !type_ref.arguments.is_empty()
@@ -1014,11 +1054,10 @@ fn modules_from_rendered_types(
 }
 
 pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
-    let implemented_types = build_implemented_types();
-
     // Consolidate input/output types FIRST so both the SemanticSchema and
     // the raw Schema share the same unified type names.
     let all_type_names = schema.consolidate_types();
+    let implemented_types = build_implemented_types(&schema);
     validate_type_references(&schema)?;
 
     // Build the semantic IR with a codegen-specific pipeline that skips
@@ -1092,24 +1131,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         )
     };
 
-    // Check if we need ReflectapiOption import
-    let has_reflectapi_option = schema_uses_reflectapi_option(&schema, &all_type_names);
-
-    // Check if we need ReflectapiEmpty import
-    let has_reflectapi_empty = schema_uses_type(&schema, &all_type_names, "reflectapi::Empty");
-
-    // Check if we need ReflectapiInfallible import
-    let has_reflectapi_infallible =
-        schema_uses_type(&schema, &all_type_names, "reflectapi::Infallible");
-
     // Use semantic IR for function introspection
     let has_warnings = semantic.functions().any(|f| f.deprecation_note.is_some());
-
-    // Check if we need datetime imports (for chrono and time types)
-    let has_datetime = check_datetime_usage(&schema, &all_type_names);
-    let has_uuid = check_uuid_usage(&schema, &all_type_names);
-    let has_timedelta = check_timedelta_usage(&schema, &all_type_names);
-    let has_date = check_date_usage(&schema, &all_type_names);
+    let python_metadata = collect_python_metadata_usage(&schema, &all_type_names);
 
     // Generate imports
     let imports = templates::Imports {
@@ -1117,14 +1141,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         has_sync: config.generate_sync,
         has_testing: config.generate_testing,
         has_enums,
-        has_reflectapi_option,
-        has_reflectapi_empty,
-        has_reflectapi_infallible,
         has_warnings,
-        has_datetime,
-        has_uuid,
-        has_timedelta,
-        has_date,
+        extra_stdlib_imports: python_metadata.stdlib_imports.iter().cloned().collect(),
+        extra_runtime_imports: python_metadata.runtime_imports.iter().cloned().collect(),
         has_generics: true,
         has_annotated: true, // Always include for external type fallbacks
         has_literal,
@@ -1171,18 +1190,14 @@ def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
     }
 
     // Types that are provided by the runtime library and should not be generated
-    let runtime_provided_types = [
-        "reflectapi::Option",
-        "reflectapi::Empty",
-        "reflectapi::Infallible",
-        "std::option::Option",
-    ];
+    let mut non_rendered_types = python_metadata.runtime_provided_types.clone();
+    non_rendered_types.insert("std::option::Option".to_string());
 
     // Build the set of Python class names that will be emitted, so we can
     // detect TypeVar-vs-class name collisions below.
     let emitted_class_names: HashSet<String> = semantic
         .types()
-        .filter(|st| !runtime_provided_types.contains(&st.name()))
+        .filter(|st| !non_rendered_types.contains(st.name()))
         .filter_map(|st| schema.get_type(st.name()))
         .map(|t| improve_class_name(t.name()))
         .collect();
@@ -1193,7 +1208,7 @@ def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
     let mut used_type_vars: BTreeSet<String> = BTreeSet::new();
     for sem_type in semantic.types() {
         let type_name = sem_type.name();
-        if runtime_provided_types.contains(&type_name) {
+        if non_rendered_types.contains(type_name) {
             continue;
         }
         let type_def = match schema.get_type(type_name) {
@@ -1257,7 +1272,7 @@ def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
     for sem_type in semantic.types() {
         let type_name = sem_type.name().to_string();
 
-        if runtime_provided_types.contains(&type_name.as_str()) {
+        if non_rendered_types.contains(&type_name) {
             continue;
         }
 
@@ -3561,9 +3576,12 @@ fn type_ref_to_python_type(
             }
         }
 
-        // Special case: chrono::DateTime and similar types - ignore generic arguments
-        if type_ref.name.starts_with("chrono::") {
-            // chrono types map directly to Python datetime types regardless of timezone parameter
+        if schema
+            .get_type(&type_ref.name)
+            .and_then(python_codegen_config)
+            .map(|config| config.ignore_type_arguments)
+            .unwrap_or(false)
+        {
             return Ok(python_type.clone());
         }
 
@@ -3606,6 +3624,58 @@ fn type_ref_to_python_type(
             result = format!("{}[{}]", result, arg_types.join(", "));
         }
 
+        return Ok(result);
+    }
+
+    if let Some(python_type) = default_python_type_hint(&type_ref.name) {
+        if type_ref.arguments.is_empty() {
+            return Ok(python_type);
+        }
+
+        if type_ref.name == "std::vec::Vec" && type_ref.arguments.len() == 1 {
+            let arg = &type_ref.arguments[0];
+            if arg.name == "u8" {
+                return Ok("bytes".to_string());
+            }
+        }
+
+        if default_python_metadata_for_type_name(&type_ref.name)
+            .map(|config| config.ignore_type_arguments)
+            .unwrap_or(false)
+        {
+            return Ok(python_type);
+        }
+
+        let mut result = python_type;
+        let type_params = get_type_parameters(&type_ref.name);
+        if !type_params.is_empty() {
+            for (param, arg) in type_params.iter().zip(type_ref.arguments.iter()) {
+                let resolved_arg = type_ref_to_python_type(
+                    arg,
+                    schema,
+                    implemented_types,
+                    active_generics,
+                    used_type_vars,
+                )?;
+                result = safe_replace_generic_param(&result, param, &resolved_arg);
+            }
+        } else {
+            let arg_types: Result<Vec<String>, _> = type_ref
+                .arguments
+                .iter()
+                .map(|arg| {
+                    type_ref_to_python_type(
+                        arg,
+                        schema,
+                        implemented_types,
+                        active_generics,
+                        used_type_vars,
+                    )
+                })
+                .collect();
+            let arg_types = arg_types?;
+            result = format!("{}[{}]", result, arg_types.join(", "));
+        }
         return Ok(result);
     }
 
@@ -3707,6 +3777,7 @@ fn get_type_parameters(type_name: &str) -> Vec<&'static str> {
         "reflectapi::Option" => vec!["T"],
         "std::collections::HashMap" => vec!["K", "V"],
         "std::collections::BTreeMap" => vec!["K", "V"],
+        "indexmap::IndexMap" => vec!["K", "V"],
         "std::result::Result" => vec!["T", "E"],
         _ => vec![],
     }
@@ -3749,551 +3820,24 @@ fn safe_replace_generic_param(type_str: &str, param: &str, replacement: &str) ->
     result
 }
 
-/// Check if the schema uses datetime types (chrono)
-fn check_datetime_usage(schema: &Schema, all_type_names: &[String]) -> bool {
-    // Check all types for datetime usage
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_uses_datetime(type_def) {
-                return true;
-            }
-        }
-    }
-
-    // Check function parameters and return types
-    for function in schema.functions() {
-        if let Some(input_type) = &function.input_type {
-            if let Some(type_def) = schema.get_type(&input_type.name) {
-                if type_uses_datetime(type_def) {
-                    return true;
-                }
-            }
-        }
-
-        if let Some(output_type) = &function.output_type {
-            if let Some(type_def) = schema.get_type(&output_type.name) {
-                if type_uses_datetime(type_def) {
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
-
-/// Check if the schema uses UUID types
-fn check_uuid_usage(schema: &Schema, all_type_names: &[String]) -> bool {
-    // Check all types for UUID usage
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_uses_uuid(type_def) {
-                return true;
-            }
-        }
-    }
-
-    // Check function parameters and return types
-    for function in schema.functions() {
-        if let Some(input_type) = &function.input_type {
-            if let Some(type_def) = schema.get_type(&input_type.name) {
-                if type_uses_uuid(type_def) {
-                    return true;
-                }
-            }
-        }
-
-        if let Some(output_type) = &function.output_type {
-            if let Some(type_def) = schema.get_type(&output_type.name) {
-                if type_uses_uuid(type_def) {
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
-
-/// Check if the schema uses timedelta types (std::time::Duration)
-fn check_timedelta_usage(schema: &Schema, all_type_names: &[String]) -> bool {
-    // Check all types for timedelta usage
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_uses_timedelta(type_def) {
-                return true;
-            }
-        }
-    }
-
-    // Check function parameters and return types
-    for function in schema.functions() {
-        if let Some(input_type) = &function.input_type {
-            if let Some(type_def) = schema.get_type(&input_type.name) {
-                if type_uses_timedelta(type_def) {
-                    return true;
-                }
-            }
-        }
-
-        if let Some(output_type) = &function.output_type {
-            if let Some(type_def) = schema.get_type(&output_type.name) {
-                if type_uses_timedelta(type_def) {
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
-
-/// Collect all unique generic parameter names from the schema
-/// Check if the schema uses date types (chrono::NaiveDate)
-fn check_date_usage(schema: &Schema, all_type_names: &[String]) -> bool {
-    // Check all types for date usage
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_uses_date(type_def) {
-                return true;
-            }
-        }
-    }
-
-    // Check function parameters and return types
-    for function in schema.functions() {
-        if let Some(input_type) = &function.input_type {
-            if let Some(type_def) = schema.get_type(&input_type.name) {
-                if type_uses_date(type_def) {
-                    return true;
-                }
-            }
-        }
-
-        if let Some(output_type) = &function.output_type {
-            if let Some(type_def) = schema.get_type(&output_type.name) {
-                if type_uses_date(type_def) {
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
-
-/// Check if a specific type definition uses datetime
-fn type_uses_datetime(type_def: &reflectapi_schema::Type) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(struct_def) => {
-            for field in struct_def.fields.iter() {
-                if type_ref_uses_datetime(&field.type_ref) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(enum_def) => {
-            for variant in &enum_def.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            if type_ref_uses_datetime(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            if type_ref_uses_datetime(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            // Primitive types don't contain datetime fields
-            return false;
-        }
-    }
-    false
-}
-
-/// Check if a type reference uses datetime
-fn type_ref_uses_datetime(type_ref: &TypeReference) -> bool {
-    // Check for chrono types that map to datetime
-    if type_ref.name == "chrono::DateTime" || type_ref.name == "chrono::NaiveDateTime" {
-        return true;
-    }
-
-    // Check generic arguments recursively
-    for param in &type_ref.arguments {
-        if type_ref_uses_datetime(param) {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if a specific type definition uses UUID
-fn type_uses_uuid(type_def: &reflectapi_schema::Type) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(struct_def) => {
-            for field in struct_def.fields.iter() {
-                if type_ref_uses_uuid(&field.type_ref) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(enum_def) => {
-            for variant in &enum_def.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            if type_ref_uses_uuid(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            if type_ref_uses_uuid(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            return false;
-        }
-    }
-    false
-}
-
-fn type_ref_uses_uuid(type_ref: &TypeReference) -> bool {
-    // Check for UUID types
-    if type_ref.name == "uuid::Uuid" {
-        return true;
-    }
-
-    // Check generic arguments recursively
-    for param in &type_ref.arguments {
-        if type_ref_uses_uuid(param) {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if a specific type definition uses timedelta
-fn type_uses_timedelta(type_def: &reflectapi_schema::Type) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(struct_def) => {
-            for field in struct_def.fields.iter() {
-                if type_ref_uses_timedelta(&field.type_ref) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(enum_def) => {
-            for variant in &enum_def.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            if type_ref_uses_timedelta(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            if type_ref_uses_timedelta(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            return false;
-        }
-    }
-    false
-}
-
-fn type_ref_uses_timedelta(type_ref: &TypeReference) -> bool {
-    // Check for Duration types that map to timedelta
-    if type_ref.name == "std::time::Duration" {
-        return true;
-    }
-
-    // Check generic arguments recursively
-    for param in &type_ref.arguments {
-        if type_ref_uses_timedelta(param) {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if a specific type definition uses date
-fn type_uses_date(type_def: &reflectapi_schema::Type) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(struct_def) => {
-            for field in struct_def.fields.iter() {
-                if type_ref_uses_date(&field.type_ref) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(enum_def) => {
-            for variant in &enum_def.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            if type_ref_uses_date(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            if type_ref_uses_date(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            return false;
-        }
-    }
-    false
-}
-
-fn type_ref_uses_date(type_ref: &TypeReference) -> bool {
-    // Check for date types
-    if type_ref.name == "chrono::NaiveDate" {
-        return true;
-    }
-
-    // Check generic arguments recursively
-    for param in &type_ref.arguments {
-        if type_ref_uses_date(param) {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if the schema uses reflectapi::Option anywhere
-fn schema_uses_reflectapi_option(schema: &Schema, all_type_names: &Vec<String>) -> bool {
-    // Check all types in the schema for reflectapi::Option usage
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_uses_reflectapi_option(type_def) {
-                return true;
-            }
-        }
-    }
-    false
-}
-
-/// Check if the schema uses a specific type anywhere
-fn schema_uses_type(schema: &Schema, all_type_names: &Vec<String>, target_type: &str) -> bool {
-    // Check if the type is directly mentioned in the schema
-    if all_type_names.contains(&target_type.to_string()) {
-        return true;
-    }
-
-    // Check all types in the schema for usage of the target type
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_references_type(type_def, target_type) {
-                return true;
-            }
-        }
-    }
-    false
-}
-
-/// Check if a type definition references a specific type
-fn type_references_type(type_def: &reflectapi_schema::Type, target_type: &str) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(s) => {
-            // Check all fields in the struct
-            for field in s.fields.iter() {
-                if type_reference_references_type(&field.type_ref, target_type) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(e) => {
-            // Check all variant fields in the enum
-            for variant in &e.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            if type_reference_references_type(&field.type_ref, target_type) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            if type_reference_references_type(&field.type_ref, target_type) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            // Primitives don't reference other types
-        }
-    }
-    false
-}
-
-/// Check if a type reference references a specific type
-fn type_reference_references_type(type_ref: &TypeReference, target_type: &str) -> bool {
-    // Check if this is directly the target type
-    if type_ref.name == target_type {
-        return true;
-    }
-
-    // Check recursively in type arguments
-    type_ref
-        .arguments
-        .iter()
-        .any(|arg| type_reference_references_type(arg, target_type))
-}
-
-/// Recursively check if a type uses reflectapi::Option
-fn type_uses_reflectapi_option(type_def: &reflectapi_schema::Type) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(s) => {
-            // Check all fields in the struct
-            for field in s.fields.iter() {
-                if type_reference_uses_reflectapi_option(&field.type_ref) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(_) => {
-            // Enums don't contain reflectapi::Option
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            // Primitives don't contain reflectapi::Option
-        }
-    }
-    false
-}
-
-/// Check if a type reference uses reflectapi::Option
-fn type_reference_uses_reflectapi_option(type_ref: &TypeReference) -> bool {
-    // Check if this is directly a reflectapi::Option
-    if type_ref.name == "reflectapi::Option" {
-        return true;
-    }
-
-    // Recursively check type arguments
-    type_ref
-        .arguments
-        .iter()
-        .any(type_reference_uses_reflectapi_option)
-}
-
-fn build_implemented_types() -> BTreeMap<String, String> {
+fn build_implemented_types(schema: &Schema) -> BTreeMap<String, String> {
     let mut types = BTreeMap::new();
 
-    // Primitive types
-    types.insert("i8".to_string(), "int".to_string());
-    types.insert("i16".to_string(), "int".to_string());
-    types.insert("i32".to_string(), "int".to_string());
-    types.insert("i64".to_string(), "int".to_string());
-    types.insert("u8".to_string(), "int".to_string());
-    types.insert("u16".to_string(), "int".to_string());
-    types.insert("u32".to_string(), "int".to_string());
-    types.insert("u64".to_string(), "int".to_string());
-    types.insert("f32".to_string(), "float".to_string());
-    types.insert("f64".to_string(), "float".to_string());
-    types.insert("bool".to_string(), "bool".to_string());
-    types.insert("String".to_string(), "str".to_string());
-    types.insert("std::string::String".to_string(), "str".to_string());
+    for typespace in [&schema.input_types, &schema.output_types] {
+        for type_def in typespace.types() {
+            let Some(config) = python_codegen_config(type_def) else {
+                continue;
+            };
+            let Some(type_hint) = &config.type_hint else {
+                continue;
+            };
+            types
+                .entry(type_def.name().to_string())
+                .or_insert_with(|| type_hint.clone());
+        }
+    }
 
-    // Collections with full Rust type names (using modern lowercase hints for Python 3.9+)
-    types.insert("std::vec::Vec".to_string(), "list[T]".to_string());
-    types.insert(
-        "std::collections::HashMap".to_string(),
-        "dict[K, V]".to_string(),
-    );
-    types.insert(
-        "std::collections::BTreeMap".to_string(),
-        "dict[K, V]".to_string(),
-    );
-    types.insert("std::option::Option".to_string(), "T | None".to_string());
-    types.insert("std::result::Result".to_string(), "T | E".to_string());
-
-    // ReflectAPI specific types
-    types.insert(
-        "reflectapi::Option".to_string(),
-        "ReflectapiOption[T]".to_string(),
-    );
-    types.insert(
-        "reflectapi::Empty".to_string(),
-        "ReflectapiEmpty".to_string(),
-    );
-    types.insert(
-        "reflectapi::Infallible".to_string(),
-        "ReflectapiInfallible".to_string(),
-    );
-
-    // Date/time types
-    types.insert("chrono::DateTime".to_string(), "datetime".to_string());
-    types.insert("chrono::NaiveDateTime".to_string(), "datetime".to_string());
-    types.insert("chrono::NaiveDate".to_string(), "date".to_string());
-    types.insert("uuid::Uuid".to_string(), "UUID".to_string());
-
-    // Rust std library types that need proper Python equivalents
-    types.insert("std::time::Duration".to_string(), "timedelta".to_string());
-    types.insert("std::path::PathBuf".to_string(), "Path".to_string());
-    types.insert("std::path::Path".to_string(), "Path".to_string());
-    types.insert(
-        "std::net::IpAddr".to_string(),
-        "IPv4Address | IPv6Address".to_string(),
-    );
-    types.insert("std::net::Ipv4Addr".to_string(), "IPv4Address".to_string());
-    types.insert("std::net::Ipv6Addr".to_string(), "IPv6Address".to_string());
-
-    // Special tuple/unit types
-    types.insert("std::tuple::Tuple0".to_string(), "None".to_string());
-
-    // Common serde types
-    types.insert("serde_json::Value".to_string(), "Any".to_string());
-
-    // Smart pointer types (transparent - map to their inner type)
-    types.insert("std::boxed::Box".to_string(), "T".to_string());
-    types.insert("std::sync::Arc".to_string(), "T".to_string());
-    types.insert("std::rc::Rc".to_string(), "T".to_string());
-
-    // External Rust types commonly found in ReflectAPI schemas
+    // Compatibility fallback for legacy/unannotated schemas.
     types.insert("StdNumNonZeroU32".to_string(), "int".to_string());
     types.insert("StdNumNonZeroU64".to_string(), "int".to_string());
     types.insert("StdNumNonZeroI32".to_string(), "int".to_string());
@@ -4604,14 +4148,9 @@ pub mod templates {
         pub has_sync: bool,
         pub has_testing: bool,
         pub has_enums: bool,
-        pub has_reflectapi_option: bool,
-        pub has_reflectapi_empty: bool,
-        pub has_reflectapi_infallible: bool,
         pub has_warnings: bool,
-        pub has_datetime: bool,
-        pub has_uuid: bool,
-        pub has_timedelta: bool,
-        pub has_date: bool,
+        pub extra_stdlib_imports: Vec<String>,
+        pub extra_runtime_imports: Vec<String>,
         pub has_generics: bool,
         pub has_annotated: bool,
         pub has_literal: bool,
