@@ -26,8 +26,6 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestEnumRenameAll(str, Enum):
-    """Generated enum."""
-
     FIELD_NAME = "fieldName"
 
 

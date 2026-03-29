@@ -26,8 +26,6 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsEnumsTestEnumEmpty(str, Enum):
-    """Generated enum."""
-
     pass
 
 

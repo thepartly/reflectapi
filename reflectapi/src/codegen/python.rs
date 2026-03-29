@@ -359,9 +359,10 @@ fn render_struct_with_flatten(
     struct_def: &reflectapi_schema::Struct,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
-    let struct_name = improve_class_name(&struct_def.name);
+    let struct_name = python_class_name(&struct_def.name, class_names);
     let active_generics: Vec<String> = struct_def
         .parameters
         .iter()
@@ -995,7 +996,7 @@ fn generate_init_py(config: &Config) -> String {
     let mut imports = vec!["AsyncClient"];
 
     if config.generate_sync {
-        imports.push("SyncClient");
+        imports.push("Client");
     }
 
     let imports_list = format!("{imports:?}");
@@ -1193,14 +1194,16 @@ def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
     let mut non_rendered_types = python_metadata.runtime_provided_types.clone();
     non_rendered_types.insert("std::option::Option".to_string());
 
+    let class_names = build_python_class_name_map(
+        semantic
+            .types()
+            .filter(|st| !non_rendered_types.contains(st.name()))
+            .map(|st| st.name()),
+    );
+
     // Build the set of Python class names that will be emitted, so we can
     // detect TypeVar-vs-class name collisions below.
-    let emitted_class_names: HashSet<String> = semantic
-        .types()
-        .filter(|st| !non_rendered_types.contains(st.name()))
-        .filter_map(|st| schema.get_type(st.name()))
-        .map(|t| improve_class_name(t.name()))
-        .collect();
+    let emitted_class_names: HashSet<String> = class_names.values().cloned().collect();
 
     // Collect TypeVars used across all types, using semantic IR ordering.
     // Since the codegen pipeline skips NamingResolution, sem_type.name()
@@ -1285,7 +1288,13 @@ def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
 
         // TypeVars have already been collected, use empty set for rendering
         let mut dummy_type_vars = BTreeSet::new();
-        let rendered = render_type(type_def, &schema, &implemented_types, &mut dummy_type_vars)?;
+        let rendered = render_type(
+            type_def,
+            &schema,
+            &implemented_types,
+            &class_names,
+            &mut dummy_type_vars,
+        )?;
 
         // Only store non-empty renders (excludes unwrapped tuple structs)
         if !rendered.trim().is_empty() {
@@ -1383,7 +1392,7 @@ def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
     let rebuild_models: Vec<String> = rendered_type_keys
         .iter()
         .filter(|n| !n.starts_with("std::") && !n.starts_with("reflectapi::"))
-        .map(|n| improve_class_name(n))
+        .map(|n| python_class_name(n, &class_names))
         .collect();
     if !rebuild_models.is_empty() {
         external_types_and_rebuilds.push(format!(
@@ -1635,11 +1644,12 @@ fn render_type(
     type_def: &Type,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     match type_def {
-        Type::Struct(s) => render_struct(s, schema, implemented_types, used_type_vars),
-        Type::Enum(e) => render_enum(e, schema, implemented_types, used_type_vars),
+        Type::Struct(s) => render_struct(s, schema, implemented_types, class_names, used_type_vars),
+        Type::Enum(e) => render_enum(e, schema, implemented_types, class_names, used_type_vars),
         Type::Primitive(_p) => {
             // Primitive types are handled by implemented_types mapping
             Ok(String::new()) // This shouldn't be reached normally
@@ -1868,6 +1878,7 @@ fn render_struct(
     struct_def: &reflectapi_schema::Struct,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     // Check if this struct has any flattened fields
@@ -1875,7 +1886,13 @@ fn render_struct(
 
     if has_flattened {
         // Use runtime flatten support
-        return render_struct_with_flatten(struct_def, schema, implemented_types, used_type_vars);
+        return render_struct_with_flatten(
+            struct_def,
+            schema,
+            implemented_types,
+            class_names,
+            used_type_vars,
+        );
     }
 
     // Check if this is a single-field tuple struct that should be unwrapped
@@ -1951,7 +1968,7 @@ fn render_struct(
 
     // Check if this is a generic struct (has type parameters)
     let has_generics = !struct_def.parameters.is_empty();
-    let class_name = improve_class_name(&struct_def.name);
+    let class_name = python_class_name(&struct_def.name, class_names);
 
     let class_template = templates::DataClass {
         name: class_name,
@@ -1969,6 +1986,7 @@ fn render_enum(
     enum_def: &reflectapi_schema::Enum,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     use reflectapi_schema::{Fields, Representation};
@@ -1981,6 +1999,7 @@ fn render_enum(
                 tag,
                 schema,
                 implemented_types,
+                class_names,
                 used_type_vars,
             )?;
 
@@ -1994,6 +2013,7 @@ fn render_enum(
                 content,
                 schema,
                 implemented_types,
+                class_names,
                 used_type_vars,
             )?;
 
@@ -2001,14 +2021,20 @@ fn render_enum(
         }
         Representation::None => {
             // Untagged enums
-            render_untagged_enum(enum_def, schema, implemented_types, used_type_vars)
+            render_untagged_enum(
+                enum_def,
+                schema,
+                implemented_types,
+                class_names,
+                used_type_vars,
+            )
         }
         _ => {
             // Check if this is a primitive-represented enum (has discriminant values)
             let has_discriminants = enum_def.variants.iter().any(|v| v.discriminant.is_some());
 
             if has_discriminants {
-                render_primitive_enum(enum_def)
+                render_primitive_enum(enum_def, class_names)
             } else {
                 // Check if this has complex variants (tuple or struct variants)
                 let has_complex_variants = enum_def.variants.iter().any(|v| {
@@ -2025,6 +2051,7 @@ fn render_enum(
                         enum_def,
                         schema,
                         implemented_types,
+                        class_names,
                         used_type_vars,
                     )
                 } else {
@@ -2040,7 +2067,7 @@ fn render_enum(
                         .collect();
 
                     let enum_template = templates::EnumClass {
-                        name: improve_class_name(&enum_def.name),
+                        name: python_class_name(&enum_def.name, class_names),
                         description: Some(enum_def.description().to_string()),
                         variants,
                     };
@@ -2058,11 +2085,12 @@ fn render_adjacently_tagged_enum(
     content: &str,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<(String, Vec<String>)> {
     use reflectapi_schema::Fields;
 
-    let enum_name = improve_class_name(&enum_def.name);
+    let enum_name = python_class_name(&enum_def.name, class_names);
 
     let mut variant_class_definitions: Vec<String> = Vec::new();
     let mut union_variant_names: Vec<String> = Vec::new();
@@ -2283,11 +2311,12 @@ fn render_externally_tagged_enum(
     enum_def: &reflectapi_schema::Enum,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
-    let enum_name = improve_class_name(&enum_def.name);
+    let enum_name = python_class_name(&enum_def.name, class_names);
     let mut variant_models = Vec::new();
     let mut union_variants = Vec::new();
 
@@ -2486,7 +2515,10 @@ fn render_externally_tagged_enum(
     Ok(enum_code)
 }
 
-fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<String> {
+fn render_primitive_enum(
+    enum_def: &reflectapi_schema::Enum,
+    class_names: &BTreeMap<String, String>,
+) -> anyhow::Result<String> {
     // Determine if this is an integer or float enum
     let is_float_enum = false;
     let mut enum_variants = Vec::new();
@@ -2511,7 +2543,7 @@ fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<S
     }
 
     let enum_template = templates::PrimitiveEnumClass {
-        name: improve_class_name(&enum_def.name),
+        name: python_class_name(&enum_def.name, class_names),
         description: Some(enum_def.description().to_string()),
         variants: enum_variants,
         is_int_enum: !is_float_enum,
@@ -2525,6 +2557,7 @@ fn render_internally_tagged_enum(
     tag: &str,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<(String, Vec<String>)> {
     let (rendered, union_variant_names) = render_internally_tagged_enum_core(
@@ -2532,6 +2565,7 @@ fn render_internally_tagged_enum(
         tag,
         schema,
         implemented_types,
+        class_names,
         used_type_vars,
     )?;
     Ok((rendered, union_variant_names))
@@ -2542,11 +2576,12 @@ fn render_internally_tagged_enum_core(
     tag: &str,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<(String, Vec<String>)> {
     use reflectapi_schema::{Fields, Type};
 
-    let enum_name = improve_class_name(&enum_def.name);
+    let enum_name = python_class_name(&enum_def.name, class_names);
     let mut variant_class_definitions: Vec<String> = Vec::new();
     let mut union_variant_names: Vec<String> = Vec::new();
 
@@ -2837,11 +2872,12 @@ fn render_untagged_enum(
     enum_def: &reflectapi_schema::Enum,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
-    let enum_name = improve_class_name(&enum_def.name);
+    let enum_name = python_class_name(&enum_def.name, class_names);
     let mut variant_classes = Vec::new();
     let mut union_variants = Vec::new();
 
@@ -3327,33 +3363,53 @@ fn to_pascal_case(s: &str) -> String {
 /// Maximum class name length before truncation with hash suffix.
 const MAX_CLASS_NAME_LEN: usize = 80;
 
-fn improve_class_name(original_name: &str) -> String {
+fn maybe_destutter_pascal_parts(pascal_parts: &[String]) -> String {
+    let mut result_parts: Vec<&str> = Vec::new();
+
+    if pascal_parts.len() >= 2 {
+        let leaf = pascal_parts.last().unwrap();
+        for (i, part) in pascal_parts.iter().enumerate() {
+            if i + 1 == pascal_parts.len() {
+                result_parts.push(part);
+            } else if i + 1 == pascal_parts.len() - 1 && leaf.starts_with(part.as_str()) {
+                continue;
+            } else {
+                result_parts.push(part);
+            }
+        }
+    } else {
+        result_parts = pascal_parts.iter().map(|s| s.as_str()).collect();
+    }
+
+    result_parts.join("")
+}
+
+fn finalize_class_name(original_name: &str, raw: String) -> String {
+    if raw.len() > MAX_CLASS_NAME_LEN {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+        original_name.hash(&mut hasher);
+        let hash_full = format!("{:016x}", hasher.finish());
+        let hash = &hash_full[..8];
+        let truncated = &raw[..MAX_CLASS_NAME_LEN - 9];
+        format!("{truncated}_{hash}")
+    } else {
+        raw
+    }
+}
+
+fn build_flat_python_class_name(original_name: &str, remove_stutter: bool) -> String {
     let raw = if original_name.contains("::") {
         let parts: Vec<&str> = original_name.split("::").collect();
         let pascal_parts: Vec<String> = parts.iter().map(|part| to_pascal_case(part)).collect();
 
-        // Detect and remove stuttering: only remove the immediately-preceding
-        // module segment when the leaf type name starts with it.
-        // e.g. system::SystemVersionInfo → SystemVersionInfo (skip "System" module)
-        // But system::OtherThing → SystemOtherThing (keep module prefix)
-        let mut result_parts: Vec<&str> = Vec::new();
-        if pascal_parts.len() >= 2 {
-            let leaf = pascal_parts.last().unwrap();
-            for (i, part) in pascal_parts.iter().enumerate() {
-                if i + 1 == pascal_parts.len() {
-                    // Always include the leaf
-                    result_parts.push(part);
-                } else if i + 1 == pascal_parts.len() - 1 && leaf.starts_with(part.as_str()) {
-                    // Skip the segment immediately before the leaf if it stutters
-                    continue;
-                } else {
-                    result_parts.push(part);
-                }
-            }
+        if remove_stutter {
+            maybe_destutter_pascal_parts(&pascal_parts)
         } else {
-            result_parts = pascal_parts.iter().map(|s| s.as_str()).collect();
+            pascal_parts.join("")
         }
-        result_parts.join("")
     } else if original_name.contains('.') {
         let pos = original_name.rfind('.').unwrap();
         improve_class_name_part(&original_name[pos + 1..])
@@ -3361,19 +3417,50 @@ fn improve_class_name(original_name: &str) -> String {
         improve_class_name_part(original_name)
     };
 
-    // Truncate excessively long names with a hash suffix for uniqueness
-    if raw.len() > MAX_CLASS_NAME_LEN {
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
-        let mut hasher = DefaultHasher::new();
-        original_name.hash(&mut hasher);
-        let hash_full = format!("{:016x}", hasher.finish());
-        let hash = &hash_full[..8]; // 8 hex chars for a compact suffix
-        let truncated = &raw[..MAX_CLASS_NAME_LEN - 9]; // 8 hex + underscore
-        format!("{truncated}_{hash}")
-    } else {
-        raw
+    finalize_class_name(original_name, raw)
+}
+
+fn build_python_class_name_map<'a>(
+    type_names: impl IntoIterator<Item = &'a str>,
+) -> BTreeMap<String, String> {
+    let candidates: Vec<(String, String, String)> = type_names
+        .into_iter()
+        .map(|type_name| {
+            (
+                type_name.to_string(),
+                build_flat_python_class_name(type_name, false),
+                build_flat_python_class_name(type_name, true),
+            )
+        })
+        .collect();
+
+    let mut preferred_counts: BTreeMap<String, usize> = BTreeMap::new();
+    for (_, _, preferred_name) in &candidates {
+        *preferred_counts.entry(preferred_name.clone()).or_default() += 1;
     }
+
+    candidates
+        .into_iter()
+        .map(|(type_name, fallback_name, preferred_name)| {
+            let chosen_name = if preferred_counts.get(&preferred_name) == Some(&1) {
+                preferred_name
+            } else {
+                fallback_name
+            };
+            (type_name, chosen_name)
+        })
+        .collect()
+}
+
+fn python_class_name(type_name: &str, class_names: &BTreeMap<String, String>) -> String {
+    class_names
+        .get(type_name)
+        .cloned()
+        .unwrap_or_else(|| build_flat_python_class_name(type_name, true))
+}
+
+fn improve_class_name(original_name: &str) -> String {
+    build_flat_python_class_name(original_name, true)
 }
 
 /// Convert a fully-qualified Rust type name to a dotted Python reference.
@@ -4247,11 +4334,7 @@ pub mod templates {
                 let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
-                } else {
-                    writeln!(s, "    \"\"\"Generated enum.\"\"\"").unwrap();
                 }
-            } else {
-                writeln!(s, "    \"\"\"Generated enum.\"\"\"").unwrap();
             }
             writeln!(s).unwrap();
             if self.variants.is_empty() {
@@ -5274,5 +5357,42 @@ pub mod templates {
             writeln!(s, "}}, \"{name}\")", name = self.name).unwrap();
             s
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{build_python_class_name_map, generate_init_py, Config};
+
+    #[test]
+    fn python_init_exports_client() {
+        let init_py = generate_init_py(&Config::default());
+        assert!(init_py.contains("from .generated import AsyncClient, Client"));
+        assert!(init_py.contains("__all__ = [\"AsyncClient\", \"Client\"]"));
+        assert!(!init_py.contains("SyncClient"));
+    }
+
+    #[test]
+    fn destutter_falls_back_on_collision() {
+        let class_names = build_python_class_name_map([
+            "OfferRequestPartIdentity",
+            "offer_request::OfferRequestPartIdentity",
+            "system::SystemVersionInfo",
+        ]);
+
+        assert_eq!(
+            class_names.get("OfferRequestPartIdentity").unwrap(),
+            "OfferRequestPartIdentity"
+        );
+        assert_eq!(
+            class_names
+                .get("offer_request::OfferRequestPartIdentity")
+                .unwrap(),
+            "OfferRequestOfferRequestPartIdentity"
+        );
+        assert_eq!(
+            class_names.get("system::SystemVersionInfo").unwrap(),
+            "SystemVersionInfo"
+        );
     }
 }

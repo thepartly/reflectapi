@@ -26,8 +26,6 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsEnumsTestEnum(str, Enum):
-    """Generated enum."""
-
     VARIANT1 = "Variant1"
     VARIANT2 = "Variant2"
 
