@@ -21,7 +21,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    PrivateAttr,
     RootModel,
     model_serializer,
     model_validator,
@@ -93,7 +92,7 @@ class ReflectapiDemoTestsSerdeTestEnumRenameVariantField(
                     )
                 )
             },
-            (ReflectapiDemoTestsSerdeTestEnumRenameVariantFieldVariant2Variant),
+            (ReflectapiDemoTestsSerdeTestEnumRenameVariantFieldVariant2Variant,),
             "ReflectapiDemoTestsSerdeTestEnumRenameVariantField",
         )
 
@@ -107,7 +106,7 @@ class ReflectapiDemoTestsSerdeTestEnumRenameVariantField(
                         r,
                         ReflectapiDemoTestsSerdeTestEnumRenameVariantFieldVariant2Variant,
                     ),
-                    lambda r: {"Variant2": r.model_dump()},
+                    lambda r: {"Variant2": r.model_dump(by_alias=True)},
                 )
             },
             "ReflectapiDemoTestsSerdeTestEnumRenameVariantField",

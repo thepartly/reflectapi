@@ -21,7 +21,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    PrivateAttr,
     RootModel,
     model_serializer,
     model_validator,
@@ -97,7 +96,7 @@ class ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields(
                     )
                 ),
             },
-            (ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFieldsVariant2Variant),
+            (ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFieldsVariant2Variant,),
             "ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields",
         )
 

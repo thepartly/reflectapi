@@ -32,7 +32,7 @@ class ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDiffe
     f: int = Field(serialization_alias="_f", validation_alias="_f")
 
 
-class ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothD_afce1cc88c21b6c0(
+class ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothD_afce1cc8(
     BaseModel
 ):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -58,7 +58,7 @@ class reflectapi_demo:
             class output:
                 """Namespace for output types."""
 
-                TestStructOneBasicFieldStringReflectBothD_afce1cc88c21b6c0 = ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothD_afce1cc88c21b6c0
+                TestStructOneBasicFieldStringReflectBothD_afce1cc8 = ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothD_afce1cc8
 
 
 class AsyncInoutClient:
@@ -164,7 +164,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 for _model in [
     ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently,
-    ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothD_afce1cc88c21b6c0,
+    ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothD_afce1cc8,
 ]:
     try:
         _model.model_rebuild()

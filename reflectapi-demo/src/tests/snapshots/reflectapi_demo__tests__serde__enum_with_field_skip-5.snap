@@ -21,7 +21,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    PrivateAttr,
     RootModel,
     model_serializer,
     model_validator,
@@ -89,7 +88,7 @@ class ReflectapiDemoTestsSerdeTestEnumWithFieldSkip(
                     ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariant1Variant(**v)
                 )
             },
-            (ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariant1Variant),
+            (ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariant1Variant,),
             "ReflectapiDemoTestsSerdeTestEnumWithFieldSkip",
         )
 
@@ -102,7 +101,7 @@ class ReflectapiDemoTestsSerdeTestEnumWithFieldSkip(
                     lambda r: isinstance(
                         r, ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariant1Variant
                     ),
-                    lambda r: {"Variant1": r.model_dump()},
+                    lambda r: {"Variant1": r.model_dump(by_alias=True)},
                 )
             },
             "ReflectapiDemoTestsSerdeTestEnumWithFieldSkip",

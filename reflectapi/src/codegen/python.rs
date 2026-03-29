@@ -116,7 +116,6 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
         third_party_imports.insert("RootModel");
         third_party_imports.insert("model_validator");
         third_party_imports.insert("model_serializer");
-        third_party_imports.insert("PrivateAttr");
     }
 
     // Runtime imports - client bases
@@ -2262,28 +2261,6 @@ fn render_adjacently_tagged_enum(
     result.push_str(&union_definition);
     result.push_str("\n\n");
 
-    // If generic, patch RootModel class to include Generic inheritance
-    let generic_inherits = if !generic_params.is_empty() {
-        format!(", Generic[{}]", generic_params.join(", "))
-    } else {
-        String::new()
-    };
-
-    let header = format!("class {enum_name}(RootModel[{enum_name}Variants])");
-    let replacement =
-        format!("class {enum_name}(RootModel[{enum_name}Variants]{generic_inherits})");
-    let result = result.replace(&header, &replacement);
-    let mut result = result;
-    if !generic_inherits.is_empty() {
-        let inject = "\n    def __class_getitem__(cls, params):\n        return cls\n".to_string();
-        if let Some(pos) = result.find(&replacement) {
-            if let Some(nl) = result[pos..].find('\n') {
-                let insert_at = pos + nl + 1;
-                result.insert_str(insert_at, &inject);
-            }
-        }
-    }
-
     Ok((result, union_variant_names))
 }
 
@@ -2463,7 +2440,7 @@ fn render_externally_tagged_enum(
                     "\"{wire_name}\": lambda v: {variant_class_name}(**v)"
                 ));
                 serializer_entries.push(format!(
-                    "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": r.model_dump()}})"
+                    "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": r.model_dump(by_alias=True)}})"
                 ));
             }
         }
@@ -3340,25 +3317,31 @@ fn improve_class_name(original_name: &str) -> String {
         let parts: Vec<&str> = original_name.split("::").collect();
         let pascal_parts: Vec<String> = parts.iter().map(|part| to_pascal_case(part)).collect();
 
-        // Detect and remove stuttering: if a module name is a prefix of
-        // the type name (e.g., system::SystemVersionInfo), skip the module.
-        // Compare adjacent pairs.
+        // Detect and remove stuttering: only remove the immediately-preceding
+        // module segment when the leaf type name starts with it.
+        // e.g. system::SystemVersionInfo → SystemVersionInfo (skip "System" module)
+        // But system::OtherThing → SystemOtherThing (keep module prefix)
         let mut result_parts: Vec<&str> = Vec::new();
-        for (i, part) in pascal_parts.iter().enumerate() {
-            if i + 1 < pascal_parts.len() {
-                // Check if next part starts with this part (stuttering)
-                if pascal_parts[i + 1].starts_with(part.as_str()) {
-                    continue; // Skip the module part
+        if pascal_parts.len() >= 2 {
+            let leaf = pascal_parts.last().unwrap();
+            for (i, part) in pascal_parts.iter().enumerate() {
+                if i + 1 == pascal_parts.len() {
+                    // Always include the leaf
+                    result_parts.push(part);
+                } else if i + 1 == pascal_parts.len() - 1 && leaf.starts_with(part.as_str()) {
+                    // Skip the segment immediately before the leaf if it stutters
+                    continue;
+                } else {
+                    result_parts.push(part);
                 }
             }
-            result_parts.push(part);
+        } else {
+            result_parts = pascal_parts.iter().map(|s| s.as_str()).collect();
         }
         result_parts.join("")
     } else if original_name.contains('.') {
-        if let Some(pos) = original_name.rfind('.') {
-            return improve_class_name_part(&original_name[pos + 1..]);
-        }
-        improve_class_name_part(original_name)
+        let pos = original_name.rfind('.').unwrap();
+        improve_class_name_part(&original_name[pos + 1..])
     } else {
         improve_class_name_part(original_name)
     };
@@ -3369,7 +3352,8 @@ fn improve_class_name(original_name: &str) -> String {
         use std::hash::{Hash, Hasher};
         let mut hasher = DefaultHasher::new();
         original_name.hash(&mut hasher);
-        let hash = format!("{:08x}", hasher.finish());
+        let hash_full = format!("{:016x}", hasher.finish());
+        let hash = &hash_full[..8]; // 8 hex chars for a compact suffix
         let truncated = &raw[..MAX_CLASS_NAME_LEN - 9]; // 8 hex + underscore
         format!("{truncated}_{hash}")
     } else {
@@ -5726,6 +5710,8 @@ pub mod templates {
             // Build the types tuple for isinstance checks on direct variant instances
             let types_tuple = if self.variant_class_names.is_empty() {
                 "()".to_string()
+            } else if self.variant_class_names.len() == 1 {
+                format!("({},)", self.variant_class_names[0])
             } else {
                 format!("({})", self.variant_class_names.join(", "))
             };

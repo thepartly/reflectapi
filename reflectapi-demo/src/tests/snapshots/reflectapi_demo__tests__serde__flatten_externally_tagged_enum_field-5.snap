@@ -21,7 +21,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    PrivateAttr,
     RootModel,
     model_serializer,
     model_validator,
@@ -118,11 +117,11 @@ class ReflectapiDemoTestsSerdeShape(RootModel[ReflectapiDemoTestsSerdeShapeVaria
             {
                 "Circle": (
                     lambda r: isinstance(r, ReflectapiDemoTestsSerdeShapeCircleVariant),
-                    lambda r: {"Circle": r.model_dump()},
+                    lambda r: {"Circle": r.model_dump(by_alias=True)},
                 ),
                 "Rect": (
                     lambda r: isinstance(r, ReflectapiDemoTestsSerdeShapeRectVariant),
-                    lambda r: {"Rect": r.model_dump()},
+                    lambda r: {"Rect": r.model_dump(by_alias=True)},
                 ),
             },
             "ReflectapiDemoTestsSerdeShape",

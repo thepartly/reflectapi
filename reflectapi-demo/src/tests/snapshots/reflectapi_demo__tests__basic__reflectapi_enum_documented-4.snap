@@ -21,7 +21,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    PrivateAttr,
     RootModel,
     model_serializer,
     model_validator,
@@ -136,7 +135,7 @@ class ReflectapiDemoTestsBasicTestEnumDocumented(
                     lambda r: isinstance(
                         r, ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant
                     ),
-                    lambda r: {"Variant2": r.model_dump()},
+                    lambda r: {"Variant2": r.model_dump(by_alias=True)},
                 ),
             },
             "ReflectapiDemoTestsBasicTestEnumDocumented",
