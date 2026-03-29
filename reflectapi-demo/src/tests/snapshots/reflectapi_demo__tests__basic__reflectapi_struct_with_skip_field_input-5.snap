@@ -25,14 +25,10 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsBasicInputTestStructWithSkipFieldInput(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
 class ReflectapiDemoTestsBasicOutputTestStructWithSkipFieldInput(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     f: int = Field(serialization_alias="_f", validation_alias="_f")
@@ -162,7 +158,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.basic.input.TestStructWithSkipFieldInput.model_rebuild()
+except Exception:
+    pass
+try:
     reflectapi_demo.tests.basic.output.TestStructWithSkipFieldInput.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

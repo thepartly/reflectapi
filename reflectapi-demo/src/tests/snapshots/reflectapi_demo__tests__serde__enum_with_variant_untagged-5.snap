@@ -85,7 +85,7 @@ class ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged(
             self.root,
             ReflectapiDemoTestsSerdeTestEnumWithVariantUntaggedVariant1Variant,
         ):
-            return {"Variant1": self.root.field_0}
+            return {"Variant1": self.root.value}
 
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged variant: {type(self.root)}"
@@ -205,6 +205,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.TestEnumWithVariantUntagged.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

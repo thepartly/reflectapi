@@ -118,7 +118,7 @@ class ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFields(
             self.root,
             ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsVariant1Variant,
         ):
-            return {"Variant1": self.root.field_0}
+            return {"Variant1": self.root.value}
         if isinstance(
             self.root,
             ReflectapiDemoTestsEnumsTestEnumWithGenericsAndFieldsVariant2Variant,
@@ -250,6 +250,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.enums.TestEnumWithGenericsAndFields.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

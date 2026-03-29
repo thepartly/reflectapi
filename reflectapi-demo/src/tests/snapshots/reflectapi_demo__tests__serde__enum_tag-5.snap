@@ -26,8 +26,6 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestEnumTagVariant1(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Variant1"] = Field(
@@ -37,8 +35,6 @@ class ReflectapiDemoTestsSerdeTestEnumTagVariant1(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeTestEnumTagVariant2(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["Variant2"] = Field(
@@ -167,6 +163,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.TestEnumTag.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

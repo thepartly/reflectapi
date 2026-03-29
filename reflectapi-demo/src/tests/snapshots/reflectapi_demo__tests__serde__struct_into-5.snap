@@ -25,16 +25,12 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestStructInto(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     f: int
 
 
 class ReflectapiDemoTestsSerdeTestStructIntoProxy(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     f: int
@@ -149,7 +145,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.TestStructInto.model_rebuild()
+except Exception:
+    pass
+try:
     reflectapi_demo.tests.serde.TestStructIntoProxy.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

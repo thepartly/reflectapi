@@ -44,7 +44,7 @@ class ReflectapiDemoTestsSerdeTaggedItemVariant(BaseModel, Generic[T]):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: T
+    value: T
 
 
 # Adjacently tagged enum using RootModel
@@ -73,7 +73,7 @@ class ReflectapiDemoTestsSerdeTagged(
                 raise ValueError("Missing content field 'c' for tag: {}".format(tag))
             # Dispatch based on tag
             if tag == "Item":
-                return ReflectapiDemoTestsSerdeTaggedItemVariant(field_0=content)
+                return ReflectapiDemoTestsSerdeTaggedItemVariant(value=content)
             if tag == "Nothing":
                 return "Nothing"
         raise ValueError(
@@ -83,7 +83,7 @@ class ReflectapiDemoTestsSerdeTagged(
     @model_serializer
     def _serialize_adjacently_tagged(self):
         if isinstance(self.root, ReflectapiDemoTestsSerdeTaggedItemVariant):
-            return {"t": "Item", "c": self.root.field_0}
+            return {"t": "Item", "c": self.root.value}
         if self.root == "Nothing":
             return {"t": "Nothing"}
         raise ValueError(
@@ -203,6 +203,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.Tagged.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

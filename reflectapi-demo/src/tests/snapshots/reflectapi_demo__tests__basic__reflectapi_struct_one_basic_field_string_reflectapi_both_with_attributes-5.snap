@@ -27,18 +27,14 @@ from reflectapi_runtime import ReflectapiInfallible
 class ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently(
     BaseModel
 ):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     f: int = Field(serialization_alias="_f", validation_alias="_f")
 
 
-class ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently(
+class ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothD_afce1cc88c21b6c0(
     BaseModel
 ):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     f: int = Field(serialization_alias="_f", validation_alias="_f")
@@ -62,7 +58,7 @@ class reflectapi_demo:
             class output:
                 """Namespace for output types."""
 
-                TestStructOneBasicFieldStringReflectBothDifferently = ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently
+                TestStructOneBasicFieldStringReflectBothD_afce1cc88c21b6c0 = ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothD_afce1cc88c21b6c0
 
 
 class AsyncInoutClient:
@@ -168,7 +164,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.basic.input.TestStructOneBasicFieldStringReflectBothDifferently.model_rebuild()
+except Exception:
+    pass
+try:
     reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

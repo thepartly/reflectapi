@@ -1325,19 +1325,17 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         "StdNumNonZeroI64 = Annotated[int, \"Rust NonZero i64 type\"]".to_string(),
         "".to_string(),
         "# Rebuild models to resolve forward references".to_string(),
-        "try:".to_string(),
     ];
     let sorted_type_names: Vec<&String> = rendered_type_keys.iter().collect();
     for original_name in &sorted_type_names {
         if !original_name.starts_with("std::") && !original_name.starts_with("reflectapi::") {
             let dotted = type_name_to_python_ref(original_name);
-            external_types_and_rebuilds.push(format!("    {dotted}.model_rebuild()"));
+            // Per-type try/except so one failure doesn't skip all rebuilds
+            external_types_and_rebuilds.push(format!(
+                "try:\n    {dotted}.model_rebuild()\nexcept Exception:\n    pass"
+            ));
         }
     }
-    external_types_and_rebuilds.push("except AttributeError:".to_string());
-    external_types_and_rebuilds
-        .push("    # Some types may not have model_rebuild method".to_string());
-    external_types_and_rebuilds.push("    pass".to_string());
     external_types_and_rebuilds.push("".to_string());
 
     generated_code.push(external_types_and_rebuilds.join("\n"));
@@ -2038,7 +2036,11 @@ fn render_adjacently_tagged_enum(
                         used_type_vars,
                     )?;
                     fields.push(templates::Field {
-                        name: format!("field_{i}"),
+                        name: if unnamed_fields.len() == 1 {
+                            "value".to_string()
+                        } else {
+                            format!("field_{i}")
+                        },
                         type_annotation: field_type,
                         description: Some(field.description().to_string()),
                         deprecation_note: field.deprecation_note.clone(),
@@ -2173,7 +2175,7 @@ fn generate_adjacent_dispatch_cases(
                 let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
                 if unnamed_fields.len() == 1 {
                     cases.push(format!(
-                        "            if tag == \"{wire_name}\":\n                return {class_name}(field_0=content)"
+                        "            if tag == \"{wire_name}\":\n                return {class_name}(value=content)"
                     ));
                 } else {
                     let assigns = (0..unnamed_fields.len())
@@ -2219,7 +2221,7 @@ fn generate_adjacent_serialize_cases(
                 if unnamed_fields.len() == 1 {
                     // Single field tuple: serialize the field value directly
                     cases.push(format!(
-                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.field_0}}"
+                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.value}}"
                     ));
                 } else {
                     // Multiple field tuple: serialize as array
@@ -2343,7 +2345,7 @@ fn render_externally_tagged_enum(
                     ));
 
                     serializer_cases.push(format!(
-                        "        if isinstance(self.root, {variant_class_name}):\n            return {{\"{variant_name}\": self.root.field_0}}"
+                        "        if isinstance(self.root, {variant_class_name}):\n            return {{\"{variant_name}\": self.root.value}}"
                     ));
                 } else {
                     dict_validator_cases.push(format!(
@@ -2906,7 +2908,11 @@ fn render_untagged_enum(
                     };
 
                     fields.push(templates::Field {
-                        name: format!("field_{i}"),
+                        name: if unnamed_fields.len() == 1 {
+                            "value".to_string()
+                        } else {
+                            format!("field_{i}")
+                        },
                         type_annotation: final_field_type,
                         description: Some(field.description().to_string()),
                         deprecation_note: field.deprecation_note.clone(),
@@ -3295,25 +3301,49 @@ fn to_pascal_case(s: &str) -> String {
 ///
 /// For type *references* (in annotations), use [`type_name_to_python_ref`]
 /// instead, which produces a dotted path like `reflectapi_demo.tests.serde.Offer`.
-fn improve_class_name(original_name: &str) -> String {
-    // Handle Rust module paths with ::
-    if original_name.contains("::") {
-        let parts: Vec<&str> = original_name.split("::").collect();
-        return parts
-            .iter()
-            .map(|part| to_pascal_case(part))
-            .collect::<Vec<_>>()
-            .join("");
-    }
+/// Maximum class name length before truncation with hash suffix.
+const MAX_CLASS_NAME_LEN: usize = 80;
 
-    // Handle dotted namespaces (e.g., "myapi.model.Pet" -> "Pet")
-    if original_name.contains('.') {
+fn improve_class_name(original_name: &str) -> String {
+    let raw = if original_name.contains("::") {
+        let parts: Vec<&str> = original_name.split("::").collect();
+        let pascal_parts: Vec<String> = parts.iter().map(|part| to_pascal_case(part)).collect();
+
+        // Detect and remove stuttering: if a module name is a prefix of
+        // the type name (e.g., system::SystemVersionInfo), skip the module.
+        // Compare adjacent pairs.
+        let mut result_parts: Vec<&str> = Vec::new();
+        for (i, part) in pascal_parts.iter().enumerate() {
+            if i + 1 < pascal_parts.len() {
+                // Check if next part starts with this part (stuttering)
+                if pascal_parts[i + 1].starts_with(part.as_str()) {
+                    continue; // Skip the module part
+                }
+            }
+            result_parts.push(part);
+        }
+        result_parts.join("")
+    } else if original_name.contains('.') {
         if let Some(pos) = original_name.rfind('.') {
             return improve_class_name_part(&original_name[pos + 1..]);
         }
-    }
+        improve_class_name_part(original_name)
+    } else {
+        improve_class_name_part(original_name)
+    };
 
-    improve_class_name_part(original_name)
+    // Truncate excessively long names with a hash suffix for uniqueness
+    if raw.len() > MAX_CLASS_NAME_LEN {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        original_name.hash(&mut hasher);
+        let hash = format!("{:08x}", hasher.finish());
+        let truncated = &raw[..MAX_CLASS_NAME_LEN - 9]; // 8 hex + underscore
+        format!("{truncated}_{hash}")
+    } else {
+        raw
+    }
 }
 
 /// Convert a fully-qualified Rust type name to a dotted Python reference.
@@ -4597,11 +4627,7 @@ pub mod templates {
                 let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
-                } else {
-                    writeln!(s, "    \"\"\"Generated data model.\"\"\"").unwrap();
                 }
-            } else {
-                writeln!(s, "    \"\"\"Generated data model.\"\"\"").unwrap();
             }
             writeln!(s).unwrap();
             writeln!(

@@ -26,8 +26,6 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestV1(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     version: Literal["v1"] = Field(default="v1", description="Discriminator field")
@@ -35,8 +33,6 @@ class ReflectapiDemoTestsSerdeTestV1(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeTestV2(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     version: Literal["v2"] = Field(default="v2", description="Discriminator field")
@@ -51,8 +47,6 @@ class ReflectapiDemoTestsSerdeTest(RootModel):
 
 
 class ReflectapiDemoTestsSerdeV1A(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["A"] = Field(default="A", description="Discriminator field")
@@ -60,8 +54,6 @@ class ReflectapiDemoTestsSerdeV1A(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeV1B(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["B"] = Field(default="B", description="Discriminator field")
@@ -76,8 +68,6 @@ class ReflectapiDemoTestsSerdeV1(RootModel):
 
 
 class ReflectapiDemoTestsSerdeV2C(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["C"] = Field(default="C", description="Discriminator field")
@@ -85,8 +75,6 @@ class ReflectapiDemoTestsSerdeV2C(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeV2D(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["D"] = Field(default="D", description="Discriminator field")
@@ -216,8 +204,13 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.Test.model_rebuild()
+except Exception:
+    pass
+try:
     reflectapi_demo.tests.serde.V1.model_rebuild()
+except Exception:
+    pass
+try:
     reflectapi_demo.tests.serde.V2.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

@@ -35,19 +35,15 @@ B = TypeVar("B")
 class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox(
     BaseModel, Generic[A, B]
 ):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     f1: A = Field(serialization_alias="_f1", validation_alias="_f1")
     f2: B = Field(serialization_alias="_f2", validation_alias="_f2")
 
 
-class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBoxParentSpecific(
+class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be8128373c471ff6(
     BaseModel
 ):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     f: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
@@ -71,7 +67,7 @@ class reflectapi_demo:
             """Namespace for generics types."""
 
             TestStructWithCircularReferenceGenericWithoutBox = ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox
-            TestStructWithCircularReferenceGenericWithoutBoxParentSpecific = ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBoxParentSpecific
+            TestStructWithCircularReferenceGenericWithou_be8128373c471ff6 = ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be8128373c471ff6
 
 
 class AsyncInputClient:
@@ -173,7 +169,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox.model_rebuild()
+except Exception:
+    pass
+try:
     reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParentSpecific.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

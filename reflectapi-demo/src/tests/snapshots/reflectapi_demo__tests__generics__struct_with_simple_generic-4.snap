@@ -31,8 +31,6 @@ A = TypeVar("A")
 
 
 class ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric(BaseModel, Generic[A]):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     f: A = Field(serialization_alias="_f", validation_alias="_f")
@@ -152,6 +150,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.generics.TestStructWithSimpleGeneric.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

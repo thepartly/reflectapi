@@ -109,7 +109,7 @@ class ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant(
         if isinstance(
             self.root, ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant2Variant
         ):
-            return {"Variant2": self.root.field_0}
+            return {"Variant2": self.root.value}
 
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariant variant: {type(self.root)}"
@@ -232,6 +232,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.TestEnumRenameAllOnVariant.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

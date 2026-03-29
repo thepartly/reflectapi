@@ -38,7 +38,7 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedIntVariant(Base
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: int
+    value: int
 
 
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedStringVariant(
@@ -48,7 +48,7 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedStringVariant(
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: str
+    value: str
 
 
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedBoolVariant(BaseModel):
@@ -56,7 +56,7 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedBoolVariant(Bas
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: bool
+    value: bool
 
 
 # Adjacently tagged enum using RootModel
@@ -96,15 +96,15 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged(
             # Dispatch based on tag
             if tag == "int":
                 return ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedIntVariant(
-                    field_0=content
+                    value=content
                 )
             if tag == "string":
                 return ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedStringVariant(
-                    field_0=content
+                    value=content
                 )
             if tag == "bool":
                 return ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedBoolVariant(
-                    field_0=content
+                    value=content
                 )
             if tag == "unit":
                 return "unit"
@@ -120,17 +120,17 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged(
             self.root,
             ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedIntVariant,
         ):
-            return {"t": "int", "c": self.root.field_0}
+            return {"t": "int", "c": self.root.value}
         if isinstance(
             self.root,
             ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedStringVariant,
         ):
-            return {"t": "string", "c": self.root.field_0}
+            return {"t": "string", "c": self.root.value}
         if isinstance(
             self.root,
             ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedBoolVariant,
         ):
-            return {"t": "bool", "c": self.root.field_0}
+            return {"t": "bool", "c": self.root.value}
         if self.root == "unit":
             return {"t": "unit"}
         raise ValueError(
@@ -261,6 +261,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass

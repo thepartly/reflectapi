@@ -123,17 +123,17 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTagged(
             self.root,
             ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedIntVariant,
         ):
-            return {"int": self.root.field_0}
+            return {"int": self.root.value}
         if isinstance(
             self.root,
             ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedStringVariant,
         ):
-            return {"string": self.root.field_0}
+            return {"string": self.root.value}
         if isinstance(
             self.root,
             ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedBoolVariant,
         ):
-            return {"bool": self.root.field_0}
+            return {"bool": self.root.value}
         if self.root == "unit":
             return "unit"
 
@@ -265,6 +265,5 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 try:
     reflectapi_demo.tests.serde.TestNewtypeVariantsExternallyTagged.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
+except Exception:
     pass
