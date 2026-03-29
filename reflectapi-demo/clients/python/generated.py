@@ -19,7 +19,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    PrivateAttr,
     RootModel,
     model_serializer,
     model_validator,
@@ -131,7 +130,7 @@ class MyapiModelBehavior(RootModel[MyapiModelBehaviorVariants]):
                 ),
                 "Other": (
                     lambda r: isinstance(r, MyapiModelBehaviorOtherVariant),
-                    lambda r: {"Other": r.model_dump()},
+                    lambda r: {"Other": r.model_dump(by_alias=True)},
                 ),
             },
             "MyapiModelBehavior",
@@ -279,7 +278,7 @@ class MyapiProtoPetsCreateError(RootModel[MyapiProtoPetsCreateErrorVariants]):
                     MyapiProtoPetsCreateErrorInvalidIdentityVariant(**v)
                 ),
             },
-            (MyapiProtoPetsCreateErrorInvalidIdentityVariant),
+            (MyapiProtoPetsCreateErrorInvalidIdentityVariant,),
             "MyapiProtoPetsCreateError",
         )
 
@@ -297,7 +296,7 @@ class MyapiProtoPetsCreateError(RootModel[MyapiProtoPetsCreateErrorVariants]):
                     lambda r: isinstance(
                         r, MyapiProtoPetsCreateErrorInvalidIdentityVariant
                     ),
-                    lambda r: {"InvalidIdentity": r.model_dump()},
+                    lambda r: {"InvalidIdentity": r.model_dump(by_alias=True)},
                 ),
             },
             "MyapiProtoPetsCreateError",
@@ -378,7 +377,7 @@ class MyapiProtoPetsUpdateError(RootModel[MyapiProtoPetsUpdateErrorVariants]):
                     field_0=v
                 ),
             },
-            (MyapiProtoPetsUpdateErrorValidationVariant),
+            (MyapiProtoPetsUpdateErrorValidationVariant,),
             "MyapiProtoPetsUpdateError",
         )
 
@@ -426,7 +425,7 @@ class MyapiProtoValidationError(RootModel[MyapiProtoValidationErrorVariants]):
                     field_0=v
                 )
             },
-            (MyapiProtoValidationErrorValidationAVariant),
+            (MyapiProtoValidationErrorValidationAVariant,),
             "MyapiProtoValidationError",
         )
 

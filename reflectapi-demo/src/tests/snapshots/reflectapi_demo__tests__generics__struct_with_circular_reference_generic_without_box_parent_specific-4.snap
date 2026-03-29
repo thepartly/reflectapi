@@ -41,7 +41,7 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBo
     f2: B = Field(serialization_alias="_f2", validation_alias="_f2")
 
 
-class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be8128373c471ff6(
+class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be812837(
     BaseModel
 ):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -67,7 +67,7 @@ class reflectapi_demo:
             """Namespace for generics types."""
 
             TestStructWithCircularReferenceGenericWithoutBox = ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox
-            TestStructWithCircularReferenceGenericWithou_be8128373c471ff6 = ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be8128373c471ff6
+            TestStructWithCircularReferenceGenericWithou_be812837 = ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be812837
 
 
 class AsyncInputClient:
@@ -169,7 +169,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 for _model in [
     ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox,
-    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be8128373c471ff6,
+    ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be812837,
 ]:
     try:
         _model.model_rebuild()
