@@ -17,7 +17,7 @@ fn reflectapi_type_json_value(schema: &mut crate::Typespace) -> String {
     if schema.reserve_type(type_name) {
         let mut type_def =
             crate::Primitive::new(type_name.into(), "JSON value type".into(), Vec::new(), None);
-        if let Some(config) = crate::traits::python_codegen_config_for_type(type_name) {
+        if let Some(config) = crate::traits::python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
         schema.insert_type(type_def.into());

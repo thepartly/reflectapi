@@ -230,7 +230,7 @@ fn reflectapi_type_option(schema: &mut crate::Typespace) -> String {
         type_def.parameters.push("T".into());
         type_def.description = "Undefinable Option type".into();
         type_def.representation = crate::Representation::None;
-        if let Some(config) = crate::traits::python_codegen_config_for_type(type_name) {
+        if let Some(config) = crate::traits::python_reflection_codegen_config_for_type(type_name) {
             type_def.codegen_config = config;
         }
 
