@@ -469,9 +469,8 @@ pub struct Function {
 
 impl Function {
     pub fn new(name: String) -> Self {
-        let id = SymbolId::endpoint_id(vec![name.clone()]);
         Function {
-            id,
+            id: Default::default(),
             name,
             deprecation_note: Default::default(),
             path: Default::default(),
@@ -785,9 +784,8 @@ impl Primitive {
         parameters: Vec<TypeParameter>,
         fallback: Option<TypeReference>,
     ) -> Self {
-        let id = SymbolId::new(SymbolKind::Primitive, vec![name.clone()]);
         Primitive {
-            id,
+            id: Default::default(),
             name,
             description,
             parameters,
@@ -932,9 +930,8 @@ pub struct Struct {
 impl Struct {
     pub fn new(name: impl Into<String>) -> Self {
         let name = name.into();
-        let id = SymbolId::struct_id(vec![name.clone()]);
         Struct {
-            id,
+            id: Default::default(),
             name,
             serde_name: Default::default(),
             description: Default::default(),
@@ -1294,9 +1291,8 @@ pub struct Enum {
 
 impl Enum {
     pub fn new(name: String) -> Self {
-        let id = SymbolId::enum_id(vec![name.clone()]);
         Enum {
-            id,
+            id: Default::default(),
             name,
             serde_name: Default::default(),
             description: Default::default(),
