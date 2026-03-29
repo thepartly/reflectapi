@@ -66,7 +66,10 @@ fn default_python_type_hint(type_name: &str) -> Option<String> {
     default_python_metadata_for_type_name(type_name).and_then(|config| config.type_hint)
 }
 
-fn collect_python_metadata_usage(schema: &Schema, all_type_names: &[String]) -> PythonMetadataUsage {
+fn collect_python_metadata_usage(
+    schema: &Schema,
+    all_type_names: &[String],
+) -> PythonMetadataUsage {
     let mut usage = PythonMetadataUsage::default();
 
     for type_name in all_type_names {
@@ -187,10 +190,7 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
             };
             names.sort_by_key(|name| (rank(name), name.clone()));
         }
-        result.push(format!(
-            "from {module} import {}",
-            names.join(", ")
-        ));
+        result.push(format!("from {module} import {}", names.join(", ")));
     }
 
     // Add typing imports

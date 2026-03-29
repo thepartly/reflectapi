@@ -377,7 +377,8 @@ impl ToTokens for TokenizablePrimitive<'_> {
             .fallback
             .as_ref()
             .map(TokenizableTypeReference::new);
-        let codegen_config = TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
+        let codegen_config =
+            TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
             reflectapi::Primitive {
                 id: Default::default(),
