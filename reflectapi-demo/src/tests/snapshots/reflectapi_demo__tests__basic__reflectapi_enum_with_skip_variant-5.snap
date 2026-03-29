@@ -17,13 +17,12 @@ from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant(str, Enum):
@@ -40,6 +39,31 @@ class ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant(str, Enum):
     O = "O"
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            class input:
+                """Namespace for input types."""
+
+                TestEnumWithSkipVariant = (
+                    ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant
+                )
+
+            class output:
+                """Namespace for output types."""
+
+                TestEnumWithSkipVariant = (
+                    ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant
+                )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -48,15 +72,17 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant]:
+        data: Optional[
+            reflectapi_demo.tests.basic.input.TestEnumWithSkipVariant
+        ] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.output.TestEnumWithSkipVariant]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant]: Response containing ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestEnumWithSkipVariant]: Response containing reflectapi_demo.tests.basic.output.TestEnumWithSkipVariant data
         """
         path = "/inout_test"
 
@@ -66,7 +92,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant,
+            response_model=reflectapi_demo.tests.basic.output.TestEnumWithSkipVariant,
         )
 
 
@@ -91,15 +117,17 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant]:
+        data: Optional[
+            reflectapi_demo.tests.basic.input.TestEnumWithSkipVariant
+        ] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.output.TestEnumWithSkipVariant]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant]: Response containing ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestEnumWithSkipVariant]: Response containing reflectapi_demo.tests.basic.output.TestEnumWithSkipVariant data
         """
         path = "/inout_test"
 
@@ -109,7 +137,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant,
+            response_model=reflectapi_demo.tests.basic.output.TestEnumWithSkipVariant,
         )
 
 
@@ -134,31 +162,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant.model_rebuild()
-    ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant.model_rebuild()
+    reflectapi_demo.tests.basic.input.TestEnumWithSkipVariant.model_rebuild()
+    reflectapi_demo.tests.basic.output.TestEnumWithSkipVariant.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsbasicinputtestenumwithskipvariant_response(
-    value: ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant,
-) -> ApiResponse[ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsbasicoutputtestenumwithskipvariant_response(
-    value: ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant,
-) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

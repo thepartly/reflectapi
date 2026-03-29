@@ -17,19 +17,31 @@ from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeTestEnumRenameAll(str, Enum):
     """Generated enum."""
 
     FIELD_NAME = "fieldName"
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestEnumRenameAll = ReflectapiDemoTestsSerdeTestEnumRenameAll
 
 
 class AsyncInoutClient:
@@ -40,15 +52,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumRenameAll] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameAll]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumRenameAll] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumRenameAll]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameAll]: Response containing ReflectapiDemoTestsSerdeTestEnumRenameAll data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumRenameAll]: Response containing reflectapi_demo.tests.serde.TestEnumRenameAll data
         """
         path = "/inout_test"
 
@@ -58,7 +70,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumRenameAll,
+            response_model=reflectapi_demo.tests.serde.TestEnumRenameAll,
         )
 
 
@@ -83,15 +95,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumRenameAll] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameAll]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumRenameAll] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumRenameAll]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameAll]: Response containing ReflectapiDemoTestsSerdeTestEnumRenameAll data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumRenameAll]: Response containing reflectapi_demo.tests.serde.TestEnumRenameAll data
         """
         path = "/inout_test"
 
@@ -101,7 +113,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumRenameAll,
+            response_model=reflectapi_demo.tests.serde.TestEnumRenameAll,
         )
 
 
@@ -126,23 +138,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestEnumRenameAll.model_rebuild()
+    reflectapi_demo.tests.serde.TestEnumRenameAll.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdetestenumrenameall_response(
-    value: ReflectapiDemoTestsSerdeTestEnumRenameAll,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumRenameAll]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestEnumRenameAll."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

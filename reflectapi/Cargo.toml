@@ -47,7 +47,6 @@ rust_decimal = { version = "1.35.0", optional = true, features = ["serde"] }
 axum = { version = "0.8.1", optional = true }
 
 # optional 3rd party dependencies for enabling codegen
-askama = { version = "0.12.1", optional = true }
 anyhow = { version = "1.0.81", optional = true }
 indexmap = { version = "2.2.6", optional = true, features = ["serde"] }
 check_keyword = { version = "0.2.0", optional = true }
@@ -77,7 +76,7 @@ rust_decimal = ["dep:rust_decimal"]
 # based on different web server frameworks
 axum = ["dep:axum", "builder"]
 # feature flag for enabling codegen libraries
-codegen = ["dep:askama", "dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep:serde_json"]
+codegen = ["dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep:serde_json"]
 rt = ["dep:http", "dep:serde_json", "dep:bytes", "dep:url"]
 glob = ["reflectapi-schema/glob"]
 json = ["dep:serde_json"]

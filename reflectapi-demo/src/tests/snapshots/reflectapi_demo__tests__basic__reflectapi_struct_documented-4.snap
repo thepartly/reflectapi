@@ -16,13 +16,12 @@ from __future__ import annotations
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsBasicTestStructDocumented(BaseModel):
@@ -32,7 +31,20 @@ class ReflectapiDemoTestsBasicTestStructDocumented(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    f: int
+    f: int = Field(description="field docs\nmultiline")
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructDocumented = ReflectapiDemoTestsBasicTestStructDocumented
 
 
 class AsyncInputClient:
@@ -43,7 +55,7 @@ class AsyncInputClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructDocumented] = None,
+        data: Optional[reflectapi_demo.tests.basic.TestStructDocumented] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -86,7 +98,7 @@ class InputClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructDocumented] = None,
+        data: Optional[reflectapi_demo.tests.basic.TestStructDocumented] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -129,23 +141,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructDocumented.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructDocumented.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsbasicteststructdocumented_response(
-    value: ReflectapiDemoTestsBasicTestStructDocumented,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructDocumented]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructDocumented."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

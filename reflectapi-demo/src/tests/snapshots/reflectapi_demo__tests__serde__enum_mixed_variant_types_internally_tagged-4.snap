@@ -1,0 +1,106 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Mixed"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Mixed"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "i32": {
+        "description": "32-bit signed integer",
+        "type": "integer"
+      },
+      "reflectapi_demo.tests.serde.Mixed": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Unit",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "Unit"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Wrap",
+            "required": [
+              "type",
+              "value"
+            ],
+            "properties": {
+              "type": {
+                "const": "Wrap"
+              },
+              "value": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Full",
+            "required": [
+              "type",
+              "x",
+              "y"
+            ],
+            "properties": {
+              "type": {
+                "const": "Full"
+              },
+              "x": {
+                "$ref": "#/components/schemas/i32"
+              },
+              "y": {
+                "$ref": "#/components/schemas/i32"
+              }
+            }
+          }
+        ]
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      }
+    }
+  }
+}

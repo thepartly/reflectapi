@@ -29,7 +29,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiOption
 from reflectapi_runtime import ReflectapiEmpty
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 # Type variables for generic types
@@ -44,20 +43,13 @@ class MyapiHealthCheckFail(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
-class MyapiProtoPetsRemoveError(str, Enum):
-    """Generated enum."""
-
-    NOT_FOUND = "NotFound"
-    NOT_AUTHORIZED = "NotAuthorized"
-
-
 class MyapiModelBehaviorAggressiveVariant(BaseModel):
     """Aggressive variant"""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: float
-    field_1: str
+    field_0: float = Field(description="aggressiveness level")
+    field_1: str = Field(description="some notes")
 
 
 class MyapiModelBehaviorOtherVariant(BaseModel):
@@ -65,8 +57,10 @@ class MyapiModelBehaviorOtherVariant(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    description: str
-    notes: str | None = None
+    description: str = Field(description="Custom provided description of a behavior")
+    notes: str | None = Field(
+        default=None, description="Additional notes\nUp to a user to put free text here"
+    )
 
 
 # Externally tagged enum using RootModel
@@ -115,11 +109,72 @@ class MyapiModelBehavior(RootModel[MyapiModelBehaviorVariants]):
         if isinstance(self.root, MyapiModelBehaviorAggressiveVariant):
             return {"Aggressive": [self.root.field_0, self.root.field_1]}
         if isinstance(self.root, MyapiModelBehaviorOtherVariant):
-            return {"Other": self.root.model_dump(exclude_none=True)}
+            return {"Other": self.root.model_dump()}
 
         raise ValueError(
             f"Cannot serialize MyapiModelBehavior variant: {type(self.root)}"
         )
+
+
+class MyapiModelKindDog(BaseModel):
+    """A dog"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    type: Literal["dog"] = Field(default="dog", description="Discriminator field")
+    breed: str = Field(description="breed of the dog")
+
+
+class MyapiModelKindCat(BaseModel):
+    """A cat"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    type: Literal["cat"] = Field(default="cat", description="Discriminator field")
+    lives: int = Field(description="lives left")
+
+
+class MyapiModelKindBird(BaseModel):
+    """Test for unit variants in internally tagged enums"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    type: Literal["bird"] = Field(default="bird", description="Discriminator field")
+
+
+class MyapiModelKind(RootModel):
+    root: Annotated[
+        Union[MyapiModelKindDog, MyapiModelKindCat, MyapiModelKindBird],
+        Field(discriminator="type"),
+    ]
+
+
+class MyapiModelInputPet(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    name: str = Field(description="identity")
+    kind: myapi.model.Kind = Field(description="kind of pet")
+    age: int | None = Field(default=None, description="age of the pet")
+    updated_at: datetime | None = None
+    behaviors: list[myapi.model.Behavior] | None = Field(
+        default=None, description="behaviors of the pet"
+    )
+
+
+class MyapiModelOutputPet(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    name: str = Field(description="identity")
+    kind: myapi.model.Kind = Field(description="kind of pet")
+    age: int | None = Field(default=None, description="age of the pet")
+    updated_at: datetime
+    behaviors: list[myapi.model.Behavior] | None = Field(
+        default=None, description="behaviors of the pet"
+    )
 
 
 class MyapiProtoHeaders(BaseModel):
@@ -127,10 +182,61 @@ class MyapiProtoHeaders(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    authorization: str
+    authorization: str = Field(description="Authorization header")
 
 
 class MyapiProtoInternalError(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    message: str
+
+
+class MyapiProtoPaginated(BaseModel, Generic[T]):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    items: list[T] = Field(description="slice of a collection")
+    cursor: str | None = Field(default=None, description="cursor for getting next page")
+
+
+class MyapiProtoPetsListRequest(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    limit: int | None = None
+    cursor: str | None = None
+
+
+class MyapiProtoPetsRemoveRequest(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    name: str = Field(description="identity")
+
+
+class MyapiProtoPetsUpdateRequest(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    name: str = Field(description="identity")
+    kind: myapi.model.Kind | None = Field(
+        default=None, description="kind of pet, non nullable in the model"
+    )
+    age: ReflectapiOption[int] = Field(
+        default=None, description="age of the pet, nullable in the model"
+    )
+    behaviors: ReflectapiOption[list[myapi.model.Behavior]] = Field(
+        default=None, description="behaviors of the pet, nullable in the model"
+    )
+
+
+class MyapiProtoValidationA(BaseModel):
     """Generated data model."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -187,78 +293,11 @@ class MyapiProtoPetsCreateError(RootModel[MyapiProtoPetsCreateErrorVariants]):
         if self.root == "NotAuthorized":
             return "NotAuthorized"
         if isinstance(self.root, MyapiProtoPetsCreateErrorInvalidIdentityVariant):
-            return {"InvalidIdentity": self.root.model_dump(exclude_none=True)}
+            return {"InvalidIdentity": self.root.model_dump()}
 
         raise ValueError(
             f"Cannot serialize MyapiProtoPetsCreateError variant: {type(self.root)}"
         )
-
-
-class MyapiProtoPetsRemoveRequest(BaseModel):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    name: str
-
-
-class MyapiProtoValidationA(BaseModel):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    message: str
-
-
-class MyapiProtoPaginated(BaseModel, Generic[T]):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    items: list[T]
-    cursor: str | None = None
-
-
-class MyapiModelKindDog(BaseModel):
-    """A dog"""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    type: Literal["dog"] = "dog"
-    breed: str
-
-
-class MyapiModelKindCat(BaseModel):
-    """A cat"""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    type: Literal["cat"] = "cat"
-    lives: int
-
-
-class MyapiModelKindBird(BaseModel):
-    """Test for unit variants in internally tagged enums"""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    type: Literal["bird"] = "bird"
-
-
-class MyapiModelKind(RootModel):
-    root: Annotated[
-        Union[MyapiModelKindDog, MyapiModelKindCat, MyapiModelKindBird],
-        Field(discriminator="type"),
-    ]
-
-
-class MyapiProtoPetsListRequest(BaseModel):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    limit: int | None = None
-    cursor: str | None = None
 
 
 class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
@@ -266,7 +305,9 @@ class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    kind: Literal["InvalidCursor"] = "InvalidCursor"
+    kind: Literal["InvalidCursor"] = Field(
+        default="InvalidCursor", description="Discriminator field"
+    )
 
 
 class MyapiProtoPetsListErrorUnauthorized(BaseModel):
@@ -274,7 +315,9 @@ class MyapiProtoPetsListErrorUnauthorized(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    kind: Literal["Unauthorized"] = "Unauthorized"
+    kind: Literal["Unauthorized"] = Field(
+        default="Unauthorized", description="Discriminator field"
+    )
 
 
 class MyapiProtoPetsListErrorInternal(BaseModel):
@@ -282,7 +325,9 @@ class MyapiProtoPetsListErrorInternal(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    kind: Literal["Internal"] = "Internal"
+    kind: Literal["Internal"] = Field(
+        default="Internal", description="Discriminator field"
+    )
     message: str
 
 
@@ -297,83 +342,11 @@ class MyapiProtoPetsListError(RootModel):
     ]
 
 
-class MyapiProtoValidationErrorValidationAVariant(BaseModel):
-    """ValidationA variant"""
+class MyapiProtoPetsRemoveError(str, Enum):
+    """Generated enum."""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    field_0: MyapiProtoValidationA
-
-
-# Externally tagged enum using RootModel
-MyapiProtoValidationErrorVariants = MyapiProtoValidationErrorValidationAVariant
-
-
-class MyapiProtoValidationError(RootModel[MyapiProtoValidationErrorVariants]):
-    """Externally tagged enum"""
-
-    @model_validator(mode="before")
-    @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-        if isinstance(data, MyapiProtoValidationErrorValidationAVariant):
-            return data
-
-        # Handle JSON data (for deserialization)
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-            if key == "ValidationA":
-                return MyapiProtoValidationErrorValidationAVariant(field_0=value)
-
-        raise ValueError(f"Unknown variant for MyapiProtoValidationError: {data}")
-
-    @model_serializer
-    def _serialize_externally_tagged(self):
-        if isinstance(self.root, MyapiProtoValidationErrorValidationAVariant):
-            return {"ValidationA": self.root.field_0}
-
-        raise ValueError(
-            f"Cannot serialize MyapiProtoValidationError variant: {type(self.root)}"
-        )
-
-
-class MyapiModelInputPet(BaseModel):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    name: str
-    kind: MyapiModelKind
-    age: int | None = None
-    updated_at: datetime | None = None
-    behaviors: list[MyapiModelBehavior] | None = None
-
-
-class MyapiModelOutputPet(BaseModel):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    name: str
-    kind: MyapiModelKind
-    age: int | None = None
-    updated_at: datetime
-    behaviors: list[MyapiModelBehavior] | None = None
-
-
-class MyapiProtoPetsUpdateRequest(BaseModel):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    name: str
-    kind: MyapiModelKind | None = None
-    age: ReflectapiOption[int] = None
-    behaviors: ReflectapiOption[list[MyapiModelBehavior]] = None
+    NOT_FOUND = "NotFound"
+    NOT_AUTHORIZED = "NotAuthorized"
 
 
 class MyapiProtoPetsUpdateErrorValidationVariant(BaseModel):
@@ -381,7 +354,7 @@ class MyapiProtoPetsUpdateErrorValidationVariant(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: list[MyapiProtoValidationError]
+    field_0: list[myapi.proto.ValidationError]
 
 
 # Externally tagged enum using RootModel
@@ -432,6 +405,102 @@ class MyapiProtoPetsUpdateError(RootModel[MyapiProtoPetsUpdateErrorVariants]):
         )
 
 
+class MyapiProtoValidationErrorValidationAVariant(BaseModel):
+    """ValidationA variant"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    field_0: myapi.proto.ValidationA
+
+
+# Externally tagged enum using RootModel
+MyapiProtoValidationErrorVariants = MyapiProtoValidationErrorValidationAVariant
+
+
+class MyapiProtoValidationError(RootModel[MyapiProtoValidationErrorVariants]):
+    """Externally tagged enum"""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_externally_tagged(cls, data):
+        # Handle direct variant instances (for programmatic creation)
+        if isinstance(data, MyapiProtoValidationErrorValidationAVariant):
+            return data
+
+        # Handle JSON data (for deserialization)
+
+        if isinstance(data, dict):
+            if len(data) != 1:
+                raise ValueError("Externally tagged enum must have exactly one key")
+
+            key, value = next(iter(data.items()))
+            if key == "ValidationA":
+                return MyapiProtoValidationErrorValidationAVariant(field_0=value)
+
+        raise ValueError(f"Unknown variant for MyapiProtoValidationError: {data}")
+
+    @model_serializer
+    def _serialize_externally_tagged(self):
+        if isinstance(self.root, MyapiProtoValidationErrorValidationAVariant):
+            return {"ValidationA": self.root.field_0}
+
+        raise ValueError(
+            f"Cannot serialize MyapiProtoValidationError variant: {type(self.root)}"
+        )
+
+
+# Namespace classes for dotted access to types
+class myapi:
+    """Namespace for myapi types."""
+
+    HealthCheckFail = MyapiHealthCheckFail
+
+    class model:
+        """Namespace for model types."""
+
+        BehaviorAggressiveVariant = MyapiModelBehaviorAggressiveVariant
+        BehaviorOtherVariant = MyapiModelBehaviorOtherVariant
+        Behavior = MyapiModelBehavior
+        KindDog = MyapiModelKindDog
+        KindCat = MyapiModelKindCat
+        KindBird = MyapiModelKindBird
+        Kind = MyapiModelKind
+
+        class input:
+            """Namespace for input types."""
+
+            Pet = MyapiModelInputPet
+
+        class output:
+            """Namespace for output types."""
+
+            Pet = MyapiModelOutputPet
+
+    class proto:
+        """Namespace for proto types."""
+
+        Headers = MyapiProtoHeaders
+        InternalError = MyapiProtoInternalError
+        Paginated = MyapiProtoPaginated
+        PetsListRequest = MyapiProtoPetsListRequest
+        PetsRemoveRequest = MyapiProtoPetsRemoveRequest
+        PetsUpdateRequest = MyapiProtoPetsUpdateRequest
+        ValidationA = MyapiProtoValidationA
+        PetsCreateErrorInvalidIdentityVariant = (
+            MyapiProtoPetsCreateErrorInvalidIdentityVariant
+        )
+        PetsCreateError = MyapiProtoPetsCreateError
+        PetsListErrorInvalidCursor = MyapiProtoPetsListErrorInvalidCursor
+        PetsListErrorUnauthorized = MyapiProtoPetsListErrorUnauthorized
+        PetsListErrorInternal = MyapiProtoPetsListErrorInternal
+        PetsListError = MyapiProtoPetsListError
+        PetsRemoveError = MyapiProtoPetsRemoveError
+        PetsUpdateErrorValidationVariant = MyapiProtoPetsUpdateErrorValidationVariant
+        PetsUpdateError = MyapiProtoPetsUpdateError
+        ValidationErrorValidationAVariant = MyapiProtoValidationErrorValidationAVariant
+        ValidationError = MyapiProtoValidationError
+
+
 class AsyncHealthClient:
     """Async client for health operations."""
 
@@ -440,11 +509,11 @@ class AsyncHealthClient:
 
     async def check(
         self,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.HealthCheckFail]:
         """Check the health of the service
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.HealthCheckFail]: Success=Any, Error=myapi.HealthCheckFail
         """
         path = "/health.check"
 
@@ -454,6 +523,7 @@ class AsyncHealthClient:
             path,
             params=params if params else None,
             response_model=None,
+            error_model=myapi.HealthCheckFail,
         )
 
 
@@ -465,16 +535,16 @@ class AsyncPetsClient:
 
     async def create(
         self,
-        data: Optional[MyapiModelInputPet] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
+        data: Optional[myapi.model.input.Pet] = None,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[Any, myapi.proto.PetsCreateError]:
         """Create a new pet
 
         Args:
             data: Request data for the create operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsCreateError]: Success=Any, Error=myapi.proto.PetsCreateError
         """
         path = "/pets.create"
 
@@ -486,20 +556,21 @@ class AsyncPetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsCreateError,
         )
 
     async def delete(
         self,
-        data: Optional[MyapiProtoPetsRemoveRequest] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
+        data: Optional[myapi.proto.PetsRemoveRequest] = None,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
         """Remove an existing pet
 
         Args:
             data: Request data for the delete operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
 
         .. deprecated::
            Use pets.remove instead
@@ -521,16 +592,17 @@ class AsyncPetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsRemoveError,
         )
 
     async def get_first(
         self,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[MyapiModelOutputPet | None]:
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[myapi.model.output.Pet | None, None]:
         """Fetch first pet, if any exists
 
         Returns:
-            ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
+            ApiResponse[myapi.model.output.Pet | None, None]: Success=myapi.model.output.Pet | None, Error=None
         """
         path = "/pets.get-first"
 
@@ -540,21 +612,24 @@ class AsyncPetsClient:
             path,
             params=params if params else None,
             headers_model=headers,
-            response_model=MyapiModelOutputPet | None,
+            response_model=myapi.model.output.Pet | None,
+            error_model=None,
         )
 
     async def list(
         self,
-        data: Optional[MyapiProtoPetsListRequest] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
+        data: Optional[myapi.proto.PetsListRequest] = None,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[
+        myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError
+    ]:
         """List available pets
 
         Args:
             data: Request data for the list operation.
 
         Returns:
-            ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
+            ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError]: Success=myapi.proto.Paginated[myapi.model.output.Pet], Error=myapi.proto.PetsListError
         """
         path = "/pets.list"
 
@@ -565,21 +640,22 @@ class AsyncPetsClient:
             params=params if params else None,
             json_model=data,
             headers_model=headers,
-            response_model=MyapiProtoPaginated[MyapiModelOutputPet],
+            response_model=myapi.proto.Paginated[myapi.model.output.Pet],
+            error_model=myapi.proto.PetsListError,
         )
 
     async def remove(
         self,
-        data: Optional[MyapiProtoPetsRemoveRequest] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
+        data: Optional[myapi.proto.PetsRemoveRequest] = None,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
         """Remove an existing pet
 
         Args:
             data: Request data for the remove operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
         """
         path = "/pets.remove"
 
@@ -591,20 +667,21 @@ class AsyncPetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsRemoveError,
         )
 
     async def update(
         self,
-        data: Optional[MyapiProtoPetsUpdateRequest] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
+        data: Optional[myapi.proto.PetsUpdateRequest] = None,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[Any, myapi.proto.PetsUpdateError]:
         """Update an existing pet
 
         Args:
             data: Request data for the update operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsUpdateError]: Success=Any, Error=myapi.proto.PetsUpdateError
         """
         path = "/pets.update"
 
@@ -616,6 +693,7 @@ class AsyncPetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsUpdateError,
         )
 
 
@@ -642,11 +720,11 @@ class HealthClient:
 
     def check(
         self,
-    ) -> ApiResponse[Any]:
+    ) -> ApiResponse[Any, myapi.HealthCheckFail]:
         """Check the health of the service
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.HealthCheckFail]: Success=Any, Error=myapi.HealthCheckFail
         """
         path = "/health.check"
 
@@ -656,6 +734,7 @@ class HealthClient:
             path,
             params=params if params else None,
             response_model=None,
+            error_model=myapi.HealthCheckFail,
         )
 
 
@@ -667,16 +746,16 @@ class PetsClient:
 
     def create(
         self,
-        data: Optional[MyapiModelInputPet] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
+        data: Optional[myapi.model.input.Pet] = None,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[Any, myapi.proto.PetsCreateError]:
         """Create a new pet
 
         Args:
             data: Request data for the create operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsCreateError]: Success=Any, Error=myapi.proto.PetsCreateError
         """
         path = "/pets.create"
 
@@ -688,20 +767,21 @@ class PetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsCreateError,
         )
 
     def delete(
         self,
-        data: Optional[MyapiProtoPetsRemoveRequest] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
+        data: Optional[myapi.proto.PetsRemoveRequest] = None,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
         """Remove an existing pet
 
         Args:
             data: Request data for the delete operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
 
         .. deprecated::
            Use pets.remove instead
@@ -723,16 +803,17 @@ class PetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsRemoveError,
         )
 
     def get_first(
         self,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[MyapiModelOutputPet | None]:
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[myapi.model.output.Pet | None, None]:
         """Fetch first pet, if any exists
 
         Returns:
-            ApiResponse[MyapiModelOutputPet | None]: Response containing MyapiModelOutputPet | None data
+            ApiResponse[myapi.model.output.Pet | None, None]: Success=myapi.model.output.Pet | None, Error=None
         """
         path = "/pets.get-first"
 
@@ -742,21 +823,24 @@ class PetsClient:
             path,
             params=params if params else None,
             headers_model=headers,
-            response_model=MyapiModelOutputPet | None,
+            response_model=myapi.model.output.Pet | None,
+            error_model=None,
         )
 
     def list(
         self,
-        data: Optional[MyapiProtoPetsListRequest] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]:
+        data: Optional[myapi.proto.PetsListRequest] = None,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[
+        myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError
+    ]:
         """List available pets
 
         Args:
             data: Request data for the list operation.
 
         Returns:
-            ApiResponse[MyapiProtoPaginated[MyapiModelOutputPet]]: Response containing MyapiProtoPaginated[MyapiModelOutputPet] data
+            ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError]: Success=myapi.proto.Paginated[myapi.model.output.Pet], Error=myapi.proto.PetsListError
         """
         path = "/pets.list"
 
@@ -767,21 +851,22 @@ class PetsClient:
             params=params if params else None,
             json_model=data,
             headers_model=headers,
-            response_model=MyapiProtoPaginated[MyapiModelOutputPet],
+            response_model=myapi.proto.Paginated[myapi.model.output.Pet],
+            error_model=myapi.proto.PetsListError,
         )
 
     def remove(
         self,
-        data: Optional[MyapiProtoPetsRemoveRequest] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
+        data: Optional[myapi.proto.PetsRemoveRequest] = None,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
         """Remove an existing pet
 
         Args:
             data: Request data for the remove operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
         """
         path = "/pets.remove"
 
@@ -793,20 +878,21 @@ class PetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsRemoveError,
         )
 
     def update(
         self,
-        data: Optional[MyapiProtoPetsUpdateRequest] = None,
-        headers: Optional[MyapiProtoHeaders] = None,
-    ) -> ApiResponse[Any]:
+        data: Optional[myapi.proto.PetsUpdateRequest] = None,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[Any, myapi.proto.PetsUpdateError]:
         """Update an existing pet
 
         Args:
             data: Request data for the update operation.
 
         Returns:
-            ApiResponse[Any]: Response containing Any data
+            ApiResponse[Any, myapi.proto.PetsUpdateError]: Success=Any, Error=myapi.proto.PetsUpdateError
         """
         path = "/pets.update"
 
@@ -818,6 +904,7 @@ class PetsClient:
             json_model=data,
             headers_model=headers,
             response_model=None,
+            error_model=myapi.proto.PetsUpdateError,
         )
 
 
@@ -836,23 +923,6 @@ class Client(ClientBase):
         self.pets = PetsClient(self)
 
 
-# Nested class definitions for better organization
-
-
-class Pet:
-    """Grouped types for better organization."""
-
-    Input = MyapiModelInputPet
-    Output = MyapiModelOutputPet
-
-    class Kind:
-        """Kind variants for this type."""
-
-        Union = MyapiModelKind
-        Dog = MyapiModelKindDog
-        Cat = MyapiModelKindCat
-
-
 # External type definitions
 StdNumNonZeroU32 = Annotated[int, "Rust NonZero u32 type"]
 StdNumNonZeroU64 = Annotated[int, "Rust NonZero u64 type"]
@@ -861,273 +931,23 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    MyapiHealthCheckFail.model_rebuild()
-    MyapiModelBehavior.model_rebuild()
-    MyapiModelInputPet.model_rebuild()
-    MyapiModelKind.model_rebuild()
-    MyapiModelOutputPet.model_rebuild()
-    MyapiProtoHeaders.model_rebuild()
-    MyapiProtoInternalError.model_rebuild()
-    MyapiProtoPaginated.model_rebuild()
-    MyapiProtoPetsCreateError.model_rebuild()
-    MyapiProtoPetsListError.model_rebuild()
-    MyapiProtoPetsListRequest.model_rebuild()
-    MyapiProtoPetsRemoveError.model_rebuild()
-    MyapiProtoPetsRemoveRequest.model_rebuild()
-    MyapiProtoPetsUpdateError.model_rebuild()
-    MyapiProtoPetsUpdateRequest.model_rebuild()
-    MyapiProtoValidationA.model_rebuild()
-    MyapiProtoValidationError.model_rebuild()
+    myapi.HealthCheckFail.model_rebuild()
+    myapi.model.Behavior.model_rebuild()
+    myapi.model.Kind.model_rebuild()
+    myapi.model.input.Pet.model_rebuild()
+    myapi.model.output.Pet.model_rebuild()
+    myapi.proto.Headers.model_rebuild()
+    myapi.proto.InternalError.model_rebuild()
+    myapi.proto.Paginated.model_rebuild()
+    myapi.proto.PetsCreateError.model_rebuild()
+    myapi.proto.PetsListError.model_rebuild()
+    myapi.proto.PetsListRequest.model_rebuild()
+    myapi.proto.PetsRemoveError.model_rebuild()
+    myapi.proto.PetsRemoveRequest.model_rebuild()
+    myapi.proto.PetsUpdateError.model_rebuild()
+    myapi.proto.PetsUpdateRequest.model_rebuild()
+    myapi.proto.ValidationA.model_rebuild()
+    myapi.proto.ValidationError.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class MyapiModelBehaviorFactory:
-    """Factory class for creating MyapiModelBehavior variants with ergonomic syntax.
-
-    MyapiModelBehavior variants
-    """
-
-    @staticmethod
-    def calm() -> MyapiModelBehavior:
-        """Creates the 'Calm' variant of the MyapiModelBehavior enum."""
-        return MyapiModelBehavior("Calm")
-
-    @staticmethod
-    def aggressive(field_0, field_1) -> MyapiModelBehavior:
-        """Creates the 'Aggressive' variant of the MyapiModelBehavior enum."""
-        return MyapiModelBehavior(
-            MyapiModelBehaviorAggressiveVariant(field_0=field_0, field_1=field_1)
-        )
-
-    @staticmethod
-    def other(description, notes=None) -> MyapiModelBehavior:
-        """Creates the 'Other' variant of the MyapiModelBehavior enum."""
-        return MyapiModelBehavior(
-            MyapiModelBehaviorOtherVariant(description=description, notes=notes)
-        )
-
-
-class MyapiProtoPetsCreateErrorFactory:
-    """Factory class for creating MyapiProtoPetsCreateError variants with ergonomic syntax.
-
-    MyapiProtoPetsCreateError variants
-    """
-
-    @staticmethod
-    def conflict() -> MyapiProtoPetsCreateError:
-        """Creates the 'Conflict' variant of the MyapiProtoPetsCreateError enum."""
-        return MyapiProtoPetsCreateError("Conflict")
-
-    @staticmethod
-    def not_authorized() -> MyapiProtoPetsCreateError:
-        """Creates the 'NotAuthorized' variant of the MyapiProtoPetsCreateError enum."""
-        return MyapiProtoPetsCreateError("NotAuthorized")
-
-    @staticmethod
-    def invalid_identity(message) -> MyapiProtoPetsCreateError:
-        """Creates the 'InvalidIdentity' variant of the MyapiProtoPetsCreateError enum."""
-        return MyapiProtoPetsCreateError(
-            MyapiProtoPetsCreateErrorInvalidIdentityVariant(message=message)
-        )
-
-
-class MyapiModelKindFactory:
-    """Factory class for creating MyapiModelKind variants with ergonomic syntax.
-
-    MyapiModelKind variants
-    """
-
-    BIRD = MyapiModelKindBird()
-
-    @staticmethod
-    def dog(breed) -> MyapiModelKindDog:
-        """Creates the 'dog' variant of the MyapiModelKind enum."""
-        return MyapiModelKindDog(breed=breed)
-
-    @staticmethod
-    def cat(lives) -> MyapiModelKindCat:
-        """Creates the 'cat' variant of the MyapiModelKind enum."""
-        return MyapiModelKindCat(lives=lives)
-
-
-class MyapiProtoPetsListErrorFactory:
-    """Factory class for creating MyapiProtoPetsListError variants with ergonomic syntax.
-
-    MyapiProtoPetsListError variants
-    """
-
-    INVALIDCURSOR = MyapiProtoPetsListErrorInvalidCursor()
-    UNAUTHORIZED = MyapiProtoPetsListErrorUnauthorized()
-
-    @staticmethod
-    def internal(field_0) -> MyapiProtoPetsListErrorInternal:
-        """Creates the 'Internal' variant of the MyapiProtoPetsListError enum."""
-        return MyapiProtoPetsListErrorInternal(field_0=field_0)
-
-
-class MyapiProtoValidationErrorFactory:
-    """Factory class for creating MyapiProtoValidationError variants with ergonomic syntax.
-
-    MyapiProtoValidationError variants
-    """
-
-    @staticmethod
-    def validation_a(field_0) -> MyapiProtoValidationError:
-        """Creates the 'ValidationA' variant of the MyapiProtoValidationError enum."""
-        return MyapiProtoValidationError(
-            MyapiProtoValidationErrorValidationAVariant(field_0=field_0)
-        )
-
-
-class MyapiProtoPetsUpdateErrorFactory:
-    """Factory class for creating MyapiProtoPetsUpdateError variants with ergonomic syntax.
-
-    MyapiProtoPetsUpdateError variants
-    """
-
-    @staticmethod
-    def not_found() -> MyapiProtoPetsUpdateError:
-        """Creates the 'NotFound' variant of the MyapiProtoPetsUpdateError enum."""
-        return MyapiProtoPetsUpdateError("NotFound")
-
-    @staticmethod
-    def not_authorized() -> MyapiProtoPetsUpdateError:
-        """Creates the 'NotAuthorized' variant of the MyapiProtoPetsUpdateError enum."""
-        return MyapiProtoPetsUpdateError("NotAuthorized")
-
-    @staticmethod
-    def validation(field_0) -> MyapiProtoPetsUpdateError:
-        """Creates the 'Validation' variant of the MyapiProtoPetsUpdateError enum."""
-        return MyapiProtoPetsUpdateError(
-            MyapiProtoPetsUpdateErrorValidationVariant(field_0=field_0)
-        )
-
-
-# Testing utilities
-
-
-def create_myapihealthcheckfail_response(
-    value: MyapiHealthCheckFail,
-) -> ApiResponse[MyapiHealthCheckFail]:
-    """Create a mock ApiResponse for MyapiHealthCheckFail."""
-    return create_api_response(value)
-
-
-def create_myapimodelbehavior_response(
-    value: MyapiModelBehavior,
-) -> ApiResponse[MyapiModelBehavior]:
-    """Create a mock ApiResponse for MyapiModelBehavior."""
-    return create_api_response(value)
-
-
-def create_myapimodelinputpet_response(
-    value: MyapiModelInputPet,
-) -> ApiResponse[MyapiModelInputPet]:
-    """Create a mock ApiResponse for MyapiModelInputPet."""
-    return create_api_response(value)
-
-
-def create_myapimodelkind_response(
-    value: MyapiModelKind,
-) -> ApiResponse[MyapiModelKind]:
-    """Create a mock ApiResponse for MyapiModelKind."""
-    return create_api_response(value)
-
-
-def create_myapimodeloutputpet_response(
-    value: MyapiModelOutputPet,
-) -> ApiResponse[MyapiModelOutputPet]:
-    """Create a mock ApiResponse for MyapiModelOutputPet."""
-    return create_api_response(value)
-
-
-def create_myapiprotoheaders_response(
-    value: MyapiProtoHeaders,
-) -> ApiResponse[MyapiProtoHeaders]:
-    """Create a mock ApiResponse for MyapiProtoHeaders."""
-    return create_api_response(value)
-
-
-def create_myapiprotointernalerror_response(
-    value: MyapiProtoInternalError,
-) -> ApiResponse[MyapiProtoInternalError]:
-    """Create a mock ApiResponse for MyapiProtoInternalError."""
-    return create_api_response(value)
-
-
-def create_myapiprotopaginated_response(
-    value: MyapiProtoPaginated,
-) -> ApiResponse[MyapiProtoPaginated]:
-    """Create a mock ApiResponse for MyapiProtoPaginated."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetscreateerror_response(
-    value: MyapiProtoPetsCreateError,
-) -> ApiResponse[MyapiProtoPetsCreateError]:
-    """Create a mock ApiResponse for MyapiProtoPetsCreateError."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetslisterror_response(
-    value: MyapiProtoPetsListError,
-) -> ApiResponse[MyapiProtoPetsListError]:
-    """Create a mock ApiResponse for MyapiProtoPetsListError."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetslistrequest_response(
-    value: MyapiProtoPetsListRequest,
-) -> ApiResponse[MyapiProtoPetsListRequest]:
-    """Create a mock ApiResponse for MyapiProtoPetsListRequest."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetsremoveerror_response(
-    value: MyapiProtoPetsRemoveError,
-) -> ApiResponse[MyapiProtoPetsRemoveError]:
-    """Create a mock ApiResponse for MyapiProtoPetsRemoveError."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetsremoverequest_response(
-    value: MyapiProtoPetsRemoveRequest,
-) -> ApiResponse[MyapiProtoPetsRemoveRequest]:
-    """Create a mock ApiResponse for MyapiProtoPetsRemoveRequest."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetsupdateerror_response(
-    value: MyapiProtoPetsUpdateError,
-) -> ApiResponse[MyapiProtoPetsUpdateError]:
-    """Create a mock ApiResponse for MyapiProtoPetsUpdateError."""
-    return create_api_response(value)
-
-
-def create_myapiprotopetsupdaterequest_response(
-    value: MyapiProtoPetsUpdateRequest,
-) -> ApiResponse[MyapiProtoPetsUpdateRequest]:
-    """Create a mock ApiResponse for MyapiProtoPetsUpdateRequest."""
-    return create_api_response(value)
-
-
-def create_myapiprotovalidationa_response(
-    value: MyapiProtoValidationA,
-) -> ApiResponse[MyapiProtoValidationA]:
-    """Create a mock ApiResponse for MyapiProtoValidationA."""
-    return create_api_response(value)
-
-
-def create_myapiprotovalidationerror_response(
-    value: MyapiProtoValidationError,
-) -> ApiResponse[MyapiProtoValidationError]:
-    """Create a mock ApiResponse for MyapiProtoValidationError."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

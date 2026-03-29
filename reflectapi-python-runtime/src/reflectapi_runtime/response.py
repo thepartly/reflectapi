@@ -9,6 +9,7 @@ from typing import Any, Generic, TypeVar
 import httpx  # noqa: TC002
 
 T = TypeVar("T")
+E = TypeVar("E")
 
 
 @dataclass(frozen=True)
@@ -36,11 +37,16 @@ class TransportMetadata:
         )
 
 
-class ApiResponse(Generic[T]):
-    """Wrapper for successful API responses.
+class ApiResponse(Generic[T, E]):
+    """Wrapper for API responses with typed success and error values.
+
+    Type parameters:
+        T: The success response type.
+        E: The error response type (defaults to Any when not specified).
 
     Provides ergonomic access to both the deserialized value and transport metadata.
-    The deserialized value can be accessed directly via attribute access.
+    Supports `ApiResponse[OutputType]` (backward compatible) and
+    `ApiResponse[OutputType, ErrorType]` (with typed errors).
     """
 
     def __init__(self, value: T, metadata: TransportMetadata) -> None:

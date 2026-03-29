@@ -17,13 +17,22 @@ from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
+
+
+class ReflectapiDemoTestsBasicTest(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    us: list[None]
+    xs: list[reflectapi_demo.tests.basic.X]
+    ys: list[reflectapi_demo.tests.basic.Y]
 
 
 class ReflectapiDemoTestsBasicX(BaseModel):
@@ -38,14 +47,19 @@ class ReflectapiDemoTestsBasicY(str, Enum):
     Y = "Y"
 
 
-class ReflectapiDemoTestsBasicTest(BaseModel):
-    """Generated data model."""
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    class tests:
+        """Namespace for tests types."""
 
-    us: list[None]
-    xs: list[ReflectapiDemoTestsBasicX]
-    ys: list[ReflectapiDemoTestsBasicY]
+        class basic:
+            """Namespace for basic types."""
+
+            Test = ReflectapiDemoTestsBasicTest
+            X = ReflectapiDemoTestsBasicX
+            Y = ReflectapiDemoTestsBasicY
 
 
 class AsyncInoutClient:
@@ -56,15 +70,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
+        data: Optional[reflectapi_demo.tests.basic.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTest]: Response containing ReflectapiDemoTestsBasicTest data
+            ApiResponse[reflectapi_demo.tests.basic.Test]: Response containing reflectapi_demo.tests.basic.Test data
         """
         path = "/inout_test"
 
@@ -74,7 +88,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTest,
+            response_model=reflectapi_demo.tests.basic.Test,
         )
 
 
@@ -99,15 +113,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
+        data: Optional[reflectapi_demo.tests.basic.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTest]: Response containing ReflectapiDemoTestsBasicTest data
+            ApiResponse[reflectapi_demo.tests.basic.Test]: Response containing reflectapi_demo.tests.basic.Test data
         """
         path = "/inout_test"
 
@@ -117,7 +131,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTest,
+            response_model=reflectapi_demo.tests.basic.Test,
         )
 
 
@@ -142,39 +156,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTest.model_rebuild()
-    ReflectapiDemoTestsBasicX.model_rebuild()
-    ReflectapiDemoTestsBasicY.model_rebuild()
+    reflectapi_demo.tests.basic.Test.model_rebuild()
+    reflectapi_demo.tests.basic.X.model_rebuild()
+    reflectapi_demo.tests.basic.Y.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsbasictest_response(
-    value: ReflectapiDemoTestsBasicTest,
-) -> ApiResponse[ReflectapiDemoTestsBasicTest]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTest."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsbasicx_response(
-    value: ReflectapiDemoTestsBasicX,
-) -> ApiResponse[ReflectapiDemoTestsBasicX]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicX."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsbasicy_response(
-    value: ReflectapiDemoTestsBasicY,
-) -> ApiResponse[ReflectapiDemoTestsBasicY]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicY."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

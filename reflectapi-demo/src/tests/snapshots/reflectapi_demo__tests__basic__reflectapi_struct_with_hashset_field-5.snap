@@ -16,13 +16,12 @@ from __future__ import annotations
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsBasicTestStructWithHashSetField(BaseModel):
@@ -30,7 +29,24 @@ class ReflectapiDemoTestsBasicTestStructWithHashSetField(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f_hashset: bytes
+    f_hashset: bytes = Field(
+        serialization_alias="_f_hashset", validation_alias="_f_hashset"
+    )
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructWithHashSetField = (
+                ReflectapiDemoTestsBasicTestStructWithHashSetField
+            )
 
 
 class AsyncInoutClient:
@@ -41,15 +57,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructWithHashSetField] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]:
+        data: Optional[reflectapi_demo.tests.basic.TestStructWithHashSetField] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithHashSetField]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]: Response containing ReflectapiDemoTestsBasicTestStructWithHashSetField data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructWithHashSetField]: Response containing reflectapi_demo.tests.basic.TestStructWithHashSetField data
         """
         path = "/inout_test"
 
@@ -59,7 +75,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructWithHashSetField,
+            response_model=reflectapi_demo.tests.basic.TestStructWithHashSetField,
         )
 
 
@@ -84,15 +100,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestStructWithHashSetField] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]:
+        data: Optional[reflectapi_demo.tests.basic.TestStructWithHashSetField] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructWithHashSetField]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]: Response containing ReflectapiDemoTestsBasicTestStructWithHashSetField data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructWithHashSetField]: Response containing reflectapi_demo.tests.basic.TestStructWithHashSetField data
         """
         path = "/inout_test"
 
@@ -102,7 +118,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicTestStructWithHashSetField,
+            response_model=reflectapi_demo.tests.basic.TestStructWithHashSetField,
         )
 
 
@@ -127,23 +143,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructWithHashSetField.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructWithHashSetField.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsbasicteststructwithhashsetfield_response(
-    value: ReflectapiDemoTestsBasicTestStructWithHashSetField,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructWithHashSetField]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructWithHashSetField."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

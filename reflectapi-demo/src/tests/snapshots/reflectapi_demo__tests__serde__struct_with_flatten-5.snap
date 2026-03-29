@@ -16,21 +16,12 @@ from __future__ import annotations
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
-
-
-class ReflectapiDemoTestsSerdeTestStructWithFlattenNested(BaseModel):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    f: int
 
 
 class ReflectapiDemoTestsSerdeTestStructWithFlatten(BaseModel):
@@ -41,6 +32,30 @@ class ReflectapiDemoTestsSerdeTestStructWithFlatten(BaseModel):
     f: int
 
 
+class ReflectapiDemoTestsSerdeTestStructWithFlattenNested(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    f: int
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestStructWithFlatten = ReflectapiDemoTestsSerdeTestStructWithFlatten
+            TestStructWithFlattenNested = (
+                ReflectapiDemoTestsSerdeTestStructWithFlattenNested
+            )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -49,15 +64,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestStructWithFlatten] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlatten]:
+        data: Optional[reflectapi_demo.tests.serde.TestStructWithFlatten] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStructWithFlatten]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlatten]: Response containing ReflectapiDemoTestsSerdeTestStructWithFlatten data
+            ApiResponse[reflectapi_demo.tests.serde.TestStructWithFlatten]: Response containing reflectapi_demo.tests.serde.TestStructWithFlatten data
         """
         path = "/inout_test"
 
@@ -67,7 +82,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestStructWithFlatten,
+            response_model=reflectapi_demo.tests.serde.TestStructWithFlatten,
         )
 
 
@@ -92,15 +107,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestStructWithFlatten] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlatten]:
+        data: Optional[reflectapi_demo.tests.serde.TestStructWithFlatten] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStructWithFlatten]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlatten]: Response containing ReflectapiDemoTestsSerdeTestStructWithFlatten data
+            ApiResponse[reflectapi_demo.tests.serde.TestStructWithFlatten]: Response containing reflectapi_demo.tests.serde.TestStructWithFlatten data
         """
         path = "/inout_test"
 
@@ -110,7 +125,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestStructWithFlatten,
+            response_model=reflectapi_demo.tests.serde.TestStructWithFlatten,
         )
 
 
@@ -135,31 +150,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestStructWithFlatten.model_rebuild()
-    ReflectapiDemoTestsSerdeTestStructWithFlattenNested.model_rebuild()
+    reflectapi_demo.tests.serde.TestStructWithFlatten.model_rebuild()
+    reflectapi_demo.tests.serde.TestStructWithFlattenNested.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdeteststructwithflatten_response(
-    value: ReflectapiDemoTestsSerdeTestStructWithFlatten,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlatten]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestStructWithFlatten."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsserdeteststructwithflattennested_response(
-    value: ReflectapiDemoTestsSerdeTestStructWithFlattenNested,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithFlattenNested]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestStructWithFlattenNested."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

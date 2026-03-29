@@ -1,22 +1,22 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
-
-use anyhow::Context;
-use askama::Template;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::{Schema, TypeReference};
 use reflectapi_schema::{Function, Type};
 
-/// Information needed to generate a factory class later
-#[derive(Clone, Debug)]
-struct FactoryInfo {
-    enum_def: reflectapi_schema::Enum,
-    enum_name: String,
-    union_members: Vec<String>,
-    is_internally_tagged: bool,
+/// Sanitize text for inclusion in a Python triple-quoted docstring.
+/// Escapes backslashes (which act as line continuation) and triple-quote
+/// sequences (which would close the docstring prematurely).
+fn sanitize_for_docstring(text: &str) -> String {
+    text.replace('\\', "\\\\").replace("\"\"\"", "\\\"\\\"\\\"")
 }
 
-fn to_valid_python_identifier(name: &str) -> String {
-    safe_python_identifier(name)
+/// Sanitize text for inclusion in a Python double-quoted string literal.
+/// Escapes backslashes, double quotes, and replaces newlines with \n.
+fn sanitize_for_string_literal(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
 }
 
 /// Configuration for Python client generation
@@ -40,7 +40,7 @@ impl Default for Config {
             package_name: "api_client".to_string(),
             generate_async: true,
             generate_sync: true,
-            generate_testing: true,
+            generate_testing: false,
             base_url: None,
         }
     }
@@ -104,11 +104,12 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
         typing_imports.insert("Literal");
     }
 
-    // Pydantic imports
+    // Pydantic imports — Field is always imported since it's used for
+    // descriptions, aliases, discriminators, and defaults across many contexts.
     third_party_imports.insert("BaseModel");
     third_party_imports.insert("ConfigDict");
+    third_party_imports.insert("Field");
     if imports.has_discriminated_unions {
-        third_party_imports.insert("Field");
         third_party_imports.insert("RootModel");
     }
     if imports.has_externally_tagged_enums {
@@ -196,128 +197,7 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
 /// * `type_names` - List of type names to sort
 /// * `schema` - Schema containing type definitions and their dependencies
 ///
-/// # Returns
-/// * `Ok(Vec<String>)` - Types sorted in dependency order (dependencies first)
-/// * `Err` - If circular dependencies are detected in the type graph
-fn topological_sort_types(type_names: &[String], schema: &Schema) -> anyhow::Result<Vec<String>> {
-    let mut dependencies: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
-    let mut in_degree: BTreeMap<String, usize> = BTreeMap::new();
-
-    // Initialize in-degree count for all types
-    for type_name in type_names {
-        in_degree.insert(type_name.clone(), 0);
-        dependencies.insert(type_name.clone(), BTreeSet::new());
-    }
-
-    // Build dependency graph - if A depends on B, then B must be defined before A
-    for type_name in type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            let deps = collect_type_dependencies(type_def, type_names);
-            for dep in &deps {
-                if type_names.contains(dep) && dep != type_name {
-                    // type_name depends on dep, so dep must come before type_name
-                    dependencies.get_mut(type_name).unwrap().insert(dep.clone());
-                    *in_degree.get_mut(type_name).unwrap() += 1;
-                }
-            }
-        }
-    }
-
-    // Kahn's algorithm for topological sorting
-    let mut queue: VecDeque<String> = VecDeque::new();
-    let mut result = Vec::new();
-
-    // Start with types that have no dependencies
-    for (type_name, &degree) in &in_degree {
-        if degree == 0 {
-            queue.push_back(type_name.clone());
-        }
-    }
-
-    while let Some(current) = queue.pop_front() {
-        result.push(current.clone());
-
-        // Reduce in-degree for types that depend on the current type
-        for other_type in type_names {
-            if dependencies.get(other_type).unwrap().contains(&current) {
-                *in_degree.get_mut(other_type).unwrap() -= 1;
-                if in_degree[other_type] == 0 {
-                    queue.push_back(other_type.clone());
-                }
-            }
-        }
-    }
-
-    // Check for cycles
-    if result.len() != type_names.len() {
-        let remaining: Vec<_> = type_names.iter().filter(|n| !result.contains(n)).collect();
-        return Err(anyhow::anyhow!(
-            "Circular dependency detected in types: {:?}",
-            remaining
-        ));
-    }
-
-    Ok(result)
-}
-
-/// Collect all type dependencies for a given type
-fn collect_type_dependencies(type_def: &Type, available_types: &[String]) -> BTreeSet<String> {
-    let mut deps = BTreeSet::new();
-
-    match type_def {
-        Type::Struct(struct_def) => {
-            for field in struct_def.fields.iter() {
-                collect_type_ref_dependencies(&field.type_ref, &mut deps, available_types);
-            }
-        }
-        Type::Enum(enum_def) => {
-            for variant in &enum_def.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            collect_type_ref_dependencies(
-                                &field.type_ref,
-                                &mut deps,
-                                available_types,
-                            );
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            collect_type_ref_dependencies(
-                                &field.type_ref,
-                                &mut deps,
-                                available_types,
-                            );
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        Type::Primitive(_) => {}
-    }
-
-    deps
-}
-
-/// Recursively collect type reference dependencies
-fn collect_type_ref_dependencies(
-    type_ref: &TypeReference,
-    deps: &mut BTreeSet<String>,
-    available_types: &[String],
-) {
-    if available_types.contains(&type_ref.name) {
-        deps.insert(type_ref.name.clone());
-    }
-
-    // Handle generic arguments
-    for param in &type_ref.arguments {
-        collect_type_ref_dependencies(param, deps, available_types);
-    }
-}
-
-/// Collect all TypeVars used by a type
+/// Collect all TypeVars used by a type.
 fn collect_type_vars_from_type(
     type_def: &Type,
     schema: &Schema,
@@ -429,7 +309,13 @@ fn collect_generic_type_vars(
     }
 }
 
-/// Render a struct that contains flattened fields using direct field expansion
+/// Render a struct that contains flattened fields using direct field expansion.
+///
+/// For flattened structs, fields are expanded inline into the parent model.
+/// For flattened internally-tagged enums, we generate per-variant models that
+/// merge the parent's fields with each variant's fields + the tag discriminator,
+/// then emit a discriminated union RootModel. This matches the wire format that
+/// serde produces with `#[serde(flatten)]` on internally-tagged enums.
 fn render_struct_with_flatten(
     struct_def: &reflectapi_schema::Struct,
     schema: &Schema,
@@ -437,32 +323,347 @@ fn render_struct_with_flatten(
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     let struct_name = improve_class_name(&struct_def.name);
-
-    // Collect all fields (regular + flattened) into a single flat model
-    let mut all_fields = Vec::new();
     let active_generics: Vec<String> = struct_def
         .parameters
         .iter()
         .map(|p| p.name.clone())
         .collect();
 
-    // Track used generic type variables
     for generic in &active_generics {
         used_type_vars.insert(generic.clone());
     }
 
-    // Add regular fields
-    for field in struct_def.fields.iter().filter(|f| !f.flattened()) {
-        let field_name = sanitize_field_name_with_alias(field.name());
-        let field_type = type_ref_to_python_type(
-            &field.type_ref,
+    // Check if any flattened field is an internally-tagged enum
+    let flattened_internal_enum =
+        struct_def
+            .fields
+            .iter()
+            .filter(|f| f.flattened())
+            .find_map(|field| {
+                let type_name = resolve_flattened_type_name(&field.type_ref);
+                match schema.get_type(type_name) {
+                    Some(reflectapi_schema::Type::Enum(enum_def)) => {
+                        match &enum_def.representation {
+                            reflectapi_schema::Representation::Internal { tag } => {
+                                Some((field, enum_def.clone(), tag.clone()))
+                            }
+                            _ => None,
+                        }
+                    }
+                    _ => None,
+                }
+            });
+
+    if let Some((_enum_field, enum_def, tag)) = flattened_internal_enum {
+        // Wire-compatible path: generate per-variant models with merged fields
+        render_struct_with_flattened_internal_enum(
+            struct_def,
+            &struct_name,
+            &enum_def,
+            &tag,
             schema,
             implemented_types,
             &active_generics,
             used_type_vars,
-        )?;
+        )
+    } else {
+        // Standard path: expand all flattened fields inline
+        render_struct_with_flatten_standard(
+            struct_def,
+            &struct_name,
+            schema,
+            implemented_types,
+            &active_generics,
+            used_type_vars,
+        )
+    }
+}
 
-        let (python_name, alias) = field_name;
+/// Resolve the target type name for a flattened field, unwrapping Option<T>
+fn resolve_flattened_type_name(type_ref: &TypeReference) -> &str {
+    if (type_ref.name == "std::option::Option" || type_ref.name == "reflectapi::Option")
+        && !type_ref.arguments.is_empty()
+    {
+        &type_ref.arguments[0].name
+    } else {
+        &type_ref.name
+    }
+}
+
+/// Render a struct with a flattened internally-tagged enum by generating
+/// per-variant models that merge parent fields + variant fields + tag.
+#[allow(clippy::too_many_arguments)]
+fn render_struct_with_flattened_internal_enum(
+    struct_def: &reflectapi_schema::Struct,
+    struct_name: &str,
+    enum_def: &reflectapi_schema::Enum,
+    tag: &str,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    active_generics: &[String],
+    used_type_vars: &mut BTreeSet<String>,
+) -> anyhow::Result<String> {
+    use reflectapi_schema::Fields;
+
+    let mut output = String::new();
+    let mut union_variant_names: Vec<String> = Vec::new();
+
+    // Collect the parent struct's non-flattened fields + any flattened struct fields
+    let mut base_fields: Vec<templates::Field> = Vec::new();
+    for field in struct_def.fields.iter().filter(|f| !f.flattened()) {
+        let (python_name, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
+        let field_type = type_ref_to_python_type(
+            &field.type_ref,
+            schema,
+            implemented_types,
+            active_generics,
+            used_type_vars,
+        )?;
+        base_fields.push(templates::Field {
+            name: python_name,
+            type_annotation: if field.required {
+                field_type
+            } else {
+                format!("{field_type} | None")
+            },
+            description: Some(field.description().to_string()),
+            deprecation_note: field.deprecation_note.clone(),
+            optional: !field.required,
+            default_value: if field.required {
+                None
+            } else {
+                Some("None".to_string())
+            },
+            alias,
+        });
+    }
+
+    // Also expand any flattened struct fields (non-enum) into base_fields
+    for field in struct_def.fields.iter().filter(|f| f.flattened()) {
+        let type_name = resolve_flattened_type_name(&field.type_ref);
+        if let Some(reflectapi_schema::Type::Struct(_)) = schema.get_type(type_name) {
+            let flattened = collect_flattened_fields(
+                &field.type_ref,
+                schema,
+                implemented_types,
+                active_generics,
+                field.required,
+                0,
+                used_type_vars,
+                Some(field.name()),
+            )?;
+            base_fields.extend(flattened);
+        // Enum fields are handled below as variants
+        } else if let Some(reflectapi_schema::Type::Enum(enum_def)) = schema.get_type(type_name) {
+            // Check if this is the internally-tagged enum we're expanding
+            // (it's handled below as variants). Other enums get emitted as regular fields.
+            let is_the_expanding_enum = matches!(
+                &enum_def.representation,
+                reflectapi_schema::Representation::Internal { .. }
+            );
+            if !is_the_expanding_enum {
+                let field_type = type_ref_to_python_type(
+                    &field.type_ref,
+                    schema,
+                    implemented_types,
+                    active_generics,
+                    used_type_vars,
+                )?;
+                let (python_name, alias) =
+                    sanitize_field_name_with_alias(field.name(), field.serde_name());
+                base_fields.push(templates::Field {
+                    name: python_name,
+                    type_annotation: if field.required {
+                        field_type
+                    } else {
+                        format!("{field_type} | None")
+                    },
+                    description: Some(field.description().to_string()),
+                    deprecation_note: field.deprecation_note.clone(),
+                    optional: !field.required,
+                    default_value: if field.required {
+                        None
+                    } else {
+                        Some("None".to_string())
+                    },
+                    alias,
+                });
+            }
+        }
+    }
+
+    // Generate per-variant models
+    for variant in &enum_def.variants {
+        let variant_class_name = format!("{}{}", struct_name, to_pascal_case(variant.name()));
+        union_variant_names.push(variant_class_name.clone());
+
+        // Start with base fields from the parent struct
+        let mut fields = base_fields.clone();
+
+        // Add the tag discriminator field
+        let (sanitized_tag, tag_alias) = sanitize_field_name_with_alias(tag, tag);
+        fields.push(templates::Field {
+            name: sanitized_tag.clone(),
+            type_annotation: format!("Literal['{}']", variant.serde_name()),
+            description: Some("Discriminator field".to_string()),
+            deprecation_note: None,
+            optional: false,
+            default_value: Some(format!("\"{}\"", variant.serde_name())),
+            alias: tag_alias.clone(),
+        });
+
+        // Add variant-specific fields
+        match &variant.fields {
+            Fields::Named(named_fields) => {
+                for vf in named_fields {
+                    let field_type = type_ref_to_python_type(
+                        &vf.type_ref,
+                        schema,
+                        implemented_types,
+                        active_generics,
+                        used_type_vars,
+                    )?;
+                    let is_option = vf.type_ref.name == "std::option::Option"
+                        || vf.type_ref.name == "reflectapi::Option";
+                    let (optional, default_value, final_type) = if !vf.required {
+                        if is_option {
+                            (true, Some("None".to_string()), field_type)
+                        } else {
+                            (
+                                true,
+                                Some("None".to_string()),
+                                format!("{field_type} | None"),
+                            )
+                        }
+                    } else if is_option {
+                        (true, Some("None".to_string()), field_type)
+                    } else {
+                        (false, None, field_type)
+                    };
+                    let (sanitized, alias) =
+                        sanitize_field_name_with_alias(vf.name(), vf.serde_name());
+                    fields.push(templates::Field {
+                        name: sanitized,
+                        type_annotation: final_type,
+                        description: Some(vf.description().to_string()),
+                        deprecation_note: vf.deprecation_note.clone(),
+                        optional,
+                        default_value,
+                        alias,
+                    });
+                }
+            }
+            Fields::Unnamed(unnamed_fields) if unnamed_fields.len() == 1 => {
+                // Tuple variant with one field — expand inner struct fields
+                let inner = &unnamed_fields[0];
+                let inner_name = if inner.type_ref.name == "std::boxed::Box" {
+                    inner
+                        .type_ref
+                        .arguments
+                        .first()
+                        .map(|a| a.name.as_str())
+                        .unwrap_or(&inner.type_ref.name)
+                } else {
+                    &inner.type_ref.name
+                };
+                if let Some(reflectapi_schema::Type::Struct(inner_struct)) =
+                    schema.get_type(inner_name)
+                {
+                    for sf in inner_struct.fields.iter() {
+                        let field_type = type_ref_to_python_type(
+                            &sf.type_ref,
+                            schema,
+                            implemented_types,
+                            active_generics,
+                            used_type_vars,
+                        )?;
+                        let (sanitized, alias) =
+                            sanitize_field_name_with_alias(sf.name(), sf.serde_name());
+                        fields.push(templates::Field {
+                            name: sanitized,
+                            type_annotation: if sf.required {
+                                field_type
+                            } else {
+                                format!("{field_type} | None")
+                            },
+                            description: Some(sf.description().to_string()),
+                            deprecation_note: sf.deprecation_note.clone(),
+                            optional: !sf.required,
+                            default_value: if sf.required {
+                                None
+                            } else {
+                                Some("None".to_string())
+                            },
+                            alias,
+                        });
+                    }
+                }
+            }
+            Fields::None => {
+                // Unit variant — no additional fields beyond tag
+            }
+            _ => {
+                // Multi-field tuple variant — not supported for flattening
+            }
+        }
+
+        // Render the variant class
+        let variant_template = templates::DataClass {
+            name: variant_class_name,
+            description: Some(format!("'{}' variant of {}", variant.name(), struct_name)),
+            fields,
+            is_tuple: false,
+            is_generic: !active_generics.is_empty(),
+            generic_params: active_generics.to_vec(),
+        };
+        output.push_str(&variant_template.render());
+        output.push('\n');
+    }
+
+    // Handle empty enum (no variants)
+    if union_variant_names.is_empty() {
+        output.push_str(&format!(
+            "\nclass {struct_name}(RootModel):\n    \"\"\"Empty discriminated union (no variants)\"\"\"\n    root: None = None\n"
+        ));
+        return Ok(output);
+    }
+
+    // Render the parent type as a discriminated union RootModel
+    let (sanitized_tag, _) = sanitize_field_name_with_alias(tag, tag);
+    let union_type = union_variant_names.join(",\n            ");
+    output.push_str(&format!(
+        "\nclass {struct_name}(RootModel):\n    root: Annotated[\n        Union[\n            {union_type},\n        ],\n        Field(discriminator=\"{sanitized_tag}\"),\n    ]\n"
+    ));
+
+    // Note: model_rebuild() for per-variant classes is handled by the global
+    // rebuild section after namespace classes are defined. Inline rebuild here
+    // would fail because dotted namespace references (used in type annotations)
+    // cannot be resolved until namespace classes exist.
+
+    Ok(output)
+}
+
+/// Standard flatten path: expand all flattened struct fields inline into a single model.
+fn render_struct_with_flatten_standard(
+    struct_def: &reflectapi_schema::Struct,
+    struct_name: &str,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    active_generics: &[String],
+    used_type_vars: &mut BTreeSet<String>,
+) -> anyhow::Result<String> {
+    let mut all_fields = Vec::new();
+
+    // Add regular fields
+    for field in struct_def.fields.iter().filter(|f| !f.flattened()) {
+        let (python_name, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
+        let field_type = type_ref_to_python_type(
+            &field.type_ref,
+            schema,
+            implemented_types,
+            active_generics,
+            used_type_vars,
+        )?;
 
         all_fields.push(templates::Field {
             name: python_name,
@@ -489,25 +690,25 @@ fn render_struct_with_flatten(
             &field.type_ref,
             schema,
             implemented_types,
-            &active_generics,
+            active_generics,
             field.required,
-            0, // Start at depth 0
+            0,
             used_type_vars,
+            Some(field.name()),
         )?;
         all_fields.extend(flattened_fields);
     }
 
-    // Generate as a regular Pydantic model with all fields flattened
     let struct_template = templates::DataClass {
-        name: struct_name,
+        name: struct_name.to_string(),
         description: Some(struct_def.description().to_string()),
         fields: all_fields,
         is_tuple: false,
         is_generic: !active_generics.is_empty(),
-        generic_params: active_generics,
+        generic_params: active_generics.to_vec(),
     };
 
-    let rendered = struct_template.render()?;
+    let rendered = struct_template.render();
     Ok(rendered)
 }
 
@@ -772,14 +973,77 @@ __all__ = {}
     )
 }
 
+/// Build a tree of namespace modules from rendered type strings.
+///
+/// Each original type name is split on `::`.  The last segment is the leaf
+/// type (already rendered); the preceding segments define the namespace path.
+/// The rendered code for each type is placed into the leaf module.
+fn modules_from_rendered_types(
+    original_type_names: Vec<String>,
+    mut rendered_types: BTreeMap<String, String>,
+) -> templates::Module {
+    use indexmap::IndexMap;
+
+    let mut root_module = templates::Module {
+        name: String::new(),
+        types: vec![],
+        submodules: IndexMap::new(),
+    };
+
+    for original_type_name in original_type_names {
+        let mut module = &mut root_module;
+        let mut parts: Vec<&str> = original_type_name.split("::").collect();
+        parts.pop(); // Remove the leaf type name — already embedded in the rendered code.
+        for part in parts {
+            module = module
+                .submodules
+                .entry(part.to_string())
+                .or_insert_with(|| templates::Module {
+                    name: part.to_string(),
+                    types: vec![],
+                    submodules: IndexMap::new(),
+                });
+        }
+        if let Some(rendered_type) = rendered_types.remove(&original_type_name) {
+            module.types.push(templates::ModuleType {
+                rendered: rendered_type,
+            });
+        }
+    }
+
+    root_module
+}
+
 pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let implemented_types = build_implemented_types();
 
-    // Consolidate types to avoid duplicates
-    schema.consolidate_types();
-
-    // Validate all type references exist
+    // Consolidate input/output types FIRST so both the SemanticSchema and
+    // the raw Schema share the same unified type names.
+    let all_type_names = schema.consolidate_types();
     validate_type_references(&schema)?;
+
+    // Build the semantic IR with a codegen-specific pipeline that skips
+    // TypeConsolidation (already done above) and NamingResolution (which
+    // would rename types and create a name-domain mismatch with the raw
+    // Schema). Only CircularDependencyResolution runs.
+    let semantic = reflectapi_schema::Normalizer::new()
+        .normalize_with_pipeline(
+            &schema,
+            reflectapi_schema::PipelineBuilder::new()
+                .consolidation(reflectapi_schema::Consolidation::Skip)
+                .naming(reflectapi_schema::Naming::Skip)
+                .build(),
+        )
+        .map_err(|errors| {
+            anyhow::anyhow!(
+                "Schema normalization failed: {}",
+                errors
+                    .iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            )
+        })?;
 
     let mut generated_code = Vec::new();
 
@@ -787,43 +1051,31 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let file_header = templates::FileHeader {
         package_name: config.package_name.clone(),
     };
-    generated_code.push(
-        file_header
-            .render()
-            .context("Failed to render file header")?,
-    );
+    generated_code.push(file_header.render());
+    // Use the semantic IR for import detection — iterate types once,
+    // matching on SemanticType which provides the fully resolved view.
+    let has_enums = semantic
+        .types()
+        .any(|t| matches!(t, reflectapi_schema::SemanticType::Enum(_)));
 
-    // Check if we have enums in the schema
-    let all_type_names = schema.consolidate_types();
-    let has_enums = all_type_names.iter().any(|name| {
-        if let Some(type_def) = schema.get_type(name) {
-            matches!(type_def, reflectapi_schema::Type::Enum(_))
-        } else {
-            false
-        }
-    });
-
-    // Check if we need Literal import and Field discriminator (for tagged enums)
     let (has_literal, has_discriminated_unions, has_externally_tagged_enums) = {
         let mut has_literal = false;
         let mut has_discriminated_unions = false;
         let mut has_externally_tagged_enums = false;
 
-        for name in &all_type_names {
-            if let Some(reflectapi_schema::Type::Enum(enum_def)) = schema.get_type(name) {
-                match enum_def.representation {
+        for sem_type in semantic.types() {
+            if let reflectapi_schema::SemanticType::Enum(sem_enum) = sem_type {
+                match &sem_enum.representation {
                     reflectapi_schema::Representation::Internal { .. } => {
                         has_literal = true;
                         has_discriminated_unions = true;
                     }
-                    reflectapi_schema::Representation::External => {
-                        // Check if this enum has complex variants that need RootModel
-                        let has_complex_variants =
-                            enum_def.variants.iter().any(|v| match &v.fields {
-                                reflectapi_schema::Fields::Named(_) => true,
-                                reflectapi_schema::Fields::Unnamed(fields) => !fields.is_empty(),
-                                reflectapi_schema::Fields::None => false,
-                            });
+                    reflectapi_schema::Representation::External
+                    | reflectapi_schema::Representation::Adjacent { .. } => {
+                        let has_complex_variants = sem_enum
+                            .variants
+                            .values()
+                            .any(|v| !matches!(v.field_style, reflectapi_schema::FieldStyle::Unit));
                         if has_complex_variants {
                             has_externally_tagged_enums = true;
                         }
@@ -849,11 +1101,8 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let has_reflectapi_infallible =
         schema_uses_type(&schema, &all_type_names, "reflectapi::Infallible");
 
-    // Flatten support uses direct field expansion in generated models
-    let has_flatten_support = false;
-
-    // Check if we need warnings import (for deprecated functions)
-    let has_warnings = schema.functions().any(|f| f.deprecation_note.is_some());
+    // Use semantic IR for function introspection
+    let has_warnings = semantic.functions().any(|f| f.deprecation_note.is_some());
 
     // Check if we need datetime imports (for chrono and time types)
     let has_datetime = check_datetime_usage(&schema, &all_type_names);
@@ -870,7 +1119,6 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         has_reflectapi_option,
         has_reflectapi_empty,
         has_reflectapi_infallible,
-        has_flatten_support,
         has_warnings,
         has_datetime,
         has_uuid,
@@ -894,99 +1142,140 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         "std::option::Option",
     ];
 
-    // Collect TypeVars used across all types
+    // Build the set of Python class names that will be emitted, so we can
+    // detect TypeVar-vs-class name collisions below.
+    let emitted_class_names: HashSet<String> = semantic
+        .types()
+        .filter(|st| !runtime_provided_types.contains(&st.name()))
+        .filter_map(|st| schema.get_type(st.name()))
+        .map(|t| improve_class_name(t.name()))
+        .collect();
+
+    // Collect TypeVars used across all types, using semantic IR ordering.
+    // Since the codegen pipeline skips NamingResolution, sem_type.name()
+    // matches the raw Schema's type names exactly — no original_name bridging needed.
     let mut used_type_vars: BTreeSet<String> = BTreeSet::new();
-    // Use topological sort if possible, fall back to alphabetical on circular dependencies
-    let sorted_type_names = topological_sort_types(&all_type_names, &schema).unwrap_or_else(|_| {
-        // Circular dependencies detected, use alphabetical order
-        let mut sorted = all_type_names.clone();
-        sorted.sort();
-        sorted
-    });
-    for original_type_name in &sorted_type_names {
-        if runtime_provided_types.contains(&original_type_name.as_str()) {
+    for sem_type in semantic.types() {
+        let type_name = sem_type.name();
+        if runtime_provided_types.contains(&type_name) {
             continue;
         }
-        let type_def = schema.get_type(original_type_name).unwrap();
+        let type_def = match schema.get_type(type_name) {
+            Some(t) => t,
+            None => continue,
+        };
 
         // Collect TypeVars from this type
         collect_type_vars_from_type(type_def, &schema, &implemented_types, &mut used_type_vars)?;
     }
 
+    // Build a rename map for TypeVars that collide with class names.
+    // When a Rust type parameter has the same name as a top-level type
+    // (e.g., `Identity` is both a type parameter and a struct), the class
+    // definition would overwrite the TypeVar. We prefix these with `_T_`
+    // so the TypeVar and class can coexist in Python's single namespace.
+    let typevar_rename_map: BTreeMap<String, String> = used_type_vars
+        .iter()
+        .filter(|tv| emitted_class_names.contains(tv.as_str()))
+        .map(|tv| (tv.clone(), format!("_T_{tv}")))
+        .collect();
+
+    // Apply the rename map to the schema's type parameter names and type
+    // references. This ensures all downstream rendering functions
+    // automatically use the renamed TypeVar names without needing to
+    // thread a rename map through every function signature.
+    if !typevar_rename_map.is_empty() {
+        rename_type_params_in_schema(&mut schema, &typevar_rename_map);
+    }
+
+    // Apply renames to the used_type_vars set
+    let renamed_type_vars: BTreeSet<String> = used_type_vars
+        .iter()
+        .map(|tv| {
+            typevar_rename_map
+                .get(tv)
+                .cloned()
+                .unwrap_or_else(|| tv.clone())
+        })
+        .collect();
+
     // Generate TypeVar declarations
-    if !used_type_vars.is_empty() {
+    if !renamed_type_vars.is_empty() {
         generated_code.push("".to_string());
         generated_code.push("# Type variables for generic types".to_string());
         generated_code.push("".to_string());
-        for type_var in &used_type_vars {
+        for type_var in &renamed_type_vars {
             generated_code.push(format!("{type_var} = TypeVar(\"{type_var}\")"));
         }
         generated_code.push("".to_string());
     }
 
-    // Render all types (models and enums) without factories first
+    // Render all types (models and enums)
     let mut rendered_types = BTreeMap::new();
-    let mut factory_data = Vec::new(); // Collect factory data for later generation
 
-    // Sort types topologically to handle dependencies, fall back to alphabetical on circular deps
-    let sorted_type_names = topological_sort_types(&all_type_names, &schema).unwrap_or_else(|_| {
-        // Circular dependencies detected, use alphabetical order
-        let mut sorted = all_type_names.clone();
-        sorted.sort();
-        sorted
-    });
+    // Use SemanticSchema for type ordering — it provides deterministic
+    // BTreeMap ordering from the Normalizer's dependency analysis.
+    // Names match the raw Schema directly (no NamingResolution was applied).
+    let mut rendered_type_names_in_order: Vec<String> = Vec::new();
 
-    for original_type_name in sorted_type_names {
-        // Skip types provided by the runtime
-        if runtime_provided_types.contains(&original_type_name.as_str()) {
+    for sem_type in semantic.types() {
+        let type_name = sem_type.name().to_string();
+
+        if runtime_provided_types.contains(&type_name.as_str()) {
             continue;
         }
 
-        let type_def = schema.get_type(&original_type_name).unwrap();
-        let name = improve_class_name(type_def.name());
+        let type_def = match schema.get_type(&type_name) {
+            Some(t) => t,
+            None => {
+                continue;
+            }
+        };
 
         // TypeVars have already been collected, use empty set for rendering
         let mut dummy_type_vars = BTreeSet::new();
-        let (rendered, factory_info) = render_type_without_factory(
-            type_def,
-            &schema,
-            &implemented_types,
-            &mut dummy_type_vars,
-        )?;
-
-        // Store factory info for later generation
-        if let Some(info) = factory_info {
-            factory_data.push(info);
-        }
+        let rendered = render_type(type_def, &schema, &implemented_types, &mut dummy_type_vars)?;
 
         // Only store non-empty renders (excludes unwrapped tuple structs)
         if !rendered.trim().is_empty() {
-            rendered_types.insert(name.clone(), rendered.clone());
-            generated_code.push(rendered);
+            rendered_types.insert(type_name.clone(), rendered);
+            rendered_type_names_in_order.push(type_name);
         }
+    }
+
+    // Collect rendered type keys before passing ownership to the module tree builder.
+    let rendered_type_keys: Vec<String> = rendered_types.keys().cloned().collect();
+
+    // Build namespace module tree and render it
+    let module_tree = modules_from_rendered_types(rendered_type_names_in_order, rendered_types);
+    let module_tree_code = module_tree.render();
+    if !module_tree_code.trim().is_empty() {
+        generated_code.push(module_tree_code);
     }
 
     // TypeVar declarations are now generated at the top of the file (after imports)
 
-    // Generate client class with nested method organization
-    let functions_by_name: BTreeMap<String, &Function> =
+    // Generate client class with nested method organization.
+    // Use SemanticSchema for deterministic function ordering, but
+    // look up raw Function objects for rendering (render_function
+    // needs the raw TypeReference fields).
+    let raw_functions_by_name: BTreeMap<String, &Function> =
         schema.functions().map(|f| (f.name.clone(), f)).collect();
 
-    // Group functions by their prefix and separate top-level functions
     let mut function_groups: BTreeMap<String, Vec<templates::Function>> = BTreeMap::new();
     let mut top_level_functions: Vec<templates::Function> = Vec::new();
 
-    for function_schema in functions_by_name.values() {
+    for sem_func in semantic.functions() {
+        let function_schema = match raw_functions_by_name.get(&sem_func.name) {
+            Some(f) => f,
+            None => continue, // Skip functions not in raw schema (shouldn't happen)
+        };
         let rendered_function = render_function(function_schema, &schema, &implemented_types)?;
 
         // Check for grouping patterns: underscore or dot notation
-        if let Some(separator_pos) = function_schema
-            .name
-            .find('_')
-            .or_else(|| function_schema.name.find('.'))
-        {
-            let group_name = &function_schema.name[..separator_pos];
-            let method_name = &function_schema.name[separator_pos + 1..];
+        if let Some(separator_pos) = sem_func.name.find('_').or_else(|| sem_func.name.find('.')) {
+            let group_name = &sem_func.name[..separator_pos];
+            let method_name = &sem_func.name[separator_pos + 1..];
 
             // Create a modified function with the shortened name for nested access
             let mut nested_function = rendered_function.clone();
@@ -995,7 +1284,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
             nested_function.original_name = Some(rendered_function.name.clone());
 
             function_groups
-                .entry(to_valid_python_identifier(group_name))
+                .entry(safe_python_identifier(group_name))
                 .or_default()
                 .push(nested_function);
         } else {
@@ -1025,19 +1314,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         generate_sync: config.generate_sync,
         base_url: config.base_url.clone(),
     };
-    generated_code.push(
-        client_template
-            .render()
-            .context("Failed to render client class")?,
-    );
-
-    // Generate nested class structure
-    let nested_classes = generate_nested_class_structure(&rendered_types, &schema);
-    if !nested_classes.is_empty() {
-        generated_code.push("# Nested class definitions for better organization".to_string());
-        generated_code.push(nested_classes);
-        generated_code.push("".to_string());
-    }
+    generated_code.push(client_template.render());
 
     // Add external type definitions and model rebuilds for Pydantic forward references
     let mut external_types_and_rebuilds = vec![
@@ -1050,11 +1327,11 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         "# Rebuild models to resolve forward references".to_string(),
         "try:".to_string(),
     ];
-    let mut sorted_type_names: Vec<_> = rendered_types.keys().collect();
-    sorted_type_names.sort();
-    for type_name in sorted_type_names {
-        if !type_name.starts_with("std::") && !type_name.starts_with("reflectapi::") {
-            external_types_and_rebuilds.push(format!("    {type_name}.model_rebuild()"));
+    let sorted_type_names: Vec<&String> = rendered_type_keys.iter().collect();
+    for original_name in &sorted_type_names {
+        if !original_name.starts_with("std::") && !original_name.starts_with("reflectapi::") {
+            let dotted = type_name_to_python_ref(original_name);
+            external_types_and_rebuilds.push(format!("    {dotted}.model_rebuild()"));
         }
     }
     external_types_and_rebuilds.push("except AttributeError:".to_string());
@@ -1062,29 +1339,6 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         .push("    # Some types may not have model_rebuild method".to_string());
     external_types_and_rebuilds.push("    pass".to_string());
     external_types_and_rebuilds.push("".to_string());
-    external_types_and_rebuilds.push(
-        "# Factory classes (generated after model rebuild to avoid forward references)".to_string(),
-    );
-
-    // Generate all factory classes now that types are defined and rebuilt
-    for factory_info in &factory_data {
-        let factory_code = if factory_info.is_internally_tagged {
-            generate_internally_tagged_factory_class(
-                &factory_info.enum_def,
-                &factory_info.enum_name,
-                &factory_info.union_members,
-            )?
-        } else {
-            generate_factory_class_with_representation(
-                &factory_info.enum_def,
-                &factory_info.enum_name,
-                &factory_info.union_members,
-                &factory_info.enum_def.representation,
-            )?
-        };
-        external_types_and_rebuilds.push(factory_code);
-        external_types_and_rebuilds.push("".to_string());
-    }
 
     generated_code.push(external_types_and_rebuilds.join("\n"));
 
@@ -1092,23 +1346,153 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     if config.generate_testing {
         // contains user-defined types that have Pydantic classes generated for them.
         // Note types with fallbacks to primitives are not added.
-        let mut user_defined_types: Vec<String> = rendered_types.keys().cloned().collect();
+        let mut user_defined_types: Vec<String> = rendered_type_keys
+            .iter()
+            .map(|original_name| type_name_to_python_ref(original_name))
+            .collect();
         user_defined_types.sort();
 
         let testing_template = templates::TestingModule {
             types: user_defined_types,
         };
-        generated_code.push(
-            testing_template
-                .render()
-                .context("Failed to render testing module")?,
-        );
+        generated_code.push(testing_template.render());
     }
 
     let result = generated_code.join("\n\n");
 
     // Format with black if available
     format_python_code(&result)
+}
+
+/// Rename type parameters in the schema to avoid TypeVar/class name collisions.
+///
+/// When a Rust type parameter (e.g., `Identity`) has the same name as a
+/// top-level type, the Python codegen would produce both a TypeVar and a
+/// class with the same name, causing the class to shadow the TypeVar.
+///
+/// This function renames the parameters in-place in the schema's type
+/// definitions and updates all type references that point to those
+/// parameters, so all downstream rendering automatically uses the safe names.
+fn rename_type_params_in_schema(schema: &mut Schema, rename_map: &BTreeMap<String, String>) {
+    // Process both input_types and output_types since consolidate_types()
+    // keeps non-conflicting types in their original typespace.
+    let input_type_names: Vec<String> = schema
+        .input_types
+        .types()
+        .map(|t| t.name().to_string())
+        .collect();
+    for type_name in input_type_names {
+        if let Some(type_def) = schema.input_types.get_type_mut(&type_name) {
+            rename_type_params_in_type(type_def, rename_map);
+        }
+    }
+
+    let output_type_names: Vec<String> = schema
+        .output_types
+        .types()
+        .map(|t| t.name().to_string())
+        .collect();
+    for type_name in output_type_names {
+        if let Some(type_def) = schema.output_types.get_type_mut(&type_name) {
+            rename_type_params_in_type(type_def, rename_map);
+        }
+    }
+}
+
+/// Rename type parameters within a single type definition.
+fn rename_type_params_in_type(
+    type_def: &mut reflectapi_schema::Type,
+    rename_map: &BTreeMap<String, String>,
+) {
+    match type_def {
+        reflectapi_schema::Type::Struct(s) => {
+            // Check if this struct has any parameters that need renaming
+            let has_renames = s
+                .parameters
+                .iter()
+                .any(|p| rename_map.contains_key(&p.name));
+            if !has_renames {
+                return;
+            }
+            // Rename parameters
+            for param in &mut s.parameters {
+                if let Some(new_name) = rename_map.get(&param.name) {
+                    param.name = new_name.clone();
+                }
+            }
+            // Rename type references in fields
+            match &mut s.fields {
+                reflectapi_schema::Fields::Named(fields)
+                | reflectapi_schema::Fields::Unnamed(fields) => {
+                    for field in fields {
+                        rename_type_ref(&mut field.type_ref, rename_map);
+                    }
+                }
+                reflectapi_schema::Fields::None => {}
+            }
+        }
+        reflectapi_schema::Type::Enum(e) => {
+            let has_renames = e
+                .parameters
+                .iter()
+                .any(|p| rename_map.contains_key(&p.name));
+            if !has_renames {
+                return;
+            }
+            for param in &mut e.parameters {
+                if let Some(new_name) = rename_map.get(&param.name) {
+                    param.name = new_name.clone();
+                }
+            }
+            for variant in &mut e.variants {
+                match &mut variant.fields {
+                    reflectapi_schema::Fields::Named(fields)
+                    | reflectapi_schema::Fields::Unnamed(fields) => {
+                        for field in fields {
+                            rename_type_ref(&mut field.type_ref, rename_map);
+                        }
+                    }
+                    reflectapi_schema::Fields::None => {}
+                }
+            }
+        }
+        reflectapi_schema::Type::Primitive(p) => {
+            let has_renames = p
+                .parameters
+                .iter()
+                .any(|pp| rename_map.contains_key(&pp.name));
+            if !has_renames {
+                return;
+            }
+            for param in &mut p.parameters {
+                if let Some(new_name) = rename_map.get(&param.name) {
+                    param.name = new_name.clone();
+                }
+            }
+            if let Some(fallback) = &mut p.fallback {
+                rename_type_ref(fallback, rename_map);
+            }
+        }
+    }
+}
+
+/// Recursively rename type parameter references in a TypeReference tree.
+///
+/// Only renames bare references (no generic arguments) that match the rename
+/// map, since type parameters are always leaf references with no arguments.
+/// A reference like `Identity` with arguments would be a concrete type
+/// instantiation, not a type parameter usage.
+fn rename_type_ref(type_ref: &mut TypeReference, rename_map: &BTreeMap<String, String>) {
+    // Only rename bare names (no arguments) — these are type parameter usages.
+    // References with arguments are concrete type instantiations (e.g., Vec<T>).
+    if type_ref.arguments.is_empty() {
+        if let Some(new_name) = rename_map.get(&type_ref.name) {
+            type_ref.name = new_name.clone();
+        }
+    }
+    for arg in &mut type_ref.arguments {
+        rename_type_ref(arg, rename_map);
+    }
 }
 
 /// Check if a type name looks like a generic type variable
@@ -1194,26 +1578,26 @@ fn infer_enum_generic_params(enum_def: &reflectapi_schema::Enum, schema: &Schema
     result
 }
 
-fn render_type_without_factory(
+fn render_type(
     type_def: &Type,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<(String, Option<FactoryInfo>)> {
+) -> anyhow::Result<String> {
     match type_def {
-        Type::Struct(s) => Ok((
-            render_struct(s, schema, implemented_types, used_type_vars)?,
-            None,
-        )),
-        Type::Enum(e) => render_enum_without_factory(e, schema, implemented_types, used_type_vars),
+        Type::Struct(s) => render_struct(s, schema, implemented_types, used_type_vars),
+        Type::Enum(e) => render_enum(e, schema, implemented_types, used_type_vars),
         Type::Primitive(_p) => {
             // Primitive types are handled by implemented_types mapping
-            Ok((String::new(), None)) // This shouldn't be reached normally
+            Ok(String::new()) // This shouldn't be reached normally
         }
     }
 }
 
-/// Recursively collect fields from flattened structures
+/// Recursively collect fields from flattened structures and enums.
+/// `field_name` is the original Rust field name for the flattened field
+/// (used when emitting enum types as regular fields).
+#[allow(clippy::too_many_arguments)]
 fn collect_flattened_fields(
     type_ref: &TypeReference,
     schema: &Schema,
@@ -1222,6 +1606,7 @@ fn collect_flattened_fields(
     parent_required: bool,
     depth: usize,
     used_type_vars: &mut BTreeSet<String>,
+    field_name: Option<&str>,
 ) -> anyhow::Result<Vec<templates::Field>> {
     // Prevent infinite recursion
     if depth > 10 {
@@ -1248,73 +1633,182 @@ fn collect_flattened_fields(
         &type_ref.name
     };
 
-    if let Some(reflectapi_schema::Type::Struct(struct_def)) = schema.get_type(target_type_name) {
-        for field in struct_def.fields.iter() {
-            if field.flattened() {
-                // Recursively collect fields from nested flattened structures
-                let nested_fields = collect_flattened_fields(
-                    &field.type_ref,
-                    schema,
-                    implemented_types,
-                    active_generics,
-                    parent_required && field.required,
-                    depth + 1,
-                    used_type_vars,
-                )?;
-                collected_fields.extend(nested_fields);
-            } else {
-                // Regular field in flattened struct
-                let field_type = type_ref_to_python_type(
-                    &field.type_ref,
-                    schema,
-                    implemented_types,
-                    active_generics,
-                    used_type_vars,
-                )?;
-
-                let is_option_type = field.type_ref.name == "std::option::Option"
-                    || field.type_ref.name == "reflectapi::Option";
-
-                let (optional, default_value, final_field_type) =
-                    if !field.required || !parent_required {
-                        if is_option_type {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option_type {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
-
-                let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
-                collected_fields.push(templates::Field {
-                    name: sanitized,
-                    type_annotation: final_field_type,
-                    description: Some(format!(
-                        "(flattened{}) {}",
-                        if depth > 1 {
-                            format!(" depth={depth}")
-                        } else {
-                            String::new()
-                        },
-                        field.description()
-                    )),
-                    deprecation_note: field.deprecation_note.clone(),
-                    optional,
-                    default_value,
-                    alias,
-                });
+    match schema.get_type(target_type_name) {
+        Some(reflectapi_schema::Type::Struct(struct_def)) => {
+            for field in struct_def.fields.iter() {
+                if field.flattened() {
+                    // Recursively collect fields from nested flattened structures
+                    let nested_fields = collect_flattened_fields(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        active_generics,
+                        parent_required && field.required,
+                        depth + 1,
+                        used_type_vars,
+                        Some(field.name()),
+                    )?;
+                    collected_fields.extend(nested_fields);
+                } else {
+                    // Regular field in flattened struct
+                    collected_fields.push(make_flattened_field(
+                        field,
+                        schema,
+                        implemented_types,
+                        active_generics,
+                        parent_required,
+                        depth,
+                        used_type_vars,
+                    )?);
+                }
             }
+        }
+        Some(reflectapi_schema::Type::Enum(enum_def)) => {
+            // Flattened enum: expand variant fields into the parent model.
+            // For internally-tagged enums, each variant's fields + the tag field
+            // get merged into the parent struct. For other representations,
+            // we emit the enum as a regular typed field since Pydantic cannot
+            // truly flatten non-internally-tagged unions.
+            collect_flattened_enum_fields(
+                enum_def,
+                type_ref,
+                schema,
+                implemented_types,
+                active_generics,
+                parent_required,
+                used_type_vars,
+                &mut collected_fields,
+                field_name,
+            )?;
+        }
+        Some(reflectapi_schema::Type::Primitive(_)) | None => {
+            // Primitives (including unit types) and unresolved types cannot
+            // be meaningfully flattened — skip them, matching prior behavior.
+            // This handles cases like flattened generic parameters that resolve
+            // to () (std::tuple::Tuple0).
         }
     }
 
     Ok(collected_fields)
+}
+
+/// Create a single flattened field entry from a struct field
+fn make_flattened_field(
+    field: &reflectapi_schema::Field,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    active_generics: &[String],
+    parent_required: bool,
+    depth: usize,
+    used_type_vars: &mut BTreeSet<String>,
+) -> anyhow::Result<templates::Field> {
+    let field_type = type_ref_to_python_type(
+        &field.type_ref,
+        schema,
+        implemented_types,
+        active_generics,
+        used_type_vars,
+    )?;
+
+    let is_option_type =
+        field.type_ref.name == "std::option::Option" || field.type_ref.name == "reflectapi::Option";
+
+    let (optional, default_value, final_field_type) = if !field.required || !parent_required {
+        if is_option_type {
+            (true, Some("None".to_string()), field_type)
+        } else {
+            (
+                true,
+                Some("None".to_string()),
+                format!("{field_type} | None"),
+            )
+        }
+    } else if is_option_type {
+        (true, Some("None".to_string()), field_type)
+    } else {
+        (false, None, field_type)
+    };
+
+    let (sanitized, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
+    Ok(templates::Field {
+        name: sanitized,
+        type_annotation: final_field_type,
+        description: Some(format!(
+            "(flattened{}) {}",
+            if depth > 1 {
+                format!(" depth={depth}")
+            } else {
+                String::new()
+            },
+            field.description()
+        )),
+        deprecation_note: field.deprecation_note.clone(),
+        optional,
+        default_value,
+        alias,
+    })
+}
+
+/// Handle flattened enum fields by emitting the enum as a typed field.
+///
+/// For internally-tagged enums (`#[serde(tag = "...")]`), serde merges the
+/// tag + variant fields into the parent struct. Pydantic can't directly
+/// represent this, so we emit the enum's Python union type as a regular field.
+/// The model uses `extra="allow"` to accept the flattened wire format.
+#[allow(clippy::too_many_arguments)]
+fn collect_flattened_enum_fields(
+    enum_def: &reflectapi_schema::Enum,
+    type_ref: &TypeReference,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    active_generics: &[String],
+    parent_required: bool,
+    used_type_vars: &mut BTreeSet<String>,
+    collected_fields: &mut Vec<templates::Field>,
+    original_field_name: Option<&str>,
+) -> anyhow::Result<()> {
+    let enum_python_type = type_ref_to_python_type(
+        type_ref,
+        schema,
+        implemented_types,
+        active_generics,
+        used_type_vars,
+    )?;
+
+    // Use the original Rust field name if available, otherwise derive from type name
+    let field_name = original_field_name
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| {
+            type_ref
+                .name
+                .split("::")
+                .last()
+                .unwrap_or(&type_ref.name)
+                .to_lowercase()
+        });
+    let (sanitized, alias) = sanitize_field_name_with_alias(&field_name, &field_name);
+
+    let (optional, default_value, final_type) = if !parent_required {
+        (
+            true,
+            Some("None".to_string()),
+            format!("{enum_python_type} | None"),
+        )
+    } else {
+        (false, None, enum_python_type)
+    };
+
+    collected_fields.push(templates::Field {
+        name: sanitized,
+        type_annotation: final_type,
+        description: Some(format!("(flattened enum: {})", enum_def.name)),
+        deprecation_note: None,
+        optional,
+        default_value,
+        alias,
+    });
+
+    Ok(())
 }
 
 fn render_struct(
@@ -1384,7 +1878,8 @@ fn render_struct(
                 (false, None, base_field_type)
             };
 
-            let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+            let (sanitized, alias) =
+                sanitize_field_name_with_alias(field.name(), field.serde_name());
             Ok(templates::Field {
                 name: sanitized,
                 type_annotation: field_type,
@@ -1397,24 +1892,9 @@ fn render_struct(
         })
         .collect::<Result<Vec<_>, anyhow::Error>>()?;
 
-    // Collect flattened fields recursively using the new helper function
-    let mut flattened_fields: Vec<templates::Field> = Vec::new();
-    for field in struct_def.fields.iter().filter(|f| f.flattened()) {
-        let fields = collect_flattened_fields(
-            &field.type_ref,
-            schema,
-            implemented_types,
-            &active_generics,
-            field.required,
-            0,
-            used_type_vars,
-        )?;
-        flattened_fields.extend(fields);
-    }
-
-    // Combine regular fields with flattened field information
-    let mut all_fields = regular_fields;
-    all_fields.extend(flattened_fields);
+    // Note: flattened fields are handled by render_struct_with_flatten (early return
+    // at the top of this function). This path only handles non-flattened structs.
+    let all_fields = regular_fields;
 
     // Check if this is a generic struct (has type parameters)
     let has_generics = !struct_def.parameters.is_empty();
@@ -1429,22 +1909,21 @@ fn render_struct(
         generic_params: active_generics.clone(),
     };
 
-    class_template.render().context("Failed to render struct")
+    Ok(class_template.render())
 }
 
-fn render_enum_without_factory(
+fn render_enum(
     enum_def: &reflectapi_schema::Enum,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<(String, Option<FactoryInfo>)> {
+) -> anyhow::Result<String> {
     use reflectapi_schema::{Fields, Representation};
 
     // Check if this is a tagged enum (internally tagged)
     match &enum_def.representation {
         Representation::Internal { tag } => {
-            // Internally tagged enums need factories but they're generated after model rebuild
-            let (rendered, union_variant_names) = render_internally_tagged_enum_without_factory(
+            let (rendered, _union_variant_names) = render_internally_tagged_enum(
                 enum_def,
                 tag,
                 schema,
@@ -1452,19 +1931,11 @@ fn render_enum_without_factory(
                 used_type_vars,
             )?;
 
-            // Return factory info so it can be generated later
-            let factory_info = FactoryInfo {
-                enum_def: enum_def.clone(),
-                enum_name: improve_class_name(&enum_def.name),
-                union_members: union_variant_names,
-                is_internally_tagged: true,
-            };
-
-            Ok((rendered, Some(factory_info)))
+            Ok(rendered)
         }
         Representation::Adjacent { tag, content } => {
             // Adjacently tagged enums are represented as { tag: "Variant", content: ... }
-            let (rendered, union_variant_names) = render_adjacently_tagged_enum_without_factory(
+            let (rendered, _union_variant_names) = render_adjacently_tagged_enum(
                 enum_def,
                 tag,
                 content,
@@ -1473,30 +1944,18 @@ fn render_enum_without_factory(
                 used_type_vars,
             )?;
 
-            // Return factory info so it can be generated later
-            let factory_info = FactoryInfo {
-                enum_def: enum_def.clone(),
-                enum_name: improve_class_name(&enum_def.name),
-                union_members: union_variant_names,
-                is_internally_tagged: false, // Adjacent tagged, not internal
-            };
-
-            Ok((rendered, Some(factory_info)))
+            Ok(rendered)
         }
         Representation::None => {
-            // Untagged enums don't use factories
-            let rendered =
-                render_untagged_enum(enum_def, schema, implemented_types, used_type_vars)?;
-            Ok((rendered, None))
+            // Untagged enums
+            render_untagged_enum(enum_def, schema, implemented_types, used_type_vars)
         }
         _ => {
             // Check if this is a primitive-represented enum (has discriminant values)
             let has_discriminants = enum_def.variants.iter().any(|v| v.discriminant.is_some());
 
             if has_discriminants {
-                // Primitive enums don't use factories
-                let rendered = render_primitive_enum(enum_def)?;
-                Ok((rendered, None))
+                render_primitive_enum(enum_def)
             } else {
                 // Check if this has complex variants (tuple or struct variants)
                 let has_complex_variants = enum_def.variants.iter().any(|v| {
@@ -1508,22 +1967,15 @@ fn render_enum_without_factory(
                 });
 
                 if has_complex_variants {
-                    // This is an externally tagged enum with complex variants - needs factory
-                    let (rendered, union_members) = render_externally_tagged_enum_without_factory(
+                    // This is an externally tagged enum with complex variants
+                    render_externally_tagged_enum(
                         enum_def,
                         schema,
                         implemented_types,
                         used_type_vars,
-                    )?;
-                    let factory_info = FactoryInfo {
-                        enum_def: enum_def.clone(),
-                        enum_name: improve_class_name(&enum_def.name),
-                        union_members,
-                        is_internally_tagged: false,
-                    };
-                    Ok((rendered, Some(factory_info)))
+                    )
                 } else {
-                    // Simple string enum - no factory needed
+                    // Simple string enum
                     let variants = enum_def
                         .variants
                         .iter()
@@ -1540,15 +1992,14 @@ fn render_enum_without_factory(
                         variants,
                     };
 
-                    let rendered = enum_template.render().context("Failed to render enum")?;
-                    Ok((rendered, None))
+                    Ok(enum_template.render())
                 }
             }
         }
     }
 }
 
-fn render_adjacently_tagged_enum_without_factory(
+fn render_adjacently_tagged_enum(
     enum_def: &reflectapi_schema::Enum,
     tag: &str,
     content: &str,
@@ -1604,7 +2055,7 @@ fn render_adjacently_tagged_enum_without_factory(
                     is_generic: !generic_params.is_empty(),
                     generic_params: generic_params.clone(),
                 };
-                variant_models.push(variant_model.render()?);
+                variant_models.push(variant_model.render());
                 union_variants.push(variant_class_name);
             }
             Fields::Named(named_fields) => {
@@ -1636,7 +2087,8 @@ fn render_adjacently_tagged_enum_without_factory(
                     } else {
                         (false, None, field_type)
                     };
-                    let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+                    let (sanitized, alias) =
+                        sanitize_field_name_with_alias(field.name(), field.serde_name());
                     fields.push(templates::Field {
                         name: sanitized,
                         type_annotation: final_field_type,
@@ -1655,7 +2107,7 @@ fn render_adjacently_tagged_enum_without_factory(
                     is_generic: !generic_params.is_empty(),
                     generic_params: generic_params.clone(),
                 };
-                variant_models.push(variant_model.render()?);
+                variant_models.push(variant_model.render());
                 union_variants.push(variant_class_name);
             }
         }
@@ -1709,18 +2161,19 @@ fn generate_adjacent_dispatch_cases(
     use reflectapi_schema::Fields;
     let mut cases = Vec::new();
     for variant in &enum_def.variants {
-        let vname = variant.name();
+        let wire_name = variant.serde_name();
+        let rust_name = variant.name();
         match &variant.fields {
             Fields::None => {
                 cases.push(format!(
-                    "            if tag == \"{vname}\":\n                return \"{vname}\""
+                    "            if tag == \"{wire_name}\":\n                return \"{wire_name}\""
                 ));
             }
             Fields::Unnamed(unnamed_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(vname));
+                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
                 if unnamed_fields.len() == 1 {
                     cases.push(format!(
-                        "            if tag == \"{vname}\":\n                return {class_name}(field_0=content)"
+                        "            if tag == \"{wire_name}\":\n                return {class_name}(field_0=content)"
                     ));
                 } else {
                     let assigns = (0..unnamed_fields.len())
@@ -1728,14 +2181,14 @@ fn generate_adjacent_dispatch_cases(
                         .collect::<Vec<_>>()
                         .join(", ");
                     cases.push(format!(
-                        "            if tag == \"{vname}\":\n                if isinstance(content, list):\n                    return {class_name}({assigns})\n                else:\n                    raise ValueError(\"Expected list for tuple variant {vname}\")"
+                        "            if tag == \"{wire_name}\":\n                if isinstance(content, list):\n                    return {class_name}({assigns})\n                else:\n                    raise ValueError(\"Expected list for tuple variant {wire_name}\")"
                     ));
                 }
             }
             Fields::Named(_named_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(vname));
+                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
                 cases.push(format!(
-                    "            if tag == \"{vname}\":\n                return {class_name}(**content)"
+                    "            if tag == \"{wire_name}\":\n                return {class_name}(**content)"
                 ));
             }
         }
@@ -1752,20 +2205,21 @@ fn generate_adjacent_serialize_cases(
     use reflectapi_schema::Fields;
     let mut cases = Vec::new();
     for variant in &enum_def.variants {
-        let vname = variant.name();
+        let wire_name = variant.serde_name();
+        let rust_name = variant.name();
         match &variant.fields {
             Fields::None => {
                 cases.push(format!(
-                    "        if self.root == \"{vname}\":\n            return {{\"{tag}\": \"{vname}\"}}"
+                    "        if self.root == \"{wire_name}\":\n            return {{\"{tag}\": \"{wire_name}\"}}"
                 ));
             }
             Fields::Unnamed(unnamed_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(vname));
+                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
                 // For tuple variants in adjacently tagged enums, serialize the content properly
                 if unnamed_fields.len() == 1 {
                     // Single field tuple: serialize the field value directly
                     cases.push(format!(
-                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{vname}\", \"{content}\": self.root.field_0}}"
+                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.field_0}}"
                     ));
                 } else {
                     // Multiple field tuple: serialize as array
@@ -1773,67 +2227,20 @@ fn generate_adjacent_serialize_cases(
                         .map(|i| format!("self.root.field_{i}"))
                         .collect();
                     cases.push(format!(
-                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{vname}\", \"{content}\": [{}]}}",
+                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": [{}]}}",
                         field_accesses.join(", ")
                     ));
                 }
             }
             Fields::Named(_named_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(vname));
+                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
                 cases.push(format!(
-                    "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{vname}\", \"{content}\": self.root.model_dump(exclude_none=True)}}"
+                    "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.model_dump()}}"
                 ));
             }
         }
     }
     Ok(cases.join("\n"))
-}
-
-fn render_externally_tagged_enum_without_factory(
-    enum_def: &reflectapi_schema::Enum,
-    schema: &Schema,
-    implemented_types: &BTreeMap<String, String>,
-    used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<(String, Vec<String>)> {
-    // Generate the full enum (with factory)
-    let full_enum =
-        render_externally_tagged_enum(enum_def, schema, implemented_types, used_type_vars)?;
-
-    // Extract just the part before the factory class (more specific split)
-    let enum_name = improve_class_name(&enum_def.name);
-    let factory_class_pattern = format!("\n\nclass {enum_name}Factory:");
-    let parts: Vec<&str> = full_enum.split(&factory_class_pattern).collect();
-    let enum_without_factory = parts[0].to_string();
-
-    // Extract union member names for factory generation later
-    let union_variants = extract_union_members_from_enum(enum_def)?;
-
-    Ok((enum_without_factory, union_variants))
-}
-
-fn extract_union_members_from_enum(
-    enum_def: &reflectapi_schema::Enum,
-) -> anyhow::Result<Vec<String>> {
-    use reflectapi_schema::Fields;
-
-    let enum_name = improve_class_name(&enum_def.name);
-    let mut union_variants = Vec::new();
-
-    for variant in &enum_def.variants {
-        let variant_name = variant.name();
-        match &variant.fields {
-            Fields::None => {
-                union_variants.push(format!("Literal[\"{variant_name}\"]"));
-            }
-            Fields::Unnamed(_) | Fields::Named(_) => {
-                let variant_class_name =
-                    format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
-                union_variants.push(variant_class_name);
-            }
-        }
-    }
-
-    Ok(union_variants)
 }
 
 fn render_externally_tagged_enum(
@@ -1916,7 +2323,7 @@ fn render_externally_tagged_enum(
                     generic_params: generic_params.clone(),
                 };
 
-                variant_models.push(variant_model.render()?);
+                variant_models.push(variant_model.render());
                 let union_member = if !generic_params.is_empty() {
                     format!("{}[{}]", variant_class_name, generic_params.join(", "))
                 } else {
@@ -1978,7 +2385,8 @@ fn render_externally_tagged_enum(
                         (false, None, field_type)
                     };
 
-                    let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+                    let (sanitized, alias) =
+                        sanitize_field_name_with_alias(field.name(), field.serde_name());
                     fields.push(templates::Field {
                         name: sanitized,
                         type_annotation: final_field_type,
@@ -1999,7 +2407,7 @@ fn render_externally_tagged_enum(
                     generic_params: generic_params.clone(),
                 };
 
-                variant_models.push(variant_model.render()?);
+                variant_models.push(variant_model.render());
                 let union_member = if !generic_params.is_empty() {
                     format!("{}[{}]", variant_class_name, generic_params.join(", "))
                 } else {
@@ -2017,7 +2425,7 @@ fn render_externally_tagged_enum(
                 ));
 
                 serializer_cases.push(format!(
-                    "        if isinstance(self.root, {variant_class_name}):\n            return {{\"{variant_name}\": self.root.model_dump(exclude_none=True)}}"
+                    "        if isinstance(self.root, {variant_class_name}):\n            return {{\"{variant_name}\": self.root.model_dump()}}"
                 ));
             }
         }
@@ -2025,17 +2433,6 @@ fn render_externally_tagged_enum(
 
     // Check if this enum is generic
     let is_generic = !generic_params.is_empty();
-
-    // Generate TypeVar definitions if generic
-    let type_var_definitions = if is_generic {
-        generic_params
-            .iter()
-            .map(|param| format!("{param} = TypeVar('{param}')"))
-            .collect::<Vec<_>>()
-            .join("\n")
-    } else {
-        String::new()
-    };
 
     // Always use RootModel approach; add Generic[...] when needed
     let template = templates::ExternallyTaggedEnumRootModel {
@@ -2055,384 +2452,13 @@ fn render_externally_tagged_enum(
         is_generic,
         generic_params: generic_params.clone(),
     };
-    let enum_code = template
-        .render()
-        .context("Failed to render externally tagged enum")?;
+    let enum_code = template.render();
 
-    // Generate factory class for ergonomic instantiation
-    let factory_class_code = generate_externally_tagged_factory_class(enum_def, &enum_name)?;
-
-    // Combine all parts
-    let mut result = String::new();
-
-    // Add TypeVar definitions at the top if generic
-    if !type_var_definitions.is_empty() {
-        result.push_str(&type_var_definitions);
-        result.push_str("\n\n");
-    }
-
-    // Add the enum code
-    result.push_str(&enum_code);
-    result.push_str("\n\n");
-
-    // Add the factory code
-    result.push_str(&factory_class_code);
+    // TypeVar definitions are emitted once at the top of the file;
+    // inline declarations are suppressed to avoid collisions with class names.
+    let result = enum_code;
 
     Ok(result)
-}
-
-fn generate_factory_class_with_representation(
-    enum_def: &reflectapi_schema::Enum,
-    enum_name: &str,
-    union_members: &[String],
-    representation: &reflectapi_schema::Representation,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
-    let factory_name = format!("{enum_name}Factory");
-    let mut class_attributes = Vec::new();
-    let mut static_methods = Vec::new();
-
-    // Check if this enum is generic
-    let is_generic = !enum_def.parameters.is_empty();
-    let generic_params: Vec<String> = if is_generic {
-        enum_def.parameters.iter().map(|p| p.name.clone()).collect()
-    } else {
-        Vec::new()
-    };
-
-    let generic_type_params = if is_generic {
-        format!("[{}]", generic_params.join(", "))
-    } else {
-        String::new()
-    };
-
-    for (i, variant) in enum_def.variants.iter().enumerate() {
-        let variant_class_name = &union_members[i];
-
-        match &variant.fields {
-            Fields::None => {
-                // For generic enums, skip unit variants as they cannot be instantiated
-                // (Generic externally tagged enums use Approach B which doesn't support unit variant instantiation)
-                if !is_generic {
-                    // Unit variant - creation method depends on representation
-                    match representation {
-                        reflectapi_schema::Representation::Adjacent { tag, .. } => {
-                            // For adjacently tagged enums, unit variants need to be created as static methods
-                            // returning the RootModel with dictionary format that the validator expects
-                            let method_name = to_snake_case(variant.name());
-                            static_methods.push(format!(
-                                r#"    @staticmethod
-    def {}() -> {}:
-        '''Creates the '{}' variant of the {} enum.'''
-        return {}.model_validate({{"{}": "{}"}})"#,
-                                method_name,
-                                enum_name,
-                                variant.name(),
-                                enum_name,
-                                enum_name,
-                                tag,
-                                variant.name()
-                            ));
-                        }
-                        reflectapi_schema::Representation::External => {
-                            // For externally tagged enums, unit variants are also static methods
-                            let method_name = to_snake_case(variant.name());
-                            static_methods.push(format!(
-                                r#"    @staticmethod
-    def {}() -> {}:
-        '''Creates the '{}' variant of the {} enum.'''
-        return {}("{}")"#,
-                                method_name,
-                                enum_name,
-                                variant.name(),
-                                enum_name,
-                                enum_name,
-                                variant.name()
-                            ));
-                        }
-                        _ => {
-                            // For other representations, create as class attribute directly
-                            class_attributes.push(format!(
-                                "    {} = {}(\"{}\")",
-                                variant.name().to_uppercase(),
-                                enum_name,
-                                variant.name()
-                            ));
-                        }
-                    }
-                }
-            }
-            Fields::Unnamed(_) | Fields::Named(_) => {
-                // Complex variant - create static method
-                let method_name = to_snake_case(variant.name());
-                let method_params = generate_factory_method_params(variant)?;
-                let method_args = generate_factory_method_args(variant)?;
-
-                // For discriminated unions, methods should return the main enum type
-                let (return_type, factory_body) = match representation {
-                    reflectapi_schema::Representation::Internal { .. }
-                    | reflectapi_schema::Representation::Adjacent { .. }
-                    | reflectapi_schema::Representation::External => {
-                        // For discriminated unions, return the main enum type and wrap the variant
-                        let main_return_type = if is_generic {
-                            format!("{enum_name}{generic_type_params}")
-                        } else {
-                            enum_name.to_string()
-                        };
-                        let variant_type = if is_generic && !variant_class_name.contains('[') {
-                            format!("{variant_class_name}{generic_type_params}")
-                        } else {
-                            variant_class_name.clone()
-                        };
-                        let factory_body =
-                            format!("return {enum_name}({variant_type}({method_args}))");
-                        (main_return_type, factory_body)
-                    }
-                    _ => {
-                        // For other representations, return the variant type directly
-                        let return_type = if is_generic && !variant_class_name.contains('[') {
-                            format!("{variant_class_name}{generic_type_params}")
-                        } else {
-                            variant_class_name.clone()
-                        };
-                        let factory_body = format!("return {return_type}({method_args})");
-                        (return_type, factory_body)
-                    }
-                };
-
-                static_methods.push(format!(
-                    r#"    @staticmethod
-    def {}({}) -> {}:
-        '''Creates the '{}' variant of the {} enum.'''
-        {}"#,
-                    method_name,
-                    method_params,
-                    return_type,
-                    variant.name(),
-                    enum_name,
-                    factory_body
-                ));
-            }
-        }
-    }
-
-    let enum_description = if enum_def.description().is_empty() {
-        format!("{enum_name} variants")
-    } else {
-        sanitize_description(enum_def.description())
-    };
-
-    let mut factory_code = format!(
-        r#"class {factory_name}:
-    '''Factory class for creating {enum_name} variants with ergonomic syntax.
-
-    {enum_description}
-    '''"#
-    );
-
-    if !class_attributes.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&class_attributes.join("\n"));
-    }
-
-    if !static_methods.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&static_methods.join("\n\n"));
-    }
-
-    Ok(factory_code)
-}
-
-fn generate_internally_tagged_factory_class(
-    enum_def: &reflectapi_schema::Enum,
-    enum_name: &str,
-    union_variant_names: &[String],
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
-    let factory_name = format!("{enum_name}Factory");
-    let mut class_attributes = Vec::new();
-    let mut static_methods = Vec::new();
-
-    for (i, variant) in enum_def.variants.iter().enumerate() {
-        let variant_name = variant.name();
-        let variant_class_name = &union_variant_names[i];
-
-        match &variant.fields {
-            Fields::None => {
-                // Unit variant - instantiate the variant class directly
-                // For internally tagged enums, unit variants are BaseModel classes
-                class_attributes.push(format!(
-                    "    {} = {}()",
-                    variant_name.to_uppercase(),
-                    variant_class_name
-                ));
-            }
-            Fields::Unnamed(_) | Fields::Named(_) => {
-                // Complex variant - create static method
-                let method_name = to_snake_case(variant_name);
-                let method_params = generate_factory_method_params(variant)?;
-                let method_args = generate_factory_method_args(variant)?;
-
-                static_methods.push(format!(
-                    r#"    @staticmethod
-    def {method_name}({method_params}) -> {variant_class_name}:
-        '''Creates the '{variant_name}' variant of the {enum_name} enum.'''
-        return {variant_class_name}({method_args})"#
-                ));
-            }
-        }
-    }
-
-    let enum_description = if enum_def.description().is_empty() {
-        format!("{enum_name} variants")
-    } else {
-        sanitize_description(enum_def.description())
-    };
-
-    let mut factory_code = format!(
-        r#"class {factory_name}:
-    '''Factory class for creating {enum_name} variants with ergonomic syntax.
-
-    {enum_description}
-    '''"#
-    );
-
-    if !class_attributes.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&class_attributes.join("\n"));
-    }
-
-    if !static_methods.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&static_methods.join("\n\n"));
-    }
-
-    Ok(factory_code)
-}
-
-fn generate_externally_tagged_factory_class(
-    enum_def: &reflectapi_schema::Enum,
-    enum_name: &str,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
-    let factory_name = format!("{enum_name}Factory");
-    let class_attributes: Vec<String> = Vec::new();
-    let mut static_methods = Vec::new();
-
-    for variant in &enum_def.variants {
-        let variant_name = variant.name();
-
-        match &variant.fields {
-            Fields::None => {
-                // Skip unit variants for externally tagged enums
-                // They're already handled by the RootModel validator and instantiating
-                // them here can cause forward reference issues
-                // Users can create them with: EnumName("variant_name")
-            }
-            Fields::Unnamed(_) | Fields::Named(_) => {
-                // Complex variant - create static method that returns wrapped RootModel
-                let method_name = to_snake_case(variant_name);
-                let variant_class_name =
-                    format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
-                let method_params = generate_factory_method_params(variant)?;
-                let method_args = generate_factory_method_args(variant)?;
-
-                static_methods.push(format!(
-                    "    @staticmethod\n    def {method_name}({method_params}) -> {enum_name}:\n        \"\"\"Creates the '{variant_name}' variant of the {enum_name} enum.\"\"\"\n        return {enum_name}({variant_class_name}({method_args}))"
-                ));
-            }
-        }
-    }
-
-    let mut factory_code = format!(
-        "class {factory_name}:\n    \"\"\"Factory class for creating {enum_name} variants with ergonomic syntax.\n\n    {enum_name} variants\n    \"\"\""
-    );
-
-    if !class_attributes.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&class_attributes.join("\n"));
-    }
-
-    if !static_methods.is_empty() {
-        factory_code.push_str("\n\n");
-        factory_code.push_str(&static_methods.join("\n\n"));
-    }
-
-    Ok(factory_code)
-}
-
-fn generate_factory_method_params(variant: &reflectapi_schema::Variant) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
-    match &variant.fields {
-        Fields::None => Ok(String::new()),
-        Fields::Unnamed(unnamed_fields) => {
-            let params: Vec<String> = unnamed_fields
-                .iter()
-                .enumerate()
-                .map(|(i, field)| {
-                    let param_name = format!("field_{i}");
-                    if field.required {
-                        param_name
-                    } else {
-                        format!("{param_name} = None")
-                    }
-                })
-                .collect();
-            Ok(params.join(", "))
-        }
-        Fields::Named(named_fields) => {
-            let mut params: Vec<String> = Vec::new();
-
-            // Separate required and optional parameters for better ergonomics
-            let mut required_params: Vec<String> = Vec::new();
-            let mut optional_params: Vec<String> = Vec::new();
-
-            for field in named_fields {
-                let param_name = to_snake_case(field.serde_name());
-                if field.required {
-                    required_params.push(param_name);
-                } else {
-                    optional_params.push(format!("{param_name} = None"));
-                }
-            }
-
-            // Put required parameters first, then optional ones
-            params.extend(required_params);
-            params.extend(optional_params);
-
-            Ok(params.join(", "))
-        }
-    }
-}
-
-fn generate_factory_method_args(variant: &reflectapi_schema::Variant) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
-    match &variant.fields {
-        Fields::None => Ok(String::new()),
-        Fields::Unnamed(unnamed_fields) => {
-            let args: Vec<String> = (0..unnamed_fields.len())
-                .map(|i| format!("field_{i}=field_{i}"))
-                .collect();
-            Ok(args.join(", "))
-        }
-        Fields::Named(named_fields) => {
-            let args: Vec<String> = named_fields
-                .iter()
-                .map(|field| {
-                    let serde_name = field.serde_name();
-                    let param_name = to_snake_case(serde_name);
-                    let field_name = sanitize_field_name(field.name());
-                    format!("{field_name}={param_name}")
-                })
-                .collect();
-            Ok(args.join(", "))
-        }
-    }
 }
 
 fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<String> {
@@ -2466,12 +2492,10 @@ fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<S
         is_int_enum: !is_float_enum,
     };
 
-    enum_template
-        .render()
-        .context("Failed to render primitive enum")
+    Ok(enum_template.render())
 }
 
-fn render_internally_tagged_enum_without_factory(
+fn render_internally_tagged_enum(
     enum_def: &reflectapi_schema::Enum,
     tag: &str,
     schema: &Schema,
@@ -2511,16 +2535,8 @@ fn render_internally_tagged_enum_core(
 
     let is_generic = !generic_params.is_empty();
 
-    // Generate TypeVar definitions if generic
-    let type_var_definitions = if is_generic {
-        generic_params
-            .iter()
-            .map(|param| format!("{param} = TypeVar('{param}')"))
-            .collect::<Vec<_>>()
-            .join("\n")
-    } else {
-        String::new()
-    };
+    // TypeVar definitions are emitted once at the top of the file;
+    // inline declarations are suppressed to avoid collisions with class names.
 
     // Generate individual classes for each variant
     for variant in &enum_def.variants {
@@ -2623,8 +2639,10 @@ fn render_internally_tagged_enum_core(
                                     (false, None, field_type)
                                 };
 
-                            let (sanitized, alias) =
-                                sanitize_field_name_with_alias(struct_field.name());
+                            let (sanitized, alias) = sanitize_field_name_with_alias(
+                                struct_field.name(),
+                                struct_field.serde_name(),
+                            );
                             fields.push(templates::Field {
                                 name: sanitized,
                                 type_annotation: final_field_type,
@@ -2688,7 +2706,8 @@ fn render_internally_tagged_enum_core(
                         (false, None, field_type)
                     };
 
-                    let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+                    let (sanitized, alias) =
+                        sanitize_field_name_with_alias(field.name(), field.serde_name());
                     fields.push(templates::Field {
                         name: sanitized,
                         type_annotation: final_field_type,
@@ -2715,11 +2734,7 @@ fn render_internally_tagged_enum_core(
             generic_params: generic_params.clone(),
         };
 
-        variant_class_definitions.push(
-            variant_template
-                .render()
-                .context("Failed to render variant class")?,
-        );
+        variant_class_definitions.push(variant_template.render());
     }
 
     // Generate the discriminated union
@@ -2749,16 +2764,10 @@ fn render_internally_tagged_enum_core(
         generic_params: generic_params.clone(),
     };
 
-    let union_definition = union_template.render().context("Failed to render union")?;
+    let union_definition = union_template.render();
 
     // Combine all parts
     let mut result = String::new();
-
-    // Add TypeVar definitions at the top if generic
-    if !type_var_definitions.is_empty() {
-        result.push_str(&type_var_definitions);
-        result.push_str("\n\n");
-    }
 
     // Add variant classes
     result.push_str(&variant_class_definitions.join("\n\n"));
@@ -2795,9 +2804,6 @@ fn render_internally_tagged_enum_core(
             }
         }
     }
-
-    // Don't generate factory inline - it will be generated after model rebuild
-    // to avoid forward reference issues
 
     Ok((result, union_variant_names))
 }
@@ -2858,7 +2864,8 @@ fn render_untagged_enum(
                         (false, None, field_type)
                     };
 
-                    let (sanitized, alias) = sanitize_field_name_with_alias(field.name());
+                    let (sanitized, alias) =
+                        sanitize_field_name_with_alias(field.name(), field.serde_name());
                     fields.push(templates::Field {
                         name: sanitized,
                         type_annotation: final_field_type,
@@ -2925,11 +2932,7 @@ fn render_untagged_enum(
             generic_params: vec![],
         };
 
-        variant_classes.push(
-            variant_template
-                .render()
-                .context("Failed to render untagged variant class")?,
-        );
+        variant_classes.push(variant_template.render());
         union_variants.push(templates::UnionVariant {
             name: variant.name().to_string(),
             type_annotation: variant_class_name.clone(),
@@ -2944,9 +2947,7 @@ fn render_untagged_enum(
         description: Some(enum_def.description().to_string()),
         variants: union_variants,
     };
-    let union_definition = union_template
-        .render()
-        .context("Failed to render untagged union")?;
+    let union_definition = union_template.render();
 
     // Combine all parts
     let mut result = variant_classes.join("\n\n");
@@ -2955,7 +2956,7 @@ fn render_untagged_enum(
     }
     result.push_str(&union_definition);
 
-    // Untagged enums don't use factory classes - variants serialize directly to their values
+    // Untagged enums - variants serialize directly to their values
 
     Ok(result)
 }
@@ -3285,12 +3286,18 @@ fn to_pascal_case(s: &str) -> String {
         .collect()
 }
 
-/// Improve Python class names to be more readable and Pythonic
+/// Produce a unique flat Python class name from a potentially-qualified Rust
+/// type name.
+///
+/// For qualified names (containing `::`), ALL segments are joined into a
+/// single PascalCase identifier to guarantee uniqueness across namespaces.
+/// For example: `"reflectapi_demo::tests::serde::Offer"` → `"ReflectapiDemoTestsSerdeOffer"`.
+///
+/// For type *references* (in annotations), use [`type_name_to_python_ref`]
+/// instead, which produces a dotted path like `reflectapi_demo.tests.serde.Offer`.
 fn improve_class_name(original_name: &str) -> String {
-    // Handle Rust module paths with :: (e.g., "nomatches::IfConflictOnInsert" -> "NomatchesIfConflictOnInsert")
+    // Handle Rust module paths with ::
     if original_name.contains("::") {
-        // Convert Rust-style module paths to PascalCase
-        // e.g., "nomatches::IfConflictOnInsertRequired" -> "NomatchesIfConflictOnInsertRequired"
         let parts: Vec<&str> = original_name.split("::").collect();
         return parts
             .iter()
@@ -3301,13 +3308,33 @@ fn improve_class_name(original_name: &str) -> String {
 
     // Handle dotted namespaces (e.g., "myapi.model.Pet" -> "Pet")
     if original_name.contains('.') {
-        let parts: Vec<&str> = original_name.split('.').collect();
-        if let Some(last_part) = parts.last() {
-            return improve_class_name_part(last_part);
+        if let Some(pos) = original_name.rfind('.') {
+            return improve_class_name_part(&original_name[pos + 1..]);
         }
     }
 
     improve_class_name_part(original_name)
+}
+
+/// Convert a fully-qualified Rust type name to a dotted Python reference.
+///
+/// Each `::` segment becomes a dot-separated component.  Namespace segments
+/// keep their original casing (typically snake_case), while the final leaf
+/// segment is run through `improve_class_name_part` (PascalCase).
+///
+/// Example: `"reflectapi_demo::tests::serde::Offer"` → `"reflectapi_demo.tests.serde.Offer"`
+fn type_name_to_python_ref(original_name: &str) -> String {
+    let parts: Vec<&str> = original_name.split("::").collect();
+    if parts.len() <= 1 {
+        // No namespace — just return the PascalCase leaf.
+        return improve_class_name(original_name);
+    }
+    // Namespace segments keep their original casing; the leaf gets PascalCase.
+    let namespace_parts = &parts[..parts.len() - 1];
+    let leaf = parts.last().unwrap();
+    let mut dotted_parts: Vec<String> = namespace_parts.iter().map(|p| p.to_string()).collect();
+    dotted_parts.push(improve_class_name_part(leaf));
+    dotted_parts.join(".")
 }
 
 /// Improve a single part of a class name
@@ -3385,211 +3412,24 @@ fn to_screaming_snake_case(s: &str) -> String {
     to_snake_case(s).to_uppercase()
 }
 
-/// Generate nested class structure for better Python ergonomics
-fn generate_nested_class_structure(
-    rendered_types: &BTreeMap<String, String>,
-    _schema: &Schema,
-) -> String {
-    let mut nested_classes = Vec::new();
-    let mut namespace_groups: BTreeMap<String, Vec<String>> = BTreeMap::new();
+fn sanitize_field_name_with_alias(name: &str, serde_name: &str) -> (String, Option<String>) {
+    let snake_case = to_snake_case(name);
+    let sanitized = safe_python_identifier(&snake_case);
 
-    // Group types by their namespace
-    for type_name in rendered_types.keys() {
-        if let Some(namespace) = extract_namespace_from_type_name(type_name) {
-            namespace_groups
-                .entry(namespace)
-                .or_default()
-                .push(type_name.clone());
-        }
-    }
+    // Strip leading underscores - Pydantic v2 treats _-prefixed fields as private
+    let sanitized = sanitized.trim_start_matches('_').to_string();
+    let sanitized = if sanitized.is_empty() {
+        // Edge case: name was all underscores
+        "field".to_string()
+    } else {
+        sanitized
+    };
 
-    // Special handling for Kind unions - try to associate them with their related Input/Output types
-    if let Some(unknown_kinds) = namespace_groups.remove("UnknownKind") {
-        for kind_type in unknown_kinds {
-            if kind_type == "MyapiModelKind" {
-                // Look for related Pet types
-                if namespace_groups.contains_key("Pet") {
-                    namespace_groups.get_mut("Pet").unwrap().push(kind_type);
-                }
-            }
-        }
-    }
-
-    // Generate nested classes for each namespace group
-    let mut namespace_pairs: Vec<_> = namespace_groups.into_iter().collect();
-    namespace_pairs.sort_by(|a, b| a.0.cmp(&b.0)); // Sort by namespace name for deterministic output
-    for (namespace, type_names) in namespace_pairs {
-        if type_names.len() >= 2 {
-            // Only create nested classes if there are enough related types
-            let nested_class = generate_namespace_class(&namespace, &type_names, rendered_types);
-            if !nested_class.is_empty() {
-                nested_classes.push(nested_class);
-            }
-        }
-    }
-
-    nested_classes.join("\n\n")
-}
-
-/// Extract namespace from a type name (e.g., "MyapiModelInputPet" -> "Pet")
-fn extract_namespace_from_type_name(type_name: &str) -> Option<String> {
-    // Look for patterns like "MyapiModelXxxYyy" -> "Yyy"
-    if let Some(without_prefix) = type_name.strip_prefix("MyapiModel") {
-        // Look for common patterns
-        if let Some(stripped) = without_prefix.strip_prefix("Input") {
-            return Some(stripped.to_string()); // Remove "Input"
-        } else if let Some(stripped) = without_prefix.strip_prefix("Output") {
-            return Some(stripped.to_string()); // Remove "Output"
-        } else if let Some(remainder) = without_prefix.strip_prefix("Kind") {
-            if remainder.is_empty() {
-                // This is the main Kind union type like "MyapiModelKind" - assign to a generic namespace
-                // We need to infer which namespace this belongs to from the schema context
-                // For now, return a generic namespace that we can map later
-                return Some("UnknownKind".to_string());
-            } else {
-                return Some(remainder.to_string()); // Return the variant name
-            }
-        } else {
-            return Some(without_prefix.to_string());
-        }
-    } else if let Some(without_prefix) = type_name.strip_prefix("MyapiProto") {
-        // Extract base name from request/response patterns
-        if let Some(pos) = without_prefix.find("Request") {
-            return Some(without_prefix[..pos].to_string());
-        } else if let Some(pos) = without_prefix.find("Response") {
-            return Some(without_prefix[..pos].to_string());
-        } else if let Some(pos) = without_prefix.find("Error") {
-            return Some(without_prefix[..pos].to_string());
-        }
-    }
-
-    None
-}
-
-/// Generate a namespace class containing related types
-fn generate_namespace_class(
-    namespace: &str,
-    type_names: &[String],
-    _rendered_types: &BTreeMap<String, String>,
-) -> String {
-    let mut class_content = Vec::new();
-
-    // Find the main types for this namespace
-    let mut input_type = None;
-    let mut output_type = None;
-    let mut kind_variants = Vec::new();
-    let mut request_types = Vec::new();
-    let mut error_types = Vec::new();
-
-    for type_name in type_names {
-        if type_name.contains("Input") {
-            input_type = Some(type_name);
-        } else if type_name.contains("Output") {
-            output_type = Some(type_name);
-        } else if type_name.contains("Kind") {
-            // Include both individual variants (MyapiModelKindDog) and the union type (MyapiModelKind)
-            kind_variants.push(type_name);
-        } else if type_name.contains("Request") {
-            request_types.push(type_name);
-        } else if type_name.contains("Error") {
-            error_types.push(type_name);
-        }
-    }
-
-    // Only generate if we have meaningful groupings
-    if input_type.is_some() || output_type.is_some() || !kind_variants.is_empty() {
-        class_content.push(format!("class {namespace}:"));
-        class_content.push("    \"\"\"Grouped types for better organization.\"\"\"".to_string());
-
-        // Add type aliases for the main types
-        if let Some(input) = input_type {
-            class_content.push(format!("    Input = {input}"));
-        }
-        if let Some(output) = output_type {
-            class_content.push(format!("    Output = {output}"));
-        }
-
-        // Special handling for Kind types - check if there's a main union type we should expose
-        let main_kind_type = "MyapiModelKind".to_string();
-        if kind_variants.contains(&(&main_kind_type)) {
-            class_content.push("    ".to_string());
-            class_content.push("    class Kind:".to_string());
-            class_content.push("        \"\"\"Kind variants for this type.\"\"\"".to_string());
-            class_content.push(format!("        Union = {main_kind_type}"));
-
-            // Also manually add the variants we know exist for common types
-            if namespace == "Pet" {
-                class_content.push("        Dog = MyapiModelKindDog".to_string());
-                class_content.push("        Cat = MyapiModelKindCat".to_string());
-            }
-        }
-
-        // Add requests nested class if we have request types
-        if !request_types.is_empty() {
-            class_content.push("    ".to_string());
-            class_content.push("    class Requests:".to_string());
-            class_content.push("        \"\"\"Request types for this namespace.\"\"\"".to_string());
-
-            for request_name in &request_types {
-                if let Some(request_suffix) = extract_request_suffix(request_name) {
-                    class_content.push(format!("        {request_suffix} = {request_name}"));
-                }
-            }
-        }
-
-        // Add errors nested class if we have error types
-        if !error_types.is_empty() {
-            class_content.push("    ".to_string());
-            class_content.push("    class Errors:".to_string());
-            class_content.push("        \"\"\"Error types for this namespace.\"\"\"".to_string());
-
-            for error_name in &error_types {
-                if let Some(error_suffix) = extract_error_suffix(error_name) {
-                    class_content.push(format!("        {error_suffix} = {error_name}"));
-                }
-            }
-        }
-
-        return class_content.join("\n");
-    }
-
-    String::new()
-}
-
-/// Extract meaningful suffix from request type name
-fn extract_request_suffix(request_name: &str) -> Option<String> {
-    if let Some(pos) = request_name.find("Request") {
-        let prefix = &request_name[..pos];
-        if let Some(stripped) = prefix.strip_prefix("MyapiProto") {
-            return Some(stripped.to_string());
-        }
-    }
-    None
-}
-
-/// Extract meaningful suffix from error type name
-fn extract_error_suffix(error_name: &str) -> Option<String> {
-    if let Some(pos) = error_name.find("Error") {
-        let prefix = &error_name[..pos];
-        if let Some(stripped) = prefix.strip_prefix("MyapiProto") {
-            return Some(stripped.to_string());
-        }
-    }
-    None
-}
-
-fn sanitize_field_name(s: &str) -> String {
-    to_valid_python_identifier(&to_snake_case(s))
-}
-
-fn sanitize_field_name_with_alias(s: &str) -> (String, Option<String>) {
-    let snake_case = to_snake_case(s);
-    let sanitized = to_valid_python_identifier(&snake_case);
-
-    // If the sanitized name is different from the snake_case version,
-    // it means we had to modify it due to Python keywords/builtins
-    if sanitized != snake_case {
-        (sanitized, Some(snake_case))
+    // The wire name (serde_name) is what goes over JSON.
+    // We need an alias whenever the Python field name differs from the wire name.
+    let wire_name = serde_name;
+    if sanitized != wire_name {
+        (sanitized, Some(wire_name.to_string()))
     } else {
         (sanitized, None)
     }
@@ -3757,7 +3597,8 @@ fn type_ref_to_python_type(
             }
         }
 
-        let base_type = improve_class_name(&type_ref.name);
+        // Use dotted namespace path for type references (e.g. "mod::Sub::Ty" → "mod.Sub.Ty")
+        let base_type = type_name_to_python_ref(&type_ref.name);
 
         // Handle generic types with arguments - follow TypeScript pattern
         if !type_ref.arguments.is_empty() {
@@ -4508,54 +4349,211 @@ fn sanitize_description(desc: &str) -> String {
 }
 
 pub mod templates {
-    use super::*;
+    use std::fmt::Write;
 
-    #[derive(Template)]
-    #[template(
-        source = r#"'''
-Generated Python client for {{ package_name }}.
+    use indexmap::IndexMap;
 
-DO NOT MODIFY THIS FILE MANUALLY.
-This file is automatically generated by ReflectAPI.
-'''
+    /// A tree node representing a Python namespace.
+    ///
+    /// Types are always rendered at the module top-level (no nesting) to
+    /// avoid Python class-scope resolution issues.  The namespace hierarchy
+    /// is then rendered as a separate set of namespace `class` wrappers
+    /// that contain type aliases pointing to the top-level definitions.
+    /// This allows dotted access like `reflectapi_demo.tests.serde.Offer`
+    /// while keeping all type definitions in the module globals where
+    /// Pydantic can resolve forward-reference annotation strings.
+    /// Entry in a Module's type list: the rendered code plus metadata
+    /// needed for namespace alias generation.
+    pub struct ModuleType {
+        /// The rendered Python source code for this type.
+        pub rendered: String,
+    }
 
-from __future__ import annotations
-"#,
-        ext = "txt"
-    )]
+    pub struct Module {
+        pub name: String,
+        pub types: Vec<ModuleType>,
+        pub submodules: IndexMap<String, Module>,
+    }
+
+    impl Module {
+        fn is_empty(&self) -> bool {
+            self.types.is_empty() && self.submodules.values().all(|m| m.is_empty())
+        }
+
+        fn has_namespaces(&self) -> bool {
+            !self.submodules.is_empty()
+        }
+
+        /// Render this module tree as Python source code.
+        ///
+        /// Produces two sections:
+        /// 1. All type definitions at module top-level (flat)
+        /// 2. Namespace class hierarchy with aliases for dotted access
+        pub fn render(&self) -> String {
+            let mut out = String::new();
+
+            // Part 1: Emit all types at the top level (flat).
+            self.collect_types_flat(&mut out);
+
+            // Part 2: Emit namespace class hierarchy with aliases.
+            if self.has_namespaces() {
+                writeln!(out).unwrap();
+                writeln!(out, "# Namespace classes for dotted access to types").unwrap();
+                self.render_namespace_aliases(&mut out, 0);
+            }
+
+            out
+        }
+
+        /// Recursively collect all type definitions from the tree and emit
+        /// them at the top level (no indentation wrapping).
+        fn collect_types_flat(&self, out: &mut String) {
+            for mt in &self.types {
+                out.push_str(&mt.rendered);
+                out.push('\n');
+            }
+            for sub in self.submodules.values() {
+                sub.collect_types_flat(out);
+            }
+        }
+
+        /// Extract class and type-alias names defined in rendered type code.
+        ///
+        /// Looks for patterns like `class FooBar(` or `FooBarVariants = `
+        /// at the start of lines.
+        fn extract_defined_names(type_code: &str) -> Vec<String> {
+            let mut names = Vec::new();
+            for line in type_code.lines() {
+                // Only match top-level definitions (no leading whitespace)
+                // to avoid leaking enum members or nested assignments
+                if line.starts_with(' ') || line.starts_with('\t') {
+                    continue;
+                }
+                let trimmed = line.trim();
+                if let Some(rest) = trimmed.strip_prefix("class ") {
+                    if let Some(paren) = rest.find('(') {
+                        let name = &rest[..paren];
+                        if !name.is_empty() {
+                            names.push(name.to_string());
+                        }
+                    } else if let Some(colon) = rest.find(':') {
+                        let name = &rest[..colon];
+                        if !name.is_empty() {
+                            names.push(name.to_string());
+                        }
+                    }
+                } else if let Some(eq_pos) = trimmed.find(" = ") {
+                    let name = &trimmed[..eq_pos];
+                    let value = trimmed[eq_pos + 3..].trim();
+                    // Only match PascalCase type aliases (not enum members, constants,
+                    // or internal *Variants union aliases).
+                    // Skip short names (1-2 chars) which are likely TypeVars, and
+                    // also skip any assignment whose value contains `TypeVar`.
+                    if name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+                        && !name.chars().all(|c| c.is_ascii_uppercase() || c == '_')
+                        && !name.ends_with("Variants")
+                        && name.len() > 2
+                        && !value.contains("TypeVar")
+                    {
+                        names.push(name.to_string());
+                    }
+                }
+            }
+            names
+        }
+
+        /// Render namespace alias classes for dotted access.
+        ///
+        /// `ns_path` accumulates the namespace segments for computing the
+        /// flat name prefix that needs to be stripped.
+        fn render_namespace_aliases(&self, out: &mut String, indent_level: usize) {
+            self.render_namespace_aliases_inner(out, indent_level, &[]);
+        }
+
+        fn render_namespace_aliases_inner(
+            &self,
+            out: &mut String,
+            indent_level: usize,
+            ns_path: &[&str],
+        ) {
+            for sub in self.submodules.values() {
+                if sub.is_empty() {
+                    continue;
+                }
+                let indent = " ".repeat(indent_level * 4);
+                let inner_indent = " ".repeat((indent_level + 1) * 4);
+
+                writeln!(out, "{indent}class {}:", sub.name).unwrap();
+                writeln!(
+                    out,
+                    "{inner_indent}\"\"\"Namespace for {} types.\"\"\"",
+                    sub.name
+                )
+                .unwrap();
+
+                // Compute the flat PascalCase prefix for this namespace level.
+                // e.g., for path ["reflectapi_demo", "tests", "serde"], prefix = "ReflectapiDemoTestsSerde"
+                let mut full_path: Vec<&str> = ns_path.to_vec();
+                full_path.push(&sub.name);
+                let flat_prefix: String = full_path
+                    .iter()
+                    .map(|seg| {
+                        // PascalCase each segment (same logic as to_pascal_case)
+                        seg.replace("::", "_")
+                            .split('_')
+                            .map(|word| {
+                                let mut chars = word.chars();
+                                match chars.next() {
+                                    None => String::new(),
+                                    Some(first) => first.to_uppercase().chain(chars).collect(),
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                            .join("")
+                    })
+                    .collect::<Vec<_>>()
+                    .join("");
+
+                // Add aliases for ALL names defined in this module's type code.
+                // Strip the flat namespace prefix to produce leaf alias names.
+                for mt in &sub.types {
+                    for flat_name in Self::extract_defined_names(&mt.rendered) {
+                        let leaf = if flat_name.starts_with(&flat_prefix) {
+                            &flat_name[flat_prefix.len()..]
+                        } else {
+                            &flat_name
+                        };
+                        // Skip empty leaves (shouldn't happen, but be safe)
+                        if !leaf.is_empty() {
+                            writeln!(out, "{inner_indent}{leaf} = {flat_name}").unwrap();
+                        }
+                    }
+                }
+
+                // Recurse into submodules
+                if !sub.submodules.is_empty() {
+                    writeln!(out).unwrap();
+                    sub.render_namespace_aliases_inner(out, indent_level + 1, &full_path);
+                }
+
+                writeln!(out).unwrap();
+            }
+        }
+    }
+
     pub struct FileHeader {
         pub package_name: String,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"
-# Standard library imports
-{% if has_datetime %}from datetime import datetime{% if has_date %}, date{% endif %}{% if has_timedelta %}, timedelta{% endif %}
-{% else if has_date %}from datetime import date{% if has_timedelta %}, timedelta{% endif %}
-{% else if has_timedelta %}from datetime import timedelta
-{% endif %}{% if has_enums %}from enum import Enum
-{% endif %}from typing import Any, Optional, TypeVar, Generic, Union{% if has_annotated %}, Annotated{% endif %}{% if has_literal %}, Literal{% endif %}
-{% if has_uuid %}from uuid import UUID
-{% endif %}{% if has_warnings %}import warnings
-{% endif %}
+    impl FileHeader {
+        pub fn render(&self) -> String {
+            format!(
+                "'''\nGenerated Python client for {}.\n\nDO NOT MODIFY THIS FILE MANUALLY.\nThis file is automatically generated by ReflectAPI.\n'''\n\nfrom __future__ import annotations\n",
+                self.package_name
+            )
+        }
+    }
 
-# Third-party imports
-from pydantic import BaseModel, ConfigDict, Field{% if has_externally_tagged_enums %}, RootModel, model_validator, model_serializer, PrivateAttr{% endif %}
-
-# Runtime imports
-{% if has_async %}{% if has_sync %}from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse{% else %}from reflectapi_runtime import AsyncClientBase, ApiResponse{% endif %}{% else %}{% if has_sync %}from reflectapi_runtime import ClientBase, ApiResponse{% endif %}{% endif %}
-{% if has_reflectapi_option %}from reflectapi_runtime import ReflectapiOption
-{% endif %}{% if has_reflectapi_empty %}from reflectapi_runtime import ReflectapiEmpty
-{% endif %}{% if has_reflectapi_infallible %}from reflectapi_runtime import ReflectapiInfallible
-{% endif %}{% if has_testing %}from reflectapi_runtime.testing import MockClient, create_api_response
-{% endif %}
-
-{% for type_var in global_type_vars %}{{ type_var }} = TypeVar('{{ type_var }}')
-{% endfor %}
-"#,
-        ext = "txt"
-    )]
     pub struct Imports {
         pub has_async: bool,
         pub has_sync: bool,
@@ -4564,7 +4562,6 @@ from pydantic import BaseModel, ConfigDict, Field{% if has_externally_tagged_enu
         pub has_reflectapi_option: bool,
         pub has_reflectapi_empty: bool,
         pub has_reflectapi_infallible: bool,
-        pub has_flatten_support: bool,
         pub has_warnings: bool,
         pub has_datetime: bool,
         pub has_uuid: bool,
@@ -4578,19 +4575,6 @@ from pydantic import BaseModel, ConfigDict, Field{% if has_externally_tagged_enu
         pub global_type_vars: Vec<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"class {{ name }}(BaseModel{% if is_generic %}, Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]{% endif %}):
-{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
-{% else %}    """Generated data model."""
-{% endif %}
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-{% for field in fields %}    {{ field.name }}: {{ field.type_annotation }}{% if field.alias.is_some() %} = Field{% if field.default_value.is_some() %}(default={{ field.default_value.as_ref().unwrap() }}, serialization_alias='{{ field.alias.as_deref().unwrap() }}', validation_alias='{{ field.alias.as_deref().unwrap() }}'){% else if field.optional %}(default=None, serialization_alias='{{ field.alias.as_deref().unwrap() }}', validation_alias='{{ field.alias.as_deref().unwrap() }}'){% else %}(serialization_alias='{{ field.alias.as_deref().unwrap() }}', validation_alias='{{ field.alias.as_deref().unwrap() }}'){% endif %}{% else %}{% if field.optional %} = None{% else if field.default_value.is_some() %} = {{ field.default_value.as_ref().unwrap() }}{% endif %}{% endif %}
-{% endfor %}
-"#,
-        ext = "txt"
-    )]
     pub struct DataClass {
         pub name: String,
         pub description: Option<String>,
@@ -4600,40 +4584,108 @@ from pydantic import BaseModel, ConfigDict, Field{% if has_externally_tagged_enu
         pub generic_params: Vec<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"class {{ name }}(str, Enum):
-{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
-{% else %}    """Generated enum."""
-{% endif %}
+    impl DataClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            if self.is_generic {
+                let params = self.generic_params.join(", ");
+                writeln!(s, "class {}(BaseModel, Generic[{}]):", self.name, params).unwrap();
+            } else {
+                writeln!(s, "class {}(BaseModel):", self.name).unwrap();
+            }
+            if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                } else {
+                    writeln!(s, "    \"\"\"Generated data model.\"\"\"").unwrap();
+                }
+            } else {
+                writeln!(s, "    \"\"\"Generated data model.\"\"\"").unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(
+                s,
+                "    model_config = ConfigDict(extra=\"ignore\", populate_by_name=True)"
+            )
+            .unwrap();
+            writeln!(s).unwrap();
+            for field in &self.fields {
+                write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
 
-{% if variants.is_empty() %}    pass
-{% else %}{% for variant in variants %}    {{ variant.name }} = "{{ variant.value }}"
-{% endfor %}{% endif %}
-"#,
-        ext = "txt"
-    )]
+                // Build Field() kwargs: description, alias, default
+                let desc = field
+                    .description
+                    .as_ref()
+                    .filter(|d| !d.is_empty() && !d.starts_with("(flattened"))
+                    .map(|d| super::sanitize_for_string_literal(d));
+                let has_field_args = desc.is_some()
+                    || field.alias.is_some()
+                    || (field.optional && field.alias.is_none());
+
+                if has_field_args && (desc.is_some() || field.alias.is_some()) {
+                    // Need Field() with named arguments
+                    write!(s, " = Field(").unwrap();
+                    let mut args = Vec::new();
+                    if let Some(default) = &field.default_value {
+                        args.push(format!("default={default}"));
+                    } else if field.optional {
+                        args.push("default=None".to_string());
+                    }
+                    if let Some(alias) = &field.alias {
+                        args.push(format!("serialization_alias='{alias}'"));
+                        args.push(format!("validation_alias='{alias}'"));
+                    }
+                    if let Some(ref d) = desc {
+                        args.push(format!("description=\"{d}\""));
+                    }
+                    write!(s, "{}", args.join(", ")).unwrap();
+                    write!(s, ")").unwrap();
+                } else if field.optional {
+                    write!(s, " = None").unwrap();
+                } else if let Some(default) = &field.default_value {
+                    write!(s, " = {default}").unwrap();
+                }
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            s
+        }
+    }
+
     pub struct EnumClass {
         pub name: String,
         pub description: Option<String>,
         pub variants: Vec<EnumVariant>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% if is_int_enum %}from enum import IntEnum{% else %}from enum import Enum{% endif %}
+    impl EnumClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "class {}(str, Enum):", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                } else {
+                    writeln!(s, "    \"\"\"Generated enum.\"\"\"").unwrap();
+                }
+            } else {
+                writeln!(s, "    \"\"\"Generated enum.\"\"\"").unwrap();
+            }
+            writeln!(s).unwrap();
+            if self.variants.is_empty() {
+                writeln!(s, "    pass").unwrap();
+            } else {
+                for variant in &self.variants {
+                    writeln!(s, "    {} = \"{}\"", variant.name, variant.value).unwrap();
+                }
+            }
+            writeln!(s).unwrap();
+            s
+        }
+    }
 
-class {{ name }}({% if is_int_enum %}IntEnum{% else %}Enum{% endif %}):
-{% if description.is_some() %}    """{{ description.as_deref().unwrap() }}"""
-
-{% endif %}{% for variant in variants %}
-    {{ variant.name }} = {{ variant.value }}
-{% if variant.description.is_some() %}    """{{ variant.description.as_deref().unwrap() }}"""
-{% endif %}
-{% endfor %}
-"#,
-        ext = "txt"
-    )]
     pub struct PrimitiveEnumClass {
         pub name: String,
         pub description: Option<String>,
@@ -4641,32 +4693,36 @@ class {{ name }}({% if is_int_enum %}IntEnum{% else %}Enum{% endif %}):
         pub is_int_enum: bool,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% if is_generic %}
-class {{ name }}(Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]):
-    """{{ description.as_deref().unwrap_or("Generated discriminated union type.") }}"""
+    impl PrimitiveEnumClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            if self.is_int_enum {
+                writeln!(s, "from enum import IntEnum").unwrap();
+            } else {
+                writeln!(s, "from enum import Enum").unwrap();
+            }
+            writeln!(s).unwrap();
+            let base = if self.is_int_enum { "IntEnum" } else { "Enum" };
+            writeln!(s, "class {}({}):", self.name, base).unwrap();
+            if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
+                writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                writeln!(s).unwrap();
+            }
+            for variant in &self.variants {
+                writeln!(s).unwrap();
+                writeln!(s, "    {} = {}", variant.name, variant.value).unwrap();
+                if let Some(desc) = &variant.description {
+                    let desc = super::sanitize_for_docstring(desc);
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                }
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            s
+        }
+    }
 
-    @classmethod
-    def __class_getitem__(cls, params):
-        """Enable subscripting for generic discriminated union."""
-        if not isinstance(params, tuple):
-            params = (params,)
-        if len(params) != {{ generic_params.len() }}:
-            raise TypeError(f"Expected {{ generic_params.len() }} type parameters, got {len(params)}")
-
-        return Annotated[
-            Union[{% for variant in variants %}{{ variant.base_name }}[{% for param in generic_params %}params[{{ loop.index0 }}]{% if !loop.last %}, {% endif %}{% endfor %}]{% if !loop.last %}, {% endif %}{% endfor %}],
-            Field(discriminator='{{ discriminator_field }}')
-        ]
-{% else %}
-class {{ name }}(RootModel):
-    root: Annotated[Union[{% for variant in variants %}{{ variant.type_annotation }}{% if !loop.last %}, {% endif %}{% endfor %}], Field(discriminator='{{ discriminator_field }}')]
-{% endif %}
-{% if description.is_some() && !description.as_deref().unwrap_or("").is_empty() && !is_generic %}"""{{ description.as_deref().unwrap() }}"""{% endif %}
-"#,
-        ext = "txt"
-    )]
     pub struct UnionClass {
         pub name: String,
         pub description: Option<String>,
@@ -4676,333 +4732,118 @@ class {{ name }}(RootModel):
         pub generic_params: Vec<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{{ name }} = Union[{% for variant in variants %}{{ variant.type_annotation }}{% if !loop.last %}, {% endif %}{% endfor %}]
-{% if description.is_some() && !description.as_deref().unwrap_or("").is_empty() %}"""{{ description.as_deref().unwrap() }}"""{% endif %}
-"#,
-        ext = "txt"
-    )]
+    impl UnionClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            if self.is_generic {
+                let params = self.generic_params.join(", ");
+                writeln!(s).unwrap();
+                writeln!(s, "class {}(Generic[{}]):", self.name, params).unwrap();
+                let desc = super::sanitize_for_docstring(
+                    self.description
+                        .as_deref()
+                        .unwrap_or("Generated discriminated union type."),
+                );
+                writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    @classmethod").unwrap();
+                writeln!(s, "    def __class_getitem__(cls, params):").unwrap();
+                writeln!(
+                    s,
+                    "        \"\"\"Enable subscripting for generic discriminated union.\"\"\""
+                )
+                .unwrap();
+                writeln!(s, "        if not isinstance(params, tuple):").unwrap();
+                writeln!(s, "            params = (params,)").unwrap();
+                writeln!(
+                    s,
+                    "        if len(params) != {}:",
+                    self.generic_params.len()
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "            raise TypeError(f\"Expected {} type parameters, got {{len(params)}}\")",
+                    self.generic_params.len()
+                )
+                .unwrap();
+                writeln!(s).unwrap();
+                // Build the Union expression
+                let variant_exprs: Vec<String> = self
+                    .variants
+                    .iter()
+                    .map(|v| {
+                        let param_exprs: Vec<String> = (0..self.generic_params.len())
+                            .map(|i| format!("params[{i}]"))
+                            .collect();
+                        format!("{}[{}]", v.base_name, param_exprs.join(", "))
+                    })
+                    .collect();
+                writeln!(s, "        return Annotated[").unwrap();
+                writeln!(s, "            Union[{}],", variant_exprs.join(", ")).unwrap();
+                writeln!(
+                    s,
+                    "            Field(discriminator='{}')",
+                    self.discriminator_field
+                )
+                .unwrap();
+                writeln!(s, "        ]").unwrap();
+            } else {
+                writeln!(s).unwrap();
+                writeln!(s, "class {}(RootModel):", self.name).unwrap();
+                let type_annotations: Vec<&str> = self
+                    .variants
+                    .iter()
+                    .map(|v| v.type_annotation.as_str())
+                    .collect();
+                writeln!(
+                    s,
+                    "    root: Annotated[Union[{}], Field(discriminator='{}')]",
+                    type_annotations.join(", "),
+                    self.discriminator_field
+                )
+                .unwrap();
+            }
+            writeln!(s).unwrap();
+            if !self.is_generic {
+                if let Some(desc) = &self.description {
+                    let desc = super::sanitize_for_docstring(desc);
+                    if !desc.is_empty() {
+                        writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
+                    }
+                }
+            }
+            writeln!(s).unwrap();
+            s
+        }
+    }
+
     pub struct UntaggedUnionClass {
         pub name: String,
         pub description: Option<String>,
         pub variants: Vec<UnionVariant>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% if generate_async %}
-{% for group in function_groups %}
-class Async{{ group.class_name }}:
-    """Async client for {{ group.name }} operations."""
-
-    def __init__(self, client: AsyncClientBase) -> None:
-        self._client = client
-{% for function in group.functions %}
-
-    async def {{ function.name }}(
-        self,
-{%- for param in function.path_params %}
-        {{ param.name }}: {{ param.type_annotation }},
-{%- endfor %}
-{%- if function.has_body %}
-        data: Optional[{{ function.input_type }}] = None,
-{%- endif %}
-{%- if function.headers_type.is_some() %}
-        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{%- endif %}
-    ) -> ApiResponse[{{ function.output_type }}]:
-        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body || !function.path_params.is_empty() %}
-
-        Args:{% if function.has_body %}
-            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
-{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}{% endif %}
-
-        Returns:
-            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-
-        .. deprecated::
-           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
-        """
-        {% if function.deprecation_note.is_some() %}
-        warnings.warn(
-            "{% if function.original_name.is_some() %}{{ function.original_name.as_deref().unwrap() }}{% else %}{{ function.name }}{% endif %} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        {% endif -%}
-        path = "{{ function.path }}"
-{% if !function.path_params.is_empty() %}
-        # Format path parameters using safer string formatting
-        path_params = {
-{% for param in function.path_params %}
-            "{{ param.raw_name }}": str({{ param.name }}),
-{% endfor %}
+    impl UntaggedUnionClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            let type_annotations: Vec<&str> = self
+                .variants
+                .iter()
+                .map(|v| v.type_annotation.as_str())
+                .collect();
+            writeln!(s, "{} = Union[{}]", self.name, type_annotations.join(", ")).unwrap();
+            if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
+                if !desc.is_empty() {
+                    writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
+                }
+            }
+            writeln!(s).unwrap();
+            s
         }
-        for param_name, param_value in path_params.items():
-            path = path.replace("{" + param_name + "}", param_value)
-{% endif %}
-        params: dict[str, Any] = {}
-        return await self._client._make_request(
-            "{{ function.method }}",
-            path,
-            params=params if params else None,
-{% if function.has_body -%}
-{% if function.is_input_primitive %}            json_data=data,
-{% else %}            json_model=data,
-{% endif -%}
-{% endif -%}
-{% if function.headers_type.is_some() %}            headers_model=headers,
-{% endif -%}
-{% if function.output_type == "Any" %}            response_model=None,
-{% else %}            response_model={{ function.output_type }},
-{% endif -%}
-        )
+    }
 
-{% endfor %}
-
-{% endfor %}
-class {{ async_class_name }}(AsyncClientBase):
-    """Async client for the API."""
-
-    def __init__(
-        self,
-        base_url: str{% if base_url.is_some() %} = "{{ base_url.as_ref().unwrap() }}"{% endif %},
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(base_url, **kwargs)
-{% for group in function_groups %}
-        self.{{ group.name }} = Async{{ group.class_name }}(self)
-{% endfor %}
-
-{% for function in top_level_functions %}
-    async def {{ function.name }}(
-        self,
-{%- for param in function.path_params %}
-        {{ param.name }}: {{ param.type_annotation }},
-{%- endfor %}
-{%- if function.has_body %}
-        data: Optional[{{ function.input_type }}] = None,
-{%- endif %}
-{%- if function.headers_type.is_some() %}
-        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{%- endif %}
-    ) -> ApiResponse[{{ function.output_type }}]:
-        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
-
-        Args:
-            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
-{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}
-
-        Returns:
-            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-
-        .. deprecated::
-           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
-        """
-        {% if function.deprecation_note.is_some() %}
-        warnings.warn(
-            "{{ function.name }} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        {% endif -%}
-        path = "{{ function.path }}"
-{% if !function.path_params.is_empty() %}
-        # Format path parameters using safer string formatting
-        path_params = {
-{% for param in function.path_params %}
-            "{{ param.name }}": str({{ param.name }}),
-{% endfor %}
-        }
-        for param_name, param_value in path_params.items():
-            path = path.replace("{" + param_name + "}", param_value)
-{% endif %}
-        params: dict[str, Any] = {}
-        return await self._make_request(
-            "{{ function.method }}",
-            path,
-            params=params if params else None,
-{% if function.has_body -%}
-{% if function.is_input_primitive %}            json_data=data,
-{% else %}            json_model=data,
-{% endif -%}
-{% endif -%}
-{% if function.headers_type.is_some() %}            headers_model=headers,
-{% endif -%}
-{% if function.output_type == "Any" %}            response_model=None,
-{% else %}            response_model={{ function.output_type }},
-{% endif -%}
-        )
-
-{% endfor %}
-
-{% endif %}
-
-{% if generate_sync %}
-{% for group in function_groups %}
-class {{ group.class_name }}:
-    """Synchronous client for {{ group.name }} operations."""
-
-    def __init__(self, client: ClientBase) -> None:
-        self._client = client
-{% for function in group.functions %}
-
-    def {{ function.name }}(
-        self,
-{%- for param in function.path_params %}
-        {{ param.name }}: {{ param.type_annotation }},
-{%- endfor %}
-{%- if function.has_body %}
-        data: Optional[{{ function.input_type }}] = None,
-{%- endif %}
-{%- if function.headers_type.is_some() %}
-        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{%- endif %}
-    ) -> ApiResponse[{{ function.output_type }}]:
-        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body || !function.path_params.is_empty() %}
-
-        Args:{% if function.has_body %}
-            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
-{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}{% endif %}
-
-        Returns:
-            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-
-        .. deprecated::
-           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
-        """
-        {% if function.deprecation_note.is_some() %}
-        warnings.warn(
-            "{% if function.original_name.is_some() %}{{ function.original_name.as_deref().unwrap() }}{% else %}{{ function.name }}{% endif %} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        {% endif -%}
-        path = "{{ function.path }}"
-{% if !function.path_params.is_empty() %}
-        # Format path parameters using safer string formatting
-        path_params = {
-{% for param in function.path_params %}
-            "{{ param.raw_name }}": str({{ param.name }}),
-{% endfor %}
-        }
-        for param_name, param_value in path_params.items():
-            path = path.replace("{" + param_name + "}", param_value)
-{% endif %}
-        params: dict[str, Any] = {}
-        return self._client._make_request(
-            "{{ function.method }}",
-            path,
-            params=params if params else None,
-{% if function.has_body -%}
-{% if function.is_input_primitive %}            json_data=data,
-{% else %}            json_model=data,
-{% endif -%}
-{% endif -%}
-{% if function.headers_type.is_some() %}            headers_model=headers,
-{% endif -%}
-{% if function.output_type == "Any" %}            response_model=None,
-{% else %}            response_model={{ function.output_type }},
-{% endif -%}
-        )
-
-{% endfor %}
-
-{% endfor %}
-class {{ class_name }}(ClientBase):
-    """Synchronous client for the API."""
-
-    def __init__(
-        self,
-        base_url: str{% if base_url.is_some() %} = "{{ base_url.as_ref().unwrap() }}"{% endif %},
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(base_url, **kwargs)
-{% for group in function_groups %}
-        self.{{ group.name }} = {{ group.class_name }}(self)
-{% endfor %}
-
-{% for function in top_level_functions %}
-    def {{ function.name }}(
-        self,
-{%- for param in function.path_params %}
-        {{ param.name }}: {{ param.type_annotation }},
-{%- endfor %}
-{%- if function.has_body %}
-        data: Optional[{{ function.input_type }}] = None,
-{%- endif %}
-{%- if function.headers_type.is_some() %}
-        headers: Optional[{{ function.headers_type.as_deref().unwrap() }}] = None,
-{%- endif %}
-    ) -> ApiResponse[{{ function.output_type }}]:
-        """{{ function.description.as_deref().unwrap_or("") }}{% if function.has_body %}
-
-        Args:
-            data: Request data for the {{ function.name }} operation.{% endif %}{% if !function.path_params.is_empty() %}
-{% for param in function.path_params %}            {{ param.name }}: {{ param.description.as_deref().unwrap_or("Path parameter") }}
-{% endfor %}{% endif %}
-
-        Returns:
-            ApiResponse[{{ function.output_type }}]: Response containing {{ function.output_type }} data{% if function.deprecation_note.is_some() %}
-
-        .. deprecated::
-           {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}
-        """
-        {% if function.deprecation_note.is_some() %}
-        warnings.warn(
-            "{{ function.name }} is deprecated{% if !function.deprecation_note.as_deref().unwrap().is_empty() %}: {{ function.deprecation_note.as_deref().unwrap() }}{% endif %}",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        {% endif %}
-        path = "{{ function.path }}"
-{% if !function.path_params.is_empty() %}
-        # Format path parameters using safer string formatting
-        path_params = {
-{% for param in function.path_params %}
-            "{{ param.name }}": str({{ param.name }}),
-{% endfor %}
-        }
-        for param_name, param_value in path_params.items():
-            path = path.replace("{" + param_name + "}", param_value)
-{% endif %}
-
-        params: dict[str, Any] = {}
-
-        return await self._make_request(
-            "{{ function.method }}",
-            path,
-            params=params if params else None,
-{% if function.has_body %}
-{% if function.is_input_primitive %}
-            json_data=data,
-{% else %}
-            json_model=data,
-{% endif %}
-{% endif %}
-{% if function.headers_type.is_some() %}
-            headers_model=headers,
-{% endif %}
-{% if function.output_type == "Any" %}
-            response_model=None,
-{% else %}
-            response_model={{ function.output_type }},
-{% endif %}
-        )
-
-{% endfor %}
-
-{% endif %}
-"#,
-        ext = "txt"
-    )]
     pub struct ClientClass {
         pub class_name: String,
         pub async_class_name: String,
@@ -5013,27 +4854,337 @@ class {{ class_name }}(ClientBase):
         pub base_url: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"# Testing utilities
+    impl ClientClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
 
-{% for type_name in types %}
-def create_{{ type_name.to_lowercase() }}_response(value: {{ type_name }}) -> ApiResponse[{{ type_name }}]:
-    """Create a mock ApiResponse for {{ type_name }}."""
-    return create_api_response(value)
+            if self.generate_async {
+                // Async group classes
+                for group in &self.function_groups {
+                    writeln!(s).unwrap();
+                    writeln!(s, "class Async{}:", group.class_name).unwrap();
+                    writeln!(
+                        s,
+                        "    \"\"\"Async client for {} operations.\"\"\"",
+                        group.name
+                    )
+                    .unwrap();
+                    writeln!(s).unwrap();
+                    writeln!(
+                        s,
+                        "    def __init__(self, client: AsyncClientBase) -> None:"
+                    )
+                    .unwrap();
+                    writeln!(s, "        self._client = client").unwrap();
 
-{% endfor %}
+                    for function in &group.functions {
+                        Self::write_function(&mut s, function, true, true, true);
+                    }
+                    writeln!(s).unwrap();
+                }
 
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()
-"#,
-        ext = "txt"
-    )]
+                // Async client class
+                writeln!(s).unwrap();
+                writeln!(s, "class {}(AsyncClientBase):", self.async_class_name).unwrap();
+                writeln!(s, "    \"\"\"Async client for the API.\"\"\"").unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    def __init__(").unwrap();
+                writeln!(s, "        self,").unwrap();
+                if let Some(base_url) = &self.base_url {
+                    writeln!(s, "        base_url: str = \"{base_url}\",").unwrap();
+                } else {
+                    writeln!(s, "        base_url: str,").unwrap();
+                }
+                writeln!(s, "        **kwargs: Any,").unwrap();
+                writeln!(s, "    ) -> None:").unwrap();
+                writeln!(s, "        super().__init__(base_url, **kwargs)").unwrap();
+                writeln!(s).unwrap();
+                for group in &self.function_groups {
+                    writeln!(s).unwrap();
+                    writeln!(
+                        s,
+                        "        self.{} = Async{}(self)",
+                        group.name, group.class_name
+                    )
+                    .unwrap();
+                }
+                writeln!(s).unwrap();
+
+                for function in &self.top_level_functions {
+                    Self::write_function(&mut s, function, true, false, true);
+                }
+                writeln!(s).unwrap();
+            }
+
+            writeln!(s).unwrap();
+
+            if self.generate_sync {
+                // Sync group classes
+                for group in &self.function_groups {
+                    writeln!(s).unwrap();
+                    writeln!(s, "class {}:", group.class_name).unwrap();
+                    writeln!(
+                        s,
+                        "    \"\"\"Synchronous client for {} operations.\"\"\"",
+                        group.name
+                    )
+                    .unwrap();
+                    writeln!(s).unwrap();
+                    writeln!(s, "    def __init__(self, client: ClientBase) -> None:").unwrap();
+                    writeln!(s, "        self._client = client").unwrap();
+
+                    for function in &group.functions {
+                        Self::write_function(&mut s, function, false, true, true);
+                    }
+                    writeln!(s).unwrap();
+                }
+
+                // Sync client class
+                writeln!(s).unwrap();
+                writeln!(s, "class {}(ClientBase):", self.class_name).unwrap();
+                writeln!(s, "    \"\"\"Synchronous client for the API.\"\"\"").unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    def __init__(").unwrap();
+                writeln!(s, "        self,").unwrap();
+                if let Some(base_url) = &self.base_url {
+                    writeln!(s, "        base_url: str = \"{base_url}\",").unwrap();
+                } else {
+                    writeln!(s, "        base_url: str,").unwrap();
+                }
+                writeln!(s, "        **kwargs: Any,").unwrap();
+                writeln!(s, "    ) -> None:").unwrap();
+                writeln!(s, "        super().__init__(base_url, **kwargs)").unwrap();
+                writeln!(s).unwrap();
+                for group in &self.function_groups {
+                    writeln!(s).unwrap();
+                    writeln!(
+                        s,
+                        "        self.{} = {}(self)",
+                        group.name, group.class_name
+                    )
+                    .unwrap();
+                }
+                writeln!(s).unwrap();
+
+                for function in &self.top_level_functions {
+                    Self::write_function(&mut s, function, false, false, false);
+                }
+                writeln!(s).unwrap();
+            }
+
+            writeln!(s).unwrap();
+            s
+        }
+
+        fn write_function(
+            s: &mut String,
+            function: &Function,
+            is_async: bool,
+            is_group: bool,
+            use_raw_name_for_path_params: bool,
+        ) {
+            writeln!(s).unwrap();
+            // Method signature
+            if is_async {
+                writeln!(s, "    async def {}(", function.name).unwrap();
+            } else {
+                writeln!(s, "    def {}(", function.name).unwrap();
+            }
+            writeln!(s, "        self,").unwrap();
+            for param in &function.path_params {
+                writeln!(s, "        {}: {},", param.name, param.type_annotation).unwrap();
+            }
+            if function.has_body {
+                writeln!(s, "        data: Optional[{}] = None,", function.input_type).unwrap();
+            }
+            if let Some(headers_type) = &function.headers_type {
+                writeln!(s, "        headers: Optional[{headers_type}] = None,").unwrap();
+            }
+            if let Some(error_type) = &function.error_type {
+                writeln!(
+                    s,
+                    "    ) -> ApiResponse[{}, {}]:",
+                    function.output_type, error_type
+                )
+                .unwrap();
+            } else {
+                writeln!(s, "    ) -> ApiResponse[{}]:", function.output_type).unwrap();
+            }
+
+            // Docstring
+            let desc = super::sanitize_for_docstring(function.description.as_deref().unwrap_or(""));
+            write!(s, "        \"\"\"{desc}").unwrap();
+            if function.has_body || !function.path_params.is_empty() {
+                writeln!(s).unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "        Args:").unwrap();
+                if function.has_body {
+                    writeln!(
+                        s,
+                        "            data: Request data for the {} operation.",
+                        function.name
+                    )
+                    .unwrap();
+                }
+                for param in &function.path_params {
+                    let param_desc = super::sanitize_for_docstring(
+                        param.description.as_deref().unwrap_or("Path parameter"),
+                    );
+                    writeln!(s, "            {}: {}", param.name, param_desc).unwrap();
+                }
+                writeln!(s).unwrap();
+            } else {
+                writeln!(s).unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s, "        Returns:").unwrap();
+            if let Some(error_type) = &function.error_type {
+                writeln!(
+                    s,
+                    "            ApiResponse[{}, {}]: Success={}, Error={}",
+                    function.output_type, error_type, function.output_type, error_type
+                )
+                .unwrap();
+            } else {
+                writeln!(
+                    s,
+                    "            ApiResponse[{}]: Response containing {} data",
+                    function.output_type, function.output_type
+                )
+                .unwrap();
+            }
+            if let Some(dep_note) = &function.deprecation_note {
+                let dep_note = super::sanitize_for_docstring(dep_note);
+                writeln!(s).unwrap();
+                writeln!(s, "        .. deprecated::").unwrap();
+                writeln!(s, "           {dep_note}").unwrap();
+            }
+            writeln!(s, "        \"\"\"").unwrap();
+
+            // Deprecation warning
+            if let Some(dep_note) = &function.deprecation_note {
+                writeln!(s).unwrap();
+                let warn_name = if is_group {
+                    function.original_name.as_deref().unwrap_or(&function.name)
+                } else {
+                    &function.name
+                };
+                let warn_msg = if dep_note.is_empty() {
+                    format!("{warn_name} is deprecated")
+                } else {
+                    format!("{warn_name} is deprecated: {dep_note}")
+                };
+                writeln!(s, "        warnings.warn(").unwrap();
+                writeln!(s, "            \"{warn_msg}\",").unwrap();
+                writeln!(s, "            DeprecationWarning,").unwrap();
+                writeln!(s, "            stacklevel=2,").unwrap();
+                writeln!(s, "        )").unwrap();
+                writeln!(s).unwrap();
+            }
+
+            // Path
+            writeln!(s, "        path = \"{}\"", function.path).unwrap();
+
+            // Path parameters
+            if !function.path_params.is_empty() {
+                writeln!(
+                    s,
+                    "        # Format path parameters using safer string formatting"
+                )
+                .unwrap();
+                writeln!(s, "        path_params = {{").unwrap();
+                for param in &function.path_params {
+                    let key = if use_raw_name_for_path_params {
+                        &param.raw_name
+                    } else {
+                        &param.name
+                    };
+                    writeln!(s, "            \"{}\": str({}),", key, param.name).unwrap();
+                }
+                writeln!(s, "        }}").unwrap();
+                writeln!(
+                    s,
+                    "        for param_name, param_value in path_params.items():"
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "            path = path.replace(\"{{\" + param_name + \"}}\", param_value)"
+                )
+                .unwrap();
+            }
+            writeln!(s).unwrap();
+
+            // Request call
+            writeln!(s, "        params: dict[str, Any] = {{}}").unwrap();
+
+            let client_prefix = if is_group { "self._client." } else { "self." };
+            if is_async {
+                writeln!(s, "        return await {client_prefix}_make_request(").unwrap();
+            } else {
+                writeln!(s, "        return {client_prefix}_make_request(").unwrap();
+            }
+            writeln!(s, "            \"{}\",", function.method).unwrap();
+            writeln!(s, "            path,").unwrap();
+            writeln!(s, "            params=params if params else None,").unwrap();
+            if function.has_body {
+                if function.is_input_primitive {
+                    writeln!(s, "            json_data=data,").unwrap();
+                } else {
+                    writeln!(s, "            json_model=data,").unwrap();
+                }
+            }
+            if function.headers_type.is_some() {
+                writeln!(s, "            headers_model=headers,").unwrap();
+            }
+            if function.output_type == "Any" {
+                writeln!(s, "            response_model=None,").unwrap();
+            } else {
+                writeln!(s, "            response_model={},", function.output_type).unwrap();
+            }
+            if let Some(error_type) = &function.error_type {
+                writeln!(s, "            error_model={error_type},").unwrap();
+            }
+            writeln!(s, "        )").unwrap();
+            writeln!(s).unwrap();
+        }
+    }
+
     pub struct TestingModule {
         pub types: Vec<String>,
     }
 
+    impl TestingModule {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "# Testing utilities").unwrap();
+            writeln!(s).unwrap();
+            for type_name in &self.types {
+                // Convert dotted type ref to a valid Python function name fragment
+                let func_suffix = type_name.replace('.', "_").to_lowercase();
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "def create_{func_suffix}_response(value: {type_name}) -> ApiResponse[{type_name}]:",
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "    \"\"\"Create a mock ApiResponse for {type_name}.\"\"\""
+                )
+                .unwrap();
+                writeln!(s, "    return create_api_response(value)").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "def create_mock_client() -> MockClient:").unwrap();
+            writeln!(s, "    \"\"\"Create a mock client for testing.\"\"\"").unwrap();
+            writeln!(s, "    return MockClient()").unwrap();
+            s
+        }
+    }
+
+    #[derive(Clone)]
     pub struct Field {
         pub name: String,
         pub type_annotation: String,
@@ -5096,55 +5247,56 @@ def create_mock_client() -> MockClient:
     }
 
     // Templates for externally tagged enum variants
-    #[derive(Template)]
-    #[template(
-        source = r#"class {{ name }}(BaseModel):
-{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
-{% else %}    """Unit variant for externally tagged enum."""
-{% endif %}
-    model_config = ConfigDict(extra="ignore")
-
-    def model_dump(self, **kwargs):
-        """Serialize as just the variant name string for unit variants."""
-        return "{{ variant_name }}"
-
-    def model_dump_json(self, **kwargs):
-        """Serialize as JSON string for unit variants."""
-        import json
-        return json.dumps(self.model_dump(**kwargs))
-"#,
-        ext = "txt"
-    )]
     pub struct UnitVariantClass {
         pub name: String,
         pub variant_name: String,
         pub description: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"class {{ name }}(BaseModel):
-{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
-{% else %}    """Tuple variant for externally tagged enum."""
-{% endif %}
+    impl UnitVariantClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "class {}(BaseModel):", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                } else {
+                    writeln!(
+                        s,
+                        "    \"\"\"Unit variant for externally tagged enum.\"\"\""
+                    )
+                    .unwrap();
+                }
+            } else {
+                writeln!(
+                    s,
+                    "    \"\"\"Unit variant for externally tagged enum.\"\"\""
+                )
+                .unwrap();
+            }
+            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as just the variant name string for unit variants.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        return \"{}\"", self.variant_name).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump_json(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as JSON string for unit variants.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        import json").unwrap();
+            writeln!(s, "        return json.dumps(self.model_dump(**kwargs))").unwrap();
+            s
+        }
+    }
 
-    model_config = ConfigDict(extra="ignore")
-
-{% for field in fields %}    {{ field.name }}: {{ field.type_annotation }}{% if field.default_value.is_some() %} = {{ field.default_value.as_ref().unwrap() }}{% else %}{% if field.optional %} = None{% endif %}{% endif %}
-{% endfor %}
-
-    def model_dump(self, **kwargs):
-        """Serialize as externally tagged tuple variant."""
-        fields = [{% for field in fields %}self.{{ field.name }}{% if !loop.last %}, {% endif %}{% endfor %}]
-        return {"{{ variant_name }}": fields}
-
-    def model_dump_json(self, **kwargs):
-        """Serialize as JSON for externally tagged tuple variant."""
-        import json
-        return json.dumps(self.model_dump(**kwargs))
-"#,
-        ext = "txt"
-    )]
     pub struct TupleVariantClass {
         pub name: String,
         pub variant_name: String,
@@ -5152,32 +5304,67 @@ def create_mock_client() -> MockClient:
         pub description: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"class {{ name }}(BaseModel):
-{% if description.is_some() && !description.as_deref().unwrap().is_empty() %}    """{{ description.as_deref().unwrap() }}"""
-{% else %}    """Struct variant for externally tagged enum."""
-{% endif %}
-    model_config = ConfigDict(extra="ignore")
+    impl TupleVariantClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "class {}(BaseModel):", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                } else {
+                    writeln!(
+                        s,
+                        "    \"\"\"Tuple variant for externally tagged enum.\"\"\""
+                    )
+                    .unwrap();
+                }
+            } else {
+                writeln!(
+                    s,
+                    "    \"\"\"Tuple variant for externally tagged enum.\"\"\""
+                )
+                .unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(s).unwrap();
+            for field in &self.fields {
+                write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
+                if let Some(default) = &field.default_value {
+                    write!(s, " = {default}").unwrap();
+                } else if field.optional {
+                    write!(s, " = None").unwrap();
+                }
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as externally tagged tuple variant.\"\"\""
+            )
+            .unwrap();
+            let field_refs: Vec<String> = self
+                .fields
+                .iter()
+                .map(|f| format!("self.{}", f.name))
+                .collect();
+            writeln!(s, "        fields = [{}]", field_refs.join(", ")).unwrap();
+            writeln!(s, "        return {{\"{}\": fields}}", self.variant_name).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump_json(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as JSON for externally tagged tuple variant.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        import json").unwrap();
+            writeln!(s, "        return json.dumps(self.model_dump(**kwargs))").unwrap();
+            s
+        }
+    }
 
-{% for field in fields %}    {{ field.name }}: {{ field.type_annotation }}{% if field.default_value.is_some() %} = {{ field.default_value.as_ref().unwrap() }}{% else %}{% if field.optional %} = None{% endif %}{% endif %}
-{% endfor %}
-
-    def model_dump(self, **kwargs):
-        """Serialize as externally tagged struct variant."""
-        fields = {}
-{% for field in fields %}        if hasattr(self, '{{ field.name }}') and self.{{ field.name }} is not None:
-            fields['{{ field.name }}'] = self.{{ field.name }}
-{% endfor %}
-        return {"{{ variant_name }}": fields}
-
-    def model_dump_json(self, **kwargs):
-        """Serialize as JSON for externally tagged struct variant."""
-        import json
-        return json.dumps(self.model_dump(**kwargs))
-"#,
-        ext = "txt"
-    )]
     pub struct StructVariantClass {
         pub name: String,
         pub variant_name: String,
@@ -5185,15 +5372,75 @@ def create_mock_client() -> MockClient:
         pub description: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% for variant_def in variant_definitions %}{{ variant_def }}
+    impl StructVariantClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "class {}(BaseModel):", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                } else {
+                    writeln!(
+                        s,
+                        "    \"\"\"Struct variant for externally tagged enum.\"\"\""
+                    )
+                    .unwrap();
+                }
+            } else {
+                writeln!(
+                    s,
+                    "    \"\"\"Struct variant for externally tagged enum.\"\"\""
+                )
+                .unwrap();
+            }
+            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(s).unwrap();
+            for field in &self.fields {
+                write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
+                if let Some(default) = &field.default_value {
+                    write!(s, " = {default}").unwrap();
+                } else if field.optional {
+                    write!(s, " = None").unwrap();
+                }
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as externally tagged struct variant.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        fields = {{}}").unwrap();
+            for field in &self.fields {
+                writeln!(
+                    s,
+                    "        if hasattr(self, '{}') and self.{} is not None:",
+                    field.name, field.name
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "            fields['{}'] = self.{}",
+                    field.name, field.name
+                )
+                .unwrap();
+            }
+            writeln!(s, "        return {{\"{}\": fields}}", self.variant_name).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump_json(self, **kwargs):").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize as JSON for externally tagged struct variant.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        import json").unwrap();
+            writeln!(s, "        return json.dumps(self.model_dump(**kwargs))").unwrap();
+            s
+        }
+    }
 
-{% endfor %}{{ name }} = Union[{{ union_variant_names|join(", ") }}]
-{% if description.is_some() && !description.as_deref().unwrap_or("").is_empty() %}"""{{ description.as_deref().unwrap() }}"""{% endif %}
-"#,
-        ext = "txt"
-    )]
     pub struct ExternallyTaggedUnionClass {
         pub name: String,
         pub description: Option<String>,
@@ -5201,68 +5448,31 @@ def create_mock_client() -> MockClient:
         pub union_variant_names: Vec<String>,
     }
 
-    // Hybrid enum templates for Pythonic data-carrying enum variants
-    #[derive(Template)]
-    #[template(
-        source = r#"from enum import Enum
-from dataclasses import dataclass
-from typing import Union, Optional
-
-{% for data_class in data_classes -%}
-{{ data_class }}
-
-{% endfor -%}
-class {{ enum_name }}(str, Enum):
-    {% if description.is_some() && !description.as_deref().unwrap().is_empty() -%}
-    """{{ description.as_deref().unwrap() }}"""
-    {% endif -%}
-    # Unit variants as enum members
-{% for variant in unit_variants %}    {{ variant.name }} = "{{ variant.value }}"{% if variant.description.is_some() %}  # {{ variant.description.as_deref().unwrap() }}{% endif %}
-{% endfor %}
-
-    def model_dump(self):
-        """Handle serialization for simple enum values."""
-        return self.value
-{% for method in factory_methods -%}
-{{ method }}
-{% endfor %}
-
-# Type annotation for the union
-{{ union_name }} = Union[{{ union_members|join(", ") }}]
-"#,
-        ext = "txt"
-    )]
-    pub struct HybridEnumClass {
-        pub enum_name: String,
-        pub description: Option<String>,
-        pub unit_variants: Vec<EnumVariant>,
-        pub factory_methods: Vec<String>,
-        pub data_classes: Vec<String>,
-        pub union_members: Vec<String>,
-        pub union_name: String,
+    impl ExternallyTaggedUnionClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            for variant_def in &self.variant_definitions {
+                writeln!(s, "{variant_def}").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(
+                s,
+                "{} = Union[{}]",
+                self.name,
+                self.union_variant_names.join(", ")
+            )
+            .unwrap();
+            if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
+                if !desc.is_empty() {
+                    writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
+                }
+            }
+            writeln!(s).unwrap();
+            s
+        }
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"@dataclass
-class {{ name }}:
-    {% if description.is_some() && !description.as_deref().unwrap().is_empty() %}"""{{ description.as_deref().unwrap() }}"""
-    {% endif %}{%- for field_type in field_types %}
-    {{ field_type }}
-{%- endfor %}
-
-    def model_dump(self) -> dict:
-        """Serialize tuple variant as externally tagged."""
-        fields = [{% for field in field_names %}self.{{ field }}{% if !loop.last %}, {% endif %}{% endfor %}]
-        return {"{{ variant_name }}": fields}
-
-    def model_dump_json(self, **kwargs) -> str:
-        """Serialize as JSON."""
-        import json
-        return json.dumps(self.model_dump())
-"#,
-        ext = "txt"
-    )]
     pub struct TupleVariantDataClass {
         pub name: String,
         pub variant_name: String,
@@ -5271,31 +5481,43 @@ class {{ name }}:
         pub description: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"@dataclass
-class {{ name }}:
-    {% if description.is_some() && !description.as_deref().unwrap().is_empty() %}"""{{ description.as_deref().unwrap() }}"""
-    {% endif %}{%- for field_def in field_definitions %}
-    {{ field_def }}
-{%- endfor %}
+    impl TupleVariantDataClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "@dataclass").unwrap();
+            writeln!(s, "class {}:", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                }
+            }
+            for field_type in &self.field_types {
+                writeln!(s, "    {field_type}").unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump(self) -> dict:").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize tuple variant as externally tagged.\"\"\""
+            )
+            .unwrap();
+            let field_refs: Vec<String> = self
+                .field_names
+                .iter()
+                .map(|f| format!("self.{f}"))
+                .collect();
+            writeln!(s, "        fields = [{}]", field_refs.join(", ")).unwrap();
+            writeln!(s, "        return {{\"{}\": fields}}", self.variant_name).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump_json(self, **kwargs) -> str:").unwrap();
+            writeln!(s, "        \"\"\"Serialize as JSON.\"\"\"").unwrap();
+            writeln!(s, "        import json").unwrap();
+            writeln!(s, "        return json.dumps(self.model_dump())").unwrap();
+            s
+        }
+    }
 
-    def model_dump(self) -> dict:
-        """Serialize struct variant as externally tagged."""
-        result = {}
-{%- for field_name in field_names %}
-        if hasattr(self, '{{ field_name }}') and self.{{ field_name }} is not None:
-            result['{{ field_name }}'] = self.{{ field_name }}
-{%- endfor %}
-        return {"{{ variant_name }}": result}
-
-    def model_dump_json(self, **kwargs) -> str:
-        """Serialize as JSON."""
-        import json
-        return json.dumps(self.model_dump())
-"#,
-        ext = "txt"
-    )]
     pub struct StructVariantDataClass {
         pub name: String,
         pub variant_name: String,
@@ -5304,36 +5526,46 @@ class {{ name }}:
         pub description: Option<String>,
     }
 
-    #[derive(Template)]
-    #[template(source = r#"{{ method_name }}"#, ext = "txt")]
-    pub struct FactoryMethod {
-        pub method_name: String,
-        pub variant_name: String,
-        pub class_name: String,
-        pub parameters: Vec<String>,
-        pub field_names: Vec<String>,
-        pub description: Option<String>,
+    impl StructVariantDataClass {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            writeln!(s, "@dataclass").unwrap();
+            writeln!(s, "class {}:", self.name).unwrap();
+            if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
+                if !desc.is_empty() {
+                    writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                }
+            }
+            for field_def in &self.field_definitions {
+                writeln!(s, "    {field_def}").unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump(self) -> dict:").unwrap();
+            writeln!(
+                s,
+                "        \"\"\"Serialize struct variant as externally tagged.\"\"\""
+            )
+            .unwrap();
+            writeln!(s, "        result = {{}}").unwrap();
+            for field_name in &self.field_names {
+                writeln!(
+                    s,
+                    "        if hasattr(self, '{field_name}') and self.{field_name} is not None:"
+                )
+                .unwrap();
+                writeln!(s, "            result['{field_name}'] = self.{field_name}").unwrap();
+            }
+            writeln!(s, "        return {{\"{}\": result}}", self.variant_name).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def model_dump_json(self, **kwargs) -> str:").unwrap();
+            writeln!(s, "        \"\"\"Serialize as JSON.\"\"\"").unwrap();
+            writeln!(s, "        import json").unwrap();
+            writeln!(s, "        return json.dumps(self.model_dump())").unwrap();
+            s
+        }
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% if is_generic -%}
-# TypeVar definitions for {{ union_name }}
-{% for param in generic_params -%}
-{{ param }} = TypeVar('{{ param }}')
-{% endfor %}
-
-{% endif -%}
-{% for variant_model in variant_models %}{{ variant_model }}
-
-{% endfor %}
-# Discriminated union for {{ union_name }}
-{{ union_name }} = Annotated[Union[{{ union_members|join(", ") }}], Field(discriminator='kind')]
-{% if description.is_some() -%}
-"""{{ description.as_deref().unwrap() }}"""
-{% endif %}"#,
-        ext = "txt"
-    )]
     pub struct DiscriminatedUnionEnum {
         pub variant_models: Vec<String>,
         pub union_members: Vec<String>,
@@ -5343,49 +5575,32 @@ class {{ name }}:
         pub generic_params: Vec<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% for variant_model in variant_models %}{{ variant_model }}
+    impl DiscriminatedUnionEnum {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            // TypeVar definitions are emitted once at the top of the file;
+            // inline declarations are suppressed to avoid collisions with class names.
+            for variant_model in &self.variant_models {
+                writeln!(s, "{variant_model}").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "# Discriminated union for {}", self.union_name).unwrap();
+            writeln!(
+                s,
+                "{} = Annotated[Union[{}], Field(discriminator='kind')]",
+                self.union_name,
+                self.union_members.join(", ")
+            )
+            .unwrap();
+            if let Some(desc) = &self.description {
+                let desc = super::sanitize_for_docstring(desc);
+                writeln!(s, "\"\"\"{desc}\"\"\"").unwrap();
+            }
+            s
+        }
+    }
 
-{% endfor %}
-# Externally tagged enum using RootModel
-{% if is_single_variant %}{{ name }}Variants = {{ union_variants }}
-{% else %}{{ name }}Variants = Union[{{ union_variants }}]
-{% endif %}
-class {{ name }}(RootModel[{{ name }}Variants]{% if is_generic %}, Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]{% endif %}):
-    """{% if description.is_some() %}{{ description.as_deref().unwrap() }}{% else %}Externally tagged enum{% endif %}"""
-
-{% if is_generic %}    @classmethod
-    def __class_getitem__(cls, params):
-        return cls
-{% endif %}
-
-    @model_validator(mode='before')
-    @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-{{ instance_validator_cases }}
-
-        # Handle JSON data (for deserialization)
-{{ validator_cases }}
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-{{ dict_validator_cases }}
-
-        raise ValueError(f"Unknown variant for {{ name }}: {data}")
-
-    @model_serializer
-    def _serialize_externally_tagged(self):
-{{ serializer_cases }}
-
-        raise ValueError(f"Cannot serialize {{ name }} variant: {type(self.root)}")
-"#,
-        ext = "txt"
-    )]
     pub struct ExternallyTaggedEnumRootModel {
         pub name: String,
         pub description: Option<String>,
@@ -5400,84 +5615,90 @@ class {{ name }}(RootModel[{{ name }}Variants]{% if is_generic %}, Generic[{% fo
         pub generic_params: Vec<String>,
     }
 
-    #[derive(Template)]
-    #[template(
-        source = r#"{% if is_generic %}
-# Generic externally tagged enum using Approach B: Generic Variant Models
-{% for param in generic_params -%}
-{{ param }} = TypeVar('{{ param }}')
-{% endfor %}
+    impl ExternallyTaggedEnumRootModel {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            for variant_model in &self.variant_models {
+                writeln!(s, "{variant_model}").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s).unwrap();
+            writeln!(s, "# Externally tagged enum using RootModel").unwrap();
+            if self.is_single_variant {
+                writeln!(s, "{}Variants = {}", self.name, self.union_variants).unwrap();
+            } else {
+                writeln!(s, "{}Variants = Union[{}]", self.name, self.union_variants).unwrap();
+            }
+            writeln!(s).unwrap();
+            if self.is_generic {
+                let params = self.generic_params.join(", ");
+                writeln!(
+                    s,
+                    "class {}(RootModel[{}Variants], Generic[{}]):",
+                    self.name, self.name, params
+                )
+                .unwrap();
+            } else {
+                writeln!(s, "class {}(RootModel[{}Variants]):", self.name, self.name).unwrap();
+            }
+            let desc = super::sanitize_for_docstring(
+                self.description
+                    .as_deref()
+                    .unwrap_or("Externally tagged enum"),
+            );
+            writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+            writeln!(s).unwrap();
+            if self.is_generic {
+                writeln!(s, "    @classmethod").unwrap();
+                writeln!(s, "    def __class_getitem__(cls, params):").unwrap();
+                writeln!(s, "        return cls").unwrap();
+                writeln!(s).unwrap();
+            }
+            writeln!(s, "    @model_validator(mode='before')").unwrap();
+            writeln!(s, "    @classmethod").unwrap();
+            writeln!(s, "    def _validate_externally_tagged(cls, data):").unwrap();
+            writeln!(
+                s,
+                "        # Handle direct variant instances (for programmatic creation)"
+            )
+            .unwrap();
+            writeln!(s, "{}", self.instance_validator_cases).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "        # Handle JSON data (for deserialization)").unwrap();
+            writeln!(s, "{}", self.validator_cases).unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "        if isinstance(data, dict):").unwrap();
+            writeln!(s, "            if len(data) != 1:").unwrap();
+            writeln!(
+                s,
+                "                raise ValueError(\"Externally tagged enum must have exactly one key\")"
+            )
+            .unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "            key, value = next(iter(data.items()))").unwrap();
+            writeln!(s, "{}", self.dict_validator_cases).unwrap();
+            writeln!(s).unwrap();
+            writeln!(
+                s,
+                "        raise ValueError(f\"Unknown variant for {}: {{data}}\")",
+                self.name
+            )
+            .unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    @model_serializer").unwrap();
+            writeln!(s, "    def _serialize_externally_tagged(self):").unwrap();
+            writeln!(s, "{}", self.serializer_cases).unwrap();
+            writeln!(s).unwrap();
+            writeln!(
+                s,
+                "        raise ValueError(f\"Cannot serialize {} variant: {{type(self.root)}}\")",
+                self.name
+            )
+            .unwrap();
+            s
+        }
+    }
 
-# Common non-generic base class with discriminator
-class {{ name }}Base(BaseModel):
-    """Base class for {{ name }} variants with shared discriminator."""
-    _kind: str = PrivateAttr()
-
-{% for variant_model in variant_models %}{{ variant_model }}
-
-{% endfor %}
-# Type alias for parameterized union - users can create specific unions as needed
-# Example: {{ name }}[SomeType, AnotherType] = Union[{{ name }}Variant1[SomeType], {{ name }}Variant2[AnotherType]]
-class {{ name }}(Generic[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]):
-    """{% if description.is_some() %}{{ description.as_deref().unwrap() }}{% else %}Generic externally tagged enum using Approach B{% endif %}
-
-    This is a generic enum where each variant is a separate generic class.
-    To create a specific instance, use the variant classes directly.
-    To create a union type, use Union[VariantClass[Type1], OtherVariant[Type2]].
-    """
-
-    @classmethod
-    def __class_getitem__(cls, params):
-        """Create documentation about parameterized types."""
-        if not isinstance(params, tuple):
-            params = (params,)
-        if len(params) != {{ generic_params.len() }}:
-            raise TypeError(f"Expected {{ generic_params.len() }} type parameters, got {len(params)}")
-
-        # For Approach B, users should create unions directly using variant classes
-        # This method serves as documentation
-        variant_examples = [
-            {% for variant_info in variant_info_list %}"{{ variant_info.class_name }}[{% for param in generic_params %}{{ param }}{% if !loop.last %}, {% endif %}{% endfor %}]"{% if !loop.last %},
-            {% endif %}{% endfor %}
-        ]
-
-        # Return a helpful hint rather than NotImplementedError
-        return f"Union[{', '.join(variant_examples)}]  # Use this pattern to create specific unions"
-{% else %}
-# Non-generic externally tagged enum - use existing RootModel approach
-{% if is_single_variant %}{{ name }}Variants = {{ union_variants }}
-{% else %}{{ name }}Variants = Union[{{ union_variants }}]
-{% endif %}
-class {{ name }}(RootModel[{{ name }}Variants]):
-    """{% if description.is_some() %}{{ description.as_deref().unwrap() }}{% else %}Externally tagged enum{% endif %}"""
-
-    @model_validator(mode='before')
-    @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-{{ instance_validator_cases }}
-
-        # Handle JSON data (for deserialization)
-{{ validator_cases }}
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-{{ dict_validator_cases }}
-
-        raise ValueError(f"Unknown variant for {{ name }}: {data}")
-
-    @model_serializer
-    def _serialize_externally_tagged(self):
-{{ serializer_cases }}
-
-        raise ValueError(f"Cannot serialize {{ name }} variant: {type(self.root)}")
-{% endif %}
-"#,
-        ext = "txt"
-    )]
     pub struct GenericExternallyTaggedEnumApproachB {
         pub name: String,
         pub description: Option<String>,
@@ -5491,6 +5712,197 @@ class {{ name }}(RootModel[{{ name }}Variants]):
         pub is_generic: bool,
         pub generic_params: Vec<String>,
         pub variant_info_list: Vec<VariantInfo>,
+    }
+
+    impl GenericExternallyTaggedEnumApproachB {
+        pub fn render(&self) -> String {
+            let mut s = String::new();
+            if self.is_generic {
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "# Generic externally tagged enum using Approach B: Generic Variant Models"
+                )
+                .unwrap();
+                // TypeVar definitions are emitted once at the top of the file;
+                // inline declarations are suppressed to avoid collisions with class names.
+                writeln!(s).unwrap();
+                writeln!(s, "# Common non-generic base class with discriminator").unwrap();
+                writeln!(s, "class {}Base(BaseModel):", self.name).unwrap();
+                writeln!(
+                    s,
+                    "    \"\"\"Base class for {} variants with shared discriminator.\"\"\"",
+                    self.name
+                )
+                .unwrap();
+                writeln!(s, "    _kind: str = PrivateAttr()").unwrap();
+                writeln!(s).unwrap();
+                for variant_model in &self.variant_models {
+                    writeln!(s, "{variant_model}").unwrap();
+                    writeln!(s).unwrap();
+                }
+                writeln!(s).unwrap();
+                let params = self.generic_params.join(", ");
+                writeln!(
+                    s,
+                    "# Type alias for parameterized union - users can create specific unions as needed"
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "# Example: {}[SomeType, AnotherType] = Union[{}Variant1[SomeType], {}Variant2[AnotherType]]",
+                    self.name, self.name, self.name
+                )
+                .unwrap();
+                writeln!(s, "class {}(Generic[{}]):", self.name, params).unwrap();
+                let desc = super::sanitize_for_docstring(
+                    self.description
+                        .as_deref()
+                        .unwrap_or("Generic externally tagged enum using Approach B"),
+                );
+                writeln!(s, "    \"\"\"{desc}").unwrap();
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "    This is a generic enum where each variant is a separate generic class."
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "    To create a specific instance, use the variant classes directly."
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "    To create a union type, use Union[VariantClass[Type1], OtherVariant[Type2]]."
+                )
+                .unwrap();
+                writeln!(s, "    \"\"\"").unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    @classmethod").unwrap();
+                writeln!(s, "    def __class_getitem__(cls, params):").unwrap();
+                writeln!(
+                    s,
+                    "        \"\"\"Create documentation about parameterized types.\"\"\""
+                )
+                .unwrap();
+                writeln!(s, "        if not isinstance(params, tuple):").unwrap();
+                writeln!(s, "            params = (params,)").unwrap();
+                writeln!(
+                    s,
+                    "        if len(params) != {}:",
+                    self.generic_params.len()
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "            raise TypeError(f\"Expected {} type parameters, got {{len(params)}}\")",
+                    self.generic_params.len()
+                )
+                .unwrap();
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "        # For Approach B, users should create unions directly using variant classes"
+                )
+                .unwrap();
+                writeln!(s, "        # This method serves as documentation").unwrap();
+                writeln!(s, "        variant_examples = [").unwrap();
+                for (i, variant_info) in self.variant_info_list.iter().enumerate() {
+                    let generic_params_str = self.generic_params.join(", ");
+                    if i < self.variant_info_list.len() - 1 {
+                        writeln!(
+                            s,
+                            "            \"{}[{}]\",",
+                            variant_info.class_name, generic_params_str
+                        )
+                        .unwrap();
+                    } else {
+                        writeln!(
+                            s,
+                            "            \"{}[{}]\"",
+                            variant_info.class_name, generic_params_str
+                        )
+                        .unwrap();
+                    }
+                }
+                writeln!(s, "        ]").unwrap();
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "        # Return a helpful hint rather than NotImplementedError"
+                )
+                .unwrap();
+                writeln!(
+                    s,
+                    "        return f\"Union[{{', '.join(variant_examples)}}]  # Use this pattern to create specific unions\""
+                )
+                .unwrap();
+            } else {
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "# Non-generic externally tagged enum - use existing RootModel approach"
+                )
+                .unwrap();
+                if self.is_single_variant {
+                    writeln!(s, "{}Variants = {}", self.name, self.union_variants).unwrap();
+                } else {
+                    writeln!(s, "{}Variants = Union[{}]", self.name, self.union_variants).unwrap();
+                }
+                writeln!(s, "class {}(RootModel[{}Variants]):", self.name, self.name).unwrap();
+                let desc = super::sanitize_for_docstring(
+                    self.description
+                        .as_deref()
+                        .unwrap_or("Externally tagged enum"),
+                );
+                writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    @model_validator(mode='before')").unwrap();
+                writeln!(s, "    @classmethod").unwrap();
+                writeln!(s, "    def _validate_externally_tagged(cls, data):").unwrap();
+                writeln!(
+                    s,
+                    "        # Handle direct variant instances (for programmatic creation)"
+                )
+                .unwrap();
+                writeln!(s, "{}", self.instance_validator_cases).unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "        # Handle JSON data (for deserialization)").unwrap();
+                writeln!(s, "{}", self.validator_cases).unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "        if isinstance(data, dict):").unwrap();
+                writeln!(s, "            if len(data) != 1:").unwrap();
+                writeln!(
+                    s,
+                    "                raise ValueError(\"Externally tagged enum must have exactly one key\")"
+                )
+                .unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "            key, value = next(iter(data.items()))").unwrap();
+                writeln!(s, "{}", self.dict_validator_cases).unwrap();
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "        raise ValueError(f\"Unknown variant for {}: {{data}}\")",
+                    self.name
+                )
+                .unwrap();
+                writeln!(s).unwrap();
+                writeln!(s, "    @model_serializer").unwrap();
+                writeln!(s, "    def _serialize_externally_tagged(self):").unwrap();
+                writeln!(s, "{}", self.serializer_cases).unwrap();
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "        raise ValueError(f\"Cannot serialize {} variant: {{type(self.root)}}\")",
+                    self.name
+                )
+                .unwrap();
+            }
+            writeln!(s).unwrap();
+            s
+        }
     }
 
     #[derive(Clone)]

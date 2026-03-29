@@ -17,13 +17,20 @@ from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    RootModel,
+    model_serializer,
+    model_validator,
+)
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant(
@@ -105,10 +112,27 @@ class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged(
             self.root,
             ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructVariant,
         ):
-            return {"t": "EmptyStruct", "c": self.root.model_dump(exclude_none=True)}
+            return {"t": "EmptyStruct", "c": self.root.model_dump()}
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged variant: {type(self.root)}"
         )
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant = ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant
+            TestEmptyVariantsAdjacentlyTaggedEmptyStructVariant = ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructVariant
+            TestEmptyVariantsAdjacentlyTagged = (
+                ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged
+            )
 
 
 class AsyncInoutClient:
@@ -120,16 +144,16 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged
+            reflectapi_demo.tests.serde.TestEmptyVariantsAdjacentlyTagged
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged]:
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEmptyVariantsAdjacentlyTagged]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged]: Response containing ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged data
+            ApiResponse[reflectapi_demo.tests.serde.TestEmptyVariantsAdjacentlyTagged]: Response containing reflectapi_demo.tests.serde.TestEmptyVariantsAdjacentlyTagged data
         """
         path = "/inout_test"
 
@@ -139,7 +163,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged,
+            response_model=reflectapi_demo.tests.serde.TestEmptyVariantsAdjacentlyTagged,
         )
 
 
@@ -165,16 +189,16 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged
+            reflectapi_demo.tests.serde.TestEmptyVariantsAdjacentlyTagged
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged]:
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEmptyVariantsAdjacentlyTagged]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged]: Response containing ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged data
+            ApiResponse[reflectapi_demo.tests.serde.TestEmptyVariantsAdjacentlyTagged]: Response containing reflectapi_demo.tests.serde.TestEmptyVariantsAdjacentlyTagged data
         """
         path = "/inout_test"
 
@@ -184,7 +208,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged,
+            response_model=reflectapi_demo.tests.serde.TestEmptyVariantsAdjacentlyTagged,
         )
 
 
@@ -209,51 +233,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged.model_rebuild()
+    reflectapi_demo.tests.serde.TestEmptyVariantsAdjacentlyTagged.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged variants with ergonomic syntax.
-
-    ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged variants
-    """
-
-    @staticmethod
-    def empty() -> ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged:
-        """Creates the 'Empty' variant of the ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged enum."""
-        return ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged.model_validate(
-            {"t": "Empty"}
-        )
-
-    @staticmethod
-    def empty_unit() -> ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged:
-        """Creates the 'EmptyUnit' variant of the ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged enum."""
-        return ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged(
-            ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnitVariant()
-        )
-
-    @staticmethod
-    def empty_struct() -> ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged:
-        """Creates the 'EmptyStruct' variant of the ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged enum."""
-        return ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged(
-            ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructVariant()
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdetestemptyvariantsadjacentlytagged_response(
-    value: ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

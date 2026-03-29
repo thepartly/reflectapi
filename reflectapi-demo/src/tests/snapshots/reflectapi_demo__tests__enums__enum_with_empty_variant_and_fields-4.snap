@@ -20,6 +20,7 @@ from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 from pydantic import (
     BaseModel,
     ConfigDict,
+    Field,
     PrivateAttr,
     RootModel,
     model_serializer,
@@ -30,7 +31,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFieldsVariant2Variant(
@@ -98,6 +98,24 @@ class ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields(
         )
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class enums:
+            """Namespace for enums types."""
+
+            TestEnumWithEmptyVariantAndFieldsVariant2Variant = (
+                ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFieldsVariant2Variant
+            )
+            TestEnumWithEmptyVariantAndFields = (
+                ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields
+            )
+
+
 class AsyncInputClient:
     """Async client for input_ operations."""
 
@@ -107,7 +125,7 @@ class AsyncInputClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields
+            reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -152,7 +170,7 @@ class InputClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields
+            reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -196,44 +214,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields.model_rebuild()
+    reflectapi_demo.tests.enums.TestEnumWithEmptyVariantAndFields.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFieldsFactory:
-    """Factory class for creating ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields variants with ergonomic syntax.
-
-    ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields variants
-    """
-
-    @staticmethod
-    def variant1() -> ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields:
-        """Creates the 'Variant1' variant of the ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields enum."""
-        return ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields("Variant1")
-
-    @staticmethod
-    def variant2(field_0) -> ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields:
-        """Creates the 'Variant2' variant of the ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields enum."""
-        return ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields(
-            ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFieldsVariant2Variant(
-                field_0=field_0
-            )
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapidemotestsenumstestenumwithemptyvariantandfields_response(
-    value: ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields,
-) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsEnumsTestEnumWithEmptyVariantAndFields."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

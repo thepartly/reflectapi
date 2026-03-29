@@ -20,6 +20,7 @@ from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 from pydantic import (
     BaseModel,
     ConfigDict,
+    Field,
     PrivateAttr,
     RootModel,
     model_serializer,
@@ -30,7 +31,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeTestEnumWithVariantUntaggedVariant1Variant(BaseModel):
@@ -92,6 +92,24 @@ class ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged(
         )
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestEnumWithVariantUntaggedVariant1Variant = (
+                ReflectapiDemoTestsSerdeTestEnumWithVariantUntaggedVariant1Variant
+            )
+            TestEnumWithVariantUntagged = (
+                ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged
+            )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -100,15 +118,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumWithVariantUntagged] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantUntagged]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged]: Response containing ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantUntagged]: Response containing reflectapi_demo.tests.serde.TestEnumWithVariantUntagged data
         """
         path = "/inout_test"
 
@@ -118,7 +136,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged,
+            response_model=reflectapi_demo.tests.serde.TestEnumWithVariantUntagged,
         )
 
 
@@ -143,15 +161,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumWithVariantUntagged] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantUntagged]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged]: Response containing ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantUntagged]: Response containing reflectapi_demo.tests.serde.TestEnumWithVariantUntagged data
         """
         path = "/inout_test"
 
@@ -161,7 +179,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged,
+            response_model=reflectapi_demo.tests.serde.TestEnumWithVariantUntagged,
         )
 
 
@@ -186,39 +204,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged.model_rebuild()
+    reflectapi_demo.tests.serde.TestEnumWithVariantUntagged.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeTestEnumWithVariantUntaggedFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged variants with ergonomic syntax.
-
-    ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged variants
-    """
-
-    @staticmethod
-    def variant1(field_0) -> ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged:
-        """Creates the 'Variant1' variant of the ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged enum."""
-        return ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged(
-            ReflectapiDemoTestsSerdeTestEnumWithVariantUntaggedVariant1Variant(
-                field_0=field_0
-            )
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdetestenumwithvariantuntagged_response(
-    value: ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestEnumWithVariantUntagged."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

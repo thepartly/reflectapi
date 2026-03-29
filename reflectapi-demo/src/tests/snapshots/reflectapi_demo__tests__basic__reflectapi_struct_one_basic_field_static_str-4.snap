@@ -16,13 +16,12 @@ from __future__ import annotations
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr(BaseModel):
@@ -30,7 +29,22 @@ class ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: str
+    f: str = Field(serialization_alias="_f", validation_alias="_f")
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestStructOneBasicFieldStaticStr = (
+                ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr
+            )
 
 
 class AsyncOutputClient:
@@ -41,11 +55,11 @@ class AsyncOutputClient:
 
     async def test(
         self,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr]:
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr]:
         """
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr]: Response containing ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr]: Response containing reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr data
         """
         path = "/output_test"
 
@@ -54,7 +68,7 @@ class AsyncOutputClient:
             "POST",
             path,
             params=params if params else None,
-            response_model=ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr,
+            response_model=reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr,
         )
 
 
@@ -79,11 +93,11 @@ class OutputClient:
 
     def test(
         self,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr]:
+    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr]:
         """
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr]: Response containing ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr data
+            ApiResponse[reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr]: Response containing reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr data
         """
         path = "/output_test"
 
@@ -92,7 +106,7 @@ class OutputClient:
             "POST",
             path,
             params=params if params else None,
-            response_model=ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr,
+            response_model=reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr,
         )
 
 
@@ -117,23 +131,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr.model_rebuild()
+    reflectapi_demo.tests.basic.TestStructOneBasicFieldStaticStr.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsbasicteststructonebasicfieldstaticstr_response(
-    value: ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestStructOneBasicFieldStaticStr."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

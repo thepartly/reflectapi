@@ -16,13 +16,12 @@ from __future__ import annotations
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeInputTestStructRenameField(BaseModel):
@@ -30,7 +29,9 @@ class ReflectapiDemoTestsSerdeInputTestStructRenameField(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_name: int
+    field_name: int = Field(
+        serialization_alias="fieldName", validation_alias="fieldName"
+    )
 
 
 class ReflectapiDemoTestsSerdeOutputTestStructRenameField(BaseModel):
@@ -41,6 +42,31 @@ class ReflectapiDemoTestsSerdeOutputTestStructRenameField(BaseModel):
     field_name: int
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            class input:
+                """Namespace for input types."""
+
+                TestStructRenameField = (
+                    ReflectapiDemoTestsSerdeInputTestStructRenameField
+                )
+
+            class output:
+                """Namespace for output types."""
+
+                TestStructRenameField = (
+                    ReflectapiDemoTestsSerdeOutputTestStructRenameField
+                )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -49,15 +75,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeInputTestStructRenameField] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructRenameField]:
+        data: Optional[reflectapi_demo.tests.serde.input.TestStructRenameField] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TestStructRenameField]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructRenameField]: Response containing ReflectapiDemoTestsSerdeOutputTestStructRenameField data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestStructRenameField]: Response containing reflectapi_demo.tests.serde.output.TestStructRenameField data
         """
         path = "/inout_test"
 
@@ -67,7 +93,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestStructRenameField,
+            response_model=reflectapi_demo.tests.serde.output.TestStructRenameField,
         )
 
 
@@ -92,15 +118,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeInputTestStructRenameField] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructRenameField]:
+        data: Optional[reflectapi_demo.tests.serde.input.TestStructRenameField] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TestStructRenameField]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructRenameField]: Response containing ReflectapiDemoTestsSerdeOutputTestStructRenameField data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestStructRenameField]: Response containing reflectapi_demo.tests.serde.output.TestStructRenameField data
         """
         path = "/inout_test"
 
@@ -110,7 +136,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestStructRenameField,
+            response_model=reflectapi_demo.tests.serde.output.TestStructRenameField,
         )
 
 
@@ -135,31 +161,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeInputTestStructRenameField.model_rebuild()
-    ReflectapiDemoTestsSerdeOutputTestStructRenameField.model_rebuild()
+    reflectapi_demo.tests.serde.input.TestStructRenameField.model_rebuild()
+    reflectapi_demo.tests.serde.output.TestStructRenameField.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdeinputteststructrenamefield_response(
-    value: ReflectapiDemoTestsSerdeInputTestStructRenameField,
-) -> ApiResponse[ReflectapiDemoTestsSerdeInputTestStructRenameField]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeInputTestStructRenameField."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsserdeoutputteststructrenamefield_response(
-    value: ReflectapiDemoTestsSerdeOutputTestStructRenameField,
-) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructRenameField]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeOutputTestStructRenameField."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

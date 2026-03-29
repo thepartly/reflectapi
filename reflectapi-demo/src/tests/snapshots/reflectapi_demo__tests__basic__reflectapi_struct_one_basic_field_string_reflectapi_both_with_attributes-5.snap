@@ -16,13 +16,12 @@ from __future__ import annotations
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently(
@@ -32,7 +31,7 @@ class ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDiffe
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: int
+    f: int = Field(serialization_alias="_f", validation_alias="_f")
 
 
 class ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently(
@@ -42,7 +41,28 @@ class ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDiff
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: int
+    f: int = Field(serialization_alias="_f", validation_alias="_f")
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            class input:
+                """Namespace for input types."""
+
+                TestStructOneBasicFieldStringReflectBothDifferently = ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently
+
+            class output:
+                """Namespace for output types."""
+
+                TestStructOneBasicFieldStringReflectBothDifferently = ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently
 
 
 class AsyncInoutClient:
@@ -54,10 +74,10 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently
+            reflectapi_demo.tests.basic.input.TestStructOneBasicFieldStringReflectBothDifferently
         ] = None,
     ) -> ApiResponse[
-        ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently
+        reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently
     ]:
         """
 
@@ -65,7 +85,7 @@ class AsyncInoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently]: Response containing ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently]: Response containing reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently data
         """
         path = "/inout_test"
 
@@ -75,7 +95,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently,
+            response_model=reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently,
         )
 
 
@@ -101,10 +121,10 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently
+            reflectapi_demo.tests.basic.input.TestStructOneBasicFieldStringReflectBothDifferently
         ] = None,
     ) -> ApiResponse[
-        ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently
+        reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently
     ]:
         """
 
@@ -112,7 +132,7 @@ class InoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently]: Response containing ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently]: Response containing reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently data
         """
         path = "/inout_test"
 
@@ -122,7 +142,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently,
+            response_model=reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently,
         )
 
 
@@ -147,35 +167,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently.model_rebuild()
-    ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently.model_rebuild()
+    reflectapi_demo.tests.basic.input.TestStructOneBasicFieldStringReflectBothDifferently.model_rebuild()
+    reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsbasicinputteststructonebasicfieldstringreflectbothdifferently_response(
-    value: ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently,
-) -> ApiResponse[
-    ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently
-]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsbasicoutputteststructonebasicfieldstringreflectbothdifferently_response(
-    value: ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently,
-) -> ApiResponse[
-    ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently
-]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothDifferently."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

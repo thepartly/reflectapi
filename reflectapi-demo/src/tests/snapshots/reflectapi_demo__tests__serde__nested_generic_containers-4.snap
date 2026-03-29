@@ -1,0 +1,94 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Complex"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Complex"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "i32": {
+        "description": "32-bit signed integer",
+        "type": "integer"
+      },
+      "reflectapi_demo.tests.serde.Complex": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.Complex",
+        "required": [
+          "lookup",
+          "matrix"
+        ],
+        "properties": {
+          "lookup": {
+            "description": "Key-value map type",
+            "type": "object",
+            "additionalProperties": {
+              "description": "Expandable array type",
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/i32"
+                  }
+                ]
+              }
+            }
+          },
+          "matrix": {
+            "description": "Expandable array type",
+            "type": "array",
+            "items": {
+              "description": "Expandable array type",
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          }
+        }
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

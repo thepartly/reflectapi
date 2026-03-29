@@ -54,7 +54,6 @@ pub mod interface {
     }
 }
 pub mod types {
-
     pub mod reflectapi_demo {
         pub mod tests {
             pub mod basic {

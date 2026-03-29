@@ -17,13 +17,12 @@ from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize(str, Enum):
@@ -38,6 +37,31 @@ class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize(str, Enum):
     pass
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            class input:
+                """Namespace for input types."""
+
+                TestEnumWithVariantSkipSerialize = (
+                    ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize
+                )
+
+            class output:
+                """Namespace for output types."""
+
+                TestEnumWithVariantSkipSerialize = (
+                    ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize
+                )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -47,16 +71,18 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize
+            reflectapi_demo.tests.serde.input.TestEnumWithVariantSkipSerialize
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize]:
+    ) -> ApiResponse[
+        reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipSerialize
+    ]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize]: Response containing ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipSerialize]: Response containing reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipSerialize data
         """
         path = "/inout_test"
 
@@ -66,7 +92,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize,
+            response_model=reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipSerialize,
         )
 
 
@@ -92,16 +118,18 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize
+            reflectapi_demo.tests.serde.input.TestEnumWithVariantSkipSerialize
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize]:
+    ) -> ApiResponse[
+        reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipSerialize
+    ]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize]: Response containing ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipSerialize]: Response containing reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipSerialize data
         """
         path = "/inout_test"
 
@@ -111,7 +139,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize,
+            response_model=reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipSerialize,
         )
 
 
@@ -136,31 +164,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize.model_rebuild()
-    ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize.model_rebuild()
+    reflectapi_demo.tests.serde.input.TestEnumWithVariantSkipSerialize.model_rebuild()
+    reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipSerialize.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdeinputtestenumwithvariantskipserialize_response(
-    value: ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize,
-) -> ApiResponse[ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsserdeoutputtestenumwithvariantskipserialize_response(
-    value: ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize,
-) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

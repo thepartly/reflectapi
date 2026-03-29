@@ -144,6 +144,7 @@ where
             .unwrap_or_default();
 
         let function_def = Function {
+            id: Default::default(),
             name: rb.name.clone(),
             path: rb.path.clone(),
             deprecation_note: rb.deprecation_note,

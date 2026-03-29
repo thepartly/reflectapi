@@ -17,13 +17,20 @@ from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    RootModel,
+    model_serializer,
+    model_validator,
+)
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedIntVariant(BaseModel):
@@ -131,6 +138,30 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged(
         )
 
 
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestNewtypeVariantsAdjacentlyTaggedIntVariant = (
+                ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedIntVariant
+            )
+            TestNewtypeVariantsAdjacentlyTaggedStringVariant = (
+                ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedStringVariant
+            )
+            TestNewtypeVariantsAdjacentlyTaggedBoolVariant = (
+                ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedBoolVariant
+            )
+            TestNewtypeVariantsAdjacentlyTagged = (
+                ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged
+            )
+
+
 class AsyncInoutClient:
     """Async client for inout operations."""
 
@@ -140,16 +171,16 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged
+            reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged]:
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged]: Response containing ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged data
+            ApiResponse[reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged]: Response containing reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged data
         """
         path = "/inout_test"
 
@@ -159,7 +190,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged,
+            response_model=reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged,
         )
 
 
@@ -185,16 +216,16 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged
+            reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged]:
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged]: Response containing ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged data
+            ApiResponse[reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged]: Response containing reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged data
         """
         path = "/inout_test"
 
@@ -204,7 +235,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged,
+            response_model=reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged,
         )
 
 
@@ -229,66 +260,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged.model_rebuild()
+    reflectapi_demo.tests.serde.TestNewtypeVariantsAdjacentlyTagged.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged variants with ergonomic syntax.
-
-    ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged variants
-    """
-
-    @staticmethod
-    def int(field_0) -> ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged:
-        """Creates the 'int' variant of the ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged enum."""
-        return ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged(
-            ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedIntVariant(
-                field_0=field_0
-            )
-        )
-
-    @staticmethod
-    def string(field_0) -> ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged:
-        """Creates the 'string' variant of the ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged enum."""
-        return ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged(
-            ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedStringVariant(
-                field_0=field_0
-            )
-        )
-
-    @staticmethod
-    def bool(field_0) -> ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged:
-        """Creates the 'bool' variant of the ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged enum."""
-        return ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged(
-            ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedBoolVariant(
-                field_0=field_0
-            )
-        )
-
-    @staticmethod
-    def unit() -> ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged:
-        """Creates the 'unit' variant of the ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged enum."""
-        return (
-            ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged.model_validate(
-                {"t": "unit"}
-            )
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdetestnewtypevariantsadjacentlytagged_response(
-    value: ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

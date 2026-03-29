@@ -17,13 +17,12 @@ from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsEnumsTestEnum(str, Enum):
@@ -31,6 +30,19 @@ class ReflectapiDemoTestsEnumsTestEnum(str, Enum):
 
     VARIANT1 = "Variant1"
     VARIANT2 = "Variant2"
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class enums:
+            """Namespace for enums types."""
+
+            TestEnum = ReflectapiDemoTestsEnumsTestEnum
 
 
 class AsyncInputClient:
@@ -41,7 +53,7 @@ class AsyncInputClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsTestEnum] = None,
+        data: Optional[reflectapi_demo.tests.enums.TestEnum] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -84,7 +96,7 @@ class InputClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsTestEnum] = None,
+        data: Optional[reflectapi_demo.tests.enums.TestEnum] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -127,23 +139,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsEnumsTestEnum.model_rebuild()
+    reflectapi_demo.tests.enums.TestEnum.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsenumstestenum_response(
-    value: ReflectapiDemoTestsEnumsTestEnum,
-) -> ApiResponse[ReflectapiDemoTestsEnumsTestEnum]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsEnumsTestEnum."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

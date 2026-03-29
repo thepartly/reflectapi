@@ -23,7 +23,6 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsEnumsAX(BaseModel):
@@ -31,7 +30,7 @@ class ReflectapiDemoTestsEnumsAX(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["X"] = "X"
+    type: Literal["X"] = Field(default="X", description="Discriminator field")
 
 
 class ReflectapiDemoTestsEnumsAY(BaseModel):
@@ -39,8 +38,8 @@ class ReflectapiDemoTestsEnumsAY(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["Y"] = "Y"
-    value: None
+    type: Literal["Y"] = Field(default="Y", description="Discriminator field")
+    value: None = Field(description="Tuple variant value")
 
 
 class ReflectapiDemoTestsEnumsA(RootModel):
@@ -48,6 +47,21 @@ class ReflectapiDemoTestsEnumsA(RootModel):
         Union[ReflectapiDemoTestsEnumsAX, ReflectapiDemoTestsEnumsAY],
         Field(discriminator="type"),
     ]
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class enums:
+            """Namespace for enums types."""
+
+            AX = ReflectapiDemoTestsEnumsAX
+            AY = ReflectapiDemoTestsEnumsAY
+            A = ReflectapiDemoTestsEnumsA
 
 
 class AsyncInoutClient:
@@ -58,15 +72,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsA] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsEnumsA]:
+        data: Optional[reflectapi_demo.tests.enums.A] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.enums.A]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsEnumsA]: Response containing ReflectapiDemoTestsEnumsA data
+            ApiResponse[reflectapi_demo.tests.enums.A]: Response containing reflectapi_demo.tests.enums.A data
         """
         path = "/inout_test"
 
@@ -76,7 +90,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsEnumsA,
+            response_model=reflectapi_demo.tests.enums.A,
         )
 
 
@@ -101,15 +115,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsEnumsA] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsEnumsA]:
+        data: Optional[reflectapi_demo.tests.enums.A] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.enums.A]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsEnumsA]: Response containing ReflectapiDemoTestsEnumsA data
+            ApiResponse[reflectapi_demo.tests.enums.A]: Response containing reflectapi_demo.tests.enums.A data
         """
         path = "/inout_test"
 
@@ -119,7 +133,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsEnumsA,
+            response_model=reflectapi_demo.tests.enums.A,
         )
 
 
@@ -144,37 +158,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsEnumsA.model_rebuild()
+    reflectapi_demo.tests.enums.A.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsEnumsAFactory:
-    """Factory class for creating ReflectapiDemoTestsEnumsA variants with ergonomic syntax.
-
-    ReflectapiDemoTestsEnumsA variants
-    """
-
-    X = ReflectapiDemoTestsEnumsAX()
-
-    @staticmethod
-    def y(field_0) -> ReflectapiDemoTestsEnumsAY:
-        """Creates the 'Y' variant of the ReflectapiDemoTestsEnumsA enum."""
-        return ReflectapiDemoTestsEnumsAY(field_0=field_0)
-
-
-# Testing utilities
-
-
-def create_reflectapidemotestsenumsa_response(
-    value: ReflectapiDemoTestsEnumsA,
-) -> ApiResponse[ReflectapiDemoTestsEnumsA]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsEnumsA."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

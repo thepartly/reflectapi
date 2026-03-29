@@ -20,6 +20,7 @@ from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 from pydantic import (
     BaseModel,
     ConfigDict,
+    Field,
     PrivateAttr,
     RootModel,
     model_serializer,
@@ -30,13 +31,9 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 # Type variables for generic types
-
-
-T = TypeVar("T")
 
 
 T = TypeVar("T")
@@ -47,7 +44,7 @@ class ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant(BaseModel, Gener
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: T
+    field_0: T = Field(description="variant1 field docs")
 
 
 class ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant(BaseModel, Generic[T]):
@@ -55,7 +52,7 @@ class ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant(BaseModel, Gener
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    named_field: T
+    named_field: T = Field(description="named field variant2 field docs")
 
 
 # Externally tagged enum using RootModel
@@ -113,11 +110,30 @@ class ReflectapiDemoTestsBasicTestEnumDocumented(
         if isinstance(
             self.root, ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant
         ):
-            return {"Variant2": self.root.model_dump(exclude_none=True)}
+            return {"Variant2": self.root.model_dump()}
 
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsBasicTestEnumDocumented variant: {type(self.root)}"
         )
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            TestEnumDocumentedVariant1Variant = (
+                ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant
+            )
+            TestEnumDocumentedVariant2Variant = (
+                ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant
+            )
+            TestEnumDocumented = ReflectapiDemoTestsBasicTestEnumDocumented
 
 
 class AsyncInputClient:
@@ -128,7 +144,7 @@ class AsyncInputClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestEnumDocumented[int]] = None,
+        data: Optional[reflectapi_demo.tests.basic.TestEnumDocumented[int]] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -171,7 +187,7 @@ class InputClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsBasicTestEnumDocumented[int]] = None,
+        data: Optional[reflectapi_demo.tests.basic.TestEnumDocumented[int]] = None,
     ) -> ApiResponse[Any]:
         """
 
@@ -214,49 +230,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicTestEnumDocumented.model_rebuild()
+    reflectapi_demo.tests.basic.TestEnumDocumented.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsBasicTestEnumDocumentedFactory:
-    """Factory class for creating ReflectapiDemoTestsBasicTestEnumDocumented variants with ergonomic syntax.
-
-        Some Enum docs
-    more
-    """
-
-    @staticmethod
-    def variant1(field_0) -> ReflectapiDemoTestsBasicTestEnumDocumented[T]:
-        """Creates the 'Variant1' variant of the ReflectapiDemoTestsBasicTestEnumDocumented enum."""
-        return ReflectapiDemoTestsBasicTestEnumDocumented(
-            ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant[T](
-                field_0=field_0
-            )
-        )
-
-    @staticmethod
-    def variant2(named_field) -> ReflectapiDemoTestsBasicTestEnumDocumented[T]:
-        """Creates the 'Variant2' variant of the ReflectapiDemoTestsBasicTestEnumDocumented enum."""
-        return ReflectapiDemoTestsBasicTestEnumDocumented(
-            ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant[T](
-                named_field=named_field
-            )
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapidemotestsbasictestenumdocumented_response(
-    value: ReflectapiDemoTestsBasicTestEnumDocumented,
-) -> ApiResponse[ReflectapiDemoTestsBasicTestEnumDocumented]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicTestEnumDocumented."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

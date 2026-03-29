@@ -17,19 +17,31 @@ from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeTestEnumWithVariantSkip(str, Enum):
     """Generated enum."""
 
     pass
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestEnumWithVariantSkip = ReflectapiDemoTestsSerdeTestEnumWithVariantSkip
 
 
 class AsyncInoutClient:
@@ -40,15 +52,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumWithVariantSkip] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantSkip]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip]: Response containing ReflectapiDemoTestsSerdeTestEnumWithVariantSkip data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantSkip]: Response containing reflectapi_demo.tests.serde.TestEnumWithVariantSkip data
         """
         path = "/inout_test"
 
@@ -58,7 +70,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumWithVariantSkip,
+            response_model=reflectapi_demo.tests.serde.TestEnumWithVariantSkip,
         )
 
 
@@ -83,15 +95,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumWithVariantSkip] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantSkip]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip]: Response containing ReflectapiDemoTestsSerdeTestEnumWithVariantSkip data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumWithVariantSkip]: Response containing reflectapi_demo.tests.serde.TestEnumWithVariantSkip data
         """
         path = "/inout_test"
 
@@ -101,7 +113,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumWithVariantSkip,
+            response_model=reflectapi_demo.tests.serde.TestEnumWithVariantSkip,
         )
 
 
@@ -126,23 +138,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestEnumWithVariantSkip.model_rebuild()
+    reflectapi_demo.tests.serde.TestEnumWithVariantSkip.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdetestenumwithvariantskip_response(
-    value: ReflectapiDemoTestsSerdeTestEnumWithVariantSkip,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithVariantSkip]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestEnumWithVariantSkip."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

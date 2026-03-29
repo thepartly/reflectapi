@@ -16,13 +16,12 @@ from __future__ import annotations
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars(BaseModel):
@@ -30,7 +29,22 @@ class ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    f: int
+    f: int = Field(serialization_alias="field-name&&", validation_alias="field-name&&")
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestStructWithRenameToInvalidChars = (
+                ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars
+            )
 
 
 class AsyncInoutClient:
@@ -42,16 +56,16 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars
+            reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars]:
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars]: Response containing ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars data
+            ApiResponse[reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars]: Response containing reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars data
         """
         path = "/inout_test"
 
@@ -61,7 +75,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars,
+            response_model=reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars,
         )
 
 
@@ -87,16 +101,16 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars
+            reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars]:
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars]: Response containing ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars data
+            ApiResponse[reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars]: Response containing reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars data
         """
         path = "/inout_test"
 
@@ -106,7 +120,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars,
+            response_model=reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars,
         )
 
 
@@ -131,23 +145,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars.model_rebuild()
+    reflectapi_demo.tests.serde.TestStructWithRenameToInvalidChars.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdeteststructwithrenametoinvalidchars_response(
-    value: ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestStructWithRenameToInvalidChars."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

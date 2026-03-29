@@ -33,10 +33,10 @@
 
 ## Documentation
 
-- 📦 [Crates.io](https://crates.io/crates/reflectapi) - Package information and versions
-- 📖 [API Documentation](https://docs.rs/reflectapi) - Complete API reference  
-- 📚 [User Guide](https://reflectapi.partly.workers.dev/) - Tutorials and examples
-- 🚀 [Quick Start](https://reflectapi.partly.workers.dev/getting-started/quick-start.html) - Get up and running in 5 minutes
+- [Crates.io](https://crates.io/crates/reflectapi) - Package information and versions
+- [API Documentation](https://docs.rs/reflectapi) - Complete API reference
+- [User Guide](docs/src/SUMMARY.md) - Tutorials and examples (build locally with `mdbook serve` in `docs/`)
+- [Architecture](docs/architecture.md) - System design and internals
 
 ## Development notes
 

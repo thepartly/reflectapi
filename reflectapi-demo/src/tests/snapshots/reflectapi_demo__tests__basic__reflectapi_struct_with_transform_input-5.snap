@@ -16,13 +16,12 @@ from __future__ import annotations
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsBasicInputTestStructWithTransformInput(BaseModel):
@@ -30,7 +29,7 @@ class ReflectapiDemoTestsBasicInputTestStructWithTransformInput(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: int
+    f: int = Field(serialization_alias="_f", validation_alias="_f")
 
 
 class ReflectapiDemoTestsBasicOutputTestStructWithTransformInput(BaseModel):
@@ -38,7 +37,32 @@ class ReflectapiDemoTestsBasicOutputTestStructWithTransformInput(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    _f: int
+    f: int = Field(serialization_alias="_f", validation_alias="_f")
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class basic:
+            """Namespace for basic types."""
+
+            class input:
+                """Namespace for input types."""
+
+                TestStructWithTransformInput = (
+                    ReflectapiDemoTestsBasicInputTestStructWithTransformInput
+                )
+
+            class output:
+                """Namespace for output types."""
+
+                TestStructWithTransformInput = (
+                    ReflectapiDemoTestsBasicOutputTestStructWithTransformInput
+                )
 
 
 class AsyncInoutClient:
@@ -50,16 +74,16 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicInputTestStructWithTransformInput
+            reflectapi_demo.tests.basic.input.TestStructWithTransformInput
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithTransformInput]:
+    ) -> ApiResponse[reflectapi_demo.tests.basic.output.TestStructWithTransformInput]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithTransformInput]: Response containing ReflectapiDemoTestsBasicOutputTestStructWithTransformInput data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestStructWithTransformInput]: Response containing reflectapi_demo.tests.basic.output.TestStructWithTransformInput data
         """
         path = "/inout_test"
 
@@ -69,7 +93,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicOutputTestStructWithTransformInput,
+            response_model=reflectapi_demo.tests.basic.output.TestStructWithTransformInput,
         )
 
 
@@ -95,16 +119,16 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsBasicInputTestStructWithTransformInput
+            reflectapi_demo.tests.basic.input.TestStructWithTransformInput
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithTransformInput]:
+    ) -> ApiResponse[reflectapi_demo.tests.basic.output.TestStructWithTransformInput]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithTransformInput]: Response containing ReflectapiDemoTestsBasicOutputTestStructWithTransformInput data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestStructWithTransformInput]: Response containing reflectapi_demo.tests.basic.output.TestStructWithTransformInput data
         """
         path = "/inout_test"
 
@@ -114,7 +138,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsBasicOutputTestStructWithTransformInput,
+            response_model=reflectapi_demo.tests.basic.output.TestStructWithTransformInput,
         )
 
 
@@ -139,31 +163,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsBasicInputTestStructWithTransformInput.model_rebuild()
-    ReflectapiDemoTestsBasicOutputTestStructWithTransformInput.model_rebuild()
+    reflectapi_demo.tests.basic.input.TestStructWithTransformInput.model_rebuild()
+    reflectapi_demo.tests.basic.output.TestStructWithTransformInput.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsbasicinputteststructwithtransforminput_response(
-    value: ReflectapiDemoTestsBasicInputTestStructWithTransformInput,
-) -> ApiResponse[ReflectapiDemoTestsBasicInputTestStructWithTransformInput]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicInputTestStructWithTransformInput."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsbasicoutputteststructwithtransforminput_response(
-    value: ReflectapiDemoTestsBasicOutputTestStructWithTransformInput,
-) -> ApiResponse[ReflectapiDemoTestsBasicOutputTestStructWithTransformInput]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsBasicOutputTestStructWithTransformInput."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

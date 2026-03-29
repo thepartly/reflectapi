@@ -16,13 +16,20 @@ from __future__ import annotations
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
+
+
+class ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize(BaseModel):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    f: int = Field(serialization_alias="_f", validation_alias="_f")
 
 
 class ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize(BaseModel):
@@ -31,12 +38,29 @@ class ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
-class ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize(BaseModel):
-    """Generated data model."""
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    class tests:
+        """Namespace for tests types."""
 
-    _f: int
+        class serde:
+            """Namespace for serde types."""
+
+            class input:
+                """Namespace for input types."""
+
+                TestStructWithSerdeSkipSerialize = (
+                    ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize
+                )
+
+            class output:
+                """Namespace for output types."""
+
+                TestStructWithSerdeSkipSerialize = (
+                    ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize
+                )
 
 
 class AsyncInoutClient:
@@ -48,16 +72,18 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize
+            reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerialize
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize]:
+    ) -> ApiResponse[
+        reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerialize
+    ]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize]: Response containing ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerialize]: Response containing reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerialize data
         """
         path = "/inout_test"
 
@@ -67,7 +93,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize,
+            response_model=reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerialize,
         )
 
 
@@ -93,16 +119,18 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize
+            reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerialize
         ] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize]:
+    ) -> ApiResponse[
+        reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerialize
+    ]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize]: Response containing ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerialize]: Response containing reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerialize data
         """
         path = "/inout_test"
 
@@ -112,7 +140,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize,
+            response_model=reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerialize,
         )
 
 
@@ -137,31 +165,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize.model_rebuild()
-    ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize.model_rebuild()
+    reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerialize.model_rebuild()
+    reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerialize.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-# Factory classes (generated after model rebuild to avoid forward references)
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdeinputteststructwithserdeskipserialize_response(
-    value: ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize,
-) -> ApiResponse[ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerialize."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsserdeoutputteststructwithserdeskipserialize_response(
-    value: ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize,
-) -> ApiResponse[ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerialize."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

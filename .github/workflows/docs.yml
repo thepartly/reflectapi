@@ -36,19 +36,18 @@ jobs:
           
       - name: Install mdBook and mdbook-keeper
         run: |
-          # Only install if not already cached
+          # Pin to mdbook 0.4.x (0.5.x changed preprocessor JSON format,
+          # breaking mdbook-keeper compatibility)
           if ! command -v mdbook &> /dev/null; then
-            cargo install mdbook
+            cargo install mdbook --version "~0.4"
           fi
-          
           if ! command -v mdbook-keeper &> /dev/null; then
-            cargo install mdbook-keeper
+            cargo install mdbook-keeper --version "~0.5"
           fi
-      
+
       - name: Test mdBook examples
         run: |
           cd docs
-          # mdbook-keeper runs doctests during build with real dependencies
           mdbook build
 
   # Build and deploy documentation site
@@ -75,15 +74,13 @@ jobs:
       
       - name: Install mdBook and mdbook-keeper
         run: |
-          # Only install if not already cached
           if ! command -v mdbook &> /dev/null; then
-            cargo install mdbook
+            cargo install mdbook --version "~0.4"
           fi
-          
           if ! command -v mdbook-keeper &> /dev/null; then
-            cargo install mdbook-keeper
+            cargo install mdbook-keeper --version "~0.5"
           fi
-          
+
       - name: Build mdBook documentation
         run: |
           cd docs

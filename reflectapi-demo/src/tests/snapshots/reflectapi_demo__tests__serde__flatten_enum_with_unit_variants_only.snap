@@ -1,0 +1,145 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::Item"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::Item"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Item",
+        "fields": {
+          "named": [
+            {
+              "name": "name",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "status",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::Status"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Status",
+        "representation": {
+          "internal": {
+            "tag": "status"
+          }
+        },
+        "variants": [
+          {
+            "name": "Active",
+            "fields": "none"
+          },
+          {
+            "name": "Inactive",
+            "fields": "none"
+          },
+          {
+            "name": "Pending",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::Item",
+        "fields": {
+          "named": [
+            {
+              "name": "name",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "status",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::Status"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::Status",
+        "representation": {
+          "internal": {
+            "tag": "status"
+          }
+        },
+        "variants": [
+          {
+            "name": "Active",
+            "fields": "none"
+          },
+          {
+            "name": "Inactive",
+            "fields": "none"
+          },
+          {
+            "name": "Pending",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  }
+}

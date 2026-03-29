@@ -20,6 +20,7 @@ from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 from pydantic import (
     BaseModel,
     ConfigDict,
+    Field,
     PrivateAttr,
     RootModel,
     model_serializer,
@@ -30,7 +31,6 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 class ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariant1Variant(BaseModel):
@@ -80,11 +80,27 @@ class ReflectapiDemoTestsSerdeTestEnumWithFieldSkip(
         if isinstance(
             self.root, ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariant1Variant
         ):
-            return {"Variant1": self.root.model_dump(exclude_none=True)}
+            return {"Variant1": self.root.model_dump()}
 
         raise ValueError(
             f"Cannot serialize ReflectapiDemoTestsSerdeTestEnumWithFieldSkip variant: {type(self.root)}"
         )
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            TestEnumWithFieldSkipVariant1Variant = (
+                ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariant1Variant
+            )
+            TestEnumWithFieldSkip = ReflectapiDemoTestsSerdeTestEnumWithFieldSkip
 
 
 class AsyncInoutClient:
@@ -95,15 +111,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumWithFieldSkip] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithFieldSkip]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumWithFieldSkip] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumWithFieldSkip]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithFieldSkip]: Response containing ReflectapiDemoTestsSerdeTestEnumWithFieldSkip data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumWithFieldSkip]: Response containing reflectapi_demo.tests.serde.TestEnumWithFieldSkip data
         """
         path = "/inout_test"
 
@@ -113,7 +129,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumWithFieldSkip,
+            response_model=reflectapi_demo.tests.serde.TestEnumWithFieldSkip,
         )
 
 
@@ -138,15 +154,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTestEnumWithFieldSkip] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithFieldSkip]:
+        data: Optional[reflectapi_demo.tests.serde.TestEnumWithFieldSkip] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestEnumWithFieldSkip]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithFieldSkip]: Response containing ReflectapiDemoTestsSerdeTestEnumWithFieldSkip data
+            ApiResponse[reflectapi_demo.tests.serde.TestEnumWithFieldSkip]: Response containing reflectapi_demo.tests.serde.TestEnumWithFieldSkip data
         """
         path = "/inout_test"
 
@@ -156,7 +172,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTestEnumWithFieldSkip,
+            response_model=reflectapi_demo.tests.serde.TestEnumWithFieldSkip,
         )
 
 
@@ -181,37 +197,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeTestEnumWithFieldSkip.model_rebuild()
+    reflectapi_demo.tests.serde.TestEnumWithFieldSkip.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeTestEnumWithFieldSkipFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeTestEnumWithFieldSkip variants with ergonomic syntax.
-
-    ReflectapiDemoTestsSerdeTestEnumWithFieldSkip variants
-    """
-
-    @staticmethod
-    def variant1() -> ReflectapiDemoTestsSerdeTestEnumWithFieldSkip:
-        """Creates the 'Variant1' variant of the ReflectapiDemoTestsSerdeTestEnumWithFieldSkip enum."""
-        return ReflectapiDemoTestsSerdeTestEnumWithFieldSkip(
-            ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariant1Variant()
-        )
-
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdetestenumwithfieldskip_response(
-    value: ReflectapiDemoTestsSerdeTestEnumWithFieldSkip,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTestEnumWithFieldSkip]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTestEnumWithFieldSkip."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()

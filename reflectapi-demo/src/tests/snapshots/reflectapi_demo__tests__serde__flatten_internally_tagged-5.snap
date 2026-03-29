@@ -23,7 +23,6 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-from reflectapi_runtime.testing import MockClient, create_api_response
 
 
 # Type variables for generic types
@@ -32,12 +31,6 @@ from reflectapi_runtime.testing import MockClient, create_api_response
 Additional = TypeVar("Additional")
 
 Payload = TypeVar("Payload")
-
-
-class ReflectapiDemoTestsSerdeS(BaseModel, Generic[Payload, Additional]):
-    """Generated data model."""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
 class ReflectapiDemoTestsSerdeA(BaseModel):
@@ -56,18 +49,41 @@ class ReflectapiDemoTestsSerdeB(BaseModel):
     b: int
 
 
+class ReflectapiDemoTestsSerdeS(BaseModel, Generic[Payload, Additional]):
+    """Generated data model."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+
 class ReflectapiDemoTestsSerdeTestS(BaseModel):
     """Generated data model."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["S"] = "S"
+    type: Literal["S"] = Field(default="S", description="Discriminator field")
     payload: Annotated[Any, "External type: Payload"]
     additional: Annotated[Any, "External type: Additional"]
 
 
 class ReflectapiDemoTestsSerdeTest(RootModel):
     root: Annotated[Union[ReflectapiDemoTestsSerdeTestS], Field(discriminator="type")]
+
+
+# Namespace classes for dotted access to types
+class reflectapi_demo:
+    """Namespace for reflectapi_demo types."""
+
+    class tests:
+        """Namespace for tests types."""
+
+        class serde:
+            """Namespace for serde types."""
+
+            A = ReflectapiDemoTestsSerdeA
+            B = ReflectapiDemoTestsSerdeB
+            S = ReflectapiDemoTestsSerdeS
+            TestS = ReflectapiDemoTestsSerdeTestS
+            Test = ReflectapiDemoTestsSerdeTest
 
 
 class AsyncInoutClient:
@@ -78,15 +94,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
+        data: Optional[reflectapi_demo.tests.serde.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
+            ApiResponse[reflectapi_demo.tests.serde.Test]: Response containing reflectapi_demo.tests.serde.Test data
         """
         path = "/inout_test"
 
@@ -96,7 +112,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTest,
+            response_model=reflectapi_demo.tests.serde.Test,
         )
 
 
@@ -121,15 +137,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[ReflectapiDemoTestsSerdeTest] = None,
-    ) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
+        data: Optional[reflectapi_demo.tests.serde.Test] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[ReflectapiDemoTestsSerdeTest]: Response containing ReflectapiDemoTestsSerdeTest data
+            ApiResponse[reflectapi_demo.tests.serde.Test]: Response containing reflectapi_demo.tests.serde.Test data
         """
         path = "/inout_test"
 
@@ -139,7 +155,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=ReflectapiDemoTestsSerdeTest,
+            response_model=reflectapi_demo.tests.serde.Test,
         )
 
 
@@ -164,59 +180,10 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 try:
-    ReflectapiDemoTestsSerdeA.model_rebuild()
-    ReflectapiDemoTestsSerdeB.model_rebuild()
-    ReflectapiDemoTestsSerdeS.model_rebuild()
-    ReflectapiDemoTestsSerdeTest.model_rebuild()
+    reflectapi_demo.tests.serde.A.model_rebuild()
+    reflectapi_demo.tests.serde.B.model_rebuild()
+    reflectapi_demo.tests.serde.S.model_rebuild()
+    reflectapi_demo.tests.serde.Test.model_rebuild()
 except AttributeError:
     # Some types may not have model_rebuild method
     pass
-
-
-# Factory classes (generated after model rebuild to avoid forward references)
-class ReflectapiDemoTestsSerdeTestFactory:
-    """Factory class for creating ReflectapiDemoTestsSerdeTest variants with ergonomic syntax.
-
-    ReflectapiDemoTestsSerdeTest variants
-    """
-
-    @staticmethod
-    def s(field_0) -> ReflectapiDemoTestsSerdeTestS:
-        """Creates the 'S' variant of the ReflectapiDemoTestsSerdeTest enum."""
-        return ReflectapiDemoTestsSerdeTestS(field_0=field_0)
-
-
-# Testing utilities
-
-
-def create_reflectapidemotestsserdea_response(
-    value: ReflectapiDemoTestsSerdeA,
-) -> ApiResponse[ReflectapiDemoTestsSerdeA]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeA."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsserdeb_response(
-    value: ReflectapiDemoTestsSerdeB,
-) -> ApiResponse[ReflectapiDemoTestsSerdeB]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeB."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsserdes_response(
-    value: ReflectapiDemoTestsSerdeS,
-) -> ApiResponse[ReflectapiDemoTestsSerdeS]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeS."""
-    return create_api_response(value)
-
-
-def create_reflectapidemotestsserdetest_response(
-    value: ReflectapiDemoTestsSerdeTest,
-) -> ApiResponse[ReflectapiDemoTestsSerdeTest]:
-    """Create a mock ApiResponse for ReflectapiDemoTestsSerdeTest."""
-    return create_api_response(value)
-
-
-def create_mock_client() -> MockClient:
-    """Create a mock client for testing."""
-    return MockClient()
