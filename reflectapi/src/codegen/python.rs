@@ -1066,12 +1066,14 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         for sem_type in semantic.types() {
             if let reflectapi_schema::SemanticType::Enum(sem_enum) = sem_type {
                 match &sem_enum.representation {
-                    reflectapi_schema::Representation::Internal { .. } => {
+                    reflectapi_schema::Representation::Internal { .. }
+                    | reflectapi_schema::Representation::Adjacent { .. } => {
+                        // Both internally and adjacently tagged enums now use
+                        // Literal discriminator fields + Pydantic discriminated unions
                         has_literal = true;
                         has_discriminated_unions = true;
                     }
-                    reflectapi_schema::Representation::External
-                    | reflectapi_schema::Representation::Adjacent { .. } => {
+                    reflectapi_schema::Representation::External => {
                         let has_complex_variants = sem_enum
                             .variants
                             .values()
@@ -1133,6 +1135,41 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     };
     // Use optimized import generation instead of template
     generated_code.push(generate_optimized_imports(&imports));
+
+    // Emit reusable helper functions for externally tagged enums (once, not per-enum)
+    if has_externally_tagged_enums {
+        generated_code.push(
+            r#"
+# Helper functions for externally tagged enum serialization/deserialization
+def _parse_externally_tagged(data, variants: dict, types: tuple, enum_name: str):
+    """Parse an externally tagged enum from {key: value} format."""
+    if types and isinstance(data, types):
+        return data
+    if isinstance(data, str) and data in variants:
+        handler = variants[data]
+        if handler == "_unit":
+            return data
+    if isinstance(data, dict):
+        if len(data) != 1:
+            raise ValueError("Externally tagged enum must have exactly one key")
+        key, value = next(iter(data.items()))
+        if key in variants:
+            handler = variants[key]
+            if handler == "_unit":
+                return key
+            return handler(value)
+    raise ValueError(f"Unknown variant for {enum_name}: {data}")
+
+
+def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
+    """Serialize an externally tagged enum to {key: value} format."""
+    for variant_name, (check, serialize) in serializers.items():
+        if check(root):
+            return serialize(root)
+    raise ValueError(f"Cannot serialize {enum_name} variant: {type(root)}")"#
+                .to_string(),
+        );
+    }
 
     // Types that are provided by the runtime library and should not be generated
     let runtime_provided_types = [
@@ -2009,8 +2046,8 @@ fn render_adjacently_tagged_enum(
 
     let enum_name = improve_class_name(&enum_def.name);
 
-    let mut variant_models = Vec::new();
-    let mut union_variants = Vec::new();
+    let mut variant_class_definitions: Vec<String> = Vec::new();
+    let mut union_variant_names: Vec<String> = Vec::new();
     let generic_params: Vec<String> = infer_enum_generic_params(enum_def, schema);
 
     // Track used generic type variables
@@ -2018,52 +2055,89 @@ fn render_adjacently_tagged_enum(
         used_type_vars.insert(generic.clone());
     }
 
+    let is_generic = !generic_params.is_empty();
+
+    // Generate individual variant classes, each with the tag field as Literal discriminator
     for variant in &enum_def.variants {
+        let variant_class_name = format!("{}{}", enum_name, to_pascal_case(variant.name()));
+
+        // For generic enums, add type parameters to union variant names
+        if is_generic {
+            let params_str = generic_params.join(", ");
+            union_variant_names.push(format!("{variant_class_name}[{params_str}]"));
+        } else {
+            union_variant_names.push(variant_class_name.clone());
+        }
+
+        // Start with the tag discriminator field
+        let discriminator_default_value = Some(format!("\"{}\"", variant.serde_name()));
+        let mut fields = vec![templates::Field {
+            name: tag.to_string(),
+            type_annotation: format!("Literal['{}']", variant.serde_name()),
+            description: Some("Discriminator field".to_string()),
+            deprecation_note: None,
+            optional: false,
+            default_value: discriminator_default_value,
+            alias: None,
+        }];
+
+        // Add the content field based on variant type
         match &variant.fields {
             Fields::None => {
-                union_variants.push(format!("Literal[\"{}\"]", variant.name()));
+                // Unit variant: only the tag field, no content field needed.
+                // The content field is optional and absent on the wire.
             }
             Fields::Unnamed(unnamed_fields) => {
-                let variant_class_name =
-                    format!("{}{}Variant", enum_name, to_pascal_case(variant.name()));
-                let mut fields = Vec::new();
-                for (i, field) in unnamed_fields.iter().enumerate() {
+                // Tuple variant: add content field with the appropriate type
+                if unnamed_fields.len() == 1 {
                     let field_type = type_ref_to_python_type(
-                        &field.type_ref,
+                        &unnamed_fields[0].type_ref,
                         schema,
                         implemented_types,
                         &generic_params,
                         used_type_vars,
                     )?;
                     fields.push(templates::Field {
-                        name: if unnamed_fields.len() == 1 {
-                            "value".to_string()
-                        } else {
-                            format!("field_{i}")
-                        },
+                        name: content.to_string(),
                         type_annotation: field_type,
-                        description: Some(field.description().to_string()),
-                        deprecation_note: field.deprecation_note.clone(),
+                        description: Some(unnamed_fields[0].description().to_string()),
+                        deprecation_note: unnamed_fields[0].deprecation_note.clone(),
+                        optional: false,
+                        default_value: None,
+                        alias: None,
+                    });
+                } else {
+                    // Multi-field tuple: content is a list
+                    let field_types: Vec<String> = unnamed_fields
+                        .iter()
+                        .map(|f| {
+                            type_ref_to_python_type(
+                                &f.type_ref,
+                                schema,
+                                implemented_types,
+                                &generic_params,
+                                used_type_vars,
+                            )
+                        })
+                        .collect::<anyhow::Result<Vec<_>>>()?;
+                    // Use list[Any] for simplicity; Pydantic handles validation
+                    let _types_str = field_types.join(", ");
+                    fields.push(templates::Field {
+                        name: content.to_string(),
+                        type_annotation: "list[Any]".to_string(),
+                        description: Some("Tuple variant fields".to_string()),
+                        deprecation_note: None,
                         optional: false,
                         default_value: None,
                         alias: None,
                     });
                 }
-                let variant_model = templates::DataClass {
-                    name: variant_class_name.clone(),
-                    description: Some(format!("{} variant", variant.name())),
-                    fields,
-                    is_tuple: !unnamed_fields.is_empty(),
-                    is_generic: !generic_params.is_empty(),
-                    generic_params: generic_params.clone(),
-                };
-                variant_models.push(variant_model.render());
-                union_variants.push(variant_class_name);
             }
             Fields::Named(named_fields) => {
-                let variant_class_name =
-                    format!("{}{}Variant", enum_name, to_pascal_case(variant.name()));
-                let mut fields = Vec::new();
+                // Struct variant: we need a nested content model, then reference it
+                // First generate the content model
+                let content_class_name = format!("{variant_class_name}Content");
+                let mut content_fields = Vec::new();
                 for field in named_fields {
                     let field_type = type_ref_to_python_type(
                         &field.type_ref,
@@ -2091,7 +2165,7 @@ fn render_adjacently_tagged_enum(
                     };
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
-                    fields.push(templates::Field {
+                    content_fields.push(templates::Field {
                         name: sanitized,
                         type_annotation: final_field_type,
                         description: Some(field.description().to_string()),
@@ -2101,148 +2175,112 @@ fn render_adjacently_tagged_enum(
                         alias,
                     });
                 }
-                let variant_model = templates::DataClass {
-                    name: variant_class_name.clone(),
-                    description: Some(format!("{} variant", variant.name())),
-                    fields,
+                let content_model = templates::DataClass {
+                    name: content_class_name.clone(),
+                    description: Some(format!("{} content", variant.name())),
+                    fields: content_fields,
                     is_tuple: false,
-                    is_generic: !generic_params.is_empty(),
+                    is_generic,
                     generic_params: generic_params.clone(),
                 };
-                variant_models.push(variant_model.render());
-                union_variants.push(variant_class_name);
+                variant_class_definitions.push(content_model.render());
+
+                // Reference the content model in the variant class
+                let content_type = if is_generic {
+                    format!("{}[{}]", content_class_name, generic_params.join(", "))
+                } else {
+                    content_class_name
+                };
+                fields.push(templates::Field {
+                    name: content.to_string(),
+                    type_annotation: content_type,
+                    description: Some(format!("{} content", variant.name())),
+                    deprecation_note: None,
+                    optional: false,
+                    default_value: None,
+                    alias: None,
+                });
             }
         }
+
+        // Generate the variant class
+        let variant_template = templates::DataClass {
+            name: variant_class_name,
+            description: Some(variant.description().to_string()),
+            fields,
+            is_tuple: false,
+            is_generic,
+            generic_params: generic_params.clone(),
+        };
+
+        variant_class_definitions.push(variant_template.render());
     }
 
-    // Build RootModel with before validator and serializer following {tag, content}
-    let mut code = String::new();
-    if !variant_models.is_empty() {
-        code.push_str(&variant_models.join("\n\n"));
-        code.push_str("\n\n");
+    // Generate the discriminated union using the same pattern as internally tagged enums
+    let union_variants_for_template: Vec<templates::UnionVariant> = enum_def
+        .variants
+        .iter()
+        .enumerate()
+        .map(|(i, variant)| {
+            let variant_class_name = format!("{}{}", enum_name, to_pascal_case(variant.name()));
+            let full_type_annotation = &union_variant_names[i];
+
+            templates::UnionVariant {
+                name: variant.name().to_string(),
+                type_annotation: full_type_annotation.clone(),
+                base_name: variant_class_name,
+                description: Some(variant.description().to_string()),
+            }
+        })
+        .collect();
+
+    let union_template = templates::UnionClass {
+        name: enum_name.clone(),
+        description: Some(enum_def.description().to_string()),
+        variants: union_variants_for_template,
+        discriminator_field: tag.to_string(),
+        is_generic,
+        generic_params: generic_params.clone(),
+    };
+
+    let union_definition = union_template.render();
+
+    // Combine all parts
+    let mut result = String::new();
+
+    // Add variant class definitions (content models + variant models)
+    result.push_str(&variant_class_definitions.join("\n\n"));
+    if !result.is_empty() {
+        result.push_str("\n\n");
     }
+
+    // Add union definition
+    result.push_str(&union_definition);
+    result.push_str("\n\n");
+
+    // If generic, patch RootModel class to include Generic inheritance
     let generic_inherits = if !generic_params.is_empty() {
         format!(", Generic[{}]", generic_params.join(", "))
     } else {
         String::new()
     };
-    code.push_str(&format!(
-        "# Adjacently tagged enum using RootModel\n{enum_name}Variants = Union[{union}]\n\nclass {enum_name}(RootModel[{enum_name}Variants]{generic_inherits}):\n    \"\"\"Adjacently tagged enum\"\"\"\n\n    @model_validator(mode='before')\n    @classmethod\n    def _validate_adjacently_tagged(cls, data):\n        # Handle direct variant instances\n        if isinstance(data, ({direct_types})):\n            return data\n        if isinstance(data, dict):\n            tag = data.get('{tag}')\n            content = data.get('{content}')\n            if tag is None:\n                raise ValueError(\"Missing tag field '{tag}'\")\n            if content is None and tag not in ({unit_variants_tuple}):\n                raise ValueError(\"Missing content field '{content}' for tag: {{}}\".format(tag))\n            # Dispatch based on tag\n{dispatch_cases}\n        raise ValueError(\"Unknown variant for {enum_name}: {{}}\".format(data))\n\n    @model_serializer\n    def _serialize_adjacently_tagged(self):\n{serialize_cases}\n        raise ValueError(f\"Cannot serialize {enum_name} variant: {{type(self.root)}}\")\n",
-        enum_name = enum_name,
-        union = union_variants.join(", "),
-        generic_inherits = generic_inherits,
-        direct_types = union_variants
-            .iter()
-            .filter(|s| !s.starts_with("Literal["))
-            .cloned()
-            .collect::<Vec<_>>()
-            .join(", "),
-        tag = tag,
-        content = content,
-        unit_variants_tuple = enum_def
-            .variants
-            .iter()
-            .filter(|v| matches!(v.fields, Fields::None))
-            .map(|v| format!("'{}'", v.name()))
-            .collect::<Vec<_>>()
-            .join(", "),
-        dispatch_cases = generate_adjacent_dispatch_cases(enum_def, &enum_name)?,
-        serialize_cases = generate_adjacent_serialize_cases(enum_def, &enum_name, tag, content)?,
-    ));
-    if !generic_params.is_empty() {
-        code.push_str("\n    def __class_getitem__(cls, params):\n        return cls\n");
-    }
 
-    Ok((code, union_variants))
-}
-
-fn generate_adjacent_dispatch_cases(
-    enum_def: &reflectapi_schema::Enum,
-    enum_name: &str,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-    let mut cases = Vec::new();
-    for variant in &enum_def.variants {
-        let wire_name = variant.serde_name();
-        let rust_name = variant.name();
-        match &variant.fields {
-            Fields::None => {
-                cases.push(format!(
-                    "            if tag == \"{wire_name}\":\n                return \"{wire_name}\""
-                ));
-            }
-            Fields::Unnamed(unnamed_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
-                if unnamed_fields.len() == 1 {
-                    cases.push(format!(
-                        "            if tag == \"{wire_name}\":\n                return {class_name}(value=content)"
-                    ));
-                } else {
-                    let assigns = (0..unnamed_fields.len())
-                        .map(|i| format!("field_{i}=content[{i}]"))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    cases.push(format!(
-                        "            if tag == \"{wire_name}\":\n                if isinstance(content, list):\n                    return {class_name}({assigns})\n                else:\n                    raise ValueError(\"Expected list for tuple variant {wire_name}\")"
-                    ));
-                }
-            }
-            Fields::Named(_named_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
-                cases.push(format!(
-                    "            if tag == \"{wire_name}\":\n                return {class_name}(**content)"
-                ));
+    let header = format!("class {enum_name}(RootModel[{enum_name}Variants])");
+    let replacement =
+        format!("class {enum_name}(RootModel[{enum_name}Variants]{generic_inherits})");
+    let result = result.replace(&header, &replacement);
+    let mut result = result;
+    if !generic_inherits.is_empty() {
+        let inject = "\n    def __class_getitem__(cls, params):\n        return cls\n".to_string();
+        if let Some(pos) = result.find(&replacement) {
+            if let Some(nl) = result[pos..].find('\n') {
+                let insert_at = pos + nl + 1;
+                result.insert_str(insert_at, &inject);
             }
         }
     }
-    Ok(cases.join("\n"))
-}
 
-fn generate_adjacent_serialize_cases(
-    enum_def: &reflectapi_schema::Enum,
-    enum_name: &str,
-    tag: &str,
-    content: &str,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-    let mut cases = Vec::new();
-    for variant in &enum_def.variants {
-        let wire_name = variant.serde_name();
-        let rust_name = variant.name();
-        match &variant.fields {
-            Fields::None => {
-                cases.push(format!(
-                    "        if self.root == \"{wire_name}\":\n            return {{\"{tag}\": \"{wire_name}\"}}"
-                ));
-            }
-            Fields::Unnamed(unnamed_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
-                // For tuple variants in adjacently tagged enums, serialize the content properly
-                if unnamed_fields.len() == 1 {
-                    // Single field tuple: serialize the field value directly
-                    cases.push(format!(
-                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.value}}"
-                    ));
-                } else {
-                    // Multiple field tuple: serialize as array
-                    let field_accesses: Vec<String> = (0..unnamed_fields.len())
-                        .map(|i| format!("self.root.field_{i}"))
-                        .collect();
-                    cases.push(format!(
-                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": [{}]}}",
-                        field_accesses.join(", ")
-                    ));
-                }
-            }
-            Fields::Named(_named_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
-                cases.push(format!(
-                    "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.model_dump()}}"
-                ));
-            }
-        }
-    }
-    Ok(cases.join("\n"))
+    Ok((result, union_variant_names))
 }
 
 fn render_externally_tagged_enum(
@@ -2256,10 +2294,11 @@ fn render_externally_tagged_enum(
     let enum_name = improve_class_name(&enum_def.name);
     let mut variant_models = Vec::new();
     let mut union_variants = Vec::new();
-    let mut instance_validator_cases = Vec::new();
-    let mut validator_cases = Vec::new();
-    let mut dict_validator_cases = Vec::new();
-    let mut serializer_cases = Vec::new();
+
+    // Collect per-variant data for the compact helper-based approach
+    let mut variant_entries = Vec::new(); // (wire_name, handler_expr)
+    let mut serializer_entries = Vec::new(); // (wire_name, check_expr, serialize_expr)
+    let mut variant_class_names = Vec::new(); // class names for isinstance checks
 
     // Collect active generic parameter names for this enum
     let generic_params: Vec<String> = infer_enum_generic_params(enum_def, schema);
@@ -2272,24 +2311,23 @@ fn render_externally_tagged_enum(
     // Generate variant models and build validation/serialization logic
     for variant in &enum_def.variants {
         let variant_name = variant.name();
+        let wire_name = variant.serde_name();
 
         match &variant.fields {
             Fields::None => {
                 // Unit variant: represented as string literal
                 union_variants.push(format!("Literal[{variant_name:?}]"));
 
-                validator_cases.push(format!(
-                    "        if isinstance(data, str) and data == \"{variant_name}\":\n            return data"
-                ));
-
-                serializer_cases.push(format!(
-                    "        if self.root == \"{variant_name}\":\n            return \"{variant_name}\""
+                variant_entries.push(format!("\"{wire_name}\": \"_unit\""));
+                serializer_entries.push(format!(
+                    "\"{wire_name}\": (lambda r: r == \"{wire_name}\", lambda r: \"{wire_name}\")"
                 ));
             }
             Fields::Unnamed(unnamed_fields) => {
                 // Tuple variant: create a model class
                 let variant_class_name =
                     format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
+                variant_class_names.push(variant_class_name.clone());
                 let mut fields = Vec::new();
                 let mut field_names = Vec::new();
 
@@ -2333,32 +2371,31 @@ fn render_externally_tagged_enum(
                 };
                 union_variants.push(union_member);
 
-                // Handle direct instance validation
-                instance_validator_cases.push(format!(
-                    "        if isinstance(data, {variant_class_name}):\n            return data"
-                ));
-
                 // For tuple variants, the JSON value can be a single value or array
                 if field_names.len() == 1 {
-                    dict_validator_cases.push(format!(
-                        "            if key == \"{variant_name}\":\n                return {variant_class_name}(field_0=value)"
+                    variant_entries.push(format!(
+                        "\"{wire_name}\": lambda v: {variant_class_name}(field_0=v)"
                     ));
-
-                    serializer_cases.push(format!(
-                        "        if isinstance(self.root, {variant_class_name}):\n            return {{\"{variant_name}\": self.root.value}}"
+                    serializer_entries.push(format!(
+                        "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": r.value}})"
                     ));
                 } else {
-                    dict_validator_cases.push(format!(
-                        "            if key == \"{}\":\n                if isinstance(value, list):\n                    return {}({})\n                else:\n                    raise ValueError(\"Expected list for tuple variant {}\")",
-                        variant_name, variant_class_name,
-                        field_names.iter().enumerate().map(|(i, name)| format!("{name}=value[{i}]")).collect::<Vec<_>>().join(", "),
-                        variant_name
+                    let assigns = field_names
+                        .iter()
+                        .enumerate()
+                        .map(|(i, name)| format!("{name}=v[{i}]"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    variant_entries.push(format!(
+                        "\"{wire_name}\": lambda v: {variant_class_name}({assigns}) if isinstance(v, list) else (_ for _ in ()).throw(ValueError(\"Expected list for tuple variant {wire_name}\"))"
                     ));
-
-                    serializer_cases.push(format!(
-                        "        if isinstance(self.root, {}):\n            return {{\"{}\": [{}]}}",
-                        variant_class_name, variant_name,
-                        field_names.iter().map(|name| format!("self.root.{name}")).collect::<Vec<_>>().join(", ")
+                    let field_accesses = field_names
+                        .iter()
+                        .map(|name| format!("r.{name}"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    serializer_entries.push(format!(
+                        "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": [{field_accesses}]}})"
                     ));
                 }
             }
@@ -2366,6 +2403,7 @@ fn render_externally_tagged_enum(
                 // Struct variant: create a model class
                 let variant_class_name =
                     format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
+                variant_class_names.push(variant_class_name.clone());
                 let mut fields = Vec::new();
 
                 for field in named_fields {
@@ -2417,17 +2455,11 @@ fn render_externally_tagged_enum(
                 };
                 union_variants.push(union_member);
 
-                // Handle direct instance validation
-                instance_validator_cases.push(format!(
-                    "        if isinstance(data, {variant_class_name}):\n            return data"
+                variant_entries.push(format!(
+                    "\"{wire_name}\": lambda v: {variant_class_name}(**v)"
                 ));
-
-                dict_validator_cases.push(format!(
-                    "            if key == \"{variant_name}\":\n                return {variant_class_name}(**value)"
-                ));
-
-                serializer_cases.push(format!(
-                    "        if isinstance(self.root, {variant_class_name}):\n            return {{\"{variant_name}\": self.root.model_dump()}}"
+                serializer_entries.push(format!(
+                    "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": r.model_dump()}})"
                 ));
             }
         }
@@ -2436,8 +2468,8 @@ fn render_externally_tagged_enum(
     // Check if this enum is generic
     let is_generic = !generic_params.is_empty();
 
-    // Always use RootModel approach; add Generic[...] when needed
-    let template = templates::ExternallyTaggedEnumRootModel {
+    // Render using compact helper-based template
+    let template = templates::ExternallyTaggedEnumCompact {
         name: enum_name.clone(),
         description: if enum_def.description().is_empty() {
             None
@@ -2447,20 +2479,15 @@ fn render_externally_tagged_enum(
         variant_models,
         union_variants: union_variants.join(", "),
         is_single_variant: union_variants.len() == 1,
-        instance_validator_cases: instance_validator_cases.join("\n"),
-        validator_cases: validator_cases.join("\n"),
-        dict_validator_cases: dict_validator_cases.join("\n"),
-        serializer_cases: serializer_cases.join("\n"),
+        variant_entries,
+        serializer_entries,
+        variant_class_names,
         is_generic,
         generic_params: generic_params.clone(),
     };
     let enum_code = template.render();
 
-    // TypeVar definitions are emitted once at the top of the file;
-    // inline declarations are suppressed to avoid collisions with class names.
-    let result = enum_code;
-
-    Ok(result)
+    Ok(enum_code)
 }
 
 fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<String> {
@@ -5627,21 +5654,21 @@ pub mod templates {
         }
     }
 
-    pub struct ExternallyTaggedEnumRootModel {
+    pub struct ExternallyTaggedEnumCompact {
         pub name: String,
         pub description: Option<String>,
         pub variant_models: Vec<String>,
         pub union_variants: String,
         pub is_single_variant: bool,
-        pub instance_validator_cases: String,
-        pub validator_cases: String,
-        pub dict_validator_cases: String,
-        pub serializer_cases: String,
+        pub variant_entries: Vec<String>,
+        pub serializer_entries: Vec<String>,
+        /// Class names of non-unit variant types (for isinstance checks on direct instances)
+        pub variant_class_names: Vec<String>,
         pub is_generic: bool,
         pub generic_params: Vec<String>,
     }
 
-    impl ExternallyTaggedEnumRootModel {
+    impl ExternallyTaggedEnumCompact {
         pub fn render(&self) -> String {
             let mut s = String::new();
             for variant_model in &self.variant_models {
@@ -5680,260 +5707,43 @@ pub mod templates {
                 writeln!(s, "        return cls").unwrap();
                 writeln!(s).unwrap();
             }
+
+            // Emit compact model_validator using helper
             writeln!(s, "    @model_validator(mode='before')").unwrap();
             writeln!(s, "    @classmethod").unwrap();
-            writeln!(s, "    def _validate_externally_tagged(cls, data):").unwrap();
-            writeln!(
-                s,
-                "        # Handle direct variant instances (for programmatic creation)"
-            )
-            .unwrap();
-            writeln!(s, "{}", self.instance_validator_cases).unwrap();
-            writeln!(s).unwrap();
-            writeln!(s, "        # Handle JSON data (for deserialization)").unwrap();
-            writeln!(s, "{}", self.validator_cases).unwrap();
-            writeln!(s).unwrap();
-            writeln!(s, "        if isinstance(data, dict):").unwrap();
-            writeln!(s, "            if len(data) != 1:").unwrap();
-            writeln!(
-                s,
-                "                raise ValueError(\"Externally tagged enum must have exactly one key\")"
-            )
-            .unwrap();
-            writeln!(s).unwrap();
-            writeln!(s, "            key, value = next(iter(data.items()))").unwrap();
-            writeln!(s, "{}", self.dict_validator_cases).unwrap();
-            writeln!(s).unwrap();
-            writeln!(
-                s,
-                "        raise ValueError(f\"Unknown variant for {}: {{data}}\")",
-                self.name
-            )
-            .unwrap();
-            writeln!(s).unwrap();
-            writeln!(s, "    @model_serializer").unwrap();
-            writeln!(s, "    def _serialize_externally_tagged(self):").unwrap();
-            writeln!(s, "{}", self.serializer_cases).unwrap();
-            writeln!(s).unwrap();
-            writeln!(
-                s,
-                "        raise ValueError(f\"Cannot serialize {} variant: {{type(self.root)}}\")",
-                self.name
-            )
-            .unwrap();
-            s
-        }
-    }
-
-    pub struct GenericExternallyTaggedEnumApproachB {
-        pub name: String,
-        pub description: Option<String>,
-        pub variant_models: Vec<String>,
-        pub union_variants: String,
-        pub is_single_variant: bool,
-        pub instance_validator_cases: String,
-        pub validator_cases: String,
-        pub dict_validator_cases: String,
-        pub serializer_cases: String,
-        pub is_generic: bool,
-        pub generic_params: Vec<String>,
-        pub variant_info_list: Vec<VariantInfo>,
-    }
-
-    impl GenericExternallyTaggedEnumApproachB {
-        pub fn render(&self) -> String {
-            let mut s = String::new();
-            if self.is_generic {
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "# Generic externally tagged enum using Approach B: Generic Variant Models"
-                )
-                .unwrap();
-                // TypeVar definitions are emitted once at the top of the file;
-                // inline declarations are suppressed to avoid collisions with class names.
-                writeln!(s).unwrap();
-                writeln!(s, "# Common non-generic base class with discriminator").unwrap();
-                writeln!(s, "class {}Base(BaseModel):", self.name).unwrap();
-                writeln!(
-                    s,
-                    "    \"\"\"Base class for {} variants with shared discriminator.\"\"\"",
-                    self.name
-                )
-                .unwrap();
-                writeln!(s, "    _kind: str = PrivateAttr()").unwrap();
-                writeln!(s).unwrap();
-                for variant_model in &self.variant_models {
-                    writeln!(s, "{variant_model}").unwrap();
-                    writeln!(s).unwrap();
+            writeln!(s, "    def _validate(cls, data):").unwrap();
+            write!(s, "        return _parse_externally_tagged(data, {{").unwrap();
+            for (i, entry) in self.variant_entries.iter().enumerate() {
+                if i > 0 {
+                    write!(s, ", ").unwrap();
                 }
-                writeln!(s).unwrap();
-                let params = self.generic_params.join(", ");
-                writeln!(
-                    s,
-                    "# Type alias for parameterized union - users can create specific unions as needed"
-                )
-                .unwrap();
-                writeln!(
-                    s,
-                    "# Example: {}[SomeType, AnotherType] = Union[{}Variant1[SomeType], {}Variant2[AnotherType]]",
-                    self.name, self.name, self.name
-                )
-                .unwrap();
-                writeln!(s, "class {}(Generic[{}]):", self.name, params).unwrap();
-                let desc = super::sanitize_for_docstring(
-                    self.description
-                        .as_deref()
-                        .unwrap_or("Generic externally tagged enum using Approach B"),
-                );
-                writeln!(s, "    \"\"\"{desc}").unwrap();
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "    This is a generic enum where each variant is a separate generic class."
-                )
-                .unwrap();
-                writeln!(
-                    s,
-                    "    To create a specific instance, use the variant classes directly."
-                )
-                .unwrap();
-                writeln!(
-                    s,
-                    "    To create a union type, use Union[VariantClass[Type1], OtherVariant[Type2]]."
-                )
-                .unwrap();
-                writeln!(s, "    \"\"\"").unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "    @classmethod").unwrap();
-                writeln!(s, "    def __class_getitem__(cls, params):").unwrap();
-                writeln!(
-                    s,
-                    "        \"\"\"Create documentation about parameterized types.\"\"\""
-                )
-                .unwrap();
-                writeln!(s, "        if not isinstance(params, tuple):").unwrap();
-                writeln!(s, "            params = (params,)").unwrap();
-                writeln!(
-                    s,
-                    "        if len(params) != {}:",
-                    self.generic_params.len()
-                )
-                .unwrap();
-                writeln!(
-                    s,
-                    "            raise TypeError(f\"Expected {} type parameters, got {{len(params)}}\")",
-                    self.generic_params.len()
-                )
-                .unwrap();
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "        # For Approach B, users should create unions directly using variant classes"
-                )
-                .unwrap();
-                writeln!(s, "        # This method serves as documentation").unwrap();
-                writeln!(s, "        variant_examples = [").unwrap();
-                for (i, variant_info) in self.variant_info_list.iter().enumerate() {
-                    let generic_params_str = self.generic_params.join(", ");
-                    if i < self.variant_info_list.len() - 1 {
-                        writeln!(
-                            s,
-                            "            \"{}[{}]\",",
-                            variant_info.class_name, generic_params_str
-                        )
-                        .unwrap();
-                    } else {
-                        writeln!(
-                            s,
-                            "            \"{}[{}]\"",
-                            variant_info.class_name, generic_params_str
-                        )
-                        .unwrap();
-                    }
-                }
-                writeln!(s, "        ]").unwrap();
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "        # Return a helpful hint rather than NotImplementedError"
-                )
-                .unwrap();
-                writeln!(
-                    s,
-                    "        return f\"Union[{{', '.join(variant_examples)}}]  # Use this pattern to create specific unions\""
-                )
-                .unwrap();
-            } else {
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "# Non-generic externally tagged enum - use existing RootModel approach"
-                )
-                .unwrap();
-                if self.is_single_variant {
-                    writeln!(s, "{}Variants = {}", self.name, self.union_variants).unwrap();
-                } else {
-                    writeln!(s, "{}Variants = Union[{}]", self.name, self.union_variants).unwrap();
-                }
-                writeln!(s, "class {}(RootModel[{}Variants]):", self.name, self.name).unwrap();
-                let desc = super::sanitize_for_docstring(
-                    self.description
-                        .as_deref()
-                        .unwrap_or("Externally tagged enum"),
-                );
-                writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "    @model_validator(mode='before')").unwrap();
-                writeln!(s, "    @classmethod").unwrap();
-                writeln!(s, "    def _validate_externally_tagged(cls, data):").unwrap();
-                writeln!(
-                    s,
-                    "        # Handle direct variant instances (for programmatic creation)"
-                )
-                .unwrap();
-                writeln!(s, "{}", self.instance_validator_cases).unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "        # Handle JSON data (for deserialization)").unwrap();
-                writeln!(s, "{}", self.validator_cases).unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "        if isinstance(data, dict):").unwrap();
-                writeln!(s, "            if len(data) != 1:").unwrap();
-                writeln!(
-                    s,
-                    "                raise ValueError(\"Externally tagged enum must have exactly one key\")"
-                )
-                .unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "            key, value = next(iter(data.items()))").unwrap();
-                writeln!(s, "{}", self.dict_validator_cases).unwrap();
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "        raise ValueError(f\"Unknown variant for {}: {{data}}\")",
-                    self.name
-                )
-                .unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "    @model_serializer").unwrap();
-                writeln!(s, "    def _serialize_externally_tagged(self):").unwrap();
-                writeln!(s, "{}", self.serializer_cases).unwrap();
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "        raise ValueError(f\"Cannot serialize {} variant: {{type(self.root)}}\")",
-                    self.name
-                )
-                .unwrap();
+                write!(s, "{entry}").unwrap();
             }
+            // Build the types tuple for isinstance checks on direct variant instances
+            let types_tuple = if self.variant_class_names.is_empty() {
+                "()".to_string()
+            } else {
+                format!("({})", self.variant_class_names.join(", "))
+            };
+            writeln!(s, "}}, {types_tuple}, \"{name}\")", name = self.name).unwrap();
             writeln!(s).unwrap();
+
+            // Emit compact model_serializer using helper
+            writeln!(s, "    @model_serializer").unwrap();
+            writeln!(s, "    def _serialize(self):").unwrap();
+            write!(
+                s,
+                "        return _serialize_externally_tagged(self.root, {{"
+            )
+            .unwrap();
+            for (i, entry) in self.serializer_entries.iter().enumerate() {
+                if i > 0 {
+                    write!(s, ", ").unwrap();
+                }
+                write!(s, "{entry}").unwrap();
+            }
+            writeln!(s, "}}, \"{name}\")", name = self.name).unwrap();
             s
         }
-    }
-
-    #[derive(Clone)]
-    pub struct VariantInfo {
-        pub class_name: String,
-        pub variant_name: String,
     }
 }

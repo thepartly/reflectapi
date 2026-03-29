@@ -33,6 +33,35 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
+# Helper functions for externally tagged enum serialization/deserialization
+def _parse_externally_tagged(data, variants: dict, types: tuple, enum_name: str):
+    """Parse an externally tagged enum from {key: value} format."""
+    if types and isinstance(data, types):
+        return data
+    if isinstance(data, str) and data in variants:
+        handler = variants[data]
+        if handler == "_unit":
+            return data
+    if isinstance(data, dict):
+        if len(data) != 1:
+            raise ValueError("Externally tagged enum must have exactly one key")
+        key, value = next(iter(data.items()))
+        if key in variants:
+            handler = variants[key]
+            if handler == "_unit":
+                return key
+            return handler(value)
+    raise ValueError(f"Unknown variant for {enum_name}: {data}")
+
+
+def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
+    """Serialize an externally tagged enum to {key: value} format."""
+    for variant_name, (check, serialize) in serializers.items():
+        if check(root):
+            return serialize(root)
+    raise ValueError(f"Cannot serialize {enum_name} variant: {type(root)}")
+
+
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedIntVariant(BaseModel):
     """int variant"""
 
@@ -75,70 +104,64 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTagged(
 
     @model_validator(mode="before")
     @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-        if isinstance(
-            data, ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedIntVariant
-        ):
-            return data
-        if isinstance(
+    def _validate(cls, data):
+        return _parse_externally_tagged(
             data,
-            ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedStringVariant,
-        ):
-            return data
-        if isinstance(
-            data, ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedBoolVariant
-        ):
-            return data
-
-        # Handle JSON data (for deserialization)
-        if isinstance(data, str) and data == "unit":
-            return data
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-            if key == "int":
-                return ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedIntVariant(
-                    field_0=value
-                )
-            if key == "string":
-                return ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedStringVariant(
-                    field_0=value
-                )
-            if key == "bool":
-                return ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedBoolVariant(
-                    field_0=value
-                )
-
-        raise ValueError(
-            f"Unknown variant for ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTagged: {data}"
+            {
+                "int": lambda v: (
+                    ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedIntVariant(
+                        field_0=v
+                    )
+                ),
+                "string": lambda v: (
+                    ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedStringVariant(
+                        field_0=v
+                    )
+                ),
+                "bool": lambda v: (
+                    ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedBoolVariant(
+                        field_0=v
+                    )
+                ),
+                "unit": "_unit",
+            },
+            (
+                ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedIntVariant,
+                ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedStringVariant,
+                ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedBoolVariant,
+            ),
+            "ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTagged",
         )
 
     @model_serializer
-    def _serialize_externally_tagged(self):
-        if isinstance(
+    def _serialize(self):
+        return _serialize_externally_tagged(
             self.root,
-            ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedIntVariant,
-        ):
-            return {"int": self.root.value}
-        if isinstance(
-            self.root,
-            ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedStringVariant,
-        ):
-            return {"string": self.root.value}
-        if isinstance(
-            self.root,
-            ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedBoolVariant,
-        ):
-            return {"bool": self.root.value}
-        if self.root == "unit":
-            return "unit"
-
-        raise ValueError(
-            f"Cannot serialize ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTagged variant: {type(self.root)}"
+            {
+                "int": (
+                    lambda r: isinstance(
+                        r,
+                        ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedIntVariant,
+                    ),
+                    lambda r: {"int": r.value},
+                ),
+                "string": (
+                    lambda r: isinstance(
+                        r,
+                        ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedStringVariant,
+                    ),
+                    lambda r: {"string": r.value},
+                ),
+                "bool": (
+                    lambda r: isinstance(
+                        r,
+                        ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedBoolVariant,
+                    ),
+                    lambda r: {"bool": r.value},
+                ),
+                "unit": (lambda r: r == "unit", lambda r: "unit"),
+            },
+            "ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTagged",
         )
 
 
