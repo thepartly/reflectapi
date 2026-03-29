@@ -26,8 +26,6 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestEnumWithVariantSkip(str, Enum):
-    """Generated enum."""
-
     pass
 
 

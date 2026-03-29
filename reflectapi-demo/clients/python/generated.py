@@ -340,8 +340,6 @@ class MyapiProtoPetsListError(RootModel):
 
 
 class MyapiProtoPetsRemoveError(str, Enum):
-    """Generated enum."""
-
     NOT_FOUND = "NotFound"
     NOT_AUTHORIZED = "NotAuthorized"
 

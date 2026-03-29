@@ -26,8 +26,6 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeMyEnum(str, Enum):
-    """Generated enum."""
-
     V1 = "V1"
     V2 = "V2"
 

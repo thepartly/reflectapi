@@ -26,14 +26,10 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize(str, Enum):
-    """Generated enum."""
-
     VARIANT1 = "Variant1"
 
 
 class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize(str, Enum):
-    """Generated enum."""
-
     pass
 
 

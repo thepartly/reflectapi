@@ -38,8 +38,6 @@ class ReflectapiDemoTestsBasicX(BaseModel):
 
 
 class ReflectapiDemoTestsBasicY(str, Enum):
-    """Generated enum."""
-
     Y = "Y"
 
 

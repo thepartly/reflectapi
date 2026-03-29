@@ -26,15 +26,11 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant(str, Enum):
-    """Generated enum."""
-
     A = "A"
     I = "I"
 
 
 class ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant(str, Enum):
-    """Generated enum."""
-
     A = "A"
     O = "O"
 
