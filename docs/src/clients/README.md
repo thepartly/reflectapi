@@ -1,70 +1,95 @@
 # Client Generation
 
-`reflectapi` automatically generates type-safe client libraries for multiple programming languages from your Rust API server. This section covers how to generate and use clients in different languages.
+`reflectapi` can generate client code from a reflected schema JSON file.
 
-## Supported Languages
+## Supported Outputs
 
-| Language   | Status   |
-|------------|----------|
-| TypeScript | ✅ Stable |
-| Rust       | ✅ Stable |
-| Python     | ✅ Experiemental    |
+| Output | Status | Notes |
+|--------|--------|-------|
+| TypeScript | Stable | Single generated file |
+| Rust | Stable | Single generated file |
+| Python | Experimental | Package-style output with `__init__.py` and `generated.py` |
 
-## Code Generation Workflow
+OpenAPI generation is also supported by the CLI, but it is documented separately as an API description format rather than a client library.
 
-See demo project setup [https://github.com/thepartly/reflectapi/tree/main/reflectapi-demo](https://github.com/thepartly/reflectapi/tree/main/reflectapi-demo)
+## Workflow
 
-1. **Define your API server** using `reflectapi` traits and builder
-2. **Generate schema** as JSON from your Rust application
-3. **Run the CLI** to generate client libraries
-4. **Use the clients** in your applications with full type safety
+1. Define your API server using `reflectapi` derives and the builder API.
+2. Write the schema JSON from your Rust application.
+3. Run `reflectapi codegen` for the target language.
+4. Commit or consume the generated client code from your application.
+
+The CLI defaults to `reflectapi.json` if `--schema` is omitted. The demo project uses that filename. If your application writes a different filename such as `reflectapi-schema.json`, pass that path explicitly.
 
 ```bash
-# Generate schema (from your Rust app)
-cargo run  # Your app should save reflectapi-schema.json
+# Create output directories first. TypeScript and Rust write a single file
+# unless the output path already exists as a directory or ends with a slash.
+mkdir -p clients/typescript clients/python clients/rust
 
-# Generate clients
-cargo run reflectapi codegen --language typescript --schema reflectapi-schema.json --output clients/typescript
-cargo run reflectapi codegen --language python --schema reflectapi-schema.json --output clients/python
-cargo run reflectapi codegen --language rust --schema reflectapi-schema.json --output clients/rust
+# Generate TypeScript client -> clients/typescript/generated.ts
+cargo run --bin reflectapi -- codegen \
+  --language typescript \
+  --schema reflectapi.json \
+  --output clients/typescript/
+
+# Generate Python client -> clients/python/__init__.py and generated.py
+cargo run --bin reflectapi -- codegen \
+  --language python \
+  --schema reflectapi.json \
+  --output clients/python/ \
+  --python-sync
+
+# Generate Rust client -> clients/rust/generated.rs
+cargo run --bin reflectapi -- codegen \
+  --language rust \
+  --schema reflectapi.json \
+  --output clients/rust/
 ```
 
-## Common Features
+If you installed the CLI separately, replace `cargo run --bin reflectapi --` with `reflectapi`.
 
-All generated clients share these characteristics:
+## Output Shape
 
-### Type Safety
-- Native type definitions for each language
-- Compile-time or runtime type checking
-- IDE support with autocompletion
+The generators do not all emit the same file layout:
 
-### Extensibility
-- Default base client implementation is provided
-- Which can be replaced or extended with features, such opentelemetry instrumentation or playwrite tracing 
+| Output | Files written by the generator |
+|--------|--------------------------------|
+| TypeScript | `generated.ts` |
+| Rust | `generated.rs` |
+| Python | `__init__.py`, `generated.py` |
 
-### Error Handling
-- Structured error types
-- Network error handling
+The demo repository includes extra project scaffolding around some generated clients, but that scaffolding is not produced by `reflectapi codegen` itself.
 
-### Async Support
-- Modern async/await patterns
+## Language Behavior
 
-### Documentation
-- Generated from your Rust documentation
-- Type information in IDE tooltips
+### TypeScript
 
-### HTTP Client Libraries
+- Uses generated TypeScript types and function wrappers.
+- Uses a `fetch`-based default client implementation.
+- Parses JSON responses, but does not generate runtime schema validators today.
+- Supports custom client implementations via the generated client interface.
 
-| Language | HTTP Library | Features |
-|----------|--------------|----------|
-| TypeScript | fetch API | Native browser/Node.js support |
-| Python | httpx | Async/sync, HTTP/2, connection pooling |
-| Rust | reqwest | Async, HTTP/2, TLS, middleware |
+### Python
 
-### Serialization
+- Generates Pydantic-based models and client code.
+- Generates an async client by default.
+- Adds a sync client only when `--python-sync` is passed.
+- Uses `reflectapi_runtime` for client base classes and runtime helpers.
 
-| Language | Serialization | Validation |
-|----------|---------------|------------|
-| TypeScript | JSON.parse/stringify | Runtime type checking |
-| Python | Pydantic | Schema validation, type coercion |
-| Rust | JSON or MessagePack (serde) | Compile-time, zero-cost |
+### Rust
+
+- Generates typed async client methods.
+- Integrates with `reflectapi::rt::Client`.
+- Supports optional tracing instrumentation through `--instrument`.
+- Generates serde-compatible types and request helpers for JSON-based transport.
+
+## Shared Characteristics
+
+The generated clients all aim to provide:
+
+- Types derived from the Rust-reflected schema
+- Function wrappers with generated documentation
+- Structured handling of application errors versus transport/protocol failures
+- Good IDE support through generated type information
+
+They do not currently all provide the same runtime validation guarantees or the same runtime transport abstractions, so those details should be considered language-specific.
