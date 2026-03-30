@@ -1,7 +1,8 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::sync::LazyLock;
 
 use crate::{Schema, TypeReference};
-use reflectapi_schema::{Function, PythonTypeCodegenConfig, Type};
+use reflectapi_schema::{Function, Type};
 
 /// Sanitize text for inclusion in a Python triple-quoted docstring.
 /// Escapes backslashes (which act as line continuation) and triple-quote
@@ -57,41 +58,235 @@ struct PythonMetadataUsage {
     runtime_provided_types: BTreeSet<String>,
 }
 
-fn python_codegen_config(type_def: &Type) -> Option<&PythonTypeCodegenConfig> {
-    let config = &type_def.codegen_config().python;
-    (!config.is_empty()).then_some(config)
+struct PythonTypeMapping {
+    type_hint: &'static str,
+    imports: &'static [&'static str],
+    runtime_imports: &'static [&'static str],
+    provided_by_runtime: bool,
+    ignore_type_arguments: bool,
 }
 
-fn default_python_metadata_for_type_name(type_name: &str) -> Option<PythonTypeCodegenConfig> {
-    crate::traits::python_codegen_config_for_type(type_name).map(|config| config.python)
+impl PythonTypeMapping {
+    const fn simple(type_hint: &'static str) -> Self {
+        Self {
+            type_hint,
+            imports: &[],
+            runtime_imports: &[],
+            provided_by_runtime: false,
+            ignore_type_arguments: false,
+        }
+    }
 }
 
-fn default_python_type_hint(type_name: &str) -> Option<String> {
-    default_python_metadata_for_type_name(type_name).and_then(|config| config.type_hint)
+fn python_type_mappings() -> &'static HashMap<&'static str, PythonTypeMapping> {
+    static MAPPINGS: LazyLock<HashMap<&'static str, PythonTypeMapping>> = LazyLock::new(|| {
+        let mut m = HashMap::new();
+
+        // Integer types
+        for name in [
+            "i8",
+            "i16",
+            "i32",
+            "i64",
+            "u8",
+            "u16",
+            "u32",
+            "u64",
+            "isize",
+            "usize",
+            "std::num::NonZeroU8",
+            "std::num::NonZeroU16",
+            "std::num::NonZeroU32",
+            "std::num::NonZeroU64",
+            "std::num::NonZeroU128",
+        ] {
+            m.insert(name, PythonTypeMapping::simple("int"));
+        }
+
+        // Float types
+        m.insert("f32", PythonTypeMapping::simple("float"));
+        m.insert("f64", PythonTypeMapping::simple("float"));
+
+        // Bool
+        m.insert("bool", PythonTypeMapping::simple("bool"));
+
+        // String types
+        for name in [
+            "String",
+            "std::string::String",
+            "url::Url",
+            "rust_decimal::Decimal",
+            "chrono_tz::Tz",
+        ] {
+            m.insert(name, PythonTypeMapping::simple("str"));
+        }
+
+        // Collections
+        m.insert("std::vec::Vec", PythonTypeMapping::simple("list[T]"));
+        for name in [
+            "std::collections::HashMap",
+            "std::collections::BTreeMap",
+            "indexmap::IndexMap",
+        ] {
+            m.insert(name, PythonTypeMapping::simple("dict[K, V]"));
+        }
+
+        // Option / Result
+        m.insert("std::option::Option", PythonTypeMapping::simple("T | None"));
+        m.insert("std::result::Result", PythonTypeMapping::simple("T | E"));
+
+        // ReflectAPI runtime types
+        m.insert(
+            "reflectapi::Option",
+            PythonTypeMapping {
+                type_hint: "ReflectapiOption[T]",
+                imports: &[],
+                runtime_imports: &["ReflectapiOption"],
+                provided_by_runtime: true,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "reflectapi::Empty",
+            PythonTypeMapping {
+                type_hint: "ReflectapiEmpty",
+                imports: &[],
+                runtime_imports: &["ReflectapiEmpty"],
+                provided_by_runtime: true,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "reflectapi::Infallible",
+            PythonTypeMapping {
+                type_hint: "ReflectapiInfallible",
+                imports: &[],
+                runtime_imports: &["ReflectapiInfallible"],
+                provided_by_runtime: true,
+                ignore_type_arguments: false,
+            },
+        );
+
+        // Date/time types
+        for name in ["chrono::DateTime", "chrono::NaiveDateTime"] {
+            m.insert(
+                name,
+                PythonTypeMapping {
+                    type_hint: "datetime",
+                    imports: &["from datetime import datetime"],
+                    runtime_imports: &[],
+                    provided_by_runtime: false,
+                    ignore_type_arguments: true,
+                },
+            );
+        }
+        m.insert(
+            "chrono::NaiveDate",
+            PythonTypeMapping {
+                type_hint: "date",
+                imports: &["from datetime import date"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "uuid::Uuid",
+            PythonTypeMapping {
+                type_hint: "UUID",
+                imports: &["from uuid import UUID"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "std::time::Duration",
+            PythonTypeMapping {
+                type_hint: "timedelta",
+                imports: &["from datetime import timedelta"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+
+        // Special types
+        m.insert("std::tuple::Tuple0", PythonTypeMapping::simple("None"));
+        m.insert("serde_json::Value", PythonTypeMapping::simple("Any"));
+
+        // Wrapper types (transparent)
+        for name in ["std::boxed::Box", "std::sync::Arc", "std::rc::Rc"] {
+            m.insert(name, PythonTypeMapping::simple("T"));
+        }
+
+        // Path types
+        for name in ["std::path::PathBuf", "std::path::Path"] {
+            m.insert(
+                name,
+                PythonTypeMapping {
+                    type_hint: "Path",
+                    imports: &["from pathlib import Path"],
+                    runtime_imports: &[],
+                    provided_by_runtime: false,
+                    ignore_type_arguments: false,
+                },
+            );
+        }
+
+        // Network types
+        m.insert(
+            "std::net::IpAddr",
+            PythonTypeMapping {
+                type_hint: "IPv4Address | IPv6Address",
+                imports: &["from ipaddress import IPv4Address, IPv6Address"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "std::net::Ipv4Addr",
+            PythonTypeMapping {
+                type_hint: "IPv4Address",
+                imports: &["from ipaddress import IPv4Address"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "std::net::Ipv6Addr",
+            PythonTypeMapping {
+                type_hint: "IPv6Address",
+                imports: &["from ipaddress import IPv6Address"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+
+        m
+    });
+    &MAPPINGS
 }
 
-fn collect_python_metadata_usage(
-    schema: &Schema,
-    all_type_names: &[String],
-) -> PythonMetadataUsage {
+fn collect_python_metadata_usage(all_type_names: &[String]) -> PythonMetadataUsage {
     let mut usage = PythonMetadataUsage::default();
+    let mappings = python_type_mappings();
 
     for type_name in all_type_names {
-        let Some(type_def) = schema.get_type(type_name) else {
-            continue;
-        };
-        let Some(config) = python_codegen_config(type_def)
-            .cloned()
-            .or_else(|| default_python_metadata_for_type_name(type_name))
-        else {
+        let Some(mapping) = mappings.get(type_name.as_str()) else {
             continue;
         };
 
-        usage.stdlib_imports.extend(config.imports.iter().cloned());
-        usage
-            .runtime_imports
-            .extend(config.runtime_imports.iter().cloned());
-        if config.provided_by_runtime {
+        for import in mapping.imports {
+            usage.stdlib_imports.insert((*import).to_string());
+        }
+        for import in mapping.runtime_imports {
+            usage.runtime_imports.insert((*import).to_string());
+        }
+        if mapping.provided_by_runtime {
             usage.runtime_provided_types.insert(type_name.clone());
         }
     }
@@ -1062,7 +1257,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Consolidate input/output types FIRST so both the SemanticSchema and
     // the raw Schema share the same unified type names.
     let all_type_names = schema.consolidate_types();
-    let implemented_types = build_implemented_types(&schema);
+    let implemented_types = build_implemented_types();
     validate_type_references(&schema)?;
 
     // Build the semantic IR with a codegen-specific pipeline that skips
@@ -1138,7 +1333,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
     // Use semantic IR for function introspection
     let has_warnings = semantic.functions().any(|f| f.deprecation_note.is_some());
-    let python_metadata = collect_python_metadata_usage(&schema, &all_type_names);
+    let python_metadata = collect_python_metadata_usage(&all_type_names);
 
     // Generate imports
     let imports = templates::Imports {
@@ -3670,10 +3865,9 @@ fn type_ref_to_python_type(
             }
         }
 
-        if schema
-            .get_type(&type_ref.name)
-            .and_then(python_codegen_config)
-            .map(|config| config.ignore_type_arguments)
+        if python_type_mappings()
+            .get(type_ref.name.as_str())
+            .map(|m| m.ignore_type_arguments)
             .unwrap_or(false)
         {
             return Ok(python_type.clone());
@@ -3718,58 +3912,6 @@ fn type_ref_to_python_type(
             result = format!("{}[{}]", result, arg_types.join(", "));
         }
 
-        return Ok(result);
-    }
-
-    if let Some(python_type) = default_python_type_hint(&type_ref.name) {
-        if type_ref.arguments.is_empty() {
-            return Ok(python_type);
-        }
-
-        if type_ref.name == "std::vec::Vec" && type_ref.arguments.len() == 1 {
-            let arg = &type_ref.arguments[0];
-            if arg.name == "u8" {
-                return Ok("bytes".to_string());
-            }
-        }
-
-        if default_python_metadata_for_type_name(&type_ref.name)
-            .map(|config| config.ignore_type_arguments)
-            .unwrap_or(false)
-        {
-            return Ok(python_type);
-        }
-
-        let mut result = python_type;
-        let type_params = get_type_parameters(&type_ref.name);
-        if !type_params.is_empty() {
-            for (param, arg) in type_params.iter().zip(type_ref.arguments.iter()) {
-                let resolved_arg = type_ref_to_python_type(
-                    arg,
-                    schema,
-                    implemented_types,
-                    active_generics,
-                    used_type_vars,
-                )?;
-                result = safe_replace_generic_param(&result, param, &resolved_arg);
-            }
-        } else {
-            let arg_types: Result<Vec<String>, _> = type_ref
-                .arguments
-                .iter()
-                .map(|arg| {
-                    type_ref_to_python_type(
-                        arg,
-                        schema,
-                        implemented_types,
-                        active_generics,
-                        used_type_vars,
-                    )
-                })
-                .collect();
-            let arg_types = arg_types?;
-            result = format!("{}[{}]", result, arg_types.join(", "));
-        }
         return Ok(result);
     }
 
@@ -3914,29 +4056,20 @@ fn safe_replace_generic_param(type_str: &str, param: &str, replacement: &str) ->
     result
 }
 
-fn build_implemented_types(schema: &Schema) -> BTreeMap<String, String> {
+fn build_implemented_types() -> BTreeMap<String, String> {
     let mut types = BTreeMap::new();
 
-    for typespace in [&schema.input_types, &schema.output_types] {
-        for type_def in typespace.types() {
-            let Some(config) = python_codegen_config(type_def) else {
-                continue;
-            };
-            let Some(type_hint) = &config.type_hint else {
-                continue;
-            };
-            types
-                .entry(type_def.name().to_string())
-                .or_insert_with(|| type_hint.clone());
-        }
+    for (&name, mapping) in python_type_mappings() {
+        types.insert(name.to_string(), mapping.type_hint.to_string());
     }
 
-    // Compatibility fallback for legacy/unannotated schemas.
+    // Compatibility fallback for legacy/unannotated schemas that use
+    // mangled Python class names instead of qualified Rust type names.
     types.insert("StdNumNonZeroU32".to_string(), "int".to_string());
     types.insert("StdNumNonZeroU64".to_string(), "int".to_string());
     types.insert("StdNumNonZeroI32".to_string(), "int".to_string());
     types.insert("StdNumNonZeroI64".to_string(), "int".to_string());
-    types.insert("RustDecimalDecimal".to_string(), "str".to_string()); // JSON representation
+    types.insert("RustDecimalDecimal".to_string(), "str".to_string());
 
     types
 }

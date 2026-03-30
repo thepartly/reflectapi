@@ -4,7 +4,7 @@ pub use indexmap::{IndexMap, IndexSet};
 fn reflectapi_type_indexset(schema: &mut crate::Typespace) -> String {
     let type_name = "indexmap::IndexSet";
     if schema.reserve_type(type_name) {
-        let mut type_def = crate::Primitive::new(
+        let type_def = crate::Primitive::new(
             type_name.into(),
             "Set type ordered by insertion".into(),
             vec!["V".into()],
@@ -13,9 +13,6 @@ fn reflectapi_type_indexset(schema: &mut crate::Typespace) -> String {
                 vec!["V".into()],
             )),
         );
-        if let Some(config) = crate::traits::python_reflection_codegen_config_for_type(type_name) {
-            type_def.codegen_config = config;
-        }
         schema.insert_type(type_def.into());
     }
     type_name.into()
@@ -24,7 +21,7 @@ fn reflectapi_type_indexset(schema: &mut crate::Typespace) -> String {
 fn reflectapi_type_indexmap(schema: &mut crate::Typespace) -> String {
     let type_name = "indexmap::IndexMap";
     if schema.reserve_type(type_name) {
-        let mut type_def = crate::Primitive::new(
+        let type_def = crate::Primitive::new(
             type_name.into(),
             "Key-value map type ordered by insertion".into(),
             vec!["K".into(), "V".into()],
@@ -33,9 +30,6 @@ fn reflectapi_type_indexmap(schema: &mut crate::Typespace) -> String {
                 vec!["K".into(), "V".into()],
             )),
         );
-        if let Some(config) = crate::traits::python_reflection_codegen_config_for_type(type_name) {
-            type_def.codegen_config = config;
-        }
         schema.insert_type(type_def.into());
     }
     type_name.into()

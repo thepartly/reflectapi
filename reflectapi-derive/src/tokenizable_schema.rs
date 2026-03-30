@@ -261,11 +261,9 @@ pub(crate) struct TokenizableLanguageSpecificTypeCodegenConfig<'a>(
 impl ToTokens for TokenizableLanguageSpecificTypeCodegenConfig<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let rust = TokenizableRustTypeCodegenConfig(&self.0.rust);
-        let python = TokenizablePythonTypeCodegenConfig(&self.0.python);
         tokens.extend(quote::quote! {
             reflectapi::LanguageSpecificTypeCodegenConfig {
                 rust: #rust,
-                python: #python,
             }
         });
     }
@@ -279,32 +277,6 @@ impl ToTokens for TokenizableRustTypeCodegenConfig<'_> {
         tokens.extend(quote::quote! {
             reflectapi::RustTypeCodegenConfig {
                 additional_derives: std::collections::BTreeSet::from_iter([#(String::from(#additional_derives)),*]),
-            }
-        });
-    }
-}
-
-pub(crate) struct TokenizablePythonTypeCodegenConfig<'a>(
-    &'a reflectapi_schema::PythonTypeCodegenConfig,
-);
-
-impl ToTokens for TokenizablePythonTypeCodegenConfig<'_> {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let type_hint = match &self.0.type_hint {
-            Some(type_hint) => quote::quote! { Some(String::from(#type_hint)) },
-            None => quote::quote! { None },
-        };
-        let imports = &self.0.imports;
-        let runtime_imports = &self.0.runtime_imports;
-        let provided_by_runtime = self.0.provided_by_runtime;
-        let ignore_type_arguments = self.0.ignore_type_arguments;
-        tokens.extend(quote::quote! {
-            reflectapi::PythonTypeCodegenConfig {
-                type_hint: #type_hint,
-                imports: std::collections::BTreeSet::from_iter([#(String::from(#imports)),*]),
-                runtime_imports: std::collections::BTreeSet::from_iter([#(String::from(#runtime_imports)),*]),
-                provided_by_runtime: #provided_by_runtime,
-                ignore_type_arguments: #ignore_type_arguments,
             }
         });
     }

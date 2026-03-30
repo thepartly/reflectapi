@@ -160,7 +160,6 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                 })
                 .collect(),
         },
-        python: Default::default(),
     };
 
     fn make_alias_type(

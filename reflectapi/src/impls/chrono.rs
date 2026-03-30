@@ -1,15 +1,12 @@
 fn reflectapi_date_time(schema: &mut crate::Typespace) -> String {
     let type_name = "chrono::DateTime";
     if schema.reserve_type(type_name) {
-        let mut type_def = crate::Primitive::new(
+        let type_def = crate::Primitive::new(
             type_name.into(),
             "DateTime at a given timezone (RFC3339 format)".into(),
             vec!["Tz".into()],
             Some("std::string::String".into()),
         );
-        if let Some(config) = crate::traits::python_reflection_codegen_config_for_type(type_name) {
-            type_def.codegen_config = config;
-        }
         schema.insert_type(type_def.into());
     }
     type_name.into()
@@ -54,15 +51,12 @@ impl crate::Output for chrono::DateTime<chrono::FixedOffset> {
 fn reflectapi_naive_datetime(schema: &mut crate::Typespace) -> String {
     let type_name = "chrono::NaiveDateTime";
     if schema.reserve_type(type_name) {
-        let mut type_def = crate::Primitive::new(
+        let type_def = crate::Primitive::new(
             type_name.into(),
             "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)".into(),
             vec![],
             Some("std::string::String".into()),
         );
-        if let Some(config) = crate::traits::python_reflection_codegen_config_for_type(type_name) {
-            type_def.codegen_config = config;
-        }
         schema.insert_type(type_def.into());
     }
     type_name.into()
@@ -82,15 +76,12 @@ impl crate::Output for chrono::NaiveDateTime {
 fn reflectapi_naive_date(schema: &mut crate::Typespace) -> String {
     let type_name = "chrono::NaiveDate";
     if schema.reserve_type(type_name) {
-        let mut type_def = crate::Primitive::new(
+        let type_def = crate::Primitive::new(
             type_name.into(),
             "Date without timezone (%Y-%m-%d)".into(),
             vec![],
             Some("std::string::String".into()),
         );
-        if let Some(config) = crate::traits::python_reflection_codegen_config_for_type(type_name) {
-            type_def.codegen_config = config;
-        }
         schema.insert_type(type_def.into());
     }
     type_name.into()
@@ -111,15 +102,12 @@ impl crate::Output for chrono::NaiveDate {
 fn reflectapi_naive_time(schema: &mut crate::Typespace) -> String {
     let type_name = "chrono::NaiveTime";
     if schema.reserve_type(type_name) {
-        let mut type_def = crate::Primitive::new(
+        let type_def = crate::Primitive::new(
             type_name.into(),
             "Time without timezone (%H:%M:%S%.f)".into(),
             vec![],
             Some("std::string::String".into()),
         );
-        if let Some(config) = crate::traits::python_reflection_codegen_config_for_type(type_name) {
-            type_def.codegen_config = config;
-        }
         schema.insert_type(type_def.into());
     }
     type_name.into()
