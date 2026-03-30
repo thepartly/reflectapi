@@ -190,6 +190,7 @@ fn main() -> anyhow::Result<()> {
                         generate_async: python_async,
                         generate_sync: python_sync,
                         generate_testing: python_testing,
+                        format,
                         base_url: None,
                     };
                     reflectapi::codegen::python::generate_files(schema, &config)?
