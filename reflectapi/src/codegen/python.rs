@@ -30,6 +30,9 @@ pub struct Config {
     pub generate_sync: bool,
     /// Whether to generate testing utilities
     pub generate_testing: bool,
+    /// Attempt to format the generated code with ruff. Will fall back to basic
+    /// formatting if ruff is not available.
+    pub format: bool,
     /// Base URL for the API (optional)
     pub base_url: Option<String>,
 }
@@ -41,6 +44,7 @@ impl Default for Config {
             generate_async: true,
             generate_sync: true,
             generate_testing: false,
+            format: true,
             base_url: None,
         }
     }
@@ -1422,8 +1426,11 @@ def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
 
     let result = generated_code.join("\n\n");
 
-    // Format with black if available
-    format_python_code(&result)
+    if config.format {
+        format_python_code(&result)
+    } else {
+        Ok(basic_python_format(&result))
+    }
 }
 
 /// Rename type parameters in the schema to avoid TypeVar/class name collisions.
