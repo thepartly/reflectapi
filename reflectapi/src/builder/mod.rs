@@ -165,7 +165,23 @@ where
         let other_name = other.schema.name.clone();
         self.merged_handlers.push((other_name, other.handlers));
         self.schema.extend(other.schema);
-        self
+        self.errors.extend(other.errors);
+        self.validators.extend(other.validators);
+
+        // Don't merge `allow_redundant_renames` or `default_tags`,
+        // as these are configuration options that should be set per-builder.
+
+        // Explicitly reconstruct Self to ensure new fields are handled appropriately.
+        Self {
+            schema: self.schema,
+            path: self.path,
+            handlers: self.handlers,
+            merged_handlers: self.merged_handlers,
+            validators: self.validators,
+            allow_redundant_renames: self.allow_redundant_renames,
+            errors: self.errors,
+            default_tags: self.default_tags,
+        }
     }
 
     /// Nests another [`Builder`] under this one's base path.
