@@ -421,7 +421,7 @@ fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema
     field_def.description = parse_doc_attributes(&field.original.attrs);
     field_def.serde_name = serde_name;
     field_def.required = match cx.reflectapi_type() {
-        ReflectType::Input => field.attrs.default().is_none(),
+        ReflectType::Input => attrs.required || field.attrs.default().is_none(),
         ReflectType::Output => field.attrs.skip_serializing_if().is_none(),
     };
     field_def.flattened = field.attrs.flatten();

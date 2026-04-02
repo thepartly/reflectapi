@@ -1,0 +1,96 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::input::TestStructWithRequiredField"
+      },
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::output::TestStructWithRequiredField"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::input::TestStructWithRequiredField",
+        "fields": {
+          "named": [
+            {
+              "name": "required_with_default",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "required_without_default",
+              "type": {
+                "name": "u8"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::output::TestStructWithRequiredField",
+        "fields": {
+          "named": [
+            {
+              "name": "required_with_default",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "required_without_default",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

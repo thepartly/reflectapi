@@ -131,6 +131,7 @@ pub(crate) struct ParsedFieldAttributes {
     pub output_transform: String,
     pub input_skip: bool,
     pub output_skip: bool,
+    pub required: bool,
 }
 
 #[derive(Debug, Default)]
@@ -386,6 +387,9 @@ pub(crate) fn parse_field_attributes(
                 // #[reflectapi(skip)]
                 result.input_skip = true;
                 result.output_skip = true;
+            } else if meta.path == REQUIRED {
+                // #[reflectapi(required)]
+                result.required = true;
             } else {
                 let path = meta.path.to_token_stream().to_string();
                 return Err(meta.error(format_args!("unknown reflect field attribute `{path}`")));

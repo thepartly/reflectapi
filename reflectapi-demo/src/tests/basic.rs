@@ -538,6 +538,19 @@ fn test_reflectapi_struct_with_skip_field_output() {
     assert_snapshot!(TestStructWithSkipFieldOutput);
 }
 
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithRequiredField {
+    #[serde(default)]
+    #[reflectapi(required)]
+    required_with_default: u8,
+    #[serde(default)]
+    required_without_default: u8,
+}
+#[test]
+fn test_reflectapi_struct_with_required_field() {
+    assert_snapshot!(TestStructWithRequiredField);
+}
+
 #[test]
 fn test_reflectapi_struct_with_additional_derives() {
     #[derive(
