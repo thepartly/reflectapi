@@ -58,6 +58,31 @@ struct PythonMetadataUsage {
     runtime_provided_types: BTreeSet<String>,
 }
 
+/// Resolve Python field optionality: determines whether a field needs a default
+/// value of `None` and whether `| None` should be appended to its type hint.
+fn resolve_field_optionality(
+    type_name: &str,
+    field_type: String,
+    required: bool,
+) -> (bool, Option<String>, String) {
+    let is_option_type = type_name == "std::option::Option" || type_name == "reflectapi::Option";
+    if !required {
+        if is_option_type {
+            (true, Some("None".to_string()), field_type)
+        } else {
+            (
+                true,
+                Some("None".to_string()),
+                format!("{field_type} | None"),
+            )
+        }
+    } else if is_option_type {
+        (true, Some("None".to_string()), field_type)
+    } else {
+        (false, None, field_type)
+    }
+}
+
 struct PythonTypeMapping {
     type_hint: &'static str,
     imports: &'static [&'static str],
@@ -296,8 +321,6 @@ fn collect_python_metadata_usage(all_type_names: &[String]) -> PythonMetadataUsa
 
 /// Generate optimized imports with proper sorting and deduplication
 fn generate_optimized_imports(imports: &templates::Imports) -> String {
-    use std::collections::{BTreeMap, BTreeSet};
-
     let mut stdlib_imports = BTreeSet::new();
     let mut typing_imports = BTreeSet::new();
     let mut third_party_imports = BTreeSet::new();
@@ -762,23 +785,8 @@ fn render_struct_with_flattened_internal_enum(
                         active_generics,
                         used_type_vars,
                     )?;
-                    let is_option = vf.type_ref.name == "std::option::Option"
-                        || vf.type_ref.name == "reflectapi::Option";
-                    let (optional, default_value, final_type) = if !vf.required {
-                        if is_option {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_type) =
+                        resolve_field_optionality(&vf.type_ref.name, field_type, vf.required);
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(vf.name(), vf.serde_name());
                     fields.push(templates::Field {
@@ -1586,8 +1594,8 @@ def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
         "# Rebuild models to resolve forward references".to_string(),
     ];
     // Rebuild models in a loop — per-type try/except so one failure
-    // doesn't skip all rebuilds. Use flat class names (improve_class_name),
-    // not namespace-dotted refs, since these are module-level definitions.
+    // doesn't skip all rebuilds. Use flat class names, not namespace-dotted
+    // refs, since these are module-level definitions.
     let rebuild_models: Vec<String> = rendered_type_keys
         .iter()
         .filter(|n| !n.starts_with("std::") && !n.starts_with("reflectapi::"))
@@ -1975,24 +1983,11 @@ fn make_flattened_field(
         used_type_vars,
     )?;
 
-    let is_option_type =
-        field.type_ref.name == "std::option::Option" || field.type_ref.name == "reflectapi::Option";
-
-    let (optional, default_value, final_field_type) = if !field.required || !parent_required {
-        if is_option_type {
-            (true, Some("None".to_string()), field_type)
-        } else {
-            (
-                true,
-                Some("None".to_string()),
-                format!("{field_type} | None"),
-            )
-        }
-    } else if is_option_type {
-        (true, Some("None".to_string()), field_type)
-    } else {
-        (false, None, field_type)
-    };
+    let (optional, default_value, final_field_type) = resolve_field_optionality(
+        &field.type_ref.name,
+        field_type,
+        field.required && parent_required,
+    );
 
     let (sanitized, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
     Ok(templates::Field {
@@ -2126,29 +2121,8 @@ fn render_struct(
                 used_type_vars,
             )?;
 
-            // Check if field type is Option<T> or ReflectapiOption<T> (which handle nullability themselves)
-            let is_option_type = field.type_ref.name == "std::option::Option"
-                || field.type_ref.name == "reflectapi::Option";
-
-            // Fix default value handling for optional fields
-            let (optional, default_value, field_type) = if !field.required {
-                // Field is not required - add | None if not already an Option type
-                if is_option_type {
-                    (true, Some("None".to_string()), base_field_type) // Option types handle nullability themselves
-                } else {
-                    (
-                        true,
-                        Some("None".to_string()),
-                        format!("{base_field_type} | None"),
-                    )
-                }
-            } else if is_option_type {
-                // Field is required but Option type - still needs default None
-                (true, Some("None".to_string()), base_field_type) // Option types handle nullability themselves
-            } else {
-                // Required non-Option field
-                (false, None, base_field_type)
-            };
+            let (optional, default_value, field_type) =
+                resolve_field_optionality(&field.type_ref.name, base_field_type, field.required);
 
             let (sanitized, alias) =
                 sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -2356,20 +2330,16 @@ fn render_adjacently_tagged_enum(
                     });
                 } else {
                     // Multi-field tuple: content is a list
-                    let field_types: Vec<String> = unnamed_fields
-                        .iter()
-                        .map(|f| {
-                            type_ref_to_python_type(
-                                &f.type_ref,
-                                schema,
-                                implemented_types,
-                                &generic_params,
-                                used_type_vars,
-                            )
-                        })
-                        .collect::<anyhow::Result<Vec<_>>>()?;
-                    // Use list[Any] for simplicity; Pydantic handles validation
-                    let _types_str = field_types.join(", ");
+                    // Resolve types for side-effects (populates used_type_vars)
+                    for f in unnamed_fields {
+                        type_ref_to_python_type(
+                            &f.type_ref,
+                            schema,
+                            implemented_types,
+                            &generic_params,
+                            used_type_vars,
+                        )?;
+                    }
                     fields.push(templates::Field {
                         name: content.to_string(),
                         type_annotation: "list[Any]".to_string(),
@@ -2394,23 +2364,8 @@ fn render_adjacently_tagged_enum(
                         &generic_params,
                         used_type_vars,
                     )?;
-                    let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Option";
-                    let (optional, default_value, final_field_type) = if !field.required {
-                        if is_option_type {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option_type {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_field_type) =
+                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
                     content_fields.push(templates::Field {
@@ -2642,15 +2597,8 @@ fn render_externally_tagged_enum(
                         used_type_vars,
                     )?;
 
-                    let (optional, default_value, final_field_type) = if !field.required {
-                        (
-                            true,
-                            Some("None".to_string()),
-                            format!("{field_type} | None"),
-                        )
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_field_type) =
+                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -2762,25 +2710,6 @@ fn render_internally_tagged_enum(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<(String, Vec<String>)> {
-    let (rendered, union_variant_names) = render_internally_tagged_enum_core(
-        enum_def,
-        tag,
-        schema,
-        implemented_types,
-        class_names,
-        used_type_vars,
-    )?;
-    Ok((rendered, union_variant_names))
-}
-
-fn render_internally_tagged_enum_core(
-    enum_def: &reflectapi_schema::Enum,
-    tag: &str,
-    schema: &Schema,
-    implemented_types: &BTreeMap<String, String>,
-    class_names: &BTreeMap<String, String>,
-    used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<(String, Vec<String>)> {
     use reflectapi_schema::{Fields, Type};
 
     let enum_name = python_class_name(&enum_def.name, class_names);
@@ -2880,26 +2809,12 @@ fn render_internally_tagged_enum_core(
                                 used_type_vars,
                             )?;
 
-                            // Handle field optionality
-                            let is_option_type = struct_field.type_ref.name
-                                == "std::option::Option"
-                                || struct_field.type_ref.name == "reflectapi::Option";
                             let (optional, default_value, final_field_type) =
-                                if !struct_field.required {
-                                    if is_option_type {
-                                        (true, Some("None".to_string()), field_type)
-                                    } else {
-                                        (
-                                            true,
-                                            Some("None".to_string()),
-                                            format!("{field_type} | None"),
-                                        )
-                                    }
-                                } else if is_option_type {
-                                    (true, Some("None".to_string()), field_type)
-                                } else {
-                                    (false, None, field_type)
-                                };
+                                resolve_field_optionality(
+                                    &struct_field.type_ref.name,
+                                    field_type,
+                                    struct_field.required,
+                                );
 
                             let (sanitized, alias) = sanitize_field_name_with_alias(
                                 struct_field.name(),
@@ -2950,23 +2865,8 @@ fn render_internally_tagged_enum_core(
                         used_type_vars,
                     )?;
 
-                    let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Option";
-                    let (optional, default_value, final_field_type) = if !field.required {
-                        if is_option_type {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option_type {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_field_type) =
+                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -3107,25 +3007,8 @@ fn render_untagged_enum(
                         &generic_params,
                         used_type_vars,
                     )?;
-                    // Check if field type is Option<T> or ReflectapiOption<T> (which handle nullability themselves)
-                    let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Option";
-                    // Handle optionality
-                    let (optional, default_value, final_field_type) = if !field.required {
-                        if is_option_type {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option_type {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_field_type) =
+                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -3150,23 +3033,8 @@ fn render_untagged_enum(
                         &generic_params,
                         used_type_vars,
                     )?;
-                    let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Option";
-                    let (optional, default_value, final_field_type) = if !field.required {
-                        if is_option_type {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option_type {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_field_type) =
+                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
 
                     fields.push(templates::Field {
                         name: if unnamed_fields.len() == 1 {
@@ -3786,55 +3654,10 @@ fn sanitize_field_name_with_alias(name: &str, serde_name: &str) -> (String, Opti
 
 /// Map external/undefined types to sensible Python equivalents
 /// Uses typing.Annotated to provide rich metadata like TypeScript comments
+/// Last-resort fallback for types not in the static mapping and not in the schema.
+/// Wraps unknown types in Annotated[Any, ...] so the generated code is still valid Python.
 fn map_external_type_to_python(type_name: &str) -> String {
-    match type_name {
-        // Rust std library numeric types
-        name if name.contains("NonZero")
-            && (name.contains("U32")
-                || name.contains("U64")
-                || name.contains("I32")
-                || name.contains("I64")) =>
-        {
-            format!("Annotated[int, \"Rust NonZero integer type: {name}\"]")
-        }
-
-        // Decimal types (often used for financial data) - JSON serialized as strings
-        name if name.contains("Decimal") => {
-            format!("Annotated[str, \"Rust Decimal type (JSON string): {name}\"]")
-        }
-
-        // Common domain-specific types that are typically strings
-        name if name.contains("Uuid") || name.contains("UUID") => {
-            format!("Annotated[str, \"UUID type: {name}\"]")
-        }
-        name if name.contains("Id") || name.ends_with("ID") => {
-            format!("Annotated[str, \"ID type: {name}\"]")
-        }
-
-        // Duration and time types - properly mapped to Python equivalents
-        name if name.contains("Duration") => {
-            format!("Annotated[timedelta, \"Rust Duration type: {name}\"]")
-        }
-        name if name.contains("Instant") => {
-            format!("Annotated[datetime, \"Rust Instant type: {name}\"]")
-        }
-
-        // Path types - mapped to pathlib.Path
-        name if name.contains("PathBuf") || name.contains("Path") => {
-            format!("Annotated[Path, \"Rust Path type: {name}\"]")
-        }
-
-        // IP address types - mapped to ipaddress module
-        name if name.contains("IpAddr")
-            || name.contains("Ipv4Addr")
-            || name.contains("Ipv6Addr") =>
-        {
-            format!("Annotated[IPv4Address | IPv6Address, \"Rust IP address type: {name}\"]")
-        }
-
-        // For completely unmapped types, use Annotated[Any, ...] with metadata
-        _ => format!("Annotated[Any, \"External type: {type_name}\"]"),
-    }
+    format!("Annotated[Any, \"External type: {type_name}\"]")
 }
 
 // Type substitution function - handles TypeReference to Python type conversion

@@ -687,14 +687,6 @@ impl Type {
         }
     }
 
-    pub fn codegen_config(&self) -> &LanguageSpecificTypeCodegenConfig {
-        match self {
-            Type::Primitive(p) => &p.codegen_config,
-            Type::Struct(s) => &s.codegen_config,
-            Type::Enum(e) => &e.codegen_config,
-        }
-    }
-
     pub fn as_struct(&self) -> Option<&Struct> {
         match self {
             Type::Struct(s) => Some(s),

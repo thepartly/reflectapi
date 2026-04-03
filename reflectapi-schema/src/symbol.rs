@@ -95,30 +95,6 @@ impl SymbolId {
         Self::new(SymbolKind::Struct, path)
     }
 
-    /// Create a symbol ID for an enum
-    pub fn enum_id(path: Vec<String>) -> Self {
-        Self::new(SymbolKind::Enum, path)
-    }
-
-    /// Create a symbol ID for an endpoint/function
-    pub fn endpoint_id(path: Vec<String>) -> Self {
-        Self::new(SymbolKind::Endpoint, path)
-    }
-
-    /// Create a symbol ID for a variant
-    pub fn variant_id(enum_path: Vec<String>, variant_name: String) -> Self {
-        let mut path = enum_path;
-        path.push(variant_name);
-        Self::new(SymbolKind::Variant, path)
-    }
-
-    /// Create a symbol ID for a field
-    pub fn field_id(parent_path: Vec<String>, field_name: String) -> Self {
-        let mut path = parent_path;
-        path.push(field_name);
-        Self::new(SymbolKind::Field, path)
-    }
-
     /// Get the simple name (last component of path)
     pub fn name(&self) -> Option<&str> {
         self.path.last().map(|s| s.as_str())
