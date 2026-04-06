@@ -156,16 +156,15 @@ where
         }
     }
 
-    pub(crate) fn new_stream<F, St, R1, R2, I, O, E1, E2, H>(
+    pub(crate) fn new_stream<F, St, R, I, O, E1, E2, H>(
         rb: RouteBuilder,
         handler: F,
         schema: &mut Schema,
     ) -> Handler<S>
     where
-        F: Fn(S, I, H) -> R1 + Send + Sync + Copy + 'static,
-        St: Stream<Item = R2> + Send + 'static,
-        R1: crate::IntoResult<St, E1> + 'static,
-        R2: crate::IntoResult<O, E2> + 'static,
+        F: Fn(S, I, H) -> Result<St, E1> + Send + Sync + Copy + 'static,
+        St: Stream<Item = R> + Send + 'static,
+        R: crate::IntoResult<O, E2> + 'static,
         I: Input + serde::de::DeserializeOwned + Send + 'static,
         H: Input + serde::de::DeserializeOwned + Send + 'static,
         O: Output + serde::ser::Serialize + Send + 'static,
@@ -275,7 +274,6 @@ where
         (function_def, input_headers_names)
     }
 
-    #[allow(clippy::result_large_err)]
     fn parse_input<I: serde::de::DeserializeOwned, H: serde::de::DeserializeOwned>(
         mut handler_input: HandlerInput,
     ) -> Result<(I, H, ContentType, http::HeaderMap), HandlerOutput> {
@@ -437,8 +435,7 @@ where
         }
     }
 
-    #[allow(clippy::result_large_err)]
-    fn stream_handler_wrap<F, St, R1, R2, I, H, O, E1, E2>(
+    fn stream_handler_wrap<F, St, R, I, H, O, E1, E2>(
         state: S,
         input: HandlerInput,
         handler: F,
@@ -449,10 +446,9 @@ where
         O: Output + serde::ser::Serialize,
         E1: Output + serde::ser::Serialize + crate::StatusCode,
         E2: Output + serde::ser::Serialize,
-        F: Fn(S, I, H) -> R1,
-        St: Stream<Item = R2> + Send + 'static,
-        R1: crate::IntoResult<St, E1>,
-        R2: crate::IntoResult<O, E2>,
+        F: Fn(S, I, H) -> Result<St, E1>,
+        St: Stream<Item = R> + Send + 'static,
+        R: crate::IntoResult<O, E2>,
     {
         // TODO how do headers work with sse
         let (input, input_headers, content_type, mut response_headers) =
@@ -472,13 +468,11 @@ where
             });
         }
 
-        let st = handler(state, input, input_headers)
-            .into_result()
-            .map_err(|err| HandlerOutput {
-                code: err.status_code(),
-                body: serde_json::to_vec(&err).unwrap().into(),
-                headers: response_headers,
-            })?;
+        let st = handler(state, input, input_headers).map_err(|err| HandlerOutput {
+            code: err.status_code(),
+            body: serde_json::to_vec(&err).unwrap().into(),
+            headers: response_headers,
+        })?;
 
         Ok(st.map(Ok).and_then(move |res| {
             let res = res.into_result();
