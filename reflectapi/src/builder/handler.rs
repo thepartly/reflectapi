@@ -274,6 +274,7 @@ where
         (function_def, input_headers_names)
     }
 
+    #[allow(clippy::result_large_err)]
     fn parse_input<I: serde::de::DeserializeOwned, H: serde::de::DeserializeOwned>(
         mut handler_input: HandlerInput,
     ) -> Result<(I, H, ContentType, http::HeaderMap), HandlerOutput> {
@@ -435,6 +436,7 @@ where
         }
     }
 
+    #[allow(clippy::result_large_err)]
     fn stream_handler_wrap<F, St, R, I, H, O, E1, E2>(
         state: S,
         input: HandlerInput,
