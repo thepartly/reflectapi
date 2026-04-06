@@ -163,15 +163,16 @@ where
     ///
     /// This method takes a stream handler function and a closure that configures the
     /// route's metadata (like its name, path, and description) using a [`RouteBuilder`].
-    pub fn stream_route<F, St, R, I, O, E1, E2, H>(
+    pub fn stream_route<F, St, R1, R2, I, O, E1, E2, H>(
         mut self,
         handler: F,
         builder: fn(RouteBuilder) -> RouteBuilder,
     ) -> Self
     where
-        F: Fn(S, I, H) -> Result<St, E1> + Send + Sync + Copy + 'static,
-        St: Stream<Item = R> + Send + 'static,
-        R: IntoResult<O, E2> + 'static,
+        F: Fn(S, I, H) -> R1 + Send + Sync + Copy + 'static,
+        St: Stream<Item = R2> + Send + 'static,
+        R1: IntoResult<St, E1> + 'static,
+        R2: IntoResult<O, E2> + 'static,
         I: Input + DeserializeOwned + Send + 'static,
         H: Input + DeserializeOwned + Send + 'static,
         O: Output + Serialize + Send + 'static,
