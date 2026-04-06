@@ -11,6 +11,7 @@ expression: schema
       "input_type": {
         "name": "reflectapi_demo::tests::serde::Drawing"
       },
+      "output_kind": "single",
       "output_type": {
         "name": "reflectapi_demo::tests::serde::Drawing"
       },
@@ -110,6 +111,12 @@ expression: schema
         "kind": "primitive",
         "name": "f64",
         "description": "64-bit floating point number"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",

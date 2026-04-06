@@ -526,11 +526,13 @@ impl Function {
 #[serde(tag = "output_kind", rename_all = "snake_case")]
 pub enum OutputType {
     Single {
+        #[serde(skip_serializing_if = "Option::is_none", default)]
         output_type: Option<TypeReference>,
     },
     Stream {
         item_type: TypeReference,
         /// The per-item error type, if any
+        #[serde(skip_serializing_if = "Option::is_none", default)]
         error_type: Option<TypeReference>,
     },
 }

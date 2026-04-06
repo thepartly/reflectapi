@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
-snapshot_kind: text
 ---
 {
   "name": "",
@@ -12,6 +11,7 @@ snapshot_kind: text
       "input_type": {
         "name": "reflectapi_demo::tests::serde::TestStructRenameAllPascalCase"
       },
+      "output_kind": "single",
       "output_type": {
         "name": "reflectapi_demo::tests::serde::TestStructRenameAllPascalCase"
       },
@@ -53,6 +53,12 @@ snapshot_kind: text
   },
   "output_types": {
     "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
