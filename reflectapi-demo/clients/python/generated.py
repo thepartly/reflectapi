@@ -29,6 +29,7 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiOption
 from reflectapi_runtime import ReflectapiEmpty
+from reflectapi_runtime import ReflectapiInfallible
 
 
 # Type variables for generic types
@@ -533,6 +534,27 @@ class AsyncPetsClient:
     def __init__(self, client: AsyncClientBase) -> None:
         self._client = client
 
+    async def cdc_events(
+        self,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[Any, None]:
+        """Stream of change data capture events for pets
+
+        Returns:
+            ApiResponse[Any, None]: Success=Any, Error=None
+        """
+        path = "/pets.cdc-events"
+
+        params: dict[str, Any] = {}
+        return await self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            headers_model=headers,
+            response_model=None,
+            error_model=None,
+        )
+
     async def create(
         self,
         data: Optional[myapi.model.input.Pet] = None,
@@ -743,6 +765,27 @@ class PetsClient:
 
     def __init__(self, client: ClientBase) -> None:
         self._client = client
+
+    def cdc_events(
+        self,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> ApiResponse[Any, None]:
+        """Stream of change data capture events for pets
+
+        Returns:
+            ApiResponse[Any, None]: Success=Any, Error=None
+        """
+        path = "/pets.cdc-events"
+
+        params: dict[str, Any] = {}
+        return self._client._make_request(
+            "POST",
+            path,
+            params=params if params else None,
+            headers_model=headers,
+            response_model=None,
+            error_model=None,
+        )
 
     def create(
         self,

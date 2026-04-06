@@ -244,11 +244,13 @@ where
                     },
                 }
             } else {
-                OutputType::Single(if output_type.name == "reflectapi::Empty" {
-                    None
-                } else {
-                    Some(output_type)
-                })
+                OutputType::Single {
+                    output_type: if output_type.name == "reflectapi::Empty" {
+                        None
+                    } else {
+                        Some(output_type)
+                    },
+                }
             },
             error_type: if error_type.name == "reflectapi::Infallible" {
                 None

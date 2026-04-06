@@ -250,7 +250,9 @@ class ClientInstance {
 }
 
 type UnionToIntersection<U> = (
-  U extends any ? (k: U) => unknown : never
+  U extends any
+    ? (k: U) => unknown
+    : never
 ) extends (k: infer I) => void
   ? I
   : never;
@@ -448,6 +450,14 @@ export namespace __definition {
       myapi.model.output.Pet | null,
       myapi.proto.UnauthorizedError
     >;
+    /**
+     * Stream of change data capture events for pets
+     */
+    cdc_events: (
+      input: {},
+      headers: myapi.proto.Headers,
+      options?: RequestOptions,
+    ) => AsyncResult<{}, myapi.proto.UnauthorizedError>;
   }
 }
 export namespace myapi {
@@ -651,6 +661,11 @@ export namespace reflectapi {
    * Struct object with no fields
    */
   export interface Empty {}
+
+  /**
+   * Error object which is expected to be never returned
+   */
+  export interface Infallible {}
 }
 
 namespace __implementation {
@@ -671,6 +686,7 @@ namespace __implementation {
           remove: pets__remove(client_instance),
           delete: pets__delete(client_instance),
           get_first: pets__get_first(client_instance),
+          cdc_events: pets__cdc_events(client_instance),
         },
       },
     }.impl;
@@ -765,5 +781,19 @@ namespace __implementation {
         myapi.model.output.Pet | null,
         myapi.proto.UnauthorizedError
       >(client, "/pets.get-first", input, headers, options);
+  }
+  function pets__cdc_events(client: Client) {
+    return (
+      input: {},
+      headers: myapi.proto.Headers,
+      options?: RequestOptions,
+    ) =>
+      __request<{}, myapi.proto.Headers, {}, myapi.proto.UnauthorizedError>(
+        client,
+        "/pets.cdc-events",
+        input,
+        headers,
+        options,
+      );
   }
 }

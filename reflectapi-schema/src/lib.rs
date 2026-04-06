@@ -444,6 +444,7 @@ pub struct Function {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub error_type: Option<TypeReference>,
 
+    #[serde(flatten)]
     pub output_type: OutputType,
 
     /// Supported content types for request and response bodies.
@@ -477,7 +478,7 @@ impl Function {
             input_type: None,
             input_headers: None,
             error_type: None,
-            output_type: OutputType::Single(None),
+            output_type: OutputType::Single { output_type: None },
             serialization: Default::default(),
             readonly: Default::default(),
             tags: Default::default(),
@@ -522,9 +523,11 @@ impl Function {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+#[serde(tag = "output_kind", rename_all = "snake_case")]
 pub enum OutputType {
-    Single(Option<TypeReference>),
+    Single {
+        output_type: Option<TypeReference>,
+    },
     Stream {
         item_type: TypeReference,
         /// The per-item error type, if any
@@ -535,7 +538,7 @@ pub enum OutputType {
 impl OutputType {
     pub fn as_single(&self) -> Option<&TypeReference> {
         match self {
-            OutputType::Single(type_ref) => type_ref.as_ref(),
+            OutputType::Single { output_type } => output_type.as_ref(),
             OutputType::Stream { .. } => None,
         }
     }
@@ -546,8 +549,10 @@ impl OutputType {
 
     pub fn type_refs(&self) -> Vec<&TypeReference> {
         match self {
-            OutputType::Single(Some(tr)) => vec![tr],
-            OutputType::Single(None) => vec![],
+            OutputType::Single {
+                output_type: Some(output_type),
+            } => vec![output_type],
+            OutputType::Single { output_type: None } => vec![],
             OutputType::Stream {
                 item_type,
                 error_type,

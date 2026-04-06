@@ -466,7 +466,7 @@ impl Converter<'_> {
             content: BTreeMap::from([(
                 "application/json".to_owned(),
                 MediaType {
-                    schema: f.output_type().map_or_else(
+                    schema: f.output_type().as_single().map_or_else(
                         || Inline(Schema::Flat(FlatSchema::empty_object())),
                         |ty| self.convert_type_ref(schema, Kind::Output, ty),
                     ),
@@ -476,7 +476,7 @@ impl Converter<'_> {
 
         let mut responses = BTreeMap::new();
         responses.insert("200".to_owned(), ok_response);
-        if let Some(err) = f.error_type() {
+        if let Some(err) = f.error_type.as_ref() {
             let err_response = Response {
                 description: "Error cases".to_owned(),
                 content: BTreeMap::from([(

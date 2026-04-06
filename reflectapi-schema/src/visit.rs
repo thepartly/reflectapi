@@ -83,7 +83,7 @@ pub trait Visitor: Sized {
     ) -> ControlFlow<Self::Output, Self::Output> {
         let mut acc = Self::Output::ZERO;
         match &mut f.output_type {
-            crate::OutputType::Single(output_type) => {
+            crate::OutputType::Single { output_type } => {
                 if let Some(output_type) = output_type {
                     acc = acc.combine(self.visit_type_ref(output_type)?);
                 }

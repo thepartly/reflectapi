@@ -2974,7 +2974,7 @@ fn render_function(
         "None".to_string()
     };
 
-    let output_type = if let Some(output_type) = function.output_type.as_ref() {
+    let output_type = if let Some(output_type) = function.output_type.as_single() {
         type_ref_to_python_type_simple(output_type, schema, implemented_types, &[])?
     } else {
         "Any".to_string()
@@ -3725,7 +3725,7 @@ fn check_datetime_usage(schema: &Schema, all_type_names: &[String]) -> bool {
             }
         }
 
-        if let Some(output_type) = &function.output_type {
+        for output_type in function.output_type.type_refs() {
             if let Some(type_def) = schema.get_type(&output_type.name) {
                 if type_uses_datetime(type_def) {
                     return true;
@@ -3758,7 +3758,7 @@ fn check_uuid_usage(schema: &Schema, all_type_names: &[String]) -> bool {
             }
         }
 
-        if let Some(output_type) = &function.output_type {
+        for output_type in function.output_type.type_refs() {
             if let Some(type_def) = schema.get_type(&output_type.name) {
                 if type_uses_uuid(type_def) {
                     return true;
@@ -3791,7 +3791,7 @@ fn check_timedelta_usage(schema: &Schema, all_type_names: &[String]) -> bool {
             }
         }
 
-        if let Some(output_type) = &function.output_type {
+        for output_type in function.output_type.type_refs() {
             if let Some(type_def) = schema.get_type(&output_type.name) {
                 if type_uses_timedelta(type_def) {
                     return true;
@@ -3825,7 +3825,7 @@ fn check_date_usage(schema: &Schema, all_type_names: &[String]) -> bool {
             }
         }
 
-        if let Some(output_type) = &function.output_type {
+        for output_type in function.output_type.type_refs() {
             if let Some(type_def) = schema.get_type(&output_type.name) {
                 if type_uses_date(type_def) {
                     return true;
