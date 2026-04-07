@@ -1740,6 +1740,7 @@ dependencies = [
 name = "reflectapi-demo-client"
 version = "0.1.0"
 dependencies = [
+ "futures-util",
  "reflectapi",
  "reflectapi-demo-client-generated",
  "reqwest",
