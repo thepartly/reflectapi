@@ -481,7 +481,7 @@ fn update_type_references_in_output_type(
     name_mapping: &HashMap<String, String>,
 ) {
     match output_type {
-        crate::OutputType::Single { output_type } => {
+        crate::OutputType::Complete { output_type } => {
             update_type_reference_in_option(output_type, name_mapping);
         }
         crate::OutputType::Stream {
@@ -1164,7 +1164,7 @@ impl Normalizer {
             self.resolve_single_reference(function_id, input_headers);
         }
         match &function.output_type {
-            crate::OutputType::Single {
+            crate::OutputType::Complete {
                 output_type: Some(output_type),
             } => {
                 self.resolve_single_reference(function_id, output_type);
@@ -1178,7 +1178,7 @@ impl Normalizer {
                     self.resolve_single_reference(function_id, error_type);
                 }
             }
-            crate::OutputType::Single { output_type: None } => {}
+            crate::OutputType::Complete { output_type: None } => {}
         }
         if let Some(error_type) = &function.error_type {
             self.resolve_single_reference(function_id, error_type);
@@ -1497,7 +1497,7 @@ impl Normalizer {
             .as_ref()
             .and_then(|tr| self.resolve_global_type_reference(&tr.name));
         let output_type = match &function.output_type {
-            crate::OutputType::Single { output_type } => SemanticOutputType::Single(
+            crate::OutputType::Complete { output_type } => SemanticOutputType::Complete(
                 output_type
                     .as_ref()
                     .and_then(|tr| self.resolve_global_type_reference(&tr.name)),
@@ -2185,7 +2185,7 @@ mod tests {
 
         let mut function = Function::new("get_user".into());
         function.input_type = None;
-        function.output_type = crate::OutputType::Single { output_type: None };
+        function.output_type = crate::OutputType::Complete { output_type: None };
         schema.functions.push(function);
 
         let normalizer = Normalizer::new();

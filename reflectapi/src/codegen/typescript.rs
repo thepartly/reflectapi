@@ -818,7 +818,7 @@ fn function_signature(
         "{}".into()
     };
     let output = match &function.output_type {
-        reflectapi_schema::OutputType::Single { output_type } => FunctionOutput::Single {
+        reflectapi_schema::OutputType::Complete { output_type } => FunctionOutput::Single {
             output_type: output_type
                 .as_ref()
                 .map(|t| type_ref_to_ts_ref(t, schema, implemented_types))

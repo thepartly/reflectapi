@@ -2978,10 +2978,10 @@ fn render_function(
     };
 
     let output_type = match &function.output_type {
-        OutputType::Single { output_type: Some(output_type) } => {
-            type_ref_to_python_type_simple(output_type, schema, implemented_types, &[])?
-        }
-        OutputType::Single { output_type: None } => "Any".to_string(),
+        OutputType::Complete {
+            output_type: Some(output_type),
+        } => type_ref_to_python_type_simple(output_type, schema, implemented_types, &[])?,
+        OutputType::Complete { output_type: None } => "Any".to_string(),
         OutputType::Stream { .. } => unreachable!("stream endpoints should be filtered out"),
     };
 

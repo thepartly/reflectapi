@@ -181,6 +181,8 @@ pub struct MediaType {
     schema: InlineOrRef<Schema>,
 }
 
+struct StreamOrComplete {}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum StringFormat {
@@ -449,7 +451,7 @@ impl Converter<'_> {
                             .iter()
                             .all(|tag| !self.config.exclude_tags.contains(tag))
                 })
-                .filter(|f| matches!(f.output_type, crate::OutputType::Single { .. }))
+                .filter(|f| matches!(f.output_type, crate::OutputType::Complete { .. }))
                 .map(|f| {
                     (
                         format!("{}/{}", f.path(), f.name()),
@@ -468,10 +470,10 @@ impl Converter<'_> {
                 "application/json".to_owned(),
                 MediaType {
                     schema: match f.output_type() {
-                        crate::OutputType::Single { output_type: Some(ty) } => {
-                            self.convert_type_ref(schema, Kind::Output, ty)
-                        }
-                        crate::OutputType::Single { output_type: None } => {
+                        crate::OutputType::Complete {
+                            output_type: Some(ty),
+                        } => self.convert_type_ref(schema, Kind::Output, ty),
+                        crate::OutputType::Complete { output_type: None } => {
                             Inline(Schema::Flat(FlatSchema::empty_object()))
                         }
                         crate::OutputType::Stream { .. } => {

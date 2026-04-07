@@ -48,7 +48,7 @@ pub struct SemanticFunction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SemanticOutputType {
-    Single(Option<SymbolId>),
+    Complete(Option<SymbolId>),
     Stream {
         item_type: SymbolId,
         error_type: Option<SymbolId>,

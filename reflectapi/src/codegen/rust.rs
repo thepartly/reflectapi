@@ -924,10 +924,10 @@ fn __function_signature(
         "reflectapi::Empty".into()
     };
     let output_type = match &function.output_type {
-        OutputType::Single { output_type: Some(output_type) } => {
-            __type_ref_to_ts_ref(output_type, schema, implemented_types, 1, None)
-        }
-        OutputType::Single { output_type: None } => "reflectapi::Empty".into(),
+        OutputType::Complete {
+            output_type: Some(output_type),
+        } => __type_ref_to_ts_ref(output_type, schema, implemented_types, 1, None),
+        OutputType::Complete { output_type: None } => "reflectapi::Empty".into(),
         OutputType::Stream { .. } => unreachable!("stream endpoints should be filtered out"),
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {

@@ -244,7 +244,7 @@ where
                     },
                 }
             } else {
-                OutputType::Single {
+                OutputType::Complete {
                     output_type: if output_type.name == "reflectapi::Empty" {
                         None
                     } else {
