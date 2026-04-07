@@ -156,10 +156,7 @@ async fn main() {
     let _ = fallible_handle.await;
 
     let received_fallible = received_fallible.lock().unwrap();
-    let expected_fallible = vec![
-        "err:Something went wrong with this pet",
-        "ok:GoodPet",
-    ];
+    let expected_fallible = vec!["err:Something went wrong with this pet", "ok:GoodPet"];
     if *received_fallible == expected_fallible {
         println!("fallible stream test passed");
     } else {
