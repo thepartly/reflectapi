@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use futures_util::Stream;
+use futures_util::{Stream, StreamExt as _};
 use tokio::sync::broadcast;
 
 #[cfg(test)]
@@ -48,6 +48,11 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
             b.name("pets.cdc-events")
                 .readonly(true)
                 .description("Stream of change data capture events for pets")
+        })
+        .stream_route(pets_cdc_events_fallible, |b| {
+            b.name("pets.cdc-events-fallible")
+                .readonly(true)
+                .description("Stream of change data capture events for pets with potential errors")
         })
         .rename_types("reflectapi_demo::", "myapi::")
         // and some optional linting rules
@@ -303,6 +308,25 @@ fn pets_cdc_events(
                 Err(broadcast::error::RecvError::Closed) => break,
             }
         }
+    })
+}
+
+fn pets_cdc_events_fallible(
+    state: Arc<AppState>,
+    _: reflectapi::Empty,
+    headers: proto::Headers,
+) -> Result<impl Stream<Item = Result<model::Pet, proto::InternalError>>, proto::UnauthorizedError>
+{
+    pets_cdc_events(state, reflectapi::Empty {}, headers).map(|stream| {
+        stream.map(|pet| {
+            if pet.name == "BadPet" {
+                Err(proto::InternalError {
+                    message: "Something went wrong with this pet".into(),
+                })
+            } else {
+                Ok(pet)
+            }
+        })
     })
 }
 

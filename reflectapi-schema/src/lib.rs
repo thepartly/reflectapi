@@ -533,7 +533,7 @@ pub enum OutputType {
         item_type: TypeReference,
         /// The per-item error type, if any
         #[serde(skip_serializing_if = "Option::is_none", default)]
-        error_type: Option<TypeReference>,
+        item_error_type: Option<TypeReference>,
     },
 }
 
@@ -546,10 +546,10 @@ impl OutputType {
             OutputType::Complete { output_type: None } => vec![],
             OutputType::Stream {
                 item_type,
-                error_type,
+                item_error_type,
             } => {
                 let mut refs = vec![item_type];
-                if let Some(et) = error_type {
+                if let Some(et) = item_error_type {
                     refs.push(et);
                 }
                 refs

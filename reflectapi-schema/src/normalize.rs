@@ -486,10 +486,10 @@ fn update_type_references_in_output_type(
         }
         crate::OutputType::Stream {
             item_type,
-            error_type,
+            item_error_type,
         } => {
             update_type_reference(item_type, name_mapping);
-            update_type_reference_in_option(error_type, name_mapping);
+            update_type_reference_in_option(item_error_type, name_mapping);
         }
     }
 }
@@ -1171,11 +1171,11 @@ impl Normalizer {
             }
             crate::OutputType::Stream {
                 item_type,
-                error_type,
+                item_error_type,
             } => {
                 self.resolve_single_reference(function_id, item_type);
-                if let Some(error_type) = error_type {
-                    self.resolve_single_reference(function_id, error_type);
+                if let Some(item_error_type) = item_error_type {
+                    self.resolve_single_reference(function_id, item_error_type);
                 }
             }
             crate::OutputType::Complete { output_type: None } => {}
@@ -1504,7 +1504,7 @@ impl Normalizer {
             ),
             crate::OutputType::Stream {
                 item_type,
-                error_type,
+                item_error_type,
             } => SemanticOutputType::Stream {
                 item_type: self
                     .resolve_global_type_reference(&item_type.name)
@@ -1514,7 +1514,7 @@ impl Normalizer {
                             referrer: function.id.clone(),
                         }]
                     })?,
-                error_type: error_type
+                error_type: item_error_type
                     .as_ref()
                     .and_then(|tr| self.resolve_global_type_reference(&tr.name)),
             },

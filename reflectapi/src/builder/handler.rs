@@ -237,7 +237,7 @@ where
             output_type: if is_stream {
                 OutputType::Stream {
                     item_type: output_type,
-                    error_type: if stream_error_type.name == "reflectapi::Infallible" {
+                    item_error_type: if stream_error_type.name == "reflectapi::Infallible" {
                         None
                     } else {
                         Some(stream_error_type)

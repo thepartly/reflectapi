@@ -89,7 +89,7 @@ fn discover_error_types(schema: &crate::Schema) -> HashSet<String> {
             error_types.insert(error_type.name.clone());
         }
         if let OutputType::Stream {
-            error_type: Some(error_type),
+            item_error_type: Some(error_type),
             ..
         } = &function.output_type
         {
@@ -1023,12 +1023,24 @@ fn __function_signature(
     let with_prefix = |name: &str| -> String { name.replace("super::", "super::types::") };
 
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
-        with_prefix(&__type_ref_to_ts_ref(input_type, schema, implemented_types, 1, None))
+        with_prefix(&__type_ref_to_ts_ref(
+            input_type,
+            schema,
+            implemented_types,
+            1,
+            None,
+        ))
     } else {
         "reflectapi::Empty".into()
     };
     let input_headers = if let Some(input_headers) = function.input_headers.as_ref() {
-        with_prefix(&__type_ref_to_ts_ref(input_headers, schema, implemented_types, 1, None))
+        with_prefix(&__type_ref_to_ts_ref(
+            input_headers,
+            schema,
+            implemented_types,
+            1,
+            None,
+        ))
     } else {
         "reflectapi::Empty".into()
     };
@@ -1036,23 +1048,41 @@ fn __function_signature(
         OutputType::Complete {
             output_type: Some(output_type),
         } => __FunctionOutput::Complete {
-            output_type: with_prefix(&__type_ref_to_ts_ref(output_type, schema, implemented_types, 1, None)),
+            output_type: with_prefix(&__type_ref_to_ts_ref(
+                output_type,
+                schema,
+                implemented_types,
+                1,
+                None,
+            )),
         },
         OutputType::Complete { output_type: None } => __FunctionOutput::Complete {
             output_type: "reflectapi::Empty".into(),
         },
         OutputType::Stream {
             item_type,
-            error_type,
+            item_error_type,
         } => __FunctionOutput::Stream {
-            item_type: with_prefix(&__type_ref_to_ts_ref(item_type, schema, implemented_types, 1, None)),
-            item_error_type: error_type
+            item_type: with_prefix(&__type_ref_to_ts_ref(
+                item_type,
+                schema,
+                implemented_types,
+                1,
+                None,
+            )),
+            item_error_type: item_error_type
                 .as_ref()
                 .map(|t| with_prefix(&__type_ref_to_ts_ref(t, schema, implemented_types, 1, None))),
         },
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
-        with_prefix(&__type_ref_to_ts_ref(error_type, schema, implemented_types, 1, None))
+        with_prefix(&__type_ref_to_ts_ref(
+            error_type,
+            schema,
+            implemented_types,
+            1,
+            None,
+        ))
     } else {
         "reflectapi::Empty".into()
     };
@@ -1179,22 +1209,20 @@ fn __interface_types_from_function_group(
             __FunctionOutput::Stream {
                 item_type,
                 item_error_type,
-            } => {
-                templates::__FunctionImpl::Stream(
-                    templates::__StreamFunctionImplementationTemplate {
-                        name,
-                        deprecation_note,
-                        attributes,
-                        description,
-                        path,
-                        input_type: sig.input_type,
-                        input_headers: sig.input_headers,
-                        item_type,
-                        item_error_type,
-                        error_type: sig.error_type,
-                    },
-                )
-            }
+            } => templates::__FunctionImpl::Stream(
+                templates::__StreamFunctionImplementationTemplate {
+                    name,
+                    deprecation_note,
+                    attributes,
+                    description,
+                    path,
+                    input_type: sig.input_type,
+                    input_headers: sig.input_headers,
+                    item_type,
+                    item_error_type,
+                    error_type: sig.error_type,
+                },
+            ),
         };
         interface_implementation.functions.push(func_impl);
     }

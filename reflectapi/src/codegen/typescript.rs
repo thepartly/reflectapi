@@ -826,10 +826,10 @@ fn function_signature(
         },
         reflectapi_schema::OutputType::Stream {
             item_type,
-            error_type,
+            item_error_type,
         } => FunctionOutput::Stream {
             item_type: type_ref_to_ts_ref(item_type, schema, implemented_types),
-            item_error_type: error_type
+            item_error_type: item_error_type
                 .as_ref()
                 .map(|t| type_ref_to_ts_ref(t, schema, implemented_types)),
         },

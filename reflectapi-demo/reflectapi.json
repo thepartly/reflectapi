@@ -167,6 +167,29 @@
         "msgpack"
       ],
       "readonly": true
+    },
+    {
+      "name": "pets.cdc-events-fallible",
+      "path": "",
+      "description": "Stream of change data capture events for pets with potential errors",
+      "input_headers": {
+        "name": "myapi::proto::Headers"
+      },
+      "error_type": {
+        "name": "myapi::proto::UnauthorizedError"
+      },
+      "output_kind": "stream",
+      "item_type": {
+        "name": "myapi::model::output::Pet"
+      },
+      "item_error_type": {
+        "name": "myapi::proto::InternalError"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ],
+      "readonly": true
     }
   ],
   "input_types": {
