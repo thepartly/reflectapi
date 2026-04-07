@@ -318,8 +318,7 @@ async function* __sse_to_async_iterable<O>(
       if (options?.signal?.aborted) break;
       const { done, value } = await reader.read();
       if (done) break;
-      const parsed = JSON.parse(value.data);
-      yield ('ok' in parsed ? parsed.ok : parsed) as O;
+      yield JSON.parse(value.data) as O;
     }
   } finally {
     reader.cancel().catch(() => {});
@@ -339,10 +338,10 @@ async function* __sse_to_async_iterable_fallible<O, IE>(
       const { done, value } = await reader.read();
       if (done) break;
       const parsed = JSON.parse(value.data);
-      if ("ok" in parsed) {
-        yield new Result<O, IE>({ ok: parsed.ok as O });
-      } else if ("err" in parsed) {
-        yield new Result<O, IE>({ err: parsed.err as IE });
+      if ("__reflectapi_reserved_stream_error" in parsed) {
+        yield new Result<O, IE>({ err: parsed.__reflectapi_reserved_stream_error as IE });
+      } else {
+        yield new Result<O, IE>({ ok: parsed as O });
       }
     }
   } finally {
