@@ -545,10 +545,6 @@ impl OutputType {
         }
     }
 
-    pub fn is_stream(&self) -> bool {
-        matches!(self, OutputType::Stream { .. })
-    }
-
     pub fn type_refs(&self) -> Vec<&TypeReference> {
         match self {
             OutputType::Single {

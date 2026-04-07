@@ -479,7 +479,9 @@ where
         Ok(st.map(Ok).and_then(move |res| {
             let res = res.into_result();
             async move {
-                let res = UntaggedResult::from(res);
+                // We need the tag to distinguish stream items from being errors or oks.
+                // The `single` method uses http status code to distinguish which is not applicable for streams.
+                let res = TaggedResult::from(res);
                 serde_json::to_string(&res).map_err(|err| err.to_string())
             }
         }))
@@ -498,6 +500,22 @@ impl<T, E> From<Result<T, E>> for UntaggedResult<T, E> {
         match res {
             Ok(v) => UntaggedResult::Ok(v),
             Err(err) => UntaggedResult::Err(err),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+enum TaggedResult<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+impl<T, E> From<Result<T, E>> for TaggedResult<T, E> {
+    fn from(res: Result<T, E>) -> Self {
+        match res {
+            Ok(v) => TaggedResult::Ok(v),
+            Err(err) => TaggedResult::Err(err),
         }
     }
 }
