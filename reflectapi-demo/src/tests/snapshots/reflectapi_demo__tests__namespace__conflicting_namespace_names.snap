@@ -8,7 +8,7 @@ expression: schema
     {
       "name": "x.foo.get",
       "path": "",
-      "output_kind": "complete",
+      "output_kind": "single",
       "serialization": [
         "json",
         "msgpack"
@@ -17,7 +17,7 @@ expression: schema
     {
       "name": "y.foo.get",
       "path": "",
-      "output_kind": "complete",
+      "output_kind": "single",
       "output_type": {
         "name": "std::tuple::Tuple0"
       },

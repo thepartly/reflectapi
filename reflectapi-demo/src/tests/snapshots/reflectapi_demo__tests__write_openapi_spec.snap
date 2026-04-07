@@ -3,53 +3,13 @@ source: reflectapi-demo/src/tests/mod.rs
 expression: s
 ---
 {
-  "openapi": "3.2.0",
+  "openapi": "3.1.0",
   "info": {
     "title": "Demo application",
     "description": "This is a demo application",
     "version": "1.0.0"
   },
   "paths": {
-    "/pets.cdc-events": {
-      "description": "Stream of change data capture events for pets",
-      "post": {
-        "operationId": "pets.cdc-events",
-        "description": "Stream of change data capture events for pets",
-        "responses": {
-          "200": {
-            "description": "200 OK",
-            "content": {
-              "text/event-stream": {
-                "itemSchema": {
-                  "$ref": "#/components/schemas/myapi.model.output.Pet"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Error cases",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/myapi.proto.UnauthorizedError"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/std.string.String"
-            },
-            "description": "Authorization header"
-          }
-        ]
-      }
-    },
     "/pets.create": {
       "description": "Create a new pet",
       "post": {
