@@ -6,9 +6,9 @@
 use crate::symbol::{STDLIB_TYPES, STDLIB_TYPE_PREFIXES};
 use crate::{
     Enum, Field, FieldStyle, Fields, Function, Primitive, ResolvedTypeReference, Schema,
-    SemanticEnum, SemanticField, SemanticFunction, SemanticPrimitive, SemanticSchema,
-    SemanticStruct, SemanticType, SemanticTypeParameter, SemanticVariant, Struct, SymbolId,
-    SymbolInfo, SymbolKind, SymbolTable, Type, TypeReference, Variant,
+    SemanticEnum, SemanticField, SemanticFunction, SemanticOutputType, SemanticPrimitive,
+    SemanticSchema, SemanticStruct, SemanticType, SemanticTypeParameter, SemanticVariant, Struct,
+    SymbolId, SymbolInfo, SymbolKind, SymbolTable, Type, TypeReference, Variant,
 };
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -289,7 +289,7 @@ impl NormalizationStage for TypeConsolidationStage {
             for function in &mut schema.functions {
                 update_type_reference_in_option(&mut function.input_type, &rename_map);
                 update_type_reference_in_option(&mut function.input_headers, &rename_map);
-                update_type_reference_in_option(&mut function.output_type, &rename_map);
+                update_type_references_in_output_type(&mut function.output_type, &rename_map);
                 update_type_reference_in_option(&mut function.error_type, &rename_map);
             }
 
@@ -441,7 +441,7 @@ fn update_type_references_in_schema(
     for function in &mut schema.functions {
         update_type_reference_in_option(&mut function.input_type, &name_mapping);
         update_type_reference_in_option(&mut function.input_headers, &name_mapping);
-        update_type_reference_in_option(&mut function.output_type, &name_mapping);
+        update_type_references_in_output_type(&mut function.output_type, &name_mapping);
         update_type_reference_in_option(&mut function.error_type, &name_mapping);
     }
 
@@ -473,6 +473,24 @@ fn update_type_reference_in_option(
 ) {
     if let Some(type_ref) = type_ref_opt {
         update_type_reference(type_ref, name_mapping);
+    }
+}
+
+fn update_type_references_in_output_type(
+    output_type: &mut crate::OutputType,
+    name_mapping: &HashMap<String, String>,
+) {
+    match output_type {
+        crate::OutputType::Complete { output_type } => {
+            update_type_reference_in_option(output_type, name_mapping);
+        }
+        crate::OutputType::Stream {
+            item_type,
+            item_error_type,
+        } => {
+            update_type_reference(item_type, name_mapping);
+            update_type_reference_in_option(item_error_type, name_mapping);
+        }
     }
 }
 
@@ -1145,8 +1163,22 @@ impl Normalizer {
         if let Some(input_headers) = &function.input_headers {
             self.resolve_single_reference(function_id, input_headers);
         }
-        if let Some(output_type) = &function.output_type {
-            self.resolve_single_reference(function_id, output_type);
+        match &function.output_type {
+            crate::OutputType::Complete {
+                output_type: Some(output_type),
+            } => {
+                self.resolve_single_reference(function_id, output_type);
+            }
+            crate::OutputType::Stream {
+                item_type,
+                item_error_type,
+            } => {
+                self.resolve_single_reference(function_id, item_type);
+                if let Some(item_error_type) = item_error_type {
+                    self.resolve_single_reference(function_id, item_error_type);
+                }
+            }
+            crate::OutputType::Complete { output_type: None } => {}
         }
         if let Some(error_type) = &function.error_type {
             self.resolve_single_reference(function_id, error_type);
@@ -1209,8 +1241,6 @@ impl Normalizer {
                 .symbol_table
                 .add_dependency(referrer.clone(), target_id);
         }
-        // Unresolved references are silently ignored for now -
-        // they'll be handled as placeholders in IR building
 
         for arg in &type_ref.arguments {
             self.resolve_single_reference(referrer, arg);
@@ -1466,10 +1496,29 @@ impl Normalizer {
             .input_headers
             .as_ref()
             .and_then(|tr| self.resolve_global_type_reference(&tr.name));
-        let output_type = function
-            .output_type
-            .as_ref()
-            .and_then(|tr| self.resolve_global_type_reference(&tr.name));
+        let output_type = match &function.output_type {
+            crate::OutputType::Complete { output_type } => SemanticOutputType::Complete(
+                output_type
+                    .as_ref()
+                    .and_then(|tr| self.resolve_global_type_reference(&tr.name)),
+            ),
+            crate::OutputType::Stream {
+                item_type,
+                item_error_type,
+            } => SemanticOutputType::Stream {
+                item_type: self
+                    .resolve_global_type_reference(&item_type.name)
+                    .ok_or_else(|| {
+                        vec![NormalizationError::UnresolvedReference {
+                            name: item_type.name.clone(),
+                            referrer: function.id.clone(),
+                        }]
+                    })?,
+                error_type: item_error_type
+                    .as_ref()
+                    .and_then(|tr| self.resolve_global_type_reference(&tr.name)),
+            },
+        };
         let error_type = function
             .error_type
             .as_ref()
@@ -1497,13 +1546,14 @@ impl Normalizer {
     ) -> Result<ResolvedTypeReference, Vec<NormalizationError>> {
         let is_likely_generic = !type_ref.name.contains("::");
 
-        let target = if let Some(target) = self.resolve_global_type_reference(&type_ref.name) {
-            target
-        } else if is_likely_generic {
-            SymbolId::new(SymbolKind::TypeAlias, vec![type_ref.name.clone()])
-        } else {
-            SymbolId::new(SymbolKind::Struct, vec![type_ref.name.replace("::", "_")])
-        };
+        let target =
+            if let Some(target) = self.context.resolution_cache.get(&type_ref.name).cloned() {
+                target
+            } else if is_likely_generic {
+                SymbolId::new(SymbolKind::TypeAlias, vec![type_ref.name.clone()])
+            } else {
+                SymbolId::new(SymbolKind::Struct, vec![type_ref.name.replace("::", "_")])
+            };
 
         let mut resolved_args = Vec::new();
         for arg in &type_ref.arguments {
@@ -2135,7 +2185,7 @@ mod tests {
 
         let mut function = Function::new("get_user".into());
         function.input_type = None;
-        function.output_type = None;
+        function.output_type = crate::OutputType::Complete { output_type: None };
         schema.functions.push(function);
 
         let normalizer = Normalizer::new();

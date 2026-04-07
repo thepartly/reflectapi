@@ -29,6 +29,7 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiOption
 from reflectapi_runtime import ReflectapiEmpty
+from reflectapi_runtime import ReflectapiInfallible
 
 
 # Type variables for generic types

@@ -150,10 +150,11 @@ pub mod axum;
 pub mod codegen;
 
 #[cfg(feature = "builder")]
-pub use builder::{
-    BuildError, BuildErrors, Builder, ContentType, Handler, HandlerCallback, HandlerFuture,
-    IntoResult, RouteBuilder, Router, StatusCode,
+pub use self::builder::{
+    BuildError, BuildErrors, Builder, ContentType, IntoResult, RouteBuilder, Router, StatusCode,
 };
+#[cfg(feature = "builder")]
+use self::builder::{Handler, HandlerCallback};
 pub use empty::*;
 pub use infallible::*;
 pub use option::*;

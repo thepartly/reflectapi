@@ -9,11 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::Mixed"
+        "name": "reflectapi_demo::tests::serde::Either"
       },
-      "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::Mixed"
+        "name": "reflectapi_demo::tests::serde::Either"
       },
       "serialization": [
         "json",
@@ -24,11 +23,6 @@ expression: schema
   "input_types": {
     "types": [
       {
-        "kind": "primitive",
-        "name": "i32",
-        "description": "32-bit signed integer"
-      },
-      {
         "kind": "struct",
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
@@ -36,25 +30,17 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::serde::Mixed",
-        "representation": {
-          "internal": {
-            "tag": "type"
-          }
-        },
+        "name": "reflectapi_demo::tests::serde::Either",
         "variants": [
           {
-            "name": "Unit",
-            "fields": "none"
-          },
-          {
-            "name": "Wrap",
+            "name": "Left",
+            "description": "Left variant documentation",
             "fields": {
-              "named": [
+              "unnamed": [
                 {
-                  "name": "value",
+                  "name": "0",
                   "type": {
-                    "name": "std::string::String"
+                    "name": "u8"
                   },
                   "required": true
                 }
@@ -62,20 +48,14 @@ expression: schema
             }
           },
           {
-            "name": "Full",
+            "name": "Right",
+            "description": "Right variant documentation",
             "fields": {
-              "named": [
+              "unnamed": [
                 {
-                  "name": "x",
+                  "name": "0",
                   "type": {
-                    "name": "i32"
-                  },
-                  "required": true
-                },
-                {
-                  "name": "y",
-                  "type": {
-                    "name": "i32"
+                    "name": "std::string::String"
                   },
                   "required": true
                 }
@@ -88,22 +68,16 @@ expression: schema
         "kind": "primitive",
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
       }
     ]
   },
   "output_types": {
     "types": [
-      {
-        "kind": "primitive",
-        "name": "i32",
-        "description": "32-bit signed integer"
-      },
-      {
-        "kind": "struct",
-        "name": "reflectapi::Empty",
-        "description": "Struct object with no fields",
-        "fields": "none"
-      },
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",
@@ -112,25 +86,17 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::serde::Mixed",
-        "representation": {
-          "internal": {
-            "tag": "type"
-          }
-        },
+        "name": "reflectapi_demo::tests::serde::Either",
         "variants": [
           {
-            "name": "Unit",
-            "fields": "none"
-          },
-          {
-            "name": "Wrap",
+            "name": "Left",
+            "description": "Left variant documentation",
             "fields": {
-              "named": [
+              "unnamed": [
                 {
-                  "name": "value",
+                  "name": "0",
                   "type": {
-                    "name": "std::string::String"
+                    "name": "u8"
                   },
                   "required": true
                 }
@@ -138,20 +104,14 @@ expression: schema
             }
           },
           {
-            "name": "Full",
+            "name": "Right",
+            "description": "Right variant documentation",
             "fields": {
-              "named": [
+              "unnamed": [
                 {
-                  "name": "x",
+                  "name": "0",
                   "type": {
-                    "name": "i32"
-                  },
-                  "required": true
-                },
-                {
-                  "name": "y",
-                  "type": {
-                    "name": "i32"
+                    "name": "std::string::String"
                   },
                   "required": true
                 }
@@ -164,6 +124,11 @@ expression: schema
         "kind": "primitive",
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
       }
     ]
   }

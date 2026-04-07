@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
-snapshot_kind: text
 ---
 {
   "name": "",
@@ -20,6 +19,7 @@ snapshot_kind: text
           }
         ]
       },
+      "output_kind": "complete",
       "output_type": {
         "name": "std::collections::HashMap",
         "arguments": [
@@ -72,6 +72,12 @@ snapshot_kind: text
   },
   "output_types": {
     "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",

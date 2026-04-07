@@ -10,6 +10,7 @@ workspace = true
 reflectapi-demo-client-generated = { path = "generated" }
 
 tokio = { version = "1.38.0", features = ["full"] }
-reqwest = { version = "0.12.2" }
+reqwest = { version = "0.12.2", features = ["stream"] }
+futures-util = "0.3"
 
 reflectapi = { workspace = true, features = ["rt"] }

@@ -11,6 +11,7 @@ expression: schema
       "input_type": {
         "name": "reflectapi_demo::tests::basic::TestStructWithExternalGenericTypeFallback"
       },
+      "output_kind": "complete",
       "output_type": {
         "name": "reflectapi_demo::tests::basic::TestStructWithExternalGenericTypeFallback"
       },
@@ -95,6 +96,12 @@ expression: schema
         "kind": "primitive",
         "name": "i32",
         "description": "32-bit signed integer"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",

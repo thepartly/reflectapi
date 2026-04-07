@@ -25,6 +25,7 @@ reflectapi-schema = { path = "../reflectapi-schema", version = "0.16.10" }
 
 # mandatory 3rd party dependencies
 serde = { version = "1.0.197", features = ["derive"] }
+futures-util = "0.3"
 
 # optional 3rd party dependencies for implementing schema builder
 serde_json = { version = "1.0.114", optional = true }
@@ -52,7 +53,7 @@ indexmap = { version = "2.2.6", optional = true, features = ["serde"] }
 check_keyword = { version = "0.2.0", optional = true }
 
 # optional 3rd party dependencies for client runtime
-reqwest = { version = "0.12", optional = true }
+reqwest = { version = "0.12", optional = true, features = ["stream"] }
 reqwest-middleware = { version = "0.4", optional = true }
 
 # optional dependency for documentation features

@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::Context;
 use indexmap::IndexMap;
-use reflectapi_schema::{Function, TypeReference, Visitor};
+use reflectapi_schema::{Function, OutputType, TypeReference, Visitor};
 
 use super::format_with;
 
@@ -86,6 +86,13 @@ fn discover_error_types(schema: &crate::Schema) -> HashSet<String> {
     let mut error_types = HashSet::new();
     for function in schema.functions() {
         if let Some(error_type) = function.error_type.as_ref() {
+            error_types.insert(error_type.name.clone());
+        }
+        if let OutputType::Stream {
+            item_error_type: Some(error_type),
+            ..
+        } = &function.output_type
+        {
             error_types.insert(error_type.name.clone());
         }
     }
@@ -282,6 +289,10 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
             include_str!("rust-dependency-stubs/reflectapi.rs"),
         ),
         ("url.rs", include_str!("rust-dependency-stubs/url.rs")),
+        (
+            "futures_util.rs",
+            include_str!("rust-dependency-stubs/futures_util.rs"),
+        ),
         (
             "rt.rs",
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/rt.rs")),
@@ -834,10 +845,89 @@ mod templates {
         }
     }
 
+    pub(super) struct __StreamFunctionImplementationTemplate {
+        pub name: String,
+        pub description: String,
+        pub deprecation_note: Option<String>,
+        pub attributes: String,
+        pub path: String,
+        pub input_type: String,
+        pub input_headers: String,
+        pub item_type: String,
+        pub item_error_type: Option<String>,
+        pub error_type: String,
+    }
+
+    impl __StreamFunctionImplementationTemplate {
+        pub fn render(&self) -> String {
+            let mut out = String::new();
+            if let Some(deprecation_note) = &self.deprecation_note {
+                if deprecation_note.is_empty() {
+                    out.push_str("        #[deprecated]");
+                } else {
+                    write!(out, "        #[deprecated(note = \"{deprecation_note}\")]").unwrap();
+                }
+            }
+            if let Some(item_error_type) = &self.item_error_type {
+                write!(
+                    out,
+                    "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
+                         -> reflectapi::rt::FallibleStreamResponse<{}, {}, {}, C::Error>\n\
+                         where C::Error: Send + 'static {{\n\
+                             reflectapi::rt::__stream_request_fallible_impl(&self.client, self.base_url.join(\"{}\").expect(\"checked base_url already and path is valid\"), input, headers).await\n\
+                         }}",
+                    self.description,
+                    self.attributes,
+                    self.name,
+                    self.input_type,
+                    self.input_headers,
+                    self.item_type,
+                    item_error_type,
+                    self.error_type,
+                    self.path,
+                )
+                .unwrap();
+            } else {
+                write!(
+                    out,
+                    "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
+                         -> reflectapi::rt::StreamResponse<{}, {}, C::Error>\n\
+                         where C::Error: Send + 'static {{\n\
+                             reflectapi::rt::__stream_request_impl(&self.client, self.base_url.join(\"{}\").expect(\"checked base_url already and path is valid\"), input, headers).await\n\
+                         }}",
+                    self.description,
+                    self.attributes,
+                    self.name,
+                    self.input_type,
+                    self.input_headers,
+                    self.item_type,
+                    self.error_type,
+                    self.path,
+                )
+                .unwrap();
+            }
+            out
+        }
+    }
+
+    pub(super) enum __FunctionImpl {
+        Complete(__FunctionImplementationTemplate),
+        Stream(__StreamFunctionImplementationTemplate),
+    }
+
+    impl __FunctionImpl {
+        pub fn render(&self) -> String {
+            match self {
+                __FunctionImpl::Complete(f) => f.render(),
+                __FunctionImpl::Stream(f) => f.render(),
+            }
+        }
+    }
+
     pub(super) struct __InterfaceImplementationTemplate {
         pub name: String,
         pub fields: Vec<__Field>,
-        pub functions: Vec<__FunctionImplementationTemplate>,
+        pub functions: Vec<__FunctionImpl>,
     }
 
     impl __InterfaceImplementationTemplate {
@@ -908,40 +998,101 @@ fn __function_groups_from_function_names(function_names: Vec<String>) -> __Funct
     root_group
 }
 
+enum __FunctionOutput {
+    Complete {
+        output_type: String,
+    },
+    Stream {
+        item_type: String,
+        item_error_type: Option<String>,
+    },
+}
+
+struct __FunctionSignature {
+    input_type: String,
+    input_headers: String,
+    output: __FunctionOutput,
+    error_type: String,
+}
+
 fn __function_signature(
     function: &Function,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
-) -> (String, String, String, String) {
+) -> __FunctionSignature {
+    let with_prefix = |name: &str| -> String { name.replace("super::", "super::types::") };
+
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
-        __type_ref_to_ts_ref(input_type, schema, implemented_types, 1, None)
+        with_prefix(&__type_ref_to_ts_ref(
+            input_type,
+            schema,
+            implemented_types,
+            1,
+            None,
+        ))
     } else {
         "reflectapi::Empty".into()
     };
     let input_headers = if let Some(input_headers) = function.input_headers.as_ref() {
-        __type_ref_to_ts_ref(input_headers, schema, implemented_types, 1, None)
+        with_prefix(&__type_ref_to_ts_ref(
+            input_headers,
+            schema,
+            implemented_types,
+            1,
+            None,
+        ))
     } else {
         "reflectapi::Empty".into()
     };
-    let output_type = if let Some(output_type) = function.output_type.as_ref() {
-        __type_ref_to_ts_ref(output_type, schema, implemented_types, 1, None)
-    } else {
-        "reflectapi::Empty".into()
+    let output = match &function.output_type {
+        OutputType::Complete {
+            output_type: Some(output_type),
+        } => __FunctionOutput::Complete {
+            output_type: with_prefix(&__type_ref_to_ts_ref(
+                output_type,
+                schema,
+                implemented_types,
+                1,
+                None,
+            )),
+        },
+        OutputType::Complete { output_type: None } => __FunctionOutput::Complete {
+            output_type: "reflectapi::Empty".into(),
+        },
+        OutputType::Stream {
+            item_type,
+            item_error_type,
+        } => __FunctionOutput::Stream {
+            item_type: with_prefix(&__type_ref_to_ts_ref(
+                item_type,
+                schema,
+                implemented_types,
+                1,
+                None,
+            )),
+            item_error_type: item_error_type
+                .as_ref()
+                .map(|t| with_prefix(&__type_ref_to_ts_ref(t, schema, implemented_types, 1, None))),
+        },
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
-        __type_ref_to_ts_ref(error_type, schema, implemented_types, 1, None)
+        with_prefix(&__type_ref_to_ts_ref(
+            error_type,
+            schema,
+            implemented_types,
+            1,
+            None,
+        ))
     } else {
         "reflectapi::Empty".into()
     };
 
-    let with_prefix = |name: &str| -> String { name.replace("super::", "super::types::") };
-
-    (
-        with_prefix(&input_type),
-        with_prefix(&input_headers),
-        with_prefix(&output_type),
-        with_prefix(&error_type),
-    )
+    __FunctionSignature {
+        input_type,
+        input_headers,
+        output,
+        error_type,
+    }
 }
 
 fn __interface_types_from_function_group(
@@ -1025,29 +1176,53 @@ fn __interface_types_from_function_group(
 
     for function_name in group.functions.iter() {
         let function = functions_by_name.get(function_name).unwrap();
-        let (input_type, input_headers, output_type, error_type) =
-            __function_signature(function, schema, implemented_types);
+        let sig = __function_signature(function, schema, implemented_types);
         let path = format!("{}/{}", function.path, function.name);
-        let func_impl = templates::__FunctionImplementationTemplate {
-            name: function
-                .name
-                .split('.')
-                .next_back()
-                .unwrap_or_default()
-                .replace('-', "_"),
-            deprecation_note: function.deprecation_note.to_owned(),
-            // Headers may contain sensitive information, so we skip them
-            attributes: if config.instrument {
-                format!(r#"#[tracing::instrument(name = "{path}", skip(self, headers))]"#)
-            } else {
-                String::new()
-            },
-            description: __doc_to_ts_comments(function.description.as_str(), 4),
-            path,
-            input_type,
-            input_headers,
-            output_type,
-            error_type,
+        let name = function
+            .name
+            .split('.')
+            .next_back()
+            .unwrap_or_default()
+            .replace('-', "_");
+        let attributes = if config.instrument {
+            format!(r#"#[tracing::instrument(name = "{path}", skip(self, headers))]"#)
+        } else {
+            String::new()
+        };
+        let description = __doc_to_ts_comments(function.description.as_str(), 4);
+        let deprecation_note = function.deprecation_note.to_owned();
+
+        let func_impl = match sig.output {
+            __FunctionOutput::Complete { output_type } => {
+                templates::__FunctionImpl::Complete(templates::__FunctionImplementationTemplate {
+                    name,
+                    deprecation_note,
+                    attributes,
+                    description,
+                    path,
+                    input_type: sig.input_type,
+                    input_headers: sig.input_headers,
+                    output_type,
+                    error_type: sig.error_type,
+                })
+            }
+            __FunctionOutput::Stream {
+                item_type,
+                item_error_type,
+            } => templates::__FunctionImpl::Stream(
+                templates::__StreamFunctionImplementationTemplate {
+                    name,
+                    deprecation_note,
+                    attributes,
+                    description,
+                    path,
+                    input_type: sig.input_type,
+                    input_headers: sig.input_headers,
+                    item_type,
+                    item_error_type,
+                    error_type: sig.error_type,
+                },
+            ),
         };
         interface_implementation.functions.push(func_impl);
     }

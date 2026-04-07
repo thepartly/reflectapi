@@ -9,6 +9,7 @@
       "error_type": {
         "name": "myapi::HealthCheckFail"
       },
+      "output_kind": "complete",
       "serialization": [
         "json",
         "msgpack"
@@ -28,6 +29,10 @@
       "input_headers": {
         "name": "myapi::proto::Headers"
       },
+      "error_type": {
+        "name": "myapi::proto::PetsListError"
+      },
+      "output_kind": "complete",
       "output_type": {
         "name": "myapi::proto::Paginated",
         "arguments": [
@@ -35,9 +40,6 @@
             "name": "myapi::model::output::Pet"
           }
         ]
-      },
-      "error_type": {
-        "name": "myapi::proto::PetsListError"
       },
       "serialization": [
         "json",
@@ -58,6 +60,7 @@
       "error_type": {
         "name": "myapi::proto::PetsCreateError"
       },
+      "output_kind": "complete",
       "serialization": [
         "json",
         "msgpack"
@@ -76,6 +79,7 @@
       "error_type": {
         "name": "myapi::proto::PetsUpdateError"
       },
+      "output_kind": "complete",
       "serialization": [
         "json",
         "msgpack"
@@ -94,6 +98,7 @@
       "error_type": {
         "name": "myapi::proto::PetsRemoveError"
       },
+      "output_kind": "complete",
       "serialization": [
         "json",
         "msgpack"
@@ -113,6 +118,7 @@
       "error_type": {
         "name": "myapi::proto::PetsRemoveError"
       },
+      "output_kind": "complete",
       "serialization": [
         "json",
         "msgpack"
@@ -125,6 +131,10 @@
       "input_headers": {
         "name": "myapi::proto::Headers"
       },
+      "error_type": {
+        "name": "myapi::proto::UnauthorizedError"
+      },
+      "output_kind": "complete",
       "output_type": {
         "name": "std::option::Option",
         "arguments": [
@@ -133,13 +143,53 @@
           }
         ]
       },
-      "error_type": {
-        "name": "myapi::proto::UnauthorizedError"
-      },
       "serialization": [
         "json",
         "msgpack"
       ]
+    },
+    {
+      "name": "pets.cdc-events",
+      "path": "",
+      "description": "Stream of change data capture events for pets",
+      "input_headers": {
+        "name": "myapi::proto::Headers"
+      },
+      "error_type": {
+        "name": "myapi::proto::UnauthorizedError"
+      },
+      "output_kind": "stream",
+      "item_type": {
+        "name": "myapi::model::output::Pet"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ],
+      "readonly": true
+    },
+    {
+      "name": "pets.cdc-events-fallible",
+      "path": "",
+      "description": "Stream of change data capture events for pets with potential errors",
+      "input_headers": {
+        "name": "myapi::proto::Headers"
+      },
+      "error_type": {
+        "name": "myapi::proto::UnauthorizedError"
+      },
+      "output_kind": "stream",
+      "item_type": {
+        "name": "myapi::model::output::Pet"
+      },
+      "item_error_type": {
+        "name": "myapi::proto::InternalError"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ],
+      "readonly": true
     }
   ],
   "input_types": {
@@ -961,6 +1011,12 @@
         "kind": "struct",
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {

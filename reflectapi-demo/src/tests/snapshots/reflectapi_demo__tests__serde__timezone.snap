@@ -11,6 +11,7 @@ expression: schema
       "input_type": {
         "name": "reflectapi_demo::tests::serde::TestStruct"
       },
+      "output_kind": "complete",
       "output_type": {
         "name": "reflectapi_demo::tests::serde::TestStruct"
       },
@@ -62,6 +63,12 @@ expression: schema
         "fallback": {
           "name": "std::string::String"
         }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",
