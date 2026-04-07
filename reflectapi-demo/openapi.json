@@ -6,48 +6,6 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/pets.cdc-events": {
-      "description": "Stream of change data capture events for pets",
-      "post": {
-        "operationId": "pets.cdc-events",
-        "description": "Stream of change data capture events for pets",
-        "responses": {
-          "200": {
-            "description": "200 OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "empty object",
-                  "type": "object",
-                  "properties": {}
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Error cases",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/myapi.proto.UnauthorizedError"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/std.string.String"
-            },
-            "description": "Authorization header"
-          }
-        ]
-      }
-    },
     "/pets.create": {
       "description": "Create a new pet",
       "post": {

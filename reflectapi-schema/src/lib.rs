@@ -538,13 +538,6 @@ pub enum OutputType {
 }
 
 impl OutputType {
-    pub fn as_single(&self) -> Option<&TypeReference> {
-        match self {
-            OutputType::Single { output_type } => output_type.as_ref(),
-            OutputType::Stream { .. } => None,
-        }
-    }
-
     pub fn type_refs(&self) -> Vec<&TypeReference> {
         match self {
             OutputType::Single {

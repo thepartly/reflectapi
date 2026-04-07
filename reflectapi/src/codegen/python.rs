@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::{Schema, TypeReference};
-use reflectapi_schema::{Function, Type};
+use reflectapi_schema::{Function, OutputType, Type};
 
 /// Sanitize text for inclusion in a Python triple-quoted docstring.
 /// Escapes backslashes (which act as line continuation) and triple-quote
@@ -1268,8 +1268,11 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     for sem_func in semantic.functions() {
         let function_schema = match raw_functions_by_name.get(&sem_func.name) {
             Some(f) => f,
-            None => continue, // Skip functions not in raw schema (shouldn't happen)
+            None => continue,
         };
+        if matches!(function_schema.output_type, OutputType::Stream { .. }) {
+            continue;
+        }
         let rendered_function = render_function(function_schema, &schema, &implemented_types)?;
 
         // Check for grouping patterns: underscore or dot notation
@@ -2974,10 +2977,12 @@ fn render_function(
         "None".to_string()
     };
 
-    let output_type = if let Some(output_type) = function.output_type.as_single() {
-        type_ref_to_python_type_simple(output_type, schema, implemented_types, &[])?
-    } else {
-        "Any".to_string()
+    let output_type = match &function.output_type {
+        OutputType::Single { output_type: Some(output_type) } => {
+            type_ref_to_python_type_simple(output_type, schema, implemented_types, &[])?
+        }
+        OutputType::Single { output_type: None } => "Any".to_string(),
+        OutputType::Stream { .. } => unreachable!("stream endpoints should be filtered out"),
     };
 
     let error_type = if let Some(error_type) = function.error_type.as_ref() {

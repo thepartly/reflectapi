@@ -449,6 +449,7 @@ impl Converter<'_> {
                             .iter()
                             .all(|tag| !self.config.exclude_tags.contains(tag))
                 })
+                .filter(|f| matches!(f.output_type, crate::OutputType::Single { .. }))
                 .map(|f| {
                     (
                         format!("{}/{}", f.path(), f.name()),
@@ -466,10 +467,17 @@ impl Converter<'_> {
             content: BTreeMap::from([(
                 "application/json".to_owned(),
                 MediaType {
-                    schema: f.output_type().as_single().map_or_else(
-                        || Inline(Schema::Flat(FlatSchema::empty_object())),
-                        |ty| self.convert_type_ref(schema, Kind::Output, ty),
-                    ),
+                    schema: match f.output_type() {
+                        crate::OutputType::Single { output_type: Some(ty) } => {
+                            self.convert_type_ref(schema, Kind::Output, ty)
+                        }
+                        crate::OutputType::Single { output_type: None } => {
+                            Inline(Schema::Flat(FlatSchema::empty_object()))
+                        }
+                        crate::OutputType::Stream { .. } => {
+                            unreachable!("stream endpoints should be filtered out")
+                        }
+                    },
                 },
             )]),
         };

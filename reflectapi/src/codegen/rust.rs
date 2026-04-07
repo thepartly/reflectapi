@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::Context;
 use indexmap::IndexMap;
-use reflectapi_schema::{Function, TypeReference, Visitor};
+use reflectapi_schema::{Function, OutputType, TypeReference, Visitor};
 
 use super::format_with;
 
@@ -923,10 +923,12 @@ fn __function_signature(
     } else {
         "reflectapi::Empty".into()
     };
-    let output_type = if let Some(output_type) = function.output_type.as_single() {
-        __type_ref_to_ts_ref(output_type, schema, implemented_types, 1, None)
-    } else {
-        "reflectapi::Empty".into()
+    let output_type = match &function.output_type {
+        OutputType::Single { output_type: Some(output_type) } => {
+            __type_ref_to_ts_ref(output_type, schema, implemented_types, 1, None)
+        }
+        OutputType::Single { output_type: None } => "reflectapi::Empty".into(),
+        OutputType::Stream { .. } => unreachable!("stream endpoints should be filtered out"),
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
         __type_ref_to_ts_ref(error_type, schema, implemented_types, 1, None)
@@ -1025,6 +1027,9 @@ fn __interface_types_from_function_group(
 
     for function_name in group.functions.iter() {
         let function = functions_by_name.get(function_name).unwrap();
+        if matches!(function.output_type, OutputType::Stream { .. }) {
+            continue;
+        }
         let (input_type, input_headers, output_type, error_type) =
             __function_signature(function, schema, implemented_types);
         let path = format!("{}/{}", function.path, function.name);
