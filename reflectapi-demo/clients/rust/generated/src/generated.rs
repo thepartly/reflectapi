@@ -221,14 +221,10 @@ pub mod interface {
             &self,
             input: reflectapi::Empty,
             headers: super::types::myapi::proto::Headers,
-        ) -> Result<
-            reflectapi::rt::BoxStream<
-                Result<
-                    super::types::myapi::model::output::Pet,
-                    reflectapi::rt::Error<super::types::myapi::proto::UnauthorizedError, C::Error>,
-                >,
-            >,
-            reflectapi::rt::Error<super::types::myapi::proto::UnauthorizedError, C::Error>,
+        ) -> reflectapi::rt::StreamResponse<
+            super::types::myapi::model::output::Pet,
+            super::types::myapi::proto::UnauthorizedError,
+            C::Error,
         >
         where
             C::Error: Send + 'static,

@@ -872,7 +872,7 @@ mod templates {
                 write!(
                     out,
                     "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
-                         -> Result<reflectapi::rt::BoxStream<Result<Result<{}, {}>, reflectapi::rt::Error<{}, C::Error>>>, reflectapi::rt::Error<{}, C::Error>>\n\
+                         -> reflectapi::rt::FallibleStreamResponse<{}, {}, {}, C::Error>\n\
                          where C::Error: Send + 'static {{\n\
                              reflectapi::rt::__stream_request_fallible_impl(&self.client, self.base_url.join(\"{}\").expect(\"checked base_url already and path is valid\"), input, headers).await\n\
                          }}",
@@ -884,7 +884,6 @@ mod templates {
                     self.item_type,
                     item_error_type,
                     self.error_type,
-                    self.error_type,
                     self.path,
                 )
                 .unwrap();
@@ -892,7 +891,7 @@ mod templates {
                 write!(
                     out,
                     "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
-                         -> Result<reflectapi::rt::BoxStream<Result<{}, reflectapi::rt::Error<{}, C::Error>>>, reflectapi::rt::Error<{}, C::Error>>\n\
+                         -> reflectapi::rt::StreamResponse<{}, {}, C::Error>\n\
                          where C::Error: Send + 'static {{\n\
                              reflectapi::rt::__stream_request_impl(&self.client, self.base_url.join(\"{}\").expect(\"checked base_url already and path is valid\"), input, headers).await\n\
                          }}",
@@ -902,7 +901,6 @@ mod templates {
                     self.input_type,
                     self.input_headers,
                     self.item_type,
-                    self.error_type,
                     self.error_type,
                     self.path,
                 )

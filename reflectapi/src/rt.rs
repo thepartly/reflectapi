@@ -89,6 +89,11 @@ impl<AE: std::error::Error + 'static, NE: std::error::Error + 'static> std::erro
 
 pub type BoxStream<T> = Pin<Box<dyn Stream<Item = T> + Send + 'static>>;
 
+pub type StreamResponse<T, AE, NE> = Result<BoxStream<Result<T, Error<AE, NE>>>, Error<AE, NE>>;
+
+pub type FallibleStreamResponse<T, IE, AE, NE> =
+    Result<BoxStream<Result<Result<T, IE>, Error<AE, NE>>>, Error<AE, NE>>;
+
 pub enum ProtocolErrorStage {
     SerializeRequestBody,
     SerializeRequestHeaders,
