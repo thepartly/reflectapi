@@ -5,7 +5,7 @@
 // Since `reflectapi` has a richer type system than `openapi`, the conversion is not perfect.
 // Generics are effectively monomorphized i.e. each instantiation of a generic type is inlined.
 //
-// Also contains a subset of definitions of OpenAPI 3.1.0 spec.
+// Also contains a subset of definitions of OpenAPI 3.2.0 spec.
 // These definitions are only suitable only for serialization, not deserialization
 // because they are stricter than the OpenAPI spec.
 
@@ -178,10 +178,21 @@ pub struct Response {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MediaType {
-    schema: InlineOrRef<Schema>,
+    #[serde(flatten)]
+    schema: CompleteOrStreamSchema,
 }
 
-struct StreamOrComplete {}
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+enum CompleteOrStreamSchema {
+    Complete {
+        schema: InlineOrRef<Schema>,
+    },
+    Stream {
+        #[serde(rename = "itemSchema")]
+        item_schema: InlineOrRef<Schema>,
+    },
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -429,7 +440,7 @@ struct Converter<'a> {
 impl Converter<'_> {
     fn convert(mut self, schema: &crate::Schema) -> Spec {
         Spec {
-            openapi: "3.1.0".into(),
+            openapi: "3.2.0".into(),
             tags: self.config.tags.clone(),
             info: Info {
                 title: schema.name.clone(),
@@ -451,7 +462,6 @@ impl Converter<'_> {
                             .iter()
                             .all(|tag| !self.config.exclude_tags.contains(tag))
                 })
-                .filter(|f| matches!(f.output_type, crate::OutputType::Complete { .. }))
                 .map(|f| {
                     (
                         format!("{}/{}", f.path(), f.name()),
@@ -464,24 +474,34 @@ impl Converter<'_> {
     }
 
     fn convert_function(&mut self, schema: &crate::Schema, f: &crate::Function) -> PathItem {
-        let ok_response = Response {
-            description: "200 OK".to_owned(),
-            content: BTreeMap::from([(
-                "application/json".to_owned(),
+        let (content_type, media_type) = match f.output_type() {
+            crate::OutputType::Complete { output_type } => (
+                "application/json",
                 MediaType {
-                    schema: match f.output_type() {
-                        crate::OutputType::Complete {
-                            output_type: Some(ty),
-                        } => self.convert_type_ref(schema, Kind::Output, ty),
-                        crate::OutputType::Complete { output_type: None } => {
-                            Inline(Schema::Flat(FlatSchema::empty_object()))
-                        }
-                        crate::OutputType::Stream { .. } => {
-                            unreachable!("stream endpoints should be filtered out")
-                        }
+                    schema: CompleteOrStreamSchema::Complete {
+                        schema: match output_type {
+                            Some(ty) => self.convert_type_ref(schema, Kind::Output, ty),
+                            None => Inline(Schema::Flat(FlatSchema::empty_object())),
+                        },
                     },
                 },
-            )]),
+            ),
+            crate::OutputType::Stream {
+                item_type,
+                error_type: _,
+            } => (
+                "text/event-stream",
+                MediaType {
+                    schema: CompleteOrStreamSchema::Stream {
+                        item_schema: self.convert_type_ref(schema, Kind::Output, item_type),
+                    },
+                },
+            ),
+        };
+
+        let ok_response = Response {
+            description: "200 OK".to_owned(),
+            content: BTreeMap::from([(content_type.to_owned(), media_type)]),
         };
 
         let mut responses = BTreeMap::new();
@@ -492,7 +512,9 @@ impl Converter<'_> {
                 content: BTreeMap::from([(
                     "application/json".to_owned(),
                     MediaType {
-                        schema: self.convert_type_ref(schema, Kind::Output, err),
+                        schema: CompleteOrStreamSchema::Complete {
+                            schema: self.convert_type_ref(schema, Kind::Output, err),
+                        },
                     },
                 )]),
             };
@@ -512,7 +534,9 @@ impl Converter<'_> {
                     // TODO msgpack
                     "application/json".to_owned(),
                     MediaType {
-                        schema: self.convert_type_ref(schema, Kind::Input, ty),
+                        schema: CompleteOrStreamSchema::Complete {
+                            schema: self.convert_type_ref(schema, Kind::Input, ty),
+                        },
                     },
                 )]),
                 required: true,
