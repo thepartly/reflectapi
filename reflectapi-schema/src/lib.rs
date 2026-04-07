@@ -9,7 +9,7 @@ mod symbol;
 mod visit;
 
 pub use self::codegen::*;
-pub use self::ids::ensure_symbol_ids;
+pub use self::ids::{build_schema_ids, SchemaIds};
 pub use self::normalize::{
     CircularDependencyResolutionStage, Consolidation, Naming, NamingResolutionStage,
     NormalizationError, NormalizationPipeline, NormalizationStage, Normalizer, PipelineBuilder,
@@ -36,9 +36,6 @@ use std::{
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Schema {
-    #[serde(skip_serializing, default)]
-    pub id: SymbolId,
-
     pub name: String,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -63,7 +60,6 @@ impl Default for Schema {
 impl Schema {
     pub fn new() -> Self {
         Schema {
-            id: SymbolId::default(),
             name: String::new(),
             description: String::new(),
             functions: Vec::new(),
@@ -102,7 +98,6 @@ impl Schema {
 
     pub fn extend(&mut self, other: Self) {
         let Self {
-            id: _,
             functions,
             input_types,
             output_types,
@@ -421,9 +416,6 @@ impl Typespace {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Function {
-    #[serde(skip_serializing, default)]
-    pub id: SymbolId,
-
     /// Includes entity and action, for example: users.login
     pub name: String,
     /// URL mounting path, for example: /api/v1
@@ -470,7 +462,6 @@ pub struct Function {
 impl Function {
     pub fn new(name: String) -> Self {
         Function {
-            id: Default::default(),
             name,
             deprecation_note: Default::default(),
             path: Default::default(),
@@ -745,11 +736,8 @@ impl Type {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
 pub struct Primitive {
-    #[serde(skip_serializing, default)]
-    pub id: SymbolId,
-
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
@@ -777,7 +765,6 @@ impl Primitive {
         fallback: Option<TypeReference>,
     ) -> Self {
         Primitive {
-            id: Default::default(),
             name,
             description,
             parameters,
@@ -859,37 +846,14 @@ impl Primitive {
     }
 }
 
-impl PartialEq for Primitive {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-            && self.description == other.description
-            && self.parameters == other.parameters
-            && self.fallback == other.fallback
-            && self.codegen_config == other.codegen_config
-    }
-}
-
-impl std::hash::Hash for Primitive {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-        self.description.hash(state);
-        self.parameters.hash(state);
-        self.fallback.hash(state);
-        self.codegen_config.hash(state);
-    }
-}
-
 impl From<Primitive> for Type {
     fn from(val: Primitive) -> Self {
         Type::Primitive(val)
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Struct {
-    #[serde(skip_serializing, default)]
-    pub id: SymbolId,
-
     /// Name of a struct, should be a valid Rust struct name identifier
     pub name: String,
 
@@ -923,7 +887,6 @@ impl Struct {
     pub fn new(name: impl Into<String>) -> Self {
         let name = name.into();
         Struct {
-            id: Default::default(),
             name,
             serde_name: Default::default(),
             description: Default::default(),
@@ -991,18 +954,6 @@ impl Struct {
                 .fields
                 .iter()
                 .all(|f| f.name().parse::<usize>().is_ok())
-    }
-}
-
-impl PartialEq for Struct {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-            && self.serde_name == other.serde_name
-            && self.description == other.description
-            && self.parameters == other.parameters
-            && self.fields == other.fields
-            && self.transparent == other.transparent
-            && self.codegen_config == other.codegen_config
     }
 }
 
@@ -1087,9 +1038,6 @@ impl IntoIterator for Fields {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq)]
 pub struct Field {
-    #[serde(skip_serializing, default)]
-    pub id: SymbolId,
-
     /// Field name, should be a valid Rust field name identifier
     pub name: String,
     /// If a serialized name is not a valid Rust field name identifier
@@ -1143,7 +1091,6 @@ impl PartialEq for Field {
     fn eq(
         &self,
         Self {
-            id: _,
             name,
             serde_name,
             description,
@@ -1182,7 +1129,6 @@ impl std::hash::Hash for Field {
 impl Field {
     pub fn new(name: String, type_ref: TypeReference) -> Self {
         Field {
-            id: SymbolId::default(),
             name,
             type_ref,
             serde_name: Default::default(),
@@ -1253,11 +1199,8 @@ fn is_false(b: &bool) -> bool {
     !*b
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Enum {
-    #[serde(skip_serializing, default)]
-    pub id: SymbolId,
-
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub serde_name: String,
@@ -1284,7 +1227,6 @@ pub struct Enum {
 impl Enum {
     pub fn new(name: String) -> Self {
         Enum {
-            id: Default::default(),
             name,
             serde_name: Default::default(),
             description: Default::default(),
@@ -1324,29 +1266,14 @@ impl Enum {
     }
 }
 
-impl PartialEq for Enum {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-            && self.serde_name == other.serde_name
-            && self.description == other.description
-            && self.parameters == other.parameters
-            && self.representation == other.representation
-            && self.variants == other.variants
-            && self.codegen_config == other.codegen_config
-    }
-}
-
 impl From<Enum> for Type {
     fn from(val: Enum) -> Self {
         Type::Enum(val)
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Variant {
-    #[serde(skip_serializing, default)]
-    pub id: SymbolId,
-
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub serde_name: String,
@@ -1365,7 +1292,6 @@ pub struct Variant {
 impl Variant {
     pub fn new(name: String) -> Self {
         Variant {
-            id: SymbolId::default(),
             name,
             serde_name: String::new(),
             description: String::new(),
@@ -1401,17 +1327,6 @@ impl Variant {
 
     pub fn untagged(&self) -> bool {
         self.untagged
-    }
-}
-
-impl PartialEq for Variant {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-            && self.serde_name == other.serde_name
-            && self.description == other.description
-            && self.fields == other.fields
-            && self.discriminant == other.discriminant
-            && self.untagged == other.untagged
     }
 }
 
