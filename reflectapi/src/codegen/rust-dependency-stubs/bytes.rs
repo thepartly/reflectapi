@@ -13,3 +13,19 @@ impl From<Vec<u8>> for Bytes {
         unimplemented!()
     }
 }
+
+pub struct BytesMut {}
+
+impl BytesMut {
+    pub fn with_capacity(_capacity: usize) -> Self {
+        unimplemented!()
+    }
+
+    pub fn extend_from_slice(&mut self, _extend: &[u8]) {
+        unimplemented!()
+    }
+
+    pub fn freeze(self) -> Bytes {
+        unimplemented!()
+    }
+}

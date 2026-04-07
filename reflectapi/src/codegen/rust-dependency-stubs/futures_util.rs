@@ -18,40 +18,76 @@ where
     type Item = <P::Target as Stream>::Item;
 }
 
-pub fn map<St, F>(_stream: St, _f: F) -> impl Stream {
-    Placeholder
-}
-
 pub mod stream {
-    pub fn unfold<T, F, Fut, Item>(_init: T, _f: F) -> impl super::Stream
+    pub fn unfold<T, Item, F, Fut>(_init: T, _f: F) -> Unfold<Item>
     where
         F: FnMut(T) -> Fut,
     {
-        super::Placeholder
+        unimplemented!()
+    }
+
+    pub struct Unfold<Item> {
+        _marker: core::marker::PhantomData<Item>,
+    }
+
+    impl<Item> super::Stream for Unfold<Item> {
+        type Item = Item;
+    }
+
+    impl<Item> Unpin for Unfold<Item> {}
+}
+
+pub struct Map<Item> {
+    _marker: core::marker::PhantomData<Item>,
+}
+
+impl<Item> Stream for Map<Item> {
+    type Item = Item;
+}
+
+impl<Item> Unpin for Map<Item> {}
+
+pub struct Next<'a, St: ?Sized> {
+    _marker: core::marker::PhantomData<&'a St>,
+}
+
+impl<St: Stream + Unpin + ?Sized> core::future::Future for Next<'_, St> {
+    type Output = Option<St::Item>;
+    fn poll(
+        self: core::pin::Pin<&mut Self>,
+        _cx: &mut core::task::Context<'_>,
+    ) -> core::task::Poll<Self::Output> {
+        unimplemented!()
     }
 }
 
-struct Placeholder;
-impl Stream for Placeholder {
-    type Item = ();
-}
-
-pub struct StreamExt;
-
-impl StreamExt {
-    pub fn map<St, F>(_stream: St, _f: F) -> impl Stream {
-        Placeholder
+pub trait StreamExt: Stream {
+    fn next(&mut self) -> Next<'_, Self>
+    where
+        Self: Unpin,
+    {
+        unimplemented!()
     }
 
-    pub fn next<St>(_stream: &mut St) -> impl core::future::Future<Output = Option<()>> {
-        async { None }
+    fn map<T, F>(self, _f: F) -> Map<T>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item) -> T,
+    {
+        unimplemented!()
     }
 }
 
-pub struct TryStreamExt;
+impl<S: Stream + ?Sized> StreamExt for S {}
 
-impl TryStreamExt {
-    pub fn try_concat<St>(_stream: St) -> impl core::future::Future<Output = Result<bytes::Bytes, ()>> {
-        async { Ok(bytes::Bytes::new()) }
+#[macro_export]
+macro_rules! pin_mut {
+    ($($x:ident),*) => {
+        $(
+            let mut $x = $x;
+            #[allow(unused_mut)]
+            let mut $x = unsafe { core::pin::Pin::new_unchecked(&mut $x) };
+        )*
     }
 }
+

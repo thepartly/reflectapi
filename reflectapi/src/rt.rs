@@ -1,3 +1,6 @@
+use std::{future::Future, pin::Pin};
+
+use futures_util::{Stream, StreamExt};
 pub use url::{ParseError as UrlParseError, Url};
 
 pub fn error_to_string<T: serde::Serialize>(error: &T) -> String {
@@ -12,24 +15,19 @@ pub trait Client {
         url: Url,
         body: bytes::Bytes,
         headers: http::HeaderMap,
-    ) -> impl std::future::Future<Output = Result<(http::StatusCode, bytes::Bytes), Self::Error>>;
+    ) -> impl Future<Output = Result<(http::StatusCode, bytes::Bytes), Self::Error>>;
 
+    #[allow(clippy::type_complexity)]
     fn stream_request(
         &self,
         url: Url,
         body: bytes::Bytes,
         headers: http::HeaderMap,
-    ) -> impl std::future::Future<
+    ) -> impl Future<
         Output = Result<
             (
                 http::StatusCode,
-                std::pin::Pin<
-                    Box<
-                        dyn futures_util::Stream<Item = Result<bytes::Bytes, Self::Error>>
-                            + Send
-                            + 'static,
-                    >,
-                >,
+                Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Self::Error>> + Send + 'static>>,
             ),
             Self::Error,
         >,
@@ -89,8 +87,7 @@ impl<AE: std::error::Error + 'static, NE: std::error::Error + 'static> std::erro
     }
 }
 
-pub type BoxStream<T> =
-    std::pin::Pin<Box<dyn futures_util::Stream<Item = T> + Send + 'static>>;
+pub type BoxStream<T> = Pin<Box<dyn Stream<Item = T> + Send + 'static>>;
 
 pub enum ProtocolErrorStage {
     SerializeRequestBody,
@@ -120,10 +117,9 @@ impl core::fmt::Display for ProtocolErrorStage {
                 status,
                 String::from_utf8_lossy(body)
             ),
-            ProtocolErrorStage::DeserializeStreamItem(data) => write!(
-                f,
-                "failed to deserialize stream item: {data}"
-            ),
+            ProtocolErrorStage::DeserializeStreamItem(data) => {
+                write!(f, "failed to deserialize stream item: {data}")
+            }
         }
     }
 }
@@ -227,12 +223,8 @@ where
 
 #[doc(hidden)]
 pub fn __parse_sse_stream(
-    body: std::pin::Pin<
-        Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, impl Send + 'static>> + Send>,
-    >,
+    body: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, impl Send + 'static>> + Send>>,
 ) -> BoxStream<Result<String, String>> {
-    use futures_util::StreamExt;
-
     let buffer = String::new();
     let data = String::new();
 
@@ -270,10 +262,7 @@ pub fn __parse_sse_stream(
                         buffer.push_str(&String::from_utf8_lossy(&chunk));
                     }
                     Some(Err(_)) => {
-                        return Some((
-                            Err("stream error".to_string()),
-                            (body, buffer, data),
-                        ));
+                        return Some((Err("stream error".to_string()), (body, buffer, data)));
                     }
                     None => {
                         if !data.is_empty() {
@@ -294,9 +283,8 @@ pub fn __parse_sse_stream(
 fn __serialize_headers_for_stream<H: serde::Serialize>(
     headers: H,
 ) -> Result<http::HeaderMap, (String, ProtocolErrorStage)> {
-    let headers = serde_json::to_value(&headers).map_err(|e| {
-        (e.to_string(), ProtocolErrorStage::SerializeRequestHeaders)
-    })?;
+    let headers = serde_json::to_value(&headers)
+        .map_err(|e| (e.to_string(), ProtocolErrorStage::SerializeRequestHeaders))?;
 
     let mut header_map = http::HeaderMap::new();
     header_map.insert(
@@ -351,8 +339,8 @@ where
         stage: ProtocolErrorStage::SerializeRequestBody,
     })?;
     let body = bytes::Bytes::from(body);
-    let header_map =
-        __serialize_headers_for_stream(headers).map_err(|(info, stage)| Error::Protocol { info, stage })?;
+    let header_map = __serialize_headers_for_stream(headers)
+        .map_err(|(info, stage)| Error::Protocol { info, stage })?;
 
     let (status, byte_stream) = client
         .stream_request(url, body, header_map)
@@ -374,7 +362,9 @@ where
         return Ok(Box::pin(mapped));
     }
 
-    let body = __collect_byte_stream(byte_stream).await.map_err(Error::Network)?;
+    let body = __collect_byte_stream(byte_stream)
+        .await
+        .map_err(Error::Network)?;
     match serde_json::from_slice::<E>(&body) {
         Ok(error) if !status.is_server_error() => Err(Error::Application(error)),
         Err(e) if status.is_client_error() => Err(Error::Protocol {
@@ -406,8 +396,8 @@ where
         stage: ProtocolErrorStage::SerializeRequestBody,
     })?;
     let body = bytes::Bytes::from(body);
-    let header_map =
-        __serialize_headers_for_stream(headers).map_err(|(info, stage)| Error::Protocol { info, stage })?;
+    let header_map = __serialize_headers_for_stream(headers)
+        .map_err(|(info, stage)| Error::Protocol { info, stage })?;
 
     let (status, byte_stream) = client
         .stream_request(url, body, header_map)
@@ -425,12 +415,13 @@ where
                     }
                 })?;
                 if let Some(err_value) = value.get("__reflectapi_reserved_stream_error") {
-                    let item_error = serde_json::from_value::<IE>(err_value.clone()).map_err(
-                        |e| Error::Protocol {
-                            info: e.to_string(),
-                            stage: ProtocolErrorStage::DeserializeStreamItem(data),
-                        },
-                    )?;
+                    let item_error =
+                        serde_json::from_value::<IE>(err_value.clone()).map_err(|e| {
+                            Error::Protocol {
+                                info: e.to_string(),
+                                stage: ProtocolErrorStage::DeserializeStreamItem(data),
+                            }
+                        })?;
                     Ok(Err(item_error))
                 } else {
                     let item = serde_json::from_value::<O>(value).map_err(|e| Error::Protocol {
@@ -448,7 +439,9 @@ where
         return Ok(Box::pin(mapped));
     }
 
-    let body = __collect_byte_stream(byte_stream).await.map_err(Error::Network)?;
+    let body = __collect_byte_stream(byte_stream)
+        .await
+        .map_err(Error::Network)?;
     match serde_json::from_slice::<E>(&body) {
         Ok(error) if !status.is_server_error() => Err(Error::Application(error)),
         Err(e) if status.is_client_error() => Err(Error::Protocol {
@@ -460,9 +453,7 @@ where
 }
 
 async fn __collect_byte_stream<E>(
-    stream: std::pin::Pin<
-        Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, E>> + Send>,
-    >,
+    stream: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, E>> + Send>>,
 ) -> Result<bytes::Bytes, E> {
     use futures_util::StreamExt;
     let mut chunks = Vec::new();
@@ -502,13 +493,7 @@ impl Client for reqwest::Client {
     ) -> Result<
         (
             http::StatusCode,
-            std::pin::Pin<
-                Box<
-                    dyn futures_util::Stream<Item = Result<bytes::Bytes, Self::Error>>
-                        + Send
-                        + 'static,
-                >,
-            >,
+            Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Self::Error>> + Send + 'static>>,
         ),
         Self::Error,
     > {
@@ -542,13 +527,7 @@ impl Client for reqwest_middleware::ClientWithMiddleware {
     ) -> Result<
         (
             http::StatusCode,
-            std::pin::Pin<
-                Box<
-                    dyn futures_util::Stream<Item = Result<bytes::Bytes, Self::Error>>
-                        + Send
-                        + 'static,
-                >,
-            >,
+            Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Self::Error>> + Send + 'static>>,
         ),
         Self::Error,
     > {
@@ -556,10 +535,9 @@ impl Client for reqwest_middleware::ClientWithMiddleware {
         let status = response.status();
         Ok((
             status,
-            Box::pin(futures_util::StreamExt::map(
-                response.bytes_stream(),
-                |r| r.map_err(reqwest_middleware::Error::Reqwest),
-            )),
+            Box::pin(futures_util::StreamExt::map(response.bytes_stream(), |r| {
+                r.map_err(reqwest_middleware::Error::Reqwest)
+            })),
         ))
     }
 }

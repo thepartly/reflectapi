@@ -21,7 +21,7 @@ expression: schema
           }
         ]
       },
-      "output_kind": "single",
+      "output_kind": "complete",
       "output_type": {
         "name": "reflectapi_demo::tests::namespace::K",
         "arguments": [
