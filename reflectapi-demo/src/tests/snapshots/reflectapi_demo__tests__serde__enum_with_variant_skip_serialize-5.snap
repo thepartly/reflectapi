@@ -26,14 +26,10 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize(str, Enum):
-    """Generated enum."""
-
     VARIANT1 = "Variant1"
 
 
 class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize(str, Enum):
-    """Generated enum."""
-
     pass
 
 
@@ -163,9 +159,11 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.serde.input.TestEnumWithVariantSkipSerialize.model_rebuild()
-    reflectapi_demo.tests.serde.output.TestEnumWithVariantSkipSerialize.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
-    pass
+for _model in [
+    ReflectapiDemoTestsSerdeInputTestEnumWithVariantSkipSerialize,
+    ReflectapiDemoTestsSerdeOutputTestEnumWithVariantSkipSerialize,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

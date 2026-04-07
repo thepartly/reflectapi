@@ -1,4 +1,5 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::sync::LazyLock;
 
 use crate::{Schema, TypeReference};
 use reflectapi_schema::{Function, Type};
@@ -30,6 +31,9 @@ pub struct Config {
     pub generate_sync: bool,
     /// Whether to generate testing utilities
     pub generate_testing: bool,
+    /// Attempt to format the generated code with ruff. Will fall back to basic
+    /// formatting if ruff is not available.
+    pub format: bool,
     /// Base URL for the API (optional)
     pub base_url: Option<String>,
 }
@@ -41,52 +45,298 @@ impl Default for Config {
             generate_async: true,
             generate_sync: true,
             generate_testing: false,
+            format: true,
             base_url: None,
         }
     }
 }
 
+#[derive(Default)]
+struct PythonMetadataUsage {
+    stdlib_imports: BTreeSet<String>,
+    runtime_imports: BTreeSet<String>,
+    runtime_provided_types: BTreeSet<String>,
+}
+
+/// Resolve Python field optionality: determines whether a field needs a default
+/// value of `None` and whether `| None` should be appended to its type hint.
+fn resolve_field_optionality(
+    type_name: &str,
+    field_type: String,
+    required: bool,
+) -> (bool, Option<String>, String) {
+    let is_option_type = type_name == "std::option::Option" || type_name == "reflectapi::Option";
+    if !required {
+        if is_option_type {
+            (true, Some("None".to_string()), field_type)
+        } else {
+            (
+                true,
+                Some("None".to_string()),
+                format!("{field_type} | None"),
+            )
+        }
+    } else if is_option_type {
+        (true, Some("None".to_string()), field_type)
+    } else {
+        (false, None, field_type)
+    }
+}
+
+struct PythonTypeMapping {
+    type_hint: &'static str,
+    imports: &'static [&'static str],
+    runtime_imports: &'static [&'static str],
+    provided_by_runtime: bool,
+    ignore_type_arguments: bool,
+}
+
+impl PythonTypeMapping {
+    const fn simple(type_hint: &'static str) -> Self {
+        Self {
+            type_hint,
+            imports: &[],
+            runtime_imports: &[],
+            provided_by_runtime: false,
+            ignore_type_arguments: false,
+        }
+    }
+}
+
+fn python_type_mappings() -> &'static HashMap<&'static str, PythonTypeMapping> {
+    static MAPPINGS: LazyLock<HashMap<&'static str, PythonTypeMapping>> = LazyLock::new(|| {
+        let mut m = HashMap::new();
+
+        // Integer types
+        for name in [
+            "i8",
+            "i16",
+            "i32",
+            "i64",
+            "u8",
+            "u16",
+            "u32",
+            "u64",
+            "isize",
+            "usize",
+            "std::num::NonZeroU8",
+            "std::num::NonZeroU16",
+            "std::num::NonZeroU32",
+            "std::num::NonZeroU64",
+            "std::num::NonZeroU128",
+        ] {
+            m.insert(name, PythonTypeMapping::simple("int"));
+        }
+
+        // Float types
+        m.insert("f32", PythonTypeMapping::simple("float"));
+        m.insert("f64", PythonTypeMapping::simple("float"));
+
+        // Bool
+        m.insert("bool", PythonTypeMapping::simple("bool"));
+
+        // String types
+        for name in [
+            "String",
+            "std::string::String",
+            "url::Url",
+            "rust_decimal::Decimal",
+            "chrono_tz::Tz",
+        ] {
+            m.insert(name, PythonTypeMapping::simple("str"));
+        }
+
+        // Collections
+        m.insert("std::vec::Vec", PythonTypeMapping::simple("list[T]"));
+        for name in [
+            "std::collections::HashMap",
+            "std::collections::BTreeMap",
+            "indexmap::IndexMap",
+        ] {
+            m.insert(name, PythonTypeMapping::simple("dict[K, V]"));
+        }
+
+        // Option / Result
+        m.insert("std::option::Option", PythonTypeMapping::simple("T | None"));
+        m.insert("std::result::Result", PythonTypeMapping::simple("T | E"));
+
+        // ReflectAPI runtime types
+        m.insert(
+            "reflectapi::Option",
+            PythonTypeMapping {
+                type_hint: "ReflectapiOption[T]",
+                imports: &[],
+                runtime_imports: &["ReflectapiOption"],
+                provided_by_runtime: true,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "reflectapi::Empty",
+            PythonTypeMapping {
+                type_hint: "ReflectapiEmpty",
+                imports: &[],
+                runtime_imports: &["ReflectapiEmpty"],
+                provided_by_runtime: true,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "reflectapi::Infallible",
+            PythonTypeMapping {
+                type_hint: "ReflectapiInfallible",
+                imports: &[],
+                runtime_imports: &["ReflectapiInfallible"],
+                provided_by_runtime: true,
+                ignore_type_arguments: false,
+            },
+        );
+
+        // Date/time types
+        for name in ["chrono::DateTime", "chrono::NaiveDateTime"] {
+            m.insert(
+                name,
+                PythonTypeMapping {
+                    type_hint: "datetime",
+                    imports: &["from datetime import datetime"],
+                    runtime_imports: &[],
+                    provided_by_runtime: false,
+                    ignore_type_arguments: true,
+                },
+            );
+        }
+        m.insert(
+            "chrono::NaiveDate",
+            PythonTypeMapping {
+                type_hint: "date",
+                imports: &["from datetime import date"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "uuid::Uuid",
+            PythonTypeMapping {
+                type_hint: "UUID",
+                imports: &["from uuid import UUID"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "std::time::Duration",
+            PythonTypeMapping {
+                type_hint: "timedelta",
+                imports: &["from datetime import timedelta"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+
+        // Special types
+        m.insert("std::tuple::Tuple0", PythonTypeMapping::simple("None"));
+        m.insert("serde_json::Value", PythonTypeMapping::simple("Any"));
+
+        // Wrapper types (transparent)
+        for name in ["std::boxed::Box", "std::sync::Arc", "std::rc::Rc"] {
+            m.insert(name, PythonTypeMapping::simple("T"));
+        }
+
+        // Path types
+        for name in ["std::path::PathBuf", "std::path::Path"] {
+            m.insert(
+                name,
+                PythonTypeMapping {
+                    type_hint: "Path",
+                    imports: &["from pathlib import Path"],
+                    runtime_imports: &[],
+                    provided_by_runtime: false,
+                    ignore_type_arguments: false,
+                },
+            );
+        }
+
+        // Network types
+        m.insert(
+            "std::net::IpAddr",
+            PythonTypeMapping {
+                type_hint: "IPv4Address | IPv6Address",
+                imports: &["from ipaddress import IPv4Address, IPv6Address"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "std::net::Ipv4Addr",
+            PythonTypeMapping {
+                type_hint: "IPv4Address",
+                imports: &["from ipaddress import IPv4Address"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+        m.insert(
+            "std::net::Ipv6Addr",
+            PythonTypeMapping {
+                type_hint: "IPv6Address",
+                imports: &["from ipaddress import IPv6Address"],
+                runtime_imports: &[],
+                provided_by_runtime: false,
+                ignore_type_arguments: false,
+            },
+        );
+
+        m
+    });
+    &MAPPINGS
+}
+
+fn collect_python_metadata_usage(all_type_names: &[String]) -> PythonMetadataUsage {
+    let mut usage = PythonMetadataUsage::default();
+    let mappings = python_type_mappings();
+
+    for type_name in all_type_names {
+        let Some(mapping) = mappings.get(type_name.as_str()) else {
+            continue;
+        };
+
+        for import in mapping.imports {
+            usage.stdlib_imports.insert((*import).to_string());
+        }
+        for import in mapping.runtime_imports {
+            usage.runtime_imports.insert((*import).to_string());
+        }
+        if mapping.provided_by_runtime {
+            usage.runtime_provided_types.insert(type_name.clone());
+        }
+    }
+
+    usage
+}
+
 /// Generate optimized imports with proper sorting and deduplication
 fn generate_optimized_imports(imports: &templates::Imports) -> String {
-    use std::collections::BTreeSet;
-
     let mut stdlib_imports = BTreeSet::new();
     let mut typing_imports = BTreeSet::new();
     let mut third_party_imports = BTreeSet::new();
-    let mut runtime_imports = BTreeSet::new();
-
-    // Standard library - datetime
-    if imports.has_datetime || imports.has_date || imports.has_timedelta {
-        let mut datetime_parts = vec![];
-        if imports.has_datetime {
-            datetime_parts.push("datetime");
-        }
-        if imports.has_date {
-            datetime_parts.push("date");
-        }
-        if imports.has_timedelta {
-            datetime_parts.push("timedelta");
-        }
-        stdlib_imports.insert(format!(
-            "from datetime import {}",
-            datetime_parts.join(", ")
-        ));
-    }
+    let mut runtime_imports: BTreeSet<String> = BTreeSet::new();
 
     // Standard library - enum
     if imports.has_enums {
         stdlib_imports.insert("from enum import Enum".to_string());
     }
 
-    // Standard library - uuid
-    if imports.has_uuid {
-        stdlib_imports.insert("from uuid import UUID".to_string());
-    }
-
     // Standard library - warnings
     if imports.has_warnings {
         stdlib_imports.insert("import warnings".to_string());
     }
+
+    stdlib_imports.extend(imports.extra_stdlib_imports.iter().cloned());
 
     // Typing imports - always include base ones
     typing_imports.insert("Any");
@@ -116,37 +366,53 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
         third_party_imports.insert("RootModel");
         third_party_imports.insert("model_validator");
         third_party_imports.insert("model_serializer");
-        third_party_imports.insert("PrivateAttr");
     }
 
     // Runtime imports - client bases
     if imports.has_async && imports.has_sync {
-        runtime_imports.insert("AsyncClientBase, ClientBase, ApiResponse");
+        runtime_imports.insert("AsyncClientBase, ClientBase, ApiResponse".to_string());
     } else if imports.has_async {
-        runtime_imports.insert("AsyncClientBase, ApiResponse");
+        runtime_imports.insert("AsyncClientBase, ApiResponse".to_string());
     } else if imports.has_sync {
-        runtime_imports.insert("ClientBase, ApiResponse");
+        runtime_imports.insert("ClientBase, ApiResponse".to_string());
     }
 
-    // Runtime imports - special types
-    let mut special_types = vec![];
-    if imports.has_reflectapi_option {
-        special_types.push("ReflectapiOption");
-    }
-    if imports.has_reflectapi_empty {
-        special_types.push("ReflectapiEmpty");
-    }
-    if imports.has_reflectapi_infallible {
-        special_types.push("ReflectapiInfallible");
-    }
+    runtime_imports.extend(imports.extra_runtime_imports.iter().cloned());
 
     // Build the final import string
     let mut result = Vec::new();
 
     // Add header
     result.push("# Standard library imports".to_string());
+    let mut merged_from_imports: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut plain_stdlib_imports = Vec::new();
     for import in stdlib_imports {
+        if let Some(rest) = import.strip_prefix("from ") {
+            if let Some((module, names)) = rest.split_once(" import ") {
+                let entry = merged_from_imports.entry(module.to_string()).or_default();
+                for name in names.split(", ") {
+                    entry.insert(name.to_string());
+                }
+                continue;
+            }
+        }
+        plain_stdlib_imports.push(import);
+    }
+    for import in plain_stdlib_imports {
         result.push(import);
+    }
+    for (module, names) in merged_from_imports {
+        let mut names = names.into_iter().collect::<Vec<_>>();
+        if module == "datetime" {
+            let rank = |name: &str| match name {
+                "datetime" => 0,
+                "date" => 1,
+                "timedelta" => 2,
+                _ => 99,
+            };
+            names.sort_by_key(|name| (rank(name), name.clone()));
+        }
+        result.push(format!("from {module} import {}", names.join(", ")));
     }
 
     // Add typing imports
@@ -170,11 +436,6 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
     // Add runtime imports
     for import in runtime_imports {
         result.push(format!("from reflectapi_runtime import {import}"));
-    }
-
-    // Add special types as separate imports for clarity
-    for special_type in special_types {
-        result.push(format!("from reflectapi_runtime import {special_type}"));
     }
 
     // Add testing imports
@@ -320,9 +581,10 @@ fn render_struct_with_flatten(
     struct_def: &reflectapi_schema::Struct,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
-    let struct_name = improve_class_name(&struct_def.name);
+    let struct_name = python_class_name(&struct_def.name, class_names);
     let active_generics: Vec<String> = struct_def
         .parameters
         .iter()
@@ -379,7 +641,7 @@ fn render_struct_with_flatten(
     }
 }
 
-/// Resolve the target type name for a flattened field, unwrapping Option<T>
+/// Resolve the target type name for a flattened field, unwrapping `Option<T>`
 fn resolve_flattened_type_name(type_ref: &TypeReference) -> &str {
     if (type_ref.name == "std::option::Option" || type_ref.name == "reflectapi::Option")
         && !type_ref.arguments.is_empty()
@@ -523,23 +785,8 @@ fn render_struct_with_flattened_internal_enum(
                         active_generics,
                         used_type_vars,
                     )?;
-                    let is_option = vf.type_ref.name == "std::option::Option"
-                        || vf.type_ref.name == "reflectapi::Option";
-                    let (optional, default_value, final_type) = if !vf.required {
-                        if is_option {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_type) =
+                        resolve_field_optionality(&vf.type_ref.name, field_type, vf.required);
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(vf.name(), vf.serde_name());
                     fields.push(templates::Field {
@@ -956,7 +1203,7 @@ fn generate_init_py(config: &Config) -> String {
     let mut imports = vec!["AsyncClient"];
 
     if config.generate_sync {
-        imports.push("SyncClient");
+        imports.push("Client");
     }
 
     let imports_list = format!("{imports:?}");
@@ -1015,11 +1262,10 @@ fn modules_from_rendered_types(
 }
 
 pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
-    let implemented_types = build_implemented_types();
-
     // Consolidate input/output types FIRST so both the SemanticSchema and
     // the raw Schema share the same unified type names.
     let all_type_names = schema.consolidate_types();
+    let implemented_types = build_implemented_types();
     validate_type_references(&schema)?;
 
     // Build the semantic IR with a codegen-specific pipeline that skips
@@ -1066,12 +1312,14 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         for sem_type in semantic.types() {
             if let reflectapi_schema::SemanticType::Enum(sem_enum) = sem_type {
                 match &sem_enum.representation {
-                    reflectapi_schema::Representation::Internal { .. } => {
+                    reflectapi_schema::Representation::Internal { .. }
+                    | reflectapi_schema::Representation::Adjacent { .. } => {
+                        // Both internally and adjacently tagged enums now use
+                        // Literal discriminator fields + Pydantic discriminated unions
                         has_literal = true;
                         has_discriminated_unions = true;
                     }
-                    reflectapi_schema::Representation::External
-                    | reflectapi_schema::Representation::Adjacent { .. } => {
+                    reflectapi_schema::Representation::External => {
                         let has_complex_variants = sem_enum
                             .variants
                             .values()
@@ -1091,24 +1339,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         )
     };
 
-    // Check if we need ReflectapiOption import
-    let has_reflectapi_option = schema_uses_reflectapi_option(&schema, &all_type_names);
-
-    // Check if we need ReflectapiEmpty import
-    let has_reflectapi_empty = schema_uses_type(&schema, &all_type_names, "reflectapi::Empty");
-
-    // Check if we need ReflectapiInfallible import
-    let has_reflectapi_infallible =
-        schema_uses_type(&schema, &all_type_names, "reflectapi::Infallible");
-
     // Use semantic IR for function introspection
     let has_warnings = semantic.functions().any(|f| f.deprecation_note.is_some());
-
-    // Check if we need datetime imports (for chrono and time types)
-    let has_datetime = check_datetime_usage(&schema, &all_type_names);
-    let has_uuid = check_uuid_usage(&schema, &all_type_names);
-    let has_timedelta = check_timedelta_usage(&schema, &all_type_names);
-    let has_date = check_date_usage(&schema, &all_type_names);
+    let python_metadata = collect_python_metadata_usage(&all_type_names);
 
     // Generate imports
     let imports = templates::Imports {
@@ -1116,14 +1349,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         has_sync: config.generate_sync,
         has_testing: config.generate_testing,
         has_enums,
-        has_reflectapi_option,
-        has_reflectapi_empty,
-        has_reflectapi_infallible,
         has_warnings,
-        has_datetime,
-        has_uuid,
-        has_timedelta,
-        has_date,
+        extra_stdlib_imports: python_metadata.stdlib_imports.iter().cloned().collect(),
+        extra_runtime_imports: python_metadata.runtime_imports.iter().cloned().collect(),
         has_generics: true,
         has_annotated: true, // Always include for external type fallbacks
         has_literal,
@@ -1134,22 +1362,55 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Use optimized import generation instead of template
     generated_code.push(generate_optimized_imports(&imports));
 
+    // Emit reusable helper functions for externally tagged enums (once, not per-enum)
+    if has_externally_tagged_enums {
+        generated_code.push(
+            r#"
+# Helper functions for externally tagged enum serialization/deserialization
+def _parse_externally_tagged(data, variants: dict, types: tuple, enum_name: str):
+    """Parse an externally tagged enum from {key: value} format."""
+    if types and isinstance(data, types):
+        return data
+    if isinstance(data, str) and data in variants:
+        handler = variants[data]
+        if handler == "_unit":
+            return data
+    if isinstance(data, dict):
+        if len(data) != 1:
+            raise ValueError("Externally tagged enum must have exactly one key")
+        key, value = next(iter(data.items()))
+        if key in variants:
+            handler = variants[key]
+            if handler == "_unit":
+                return key
+            return handler(value)
+    raise ValueError(f"Unknown variant for {enum_name}: {data}")
+
+
+def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
+    """Serialize an externally tagged enum to {key: value} format."""
+    for variant_name, (check, serialize) in serializers.items():
+        if check(root):
+            return serialize(root)
+    raise ValueError(f"Cannot serialize {enum_name} variant: {type(root)}")"#
+                .to_string(),
+        );
+    }
+
     // Types that are provided by the runtime library and should not be generated
-    let runtime_provided_types = [
-        "reflectapi::Option",
-        "reflectapi::Empty",
-        "reflectapi::Infallible",
-        "std::option::Option",
-    ];
+    let mut non_rendered_types = python_metadata.runtime_provided_types.clone();
+    non_rendered_types.insert("std::option::Option".to_string());
+
+    let class_names = build_python_class_name_map(
+        semantic
+            .types()
+            .filter(|st| !non_rendered_types.contains(st.name()))
+            .map(|st| st.name()),
+    );
 
     // Build the set of Python class names that will be emitted, so we can
     // detect TypeVar-vs-class name collisions below.
-    let emitted_class_names: HashSet<String> = semantic
-        .types()
-        .filter(|st| !runtime_provided_types.contains(&st.name()))
-        .filter_map(|st| schema.get_type(st.name()))
-        .map(|t| improve_class_name(t.name()))
-        .collect();
+    let emitted_class_names: HashSet<String> = class_names.values().cloned().collect();
 
     // Collect TypeVars used across all types, using semantic IR ordering.
     // Since the codegen pipeline skips NamingResolution, sem_type.name()
@@ -1157,7 +1418,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     let mut used_type_vars: BTreeSet<String> = BTreeSet::new();
     for sem_type in semantic.types() {
         let type_name = sem_type.name();
-        if runtime_provided_types.contains(&type_name) {
+        if non_rendered_types.contains(type_name) {
             continue;
         }
         let type_def = match schema.get_type(type_name) {
@@ -1221,7 +1482,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     for sem_type in semantic.types() {
         let type_name = sem_type.name().to_string();
 
-        if runtime_provided_types.contains(&type_name.as_str()) {
+        if non_rendered_types.contains(&type_name) {
             continue;
         }
 
@@ -1234,7 +1495,13 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
         // TypeVars have already been collected, use empty set for rendering
         let mut dummy_type_vars = BTreeSet::new();
-        let rendered = render_type(type_def, &schema, &implemented_types, &mut dummy_type_vars)?;
+        let rendered = render_type(
+            type_def,
+            &schema,
+            &implemented_types,
+            &class_names,
+            &mut dummy_type_vars,
+        )?;
 
         // Only store non-empty renders (excludes unwrapped tuple structs)
         if !rendered.trim().is_empty() {
@@ -1325,19 +1592,21 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         "StdNumNonZeroI64 = Annotated[int, \"Rust NonZero i64 type\"]".to_string(),
         "".to_string(),
         "# Rebuild models to resolve forward references".to_string(),
-        "try:".to_string(),
     ];
-    let sorted_type_names: Vec<&String> = rendered_type_keys.iter().collect();
-    for original_name in &sorted_type_names {
-        if !original_name.starts_with("std::") && !original_name.starts_with("reflectapi::") {
-            let dotted = type_name_to_python_ref(original_name);
-            external_types_and_rebuilds.push(format!("    {dotted}.model_rebuild()"));
-        }
+    // Rebuild models in a loop — per-type try/except so one failure
+    // doesn't skip all rebuilds. Use flat class names, not namespace-dotted
+    // refs, since these are module-level definitions.
+    let rebuild_models: Vec<String> = rendered_type_keys
+        .iter()
+        .filter(|n| !n.starts_with("std::") && !n.starts_with("reflectapi::"))
+        .map(|n| python_class_name(n, &class_names))
+        .collect();
+    if !rebuild_models.is_empty() {
+        external_types_and_rebuilds.push(format!(
+            "for _model in [\n    {},\n]:\n    try:\n        _model.model_rebuild()\n    except Exception:\n        pass",
+            rebuild_models.join(",\n    ")
+        ));
     }
-    external_types_and_rebuilds.push("except AttributeError:".to_string());
-    external_types_and_rebuilds
-        .push("    # Some types may not have model_rebuild method".to_string());
-    external_types_and_rebuilds.push("    pass".to_string());
     external_types_and_rebuilds.push("".to_string());
 
     generated_code.push(external_types_and_rebuilds.join("\n"));
@@ -1360,8 +1629,11 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
     let result = generated_code.join("\n\n");
 
-    // Format with black if available
-    format_python_code(&result)
+    if config.format {
+        format_python_code(&result)
+    } else {
+        Ok(basic_python_format(&result))
+    }
 }
 
 /// Rename type parameters in the schema to avoid TypeVar/class name collisions.
@@ -1582,11 +1854,12 @@ fn render_type(
     type_def: &Type,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     match type_def {
-        Type::Struct(s) => render_struct(s, schema, implemented_types, used_type_vars),
-        Type::Enum(e) => render_enum(e, schema, implemented_types, used_type_vars),
+        Type::Struct(s) => render_struct(s, schema, implemented_types, class_names, used_type_vars),
+        Type::Enum(e) => render_enum(e, schema, implemented_types, class_names, used_type_vars),
         Type::Primitive(_p) => {
             // Primitive types are handled by implemented_types mapping
             Ok(String::new()) // This shouldn't be reached normally
@@ -1710,24 +1983,11 @@ fn make_flattened_field(
         used_type_vars,
     )?;
 
-    let is_option_type =
-        field.type_ref.name == "std::option::Option" || field.type_ref.name == "reflectapi::Option";
-
-    let (optional, default_value, final_field_type) = if !field.required || !parent_required {
-        if is_option_type {
-            (true, Some("None".to_string()), field_type)
-        } else {
-            (
-                true,
-                Some("None".to_string()),
-                format!("{field_type} | None"),
-            )
-        }
-    } else if is_option_type {
-        (true, Some("None".to_string()), field_type)
-    } else {
-        (false, None, field_type)
-    };
+    let (optional, default_value, final_field_type) = resolve_field_optionality(
+        &field.type_ref.name,
+        field_type,
+        field.required && parent_required,
+    );
 
     let (sanitized, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
     Ok(templates::Field {
@@ -1815,6 +2075,7 @@ fn render_struct(
     struct_def: &reflectapi_schema::Struct,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     // Check if this struct has any flattened fields
@@ -1822,7 +2083,13 @@ fn render_struct(
 
     if has_flattened {
         // Use runtime flatten support
-        return render_struct_with_flatten(struct_def, schema, implemented_types, used_type_vars);
+        return render_struct_with_flatten(
+            struct_def,
+            schema,
+            implemented_types,
+            class_names,
+            used_type_vars,
+        );
     }
 
     // Check if this is a single-field tuple struct that should be unwrapped
@@ -1854,29 +2121,8 @@ fn render_struct(
                 used_type_vars,
             )?;
 
-            // Check if field type is Option<T> or ReflectapiOption<T> (which handle nullability themselves)
-            let is_option_type = field.type_ref.name == "std::option::Option"
-                || field.type_ref.name == "reflectapi::Option";
-
-            // Fix default value handling for optional fields
-            let (optional, default_value, field_type) = if !field.required {
-                // Field is not required - add | None if not already an Option type
-                if is_option_type {
-                    (true, Some("None".to_string()), base_field_type) // Option types handle nullability themselves
-                } else {
-                    (
-                        true,
-                        Some("None".to_string()),
-                        format!("{base_field_type} | None"),
-                    )
-                }
-            } else if is_option_type {
-                // Field is required but Option type - still needs default None
-                (true, Some("None".to_string()), base_field_type) // Option types handle nullability themselves
-            } else {
-                // Required non-Option field
-                (false, None, base_field_type)
-            };
+            let (optional, default_value, field_type) =
+                resolve_field_optionality(&field.type_ref.name, base_field_type, field.required);
 
             let (sanitized, alias) =
                 sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -1898,7 +2144,7 @@ fn render_struct(
 
     // Check if this is a generic struct (has type parameters)
     let has_generics = !struct_def.parameters.is_empty();
-    let class_name = improve_class_name(&struct_def.name);
+    let class_name = python_class_name(&struct_def.name, class_names);
 
     let class_template = templates::DataClass {
         name: class_name,
@@ -1916,6 +2162,7 @@ fn render_enum(
     enum_def: &reflectapi_schema::Enum,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     use reflectapi_schema::{Fields, Representation};
@@ -1928,6 +2175,7 @@ fn render_enum(
                 tag,
                 schema,
                 implemented_types,
+                class_names,
                 used_type_vars,
             )?;
 
@@ -1941,6 +2189,7 @@ fn render_enum(
                 content,
                 schema,
                 implemented_types,
+                class_names,
                 used_type_vars,
             )?;
 
@@ -1948,14 +2197,20 @@ fn render_enum(
         }
         Representation::None => {
             // Untagged enums
-            render_untagged_enum(enum_def, schema, implemented_types, used_type_vars)
+            render_untagged_enum(
+                enum_def,
+                schema,
+                implemented_types,
+                class_names,
+                used_type_vars,
+            )
         }
         _ => {
             // Check if this is a primitive-represented enum (has discriminant values)
             let has_discriminants = enum_def.variants.iter().any(|v| v.discriminant.is_some());
 
             if has_discriminants {
-                render_primitive_enum(enum_def)
+                render_primitive_enum(enum_def, class_names)
             } else {
                 // Check if this has complex variants (tuple or struct variants)
                 let has_complex_variants = enum_def.variants.iter().any(|v| {
@@ -1972,6 +2227,7 @@ fn render_enum(
                         enum_def,
                         schema,
                         implemented_types,
+                        class_names,
                         used_type_vars,
                     )
                 } else {
@@ -1987,7 +2243,7 @@ fn render_enum(
                         .collect();
 
                     let enum_template = templates::EnumClass {
-                        name: improve_class_name(&enum_def.name),
+                        name: python_class_name(&enum_def.name, class_names),
                         description: Some(enum_def.description().to_string()),
                         variants,
                     };
@@ -2005,14 +2261,15 @@ fn render_adjacently_tagged_enum(
     content: &str,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<(String, Vec<String>)> {
     use reflectapi_schema::Fields;
 
-    let enum_name = improve_class_name(&enum_def.name);
+    let enum_name = python_class_name(&enum_def.name, class_names);
 
-    let mut variant_models = Vec::new();
-    let mut union_variants = Vec::new();
+    let mut variant_class_definitions: Vec<String> = Vec::new();
+    let mut union_variant_names: Vec<String> = Vec::new();
     let generic_params: Vec<String> = infer_enum_generic_params(enum_def, schema);
 
     // Track used generic type variables
@@ -2020,48 +2277,85 @@ fn render_adjacently_tagged_enum(
         used_type_vars.insert(generic.clone());
     }
 
+    let is_generic = !generic_params.is_empty();
+
+    // Generate individual variant classes, each with the tag field as Literal discriminator
     for variant in &enum_def.variants {
+        let variant_class_name = format!("{}{}", enum_name, to_pascal_case(variant.name()));
+
+        // For generic enums, add type parameters to union variant names
+        if is_generic {
+            let params_str = generic_params.join(", ");
+            union_variant_names.push(format!("{variant_class_name}[{params_str}]"));
+        } else {
+            union_variant_names.push(variant_class_name.clone());
+        }
+
+        // Start with the tag discriminator field
+        let discriminator_default_value = Some(format!("\"{}\"", variant.serde_name()));
+        let mut fields = vec![templates::Field {
+            name: tag.to_string(),
+            type_annotation: format!("Literal['{}']", variant.serde_name()),
+            description: Some("Discriminator field".to_string()),
+            deprecation_note: None,
+            optional: false,
+            default_value: discriminator_default_value,
+            alias: None,
+        }];
+
+        // Add the content field based on variant type
         match &variant.fields {
             Fields::None => {
-                union_variants.push(format!("Literal[\"{}\"]", variant.name()));
+                // Unit variant: only the tag field, no content field needed.
+                // The content field is optional and absent on the wire.
             }
             Fields::Unnamed(unnamed_fields) => {
-                let variant_class_name =
-                    format!("{}{}Variant", enum_name, to_pascal_case(variant.name()));
-                let mut fields = Vec::new();
-                for (i, field) in unnamed_fields.iter().enumerate() {
+                // Tuple variant: add content field with the appropriate type
+                if unnamed_fields.len() == 1 {
                     let field_type = type_ref_to_python_type(
-                        &field.type_ref,
+                        &unnamed_fields[0].type_ref,
                         schema,
                         implemented_types,
                         &generic_params,
                         used_type_vars,
                     )?;
                     fields.push(templates::Field {
-                        name: format!("field_{i}"),
+                        name: content.to_string(),
                         type_annotation: field_type,
-                        description: Some(field.description().to_string()),
-                        deprecation_note: field.deprecation_note.clone(),
+                        description: Some(unnamed_fields[0].description().to_string()),
+                        deprecation_note: unnamed_fields[0].deprecation_note.clone(),
+                        optional: false,
+                        default_value: None,
+                        alias: None,
+                    });
+                } else {
+                    // Multi-field tuple: content is a list
+                    // Resolve types for side-effects (populates used_type_vars)
+                    for f in unnamed_fields {
+                        type_ref_to_python_type(
+                            &f.type_ref,
+                            schema,
+                            implemented_types,
+                            &generic_params,
+                            used_type_vars,
+                        )?;
+                    }
+                    fields.push(templates::Field {
+                        name: content.to_string(),
+                        type_annotation: "list[Any]".to_string(),
+                        description: Some("Tuple variant fields".to_string()),
+                        deprecation_note: None,
                         optional: false,
                         default_value: None,
                         alias: None,
                     });
                 }
-                let variant_model = templates::DataClass {
-                    name: variant_class_name.clone(),
-                    description: Some(format!("{} variant", variant.name())),
-                    fields,
-                    is_tuple: !unnamed_fields.is_empty(),
-                    is_generic: !generic_params.is_empty(),
-                    generic_params: generic_params.clone(),
-                };
-                variant_models.push(variant_model.render());
-                union_variants.push(variant_class_name);
             }
             Fields::Named(named_fields) => {
-                let variant_class_name =
-                    format!("{}{}Variant", enum_name, to_pascal_case(variant.name()));
-                let mut fields = Vec::new();
+                // Struct variant: we need a nested content model, then reference it
+                // First generate the content model
+                let content_class_name = format!("{variant_class_name}Content");
+                let mut content_fields = Vec::new();
                 for field in named_fields {
                     let field_type = type_ref_to_python_type(
                         &field.type_ref,
@@ -2070,26 +2364,11 @@ fn render_adjacently_tagged_enum(
                         &generic_params,
                         used_type_vars,
                     )?;
-                    let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Option";
-                    let (optional, default_value, final_field_type) = if !field.required {
-                        if is_option_type {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option_type {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_field_type) =
+                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
-                    fields.push(templates::Field {
+                    content_fields.push(templates::Field {
                         name: sanitized,
                         type_annotation: final_field_type,
                         description: Some(field.description().to_string()),
@@ -2099,165 +2378,109 @@ fn render_adjacently_tagged_enum(
                         alias,
                     });
                 }
-                let variant_model = templates::DataClass {
-                    name: variant_class_name.clone(),
-                    description: Some(format!("{} variant", variant.name())),
-                    fields,
+                let content_model = templates::DataClass {
+                    name: content_class_name.clone(),
+                    description: Some(format!("{} content", variant.name())),
+                    fields: content_fields,
                     is_tuple: false,
-                    is_generic: !generic_params.is_empty(),
+                    is_generic,
                     generic_params: generic_params.clone(),
                 };
-                variant_models.push(variant_model.render());
-                union_variants.push(variant_class_name);
+                variant_class_definitions.push(content_model.render());
+
+                // Reference the content model in the variant class
+                let content_type = if is_generic {
+                    format!("{}[{}]", content_class_name, generic_params.join(", "))
+                } else {
+                    content_class_name
+                };
+                fields.push(templates::Field {
+                    name: content.to_string(),
+                    type_annotation: content_type,
+                    description: Some(format!("{} content", variant.name())),
+                    deprecation_note: None,
+                    optional: false,
+                    default_value: None,
+                    alias: None,
+                });
             }
         }
+
+        // Generate the variant class
+        let variant_template = templates::DataClass {
+            name: variant_class_name,
+            description: Some(variant.description().to_string()),
+            fields,
+            is_tuple: false,
+            is_generic,
+            generic_params: generic_params.clone(),
+        };
+
+        variant_class_definitions.push(variant_template.render());
     }
 
-    // Build RootModel with before validator and serializer following {tag, content}
-    let mut code = String::new();
-    if !variant_models.is_empty() {
-        code.push_str(&variant_models.join("\n\n"));
-        code.push_str("\n\n");
-    }
-    let generic_inherits = if !generic_params.is_empty() {
-        format!(", Generic[{}]", generic_params.join(", "))
-    } else {
-        String::new()
+    // Generate the discriminated union using the same pattern as internally tagged enums
+    let union_variants_for_template: Vec<templates::UnionVariant> = enum_def
+        .variants
+        .iter()
+        .enumerate()
+        .map(|(i, variant)| {
+            let variant_class_name = format!("{}{}", enum_name, to_pascal_case(variant.name()));
+            let full_type_annotation = &union_variant_names[i];
+
+            templates::UnionVariant {
+                name: variant.name().to_string(),
+                type_annotation: full_type_annotation.clone(),
+                base_name: variant_class_name,
+                description: Some(variant.description().to_string()),
+            }
+        })
+        .collect();
+
+    let union_template = templates::UnionClass {
+        name: enum_name.clone(),
+        description: Some(enum_def.description().to_string()),
+        variants: union_variants_for_template,
+        discriminator_field: tag.to_string(),
+        is_generic,
+        generic_params: generic_params.clone(),
     };
-    code.push_str(&format!(
-        "# Adjacently tagged enum using RootModel\n{enum_name}Variants = Union[{union}]\n\nclass {enum_name}(RootModel[{enum_name}Variants]{generic_inherits}):\n    \"\"\"Adjacently tagged enum\"\"\"\n\n    @model_validator(mode='before')\n    @classmethod\n    def _validate_adjacently_tagged(cls, data):\n        # Handle direct variant instances\n        if isinstance(data, ({direct_types})):\n            return data\n        if isinstance(data, dict):\n            tag = data.get('{tag}')\n            content = data.get('{content}')\n            if tag is None:\n                raise ValueError(\"Missing tag field '{tag}'\")\n            if content is None and tag not in ({unit_variants_tuple}):\n                raise ValueError(\"Missing content field '{content}' for tag: {{}}\".format(tag))\n            # Dispatch based on tag\n{dispatch_cases}\n        raise ValueError(\"Unknown variant for {enum_name}: {{}}\".format(data))\n\n    @model_serializer\n    def _serialize_adjacently_tagged(self):\n{serialize_cases}\n        raise ValueError(f\"Cannot serialize {enum_name} variant: {{type(self.root)}}\")\n",
-        enum_name = enum_name,
-        union = union_variants.join(", "),
-        generic_inherits = generic_inherits,
-        direct_types = union_variants
-            .iter()
-            .filter(|s| !s.starts_with("Literal["))
-            .cloned()
-            .collect::<Vec<_>>()
-            .join(", "),
-        tag = tag,
-        content = content,
-        unit_variants_tuple = enum_def
-            .variants
-            .iter()
-            .filter(|v| matches!(v.fields, Fields::None))
-            .map(|v| format!("'{}'", v.name()))
-            .collect::<Vec<_>>()
-            .join(", "),
-        dispatch_cases = generate_adjacent_dispatch_cases(enum_def, &enum_name)?,
-        serialize_cases = generate_adjacent_serialize_cases(enum_def, &enum_name, tag, content)?,
-    ));
-    if !generic_params.is_empty() {
-        code.push_str("\n    def __class_getitem__(cls, params):\n        return cls\n");
+
+    let union_definition = union_template.render();
+
+    // Combine all parts
+    let mut result = String::new();
+
+    // Add variant class definitions (content models + variant models)
+    result.push_str(&variant_class_definitions.join("\n\n"));
+    if !result.is_empty() {
+        result.push_str("\n\n");
     }
 
-    Ok((code, union_variants))
-}
+    // Add union definition
+    result.push_str(&union_definition);
+    result.push_str("\n\n");
 
-fn generate_adjacent_dispatch_cases(
-    enum_def: &reflectapi_schema::Enum,
-    enum_name: &str,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-    let mut cases = Vec::new();
-    for variant in &enum_def.variants {
-        let wire_name = variant.serde_name();
-        let rust_name = variant.name();
-        match &variant.fields {
-            Fields::None => {
-                cases.push(format!(
-                    "            if tag == \"{wire_name}\":\n                return \"{wire_name}\""
-                ));
-            }
-            Fields::Unnamed(unnamed_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
-                if unnamed_fields.len() == 1 {
-                    cases.push(format!(
-                        "            if tag == \"{wire_name}\":\n                return {class_name}(field_0=content)"
-                    ));
-                } else {
-                    let assigns = (0..unnamed_fields.len())
-                        .map(|i| format!("field_{i}=content[{i}]"))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    cases.push(format!(
-                        "            if tag == \"{wire_name}\":\n                if isinstance(content, list):\n                    return {class_name}({assigns})\n                else:\n                    raise ValueError(\"Expected list for tuple variant {wire_name}\")"
-                    ));
-                }
-            }
-            Fields::Named(_named_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
-                cases.push(format!(
-                    "            if tag == \"{wire_name}\":\n                return {class_name}(**content)"
-                ));
-            }
-        }
-    }
-    Ok(cases.join("\n"))
-}
-
-fn generate_adjacent_serialize_cases(
-    enum_def: &reflectapi_schema::Enum,
-    enum_name: &str,
-    tag: &str,
-    content: &str,
-) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-    let mut cases = Vec::new();
-    for variant in &enum_def.variants {
-        let wire_name = variant.serde_name();
-        let rust_name = variant.name();
-        match &variant.fields {
-            Fields::None => {
-                cases.push(format!(
-                    "        if self.root == \"{wire_name}\":\n            return {{\"{tag}\": \"{wire_name}\"}}"
-                ));
-            }
-            Fields::Unnamed(unnamed_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
-                // For tuple variants in adjacently tagged enums, serialize the content properly
-                if unnamed_fields.len() == 1 {
-                    // Single field tuple: serialize the field value directly
-                    cases.push(format!(
-                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.field_0}}"
-                    ));
-                } else {
-                    // Multiple field tuple: serialize as array
-                    let field_accesses: Vec<String> = (0..unnamed_fields.len())
-                        .map(|i| format!("self.root.field_{i}"))
-                        .collect();
-                    cases.push(format!(
-                        "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": [{}]}}",
-                        field_accesses.join(", ")
-                    ));
-                }
-            }
-            Fields::Named(_named_fields) => {
-                let class_name = format!("{enum_name}{}Variant", to_pascal_case(rust_name));
-                cases.push(format!(
-                    "        if isinstance(self.root, {class_name}):\n            return {{\"{tag}\": \"{wire_name}\", \"{content}\": self.root.model_dump()}}"
-                ));
-            }
-        }
-    }
-    Ok(cases.join("\n"))
+    Ok((result, union_variant_names))
 }
 
 fn render_externally_tagged_enum(
     enum_def: &reflectapi_schema::Enum,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
-    let enum_name = improve_class_name(&enum_def.name);
+    let enum_name = python_class_name(&enum_def.name, class_names);
     let mut variant_models = Vec::new();
     let mut union_variants = Vec::new();
-    let mut instance_validator_cases = Vec::new();
-    let mut validator_cases = Vec::new();
-    let mut dict_validator_cases = Vec::new();
-    let mut serializer_cases = Vec::new();
+
+    // Collect per-variant data for the compact helper-based approach
+    let mut variant_entries = Vec::new(); // (wire_name, handler_expr)
+    let mut serializer_entries = Vec::new(); // (wire_name, check_expr, serialize_expr)
+    let mut variant_class_names = Vec::new(); // class names for isinstance checks
 
     // Collect active generic parameter names for this enum
     let generic_params: Vec<String> = infer_enum_generic_params(enum_def, schema);
@@ -2270,24 +2493,23 @@ fn render_externally_tagged_enum(
     // Generate variant models and build validation/serialization logic
     for variant in &enum_def.variants {
         let variant_name = variant.name();
+        let wire_name = variant.serde_name();
 
         match &variant.fields {
             Fields::None => {
                 // Unit variant: represented as string literal
                 union_variants.push(format!("Literal[{variant_name:?}]"));
 
-                validator_cases.push(format!(
-                    "        if isinstance(data, str) and data == \"{variant_name}\":\n            return data"
-                ));
-
-                serializer_cases.push(format!(
-                    "        if self.root == \"{variant_name}\":\n            return \"{variant_name}\""
+                variant_entries.push(format!("\"{wire_name}\": \"_unit\""));
+                serializer_entries.push(format!(
+                    "\"{wire_name}\": (lambda r: r == \"{wire_name}\", lambda r: \"{wire_name}\")"
                 ));
             }
             Fields::Unnamed(unnamed_fields) => {
                 // Tuple variant: create a model class
                 let variant_class_name =
                     format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
+                variant_class_names.push(variant_class_name.clone());
                 let mut fields = Vec::new();
                 let mut field_names = Vec::new();
 
@@ -2331,32 +2553,31 @@ fn render_externally_tagged_enum(
                 };
                 union_variants.push(union_member);
 
-                // Handle direct instance validation
-                instance_validator_cases.push(format!(
-                    "        if isinstance(data, {variant_class_name}):\n            return data"
-                ));
-
                 // For tuple variants, the JSON value can be a single value or array
                 if field_names.len() == 1 {
-                    dict_validator_cases.push(format!(
-                        "            if key == \"{variant_name}\":\n                return {variant_class_name}(field_0=value)"
+                    variant_entries.push(format!(
+                        "\"{wire_name}\": lambda v: {variant_class_name}(field_0=v)"
                     ));
-
-                    serializer_cases.push(format!(
-                        "        if isinstance(self.root, {variant_class_name}):\n            return {{\"{variant_name}\": self.root.field_0}}"
+                    serializer_entries.push(format!(
+                        "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": r.field_0}})"
                     ));
                 } else {
-                    dict_validator_cases.push(format!(
-                        "            if key == \"{}\":\n                if isinstance(value, list):\n                    return {}({})\n                else:\n                    raise ValueError(\"Expected list for tuple variant {}\")",
-                        variant_name, variant_class_name,
-                        field_names.iter().enumerate().map(|(i, name)| format!("{name}=value[{i}]")).collect::<Vec<_>>().join(", "),
-                        variant_name
+                    let assigns = field_names
+                        .iter()
+                        .enumerate()
+                        .map(|(i, name)| format!("{name}=v[{i}]"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    variant_entries.push(format!(
+                        "\"{wire_name}\": lambda v: {variant_class_name}({assigns}) if isinstance(v, list) else (_ for _ in ()).throw(ValueError(\"Expected list for tuple variant {wire_name}\"))"
                     ));
-
-                    serializer_cases.push(format!(
-                        "        if isinstance(self.root, {}):\n            return {{\"{}\": [{}]}}",
-                        variant_class_name, variant_name,
-                        field_names.iter().map(|name| format!("self.root.{name}")).collect::<Vec<_>>().join(", ")
+                    let field_accesses = field_names
+                        .iter()
+                        .map(|name| format!("r.{name}"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    serializer_entries.push(format!(
+                        "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": [{field_accesses}]}})"
                     ));
                 }
             }
@@ -2364,6 +2585,7 @@ fn render_externally_tagged_enum(
                 // Struct variant: create a model class
                 let variant_class_name =
                     format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
+                variant_class_names.push(variant_class_name.clone());
                 let mut fields = Vec::new();
 
                 for field in named_fields {
@@ -2375,15 +2597,8 @@ fn render_externally_tagged_enum(
                         used_type_vars,
                     )?;
 
-                    let (optional, default_value, final_field_type) = if !field.required {
-                        (
-                            true,
-                            Some("None".to_string()),
-                            format!("{field_type} | None"),
-                        )
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_field_type) =
+                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -2415,17 +2630,11 @@ fn render_externally_tagged_enum(
                 };
                 union_variants.push(union_member);
 
-                // Handle direct instance validation
-                instance_validator_cases.push(format!(
-                    "        if isinstance(data, {variant_class_name}):\n            return data"
+                variant_entries.push(format!(
+                    "\"{wire_name}\": lambda v: {variant_class_name}(**v)"
                 ));
-
-                dict_validator_cases.push(format!(
-                    "            if key == \"{variant_name}\":\n                return {variant_class_name}(**value)"
-                ));
-
-                serializer_cases.push(format!(
-                    "        if isinstance(self.root, {variant_class_name}):\n            return {{\"{variant_name}\": self.root.model_dump()}}"
+                serializer_entries.push(format!(
+                    "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": r.model_dump(by_alias=True)}})"
                 ));
             }
         }
@@ -2434,8 +2643,8 @@ fn render_externally_tagged_enum(
     // Check if this enum is generic
     let is_generic = !generic_params.is_empty();
 
-    // Always use RootModel approach; add Generic[...] when needed
-    let template = templates::ExternallyTaggedEnumRootModel {
+    // Render using compact helper-based template
+    let template = templates::ExternallyTaggedEnumCompact {
         name: enum_name.clone(),
         description: if enum_def.description().is_empty() {
             None
@@ -2445,23 +2654,21 @@ fn render_externally_tagged_enum(
         variant_models,
         union_variants: union_variants.join(", "),
         is_single_variant: union_variants.len() == 1,
-        instance_validator_cases: instance_validator_cases.join("\n"),
-        validator_cases: validator_cases.join("\n"),
-        dict_validator_cases: dict_validator_cases.join("\n"),
-        serializer_cases: serializer_cases.join("\n"),
+        variant_entries,
+        serializer_entries,
+        variant_class_names,
         is_generic,
         generic_params: generic_params.clone(),
     };
     let enum_code = template.render();
 
-    // TypeVar definitions are emitted once at the top of the file;
-    // inline declarations are suppressed to avoid collisions with class names.
-    let result = enum_code;
-
-    Ok(result)
+    Ok(enum_code)
 }
 
-fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<String> {
+fn render_primitive_enum(
+    enum_def: &reflectapi_schema::Enum,
+    class_names: &BTreeMap<String, String>,
+) -> anyhow::Result<String> {
     // Determine if this is an integer or float enum
     let is_float_enum = false;
     let mut enum_variants = Vec::new();
@@ -2486,7 +2693,7 @@ fn render_primitive_enum(enum_def: &reflectapi_schema::Enum) -> anyhow::Result<S
     }
 
     let enum_template = templates::PrimitiveEnumClass {
-        name: improve_class_name(&enum_def.name),
+        name: python_class_name(&enum_def.name, class_names),
         description: Some(enum_def.description().to_string()),
         variants: enum_variants,
         is_int_enum: !is_float_enum,
@@ -2500,28 +2707,12 @@ fn render_internally_tagged_enum(
     tag: &str,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
-    used_type_vars: &mut BTreeSet<String>,
-) -> anyhow::Result<(String, Vec<String>)> {
-    let (rendered, union_variant_names) = render_internally_tagged_enum_core(
-        enum_def,
-        tag,
-        schema,
-        implemented_types,
-        used_type_vars,
-    )?;
-    Ok((rendered, union_variant_names))
-}
-
-fn render_internally_tagged_enum_core(
-    enum_def: &reflectapi_schema::Enum,
-    tag: &str,
-    schema: &Schema,
-    implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<(String, Vec<String>)> {
     use reflectapi_schema::{Fields, Type};
 
-    let enum_name = improve_class_name(&enum_def.name);
+    let enum_name = python_class_name(&enum_def.name, class_names);
     let mut variant_class_definitions: Vec<String> = Vec::new();
     let mut union_variant_names: Vec<String> = Vec::new();
 
@@ -2618,26 +2809,12 @@ fn render_internally_tagged_enum_core(
                                 used_type_vars,
                             )?;
 
-                            // Handle field optionality
-                            let is_option_type = struct_field.type_ref.name
-                                == "std::option::Option"
-                                || struct_field.type_ref.name == "reflectapi::Option";
                             let (optional, default_value, final_field_type) =
-                                if !struct_field.required {
-                                    if is_option_type {
-                                        (true, Some("None".to_string()), field_type)
-                                    } else {
-                                        (
-                                            true,
-                                            Some("None".to_string()),
-                                            format!("{field_type} | None"),
-                                        )
-                                    }
-                                } else if is_option_type {
-                                    (true, Some("None".to_string()), field_type)
-                                } else {
-                                    (false, None, field_type)
-                                };
+                                resolve_field_optionality(
+                                    &struct_field.type_ref.name,
+                                    field_type,
+                                    struct_field.required,
+                                );
 
                             let (sanitized, alias) = sanitize_field_name_with_alias(
                                 struct_field.name(),
@@ -2688,23 +2865,8 @@ fn render_internally_tagged_enum_core(
                         used_type_vars,
                     )?;
 
-                    let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Option";
-                    let (optional, default_value, final_field_type) = if !field.required {
-                        if is_option_type {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option_type {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_field_type) =
+                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -2812,11 +2974,12 @@ fn render_untagged_enum(
     enum_def: &reflectapi_schema::Enum,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
 
-    let enum_name = improve_class_name(&enum_def.name);
+    let enum_name = python_class_name(&enum_def.name, class_names);
     let mut variant_classes = Vec::new();
     let mut union_variants = Vec::new();
 
@@ -2844,25 +3007,8 @@ fn render_untagged_enum(
                         &generic_params,
                         used_type_vars,
                     )?;
-                    // Check if field type is Option<T> or ReflectapiOption<T> (which handle nullability themselves)
-                    let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Option";
-                    // Handle optionality
-                    let (optional, default_value, final_field_type) = if !field.required {
-                        if is_option_type {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option_type {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_field_type) =
+                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -2887,26 +3033,15 @@ fn render_untagged_enum(
                         &generic_params,
                         used_type_vars,
                     )?;
-                    let is_option_type = field.type_ref.name == "std::option::Option"
-                        || field.type_ref.name == "reflectapi::Option";
-                    let (optional, default_value, final_field_type) = if !field.required {
-                        if is_option_type {
-                            (true, Some("None".to_string()), field_type)
-                        } else {
-                            (
-                                true,
-                                Some("None".to_string()),
-                                format!("{field_type} | None"),
-                            )
-                        }
-                    } else if is_option_type {
-                        (true, Some("None".to_string()), field_type)
-                    } else {
-                        (false, None, field_type)
-                    };
+                    let (optional, default_value, final_field_type) =
+                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
 
                     fields.push(templates::Field {
-                        name: format!("field_{i}"),
+                        name: if unnamed_fields.len() == 1 {
+                            "value".to_string()
+                        } else {
+                            format!("field_{i}")
+                        },
                         type_annotation: final_field_type,
                         description: Some(field.description().to_string()),
                         deprecation_note: field.deprecation_note.clone(),
@@ -3295,25 +3430,107 @@ fn to_pascal_case(s: &str) -> String {
 ///
 /// For type *references* (in annotations), use [`type_name_to_python_ref`]
 /// instead, which produces a dotted path like `reflectapi_demo.tests.serde.Offer`.
-fn improve_class_name(original_name: &str) -> String {
-    // Handle Rust module paths with ::
-    if original_name.contains("::") {
-        let parts: Vec<&str> = original_name.split("::").collect();
-        return parts
-            .iter()
-            .map(|part| to_pascal_case(part))
-            .collect::<Vec<_>>()
-            .join("");
-    }
+/// Maximum class name length before truncation with hash suffix.
+const MAX_CLASS_NAME_LEN: usize = 80;
 
-    // Handle dotted namespaces (e.g., "myapi.model.Pet" -> "Pet")
-    if original_name.contains('.') {
-        if let Some(pos) = original_name.rfind('.') {
-            return improve_class_name_part(&original_name[pos + 1..]);
+fn maybe_destutter_pascal_parts(pascal_parts: &[String]) -> String {
+    let mut result_parts: Vec<&str> = Vec::new();
+
+    if pascal_parts.len() >= 2 {
+        let leaf = pascal_parts.last().unwrap();
+        for (i, part) in pascal_parts.iter().enumerate() {
+            if i + 1 == pascal_parts.len() {
+                result_parts.push(part);
+            } else if i + 1 == pascal_parts.len() - 1 && leaf.starts_with(part.as_str()) {
+                continue;
+            } else {
+                result_parts.push(part);
+            }
         }
+    } else {
+        result_parts = pascal_parts.iter().map(|s| s.as_str()).collect();
     }
 
-    improve_class_name_part(original_name)
+    result_parts.join("")
+}
+
+fn finalize_class_name(original_name: &str, raw: String) -> String {
+    if raw.len() > MAX_CLASS_NAME_LEN {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+        original_name.hash(&mut hasher);
+        let hash_full = format!("{:016x}", hasher.finish());
+        let hash = &hash_full[..8];
+        let truncated = &raw[..MAX_CLASS_NAME_LEN - 9];
+        format!("{truncated}_{hash}")
+    } else {
+        raw
+    }
+}
+
+fn build_flat_python_class_name(original_name: &str, remove_stutter: bool) -> String {
+    let raw = if original_name.contains("::") {
+        let parts: Vec<&str> = original_name.split("::").collect();
+        let pascal_parts: Vec<String> = parts.iter().map(|part| to_pascal_case(part)).collect();
+
+        if remove_stutter {
+            maybe_destutter_pascal_parts(&pascal_parts)
+        } else {
+            pascal_parts.join("")
+        }
+    } else if original_name.contains('.') {
+        let pos = original_name.rfind('.').unwrap();
+        improve_class_name_part(&original_name[pos + 1..])
+    } else {
+        improve_class_name_part(original_name)
+    };
+
+    finalize_class_name(original_name, raw)
+}
+
+fn build_python_class_name_map<'a>(
+    type_names: impl IntoIterator<Item = &'a str>,
+) -> BTreeMap<String, String> {
+    let candidates: Vec<(String, String, String)> = type_names
+        .into_iter()
+        .map(|type_name| {
+            (
+                type_name.to_string(),
+                build_flat_python_class_name(type_name, false),
+                build_flat_python_class_name(type_name, true),
+            )
+        })
+        .collect();
+
+    let mut preferred_counts: BTreeMap<String, usize> = BTreeMap::new();
+    for (_, _, preferred_name) in &candidates {
+        *preferred_counts.entry(preferred_name.clone()).or_default() += 1;
+    }
+
+    candidates
+        .into_iter()
+        .map(|(type_name, fallback_name, preferred_name)| {
+            let chosen_name = if preferred_counts.get(&preferred_name) == Some(&1) {
+                preferred_name
+            } else {
+                fallback_name
+            };
+            (type_name, chosen_name)
+        })
+        .collect()
+}
+
+fn python_class_name(type_name: &str, class_names: &BTreeMap<String, String>) -> String {
+    class_names
+        .get(type_name)
+        .cloned()
+        .unwrap_or_else(|| build_flat_python_class_name(type_name, true))
+}
+
+fn improve_class_name(original_name: &str) -> String {
+    build_flat_python_class_name(original_name, true)
 }
 
 /// Convert a fully-qualified Rust type name to a dotted Python reference.
@@ -3437,55 +3654,10 @@ fn sanitize_field_name_with_alias(name: &str, serde_name: &str) -> (String, Opti
 
 /// Map external/undefined types to sensible Python equivalents
 /// Uses typing.Annotated to provide rich metadata like TypeScript comments
+/// Last-resort fallback for types not in the static mapping and not in the schema.
+/// Wraps unknown types in Annotated[Any, ...] so the generated code is still valid Python.
 fn map_external_type_to_python(type_name: &str) -> String {
-    match type_name {
-        // Rust std library numeric types
-        name if name.contains("NonZero")
-            && (name.contains("U32")
-                || name.contains("U64")
-                || name.contains("I32")
-                || name.contains("I64")) =>
-        {
-            format!("Annotated[int, \"Rust NonZero integer type: {name}\"]")
-        }
-
-        // Decimal types (often used for financial data) - JSON serialized as strings
-        name if name.contains("Decimal") => {
-            format!("Annotated[str, \"Rust Decimal type (JSON string): {name}\"]")
-        }
-
-        // Common domain-specific types that are typically strings
-        name if name.contains("Uuid") || name.contains("UUID") => {
-            format!("Annotated[str, \"UUID type: {name}\"]")
-        }
-        name if name.contains("Id") || name.ends_with("ID") => {
-            format!("Annotated[str, \"ID type: {name}\"]")
-        }
-
-        // Duration and time types - properly mapped to Python equivalents
-        name if name.contains("Duration") => {
-            format!("Annotated[timedelta, \"Rust Duration type: {name}\"]")
-        }
-        name if name.contains("Instant") => {
-            format!("Annotated[datetime, \"Rust Instant type: {name}\"]")
-        }
-
-        // Path types - mapped to pathlib.Path
-        name if name.contains("PathBuf") || name.contains("Path") => {
-            format!("Annotated[Path, \"Rust Path type: {name}\"]")
-        }
-
-        // IP address types - mapped to ipaddress module
-        name if name.contains("IpAddr")
-            || name.contains("Ipv4Addr")
-            || name.contains("Ipv6Addr") =>
-        {
-            format!("Annotated[IPv4Address | IPv6Address, \"Rust IP address type: {name}\"]")
-        }
-
-        // For completely unmapped types, use Annotated[Any, ...] with metadata
-        _ => format!("Annotated[Any, \"External type: {type_name}\"]"),
-    }
+    format!("Annotated[Any, \"External type: {type_name}\"]")
 }
 
 // Type substitution function - handles TypeReference to Python type conversion
@@ -3516,9 +3688,11 @@ fn type_ref_to_python_type(
             }
         }
 
-        // Special case: chrono::DateTime and similar types - ignore generic arguments
-        if type_ref.name.starts_with("chrono::") {
-            // chrono types map directly to Python datetime types regardless of timezone parameter
+        if python_type_mappings()
+            .get(type_ref.name.as_str())
+            .map(|m| m.ignore_type_arguments)
+            .unwrap_or(false)
+        {
             return Ok(python_type.clone());
         }
 
@@ -3662,6 +3836,7 @@ fn get_type_parameters(type_name: &str) -> Vec<&'static str> {
         "reflectapi::Option" => vec!["T"],
         "std::collections::HashMap" => vec!["K", "V"],
         "std::collections::BTreeMap" => vec!["K", "V"],
+        "indexmap::IndexMap" => vec!["K", "V"],
         "std::result::Result" => vec!["T", "E"],
         _ => vec![],
     }
@@ -3704,556 +3879,20 @@ fn safe_replace_generic_param(type_str: &str, param: &str, replacement: &str) ->
     result
 }
 
-/// Check if the schema uses datetime types (chrono)
-fn check_datetime_usage(schema: &Schema, all_type_names: &[String]) -> bool {
-    // Check all types for datetime usage
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_uses_datetime(type_def) {
-                return true;
-            }
-        }
-    }
-
-    // Check function parameters and return types
-    for function in schema.functions() {
-        if let Some(input_type) = &function.input_type {
-            if let Some(type_def) = schema.get_type(&input_type.name) {
-                if type_uses_datetime(type_def) {
-                    return true;
-                }
-            }
-        }
-
-        if let Some(output_type) = &function.output_type {
-            if let Some(type_def) = schema.get_type(&output_type.name) {
-                if type_uses_datetime(type_def) {
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
-
-/// Check if the schema uses UUID types
-fn check_uuid_usage(schema: &Schema, all_type_names: &[String]) -> bool {
-    // Check all types for UUID usage
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_uses_uuid(type_def) {
-                return true;
-            }
-        }
-    }
-
-    // Check function parameters and return types
-    for function in schema.functions() {
-        if let Some(input_type) = &function.input_type {
-            if let Some(type_def) = schema.get_type(&input_type.name) {
-                if type_uses_uuid(type_def) {
-                    return true;
-                }
-            }
-        }
-
-        if let Some(output_type) = &function.output_type {
-            if let Some(type_def) = schema.get_type(&output_type.name) {
-                if type_uses_uuid(type_def) {
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
-
-/// Check if the schema uses timedelta types (std::time::Duration)
-fn check_timedelta_usage(schema: &Schema, all_type_names: &[String]) -> bool {
-    // Check all types for timedelta usage
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_uses_timedelta(type_def) {
-                return true;
-            }
-        }
-    }
-
-    // Check function parameters and return types
-    for function in schema.functions() {
-        if let Some(input_type) = &function.input_type {
-            if let Some(type_def) = schema.get_type(&input_type.name) {
-                if type_uses_timedelta(type_def) {
-                    return true;
-                }
-            }
-        }
-
-        if let Some(output_type) = &function.output_type {
-            if let Some(type_def) = schema.get_type(&output_type.name) {
-                if type_uses_timedelta(type_def) {
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
-
-/// Collect all unique generic parameter names from the schema
-/// Check if the schema uses date types (chrono::NaiveDate)
-fn check_date_usage(schema: &Schema, all_type_names: &[String]) -> bool {
-    // Check all types for date usage
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_uses_date(type_def) {
-                return true;
-            }
-        }
-    }
-
-    // Check function parameters and return types
-    for function in schema.functions() {
-        if let Some(input_type) = &function.input_type {
-            if let Some(type_def) = schema.get_type(&input_type.name) {
-                if type_uses_date(type_def) {
-                    return true;
-                }
-            }
-        }
-
-        if let Some(output_type) = &function.output_type {
-            if let Some(type_def) = schema.get_type(&output_type.name) {
-                if type_uses_date(type_def) {
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
-
-/// Check if a specific type definition uses datetime
-fn type_uses_datetime(type_def: &reflectapi_schema::Type) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(struct_def) => {
-            for field in struct_def.fields.iter() {
-                if type_ref_uses_datetime(&field.type_ref) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(enum_def) => {
-            for variant in &enum_def.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            if type_ref_uses_datetime(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            if type_ref_uses_datetime(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            // Primitive types don't contain datetime fields
-            return false;
-        }
-    }
-    false
-}
-
-/// Check if a type reference uses datetime
-fn type_ref_uses_datetime(type_ref: &TypeReference) -> bool {
-    // Check for chrono types that map to datetime
-    if type_ref.name == "chrono::DateTime" || type_ref.name == "chrono::NaiveDateTime" {
-        return true;
-    }
-
-    // Check generic arguments recursively
-    for param in &type_ref.arguments {
-        if type_ref_uses_datetime(param) {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if a specific type definition uses UUID
-fn type_uses_uuid(type_def: &reflectapi_schema::Type) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(struct_def) => {
-            for field in struct_def.fields.iter() {
-                if type_ref_uses_uuid(&field.type_ref) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(enum_def) => {
-            for variant in &enum_def.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            if type_ref_uses_uuid(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            if type_ref_uses_uuid(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            return false;
-        }
-    }
-    false
-}
-
-fn type_ref_uses_uuid(type_ref: &TypeReference) -> bool {
-    // Check for UUID types
-    if type_ref.name == "uuid::Uuid" {
-        return true;
-    }
-
-    // Check generic arguments recursively
-    for param in &type_ref.arguments {
-        if type_ref_uses_uuid(param) {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if a specific type definition uses timedelta
-fn type_uses_timedelta(type_def: &reflectapi_schema::Type) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(struct_def) => {
-            for field in struct_def.fields.iter() {
-                if type_ref_uses_timedelta(&field.type_ref) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(enum_def) => {
-            for variant in &enum_def.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            if type_ref_uses_timedelta(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            if type_ref_uses_timedelta(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            return false;
-        }
-    }
-    false
-}
-
-fn type_ref_uses_timedelta(type_ref: &TypeReference) -> bool {
-    // Check for Duration types that map to timedelta
-    if type_ref.name == "std::time::Duration" {
-        return true;
-    }
-
-    // Check generic arguments recursively
-    for param in &type_ref.arguments {
-        if type_ref_uses_timedelta(param) {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if a specific type definition uses date
-fn type_uses_date(type_def: &reflectapi_schema::Type) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(struct_def) => {
-            for field in struct_def.fields.iter() {
-                if type_ref_uses_date(&field.type_ref) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(enum_def) => {
-            for variant in &enum_def.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            if type_ref_uses_date(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            if type_ref_uses_date(&field.type_ref) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            return false;
-        }
-    }
-    false
-}
-
-fn type_ref_uses_date(type_ref: &TypeReference) -> bool {
-    // Check for date types
-    if type_ref.name == "chrono::NaiveDate" {
-        return true;
-    }
-
-    // Check generic arguments recursively
-    for param in &type_ref.arguments {
-        if type_ref_uses_date(param) {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if the schema uses reflectapi::Option anywhere
-fn schema_uses_reflectapi_option(schema: &Schema, all_type_names: &Vec<String>) -> bool {
-    // Check all types in the schema for reflectapi::Option usage
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_uses_reflectapi_option(type_def) {
-                return true;
-            }
-        }
-    }
-    false
-}
-
-/// Check if the schema uses a specific type anywhere
-fn schema_uses_type(schema: &Schema, all_type_names: &Vec<String>, target_type: &str) -> bool {
-    // Check if the type is directly mentioned in the schema
-    if all_type_names.contains(&target_type.to_string()) {
-        return true;
-    }
-
-    // Check all types in the schema for usage of the target type
-    for type_name in all_type_names {
-        if let Some(type_def) = schema.get_type(type_name) {
-            if type_references_type(type_def, target_type) {
-                return true;
-            }
-        }
-    }
-    false
-}
-
-/// Check if a type definition references a specific type
-fn type_references_type(type_def: &reflectapi_schema::Type, target_type: &str) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(s) => {
-            // Check all fields in the struct
-            for field in s.fields.iter() {
-                if type_reference_references_type(&field.type_ref, target_type) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(e) => {
-            // Check all variant fields in the enum
-            for variant in &e.variants {
-                match &variant.fields {
-                    reflectapi_schema::Fields::Named(fields) => {
-                        for field in fields {
-                            if type_reference_references_type(&field.type_ref, target_type) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::Unnamed(fields) => {
-                        for field in fields {
-                            if type_reference_references_type(&field.type_ref, target_type) {
-                                return true;
-                            }
-                        }
-                    }
-                    reflectapi_schema::Fields::None => {}
-                }
-            }
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            // Primitives don't reference other types
-        }
-    }
-    false
-}
-
-/// Check if a type reference references a specific type
-fn type_reference_references_type(type_ref: &TypeReference, target_type: &str) -> bool {
-    // Check if this is directly the target type
-    if type_ref.name == target_type {
-        return true;
-    }
-
-    // Check recursively in type arguments
-    type_ref
-        .arguments
-        .iter()
-        .any(|arg| type_reference_references_type(arg, target_type))
-}
-
-/// Recursively check if a type uses reflectapi::Option
-fn type_uses_reflectapi_option(type_def: &reflectapi_schema::Type) -> bool {
-    match type_def {
-        reflectapi_schema::Type::Struct(s) => {
-            // Check all fields in the struct
-            for field in s.fields.iter() {
-                if type_reference_uses_reflectapi_option(&field.type_ref) {
-                    return true;
-                }
-            }
-        }
-        reflectapi_schema::Type::Enum(_) => {
-            // Enums don't contain reflectapi::Option
-        }
-        reflectapi_schema::Type::Primitive(_) => {
-            // Primitives don't contain reflectapi::Option
-        }
-    }
-    false
-}
-
-/// Check if a type reference uses reflectapi::Option
-fn type_reference_uses_reflectapi_option(type_ref: &TypeReference) -> bool {
-    // Check if this is directly a reflectapi::Option
-    if type_ref.name == "reflectapi::Option" {
-        return true;
-    }
-
-    // Recursively check type arguments
-    type_ref
-        .arguments
-        .iter()
-        .any(type_reference_uses_reflectapi_option)
-}
-
 fn build_implemented_types() -> BTreeMap<String, String> {
     let mut types = BTreeMap::new();
 
-    // Primitive types
-    types.insert("i8".to_string(), "int".to_string());
-    types.insert("i16".to_string(), "int".to_string());
-    types.insert("i32".to_string(), "int".to_string());
-    types.insert("i64".to_string(), "int".to_string());
-    types.insert("u8".to_string(), "int".to_string());
-    types.insert("u16".to_string(), "int".to_string());
-    types.insert("u32".to_string(), "int".to_string());
-    types.insert("u64".to_string(), "int".to_string());
-    types.insert("f32".to_string(), "float".to_string());
-    types.insert("f64".to_string(), "float".to_string());
-    types.insert("bool".to_string(), "bool".to_string());
-    types.insert("String".to_string(), "str".to_string());
-    types.insert("std::string::String".to_string(), "str".to_string());
+    for (&name, mapping) in python_type_mappings() {
+        types.insert(name.to_string(), mapping.type_hint.to_string());
+    }
 
-    // Collections with full Rust type names (using modern lowercase hints for Python 3.9+)
-    types.insert("std::vec::Vec".to_string(), "list[T]".to_string());
-    types.insert(
-        "std::collections::HashMap".to_string(),
-        "dict[K, V]".to_string(),
-    );
-    types.insert(
-        "std::collections::BTreeMap".to_string(),
-        "dict[K, V]".to_string(),
-    );
-    types.insert("std::option::Option".to_string(), "T | None".to_string());
-    types.insert("std::result::Result".to_string(), "T | E".to_string());
-
-    // ReflectAPI specific types
-    types.insert(
-        "reflectapi::Option".to_string(),
-        "ReflectapiOption[T]".to_string(),
-    );
-    types.insert(
-        "reflectapi::Empty".to_string(),
-        "ReflectapiEmpty".to_string(),
-    );
-    types.insert(
-        "reflectapi::Infallible".to_string(),
-        "ReflectapiInfallible".to_string(),
-    );
-
-    // Date/time types
-    types.insert("chrono::DateTime".to_string(), "datetime".to_string());
-    types.insert("chrono::NaiveDateTime".to_string(), "datetime".to_string());
-    types.insert("chrono::NaiveDate".to_string(), "date".to_string());
-    types.insert("uuid::Uuid".to_string(), "UUID".to_string());
-
-    // Rust std library types that need proper Python equivalents
-    types.insert("std::time::Duration".to_string(), "timedelta".to_string());
-    types.insert("std::path::PathBuf".to_string(), "Path".to_string());
-    types.insert("std::path::Path".to_string(), "Path".to_string());
-    types.insert(
-        "std::net::IpAddr".to_string(),
-        "IPv4Address | IPv6Address".to_string(),
-    );
-    types.insert("std::net::Ipv4Addr".to_string(), "IPv4Address".to_string());
-    types.insert("std::net::Ipv6Addr".to_string(), "IPv6Address".to_string());
-
-    // Special tuple/unit types
-    types.insert("std::tuple::Tuple0".to_string(), "None".to_string());
-
-    // Common serde types
-    types.insert("serde_json::Value".to_string(), "Any".to_string());
-
-    // Smart pointer types (transparent - map to their inner type)
-    types.insert("std::boxed::Box".to_string(), "T".to_string());
-    types.insert("std::sync::Arc".to_string(), "T".to_string());
-    types.insert("std::rc::Rc".to_string(), "T".to_string());
-
-    // External Rust types commonly found in ReflectAPI schemas
+    // Compatibility fallback for legacy/unannotated schemas that use
+    // mangled Python class names instead of qualified Rust type names.
     types.insert("StdNumNonZeroU32".to_string(), "int".to_string());
     types.insert("StdNumNonZeroU64".to_string(), "int".to_string());
     types.insert("StdNumNonZeroI32".to_string(), "int".to_string());
     types.insert("StdNumNonZeroI64".to_string(), "int".to_string());
-    types.insert("RustDecimalDecimal".to_string(), "str".to_string()); // JSON representation
+    types.insert("RustDecimalDecimal".to_string(), "str".to_string());
 
     types
 }
@@ -4559,14 +4198,9 @@ pub mod templates {
         pub has_sync: bool,
         pub has_testing: bool,
         pub has_enums: bool,
-        pub has_reflectapi_option: bool,
-        pub has_reflectapi_empty: bool,
-        pub has_reflectapi_infallible: bool,
         pub has_warnings: bool,
-        pub has_datetime: bool,
-        pub has_uuid: bool,
-        pub has_timedelta: bool,
-        pub has_date: bool,
+        pub extra_stdlib_imports: Vec<String>,
+        pub extra_runtime_imports: Vec<String>,
         pub has_generics: bool,
         pub has_annotated: bool,
         pub has_literal: bool,
@@ -4597,11 +4231,7 @@ pub mod templates {
                 let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
-                } else {
-                    writeln!(s, "    \"\"\"Generated data model.\"\"\"").unwrap();
                 }
-            } else {
-                writeln!(s, "    \"\"\"Generated data model.\"\"\"").unwrap();
             }
             writeln!(s).unwrap();
             writeln!(
@@ -4667,11 +4297,7 @@ pub mod templates {
                 let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
                     writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
-                } else {
-                    writeln!(s, "    \"\"\"Generated enum.\"\"\"").unwrap();
                 }
-            } else {
-                writeln!(s, "    \"\"\"Generated enum.\"\"\"").unwrap();
             }
             writeln!(s).unwrap();
             if self.variants.is_empty() {
@@ -5601,21 +5227,21 @@ pub mod templates {
         }
     }
 
-    pub struct ExternallyTaggedEnumRootModel {
+    pub struct ExternallyTaggedEnumCompact {
         pub name: String,
         pub description: Option<String>,
         pub variant_models: Vec<String>,
         pub union_variants: String,
         pub is_single_variant: bool,
-        pub instance_validator_cases: String,
-        pub validator_cases: String,
-        pub dict_validator_cases: String,
-        pub serializer_cases: String,
+        pub variant_entries: Vec<String>,
+        pub serializer_entries: Vec<String>,
+        /// Class names of non-unit variant types (for isinstance checks on direct instances)
+        pub variant_class_names: Vec<String>,
         pub is_generic: bool,
         pub generic_params: Vec<String>,
     }
 
-    impl ExternallyTaggedEnumRootModel {
+    impl ExternallyTaggedEnumCompact {
         pub fn render(&self) -> String {
             let mut s = String::new();
             for variant_model in &self.variant_models {
@@ -5654,260 +5280,82 @@ pub mod templates {
                 writeln!(s, "        return cls").unwrap();
                 writeln!(s).unwrap();
             }
+
+            // Emit compact model_validator using helper
             writeln!(s, "    @model_validator(mode='before')").unwrap();
             writeln!(s, "    @classmethod").unwrap();
-            writeln!(s, "    def _validate_externally_tagged(cls, data):").unwrap();
-            writeln!(
-                s,
-                "        # Handle direct variant instances (for programmatic creation)"
-            )
-            .unwrap();
-            writeln!(s, "{}", self.instance_validator_cases).unwrap();
-            writeln!(s).unwrap();
-            writeln!(s, "        # Handle JSON data (for deserialization)").unwrap();
-            writeln!(s, "{}", self.validator_cases).unwrap();
-            writeln!(s).unwrap();
-            writeln!(s, "        if isinstance(data, dict):").unwrap();
-            writeln!(s, "            if len(data) != 1:").unwrap();
-            writeln!(
-                s,
-                "                raise ValueError(\"Externally tagged enum must have exactly one key\")"
-            )
-            .unwrap();
-            writeln!(s).unwrap();
-            writeln!(s, "            key, value = next(iter(data.items()))").unwrap();
-            writeln!(s, "{}", self.dict_validator_cases).unwrap();
-            writeln!(s).unwrap();
-            writeln!(
-                s,
-                "        raise ValueError(f\"Unknown variant for {}: {{data}}\")",
-                self.name
-            )
-            .unwrap();
-            writeln!(s).unwrap();
-            writeln!(s, "    @model_serializer").unwrap();
-            writeln!(s, "    def _serialize_externally_tagged(self):").unwrap();
-            writeln!(s, "{}", self.serializer_cases).unwrap();
-            writeln!(s).unwrap();
-            writeln!(
-                s,
-                "        raise ValueError(f\"Cannot serialize {} variant: {{type(self.root)}}\")",
-                self.name
-            )
-            .unwrap();
-            s
-        }
-    }
-
-    pub struct GenericExternallyTaggedEnumApproachB {
-        pub name: String,
-        pub description: Option<String>,
-        pub variant_models: Vec<String>,
-        pub union_variants: String,
-        pub is_single_variant: bool,
-        pub instance_validator_cases: String,
-        pub validator_cases: String,
-        pub dict_validator_cases: String,
-        pub serializer_cases: String,
-        pub is_generic: bool,
-        pub generic_params: Vec<String>,
-        pub variant_info_list: Vec<VariantInfo>,
-    }
-
-    impl GenericExternallyTaggedEnumApproachB {
-        pub fn render(&self) -> String {
-            let mut s = String::new();
-            if self.is_generic {
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "# Generic externally tagged enum using Approach B: Generic Variant Models"
-                )
-                .unwrap();
-                // TypeVar definitions are emitted once at the top of the file;
-                // inline declarations are suppressed to avoid collisions with class names.
-                writeln!(s).unwrap();
-                writeln!(s, "# Common non-generic base class with discriminator").unwrap();
-                writeln!(s, "class {}Base(BaseModel):", self.name).unwrap();
-                writeln!(
-                    s,
-                    "    \"\"\"Base class for {} variants with shared discriminator.\"\"\"",
-                    self.name
-                )
-                .unwrap();
-                writeln!(s, "    _kind: str = PrivateAttr()").unwrap();
-                writeln!(s).unwrap();
-                for variant_model in &self.variant_models {
-                    writeln!(s, "{variant_model}").unwrap();
-                    writeln!(s).unwrap();
+            writeln!(s, "    def _validate(cls, data):").unwrap();
+            write!(s, "        return _parse_externally_tagged(data, {{").unwrap();
+            for (i, entry) in self.variant_entries.iter().enumerate() {
+                if i > 0 {
+                    write!(s, ", ").unwrap();
                 }
-                writeln!(s).unwrap();
-                let params = self.generic_params.join(", ");
-                writeln!(
-                    s,
-                    "# Type alias for parameterized union - users can create specific unions as needed"
-                )
-                .unwrap();
-                writeln!(
-                    s,
-                    "# Example: {}[SomeType, AnotherType] = Union[{}Variant1[SomeType], {}Variant2[AnotherType]]",
-                    self.name, self.name, self.name
-                )
-                .unwrap();
-                writeln!(s, "class {}(Generic[{}]):", self.name, params).unwrap();
-                let desc = super::sanitize_for_docstring(
-                    self.description
-                        .as_deref()
-                        .unwrap_or("Generic externally tagged enum using Approach B"),
-                );
-                writeln!(s, "    \"\"\"{desc}").unwrap();
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "    This is a generic enum where each variant is a separate generic class."
-                )
-                .unwrap();
-                writeln!(
-                    s,
-                    "    To create a specific instance, use the variant classes directly."
-                )
-                .unwrap();
-                writeln!(
-                    s,
-                    "    To create a union type, use Union[VariantClass[Type1], OtherVariant[Type2]]."
-                )
-                .unwrap();
-                writeln!(s, "    \"\"\"").unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "    @classmethod").unwrap();
-                writeln!(s, "    def __class_getitem__(cls, params):").unwrap();
-                writeln!(
-                    s,
-                    "        \"\"\"Create documentation about parameterized types.\"\"\""
-                )
-                .unwrap();
-                writeln!(s, "        if not isinstance(params, tuple):").unwrap();
-                writeln!(s, "            params = (params,)").unwrap();
-                writeln!(
-                    s,
-                    "        if len(params) != {}:",
-                    self.generic_params.len()
-                )
-                .unwrap();
-                writeln!(
-                    s,
-                    "            raise TypeError(f\"Expected {} type parameters, got {{len(params)}}\")",
-                    self.generic_params.len()
-                )
-                .unwrap();
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "        # For Approach B, users should create unions directly using variant classes"
-                )
-                .unwrap();
-                writeln!(s, "        # This method serves as documentation").unwrap();
-                writeln!(s, "        variant_examples = [").unwrap();
-                for (i, variant_info) in self.variant_info_list.iter().enumerate() {
-                    let generic_params_str = self.generic_params.join(", ");
-                    if i < self.variant_info_list.len() - 1 {
-                        writeln!(
-                            s,
-                            "            \"{}[{}]\",",
-                            variant_info.class_name, generic_params_str
-                        )
-                        .unwrap();
-                    } else {
-                        writeln!(
-                            s,
-                            "            \"{}[{}]\"",
-                            variant_info.class_name, generic_params_str
-                        )
-                        .unwrap();
-                    }
-                }
-                writeln!(s, "        ]").unwrap();
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "        # Return a helpful hint rather than NotImplementedError"
-                )
-                .unwrap();
-                writeln!(
-                    s,
-                    "        return f\"Union[{{', '.join(variant_examples)}}]  # Use this pattern to create specific unions\""
-                )
-                .unwrap();
-            } else {
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "# Non-generic externally tagged enum - use existing RootModel approach"
-                )
-                .unwrap();
-                if self.is_single_variant {
-                    writeln!(s, "{}Variants = {}", self.name, self.union_variants).unwrap();
-                } else {
-                    writeln!(s, "{}Variants = Union[{}]", self.name, self.union_variants).unwrap();
-                }
-                writeln!(s, "class {}(RootModel[{}Variants]):", self.name, self.name).unwrap();
-                let desc = super::sanitize_for_docstring(
-                    self.description
-                        .as_deref()
-                        .unwrap_or("Externally tagged enum"),
-                );
-                writeln!(s, "    \"\"\"{desc}\"\"\"").unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "    @model_validator(mode='before')").unwrap();
-                writeln!(s, "    @classmethod").unwrap();
-                writeln!(s, "    def _validate_externally_tagged(cls, data):").unwrap();
-                writeln!(
-                    s,
-                    "        # Handle direct variant instances (for programmatic creation)"
-                )
-                .unwrap();
-                writeln!(s, "{}", self.instance_validator_cases).unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "        # Handle JSON data (for deserialization)").unwrap();
-                writeln!(s, "{}", self.validator_cases).unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "        if isinstance(data, dict):").unwrap();
-                writeln!(s, "            if len(data) != 1:").unwrap();
-                writeln!(
-                    s,
-                    "                raise ValueError(\"Externally tagged enum must have exactly one key\")"
-                )
-                .unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "            key, value = next(iter(data.items()))").unwrap();
-                writeln!(s, "{}", self.dict_validator_cases).unwrap();
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "        raise ValueError(f\"Unknown variant for {}: {{data}}\")",
-                    self.name
-                )
-                .unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "    @model_serializer").unwrap();
-                writeln!(s, "    def _serialize_externally_tagged(self):").unwrap();
-                writeln!(s, "{}", self.serializer_cases).unwrap();
-                writeln!(s).unwrap();
-                writeln!(
-                    s,
-                    "        raise ValueError(f\"Cannot serialize {} variant: {{type(self.root)}}\")",
-                    self.name
-                )
-                .unwrap();
+                write!(s, "{entry}").unwrap();
             }
+            // Build the types tuple for isinstance checks on direct variant instances
+            let types_tuple = if self.variant_class_names.is_empty() {
+                "()".to_string()
+            } else if self.variant_class_names.len() == 1 {
+                format!("({},)", self.variant_class_names[0])
+            } else {
+                format!("({})", self.variant_class_names.join(", "))
+            };
+            writeln!(s, "}}, {types_tuple}, \"{name}\")", name = self.name).unwrap();
             writeln!(s).unwrap();
+
+            // Emit compact model_serializer using helper
+            writeln!(s, "    @model_serializer").unwrap();
+            writeln!(s, "    def _serialize(self):").unwrap();
+            write!(
+                s,
+                "        return _serialize_externally_tagged(self.root, {{"
+            )
+            .unwrap();
+            for (i, entry) in self.serializer_entries.iter().enumerate() {
+                if i > 0 {
+                    write!(s, ", ").unwrap();
+                }
+                write!(s, "{entry}").unwrap();
+            }
+            writeln!(s, "}}, \"{name}\")", name = self.name).unwrap();
             s
         }
     }
+}
 
-    #[derive(Clone)]
-    pub struct VariantInfo {
-        pub class_name: String,
-        pub variant_name: String,
+#[cfg(test)]
+mod tests {
+    use super::{build_python_class_name_map, generate_init_py, Config};
+
+    #[test]
+    fn python_init_exports_client() {
+        let init_py = generate_init_py(&Config::default());
+        assert!(init_py.contains("from .generated import AsyncClient, Client"));
+        assert!(init_py.contains("__all__ = [\"AsyncClient\", \"Client\"]"));
+        assert!(!init_py.contains("SyncClient"));
+    }
+
+    #[test]
+    fn destutter_falls_back_on_collision() {
+        let class_names = build_python_class_name_map([
+            "OfferRequestPartIdentity",
+            "offer_request::OfferRequestPartIdentity",
+            "system::SystemVersionInfo",
+        ]);
+
+        assert_eq!(
+            class_names.get("OfferRequestPartIdentity").unwrap(),
+            "OfferRequestPartIdentity"
+        );
+        assert_eq!(
+            class_names
+                .get("offer_request::OfferRequestPartIdentity")
+                .unwrap(),
+            "OfferRequestOfferRequestPartIdentity"
+        );
+        assert_eq!(
+            class_names.get("system::SystemVersionInfo").unwrap(),
+            "SystemVersionInfo"
+        );
     }
 }

@@ -26,16 +26,12 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestStructWithFlattenNested(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     f: int
 
 
 class ReflectapiDemoTestsSerdeTestStructWithFlattenOptional(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     f: int | None = None
@@ -156,9 +152,11 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.serde.TestStructWithFlattenNested.model_rebuild()
-    reflectapi_demo.tests.serde.TestStructWithFlattenOptional.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
-    pass
+for _model in [
+    ReflectapiDemoTestsSerdeTestStructWithFlattenNested,
+    ReflectapiDemoTestsSerdeTestStructWithFlattenOptional,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

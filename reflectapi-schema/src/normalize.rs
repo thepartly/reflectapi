@@ -314,20 +314,10 @@ fn extract_simple_name(qualified_name: &str) -> String {
 }
 
 fn rename_type(ty: &mut Type, new_name: &str) {
-    let new_path: Vec<String> = new_name.split("::").map(|s| s.to_string()).collect();
     match ty {
-        Type::Struct(s) => {
-            s.name = new_name.to_string();
-            s.id.path = new_path;
-        }
-        Type::Enum(e) => {
-            e.name = new_name.to_string();
-            e.id.path = new_path;
-        }
-        Type::Primitive(p) => {
-            p.name = new_name.to_string();
-            p.id.path = new_path;
-        }
+        Type::Struct(s) => s.name = new_name.to_string(),
+        Type::Enum(e) => e.name = new_name.to_string(),
+        Type::Primitive(p) => p.name = new_name.to_string(),
     }
 }
 
@@ -521,7 +511,7 @@ pub enum ResolutionStrategy {
     /// Try boxing first, then forward declarations
     #[default]
     Intelligent,
-    /// Always use Box<T> for self-references
+    /// Always use `Box<T>` for self-references
     Boxing,
     /// Always use forward declarations
     ForwardDeclarations,
@@ -879,11 +869,13 @@ impl std::error::Error for NormalizationError {}
 #[derive(Debug)]
 struct NormalizationContext {
     symbol_table: SymbolTable,
-    raw_types: HashMap<SymbolId, Type>,
-    raw_functions: HashMap<SymbolId, Function>,
+    raw_types: HashMap<String, Type>,
+    raw_functions: HashMap<String, Function>,
     resolution_cache: HashMap<String, SymbolId>,
     generic_scope: BTreeSet<String>,
     errors: Vec<NormalizationError>,
+    /// Compiler-owned ID table, populated in Phase 0
+    schema_ids: Option<crate::ids::SchemaIds>,
 }
 
 impl Default for NormalizationContext {
@@ -901,6 +893,7 @@ impl NormalizationContext {
             resolution_cache: HashMap::new(),
             generic_scope: BTreeSet::new(),
             errors: Vec::new(),
+            schema_ids: None,
         }
     }
 
@@ -942,8 +935,9 @@ impl Normalizer {
         // Clone so that pipeline stages can mutate without affecting the caller
         let mut schema = schema.clone();
 
-        // Phase 0: Ensure all symbols have unique, stable IDs
-        crate::ids::ensure_symbol_ids(&mut schema);
+        // Phase 0: Build compiler-owned ID table (side table, not on raw schema)
+        let schema_ids = crate::ids::build_schema_ids(&schema);
+        self.context.schema_ids = Some(schema_ids);
 
         // Capture original type names BEFORE the pipeline transforms them.
         // NamingResolution (if present in the pipeline) will strip module
@@ -989,21 +983,34 @@ impl Normalizer {
     }
 
     fn discover_symbols(&mut self, schema: &Schema) -> Result<(), Vec<NormalizationError>> {
+        let ids = self
+            .context
+            .schema_ids
+            .as_ref()
+            .expect("schema_ids must be set before discovery");
+
         let schema_info = SymbolInfo {
-            id: schema.id.clone(),
+            id: ids.schema_id.clone(),
             name: schema.name.clone(),
-            path: schema.id.path.clone(),
-            kind: SymbolKind::Struct,
+            path: ids.schema_id.path.clone(),
+            kind: SymbolKind::Schema,
             resolved: false,
             dependencies: BTreeSet::new(),
         };
         self.context.symbol_table.register(schema_info);
 
         for function in &schema.functions {
+            let func_id = ids
+                .functions
+                .get(&function.name)
+                .cloned()
+                .unwrap_or_else(|| {
+                    SymbolId::new(SymbolKind::Endpoint, vec![function.name.clone()])
+                });
             let function_info = SymbolInfo {
-                id: function.id.clone(),
+                id: func_id.clone(),
                 name: function.name.clone(),
-                path: function.id.path.clone(),
+                path: func_id.path.clone(),
                 kind: SymbolKind::Endpoint,
                 resolved: false,
                 dependencies: BTreeSet::new(),
@@ -1011,7 +1018,7 @@ impl Normalizer {
             self.context.symbol_table.register(function_info);
             self.context
                 .raw_functions
-                .insert(function.id.clone(), function.clone());
+                .insert(function.name.clone(), function.clone());
         }
 
         self.discover_types_from_typespace(&schema.input_types);
@@ -1031,39 +1038,50 @@ impl Normalizer {
     }
 
     fn discover_type_symbols(&mut self, ty: &Type) {
-        let (id, name, kind) = match ty {
-            Type::Primitive(p) => (p.id.clone(), p.name.clone(), SymbolKind::Primitive),
-            Type::Struct(s) => (s.id.clone(), s.name.clone(), SymbolKind::Struct),
-            Type::Enum(e) => (e.id.clone(), e.name.clone(), SymbolKind::Enum),
+        let ids = self
+            .context
+            .schema_ids
+            .as_ref()
+            .expect("schema_ids must be set");
+        let name = ty.name().to_string();
+        let kind = match ty {
+            Type::Primitive(_) => SymbolKind::Primitive,
+            Type::Struct(_) => SymbolKind::Struct,
+            Type::Enum(_) => SymbolKind::Enum,
         };
-
-        let path = id.path.clone();
+        let id = ids.type_id(&name);
 
         let symbol_info = SymbolInfo {
             id: id.clone(),
-            name,
-            path,
+            name: name.clone(),
+            path: id.path.clone(),
             kind,
             resolved: false,
             dependencies: BTreeSet::new(),
         };
 
         self.context.symbol_table.register(symbol_info);
-        self.context.raw_types.insert(id, ty.clone());
+        self.context.raw_types.insert(name.clone(), ty.clone());
 
         match ty {
-            Type::Struct(s) => self.discover_struct_symbols(s),
-            Type::Enum(e) => self.discover_enum_symbols(e),
+            Type::Struct(s) => self.discover_struct_symbols(&name, s),
+            Type::Enum(e) => self.discover_enum_symbols(&name, e),
             Type::Primitive(_) => {}
         }
     }
 
-    fn discover_struct_symbols(&mut self, strukt: &Struct) {
+    fn discover_struct_symbols(&mut self, parent_fqn: &str, strukt: &Struct) {
+        let ids = self
+            .context
+            .schema_ids
+            .as_ref()
+            .expect("schema_ids must be set");
         for field in strukt.fields() {
+            let field_id = ids.member_id(parent_fqn, &field.name);
             let field_info = SymbolInfo {
-                id: field.id.clone(),
+                id: field_id.clone(),
                 name: field.name.clone(),
-                path: field.id.path.clone(),
+                path: field_id.path.clone(),
                 kind: SymbolKind::Field,
                 resolved: false,
                 dependencies: BTreeSet::new(),
@@ -1072,23 +1090,31 @@ impl Normalizer {
         }
     }
 
-    fn discover_enum_symbols(&mut self, enm: &Enum) {
+    fn discover_enum_symbols(&mut self, parent_fqn: &str, enm: &Enum) {
+        let ids = self
+            .context
+            .schema_ids
+            .as_ref()
+            .expect("schema_ids must be set");
         for variant in enm.variants() {
+            let variant_id = ids.member_id(parent_fqn, &variant.name);
             let variant_info = SymbolInfo {
-                id: variant.id.clone(),
+                id: variant_id.clone(),
                 name: variant.name.clone(),
-                path: variant.id.path.clone(),
+                path: variant_id.path.clone(),
                 kind: SymbolKind::Variant,
                 resolved: false,
                 dependencies: BTreeSet::new(),
             };
             self.context.symbol_table.register(variant_info);
 
+            let variant_fqn = variant_id.qualified_name();
             for field in variant.fields() {
+                let field_id = ids.member_id(&variant_fqn, &field.name);
                 let field_info = SymbolInfo {
-                    id: field.id.clone(),
+                    id: field_id.clone(),
                     name: field.name.clone(),
-                    path: field.id.path.clone(),
+                    path: field_id.path.clone(),
                     kind: SymbolKind::Field,
                     resolved: false,
                     dependencies: BTreeSet::new(),
@@ -1123,12 +1149,23 @@ impl Normalizer {
 
         self.add_stdlib_types_to_cache();
 
-        for (function_id, function) in &self.context.raw_functions.clone() {
-            self.resolve_function_references(function_id, function);
+        // Clone the ID lookups upfront to avoid borrow conflict with &mut self
+        let ids = self
+            .context
+            .schema_ids
+            .clone()
+            .expect("schema_ids must be set");
+        for (func_name, function) in &self.context.raw_functions.clone() {
+            let func_id =
+                ids.functions.get(func_name).cloned().unwrap_or_else(|| {
+                    SymbolId::new(SymbolKind::Endpoint, vec![func_name.clone()])
+                });
+            self.resolve_function_references(&func_id, function);
         }
 
-        for (type_id, ty) in &self.context.raw_types.clone() {
-            self.resolve_type_references(type_id, ty);
+        for (type_name, ty) in &self.context.raw_types.clone() {
+            let type_id = ids.type_id(type_name);
+            self.resolve_type_references(&type_id, ty);
         }
 
         if self.context.has_errors() {
@@ -1244,6 +1281,11 @@ impl Normalizer {
         schema: &Schema,
         original_names: &HashMap<String, String>,
     ) -> Result<SemanticSchema, Vec<NormalizationError>> {
+        let ids = self
+            .context
+            .schema_ids
+            .as_ref()
+            .expect("schema_ids must be set");
         let mut semantic_types = BTreeMap::new();
         let mut semantic_functions = BTreeMap::new();
 
@@ -1253,19 +1295,26 @@ impl Normalizer {
         };
 
         for symbol_id in sorted_symbols {
-            if let Some(raw_type) = self.context.raw_types.get(&symbol_id) {
-                let semantic_type = self.build_semantic_type(raw_type, original_names)?;
-                semantic_types.insert(symbol_id, semantic_type);
+            // Look up the type by the symbol's name (raw_types keyed by name)
+            if let Some(symbol_info) = self.context.symbol_table.symbols.get(&symbol_id) {
+                if let Some(raw_type) = self.context.raw_types.get(&symbol_info.name) {
+                    let semantic_type = self.build_semantic_type(raw_type, original_names)?;
+                    semantic_types.insert(symbol_id, semantic_type);
+                }
             }
         }
 
-        for (function_id, raw_function) in &self.context.raw_functions {
+        for (func_name, raw_function) in &self.context.raw_functions {
+            let func_id =
+                ids.functions.get(func_name).cloned().unwrap_or_else(|| {
+                    SymbolId::new(SymbolKind::Endpoint, vec![func_name.clone()])
+                });
             let semantic_function = self.build_semantic_function(raw_function)?;
-            semantic_functions.insert(function_id.clone(), semantic_function);
+            semantic_functions.insert(func_id, semantic_function);
         }
 
         Ok(SemanticSchema {
-            id: schema.id.clone(),
+            id: ids.schema_id.clone(),
             name: schema.name.clone(),
             description: schema.description.clone(),
             functions: semantic_functions,
@@ -1307,8 +1356,13 @@ impl Normalizer {
             .cloned()
             .unwrap_or_else(|| primitive.name.clone());
 
+        let ids = self
+            .context
+            .schema_ids
+            .as_ref()
+            .expect("schema_ids must be set");
         Ok(SemanticPrimitive {
-            id: primitive.id.clone(),
+            id: ids.type_id(&primitive.name),
             name: primitive.name.clone(),
             original_name,
             description: primitive.description.clone(),
@@ -1323,6 +1377,7 @@ impl Normalizer {
                 })
                 .collect(),
             fallback,
+            codegen_config: primitive.codegen_config.clone(),
         })
     }
 
@@ -1331,11 +1386,17 @@ impl Normalizer {
         strukt: &Struct,
         original_names: &HashMap<String, String>,
     ) -> Result<SemanticStruct, Vec<NormalizationError>> {
+        let ids = self
+            .context
+            .schema_ids
+            .as_ref()
+            .expect("schema_ids must be set");
         let mut fields = BTreeMap::new();
 
         for field in strukt.fields() {
-            let semantic_field = self.build_semantic_field(field)?;
-            fields.insert(field.id.clone(), semantic_field);
+            let field_id = ids.member_id(&strukt.name, &field.name);
+            let semantic_field = self.build_semantic_field(&strukt.name, field)?;
+            fields.insert(field_id, semantic_field);
         }
 
         let original_name = original_names
@@ -1344,7 +1405,7 @@ impl Normalizer {
             .unwrap_or_else(|| strukt.name.clone());
 
         Ok(SemanticStruct {
-            id: strukt.id.clone(),
+            id: ids.type_id(&strukt.name),
             name: strukt.name.clone(),
             original_name,
             serde_name: strukt.serde_name.clone(),
@@ -1372,11 +1433,17 @@ impl Normalizer {
         enm: &Enum,
         original_names: &HashMap<String, String>,
     ) -> Result<SemanticEnum, Vec<NormalizationError>> {
+        let ids = self
+            .context
+            .schema_ids
+            .as_ref()
+            .expect("schema_ids must be set");
         let mut variants = BTreeMap::new();
 
         for variant in enm.variants() {
-            let semantic_variant = self.build_semantic_variant(variant)?;
-            variants.insert(variant.id.clone(), semantic_variant);
+            let variant_id = ids.member_id(&enm.name, &variant.name);
+            let semantic_variant = self.build_semantic_variant(&enm.name, variant)?;
+            variants.insert(variant_id, semantic_variant);
         }
 
         let original_name = original_names
@@ -1385,7 +1452,7 @@ impl Normalizer {
             .unwrap_or_else(|| enm.name.clone());
 
         Ok(SemanticEnum {
-            id: enm.id.clone(),
+            id: ids.type_id(&enm.name),
             name: enm.name.clone(),
             original_name,
             serde_name: enm.serde_name.clone(),
@@ -1408,12 +1475,18 @@ impl Normalizer {
 
     fn build_semantic_field(
         &self,
+        parent_fqn: &str,
         field: &Field,
     ) -> Result<SemanticField, Vec<NormalizationError>> {
+        let ids = self
+            .context
+            .schema_ids
+            .as_ref()
+            .expect("schema_ids must be set");
         let resolved_type_ref = self.build_resolved_type_reference(&field.type_ref)?;
 
         Ok(SemanticField {
-            id: field.id.clone(),
+            id: ids.member_id(parent_fqn, &field.name),
             name: field.name.clone(),
             serde_name: field.serde_name.clone(),
             description: field.description.clone(),
@@ -1427,13 +1500,22 @@ impl Normalizer {
 
     fn build_semantic_variant(
         &self,
+        enum_fqn: &str,
         variant: &Variant,
     ) -> Result<SemanticVariant, Vec<NormalizationError>> {
+        let ids = self
+            .context
+            .schema_ids
+            .as_ref()
+            .expect("schema_ids must be set");
+        let variant_id = ids.member_id(enum_fqn, &variant.name);
+        let variant_fqn = variant_id.qualified_name();
         let mut fields = BTreeMap::new();
 
         for field in variant.fields() {
-            let semantic_field = self.build_semantic_field(field)?;
-            fields.insert(field.id.clone(), semantic_field);
+            let field_id = ids.member_id(&variant_fqn, &field.name);
+            let semantic_field = self.build_semantic_field(&variant_fqn, field)?;
+            fields.insert(field_id, semantic_field);
         }
 
         let field_style = match &variant.fields {
@@ -1443,7 +1525,7 @@ impl Normalizer {
         };
 
         Ok(SemanticVariant {
-            id: variant.id.clone(),
+            id: variant_id,
             name: variant.name.clone(),
             serde_name: variant.serde_name.clone(),
             description: variant.description.clone(),
@@ -1475,8 +1557,19 @@ impl Normalizer {
             .as_ref()
             .and_then(|tr| self.resolve_global_type_reference(&tr.name));
 
+        let ids = self
+            .context
+            .schema_ids
+            .as_ref()
+            .expect("schema_ids must be set");
         Ok(SemanticFunction {
-            id: function.id.clone(),
+            id: ids
+                .functions
+                .get(&function.name)
+                .cloned()
+                .unwrap_or_else(|| {
+                    SymbolId::new(SymbolKind::Endpoint, vec![function.name.clone()])
+                }),
             name: function.name.clone(),
             path: function.path.clone(),
             description: function.description.clone(),
@@ -1707,7 +1800,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ensure_symbol_ids_idempotent() {
+    fn test_build_schema_ids_idempotent() {
         let mut schema = Schema::new();
         schema.name = "Test".to_string();
 
@@ -1715,35 +1808,20 @@ mod tests {
         user_struct.fields = Fields::Named(vec![Field::new("id".into(), "u64".into())]);
         schema.input_types.insert_type(user_struct.into());
 
-        // Run twice
-        crate::ensure_symbol_ids(&mut schema);
-        let ids_first: Vec<_> = schema
-            .input_types
-            .types()
-            .map(|t| match t {
-                Type::Struct(s) => s.id.clone(),
-                _ => unreachable!(),
-            })
-            .collect();
+        // Run twice — should produce identical results
+        let ids_first = crate::build_schema_ids(&schema);
+        let ids_second = crate::build_schema_ids(&schema);
 
-        crate::ensure_symbol_ids(&mut schema);
-        let ids_second: Vec<_> = schema
-            .input_types
-            .types()
-            .map(|t| match t {
-                Type::Struct(s) => s.id.clone(),
-                _ => unreachable!(),
-            })
-            .collect();
-
+        let user_id_first = ids_first.type_id("User");
+        let user_id_second = ids_second.type_id("User");
         assert_eq!(
-            ids_first, ids_second,
-            "ensure_symbol_ids should be idempotent"
+            user_id_first, user_id_second,
+            "build_schema_ids should be idempotent"
         );
     }
 
     #[test]
-    fn test_ensure_symbol_ids_enum_variants_and_fields() {
+    fn test_build_schema_ids_enum_variants_and_fields() {
         let mut schema = Schema::new();
         schema.name = "Test".to_string();
 
@@ -1756,40 +1834,37 @@ mod tests {
         enm.variants = vec![variant, Variant::new("Inactive".into())];
         schema.input_types.insert_type(enm.into());
 
-        crate::ensure_symbol_ids(&mut schema);
+        let ids = crate::build_schema_ids(&schema);
 
-        let enm = schema
-            .input_types
-            .get_type("Status")
-            .unwrap()
-            .as_enum()
-            .unwrap();
-        assert!(!enm.id.is_unknown(), "Enum should have a non-unknown id");
+        let enum_id = ids.type_id("Status");
+        assert!(!enum_id.is_unknown(), "Enum should have a non-unknown id");
 
-        for variant in &enm.variants {
-            assert!(
-                !variant.id.is_unknown(),
-                "Variant '{}' should have a non-unknown id",
-                variant.name
-            );
-            for field in variant.fields() {
-                assert!(
-                    !field.id.is_unknown(),
-                    "Field '{}' in variant '{}' should have a non-unknown id",
-                    field.name,
-                    variant.name
-                );
-            }
-        }
+        let active_id = ids.member_id("Status", "Active");
+        assert!(
+            !active_id.is_unknown(),
+            "Variant 'Active' should have a non-unknown id"
+        );
+
+        let inactive_id = ids.member_id("Status", "Inactive");
+        assert!(
+            !inactive_id.is_unknown(),
+            "Variant 'Inactive' should have a non-unknown id"
+        );
+
+        // Check variant field ID
+        let active_fqn = active_id.qualified_name();
+        let since_id = ids.member_id(&active_fqn, "since");
+        assert!(
+            !since_id.is_unknown(),
+            "Field 'since' should have a non-unknown id"
+        );
 
         // Check paths are structured correctly
-        let active = &enm.variants[0];
-        assert_eq!(active.id.path.last().unwrap(), "Active");
-        let since_field = active.fields().next().unwrap();
+        assert_eq!(active_id.path.last().unwrap(), "Active");
         assert!(
-            since_field.id.path.contains(&"Active".to_string()),
+            since_id.path.contains(&"Active".to_string()),
             "Field path should include parent variant: {:?}",
-            since_field.id.path
+            since_id.path
         );
     }
 
