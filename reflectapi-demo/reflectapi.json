@@ -9,7 +9,7 @@
       "error_type": {
         "name": "myapi::HealthCheckFail"
       },
-      "output_kind": "single",
+      "output_kind": "complete",
       "serialization": [
         "json",
         "msgpack"
@@ -32,7 +32,7 @@
       "error_type": {
         "name": "myapi::proto::PetsListError"
       },
-      "output_kind": "single",
+      "output_kind": "complete",
       "output_type": {
         "name": "myapi::proto::Paginated",
         "arguments": [
@@ -60,7 +60,7 @@
       "error_type": {
         "name": "myapi::proto::PetsCreateError"
       },
-      "output_kind": "single",
+      "output_kind": "complete",
       "serialization": [
         "json",
         "msgpack"
@@ -79,7 +79,7 @@
       "error_type": {
         "name": "myapi::proto::PetsUpdateError"
       },
-      "output_kind": "single",
+      "output_kind": "complete",
       "serialization": [
         "json",
         "msgpack"
@@ -98,7 +98,7 @@
       "error_type": {
         "name": "myapi::proto::PetsRemoveError"
       },
-      "output_kind": "single",
+      "output_kind": "complete",
       "serialization": [
         "json",
         "msgpack"
@@ -118,7 +118,7 @@
       "error_type": {
         "name": "myapi::proto::PetsRemoveError"
       },
-      "output_kind": "single",
+      "output_kind": "complete",
       "serialization": [
         "json",
         "msgpack"
@@ -134,7 +134,7 @@
       "error_type": {
         "name": "myapi::proto::UnauthorizedError"
       },
-      "output_kind": "single",
+      "output_kind": "complete",
       "output_type": {
         "name": "std::option::Option",
         "arguments": [

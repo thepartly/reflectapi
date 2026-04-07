@@ -181,8 +181,6 @@ pub struct MediaType {
     schema: InlineOrRef<Schema>,
 }
 
-struct StreamOrComplete {}
-
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum StringFormat {

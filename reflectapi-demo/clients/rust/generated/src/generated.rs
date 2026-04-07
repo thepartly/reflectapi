@@ -215,6 +215,34 @@ pub mod interface {
             )
             .await
         }
+        /// Stream of change data capture events for pets
+        #[tracing::instrument(name = "/pets.cdc-events", skip(self, headers))]
+        pub async fn cdc_events(
+            &self,
+            input: reflectapi::Empty,
+            headers: super::types::myapi::proto::Headers,
+        ) -> Result<
+            reflectapi::rt::BoxStream<
+                Result<
+                    super::types::myapi::model::output::Pet,
+                    reflectapi::rt::Error<super::types::myapi::proto::UnauthorizedError, C::Error>,
+                >,
+            >,
+            reflectapi::rt::Error<super::types::myapi::proto::UnauthorizedError, C::Error>,
+        >
+        where
+            C::Error: Send + 'static,
+        {
+            reflectapi::rt::__stream_request_impl(
+                &self.client,
+                self.base_url
+                    .join("/pets.cdc-events")
+                    .expect("checked base_url already and path is valid"),
+                input,
+                headers,
+            )
+            .await
+        }
     }
 }
 pub mod types {

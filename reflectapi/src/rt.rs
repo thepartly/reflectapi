@@ -13,6 +13,27 @@ pub trait Client {
         body: bytes::Bytes,
         headers: http::HeaderMap,
     ) -> impl std::future::Future<Output = Result<(http::StatusCode, bytes::Bytes), Self::Error>>;
+
+    fn stream_request(
+        &self,
+        url: Url,
+        body: bytes::Bytes,
+        headers: http::HeaderMap,
+    ) -> impl std::future::Future<
+        Output = Result<
+            (
+                http::StatusCode,
+                std::pin::Pin<
+                    Box<
+                        dyn futures_util::Stream<Item = Result<bytes::Bytes, Self::Error>>
+                            + Send
+                            + 'static,
+                    >,
+                >,
+            ),
+            Self::Error,
+        >,
+    >;
 }
 
 pub enum Error<AE, NE> {
@@ -68,11 +89,15 @@ impl<AE: std::error::Error + 'static, NE: std::error::Error + 'static> std::erro
     }
 }
 
+pub type BoxStream<T> =
+    std::pin::Pin<Box<dyn futures_util::Stream<Item = T> + Send + 'static>>;
+
 pub enum ProtocolErrorStage {
     SerializeRequestBody,
     SerializeRequestHeaders,
     DeserializeResponseBody(bytes::Bytes),
     DeserializeResponseError(http::StatusCode, bytes::Bytes),
+    DeserializeStreamItem(String),
 }
 
 impl core::fmt::Display for ProtocolErrorStage {
@@ -95,6 +120,10 @@ impl core::fmt::Display for ProtocolErrorStage {
                 status,
                 String::from_utf8_lossy(body)
             ),
+            ProtocolErrorStage::DeserializeStreamItem(data) => write!(
+                f,
+                "failed to deserialize stream item: {data}"
+            ),
         }
     }
 }
@@ -114,6 +143,9 @@ impl core::fmt::Debug for ProtocolErrorStage {
                 "DeserializeResponseError({status}, {:?})",
                 String::from_utf8_lossy(body)
             ),
+            ProtocolErrorStage::DeserializeStreamItem(data) => {
+                write!(f, "DeserializeStreamItem({data:?})")
+            }
         }
     }
 }
@@ -193,6 +225,259 @@ where
     }
 }
 
+#[doc(hidden)]
+pub fn __parse_sse_stream(
+    body: std::pin::Pin<
+        Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, impl Send + 'static>> + Send>,
+    >,
+) -> BoxStream<Result<String, String>> {
+    use futures_util::StreamExt;
+
+    let buffer = String::new();
+    let data = String::new();
+
+    Box::pin(futures_util::stream::unfold(
+        (body, buffer, data),
+        |(mut body, mut buffer, mut data)| async move {
+            loop {
+                if let Some(line_end) = buffer.find('\n') {
+                    let line = buffer[..line_end].trim_end_matches('\r').to_string();
+                    buffer = buffer[line_end + 1..].to_string();
+
+                    if line.is_empty() {
+                        if !data.is_empty() {
+                            if data.ends_with('\n') {
+                                data.pop();
+                            }
+                            let event_data = std::mem::take(&mut data);
+                            return Some((Ok(event_data), (body, buffer, data)));
+                        }
+                        continue;
+                    }
+
+                    if let Some(value) = line.strip_prefix("data:") {
+                        let value = value.strip_prefix(' ').unwrap_or(value);
+                        if !data.is_empty() {
+                            data.push('\n');
+                        }
+                        data.push_str(value);
+                    }
+                    continue;
+                }
+
+                match body.next().await {
+                    Some(Ok(chunk)) => {
+                        buffer.push_str(&String::from_utf8_lossy(&chunk));
+                    }
+                    Some(Err(_)) => {
+                        return Some((
+                            Err("stream error".to_string()),
+                            (body, buffer, data),
+                        ));
+                    }
+                    None => {
+                        if !data.is_empty() {
+                            if data.ends_with('\n') {
+                                data.pop();
+                            }
+                            let event_data = std::mem::take(&mut data);
+                            return Some((Ok(event_data), (body, buffer, data)));
+                        }
+                        return None;
+                    }
+                }
+            }
+        },
+    ))
+}
+
+fn __serialize_headers_for_stream<H: serde::Serialize>(
+    headers: H,
+) -> Result<http::HeaderMap, (String, ProtocolErrorStage)> {
+    let headers = serde_json::to_value(&headers).map_err(|e| {
+        (e.to_string(), ProtocolErrorStage::SerializeRequestHeaders)
+    })?;
+
+    let mut header_map = http::HeaderMap::new();
+    header_map.insert(
+        http::header::ACCEPT,
+        http::HeaderValue::from_static("text/event-stream"),
+    );
+    match headers {
+        serde_json::Value::Object(headers) => {
+            for (k, v) in headers.into_iter() {
+                let v_str = match v {
+                    serde_json::Value::String(v) => v,
+                    v => v.to_string(),
+                };
+                header_map.insert(
+                    http::HeaderName::from_bytes(k.as_bytes()).map_err(|err| {
+                        (err.to_string(), ProtocolErrorStage::SerializeRequestHeaders)
+                    })?,
+                    http::HeaderValue::from_str(&v_str).map_err(|err| {
+                        (err.to_string(), ProtocolErrorStage::SerializeRequestHeaders)
+                    })?,
+                );
+            }
+        }
+        serde_json::Value::Null => {}
+        _ => {
+            return Err((
+                "Headers must be an object".to_string(),
+                ProtocolErrorStage::SerializeRequestHeaders,
+            ));
+        }
+    }
+    Ok(header_map)
+}
+
+#[doc(hidden)]
+pub async fn __stream_request_impl<C, I, H, O, E>(
+    client: &C,
+    url: Url,
+    body: I,
+    headers: H,
+) -> Result<BoxStream<Result<O, Error<E, C::Error>>>, Error<E, C::Error>>
+where
+    C: Client,
+    C::Error: Send + 'static,
+    I: serde::Serialize,
+    H: serde::Serialize,
+    O: serde::de::DeserializeOwned + Send + 'static,
+    E: serde::de::DeserializeOwned + Send + 'static,
+{
+    let body = serde_json::to_vec(&body).map_err(|e| Error::Protocol {
+        info: e.to_string(),
+        stage: ProtocolErrorStage::SerializeRequestBody,
+    })?;
+    let body = bytes::Bytes::from(body);
+    let header_map =
+        __serialize_headers_for_stream(headers).map_err(|(info, stage)| Error::Protocol { info, stage })?;
+
+    let (status, byte_stream) = client
+        .stream_request(url, body, header_map)
+        .await
+        .map_err(Error::Network)?;
+
+    if status.is_success() {
+        let sse_stream = __parse_sse_stream(byte_stream);
+        let mapped = futures_util::StreamExt::map(sse_stream, |item| match item {
+            Ok(data) => serde_json::from_str::<O>(&data).map_err(|e| Error::Protocol {
+                info: e.to_string(),
+                stage: ProtocolErrorStage::DeserializeStreamItem(data),
+            }),
+            Err(e) => Err(Error::Protocol {
+                info: e,
+                stage: ProtocolErrorStage::DeserializeStreamItem(String::new()),
+            }),
+        });
+        return Ok(Box::pin(mapped));
+    }
+
+    let body = __collect_byte_stream(byte_stream).await.map_err(Error::Network)?;
+    match serde_json::from_slice::<E>(&body) {
+        Ok(error) if !status.is_server_error() => Err(Error::Application(error)),
+        Err(e) if status.is_client_error() => Err(Error::Protocol {
+            info: e.to_string(),
+            stage: ProtocolErrorStage::DeserializeResponseError(status, body),
+        }),
+        _ => Err(Error::Server(status, body)),
+    }
+}
+
+#[doc(hidden)]
+pub async fn __stream_request_fallible_impl<C, I, H, O, IE, E>(
+    client: &C,
+    url: Url,
+    body: I,
+    headers: H,
+) -> Result<BoxStream<Result<Result<O, IE>, Error<E, C::Error>>>, Error<E, C::Error>>
+where
+    C: Client,
+    C::Error: Send + 'static,
+    I: serde::Serialize,
+    H: serde::Serialize,
+    O: serde::de::DeserializeOwned + Send + 'static,
+    IE: serde::de::DeserializeOwned + Send + 'static,
+    E: serde::de::DeserializeOwned + Send + 'static,
+{
+    let body = serde_json::to_vec(&body).map_err(|e| Error::Protocol {
+        info: e.to_string(),
+        stage: ProtocolErrorStage::SerializeRequestBody,
+    })?;
+    let body = bytes::Bytes::from(body);
+    let header_map =
+        __serialize_headers_for_stream(headers).map_err(|(info, stage)| Error::Protocol { info, stage })?;
+
+    let (status, byte_stream) = client
+        .stream_request(url, body, header_map)
+        .await
+        .map_err(Error::Network)?;
+
+    if status.is_success() {
+        let sse_stream = __parse_sse_stream(byte_stream);
+        let mapped = futures_util::StreamExt::map(sse_stream, |item| match item {
+            Ok(data) => {
+                let value = serde_json::from_str::<serde_json::Value>(&data).map_err(|e| {
+                    Error::Protocol {
+                        info: e.to_string(),
+                        stage: ProtocolErrorStage::DeserializeStreamItem(data.clone()),
+                    }
+                })?;
+                if let Some(err_value) = value.get("__reflectapi_reserved_stream_error") {
+                    let item_error = serde_json::from_value::<IE>(err_value.clone()).map_err(
+                        |e| Error::Protocol {
+                            info: e.to_string(),
+                            stage: ProtocolErrorStage::DeserializeStreamItem(data),
+                        },
+                    )?;
+                    Ok(Err(item_error))
+                } else {
+                    let item = serde_json::from_value::<O>(value).map_err(|e| Error::Protocol {
+                        info: e.to_string(),
+                        stage: ProtocolErrorStage::DeserializeStreamItem(data),
+                    })?;
+                    Ok(Ok(item))
+                }
+            }
+            Err(e) => Err(Error::Protocol {
+                info: e,
+                stage: ProtocolErrorStage::DeserializeStreamItem(String::new()),
+            }),
+        });
+        return Ok(Box::pin(mapped));
+    }
+
+    let body = __collect_byte_stream(byte_stream).await.map_err(Error::Network)?;
+    match serde_json::from_slice::<E>(&body) {
+        Ok(error) if !status.is_server_error() => Err(Error::Application(error)),
+        Err(e) if status.is_client_error() => Err(Error::Protocol {
+            info: e.to_string(),
+            stage: ProtocolErrorStage::DeserializeResponseError(status, body),
+        }),
+        _ => Err(Error::Server(status, body)),
+    }
+}
+
+async fn __collect_byte_stream<E>(
+    stream: std::pin::Pin<
+        Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, E>> + Send>,
+    >,
+) -> Result<bytes::Bytes, E> {
+    use futures_util::StreamExt;
+    let mut chunks = Vec::new();
+    futures_util::pin_mut!(stream);
+    while let Some(chunk) = stream.next().await {
+        chunks.push(chunk?);
+    }
+    let total_len = chunks.iter().map(|c| c.len()).sum();
+    let mut buf = bytes::BytesMut::with_capacity(total_len);
+    for chunk in chunks {
+        buf.extend_from_slice(&chunk);
+    }
+    Ok(buf.freeze())
+}
+
 #[cfg(feature = "reqwest")]
 impl Client for reqwest::Client {
     type Error = reqwest::Error;
@@ -207,6 +492,29 @@ impl Client for reqwest::Client {
         let status = response.status();
         let body = response.bytes().await?;
         Ok((status, body))
+    }
+
+    async fn stream_request(
+        &self,
+        path: Url,
+        body: bytes::Bytes,
+        headers: http::HeaderMap,
+    ) -> Result<
+        (
+            http::StatusCode,
+            std::pin::Pin<
+                Box<
+                    dyn futures_util::Stream<Item = Result<bytes::Bytes, Self::Error>>
+                        + Send
+                        + 'static,
+                >,
+            >,
+        ),
+        Self::Error,
+    > {
+        let response = self.post(path).headers(headers).body(body).send().await?;
+        let status = response.status();
+        Ok((status, Box::pin(response.bytes_stream())))
     }
 }
 
@@ -224,5 +532,34 @@ impl Client for reqwest_middleware::ClientWithMiddleware {
         let status = response.status();
         let body = response.bytes().await?;
         Ok((status, body))
+    }
+
+    async fn stream_request(
+        &self,
+        path: Url,
+        body: bytes::Bytes,
+        headers: http::HeaderMap,
+    ) -> Result<
+        (
+            http::StatusCode,
+            std::pin::Pin<
+                Box<
+                    dyn futures_util::Stream<Item = Result<bytes::Bytes, Self::Error>>
+                        + Send
+                        + 'static,
+                >,
+            >,
+        ),
+        Self::Error,
+    > {
+        let response = self.post(path).headers(headers).body(body).send().await?;
+        let status = response.status();
+        Ok((
+            status,
+            Box::pin(futures_util::StreamExt::map(
+                response.bytes_stream(),
+                |r| r.map_err(reqwest_middleware::Error::Reqwest),
+            )),
+        ))
     }
 }
