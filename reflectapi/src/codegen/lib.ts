@@ -318,10 +318,11 @@ async function* __sse_to_async_iterable<O>(
       if (options?.signal?.aborted) break;
       const { done, value } = await reader.read();
       if (done) break;
-      yield JSON.parse(value.data) as O;
+      const parsed = JSON.parse(value.data);
+      yield ('ok' in parsed ? parsed.ok : parsed) as O;
     }
   } finally {
-    reader.cancel();
+    reader.cancel().catch(() => {});
   }
 }
 
@@ -345,7 +346,7 @@ async function* __sse_to_async_iterable_fallible<O, IE>(
       }
     }
   } finally {
-    reader.cancel();
+    reader.cancel().catch(() => {});
   }
 }
 
