@@ -88,14 +88,8 @@ pub trait Visitor: Sized {
                     acc = acc.combine(self.visit_type_ref(output_type)?);
                 }
             }
-            crate::OutputType::Stream {
-                item_type,
-                item_error_type,
-            } => {
+            crate::OutputType::Stream { item_type } => {
                 acc = acc.combine(self.visit_type_ref(item_type)?);
-                if let Some(item_error_type) = item_error_type {
-                    acc = acc.combine(self.visit_type_ref(item_error_type)?);
-                }
             }
         }
 

@@ -51,7 +51,6 @@ pub enum SemanticOutputType {
     Complete(Option<SymbolId>),
     Stream {
         item_type: SymbolId,
-        error_type: Option<SymbolId>,
     },
 }
 

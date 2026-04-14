@@ -88,13 +88,6 @@ fn discover_error_types(schema: &crate::Schema) -> HashSet<String> {
         if let Some(error_type) = function.error_type.as_ref() {
             error_types.insert(error_type.name.clone());
         }
-        if let OutputType::Stream {
-            item_error_type: Some(error_type),
-            ..
-        } = &function.output_type
-        {
-            error_types.insert(error_type.name.clone());
-        }
     }
 
     error_types
@@ -854,7 +847,6 @@ mod templates {
         pub input_type: String,
         pub input_headers: String,
         pub item_type: String,
-        pub item_error_type: Option<String>,
         pub error_type: String,
     }
 
@@ -868,44 +860,23 @@ mod templates {
                     write!(out, "        #[deprecated(note = \"{deprecation_note}\")]").unwrap();
                 }
             }
-            if let Some(item_error_type) = &self.item_error_type {
-                write!(
-                    out,
-                    "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
-                         -> reflectapi::rt::FallibleStreamResponse<{}, {}, {}, C::Error>\n\
-                         where C::Error: Send + 'static {{\n\
-                             reflectapi::rt::__stream_request_fallible_impl(&self.client, self.base_url.join(\"{}\").expect(\"checked base_url already and path is valid\"), input, headers).await\n\
-                         }}",
-                    self.description,
-                    self.attributes,
-                    self.name,
-                    self.input_type,
-                    self.input_headers,
-                    self.item_type,
-                    item_error_type,
-                    self.error_type,
-                    self.path,
-                )
-                .unwrap();
-            } else {
-                write!(
-                    out,
-                    "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
-                         -> reflectapi::rt::StreamResponse<{}, {}, C::Error>\n\
-                         where C::Error: Send + 'static {{\n\
-                             reflectapi::rt::__stream_request_impl(&self.client, self.base_url.join(\"{}\").expect(\"checked base_url already and path is valid\"), input, headers).await\n\
-                         }}",
-                    self.description,
-                    self.attributes,
-                    self.name,
-                    self.input_type,
-                    self.input_headers,
-                    self.item_type,
-                    self.error_type,
-                    self.path,
-                )
-                .unwrap();
-            }
+            write!(
+                out,
+                "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
+                     -> reflectapi::rt::StreamResponse<{}, {}, C::Error>\n\
+                     where C::Error: Send + 'static {{\n\
+                         reflectapi::rt::__stream_request_impl(&self.client, self.base_url.join(\"{}\").expect(\"checked base_url already and path is valid\"), input, headers).await\n\
+                     }}",
+                self.description,
+                self.attributes,
+                self.name,
+                self.input_type,
+                self.input_headers,
+                self.item_type,
+                self.error_type,
+                self.path,
+            )
+            .unwrap();
             out
         }
     }
@@ -1004,7 +975,6 @@ enum __FunctionOutput {
     },
     Stream {
         item_type: String,
-        item_error_type: Option<String>,
     },
 }
 
@@ -1059,10 +1029,7 @@ fn __function_signature(
         OutputType::Complete { output_type: None } => __FunctionOutput::Complete {
             output_type: "reflectapi::Empty".into(),
         },
-        OutputType::Stream {
-            item_type,
-            item_error_type,
-        } => __FunctionOutput::Stream {
+        OutputType::Stream { item_type } => __FunctionOutput::Stream {
             item_type: with_prefix(&__type_ref_to_ts_ref(
                 item_type,
                 schema,
@@ -1070,9 +1037,6 @@ fn __function_signature(
                 1,
                 None,
             )),
-            item_error_type: item_error_type
-                .as_ref()
-                .map(|t| with_prefix(&__type_ref_to_ts_ref(t, schema, implemented_types, 1, None))),
         },
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
@@ -1206,11 +1170,8 @@ fn __interface_types_from_function_group(
                     error_type: sig.error_type,
                 })
             }
-            __FunctionOutput::Stream {
-                item_type,
-                item_error_type,
-            } => templates::__FunctionImpl::Stream(
-                templates::__StreamFunctionImplementationTemplate {
+            __FunctionOutput::Stream { item_type } => {
+                templates::__FunctionImpl::Stream(templates::__StreamFunctionImplementationTemplate {
                     name,
                     deprecation_note,
                     attributes,
@@ -1219,10 +1180,9 @@ fn __interface_types_from_function_group(
                     input_type: sig.input_type,
                     input_headers: sig.input_headers,
                     item_type,
-                    item_error_type,
                     error_type: sig.error_type,
-                },
-            ),
+                })
+            }
         };
         interface_implementation.functions.push(func_impl);
     }

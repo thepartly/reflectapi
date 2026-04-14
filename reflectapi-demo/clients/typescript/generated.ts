@@ -766,17 +766,6 @@ export namespace __definition {
       AsyncIterable<myapi.model.output.Pet>,
       myapi.proto.UnauthorizedError
     >;
-    /**
-     * Stream of change data capture events for pets with potential errors
-     */
-    cdc_events_fallible: (
-      input: {},
-      headers: myapi.proto.Headers,
-      options?: RequestOptions,
-    ) => AsyncResult<
-      AsyncIterable<Result<myapi.model.output.Pet, myapi.proto.InternalError>>,
-      myapi.proto.UnauthorizedError
-    >;
   }
 }
 export namespace myapi {
@@ -980,11 +969,6 @@ export namespace reflectapi {
    * Struct object with no fields
    */
   export interface Empty {}
-
-  /**
-   * Error object which is expected to be never returned
-   */
-  export interface Infallible {}
 }
 
 namespace __implementation {
@@ -1006,7 +990,6 @@ namespace __implementation {
           delete: pets__delete(client_instance),
           get_first: pets__get_first(client_instance),
           cdc_events: pets__cdc_events(client_instance),
-          cdc_events_fallible: pets__cdc_events_fallible(client_instance),
         },
       },
     }.impl;
@@ -1114,19 +1097,5 @@ namespace __implementation {
         myapi.model.output.Pet,
         myapi.proto.UnauthorizedError
       >(client, "/pets.cdc-events", input, headers, options);
-  }
-  function pets__cdc_events_fallible(client: Client) {
-    return (
-      input: {},
-      headers: myapi.proto.Headers,
-      options?: RequestOptions,
-    ) =>
-      __stream_request_fallible<
-        {},
-        myapi.proto.Headers,
-        myapi.model.output.Pet,
-        myapi.proto.InternalError,
-        myapi.proto.UnauthorizedError
-      >(client, "/pets.cdc-events-fallible", input, headers, options);
   }
 }

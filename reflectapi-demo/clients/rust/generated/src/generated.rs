@@ -239,31 +239,6 @@ pub mod interface {
             )
             .await
         }
-        /// Stream of change data capture events for pets with potential errors
-        #[tracing::instrument(name = "/pets.cdc-events-fallible", skip(self, headers))]
-        pub async fn cdc_events_fallible(
-            &self,
-            input: reflectapi::Empty,
-            headers: super::types::myapi::proto::Headers,
-        ) -> reflectapi::rt::FallibleStreamResponse<
-            super::types::myapi::model::output::Pet,
-            super::types::myapi::proto::InternalError,
-            super::types::myapi::proto::UnauthorizedError,
-            C::Error,
-        >
-        where
-            C::Error: Send + 'static,
-        {
-            reflectapi::rt::__stream_request_fallible_impl(
-                &self.client,
-                self.base_url
-                    .join("/pets.cdc-events-fallible")
-                    .expect("checked base_url already and path is valid"),
-                input,
-                headers,
-            )
-            .await
-        }
     }
 }
 pub mod types {
@@ -386,14 +361,6 @@ pub mod types {
             pub struct InternalError {
                 pub message: std::string::String,
             }
-
-            impl std::fmt::Display for InternalError {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    write!(f, "{}", reflectapi::rt::error_to_string(self))
-                }
-            }
-
-            impl std::error::Error for InternalError {}
 
             #[derive(Debug, serde::Deserialize)]
             pub struct Paginated<T> {

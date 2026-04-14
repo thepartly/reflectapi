@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{future::Future, pin::Pin, sync::Arc};
 
-use futures_util::{stream::Stream, StreamExt, TryStreamExt};
+use futures_util::{stream::Stream, StreamExt};
 
 use http::HeaderName;
 
@@ -138,7 +138,7 @@ where
         E: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
         let (function_def, mut input_headers) =
-            Self::mk_function::<I, H, O, E, crate::Empty>(&rb, schema, false);
+            Self::mk_function::<I, H, O, E>(&rb, schema, false);
         schema.functions.push(function_def);
 
         // inject system header requirements used by the handler wrapper
@@ -156,24 +156,22 @@ where
         }
     }
 
-    pub(crate) fn new_stream<F, St, R, I, O, E1, E2, H>(
+    pub(crate) fn new_stream<F, St, I, O, E1, H>(
         rb: RouteBuilder,
         handler: F,
         schema: &mut Schema,
     ) -> Handler<S>
     where
         F: Fn(S, I, H) -> Result<St, E1> + Send + Sync + Copy + 'static,
-        St: Stream<Item = R> + Send + 'static,
-        R: crate::IntoResult<O, E2> + 'static,
+        St: Stream<Item = O> + Send + 'static,
         I: Input + serde::de::DeserializeOwned + Send + 'static,
         H: Input + serde::de::DeserializeOwned + Send + 'static,
         O: Output + serde::ser::Serialize + Send + 'static,
         E1: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
-        E2: Output + serde::ser::Serialize + Send + 'static,
         S: Send + 'static,
     {
         let (function_def, mut input_headers) =
-            Self::mk_function::<I, H, O, E1, E2>(&rb, schema, true);
+            Self::mk_function::<I, H, O, E1>(&rb, schema, true);
         schema.functions.push(function_def);
 
         // inject system header requirements used by the handler wrapper
@@ -192,7 +190,7 @@ where
         }
     }
 
-    fn mk_function<I: Input, H: Input, O: Output, E1: Output, E2: Output>(
+    fn mk_function<I: Input, H: Input, O: Output, E1: Output>(
         rb: &RouteBuilder,
         schema: &mut Schema,
         is_stream: bool,
@@ -200,7 +198,6 @@ where
         let input_type = I::reflectapi_input_type(&mut schema.input_types);
         let output_type = O::reflectapi_output_type(&mut schema.output_types);
         let error_type = E1::reflectapi_output_type(&mut schema.output_types);
-        let stream_error_type = E2::reflectapi_output_type(&mut schema.output_types);
         let input_headers = H::reflectapi_input_type(&mut schema.input_types);
 
         let input_headers_names = schema
@@ -237,11 +234,6 @@ where
             output_type: if is_stream {
                 OutputType::Stream {
                     item_type: output_type,
-                    item_error_type: if stream_error_type.name == "reflectapi::Infallible" {
-                        None
-                    } else {
-                        Some(stream_error_type)
-                    },
                 }
             } else {
                 OutputType::Complete {
@@ -437,7 +429,7 @@ where
     }
 
     #[allow(clippy::result_large_err)]
-    fn stream_handler_wrap<F, St, R, I, H, O, E1, E2>(
+    fn stream_handler_wrap<F, St, I, H, O, E1>(
         state: S,
         input: HandlerInput,
         handler: F,
@@ -447,10 +439,8 @@ where
         H: Input + serde::de::DeserializeOwned,
         O: Output + serde::ser::Serialize,
         E1: Output + serde::ser::Serialize + crate::StatusCode,
-        E2: Output + serde::ser::Serialize,
         F: Fn(S, I, H) -> Result<St, E1>,
-        St: Stream<Item = R> + Send + 'static,
-        R: crate::IntoResult<O, E2>,
+        St: Stream<Item = O> + Send + 'static,
     {
         // TODO how do headers work with sse
         let (input, input_headers, content_type, mut response_headers) =
@@ -476,18 +466,7 @@ where
             headers: response_headers,
         })?;
 
-        Ok(st.map(Ok).and_then(move |res| {
-            let res = res.into_result();
-            async move {
-                match res {
-                    Ok(v) => serde_json::to_string(&v).map_err(|err| err.to_string()),
-                    Err(err) => serde_json::to_string(&StreamItemError {
-                        __reflectapi_reserved_stream_error: err,
-                    })
-                    .map_err(|err| err.to_string()),
-                }
-            }
-        }))
+        Ok(st.map(|v| serde_json::to_string(&v).map_err(|err| err.to_string())))
     }
 }
 
@@ -507,8 +486,3 @@ impl<T, E> From<Result<T, E>> for UntaggedResult<T, E> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
-struct StreamItemError<E> {
-    // Some long and uncommon field name to avoid collisions with user fields.
-    __reflectapi_reserved_stream_error: E,
-}

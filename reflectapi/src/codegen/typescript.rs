@@ -628,42 +628,24 @@ mod templates {
         pub input_type: String,
         pub input_headers: String,
         pub item_type: String,
-        pub item_error_type: Option<String>,
         pub error_type: String,
     }
 
     impl StreamFunctionImplementationTemplate {
         pub fn render(&self) -> String {
-            if let Some(item_error_type) = &self.item_error_type {
-                format!(
-                    "function {name}(client: Client) {{\n\
-                         return (input: {input_type}, headers: {input_headers}, options?: RequestOptions) => __stream_request_fallible<\n\
-                             {input_type}, {input_headers}, {item_type}, {item_error_type}, {error_type}\n\
-                         >(client, '{path}', input, headers, options);\n\
-                     }}",
-                    name = self.name,
-                    input_type = self.input_type,
-                    input_headers = self.input_headers,
-                    item_type = self.item_type,
-                    item_error_type = item_error_type,
-                    error_type = self.error_type,
-                    path = self.path,
-                )
-            } else {
-                format!(
-                    "function {name}(client: Client) {{\n\
-                         return (input: {input_type}, headers: {input_headers}, options?: RequestOptions) => __stream_request<\n\
-                             {input_type}, {input_headers}, {item_type}, {error_type}\n\
-                         >(client, '{path}', input, headers, options);\n\
-                     }}",
-                    name = self.name,
-                    input_type = self.input_type,
-                    input_headers = self.input_headers,
-                    item_type = self.item_type,
-                    error_type = self.error_type,
-                    path = self.path,
-                )
-            }
+            format!(
+                "function {name}(client: Client) {{\n\
+                     return (input: {input_type}, headers: {input_headers}, options?: RequestOptions) => __stream_request<\n\
+                         {input_type}, {input_headers}, {item_type}, {error_type}\n\
+                     >(client, '{path}', input, headers, options);\n\
+                 }}",
+                name = self.name,
+                input_type = self.input_type,
+                input_headers = self.input_headers,
+                item_type = self.item_type,
+                error_type = self.error_type,
+                path = self.path,
+            )
         }
     }
 
@@ -763,7 +745,6 @@ enum FunctionOutput {
     },
     Stream {
         item_type: String,
-        item_error_type: Option<String>,
     },
 }
 
@@ -783,16 +764,7 @@ impl FunctionSignature {
                     error_type = self.error_type
                 )
             }
-            FunctionOutput::Stream {
-                item_type,
-                item_error_type: Some(item_error_type),
-            } => {
-                format!("AsyncResult<AsyncIterable<Result<{item_type}, {item_error_type}>>, {error_type}>", error_type = self.error_type)
-            }
-            FunctionOutput::Stream {
-                item_type,
-                item_error_type: None,
-            } => {
+            FunctionOutput::Stream { item_type } => {
                 format!(
                     "AsyncResult<AsyncIterable<{item_type}>, {error_type}>",
                     error_type = self.error_type
@@ -824,14 +796,8 @@ fn function_signature(
                 .map(|t| type_ref_to_ts_ref(t, schema, implemented_types))
                 .unwrap_or_else(|| "{}".into()),
         },
-        reflectapi_schema::OutputType::Stream {
-            item_type,
-            item_error_type,
-        } => FunctionOutput::Stream {
+        reflectapi_schema::OutputType::Stream { item_type } => FunctionOutput::Stream {
             item_type: type_ref_to_ts_ref(item_type, schema, implemented_types),
-            item_error_type: item_error_type
-                .as_ref()
-                .map(|t| type_ref_to_ts_ref(t, schema, implemented_types)),
         },
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
@@ -958,17 +924,13 @@ fn render_function(
             };
             Ok(function_template.render())
         }
-        FunctionOutput::Stream {
-            item_type,
-            item_error_type,
-        } => {
+        FunctionOutput::Stream { item_type } => {
             let function_template = templates::StreamFunctionImplementationTemplate {
                 name,
                 path,
                 input_type: sig.input_type,
                 input_headers: sig.input_headers,
                 item_type,
-                item_error_type,
                 error_type: sig.error_type,
             };
             Ok(function_template.render())
