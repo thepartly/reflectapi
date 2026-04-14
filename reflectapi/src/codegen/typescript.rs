@@ -622,6 +622,33 @@ mod templates {
         }
     }
 
+    pub(super) struct StreamFunctionImplementationTemplate {
+        pub name: String,
+        pub path: String,
+        pub input_type: String,
+        pub input_headers: String,
+        pub item_type: String,
+        pub error_type: String,
+    }
+
+    impl StreamFunctionImplementationTemplate {
+        pub fn render(&self) -> String {
+            format!(
+                "function {name}(client: Client) {{\n\
+                     return (input: {input_type}, headers: {input_headers}, options?: RequestOptions) => __stream_request<\n\
+                         {input_type}, {input_headers}, {item_type}, {error_type}\n\
+                     >(client, '{path}', input, headers, options);\n\
+                 }}",
+                name = self.name,
+                input_type = self.input_type,
+                input_headers = self.input_headers,
+                item_type = self.item_type,
+                error_type = self.error_type,
+                path = self.path,
+            )
+        }
+    }
+
     #[derive(Debug)]
     pub(super) struct ClientImplementationGroup {
         pub offset: usize,
@@ -712,11 +739,46 @@ fn client_impl_from_function_group(
     }
 }
 
+enum FunctionOutput {
+    Single {
+        output_type: String,
+    },
+    Stream {
+        item_type: String,
+    },
+}
+
+struct FunctionSignature {
+    input_type: String,
+    input_headers: String,
+    output: FunctionOutput,
+    error_type: String,
+}
+
+impl FunctionSignature {
+    fn interface_return_type(&self) -> String {
+        match &self.output {
+            FunctionOutput::Single { output_type } => {
+                format!(
+                    "AsyncResult<{output_type}, {error_type}>",
+                    error_type = self.error_type
+                )
+            }
+            FunctionOutput::Stream { item_type } => {
+                format!(
+                    "AsyncResult<AsyncIterable<{item_type}>, {error_type}>",
+                    error_type = self.error_type
+                )
+            }
+        }
+    }
+}
+
 fn function_signature(
     function: &Function,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
-) -> (String, String, String, String) {
+) -> FunctionSignature {
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
         type_ref_to_ts_ref(input_type, schema, implemented_types)
     } else {
@@ -727,17 +789,28 @@ fn function_signature(
     } else {
         "{}".into()
     };
-    let output_type = if let Some(output_type) = function.output_type.as_ref() {
-        type_ref_to_ts_ref(output_type, schema, implemented_types)
-    } else {
-        "{}".into()
+    let output = match &function.output_type {
+        reflectapi_schema::OutputType::Complete { output_type } => FunctionOutput::Single {
+            output_type: output_type
+                .as_ref()
+                .map(|t| type_ref_to_ts_ref(t, schema, implemented_types))
+                .unwrap_or_else(|| "{}".into()),
+        },
+        reflectapi_schema::OutputType::Stream { item_type } => FunctionOutput::Stream {
+            item_type: type_ref_to_ts_ref(item_type, schema, implemented_types),
+        },
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
         type_ref_to_ts_ref(error_type, schema, implemented_types)
     } else {
         "{}".into()
     };
-    (input_type, input_headers, output_type, error_type)
+    FunctionSignature {
+        input_type,
+        input_headers,
+        output,
+        error_type,
+    }
 }
 
 fn interfaces_from_function_group(
@@ -758,8 +831,8 @@ fn interfaces_from_function_group(
 
     for function_name in &group.functions {
         let function = functions_by_name.get(function_name).unwrap();
-        let (input_type, input_headers, output_type, error_type) =
-            function_signature(function, schema, implemented_types);
+        let sig = function_signature(function, schema, implemented_types);
+        let return_type = sig.interface_return_type();
         type_template.fields.push(templates::Field {
             name: function_name.split('.').next_back().unwrap().replace('-', "_"),
             description: doc_to_ts_comments(
@@ -768,7 +841,9 @@ fn interfaces_from_function_group(
                 4,
             ),
             type_: format!(
-                "(input: {input_type}, headers: {input_headers}, options?: RequestOptions)\n        => AsyncResult<{output_type}, {error_type}>"
+                "(input: {input_type}, headers: {input_headers}, options?: RequestOptions)\n        => {return_type}",
+                input_type = sig.input_type,
+                input_headers = sig.input_headers,
             ),
             optional: false,
         });
@@ -834,17 +909,33 @@ fn render_function(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> Result<String, anyhow::Error> {
-    let (input_type, input_headers, output_type, error_type) =
-        function_signature(function, schema, implemented_types);
-    let function_template = templates::FunctionImplementationTemplate {
-        name: function.name.replace('-', "_").replace('.', "__"),
-        path: format!("{}/{}", function.path, function.name),
-        input_type,
-        input_headers,
-        output_type,
-        error_type,
-    };
-    Ok(function_template.render())
+    let sig = function_signature(function, schema, implemented_types);
+    let name = function.name.replace('-', "_").replace('.', "__");
+    let path = format!("{}/{}", function.path, function.name);
+    match sig.output {
+        FunctionOutput::Single { output_type } => {
+            let function_template = templates::FunctionImplementationTemplate {
+                name,
+                path,
+                input_type: sig.input_type,
+                input_headers: sig.input_headers,
+                output_type,
+                error_type: sig.error_type,
+            };
+            Ok(function_template.render())
+        }
+        FunctionOutput::Stream { item_type } => {
+            let function_template = templates::StreamFunctionImplementationTemplate {
+                name,
+                path,
+                input_type: sig.input_type,
+                input_headers: sig.input_headers,
+                item_type,
+                error_type: sig.error_type,
+            };
+            Ok(function_template.render())
+        }
+    }
 }
 
 fn render_type(

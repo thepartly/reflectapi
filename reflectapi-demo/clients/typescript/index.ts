@@ -1,9 +1,5 @@
 import { client } from './generated';
 
-// workaround for node versions older than 18
-import fetch from "node-fetch";
-(globalThis.fetch as any) = fetch;
-
 async function main() {
     const c = client('http://localhost:3000');
 
@@ -49,14 +45,124 @@ async function main() {
 
     console.log(pets.items[0].name);
 
-    console.log('removing pet');
-    (
-        await c.pets.remove({
-            name: 'Bobby',
-        }, {
-            authorization: 'password'
-        })
-    ).unwrap_ok();
+    console.log('streaming cdc events while mutating pets');
+    const controller = new AbortController();
+    const streamResult = await c.pets.cdc_events({}, {
+        authorization: 'password'
+    }, { signal: controller.signal });
+
+    if (streamResult.is_err()) {
+        console.log('stream error:', streamResult.unwrap_err().toString());
+        return;
+    }
+
+    const received: string[] = [];
+    const streamDone = (async () => {
+        try {
+            for await (const pet of streamResult.unwrap_ok()) {
+                console.log('received event:', pet.name, JSON.stringify(pet.kind));
+                received.push(pet.name);
+            }
+        } catch (e: any) {
+            if (e.name !== 'AbortError') throw e;
+        }
+    })();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    console.log('creating Whiskers');
+    (await c.pets.create({
+        name: 'Whiskers',
+        kind: { type: 'cat', lives: 9 },
+        behaviors: [],
+    }, { authorization: 'password' })).unwrap_ok();
+
+    console.log('creating Tweety');
+    (await c.pets.create({
+        name: 'Tweety',
+        kind: { type: 'bird' },
+        behaviors: [],
+    }, { authorization: 'password' })).unwrap_ok();
+
+    console.log('updating Bobby');
+    (await c.pets.update({
+        name: 'Bobby',
+        age: 2,
+    }, { authorization: 'password' })).unwrap_ok();
+
+    console.log('removing Whiskers');
+    (await c.pets.remove({
+        name: 'Whiskers',
+    }, { authorization: 'password' })).unwrap_ok();
+
+    await new Promise((r) => setTimeout(r, 500));
+    controller.abort();
+    await streamDone;
+
+    const expected = ['Whiskers', 'Tweety', 'Bobby', 'Whiskers'];
+    const ok = JSON.stringify(received) === JSON.stringify(expected);
+    console.log(ok ? 'stream test passed' : `stream test FAILED: expected ${JSON.stringify(expected)}, got ${JSON.stringify(received)}`);
+
+    // Test fallible stream
+    console.log('streaming fallible cdc events while mutating pets');
+    const controller2 = new AbortController();
+    const fallibleStreamResult = await c.pets.cdc_events_fallible({}, {
+        authorization: 'password'
+    }, { signal: controller2.signal });
+
+    if (fallibleStreamResult.is_err()) {
+        console.log('fallible stream error:', fallibleStreamResult.unwrap_err().toString());
+        return;
+    }
+
+    const receivedFallible: string[] = [];
+    const fallibleStreamDone = (async () => {
+        try {
+            for await (const result of fallibleStreamResult.unwrap_ok()) {
+                if (result.is_ok()) {
+                    const pet = result.unwrap_ok();
+                    console.log('fallible received ok:', pet.name, JSON.stringify(pet.kind));
+                    receivedFallible.push(`ok:${pet.name}`);
+                } else {
+                    const err = result.unwrap_err();
+                    console.log('fallible received err:', err.message);
+                    receivedFallible.push(`err:${err.message}`);
+                }
+            }
+        } catch (e: any) {
+            if (e.name !== 'AbortError') throw e;
+        }
+    })();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    console.log('creating BadPet');
+    (await c.pets.create({
+        name: 'BadPet',
+        kind: { type: 'bird' },
+        behaviors: [],
+    }, { authorization: 'password' })).unwrap_ok();
+
+    console.log('creating GoodPet');
+    (await c.pets.create({
+        name: 'GoodPet',
+        kind: { type: 'cat', lives: 7 },
+        behaviors: [],
+    }, { authorization: 'password' })).unwrap_ok();
+
+    await new Promise((r) => setTimeout(r, 500));
+    controller2.abort();
+    await fallibleStreamDone;
+
+    const expectedFallible = ['err:Something went wrong with this pet', 'ok:GoodPet'];
+    const okFallible = JSON.stringify(receivedFallible) === JSON.stringify(expectedFallible);
+    console.log(okFallible ? 'fallible stream test passed' : `fallible stream test FAILED: expected ${JSON.stringify(expectedFallible)}, got ${JSON.stringify(receivedFallible)}`);
+
+    console.log('removing remaining pets');
+    (await c.pets.remove({ name: 'Bobby' }, { authorization: 'password' })).unwrap_ok();
+    (await c.pets.remove({ name: 'Tweety' }, { authorization: 'password' })).unwrap_ok();
+    (await c.pets.remove({ name: 'BadPet' }, { authorization: 'password' })).unwrap_ok();
+    (await c.pets.remove({ name: 'GoodPet' }, { authorization: 'password' })).unwrap_ok();
 }
 
 main()

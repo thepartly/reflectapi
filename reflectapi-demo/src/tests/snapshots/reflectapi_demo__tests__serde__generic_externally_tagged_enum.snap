@@ -16,6 +16,7 @@ expression: schema
           }
         ]
       },
+      "output_kind": "complete",
       "output_type": {
         "name": "reflectapi_demo::tests::serde::Wrapper",
         "arguments": [
@@ -76,6 +77,12 @@ expression: schema
   },
   "output_types": {
     "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
       {
         "kind": "struct",
         "name": "reflectapi::Infallible",

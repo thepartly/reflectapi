@@ -38,6 +38,7 @@ impl<T> HeaderMap<T> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct HeaderName(());
 
 impl HeaderName {
@@ -57,10 +58,18 @@ impl fmt::Display for InvalidHeaderName {
 
 impl std::error::Error for InvalidHeaderName {}
 
+pub mod header {
+    pub static ACCEPT: super::HeaderName = super::HeaderName(());
+}
+
 pub struct HeaderValue(());
 
 impl HeaderValue {
     pub fn from_str(_s: &str) -> Result<Self, InvalidHeaderValue> {
+        unimplemented!()
+    }
+
+    pub fn from_static(_s: &'static str) -> Self {
         unimplemented!()
     }
 }

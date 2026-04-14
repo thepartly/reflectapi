@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
 expression: schema
-snapshot_kind: text
 ---
 {
   "name": "",
@@ -12,6 +11,7 @@ snapshot_kind: text
       "input_type": {
         "name": "reflectapi_demo::tests::serde::TestNewtypeVariantsExternallyTagged"
       },
+      "output_kind": "complete",
       "output_type": {
         "name": "reflectapi_demo::tests::serde::TestNewtypeVariantsExternallyTagged"
       },
@@ -109,6 +109,12 @@ snapshot_kind: text
         "kind": "primitive",
         "name": "i32",
         "description": "32-bit signed integer"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
       },
       {
         "kind": "struct",

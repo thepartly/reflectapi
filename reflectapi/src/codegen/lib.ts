@@ -8,7 +8,7 @@ export interface Client {
     body: string,
     headers: Record<string, string>,
     options?: RequestOptions,
-  ): Promise<[number, string]>;
+  ): Promise<Response>;
 }
 
 export type NullToEmptyObject<T> = T extends null ? {} : T;
@@ -181,8 +181,9 @@ export function __request<I, H, O, E>(
   }
   return client
     .request(path, JSON.stringify(input), hdrs, options)
-    .then(([status, response_body]) => {
-      if (status >= 200 && status < 300) {
+    .then(async (response) => {
+      const response_body = await response.text();
+      if (response.status >= 200 && response.status < 300) {
         try {
           return new Result<O, Err<E>>({ ok: JSON.parse(response_body) as O });
         } catch (e) {
@@ -194,9 +195,9 @@ export function __request<I, H, O, E>(
             }),
           });
         }
-      } else if (status >= 500) {
+      } else if (response.status >= 500) {
         return new Result<O, Err<E>>({
-          err: new Err({ other_err: `[${status}] ${response_body}` }),
+          err: new Err({ other_err: `[${response.status}] ${response_body}` }),
         })
       } else {
         try {
@@ -205,7 +206,7 @@ export function __request<I, H, O, E>(
           });
         } catch (e) {
           return new Result<O, Err<E>>({
-            err: new Err({ other_err: `[${status}] ${response_body}` }),
+            err: new Err({ other_err: `[${response.status}] ${response_body}` }),
           });
         }
       }
@@ -213,6 +214,70 @@ export function __request<I, H, O, E>(
     .catch((e) => {
       return new Result<O, Err<E>>({ err: new Err({ other_err: e }) });
     });
+}
+
+export async function __stream_request<I, H, O, E>(
+  client: Client,
+  path: string,
+  input: I | undefined,
+  headers: H | undefined,
+  options?: RequestOptions,
+): Promise<Result<AsyncIterable<O>, Err<E>>> {
+  let hdrs: Record<string, string> = {
+    "content-type": "application/json",
+    "accept": "text/event-stream",
+  };
+  if (headers) {
+    for (const [k, v] of Object.entries(headers)) {
+      hdrs[k?.toString()] = v?.toString() || "";
+    }
+  }
+  try {
+    const response = await client.request(path, JSON.stringify(input), hdrs, options);
+    if (response.status >= 200 && response.status < 300) {
+      const stream = __sse_to_async_iterable<O>(response, options);
+      return new Result<AsyncIterable<O>, Err<E>>({ ok: stream });
+    } else if (response.status >= 500) {
+      const body = await response.text();
+      return new Result<AsyncIterable<O>, Err<E>>({
+        err: new Err({ other_err: `[${response.status}] ${body}` }),
+      });
+    } else {
+      const body = await response.text();
+      try {
+        return new Result<AsyncIterable<O>, Err<E>>({
+          err: new Err({ application_err: JSON.parse(body) as E }),
+        });
+      } catch (e) {
+        return new Result<AsyncIterable<O>, Err<E>>({
+          err: new Err({ other_err: `[${response.status}] ${body}` }),
+        });
+      }
+    }
+  } catch (e) {
+    return new Result<AsyncIterable<O>, Err<E>>({
+      err: new Err({ other_err: e }),
+    });
+  }
+}
+
+async function* __sse_to_async_iterable<O>(
+  response: Response,
+  options?: RequestOptions,
+): AsyncIterable<O> {
+  const body = response.body;
+  if (!body) return;
+  const reader = body.pipeThrough(new TextDecoderStream()).pipeThrough(new __EventSourceParserStream()).getReader();
+  try {
+    while (true) {
+      if (options?.signal?.aborted) break;
+      const { done, value } = await reader.read();
+      if (done) break;
+      yield JSON.parse(value.data) as O;
+    }
+  } finally {
+    reader.cancel().catch(() => {});
+  }
 }
 
 class ClientInstance {
@@ -223,19 +288,13 @@ class ClientInstance {
     body: string,
     headers: Record<string, string>,
     options?: RequestOptions,
-  ): Promise<[number, string]> {
-    return (globalThis as any)
-      .fetch(`${this.base}${path}`, {
-        method: "POST",
-        headers: headers,
-        body: body,
-        signal: options?.signal,
-      })
-      .then((response: any) => {
-        return response.text().then((text: string) => {
-          return [response.status, text];
-        });
-      });
+  ): Promise<Response> {
+    return (globalThis as any).fetch(`${this.base}${path}`, {
+      method: "POST",
+      headers: headers,
+      body: body,
+      signal: options?.signal,
+    });
   }
 }
 
@@ -353,5 +412,141 @@ export function match<T extends object | string, R>(
 
     default:
       throw new Error('unreachable');
+  }
+}
+
+// Vendored from eventsource-parser v3.0.6 (MIT License)
+// Copyright (c) 2025 Espen Hovlandsdal <espen@hovlandsdal.com>
+// https://github.com/rexxars/eventsource-parser
+
+interface __EventSourceMessage {
+  event?: string | undefined
+  id?: string | undefined
+  data: string
+}
+
+interface __EventSourceParser {
+  feed(chunk: string): void
+  reset(options?: { consume?: boolean }): void
+}
+
+function __createParser(callbacks: {
+  onEvent?: (event: __EventSourceMessage) => void
+  onRetry?: (retry: number) => void
+  onComment?: (comment: string) => void
+  onError?: (error: Error) => void
+}): __EventSourceParser {
+  const { onEvent = () => { }, onError = () => { }, onRetry = () => { }, onComment } = callbacks
+  let incompleteLine = ''
+  let isFirstChunk = true
+  let id: string | undefined
+  let data = ''
+  let eventType = ''
+
+  function feed(newChunk: string) {
+    const chunk = isFirstChunk ? newChunk.replace(/^\xEF\xBB\xBF/, '') : newChunk
+    const [complete, incomplete] = __splitLines(`${incompleteLine}${chunk}`)
+    for (const line of complete) {
+      parseLine(line)
+    }
+    incompleteLine = incomplete
+    isFirstChunk = false
+  }
+
+  function parseLine(line: string) {
+    if (line === '') {
+      dispatchEvent()
+      return
+    }
+    if (line.startsWith(':')) {
+      if (onComment) onComment(line.slice(line.startsWith(': ') ? 2 : 1))
+      return
+    }
+    const fieldSeparatorIndex = line.indexOf(':')
+    if (fieldSeparatorIndex !== -1) {
+      const field = line.slice(0, fieldSeparatorIndex)
+      const offset = line[fieldSeparatorIndex + 1] === ' ' ? 2 : 1
+      const value = line.slice(fieldSeparatorIndex + offset)
+      processField(field, value)
+      return
+    }
+    processField(line, '')
+  }
+
+  function processField(field: string, value: string) {
+    switch (field) {
+      case 'event': eventType = value; break
+      case 'data': data = `${data}${value}\n`; break
+      case 'id': id = value.includes('\0') ? undefined : value; break
+      case 'retry':
+        if (/^\d+$/.test(value)) onRetry(parseInt(value, 10))
+        break
+    }
+  }
+
+  function dispatchEvent() {
+    if (data.length > 0) {
+      onEvent({
+        id,
+        event: eventType || undefined,
+        data: data.endsWith('\n') ? data.slice(0, -1) : data,
+      })
+    }
+    id = undefined
+    data = ''
+    eventType = ''
+  }
+
+  function reset(options: { consume?: boolean } = {}) {
+    if (incompleteLine && options.consume) parseLine(incompleteLine)
+    isFirstChunk = true
+    id = undefined
+    data = ''
+    eventType = ''
+    incompleteLine = ''
+  }
+
+  return { feed, reset }
+}
+
+function __splitLines(chunk: string): [Array<string>, string] {
+  const lines: Array<string> = []
+  let incompleteLine = ''
+  let searchIndex = 0
+  while (searchIndex < chunk.length) {
+    const crIndex = chunk.indexOf('\r', searchIndex)
+    const lfIndex = chunk.indexOf('\n', searchIndex)
+    let lineEnd = -1
+    if (crIndex !== -1 && lfIndex !== -1) {
+      lineEnd = Math.min(crIndex, lfIndex)
+    } else if (crIndex !== -1) {
+      if (crIndex === chunk.length - 1) lineEnd = -1
+      else lineEnd = crIndex
+    } else if (lfIndex !== -1) {
+      lineEnd = lfIndex
+    }
+    if (lineEnd === -1) {
+      incompleteLine = chunk.slice(searchIndex)
+      break
+    } else {
+      lines.push(chunk.slice(searchIndex, lineEnd))
+      searchIndex = lineEnd + 1
+      if (chunk[searchIndex - 1] === '\r' && chunk[searchIndex] === '\n') searchIndex++
+    }
+  }
+  return [lines, incompleteLine]
+}
+
+class __EventSourceParserStream extends TransformStream<string, __EventSourceMessage> {
+  constructor() {
+    let parser!: __EventSourceParser
+    super({
+      start(controller) {
+        parser = __createParser({
+          onEvent: (event) => { controller.enqueue(event) },
+        })
+      },
+      transform(chunk) { parser.feed(chunk) },
+    })
   }
 }
