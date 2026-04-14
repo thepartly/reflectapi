@@ -261,51 +261,6 @@ export async function __stream_request<I, H, O, E>(
   }
 }
 
-export async function __stream_request_fallible<I, H, O, IE, E>(
-  client: Client,
-  path: string,
-  input: I | undefined,
-  headers: H | undefined,
-  options?: RequestOptions,
-): Promise<Result<AsyncIterable<Result<O, IE>>, Err<E>>> {
-  let hdrs: Record<string, string> = {
-    "content-type": "application/json",
-    "accept": "text/event-stream",
-  };
-  if (headers) {
-    for (const [k, v] of Object.entries(headers)) {
-      hdrs[k?.toString()] = v?.toString() || "";
-    }
-  }
-  try {
-    const response = await client.request(path, JSON.stringify(input), hdrs, options);
-    if (response.status >= 200 && response.status < 300) {
-      const stream = __sse_to_async_iterable_fallible<O, IE>(response, options);
-      return new Result<AsyncIterable<Result<O, IE>>, Err<E>>({ ok: stream });
-    } else if (response.status >= 500) {
-      const body = await response.text();
-      return new Result<AsyncIterable<Result<O, IE>>, Err<E>>({
-        err: new Err({ other_err: `[${response.status}] ${body}` }),
-      });
-    } else {
-      const body = await response.text();
-      try {
-        return new Result<AsyncIterable<Result<O, IE>>, Err<E>>({
-          err: new Err({ application_err: JSON.parse(body) as E }),
-        });
-      } catch (e) {
-        return new Result<AsyncIterable<Result<O, IE>>, Err<E>>({
-          err: new Err({ other_err: `[${response.status}] ${body}` }),
-        });
-      }
-    }
-  } catch (e) {
-    return new Result<AsyncIterable<Result<O, IE>>, Err<E>>({
-      err: new Err({ other_err: e }),
-    });
-  }
-}
-
 async function* __sse_to_async_iterable<O>(
   response: Response,
   options?: RequestOptions,
@@ -319,30 +274,6 @@ async function* __sse_to_async_iterable<O>(
       const { done, value } = await reader.read();
       if (done) break;
       yield JSON.parse(value.data) as O;
-    }
-  } finally {
-    reader.cancel().catch(() => {});
-  }
-}
-
-async function* __sse_to_async_iterable_fallible<O, IE>(
-  response: Response,
-  options?: RequestOptions,
-): AsyncIterable<Result<O, IE>> {
-  const body = response.body;
-  if (!body) return;
-  const reader = body.pipeThrough(new TextDecoderStream()).pipeThrough(new __EventSourceParserStream()).getReader();
-  try {
-    while (true) {
-      if (options?.signal?.aborted) break;
-      const { done, value } = await reader.read();
-      if (done) break;
-      const parsed = JSON.parse(value.data);
-      if ("__reflectapi_reserved_stream_error" in parsed) {
-        yield new Result<O, IE>({ err: parsed.__reflectapi_reserved_stream_error as IE });
-      } else {
-        yield new Result<O, IE>({ ok: parsed as O });
-      }
     }
   } finally {
     reader.cancel().catch(() => {});

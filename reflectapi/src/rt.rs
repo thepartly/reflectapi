@@ -91,9 +91,6 @@ pub type BoxStream<T> = Pin<Box<dyn Stream<Item = T> + Send + 'static>>;
 
 pub type StreamResponse<T, AE, NE> = Result<BoxStream<Result<T, Error<AE, NE>>>, Error<AE, NE>>;
 
-pub type FallibleStreamResponse<T, IE, AE, NE> =
-    Result<BoxStream<Result<Result<T, IE>, Error<AE, NE>>>, Error<AE, NE>>;
-
 pub enum ProtocolErrorStage {
     SerializeRequestBody,
     SerializeRequestHeaders,
@@ -359,83 +356,6 @@ where
                 info: e.to_string(),
                 stage: ProtocolErrorStage::DeserializeStreamItem(data),
             }),
-            Err(e) => Err(Error::Protocol {
-                info: e,
-                stage: ProtocolErrorStage::DeserializeStreamItem(String::new()),
-            }),
-        });
-        return Ok(Box::pin(mapped));
-    }
-
-    let body = __collect_byte_stream(byte_stream)
-        .await
-        .map_err(Error::Network)?;
-    match serde_json::from_slice::<E>(&body) {
-        Ok(error) if !status.is_server_error() => Err(Error::Application(error)),
-        Err(e) if status.is_client_error() => Err(Error::Protocol {
-            info: e.to_string(),
-            stage: ProtocolErrorStage::DeserializeResponseError(status, body),
-        }),
-        _ => Err(Error::Server(status, body)),
-    }
-}
-
-#[doc(hidden)]
-pub async fn __stream_request_fallible_impl<C, I, H, O, IE, E>(
-    client: &C,
-    url: Url,
-    body: I,
-    headers: H,
-) -> Result<BoxStream<Result<Result<O, IE>, Error<E, C::Error>>>, Error<E, C::Error>>
-where
-    C: Client,
-    C::Error: Send + 'static,
-    I: serde::Serialize,
-    H: serde::Serialize,
-    O: serde::de::DeserializeOwned + Send + 'static,
-    IE: serde::de::DeserializeOwned + Send + 'static,
-    E: serde::de::DeserializeOwned + Send + 'static,
-{
-    let body = serde_json::to_vec(&body).map_err(|e| Error::Protocol {
-        info: e.to_string(),
-        stage: ProtocolErrorStage::SerializeRequestBody,
-    })?;
-    let body = bytes::Bytes::from(body);
-    let header_map = __serialize_headers_for_stream(headers)
-        .map_err(|(info, stage)| Error::Protocol { info, stage })?;
-
-    let (status, byte_stream) = client
-        .stream_request(url, body, header_map)
-        .await
-        .map_err(Error::Network)?;
-
-    if status.is_success() {
-        let sse_stream = __parse_sse_stream(byte_stream);
-        let mapped = futures_util::StreamExt::map(sse_stream, |item| match item {
-            Ok(data) => {
-                let value = serde_json::from_str::<serde_json::Value>(&data).map_err(|e| {
-                    Error::Protocol {
-                        info: e.to_string(),
-                        stage: ProtocolErrorStage::DeserializeStreamItem(data.clone()),
-                    }
-                })?;
-                if let Some(err_value) = value.get("__reflectapi_reserved_stream_error") {
-                    let item_error =
-                        serde_json::from_value::<IE>(err_value.clone()).map_err(|e| {
-                            Error::Protocol {
-                                info: e.to_string(),
-                                stage: ProtocolErrorStage::DeserializeStreamItem(data),
-                            }
-                        })?;
-                    Ok(Err(item_error))
-                } else {
-                    let item = serde_json::from_value::<O>(value).map_err(|e| Error::Protocol {
-                        info: e.to_string(),
-                        stage: ProtocolErrorStage::DeserializeStreamItem(data),
-                    })?;
-                    Ok(Ok(item))
-                }
-            }
             Err(e) => Err(Error::Protocol {
                 info: e,
                 stage: ProtocolErrorStage::DeserializeStreamItem(String::new()),
