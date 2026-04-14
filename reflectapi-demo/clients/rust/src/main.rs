@@ -38,7 +38,7 @@ async fn main() {
         .await
         .expect("start stream");
 
-    let received = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+    let received = std::sync::Arc::new(tokio::sync::Mutex::new(Vec::<String>::new()));
     let received_clone = received.clone();
 
     let stream_handle = tokio::spawn(async move {
@@ -46,7 +46,7 @@ async fn main() {
             match item {
                 Ok(p) => {
                     println!("received event: {} {:?}", p.name, p.kind);
-                    received_clone.lock().unwrap().push(p.name);
+                    received_clone.lock().await.push(p.name);
                 }
                 Err(e) => {
                     eprintln!("stream error: {e:?}");
@@ -88,7 +88,7 @@ async fn main() {
     stream_handle.abort();
     let _ = stream_handle.await;
 
-    let received = received.lock().unwrap();
+    let received = received.lock().await;
     let expected = vec!["Whiskers", "Tweety", "Whiskers"];
     if *received == expected {
         println!("stream test passed");
