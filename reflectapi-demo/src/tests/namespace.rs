@@ -65,3 +65,80 @@ fn test_generic_and_type_conflict() {
         .route(get, |b| b.name("get"))
         .rename_types("reflectapi_demo::tests::namespace::T", "T"))
 }
+
+#[test]
+fn test_python_destutter_collision_falls_back_to_original_name() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct First {
+        first: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Second {
+        second: u8,
+    }
+
+    async fn first_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> First {
+        First {
+            first: String::new(),
+        }
+    }
+
+    async fn second_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> Second {
+        Second { second: 0 }
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(first_get, |b| b.name("first.get"))
+        .route(second_get, |b| b.name("second.get"))
+        .rename_types(
+            "reflectapi_demo::tests::namespace::First",
+            "OfferRequestPartIdentity",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::Second",
+            "offer_request::OfferRequestPartIdentity",
+        )
+        .build()
+        .unwrap();
+
+    let python = reflectapi::codegen::python::generate(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        python
+            .matches("class OfferRequestPartIdentity(BaseModel):")
+            .count(),
+        1
+    );
+    assert!(python.contains("class OfferRequestOfferRequestPartIdentity(BaseModel):"));
+    assert!(python.contains("OfferRequestPartIdentity = OfferRequestOfferRequestPartIdentity"));
+}
+
+#[test]
+fn test_python_init_exports_client() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct TestType {
+        value: u8,
+    }
+
+    let files = reflectapi::codegen::python::generate_files(
+        super::into_schema::<TestType>(),
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+    let init_py = files.get("__init__.py").unwrap();
+
+    assert!(init_py.contains("from .generated import AsyncClient, Client"));
+    assert!(init_py.contains("__all__ = [\"AsyncClient\", \"Client\"]"));
+    assert!(!init_py.contains("SyncClient"));
+}

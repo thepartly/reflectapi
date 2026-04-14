@@ -26,15 +26,11 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant(str, Enum):
-    """Generated enum."""
-
     A = "A"
     I = "I"
 
 
 class ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant(str, Enum):
-    """Generated enum."""
-
     A = "A"
     O = "O"
 
@@ -161,9 +157,11 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.basic.input.TestEnumWithSkipVariant.model_rebuild()
-    reflectapi_demo.tests.basic.output.TestEnumWithSkipVariant.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
-    pass
+for _model in [
+    ReflectapiDemoTestsBasicInputTestEnumWithSkipVariant,
+    ReflectapiDemoTestsBasicOutputTestEnumWithSkipVariant,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

@@ -250,7 +250,9 @@ class ClientInstance {
 }
 
 type UnionToIntersection<U> = (
-  U extends any ? (k: U) => unknown : never
+  U extends any
+    ? (k: U) => unknown
+    : never
 ) extends (k: infer I) => void
   ? I
   : never;

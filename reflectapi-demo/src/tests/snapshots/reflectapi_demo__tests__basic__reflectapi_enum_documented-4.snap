@@ -21,7 +21,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    PrivateAttr,
     RootModel,
     model_serializer,
     model_validator,
@@ -31,6 +30,35 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+
+
+# Helper functions for externally tagged enum serialization/deserialization
+def _parse_externally_tagged(data, variants: dict, types: tuple, enum_name: str):
+    """Parse an externally tagged enum from {key: value} format."""
+    if types and isinstance(data, types):
+        return data
+    if isinstance(data, str) and data in variants:
+        handler = variants[data]
+        if handler == "_unit":
+            return data
+    if isinstance(data, dict):
+        if len(data) != 1:
+            raise ValueError("Externally tagged enum must have exactly one key")
+        key, value = next(iter(data.items()))
+        if key in variants:
+            handler = variants[key]
+            if handler == "_unit":
+                return key
+            return handler(value)
+    raise ValueError(f"Unknown variant for {enum_name}: {data}")
+
+
+def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
+    """Serialize an externally tagged enum to {key: value} format."""
+    for variant_name, (check, serialize) in serializers.items():
+        if check(root):
+            return serialize(root)
+    raise ValueError(f"Cannot serialize {enum_name} variant: {type(root)}")
 
 
 # Type variables for generic types
@@ -74,46 +102,43 @@ class ReflectapiDemoTestsBasicTestEnumDocumented(
 
     @model_validator(mode="before")
     @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-        if isinstance(data, ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant):
-            return data
-        if isinstance(data, ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant):
-            return data
-
-        # Handle JSON data (for deserialization)
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-            if key == "Variant1":
-                return ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant(
-                    field_0=value
-                )
-            if key == "Variant2":
-                return ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant(
-                    **value
-                )
-
-        raise ValueError(
-            f"Unknown variant for ReflectapiDemoTestsBasicTestEnumDocumented: {data}"
+    def _validate(cls, data):
+        return _parse_externally_tagged(
+            data,
+            {
+                "Variant1": lambda v: (
+                    ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant(field_0=v)
+                ),
+                "Variant2": lambda v: (
+                    ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant(**v)
+                ),
+            },
+            (
+                ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant,
+                ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant,
+            ),
+            "ReflectapiDemoTestsBasicTestEnumDocumented",
         )
 
     @model_serializer
-    def _serialize_externally_tagged(self):
-        if isinstance(
-            self.root, ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant
-        ):
-            return {"Variant1": self.root.field_0}
-        if isinstance(
-            self.root, ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant
-        ):
-            return {"Variant2": self.root.model_dump()}
-
-        raise ValueError(
-            f"Cannot serialize ReflectapiDemoTestsBasicTestEnumDocumented variant: {type(self.root)}"
+    def _serialize(self):
+        return _serialize_externally_tagged(
+            self.root,
+            {
+                "Variant1": (
+                    lambda r: isinstance(
+                        r, ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant
+                    ),
+                    lambda r: {"Variant1": r.field_0},
+                ),
+                "Variant2": (
+                    lambda r: isinstance(
+                        r, ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant
+                    ),
+                    lambda r: {"Variant2": r.model_dump(by_alias=True)},
+                ),
+            },
+            "ReflectapiDemoTestsBasicTestEnumDocumented",
         )
 
 
@@ -229,8 +254,10 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.basic.TestEnumDocumented.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
-    pass
+for _model in [
+    ReflectapiDemoTestsBasicTestEnumDocumented,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

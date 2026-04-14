@@ -34,30 +34,22 @@ Payload = TypeVar("Payload")
 
 
 class ReflectapiDemoTestsSerdeA(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     a: int
 
 
 class ReflectapiDemoTestsSerdeB(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     b: int
 
 
 class ReflectapiDemoTestsSerdeS(BaseModel, Generic[Payload, Additional]):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
 class ReflectapiDemoTestsSerdeTestS(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     type: Literal["S"] = Field(default="S", description="Discriminator field")
@@ -179,11 +171,13 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.serde.A.model_rebuild()
-    reflectapi_demo.tests.serde.B.model_rebuild()
-    reflectapi_demo.tests.serde.S.model_rebuild()
-    reflectapi_demo.tests.serde.Test.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
-    pass
+for _model in [
+    ReflectapiDemoTestsSerdeA,
+    ReflectapiDemoTestsSerdeB,
+    ReflectapiDemoTestsSerdeS,
+    ReflectapiDemoTestsSerdeTest,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

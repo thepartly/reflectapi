@@ -7,6 +7,7 @@
 /// - Semantically consistent (no conflicting definitions)
 /// - Deterministically ordered (BTreeMap/BTreeSet for stable output)
 use crate::SymbolId;
+use reflectapi_schema::{LanguageSpecificTypeCodegenConfig, Representation, SerializationMode};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Semantic schema with fully resolved types and deterministic ordering
@@ -41,7 +42,7 @@ pub struct SemanticFunction {
     pub output_type: Option<SymbolId>,
     pub error_type: Option<SymbolId>,
 
-    pub serialization: Vec<crate::SerializationMode>,
+    pub serialization: Vec<SerializationMode>,
     pub readonly: bool,
     pub tags: BTreeSet<String>,
 }
@@ -66,6 +67,9 @@ pub struct SemanticPrimitive {
 
     /// Resolved fallback type reference
     pub fallback: Option<SymbolId>,
+
+    /// Language-specific configuration
+    pub codegen_config: LanguageSpecificTypeCodegenConfig,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -88,7 +92,7 @@ pub struct SemanticStruct {
     pub is_unit: bool,
 
     /// Language-specific configuration
-    pub codegen_config: crate::LanguageSpecificTypeCodegenConfig,
+    pub codegen_config: LanguageSpecificTypeCodegenConfig,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,10 +110,10 @@ pub struct SemanticEnum {
     pub variants: BTreeMap<SymbolId, SemanticVariant>,
 
     /// Serde representation strategy
-    pub representation: crate::Representation,
+    pub representation: Representation,
 
     /// Language-specific configuration
-    pub codegen_config: crate::LanguageSpecificTypeCodegenConfig,
+    pub codegen_config: LanguageSpecificTypeCodegenConfig,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -398,7 +402,7 @@ impl ResolvedTypeReference {
         symbol_table
             .get(&self.target)
             .map(|info| matches!(info.kind, crate::SymbolKind::Primitive))
-            .unwrap_or(false)
+            .unwrap_or(matches!(self.target.kind, crate::SymbolKind::Primitive))
     }
 
     /// Check if this is a generic type (has arguments)
