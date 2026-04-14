@@ -13,4 +13,4 @@ tokio = { version = "1.38.0", features = ["full"] }
 reqwest = { version = "0.12.2", features = ["stream"] }
 futures-util = "0.3"
 
-reflectapi = { workspace = true, features = ["rt"] }
+reflectapi = { workspace = true, features = ["rt", "rt-sse"] }

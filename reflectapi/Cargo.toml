@@ -55,6 +55,7 @@ check_keyword = { version = "0.2.0", optional = true }
 # optional 3rd party dependencies for client runtime
 reqwest = { version = "0.12", optional = true, features = ["stream"] }
 reqwest-middleware = { version = "0.4", optional = true }
+sseer = { version = "0.1", optional = true, features = ["json"] }
 
 # optional dependency for documentation features
 document-features = { version = "0.2", optional = true }
@@ -84,3 +85,4 @@ json = ["dep:serde_json"]
 indexmap = ["dep:indexmap"]
 reqwest = ["dep:reqwest"]
 reqwest-middleware = ["dep:reqwest-middleware"]
+rt-sse = ["dep:sseer", "rt"]

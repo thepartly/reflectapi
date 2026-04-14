@@ -103,7 +103,7 @@ async fn main() {
     let remove = |name: &'static str| {
         let client = &client;
         async move {
-            client
+            let _ = client
                 .pets
                 .remove(
                     reflectapi_demo_client_generated::types::myapi::proto::PetsRemoveRequest {
@@ -112,9 +112,10 @@ async fn main() {
                     headers(),
                 )
                 .await
-                .expect(&format!("remove {name}"));
+                .inspect_err(|err| eprintln!("failed to remove {name}: {err:?}"));
         }
     };
+
     remove("Tweety").await;
     remove("BadPet").await;
     remove("GoodPet").await;

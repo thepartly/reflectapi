@@ -1,6 +1,6 @@
 use std::{future::Future, pin::Pin};
 
-use futures_util::{Stream, StreamExt};
+use futures_util::Stream;
 pub use url::{ParseError as UrlParseError, Url};
 
 pub fn error_to_string<T: serde::Serialize>(error: &T) -> String {
@@ -96,7 +96,6 @@ pub enum ProtocolErrorStage {
     SerializeRequestHeaders,
     DeserializeResponseBody(bytes::Bytes),
     DeserializeResponseError(http::StatusCode, bytes::Bytes),
-    DeserializeStreamItem(String),
 }
 
 impl core::fmt::Display for ProtocolErrorStage {
@@ -119,9 +118,6 @@ impl core::fmt::Display for ProtocolErrorStage {
                 status,
                 String::from_utf8_lossy(body)
             ),
-            ProtocolErrorStage::DeserializeStreamItem(data) => {
-                write!(f, "failed to deserialize stream item: {data}")
-            }
         }
     }
 }
@@ -141,9 +137,6 @@ impl core::fmt::Debug for ProtocolErrorStage {
                 "DeserializeResponseError({status}, {:?})",
                 String::from_utf8_lossy(body)
             ),
-            ProtocolErrorStage::DeserializeStreamItem(data) => {
-                write!(f, "DeserializeStreamItem({data:?})")
-            }
         }
     }
 }
@@ -223,65 +216,6 @@ where
     }
 }
 
-#[doc(hidden)]
-pub fn __parse_sse_stream(
-    body: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, impl Send + 'static>> + Send>>,
-) -> BoxStream<Result<String, String>> {
-    let buffer = String::new();
-    let data = String::new();
-
-    Box::pin(futures_util::stream::unfold(
-        (body, buffer, data),
-        |(mut body, mut buffer, mut data)| async move {
-            loop {
-                if let Some(line_end) = buffer.find('\n') {
-                    let line = buffer[..line_end].trim_end_matches('\r').to_string();
-                    buffer = buffer[line_end + 1..].to_string();
-
-                    if line.is_empty() {
-                        if !data.is_empty() {
-                            if data.ends_with('\n') {
-                                data.pop();
-                            }
-                            let event_data = std::mem::take(&mut data);
-                            return Some((Ok(event_data), (body, buffer, data)));
-                        }
-                        continue;
-                    }
-
-                    if let Some(value) = line.strip_prefix("data:") {
-                        let value = value.strip_prefix(' ').unwrap_or(value);
-                        if !data.is_empty() {
-                            data.push('\n');
-                        }
-                        data.push_str(value);
-                    }
-                    continue;
-                }
-
-                match body.next().await {
-                    Some(Ok(chunk)) => {
-                        buffer.push_str(&String::from_utf8_lossy(&chunk));
-                    }
-                    Some(Err(_)) => {
-                        return Some((Err("stream error".to_string()), (body, buffer, data)));
-                    }
-                    None => {
-                        if !data.is_empty() {
-                            if data.ends_with('\n') {
-                                data.pop();
-                            }
-                            let event_data = std::mem::take(&mut data);
-                            return Some((Ok(event_data), (body, buffer, data)));
-                        }
-                        return None;
-                    }
-                }
-            }
-        },
-    ))
-}
-
 fn __serialize_headers_for_stream<H: serde::Serialize>(
     headers: H,
 ) -> Result<http::HeaderMap, (String, ProtocolErrorStage)> {
@@ -350,18 +284,40 @@ where
         .map_err(Error::Network)?;
 
     if status.is_success() {
-        let sse_stream = __parse_sse_stream(byte_stream);
-        let mapped = futures_util::StreamExt::map(sse_stream, |item| match item {
-            Ok(data) => serde_json::from_str::<O>(&data).map_err(|e| Error::Protocol {
-                info: e.to_string(),
-                stage: ProtocolErrorStage::DeserializeStreamItem(data),
-            }),
-            Err(e) => Err(Error::Protocol {
-                info: e,
-                stage: ProtocolErrorStage::DeserializeStreamItem(String::new()),
-            }),
-        });
-        return Ok(Box::pin(mapped));
+        #[cfg(feature = "rt-sse")]
+        {
+            use futures_util::StreamExt;
+            use sseer::event_stream::EventStream;
+            use sseer::json_stream::JsonStream;
+            use sseer::{errors::EventStreamError, json_stream::JsonStreamError};
+
+            let event_stream = EventStream::new(byte_stream);
+            let json_stream = JsonStream::<O, _>::new_default(event_stream);
+            let stream = json_stream.map(|item| {
+                item.map_err(|err| match err {
+                    JsonStreamError::Stream(err) => match err {
+                        EventStreamError::Transport(err) => Error::Network(err),
+                        EventStreamError::Utf8Error(err) => Error::Protocol {
+                            info: err.to_string(),
+                            stage: ProtocolErrorStage::DeserializeResponseBody(bytes::Bytes::new()),
+                        },
+                    },
+                    JsonStreamError::Deserialize(err) => Error::Protocol {
+                        info: err.to_string(),
+                        stage: ProtocolErrorStage::DeserializeResponseBody(bytes::Bytes::new()),
+                    },
+                })
+            });
+            return Ok(Box::pin(stream));
+        }
+
+        #[cfg(not(feature = "rt-sse"))]
+        {
+            return Err(Error::Protocol {
+                info: "SSE streaming requires the 'rt-sse' feature flag".to_string(),
+                stage: ProtocolErrorStage::DeserializeResponseBody(bytes::Bytes::new()),
+            });
+        }
     }
 
     let body = __collect_byte_stream(byte_stream)
