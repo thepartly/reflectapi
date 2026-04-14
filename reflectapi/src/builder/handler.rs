@@ -137,8 +137,7 @@ where
         O: Output + serde::ser::Serialize + Send + 'static,
         E: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
-        let (function_def, mut input_headers) =
-            Self::mk_function::<I, H, O, E>(&rb, schema, false);
+        let (function_def, mut input_headers) = Self::mk_function::<I, H, O, E>(&rb, schema, false);
         schema.functions.push(function_def);
 
         // inject system header requirements used by the handler wrapper
@@ -170,8 +169,7 @@ where
         E1: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
         S: Send + 'static,
     {
-        let (function_def, mut input_headers) =
-            Self::mk_function::<I, H, O, E1>(&rb, schema, true);
+        let (function_def, mut input_headers) = Self::mk_function::<I, H, O, E1>(&rb, schema, true);
         schema.functions.push(function_def);
 
         // inject system header requirements used by the handler wrapper
@@ -442,10 +440,10 @@ where
         F: Fn(S, I, H) -> Result<St, E1>,
         St: Stream<Item = O> + Send + 'static,
     {
-        // TODO how do headers work with sse
         let (input, input_headers, content_type, mut response_headers) =
             Self::parse_input::<I, H>(input)?;
 
+        // Verify request body is JSON
         if content_type != ContentType::Json {
             response_headers.insert(
                 http::header::CONTENT_TYPE,
@@ -454,11 +452,17 @@ where
             return Err(HandlerOutput {
                 code: http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
                 body: bytes::Bytes::from(
-                    "Streaming is only supported with application/json content-type",
+                    "Streaming requests only support application/json content-type for input",
                 ),
                 headers: response_headers,
             });
         }
+
+        // Set response content type to text/event-stream for SSE
+        response_headers.insert(
+            http::header::CONTENT_TYPE,
+            http::HeaderValue::from_static("text/event-stream"),
+        );
 
         let st = handler(state, input, input_headers).map_err(|err| HandlerOutput {
             code: err.status_code(),
@@ -485,4 +489,3 @@ impl<T, E> From<Result<T, E>> for UntaggedResult<T, E> {
         }
     }
 }
-
