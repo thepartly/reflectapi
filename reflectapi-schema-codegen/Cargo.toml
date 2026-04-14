@@ -1,0 +1,21 @@
+[package]
+name = "reflectapi-schema-codegen"
+version = "0.16.10"
+edition = "2021"
+
+license = "Apache-2.0"
+description = "Compiler-owned schema normalization and semantic IR for ReflectAPI"
+homepage = "https://github.com/thepartly/reflectapi"
+documentation = "https://docs.rs/reflectapi-schema-codegen"
+repository = "https://github.com/thepartly/reflectapi"
+readme = "README.md"
+
+keywords = ["reflectapi", "schema", "codegen", "compiler", "normalization"]
+categories = ["web-programming", "development-tools", "api-bindings"]
+
+[lints]
+workspace = true
+
+[dependencies]
+reflectapi-schema = { path = "../reflectapi-schema", version = "0.16.10" }
+serde = { version = "1.0.197", features = ["derive"] }

@@ -10,7 +10,8 @@ ReflectAPI has three layers:
 
 The workspace is split accordingly:
 
-- `reflectapi-schema`: schema types, symbol IDs, normalization pipeline, semantic IR
+- `reflectapi-schema`: raw schema types and raw-schema transforms
+- `reflectapi-schema-codegen`: compiler-owned IDs, normalization pipeline, semantic IR
 - `reflectapi-derive`: `#[derive(Input, Output)]` macros
 - `reflectapi`: reflection traits, builder, runtime integrations, codegen backends
 - `reflectapi-cli`: CLI wrapper around codegen
@@ -31,16 +32,16 @@ Input and output types stay separate at schema-construction time so the same Rus
 
 ## Schema and IDs
 
-`SymbolId` and `SymbolKind` live in `reflectapi-schema/src/symbol.rs`. They are internal compiler identifiers, not part of the stable JSON contract.
+`SymbolId` and `SymbolKind` live in `reflectapi-schema-codegen/src/symbol.rs`. They are compiler identifiers, not part of the stable JSON contract.
 
 Key points:
 
-- `Schema.id`, `Function.id`, and member/type IDs are marked `skip_serializing`
-- `ensure_symbol_ids()` in `reflectapi-schema/src/ids.rs` assigns IDs after deserialization
+- raw `Schema`, `Function`, and type/member definitions do not store symbol IDs
+- `build_schema_ids()` in `reflectapi-schema-codegen/src/ids.rs` assigns IDs in a compiler-owned side table
 - the schema root now uses `SymbolKind::Schema`
 - the schema root path includes the `__schema__` sentinel to avoid colliding with a user-defined type of the same name
 
-That means `reflectapi.json` stays wire-focused, while normalization and semantic analysis still get stable identities.
+That keeps `reflectapi.json` wire-focused while normalization and semantic analysis still get stable identities.
 
 ## Type Metadata
 
@@ -55,11 +56,11 @@ Every reflected type is one of:
 Language-specific metadata is carried by `LanguageSpecificTypeCodegenConfig` in `reflectapi-schema/src/codegen.rs`:
 
 - Rust metadata is serialized when present, for example extra derives on generated Rust types.
-- Python metadata is attached in memory during schema construction and consumed by the Python backend. It is intentionally not serialized today, so CLI codegen from `reflectapi.json` still uses shared default mappings as a compatibility fallback.
+- Python type mappings are backend-local in `reflectapi/src/codegen/python.rs`, not schema annotations.
 
 ## Normalization
 
-Normalization lives in `reflectapi-schema/src/normalize.rs`.
+Normalization lives in `reflectapi-schema-codegen/src/normalize.rs`.
 
 There are two parts:
 
@@ -81,7 +82,7 @@ After the pipeline runs, `Normalizer` performs:
 4. semantic validation
 5. semantic IR construction
 
-`SemanticSchema` provides resolved, deterministic views of functions and types and is defined in `reflectapi-schema/src/semantic.rs`.
+`SemanticSchema` provides resolved, deterministic views of functions and types and is defined in `reflectapi-schema-codegen/src/semantic.rs`.
 
 ## Backend Behavior
 
@@ -104,7 +105,7 @@ The Python backend in `reflectapi/src/codegen/python.rs` uses both representatio
 3. `Normalizer::normalize_with_pipeline(...)` builds `SemanticSchema` using a pipeline that skips consolidation and naming
 4. rendering uses semantic ordering and symbol information, while still consulting raw schema details where the backend needs original field/type shapes
 
-Python-specific type support is driven first by per-type metadata attached during reflection. When that metadata is absent, the backend falls back to shared default mappings by canonical Rust type name so serialized schemas still work.
+Python-specific type support is driven by backend-local mappings keyed by canonical Rust type name. Those mappings are static codegen knowledge, not part of the shared schema contract.
 
 ### OpenAPI
 

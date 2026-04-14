@@ -22,6 +22,7 @@ workspace = true
 # workspace dependencies
 reflectapi-derive = { path = "../reflectapi-derive", version = "0.16.10" }
 reflectapi-schema = { path = "../reflectapi-schema", version = "0.16.10" }
+reflectapi-schema-codegen = { path = "../reflectapi-schema-codegen", version = "0.16.10", optional = true }
 
 # mandatory 3rd party dependencies
 serde = { version = "1.0.197", features = ["derive"] }
@@ -76,7 +77,13 @@ rust_decimal = ["dep:rust_decimal"]
 # based on different web server frameworks
 axum = ["dep:axum", "builder"]
 # feature flag for enabling codegen libraries
-codegen = ["dep:anyhow", "dep:indexmap", "dep:check_keyword", "dep:serde_json"]
+codegen = [
+    "dep:anyhow",
+    "dep:indexmap",
+    "dep:check_keyword",
+    "dep:serde_json",
+    "dep:reflectapi-schema-codegen",
+]
 rt = ["dep:http", "dep:serde_json", "dep:bytes", "dep:url"]
 glob = ["reflectapi-schema/glob"]
 json = ["dep:serde_json"]

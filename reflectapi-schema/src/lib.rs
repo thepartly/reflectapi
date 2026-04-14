@@ -1,23 +1,11 @@
 mod codegen;
-mod ids;
 mod internal;
-mod normalize;
 mod rename;
-mod semantic;
 mod subst;
-mod symbol;
 mod visit;
 
 pub use self::codegen::*;
-pub use self::ids::{build_schema_ids, SchemaIds};
-pub use self::normalize::{
-    CircularDependencyResolutionStage, Consolidation, Naming, NamingResolutionStage,
-    NormalizationError, NormalizationPipeline, NormalizationStage, Normalizer, PipelineBuilder,
-    ResolutionStrategy, TypeConsolidationStage,
-};
-pub use self::semantic::*;
 pub use self::subst::{mk_subst, Instantiate, Substitute};
-pub use self::symbol::{SymbolId, SymbolKind, STDLIB_TYPES, STDLIB_TYPE_PREFIXES};
 pub use self::visit::{VisitMut, Visitor};
 
 #[cfg(feature = "glob")]

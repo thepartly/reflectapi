@@ -3,6 +3,7 @@ use std::sync::LazyLock;
 
 use crate::{Schema, TypeReference};
 use reflectapi_schema::{Function, Type};
+use reflectapi_schema_codegen as schema_codegen;
 
 /// Sanitize text for inclusion in a Python triple-quoted docstring.
 /// Escapes backslashes (which act as line continuation) and triple-quote
@@ -1272,12 +1273,12 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // TypeConsolidation (already done above) and NamingResolution (which
     // would rename types and create a name-domain mismatch with the raw
     // Schema). Only CircularDependencyResolution runs.
-    let semantic = reflectapi_schema::Normalizer::new()
+    let semantic = schema_codegen::Normalizer::new()
         .normalize_with_pipeline(
             &schema,
-            reflectapi_schema::PipelineBuilder::new()
-                .consolidation(reflectapi_schema::Consolidation::Skip)
-                .naming(reflectapi_schema::Naming::Skip)
+            schema_codegen::PipelineBuilder::new()
+                .consolidation(schema_codegen::Consolidation::Skip)
+                .naming(schema_codegen::Naming::Skip)
                 .build(),
         )
         .map_err(|errors| {
@@ -1302,7 +1303,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // matching on SemanticType which provides the fully resolved view.
     let has_enums = semantic
         .types()
-        .any(|t| matches!(t, reflectapi_schema::SemanticType::Enum(_)));
+        .any(|t| matches!(t, schema_codegen::SemanticType::Enum(_)));
 
     let (has_literal, has_discriminated_unions, has_externally_tagged_enums) = {
         let mut has_literal = false;
@@ -1310,7 +1311,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         let mut has_externally_tagged_enums = false;
 
         for sem_type in semantic.types() {
-            if let reflectapi_schema::SemanticType::Enum(sem_enum) = sem_type {
+            if let schema_codegen::SemanticType::Enum(sem_enum) = sem_type {
                 match &sem_enum.representation {
                     reflectapi_schema::Representation::Internal { .. }
                     | reflectapi_schema::Representation::Adjacent { .. } => {
@@ -1323,7 +1324,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
                         let has_complex_variants = sem_enum
                             .variants
                             .values()
-                            .any(|v| !matches!(v.field_style, reflectapi_schema::FieldStyle::Unit));
+                            .any(|v| !matches!(v.field_style, schema_codegen::FieldStyle::Unit));
                         if has_complex_variants {
                             has_externally_tagged_enums = true;
                         }

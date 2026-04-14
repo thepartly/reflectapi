@@ -22,39 +22,40 @@ pub enum SymbolKind {
     Primitive,
 }
 
-/// Well-known stdlib and common crate types used in ReflectAPI schemas.
-/// Each entry is (fully-qualified name, SymbolKind).
-pub const STDLIB_TYPES: &[(&str, SymbolKind)] = &[
-    ("std::option::Option", SymbolKind::Enum),
-    ("std::vec::Vec", SymbolKind::Primitive),
-    ("std::collections::HashMap", SymbolKind::Primitive),
-    ("std::collections::BTreeMap", SymbolKind::Primitive),
-    ("std::string::String", SymbolKind::Primitive),
-    ("std::tuple::Tuple0", SymbolKind::Primitive),
-    ("std::boxed::Box", SymbolKind::Primitive),
-    ("std::rc::Rc", SymbolKind::Primitive),
-    ("std::sync::Arc", SymbolKind::Primitive),
-    ("i32", SymbolKind::Primitive),
-    ("u32", SymbolKind::Primitive),
-    ("i64", SymbolKind::Primitive),
-    ("u64", SymbolKind::Primitive),
-    ("f32", SymbolKind::Primitive),
-    ("f64", SymbolKind::Primitive),
-    ("bool", SymbolKind::Primitive),
-    ("u8", SymbolKind::Primitive),
-    ("i8", SymbolKind::Primitive),
-    ("chrono::Utc", SymbolKind::Primitive),
-    ("chrono::FixedOffset", SymbolKind::Primitive),
-    ("chrono::DateTime", SymbolKind::Primitive),
-    ("uuid::Uuid", SymbolKind::Primitive),
-    ("url::Url", SymbolKind::Primitive),
-    ("serde_json::Value", SymbolKind::Primitive),
-];
+pub(crate) fn external_symbol_kind(fqn: &str) -> Option<SymbolKind> {
+    match fqn {
+        "std::option::Option" | "std::result::Result" => Some(SymbolKind::Enum),
+        _ if is_well_known_external_type(fqn) => Some(SymbolKind::Primitive),
+        _ => None,
+    }
+}
 
-/// Prefixes that identify well-known stdlib and common crate types.
-/// Used for broad matching when exact name lookup is not sufficient
-/// (e.g., types not explicitly listed in STDLIB_TYPES).
-pub const STDLIB_TYPE_PREFIXES: &[&str] = &["std::", "chrono::", "uuid::"];
+pub(crate) fn is_well_known_external_type(fqn: &str) -> bool {
+    matches!(
+        fqn,
+        "String"
+            | "bool"
+            | "char"
+            | "i8"
+            | "i16"
+            | "i32"
+            | "i64"
+            | "i128"
+            | "isize"
+            | "u8"
+            | "u16"
+            | "u32"
+            | "u64"
+            | "u128"
+            | "usize"
+            | "f32"
+            | "f64"
+    ) || fqn.starts_with("std::")
+        || fqn.starts_with("chrono::")
+        || fqn.starts_with("uuid::")
+        || fqn.starts_with("url::")
+        || fqn.starts_with("serde_json::")
+}
 
 impl Default for SymbolId {
     fn default() -> Self {

@@ -1641,6 +1641,7 @@ dependencies = [
  "mime",
  "reflectapi-derive",
  "reflectapi-schema",
+ "reflectapi-schema-codegen",
  "reqwest",
  "reqwest-middleware",
  "rmp-serde",
@@ -1726,6 +1727,14 @@ name = "reflectapi-schema"
 version = "0.16.10"
 dependencies = [
  "glob",
+ "serde",
+]
+
+[[package]]
+name = "reflectapi-schema-codegen"
+version = "0.16.10"
+dependencies = [
+ "reflectapi-schema",
  "serde",
 ]
 

@@ -3,12 +3,15 @@
 /// This module provides the core normalization passes that transform
 /// the raw reflectapi_schema types into validated, immutable semantic
 /// representations with deterministic ordering and resolved dependencies.
-use crate::symbol::{STDLIB_TYPES, STDLIB_TYPE_PREFIXES};
+use crate::symbol::external_symbol_kind;
 use crate::{
-    Enum, Field, FieldStyle, Fields, Function, Primitive, ResolvedTypeReference, Schema,
-    SemanticEnum, SemanticField, SemanticFunction, SemanticPrimitive, SemanticSchema,
-    SemanticStruct, SemanticType, SemanticTypeParameter, SemanticVariant, Struct, SymbolId,
-    SymbolInfo, SymbolKind, SymbolTable, Type, TypeReference, Variant,
+    FieldStyle, ResolvedTypeReference, SchemaIds, SemanticEnum, SemanticField, SemanticFunction,
+    SemanticPrimitive, SemanticSchema, SemanticStruct, SemanticType, SemanticTypeParameter,
+    SemanticVariant, SymbolId, SymbolInfo, SymbolKind, SymbolTable,
+};
+use reflectapi_schema::{
+    Enum, Field, Fields, Function, Primitive, Schema, Struct, Type, TypeReference, Typespace,
+    Variant,
 };
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -224,8 +227,6 @@ impl NormalizationStage for TypeConsolidationStage {
     }
 
     fn transform(&self, schema: &mut Schema) -> Result<(), Vec<NormalizationError>> {
-        use crate::Typespace;
-
         let mut consolidated = Typespace::new();
         let mut name_conflicts = HashMap::new();
         // Tracks old_name -> new_name for type reference rewriting
@@ -351,7 +352,7 @@ impl NormalizationStage for NamingResolutionStage {
         }
 
         let types_to_update: Vec<_> = schema.input_types.types().cloned().collect();
-        schema.input_types = crate::Typespace::new();
+        schema.input_types = Typespace::new();
 
         for mut ty in types_to_update {
             let qualified_name = ty.name().to_string();
@@ -436,7 +437,7 @@ fn update_type_references_in_schema(
     }
 
     let types_to_update: Vec<_> = schema.input_types.types().cloned().collect();
-    schema.input_types = crate::Typespace::new();
+    schema.input_types = Typespace::new();
 
     for mut ty in types_to_update {
         update_type_references_in_type(&mut ty, &name_mapping);
@@ -444,10 +445,7 @@ fn update_type_references_in_schema(
     }
 }
 
-fn update_type_reference(
-    type_ref: &mut crate::TypeReference,
-    name_mapping: &HashMap<String, String>,
-) {
+fn update_type_reference(type_ref: &mut TypeReference, name_mapping: &HashMap<String, String>) {
     if let Some(new_name) = name_mapping.get(&type_ref.name) {
         type_ref.name.clone_from(new_name);
     }
@@ -458,7 +456,7 @@ fn update_type_reference(
 }
 
 fn update_type_reference_in_option(
-    type_ref_opt: &mut Option<crate::TypeReference>,
+    type_ref_opt: &mut Option<TypeReference>,
     name_mapping: &HashMap<String, String>,
 ) {
     if let Some(type_ref) = type_ref_opt {
@@ -466,29 +464,29 @@ fn update_type_reference_in_option(
     }
 }
 
-fn update_type_references_in_type(ty: &mut crate::Type, name_mapping: &HashMap<String, String>) {
+fn update_type_references_in_type(ty: &mut Type, name_mapping: &HashMap<String, String>) {
     match ty {
-        crate::Type::Struct(s) => match &mut s.fields {
-            crate::Fields::Named(fields) | crate::Fields::Unnamed(fields) => {
+        Type::Struct(s) => match &mut s.fields {
+            Fields::Named(fields) | Fields::Unnamed(fields) => {
                 for field in fields {
                     update_type_reference(&mut field.type_ref, name_mapping);
                 }
             }
-            crate::Fields::None => {}
+            Fields::None => {}
         },
-        crate::Type::Enum(e) => {
+        Type::Enum(e) => {
             for variant in &mut e.variants {
                 match &mut variant.fields {
-                    crate::Fields::Named(fields) | crate::Fields::Unnamed(fields) => {
+                    Fields::Named(fields) | Fields::Unnamed(fields) => {
                         for field in fields {
                             update_type_reference(&mut field.type_ref, name_mapping);
                         }
                     }
-                    crate::Fields::None => {}
+                    Fields::None => {}
                 }
             }
         }
-        crate::Type::Primitive(p) => {
+        Type::Primitive(p) => {
             if let Some(fallback) = &mut p.fallback {
                 update_type_reference(fallback, name_mapping);
             }
@@ -565,6 +563,12 @@ impl CircularDependencyResolutionStage {
         schema: &Schema,
     ) -> Result<Vec<Vec<String>>, Vec<NormalizationError>> {
         let mut dependencies: HashMap<String, BTreeSet<String>> = HashMap::new();
+        let known_types: BTreeSet<String> = schema
+            .input_types
+            .types()
+            .chain(schema.output_types.types())
+            .map(|ty| ty.name().to_string())
+            .collect();
 
         for ty in schema
             .input_types
@@ -573,7 +577,7 @@ impl CircularDependencyResolutionStage {
         {
             let type_name = ty.name().to_string();
             let mut deps = BTreeSet::new();
-            self.collect_type_dependencies(ty, &mut deps);
+            self.collect_type_dependencies(ty, &known_types, &mut deps);
             dependencies.insert(type_name, deps);
         }
 
@@ -594,47 +598,50 @@ impl CircularDependencyResolutionStage {
         Ok(cycles)
     }
 
-    fn collect_type_dependencies(&self, ty: &Type, deps: &mut BTreeSet<String>) {
+    fn collect_type_dependencies(
+        &self,
+        ty: &Type,
+        known_types: &BTreeSet<String>,
+        deps: &mut BTreeSet<String>,
+    ) {
         match ty {
             Type::Struct(s) => {
                 for field in s.fields() {
-                    self.collect_type_ref_dependencies(&field.type_ref, deps);
+                    self.collect_type_ref_dependencies(&field.type_ref, known_types, deps);
                 }
             }
             Type::Enum(e) => {
                 for variant in e.variants() {
                     for field in variant.fields() {
-                        self.collect_type_ref_dependencies(&field.type_ref, deps);
+                        self.collect_type_ref_dependencies(&field.type_ref, known_types, deps);
                     }
                 }
             }
             Type::Primitive(p) => {
                 if let Some(fallback) = &p.fallback {
-                    self.collect_type_ref_dependencies(fallback, deps);
+                    self.collect_type_ref_dependencies(fallback, known_types, deps);
                 }
             }
         }
     }
 
-    fn collect_type_ref_dependencies(&self, type_ref: &TypeReference, deps: &mut BTreeSet<String>) {
-        if !self.is_stdlib_type(&type_ref.name) && !self.is_generic_parameter(&type_ref.name) {
+    fn collect_type_ref_dependencies(
+        &self,
+        type_ref: &TypeReference,
+        known_types: &BTreeSet<String>,
+        deps: &mut BTreeSet<String>,
+    ) {
+        if self.is_dependency_target(&type_ref.name, known_types) {
             deps.insert(type_ref.name.clone());
         }
 
         for arg in &type_ref.arguments {
-            self.collect_type_ref_dependencies(arg, deps);
+            self.collect_type_ref_dependencies(arg, known_types, deps);
         }
     }
 
-    fn is_stdlib_type(&self, name: &str) -> bool {
-        // Check exact matches from the canonical list
-        if STDLIB_TYPES.iter().any(|&(n, _)| n == name) {
-            return true;
-        }
-        // Fall back to prefix matching for types not explicitly listed
-        STDLIB_TYPE_PREFIXES
-            .iter()
-            .any(|prefix| name.starts_with(prefix))
+    fn is_dependency_target(&self, name: &str, known_types: &BTreeSet<String>) -> bool {
+        !self.is_generic_parameter(name) && known_types.contains(name)
     }
 
     fn is_generic_parameter(&self, name: &str) -> bool {
@@ -875,7 +882,7 @@ struct NormalizationContext {
     generic_scope: BTreeSet<String>,
     errors: Vec<NormalizationError>,
     /// Compiler-owned ID table, populated in Phase 0
-    schema_ids: Option<crate::ids::SchemaIds>,
+    schema_ids: Option<SchemaIds>,
 }
 
 impl Default for NormalizationContext {
@@ -936,7 +943,7 @@ impl Normalizer {
         let mut schema = schema.clone();
 
         // Phase 0: Build compiler-owned ID table (side table, not on raw schema)
-        let schema_ids = crate::ids::build_schema_ids(&schema);
+        let schema_ids = crate::build_schema_ids(&schema);
         self.context.schema_ids = Some(schema_ids);
 
         // Capture original type names BEFORE the pipeline transforms them.
@@ -1031,7 +1038,7 @@ impl Normalizer {
         Ok(())
     }
 
-    fn discover_types_from_typespace(&mut self, typespace: &crate::Typespace) {
+    fn discover_types_from_typespace(&mut self, typespace: &Typespace) {
         for ty in typespace.types() {
             self.discover_type_symbols(ty);
         }
@@ -1147,8 +1154,6 @@ impl Normalizer {
             }
         }
 
-        self.add_stdlib_types_to_cache();
-
         // Clone the ID lookups upfront to avoid borrow conflict with &mut self
         let ids = self
             .context
@@ -1223,16 +1228,6 @@ impl Normalizer {
         self.resolve_single_reference(owner_id, &field.type_ref);
     }
 
-    fn add_stdlib_types_to_cache(&mut self) {
-        for &(name, kind) in STDLIB_TYPES {
-            let path = name.split("::").map(|s| s.to_string()).collect();
-            let symbol_id = SymbolId::new(kind, path);
-            self.context
-                .resolution_cache
-                .insert(name.to_string(), symbol_id);
-        }
-    }
-
     fn resolve_single_reference(&mut self, referrer: &SymbolId, type_ref: &TypeReference) {
         if self.context.generic_scope.contains(&type_ref.name) {
             for arg in &type_ref.arguments {
@@ -1255,7 +1250,14 @@ impl Normalizer {
     }
 
     fn resolve_global_type_reference(&self, name: &str) -> Option<SymbolId> {
-        self.context.resolution_cache.get(name).cloned()
+        self.context
+            .resolution_cache
+            .get(name)
+            .cloned()
+            .or_else(|| {
+                external_symbol_kind(name)
+                    .map(|kind| SymbolId::new(kind, name.split("::").map(str::to_string).collect()))
+            })
     }
 
     fn analyze_dependencies(&mut self) -> Result<(), Vec<NormalizationError>> {
@@ -1624,7 +1626,10 @@ impl Default for Normalizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Fields, Function, Representation, Schema, Struct, TypeReference, Typespace};
+    use reflectapi_schema::{
+        Enum, Field, Fields, Function, Representation, Schema, Struct, Type, TypeReference,
+        Typespace, Variant,
+    };
 
     #[test]
     fn test_basic_normalization() {

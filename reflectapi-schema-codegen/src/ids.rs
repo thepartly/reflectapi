@@ -4,8 +4,9 @@
 /// They are NOT stored on raw schema types — raw types are the interchange
 /// format (JSON-serializable, derive-macro-produced). Instead, IDs are
 /// assigned here and passed to the normalizer as a side table.
-use crate::symbol::STDLIB_TYPES;
-use crate::{Schema, SymbolId, SymbolKind, Type, Typespace};
+use crate::symbol::external_symbol_kind;
+use crate::{SymbolId, SymbolKind};
+use reflectapi_schema::{Enum, Fields, Schema, Struct, Type, Typespace};
 use std::collections::HashMap;
 
 /// Side table of compiler-assigned SymbolIds, keyed by fully-qualified name.
@@ -39,13 +40,6 @@ pub fn build_schema_ids(schema: &Schema) -> SchemaIds {
         members: HashMap::new(),
     };
 
-    // Pre-register well-known stdlib types
-    for &(name, kind) in STDLIB_TYPES {
-        ids.types
-            .entry(name.to_string())
-            .or_insert_with(|| SymbolId::new(kind, split_path(name)));
-    }
-
     // Register functions
     for function in &schema.functions {
         ids.functions
@@ -54,9 +48,8 @@ pub fn build_schema_ids(schema: &Schema) -> SchemaIds {
     }
 
     // Register types from both typespaces
-    let stdlib_snapshot = ids.types.clone();
-    let mut input_seen = stdlib_snapshot.clone();
-    let mut output_seen = stdlib_snapshot;
+    let mut input_seen = ids.types.clone();
+    let mut output_seen = ids.types.clone();
 
     register_typespace_ids(&schema.input_types, &mut input_seen, &mut ids.members);
     register_typespace_ids(&schema.output_types, &mut output_seen, &mut ids.members);
@@ -142,13 +135,13 @@ fn register_type_members(
 
 /// Register struct field IDs
 fn register_struct_members(
-    s: &crate::Struct,
+    s: &Struct,
     parent_fqn: &str,
     parent_id: &SymbolId,
     members: &mut HashMap<(String, String), SymbolId>,
 ) {
     match &s.fields {
-        crate::Fields::Named(fields) => {
+        Fields::Named(fields) => {
             for field in fields {
                 let mut path = parent_id.path.clone();
                 path.push(field.name.clone());
@@ -157,7 +150,7 @@ fn register_struct_members(
                     .or_insert_with(|| SymbolId::new(SymbolKind::Field, path));
             }
         }
-        crate::Fields::Unnamed(fields) => {
+        Fields::Unnamed(fields) => {
             for (i, _field) in fields.iter().enumerate() {
                 let arg_name = format!("arg{i:02}");
                 let mut path = parent_id.path.clone();
@@ -167,13 +160,13 @@ fn register_struct_members(
                     .or_insert_with(|| SymbolId::new(SymbolKind::Field, path));
             }
         }
-        crate::Fields::None => {}
+        Fields::None => {}
     }
 }
 
 /// Register enum variant and variant field IDs
 fn register_enum_members(
-    e: &crate::Enum,
+    e: &Enum,
     parent_fqn: &str,
     parent_id: &SymbolId,
     members: &mut HashMap<(String, String), SymbolId>,
@@ -187,7 +180,7 @@ fn register_enum_members(
             .clone();
 
         match &variant.fields {
-            crate::Fields::Named(fields) => {
+            Fields::Named(fields) => {
                 for field in fields {
                     let mut field_path = variant_id.path.clone();
                     field_path.push(field.name.clone());
@@ -197,7 +190,7 @@ fn register_enum_members(
                         .or_insert_with(|| SymbolId::new(SymbolKind::Field, field_path));
                 }
             }
-            crate::Fields::Unnamed(fields) => {
+            Fields::Unnamed(fields) => {
                 for (i, _field) in fields.iter().enumerate() {
                     let arg_name = format!("arg{i:02}");
                     let mut field_path = variant_id.path.clone();
@@ -208,7 +201,7 @@ fn register_enum_members(
                         .or_insert_with(|| SymbolId::new(SymbolKind::Field, field_path));
                 }
             }
-            crate::Fields::None => {}
+            Fields::None => {}
         }
     }
 }
@@ -261,17 +254,13 @@ impl SchemaIds {
 fn infer_kind(fqn: &str) -> SymbolKind {
     // Default to Struct for unknown types — the normalizer will
     // assign the correct kind when it discovers the actual type
-    if fqn.starts_with("std::") || fqn.starts_with("chrono::") || fqn.starts_with("uuid::") {
-        SymbolKind::Primitive
-    } else {
-        SymbolKind::Struct
-    }
+    external_symbol_kind(fqn).unwrap_or(SymbolKind::Struct)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Field, Fields, Variant};
+    use reflectapi_schema::{Field, Variant};
 
     #[test]
     fn test_split_path() {
@@ -291,7 +280,7 @@ mod tests {
         let mut schema = Schema::new();
         schema.name = "Test".to_string();
 
-        let mut s = crate::Struct::new("api::User");
+        let mut s = Struct::new("api::User");
         s.fields = Fields::Named(vec![Field::new("name".into(), "String".into())]);
         schema.input_types.insert_type(s.into());
 
@@ -318,12 +307,12 @@ mod tests {
         schema.name = "Test".to_string();
 
         // Input "Foo" has field "a"
-        let mut input_foo = crate::Struct::new("Foo");
+        let mut input_foo = Struct::new("Foo");
         input_foo.fields = Fields::Named(vec![Field::new("a".into(), "u32".into())]);
         schema.input_types.insert_type(input_foo.into());
 
         // Output "Foo" has field "b" (different structure)
-        let mut output_foo = crate::Struct::new("Foo");
+        let mut output_foo = Struct::new("Foo");
         output_foo.fields = Fields::Named(vec![Field::new("b".into(), "u64".into())]);
         schema.output_types.insert_type(output_foo.into());
 
@@ -342,7 +331,7 @@ mod tests {
         let mut schema = Schema::new();
         schema.name = "Test".to_string();
 
-        let mut e = crate::Enum::new("api::Status".into());
+        let mut e = Enum::new("api::Status".into());
         e.variants = vec![Variant::new("Active".into())];
         schema.input_types.insert_type(e.into());
 
@@ -361,7 +350,7 @@ mod tests {
         let mut schema = Schema::new();
         schema.name = "Test".to_string();
 
-        let mut tuple_struct = crate::Struct::new("BigTuple");
+        let mut tuple_struct = Struct::new("BigTuple");
         let fields: Vec<Field> = (0..12)
             .map(|i| Field::new(format!("{i}"), format!("u{}", 8 + i).into()))
             .collect();
@@ -383,7 +372,7 @@ mod tests {
         let mut schema = Schema::new();
         schema.name = "User".to_string();
 
-        let user_struct = crate::Struct::new("User");
+        let user_struct = Struct::new("User");
         schema.input_types.insert_type(user_struct.into());
 
         let ids = build_schema_ids(&schema);
