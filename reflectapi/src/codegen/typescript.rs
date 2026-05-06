@@ -129,10 +129,11 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
             // In descending order of speed. The output should be the same.
             [
                 Command::new("biome").args(["format", "--stdin-file-path", "dummy.ts"]),
-                Command::new("npx")
-                    .arg("-y")
-                    .arg(biome_package)
-                    .args(["format", "--stdin-file-path", "dummy.ts"]),
+                Command::new("npx").arg("-y").arg(biome_package).args([
+                    "format",
+                    "--stdin-file-path",
+                    "dummy.ts",
+                ]),
                 Command::new("prettier").args(["--parser", "typescript"]),
                 Command::new("npx")
                     .arg("-y")
