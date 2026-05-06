@@ -6,6 +6,7 @@ import datetime
 import json
 import time
 from abc import ABC
+from collections.abc import AsyncIterator, Iterator
 from typing import Any, TypeVar, overload
 
 import httpx
@@ -22,6 +23,7 @@ from .middleware import (
 )
 from .option import serialize_option_dict
 from .response import ApiResponse, TransportMetadata
+from .sse import aparse_sse, parse_sse
 
 
 # Sentinel object to represent "no validation needed"
@@ -496,6 +498,83 @@ class ClientBase(ABC):
         except httpx.RequestError as e:
             raise NetworkError.from_httpx_error(e)
 
+    def _make_sse_request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+        json_model: BaseModel | None = None,
+        headers_model: BaseModel | None = None,
+        item_model: type[T] | type[Any] | str | _NoValidation | None = None,
+        error_model: type | None = None,
+    ) -> Iterator[T] | Iterator[Any]:
+        """Open an SSE stream and yield items validated against ``item_model``.
+
+        Errors raised when the server returns a non-2xx response are
+        ``ApplicationError`` (matching the non-streaming flow); transport
+        problems raise ``NetworkError`` / ``TimeoutError``. Per-event
+        validation failures raise ``ValidationError``.
+
+        The HTTP connection is released when the generator is exhausted,
+        ``close()``-d, or garbage-collected, so consumers can ``break`` out
+        of the loop without leaking sockets. Middleware is intentionally
+        bypassed because typical middleware buffers the response body.
+        """
+
+        self._validate_request_params(json_data, json_model)
+
+        url = f"{self.base_url}/{path.lstrip('/')}"
+        request = self._build_request(
+            method, url, params, json_data, json_model, headers_model
+        )
+        request.headers["accept"] = "text/event-stream"
+
+        start_time = time.time()
+        try:
+            response = self._client.send(request, stream=True)
+        except httpx.TimeoutException as e:
+            raise TimeoutError.from_httpx_timeout(e)
+        except httpx.RequestError as e:
+            raise NetworkError.from_httpx_error(e)
+
+        try:
+            metadata = TransportMetadata.from_response(response, start_time)
+            if response.status_code >= 400:
+                # read_full body so error parsing can see it
+                response.read()
+                self._handle_error_response(response, metadata, error_model=error_model)
+
+            adapter: TypeAdapter[Any] | None = None
+            if (
+                item_model is not None
+                and item_model is not NO_VALIDATION
+                and item_model != "Any"
+                and item_model is not Any
+            ):
+                adapter = TypeAdapter(item_model)
+
+            try:
+                for event in parse_sse(response.iter_lines()):
+                    if adapter is None:
+                        yield json.loads(event.data)
+                    else:
+                        try:
+                            yield adapter.validate_json(event.data)
+                        except PydanticValidationError as e:
+                            raise ValidationError(
+                                f"SSE event validation failed: {e}",
+                                validation_errors=e.errors(),
+                                cause=e,
+                            )
+            except httpx.TimeoutException as e:
+                raise TimeoutError.from_httpx_timeout(e)
+            except httpx.RequestError as e:
+                raise NetworkError.from_httpx_error(e)
+        finally:
+            response.close()
+
 
 class AsyncClientBase(ABC):
     """Base class for asynchronous ReflectAPI clients."""
@@ -931,3 +1010,79 @@ class AsyncClientBase(ABC):
             raise TimeoutError.from_httpx_timeout(e)
         except httpx.RequestError as e:
             raise NetworkError.from_httpx_error(e)
+
+    async def _make_sse_request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+        json_model: BaseModel | None = None,
+        headers_model: BaseModel | None = None,
+        item_model: type[T] | type[Any] | str | _NoValidation | None = None,
+        error_model: type | None = None,
+    ) -> AsyncIterator[T] | AsyncIterator[Any]:
+        """Open an SSE stream and yield items validated against ``item_model``.
+
+        Errors raised when the server returns a non-2xx response are
+        ``ApplicationError`` (matching the non-streaming flow); transport
+        problems raise ``NetworkError`` / ``TimeoutError``. Per-event
+        validation failures raise ``ValidationError``.
+
+        The HTTP connection is released when the async generator is
+        exhausted or ``aclose()``-d, so consumers can ``break`` out of the
+        loop without leaking sockets. Middleware is intentionally
+        bypassed because typical middleware buffers the response body.
+        """
+
+        self._validate_request_params(json_data, json_model)
+
+        url = f"{self.base_url}/{path.lstrip('/')}"
+        request = self._build_request(
+            method, url, params, json_data, json_model, headers_model
+        )
+        request.headers["accept"] = "text/event-stream"
+
+        start_time = time.time()
+        try:
+            response = await self._client.send(request, stream=True)
+        except httpx.TimeoutException as e:
+            raise TimeoutError.from_httpx_timeout(e)
+        except httpx.RequestError as e:
+            raise NetworkError.from_httpx_error(e)
+
+        try:
+            metadata = TransportMetadata.from_response(response, start_time)
+            if response.status_code >= 400:
+                await response.aread()
+                self._handle_error_response(response, metadata, error_model=error_model)
+
+            adapter: TypeAdapter[Any] | None = None
+            if (
+                item_model is not None
+                and item_model is not NO_VALIDATION
+                and item_model != "Any"
+                and item_model is not Any
+            ):
+                adapter = TypeAdapter(item_model)
+
+            try:
+                async for event in aparse_sse(response.aiter_lines()):
+                    if adapter is None:
+                        yield json.loads(event.data)
+                    else:
+                        try:
+                            yield adapter.validate_json(event.data)
+                        except PydanticValidationError as e:
+                            raise ValidationError(
+                                f"SSE event validation failed: {e}",
+                                validation_errors=e.errors(),
+                                cause=e,
+                            )
+            except httpx.TimeoutException as e:
+                raise TimeoutError.from_httpx_timeout(e)
+            except httpx.RequestError as e:
+                raise NetworkError.from_httpx_error(e)
+        finally:
+            await response.aclose()

@@ -339,6 +339,20 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
 
     stdlib_imports.extend(imports.extra_stdlib_imports.iter().cloned());
 
+    // Streaming methods need Iterator / AsyncIterator from collections.abc.
+    if imports.has_streaming {
+        let mut names = Vec::new();
+        if imports.has_sync {
+            names.push("Iterator");
+        }
+        if imports.has_async {
+            names.push("AsyncIterator");
+        }
+        if !names.is_empty() {
+            stdlib_imports.insert(format!("from collections.abc import {}", names.join(", ")));
+        }
+    }
+
     // Typing imports - always include base ones
     typing_imports.insert("Any");
     typing_imports.insert("Optional");
@@ -1342,6 +1356,9 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
 
     // Use semantic IR for function introspection
     let has_warnings = semantic.functions().any(|f| f.deprecation_note.is_some());
+    let has_streaming = schema
+        .functions()
+        .any(|f| matches!(f.output_type, OutputType::Stream { .. }));
     let python_metadata = collect_python_metadata_usage(&all_type_names);
 
     // Generate imports
@@ -1359,6 +1376,7 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
         has_discriminated_unions,
         has_externally_tagged_enums,
         global_type_vars: Vec::new(), // Will be added later after tracking usage
+        has_streaming,
     };
     // Use optimized import generation instead of template
     generated_code.push(generate_optimized_imports(&imports));
@@ -1538,9 +1556,6 @@ def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
             Some(f) => f,
             None => continue,
         };
-        if matches!(function_schema.output_type, OutputType::Stream { .. }) {
-            continue;
-        }
         let rendered_function = render_function(function_schema, &schema, &implemented_types)?;
 
         // Check for grouping patterns: underscore or dot notation
@@ -3113,12 +3128,19 @@ fn render_function(
         "None".to_string()
     };
 
-    let output_type = match &function.output_type {
+    let (output_type, stream_item_type) = match &function.output_type {
         OutputType::Complete {
             output_type: Some(output_type),
-        } => type_ref_to_python_type_simple(output_type, schema, implemented_types, &[])?,
-        OutputType::Complete { output_type: None } => "Any".to_string(),
-        OutputType::Stream { .. } => unreachable!("stream endpoints should be filtered out"),
+        } => (
+            type_ref_to_python_type_simple(output_type, schema, implemented_types, &[])?,
+            None,
+        ),
+        OutputType::Complete { output_type: None } => ("Any".to_string(), None),
+        OutputType::Stream { item_type } => {
+            let item_py =
+                type_ref_to_python_type_simple(item_type, schema, implemented_types, &[])?;
+            (item_py.clone(), Some(item_py))
+        }
     };
 
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
@@ -3181,6 +3203,7 @@ fn render_function(
         has_body,
         is_input_primitive,
         deprecation_note: function.deprecation_note.clone(),
+        stream_item_type,
     })
 }
 
@@ -4213,6 +4236,8 @@ pub mod templates {
         pub has_discriminated_unions: bool,
         pub has_externally_tagged_enums: bool,
         pub global_type_vars: Vec<String>,
+        /// At least one streaming endpoint is exposed by the client.
+        pub has_streaming: bool,
     }
 
     pub struct DataClass {
@@ -4615,9 +4640,12 @@ pub mod templates {
             is_group: bool,
             use_raw_name_for_path_params: bool,
         ) {
+            let is_stream = function.stream_item_type.is_some();
             writeln!(s).unwrap();
-            // Method signature
-            if is_async {
+            // Method signature. Streaming methods are plain `def` regardless
+            // of client kind: the runtime helper *is* the (async) generator,
+            // so we just return it.
+            if is_async && !is_stream {
                 writeln!(s, "    async def {}(", function.name).unwrap();
             } else {
                 writeln!(s, "    def {}(", function.name).unwrap();
@@ -4632,7 +4660,14 @@ pub mod templates {
             if let Some(headers_type) = &function.headers_type {
                 writeln!(s, "        headers: Optional[{headers_type}] = None,").unwrap();
             }
-            if let Some(error_type) = &function.error_type {
+            if let Some(item_type) = &function.stream_item_type {
+                let iter_kind = if is_async {
+                    "AsyncIterator"
+                } else {
+                    "Iterator"
+                };
+                writeln!(s, "    ) -> {iter_kind}[{item_type}]:").unwrap();
+            } else if let Some(error_type) = &function.error_type {
                 writeln!(
                     s,
                     "    ) -> ApiResponse[{}, {}]:",
@@ -4670,7 +4705,18 @@ pub mod templates {
                 writeln!(s).unwrap();
             }
             writeln!(s, "        Returns:").unwrap();
-            if let Some(error_type) = &function.error_type {
+            if let Some(item_type) = &function.stream_item_type {
+                let iter_kind = if is_async {
+                    "AsyncIterator"
+                } else {
+                    "Iterator"
+                };
+                writeln!(
+                    s,
+                    "            {iter_kind}[{item_type}]: SSE stream of {item_type} items"
+                )
+                .unwrap();
+            } else if let Some(error_type) = &function.error_type {
                 writeln!(
                     s,
                     "            ApiResponse[{}, {}]: Success={}, Error={}",
@@ -4751,7 +4797,11 @@ pub mod templates {
             writeln!(s, "        params: dict[str, Any] = {{}}").unwrap();
 
             let client_prefix = if is_group { "self._client." } else { "self." };
-            if is_async {
+            if is_stream {
+                // Streaming: just return the (async) generator from the
+                // runtime helper — no await, no async-for indirection.
+                writeln!(s, "        return {client_prefix}_make_sse_request(").unwrap();
+            } else if is_async {
                 writeln!(s, "        return await {client_prefix}_make_request(").unwrap();
             } else {
                 writeln!(s, "        return {client_prefix}_make_request(").unwrap();
@@ -4769,7 +4819,9 @@ pub mod templates {
             if function.headers_type.is_some() {
                 writeln!(s, "            headers_model=headers,").unwrap();
             }
-            if function.output_type == "Any" {
+            if let Some(item_type) = &function.stream_item_type {
+                writeln!(s, "            item_model={item_type},").unwrap();
+            } else if function.output_type == "Any" {
                 writeln!(s, "            response_model=None,").unwrap();
             } else {
                 writeln!(s, "            response_model={},", function.output_type).unwrap();
@@ -4861,6 +4913,8 @@ pub mod templates {
         pub has_body: bool,
         pub is_input_primitive: bool,
         pub deprecation_note: Option<String>,
+        /// SSE stream item type name; `None` for non-streaming endpoints.
+        pub stream_item_type: Option<String>,
     }
 
     #[derive(Clone)]
