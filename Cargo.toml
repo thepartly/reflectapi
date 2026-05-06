@@ -7,6 +7,7 @@ members = [
     "reflectapi-demo/clients/rust/generated",
     "reflectapi-derive",
     "reflectapi-schema",
+    "reflectapi-schema-codegen",
 ]
 resolver = "2"
 

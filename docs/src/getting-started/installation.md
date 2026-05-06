@@ -13,8 +13,10 @@ cargo add reflectapi --features builder,axum,json,chrono
 Install the CLI tool to generate client libraries:
 
 ```bash
-cargo install reflectapi-cli --help
+cargo install reflectapi-cli
 ```
+
+This installs the `reflectapi` binary.
 
 ## Next Steps
 

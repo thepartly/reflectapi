@@ -9,9 +9,9 @@ from __future__ import annotations
 
 
 # Standard library imports
+import warnings
 from datetime import datetime
 from enum import Enum
-import warnings
 from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
@@ -19,7 +19,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    PrivateAttr,
     RootModel,
     model_serializer,
     model_validator,
@@ -27,8 +26,37 @@ from pydantic import (
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
-from reflectapi_runtime import ReflectapiOption
 from reflectapi_runtime import ReflectapiEmpty
+from reflectapi_runtime import ReflectapiOption
+
+
+# Helper functions for externally tagged enum serialization/deserialization
+def _parse_externally_tagged(data, variants: dict, types: tuple, enum_name: str):
+    """Parse an externally tagged enum from {key: value} format."""
+    if types and isinstance(data, types):
+        return data
+    if isinstance(data, str) and data in variants:
+        handler = variants[data]
+        if handler == "_unit":
+            return data
+    if isinstance(data, dict):
+        if len(data) != 1:
+            raise ValueError("Externally tagged enum must have exactly one key")
+        key, value = next(iter(data.items()))
+        if key in variants:
+            handler = variants[key]
+            if handler == "_unit":
+                return key
+            return handler(value)
+    raise ValueError(f"Unknown variant for {enum_name}: {data}")
+
+
+def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
+    """Serialize an externally tagged enum to {key: value} format."""
+    for variant_name, (check, serialize) in serializers.items():
+        if check(root):
+            return serialize(root)
+    raise ValueError(f"Cannot serialize {enum_name} variant: {type(root)}")
 
 
 # Type variables for generic types
@@ -38,8 +66,6 @@ T = TypeVar("T")
 
 
 class MyapiHealthCheckFail(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
@@ -74,45 +100,40 @@ class MyapiModelBehavior(RootModel[MyapiModelBehaviorVariants]):
 
     @model_validator(mode="before")
     @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-        if isinstance(data, MyapiModelBehaviorAggressiveVariant):
-            return data
-        if isinstance(data, MyapiModelBehaviorOtherVariant):
-            return data
-
-        # Handle JSON data (for deserialization)
-        if isinstance(data, str) and data == "Calm":
-            return data
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-            if key == "Aggressive":
-                if isinstance(value, list):
-                    return MyapiModelBehaviorAggressiveVariant(
-                        field_0=value[0], field_1=value[1]
+    def _validate(cls, data):
+        return _parse_externally_tagged(
+            data,
+            {
+                "Calm": "_unit",
+                "Aggressive": lambda v: (
+                    MyapiModelBehaviorAggressiveVariant(field_0=v[0], field_1=v[1])
+                    if isinstance(v, list)
+                    else (_ for _ in ()).throw(
+                        ValueError("Expected list for tuple variant Aggressive")
                     )
-                else:
-                    raise ValueError("Expected list for tuple variant Aggressive")
-            if key == "Other":
-                return MyapiModelBehaviorOtherVariant(**value)
-
-        raise ValueError(f"Unknown variant for MyapiModelBehavior: {data}")
+                ),
+                "Other": lambda v: MyapiModelBehaviorOtherVariant(**v),
+            },
+            (MyapiModelBehaviorAggressiveVariant, MyapiModelBehaviorOtherVariant),
+            "MyapiModelBehavior",
+        )
 
     @model_serializer
-    def _serialize_externally_tagged(self):
-        if self.root == "Calm":
-            return "Calm"
-        if isinstance(self.root, MyapiModelBehaviorAggressiveVariant):
-            return {"Aggressive": [self.root.field_0, self.root.field_1]}
-        if isinstance(self.root, MyapiModelBehaviorOtherVariant):
-            return {"Other": self.root.model_dump()}
-
-        raise ValueError(
-            f"Cannot serialize MyapiModelBehavior variant: {type(self.root)}"
+    def _serialize(self):
+        return _serialize_externally_tagged(
+            self.root,
+            {
+                "Calm": (lambda r: r == "Calm", lambda r: "Calm"),
+                "Aggressive": (
+                    lambda r: isinstance(r, MyapiModelBehaviorAggressiveVariant),
+                    lambda r: {"Aggressive": [r.field_0, r.field_1]},
+                ),
+                "Other": (
+                    lambda r: isinstance(r, MyapiModelBehaviorOtherVariant),
+                    lambda r: {"Other": r.model_dump(by_alias=True)},
+                ),
+            },
+            "MyapiModelBehavior",
         )
 
 
@@ -150,8 +171,6 @@ class MyapiModelKind(RootModel):
 
 
 class MyapiModelInputPet(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str = Field(description="identity")
@@ -164,8 +183,6 @@ class MyapiModelInputPet(BaseModel):
 
 
 class MyapiModelOutputPet(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str = Field(description="identity")
@@ -178,24 +195,18 @@ class MyapiModelOutputPet(BaseModel):
 
 
 class MyapiProtoHeaders(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     authorization: str = Field(description="Authorization header")
 
 
 class MyapiProtoInternalError(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     message: str
 
 
 class MyapiProtoPaginated(BaseModel, Generic[T]):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     items: list[T] = Field(description="slice of a collection")
@@ -203,8 +214,6 @@ class MyapiProtoPaginated(BaseModel, Generic[T]):
 
 
 class MyapiProtoPetsListRequest(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     limit: int | None = None
@@ -212,16 +221,12 @@ class MyapiProtoPetsListRequest(BaseModel):
 
 
 class MyapiProtoPetsRemoveRequest(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str = Field(description="identity")
 
 
 class MyapiProtoPetsUpdateRequest(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str = Field(description="identity")
@@ -237,8 +242,6 @@ class MyapiProtoPetsUpdateRequest(BaseModel):
 
 
 class MyapiProtoValidationA(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     message: str
@@ -265,44 +268,42 @@ class MyapiProtoPetsCreateError(RootModel[MyapiProtoPetsCreateErrorVariants]):
 
     @model_validator(mode="before")
     @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-        if isinstance(data, MyapiProtoPetsCreateErrorInvalidIdentityVariant):
-            return data
-
-        # Handle JSON data (for deserialization)
-        if isinstance(data, str) and data == "Conflict":
-            return data
-        if isinstance(data, str) and data == "NotAuthorized":
-            return data
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-            if key == "InvalidIdentity":
-                return MyapiProtoPetsCreateErrorInvalidIdentityVariant(**value)
-
-        raise ValueError(f"Unknown variant for MyapiProtoPetsCreateError: {data}")
+    def _validate(cls, data):
+        return _parse_externally_tagged(
+            data,
+            {
+                "Conflict": "_unit",
+                "NotAuthorized": "_unit",
+                "InvalidIdentity": lambda v: (
+                    MyapiProtoPetsCreateErrorInvalidIdentityVariant(**v)
+                ),
+            },
+            (MyapiProtoPetsCreateErrorInvalidIdentityVariant,),
+            "MyapiProtoPetsCreateError",
+        )
 
     @model_serializer
-    def _serialize_externally_tagged(self):
-        if self.root == "Conflict":
-            return "Conflict"
-        if self.root == "NotAuthorized":
-            return "NotAuthorized"
-        if isinstance(self.root, MyapiProtoPetsCreateErrorInvalidIdentityVariant):
-            return {"InvalidIdentity": self.root.model_dump()}
-
-        raise ValueError(
-            f"Cannot serialize MyapiProtoPetsCreateError variant: {type(self.root)}"
+    def _serialize(self):
+        return _serialize_externally_tagged(
+            self.root,
+            {
+                "Conflict": (lambda r: r == "Conflict", lambda r: "Conflict"),
+                "NotAuthorized": (
+                    lambda r: r == "NotAuthorized",
+                    lambda r: "NotAuthorized",
+                ),
+                "InvalidIdentity": (
+                    lambda r: isinstance(
+                        r, MyapiProtoPetsCreateErrorInvalidIdentityVariant
+                    ),
+                    lambda r: {"InvalidIdentity": r.model_dump(by_alias=True)},
+                ),
+            },
+            "MyapiProtoPetsCreateError",
         )
 
 
 class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     kind: Literal["InvalidCursor"] = Field(
@@ -311,8 +312,6 @@ class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
 
 
 class MyapiProtoPetsListErrorUnauthorized(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     kind: Literal["Unauthorized"] = Field(
@@ -321,8 +320,6 @@ class MyapiProtoPetsListErrorUnauthorized(BaseModel):
 
 
 class MyapiProtoPetsListErrorInternal(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     kind: Literal["Internal"] = Field(
@@ -343,8 +340,6 @@ class MyapiProtoPetsListError(RootModel):
 
 
 class MyapiProtoPetsRemoveError(str, Enum):
-    """Generated enum."""
-
     NOT_FOUND = "NotFound"
     NOT_AUTHORIZED = "NotAuthorized"
 
@@ -370,38 +365,36 @@ class MyapiProtoPetsUpdateError(RootModel[MyapiProtoPetsUpdateErrorVariants]):
 
     @model_validator(mode="before")
     @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-        if isinstance(data, MyapiProtoPetsUpdateErrorValidationVariant):
-            return data
-
-        # Handle JSON data (for deserialization)
-        if isinstance(data, str) and data == "NotFound":
-            return data
-        if isinstance(data, str) and data == "NotAuthorized":
-            return data
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-            if key == "Validation":
-                return MyapiProtoPetsUpdateErrorValidationVariant(field_0=value)
-
-        raise ValueError(f"Unknown variant for MyapiProtoPetsUpdateError: {data}")
+    def _validate(cls, data):
+        return _parse_externally_tagged(
+            data,
+            {
+                "NotFound": "_unit",
+                "NotAuthorized": "_unit",
+                "Validation": lambda v: MyapiProtoPetsUpdateErrorValidationVariant(
+                    field_0=v
+                ),
+            },
+            (MyapiProtoPetsUpdateErrorValidationVariant,),
+            "MyapiProtoPetsUpdateError",
+        )
 
     @model_serializer
-    def _serialize_externally_tagged(self):
-        if self.root == "NotFound":
-            return "NotFound"
-        if self.root == "NotAuthorized":
-            return "NotAuthorized"
-        if isinstance(self.root, MyapiProtoPetsUpdateErrorValidationVariant):
-            return {"Validation": self.root.field_0}
-
-        raise ValueError(
-            f"Cannot serialize MyapiProtoPetsUpdateError variant: {type(self.root)}"
+    def _serialize(self):
+        return _serialize_externally_tagged(
+            self.root,
+            {
+                "NotFound": (lambda r: r == "NotFound", lambda r: "NotFound"),
+                "NotAuthorized": (
+                    lambda r: r == "NotAuthorized",
+                    lambda r: "NotAuthorized",
+                ),
+                "Validation": (
+                    lambda r: isinstance(r, MyapiProtoPetsUpdateErrorValidationVariant),
+                    lambda r: {"Validation": r.field_0},
+                ),
+            },
+            "MyapiProtoPetsUpdateError",
         )
 
 
@@ -422,30 +415,31 @@ class MyapiProtoValidationError(RootModel[MyapiProtoValidationErrorVariants]):
 
     @model_validator(mode="before")
     @classmethod
-    def _validate_externally_tagged(cls, data):
-        # Handle direct variant instances (for programmatic creation)
-        if isinstance(data, MyapiProtoValidationErrorValidationAVariant):
-            return data
-
-        # Handle JSON data (for deserialization)
-
-        if isinstance(data, dict):
-            if len(data) != 1:
-                raise ValueError("Externally tagged enum must have exactly one key")
-
-            key, value = next(iter(data.items()))
-            if key == "ValidationA":
-                return MyapiProtoValidationErrorValidationAVariant(field_0=value)
-
-        raise ValueError(f"Unknown variant for MyapiProtoValidationError: {data}")
+    def _validate(cls, data):
+        return _parse_externally_tagged(
+            data,
+            {
+                "ValidationA": lambda v: MyapiProtoValidationErrorValidationAVariant(
+                    field_0=v
+                )
+            },
+            (MyapiProtoValidationErrorValidationAVariant,),
+            "MyapiProtoValidationError",
+        )
 
     @model_serializer
-    def _serialize_externally_tagged(self):
-        if isinstance(self.root, MyapiProtoValidationErrorValidationAVariant):
-            return {"ValidationA": self.root.field_0}
-
-        raise ValueError(
-            f"Cannot serialize MyapiProtoValidationError variant: {type(self.root)}"
+    def _serialize(self):
+        return _serialize_externally_tagged(
+            self.root,
+            {
+                "ValidationA": (
+                    lambda r: isinstance(
+                        r, MyapiProtoValidationErrorValidationAVariant
+                    ),
+                    lambda r: {"ValidationA": r.field_0},
+                )
+            },
+            "MyapiProtoValidationError",
         )
 
 
@@ -930,24 +924,26 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    myapi.HealthCheckFail.model_rebuild()
-    myapi.model.Behavior.model_rebuild()
-    myapi.model.Kind.model_rebuild()
-    myapi.model.input.Pet.model_rebuild()
-    myapi.model.output.Pet.model_rebuild()
-    myapi.proto.Headers.model_rebuild()
-    myapi.proto.InternalError.model_rebuild()
-    myapi.proto.Paginated.model_rebuild()
-    myapi.proto.PetsCreateError.model_rebuild()
-    myapi.proto.PetsListError.model_rebuild()
-    myapi.proto.PetsListRequest.model_rebuild()
-    myapi.proto.PetsRemoveError.model_rebuild()
-    myapi.proto.PetsRemoveRequest.model_rebuild()
-    myapi.proto.PetsUpdateError.model_rebuild()
-    myapi.proto.PetsUpdateRequest.model_rebuild()
-    myapi.proto.ValidationA.model_rebuild()
-    myapi.proto.ValidationError.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
-    pass
+for _model in [
+    MyapiHealthCheckFail,
+    MyapiModelBehavior,
+    MyapiModelKind,
+    MyapiModelInputPet,
+    MyapiModelOutputPet,
+    MyapiProtoHeaders,
+    MyapiProtoInternalError,
+    MyapiProtoPaginated,
+    MyapiProtoPetsCreateError,
+    MyapiProtoPetsListError,
+    MyapiProtoPetsListRequest,
+    MyapiProtoPetsRemoveError,
+    MyapiProtoPetsRemoveRequest,
+    MyapiProtoPetsUpdateError,
+    MyapiProtoPetsUpdateRequest,
+    MyapiProtoValidationA,
+    MyapiProtoValidationError,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

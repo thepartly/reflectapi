@@ -14,18 +14,10 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Annotated, Any, Generic, Optional, TypeVar, Union
+from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    PrivateAttr,
-    RootModel,
-    model_serializer,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -33,89 +25,42 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
-class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Variant(BaseModel):
-    """variant1 variant"""
+class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Content(BaseModel):
+    """variant1 content"""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     field_name: int
 
 
-class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant(BaseModel):
-    """variant2 variant"""
-
+class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    field_0: int
+    type: Literal["variant1"] = Field(
+        default="variant1", description="Discriminator field"
+    )
+    content: ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Content = Field(
+        description="variant1 content"
+    )
 
 
-# Adjacently tagged enum using RootModel
-ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariants = Union[
-    ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Variant,
-    ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant,
-]
+class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    type: Literal["variant2"] = Field(
+        default="variant2", description="Discriminator field"
+    )
+    content: int
 
 
-class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll(
-    RootModel[ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariants]
-):
-    """Adjacently tagged enum"""
-
-    @model_validator(mode="before")
-    @classmethod
-    def _validate_adjacently_tagged(cls, data):
-        # Handle direct variant instances
-        if isinstance(
-            data,
-            (
-                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Variant,
-                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant,
-            ),
-        ):
-            return data
-        if isinstance(data, dict):
-            tag = data.get("type")
-            content = data.get("content")
-            if tag is None:
-                raise ValueError("Missing tag field 'type'")
-            if content is None and tag not in ():
-                raise ValueError(
-                    "Missing content field 'content' for tag: {}".format(tag)
-                )
-            # Dispatch based on tag
-            if tag == "variant1":
-                return (
-                    ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Variant(
-                        **content
-                    )
-                )
-            if tag == "variant2":
-                return (
-                    ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant(
-                        field_0=content
-                    )
-                )
-        raise ValueError(
-            "Unknown variant for ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll: {}".format(
-                data
-            )
-        )
-
-    @model_serializer
-    def _serialize_adjacently_tagged(self):
-        if isinstance(
-            self.root,
-            ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Variant,
-        ):
-            return {"type": "variant1", "content": self.root.model_dump()}
-        if isinstance(
-            self.root,
-            ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant,
-        ):
-            return {"type": "variant2", "content": self.root.field_0}
-        raise ValueError(
-            f"Cannot serialize ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll variant: {type(self.root)}"
-        )
+class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll(RootModel):
+    root: Annotated[
+        Union[
+            ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1,
+            ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2,
+        ],
+        Field(discriminator="type"),
+    ]
 
 
 # Namespace classes for dotted access to types
@@ -128,11 +73,14 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            TestEnumTagContentRenameAllVariant1Variant = (
-                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Variant
+            TestEnumTagContentRenameAllVariant1Content = (
+                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1Content
             )
-            TestEnumTagContentRenameAllVariant2Variant = (
-                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2Variant
+            TestEnumTagContentRenameAllVariant1 = (
+                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1
+            )
+            TestEnumTagContentRenameAllVariant2 = (
+                ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2
             )
             TestEnumTagContentRenameAll = (
                 ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll
@@ -232,8 +180,10 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.serde.TestEnumTagContentRenameAll.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
-    pass
+for _model in [
+    ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

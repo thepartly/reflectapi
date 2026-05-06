@@ -17,6 +17,7 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 [[bin]]
 name = "reflectapi"
 path = "src/main.rs"
+doc = false
 
 [lints]
 workspace = true
