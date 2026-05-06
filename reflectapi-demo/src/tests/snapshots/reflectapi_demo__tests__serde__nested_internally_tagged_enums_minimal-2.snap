@@ -40,7 +40,7 @@ export namespace reflectapi_demo {
 
       export type V1 = {
         type: "A";
-        a: number /* u8 */;
+        a: number; /* u8 */
       };
     }
   }

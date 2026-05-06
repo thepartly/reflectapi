@@ -43,21 +43,21 @@ export namespace reflectapi_demo {
       export type V1 =
         | {
             type: "A";
-            a: number /* u8 */;
+            a: number; /* u8 */
           }
         | {
             type: "B";
-            b: number /* u16 */;
+            b: number; /* u16 */
           };
 
       export type V2 =
         | {
             type: "C";
-            c: number /* u32 */;
+            c: number; /* u32 */
           }
         | {
             type: "D";
-            d: number /* u64 */;
+            d: number; /* u64 */
           };
     }
   }

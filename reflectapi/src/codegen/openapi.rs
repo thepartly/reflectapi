@@ -449,7 +449,6 @@ impl Converter<'_> {
                             .iter()
                             .all(|tag| !self.config.exclude_tags.contains(tag))
                 })
-                .filter(|f| matches!(f.output_type, crate::OutputType::Complete { .. }))
                 .map(|f| {
                     (
                         format!("{}/{}", f.path(), f.name()),
@@ -462,22 +461,29 @@ impl Converter<'_> {
     }
 
     fn convert_function(&mut self, schema: &crate::Schema, f: &crate::Function) -> PathItem {
+        let (content_type, response_schema) = match f.output_type() {
+            crate::OutputType::Complete {
+                output_type: Some(ty),
+            } => (
+                "application/json",
+                self.convert_type_ref(schema, Kind::Output, ty),
+            ),
+            crate::OutputType::Complete { output_type: None } => (
+                "application/json",
+                Inline(Schema::Flat(FlatSchema::empty_object())),
+            ),
+            crate::OutputType::Stream { item_type } => (
+                "text/event-stream",
+                self.convert_type_ref(schema, Kind::Output, item_type),
+            ),
+        };
+
         let ok_response = Response {
             description: "200 OK".to_owned(),
             content: BTreeMap::from([(
-                "application/json".to_owned(),
+                content_type.to_owned(),
                 MediaType {
-                    schema: match f.output_type() {
-                        crate::OutputType::Complete {
-                            output_type: Some(ty),
-                        } => self.convert_type_ref(schema, Kind::Output, ty),
-                        crate::OutputType::Complete { output_type: None } => {
-                            Inline(Schema::Flat(FlatSchema::empty_object()))
-                        }
-                        crate::OutputType::Stream { .. } => {
-                            unreachable!("stream endpoints should be filtered out")
-                        }
-                    },
+                    schema: response_schema,
                 },
             )]),
         };

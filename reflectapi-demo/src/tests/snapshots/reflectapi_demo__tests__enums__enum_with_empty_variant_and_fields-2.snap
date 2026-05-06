@@ -39,7 +39,7 @@ export namespace reflectapi_demo {
       export type TestEnumWithEmptyVariantAndFields =
         | "Variant1"
         | {
-            Variant2: number /* u8 */;
+            Variant2: number; /* u8 */
           };
     }
   }

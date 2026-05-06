@@ -1,5 +1,11 @@
 pub struct Bytes {}
 
+impl Bytes {
+    pub fn new() -> Self {
+        unimplemented!()
+    }
+}
+
 impl std::ops::Deref for Bytes {
     type Target = [u8];
 

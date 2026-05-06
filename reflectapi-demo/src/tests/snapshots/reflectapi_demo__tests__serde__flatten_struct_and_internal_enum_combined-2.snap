@@ -48,7 +48,7 @@ export namespace reflectapi_demo {
         | {
             type: "Image";
             url: string;
-            width: number /* u32 */;
+            width: number; /* u32 */
           };
 
       export type Post = {

@@ -46,7 +46,7 @@ export namespace reflectapi_demo {
         | {
             kind: "delete_item";
             data: {
-              id: number /* u32 */;
+              id: number; /* u32 */
             };
           };
     }

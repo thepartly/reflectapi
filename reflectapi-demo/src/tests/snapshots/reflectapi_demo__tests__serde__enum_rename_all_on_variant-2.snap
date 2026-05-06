@@ -42,11 +42,11 @@ export namespace reflectapi_demo {
       export type TestEnumRenameAllOnVariant =
         | {
             Variant1: {
-              fieldName: number /* u8 */;
+              fieldName: number; /* u8 */
             };
           }
         | {
-            Variant2: number /* u8 */;
+            Variant2: number; /* u8 */
           };
     }
   }
