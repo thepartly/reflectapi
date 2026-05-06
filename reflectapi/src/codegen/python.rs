@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::LazyLock;
 
+use crate::codegen::schema as schema_codegen;
 use crate::{Schema, TypeReference};
 use reflectapi_schema::{Function, OutputType, Type};
-use reflectapi_schema_codegen as schema_codegen;
 
 /// Sanitize text for inclusion in a Python triple-quoted docstring.
 /// Escapes backslashes (which act as line continuation) and triple-quote

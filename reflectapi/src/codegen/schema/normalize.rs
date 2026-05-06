@@ -3,8 +3,8 @@
 /// This module provides the core normalization passes that transform
 /// the raw reflectapi_schema types into validated, immutable semantic
 /// representations with deterministic ordering and resolved dependencies.
-use crate::symbol::external_symbol_kind;
-use crate::{
+use super::symbol::external_symbol_kind;
+use super::{
     FieldStyle, ResolvedTypeReference, SchemaIds, SemanticEnum, SemanticField, SemanticFunction,
     SemanticOutputType, SemanticPrimitive, SemanticSchema, SemanticStruct, SemanticType,
     SemanticTypeParameter, SemanticVariant, SymbolId, SymbolInfo, SymbolKind, SymbolTable,
@@ -957,7 +957,7 @@ impl Normalizer {
         let mut schema = schema.clone();
 
         // Phase 0: Build compiler-owned ID table (side table, not on raw schema)
-        let schema_ids = crate::build_schema_ids(&schema);
+        let schema_ids = super::build_schema_ids(&schema);
         self.context.schema_ids = Some(schema_ids);
 
         // Capture original type names BEFORE the pipeline transforms them.
@@ -1853,8 +1853,8 @@ mod tests {
         schema.input_types.insert_type(user_struct.into());
 
         // Run twice — should produce identical results
-        let ids_first = crate::build_schema_ids(&schema);
-        let ids_second = crate::build_schema_ids(&schema);
+        let ids_first = super::super::build_schema_ids(&schema);
+        let ids_second = super::super::build_schema_ids(&schema);
 
         let user_id_first = ids_first.type_id("User");
         let user_id_second = ids_second.type_id("User");
@@ -1878,7 +1878,7 @@ mod tests {
         enm.variants = vec![variant, Variant::new("Inactive".into())];
         schema.input_types.insert_type(enm.into());
 
-        let ids = crate::build_schema_ids(&schema);
+        let ids = super::super::build_schema_ids(&schema);
 
         let enum_id = ids.type_id("Status");
         assert!(!enum_id.is_unknown(), "Enum should have a non-unknown id");
@@ -2216,7 +2216,7 @@ mod tests {
         // It should be a Struct kind, not a Variant kind
         assert_eq!(
             resolved_id.kind,
-            crate::SymbolKind::Struct,
+            super::super::SymbolKind::Struct,
             "Function's input_type should resolve to a Struct, not a Variant. Got: {resolved_id:?}"
         );
     }
@@ -2277,7 +2277,7 @@ mod tests {
         let symbol_info = found.unwrap();
         assert_eq!(
             symbol_info.kind,
-            crate::SymbolKind::Endpoint,
+            super::super::SymbolKind::Endpoint,
             "Symbol should be an Endpoint, got {:?}",
             symbol_info.kind
         );

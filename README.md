@@ -124,6 +124,33 @@ mdbook serve  # Opens at http://localhost:3000
 
 ### Releasing
 
+Pushing a `v*` tag triggers `.github/workflows/release.yml`, which:
+
+1. Verifies every package version matches the tag (`packaging.version` parses both Cargo SemVer and PEP 440 forms so the same tag covers both ecosystems).
+2. Publishes the four Rust crates to crates.io in dependency order — `reflectapi-schema` → `reflectapi-derive` → `reflectapi` → `reflectapi-cli` — using crates.io Trusted Publishing (OIDC, no `CARGO_REGISTRY_TOKEN` secret).
+3. Builds the pure-Python `reflectapi-runtime` and publishes to PyPI via Trusted Publishing.
+4. Cuts a GitHub Release with auto-generated notes; tags containing `alpha`, `beta`, or `rc` are flagged as pre-releases automatically.
+
+Both publishers run inside the `release` GitHub Environment, which is configured as a trusted publisher on each crate (crates.io) and on the `reflectapi-runtime` PyPI project.
+
+To cut a release, bump every version in lockstep and push the matching tag. The Cargo files use SemVer (`0.18.0-alpha.1`), `reflectapi-python-runtime/pyproject.toml` and `src/reflectapi_runtime/__init__.py` use PEP 440 (`0.18.0a1`):
+
+```fish
+# 1. Bump Cargo SemVer in all four crates.
+cargo release \
+    --exclude reflectapi-demo \
+    --exclude reflectapi-demo-client \
+    --exclude reflectapi-demo-client-generated \
+    minor --execute --no-publish --no-tag
+
+# 2. Bump the Python runtime (PEP 440 form) by hand:
+#    reflectapi-python-runtime/pyproject.toml         version = "..."
+#    reflectapi-python-runtime/src/reflectapi_runtime/__init__.py  __version__ = "..."
+
+# 3. Commit, tag, push:
+git commit -am "chore: <version>"
+git tag v<version>          # the `v` prefix is required
+git push origin main v<version>
 ```
-cargo release --exclude reflectapi-demo --exclude reflectapi-demo-client --exclude reflectapi-demo-client-generated minor --execute
-```
+
+For pre-releases use `--prerelease alpha` (or `beta` / `rc`) on `cargo release`; the Python equivalent is `0.18.0a1`, `0.18.0b1`, `0.18.0rc1`.

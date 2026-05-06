@@ -4,8 +4,8 @@
 /// They are NOT stored on raw schema types — raw types are the interchange
 /// format (JSON-serializable, derive-macro-produced). Instead, IDs are
 /// assigned here and passed to the normalizer as a side table.
-use crate::symbol::external_symbol_kind;
-use crate::{SymbolId, SymbolKind};
+use super::symbol::external_symbol_kind;
+use super::{SymbolId, SymbolKind};
 use reflectapi_schema::{Enum, Fields, Schema, Struct, Type, Typespace};
 use std::collections::HashMap;
 
