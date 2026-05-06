@@ -95,8 +95,8 @@ when the connection closes.
 | Output | Streaming client surface |
 |--------|--------------------------|
 | TypeScript | Method returns `Promise<Result<AsyncIterable<Item>, Err<Error>>>`; consume with `for await`. |
-| Rust | Method returns `reflectapi::rt::StreamResponse<Item, AppError, NetError>` (a `Result<BoxStream<Result<Item, _>>, _>`). |
-| Python | Method returns `AsyncIterator[Item]` on the async client and `Iterator[Item]` on the sync client; raises `ApplicationError` on init 4xx/5xx and `ValidationError` on a malformed event. |
+| Rust | Method returns `reflectapi::rt::StreamResponse<Item, AppError, NetError>`. The outer `Result` reports init failures (application or network); inner items report per-item transport/decode failures only — application errors cannot occur after the stream is open. Requires the `rt-sse` Cargo feature on the `reflectapi` dependency. |
+| Python | Method returns `AsyncIterator[Item]` on the async client and `Iterator[Item]` on the sync client. Init 4xx/5xx raise `ApplicationError` (with the typed `error_model` if declared); per-event problems raise `NetworkError` / `TimeoutError` / `ValidationError` and terminate the iterator without a leaked socket. |
 | OpenAPI | Operation is described with `text/event-stream` response content. |
 
 ## Shared Characteristics
