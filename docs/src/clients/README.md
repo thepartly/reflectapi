@@ -83,6 +83,22 @@ The demo repository includes extra project scaffolding around some generated cli
 - Supports optional tracing instrumentation through `--instrument`.
 - Generates serde-compatible types and request helpers for JSON-based transport.
 
+## Streaming Endpoints
+
+Endpoints registered with `Builder::stream_route` produce a stream of items
+rather than a single response. The wire format is Server-Sent Events: each
+item is sent as a `data: <json>\n\n` event. Errors raised before the stream
+opens are returned as a normal HTTP 4xx/5xx response, not as SSE events; the
+server does not emit heartbeats or end-of-stream markers, so streams end
+when the connection closes.
+
+| Output | Streaming client surface |
+|--------|--------------------------|
+| TypeScript | Method returns `Promise<Result<AsyncIterable<Item>, Err<Error>>>`; consume with `for await`. |
+| Rust | Method returns `reflectapi::rt::StreamResponse<Item, AppError, NetError>` (a `Result<BoxStream<Result<Item, _>>, _>`). |
+| Python | Method returns `AsyncIterator[Item]` on the async client and `Iterator[Item]` on the sync client; raises `ApplicationError` on init 4xx/5xx and `ValidationError` on a malformed event. |
+| OpenAPI | Operation is described with `text/event-stream` response content. |
+
 ## Shared Characteristics
 
 The generated clients all aim to provide:

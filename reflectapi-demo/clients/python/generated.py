@@ -10,6 +10,7 @@ from __future__ import annotations
 
 # Standard library imports
 import warnings
+from collections.abc import AsyncIterator, Iterator
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
@@ -527,6 +528,27 @@ class AsyncPetsClient:
     def __init__(self, client: AsyncClientBase) -> None:
         self._client = client
 
+    def cdc_events(
+        self,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> AsyncIterator[myapi.model.output.Pet]:
+        """Stream of change data capture events for pets
+
+        Returns:
+            AsyncIterator[myapi.model.output.Pet]: SSE stream of myapi.model.output.Pet items
+        """
+        path = "/pets.cdc-events"
+
+        params: dict[str, Any] = {}
+        return self._client._make_sse_request(
+            "POST",
+            path,
+            params=params if params else None,
+            headers_model=headers,
+            item_model=myapi.model.output.Pet,
+            error_model=None,
+        )
+
     async def create(
         self,
         data: Optional[myapi.model.input.Pet] = None,
@@ -737,6 +759,27 @@ class PetsClient:
 
     def __init__(self, client: ClientBase) -> None:
         self._client = client
+
+    def cdc_events(
+        self,
+        headers: Optional[myapi.proto.Headers] = None,
+    ) -> Iterator[myapi.model.output.Pet]:
+        """Stream of change data capture events for pets
+
+        Returns:
+            Iterator[myapi.model.output.Pet]: SSE stream of myapi.model.output.Pet items
+        """
+        path = "/pets.cdc-events"
+
+        params: dict[str, Any] = {}
+        return self._client._make_sse_request(
+            "POST",
+            path,
+            params=params if params else None,
+            headers_model=headers,
+            item_model=myapi.model.output.Pet,
+            error_model=None,
+        )
 
     def create(
         self,
