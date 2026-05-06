@@ -1,6 +1,6 @@
 [package]
 name = "reflectapi-schema-codegen"
-version = "0.17.1"
+version = "0.17.2-alpha.1"
 edition = "2021"
 
 license = "Apache-2.0"
@@ -17,5 +17,5 @@ categories = ["web-programming", "development-tools", "api-bindings"]
 workspace = true
 
 [dependencies]
-reflectapi-schema = { path = "../reflectapi-schema", version = "0.17.1" }
+reflectapi-schema = { path = "../reflectapi-schema", version = "0.17.2-alpha.1" }
 serde = { version = "1.0.197", features = ["derive"] }
