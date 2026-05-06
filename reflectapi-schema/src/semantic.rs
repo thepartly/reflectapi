@@ -49,9 +49,7 @@ pub struct SemanticFunction {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SemanticOutputType {
     Complete(Option<SymbolId>),
-    Stream {
-        item_type: SymbolId,
-    },
+    Stream { item_type: SymbolId },
 }
 
 /// Resolved type definition with semantic validation

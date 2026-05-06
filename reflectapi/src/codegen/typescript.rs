@@ -740,12 +740,8 @@ fn client_impl_from_function_group(
 }
 
 enum FunctionOutput {
-    Single {
-        output_type: String,
-    },
-    Stream {
-        item_type: String,
-    },
+    Single { output_type: String },
+    Stream { item_type: String },
 }
 
 struct FunctionSignature {

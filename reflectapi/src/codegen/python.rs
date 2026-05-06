@@ -2595,7 +2595,7 @@ fn render_internally_tagged_enum_core(
 
                 // Get the inner type definition from schema
                 let inner_type_def = schema.get_type(inner_type_name).ok_or_else(|| {
-                    anyhow::anyhow!("Type {} not found in schema", inner_type_name)
+                    anyhow::anyhow!("Type {inner_type_name} not found in schema")
                 })?;
 
                 // The inner type must be a struct for flattening to work

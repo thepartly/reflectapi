@@ -970,12 +970,8 @@ fn __function_groups_from_function_names(function_names: Vec<String>) -> __Funct
 }
 
 enum __FunctionOutput {
-    Complete {
-        output_type: String,
-    },
-    Stream {
-        item_type: String,
-    },
+    Complete { output_type: String },
+    Stream { item_type: String },
 }
 
 struct __FunctionSignature {
@@ -1170,8 +1166,8 @@ fn __interface_types_from_function_group(
                     error_type: sig.error_type,
                 })
             }
-            __FunctionOutput::Stream { item_type } => {
-                templates::__FunctionImpl::Stream(templates::__StreamFunctionImplementationTemplate {
+            __FunctionOutput::Stream { item_type } => templates::__FunctionImpl::Stream(
+                templates::__StreamFunctionImplementationTemplate {
                     name,
                     deprecation_note,
                     attributes,
@@ -1181,8 +1177,8 @@ fn __interface_types_from_function_group(
                     input_headers: sig.input_headers,
                     item_type,
                     error_type: sig.error_type,
-                })
-            }
+                },
+            ),
         };
         interface_implementation.functions.push(func_impl);
     }
