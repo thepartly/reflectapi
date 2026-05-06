@@ -9,11 +9,10 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::TestEnumUntagged"
+        "name": "reflectapi_demo::tests::serde::Either"
       },
-      "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::TestEnumUntagged"
+        "name": "reflectapi_demo::tests::serde::Either"
       },
       "serialization": [
         "json",
@@ -31,11 +30,11 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::serde::TestEnumUntagged",
-        "representation": "none",
+        "name": "reflectapi_demo::tests::serde::Either",
         "variants": [
           {
-            "name": "Variant1",
+            "name": "Left",
+            "description": "Left variant documentation",
             "fields": {
               "unnamed": [
                 {
@@ -49,13 +48,14 @@ expression: schema
             }
           },
           {
-            "name": "Variant2",
+            "name": "Right",
+            "description": "Right variant documentation",
             "fields": {
-              "named": [
+              "unnamed": [
                 {
-                  "name": "field_name",
+                  "name": "0",
                   "type": {
-                    "name": "u8"
+                    "name": "std::string::String"
                   },
                   "required": true
                 }
@@ -63,6 +63,11 @@ expression: schema
             }
           }
         ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
       },
       {
         "kind": "primitive",
@@ -81,11 +86,11 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi_demo::tests::serde::TestEnumUntagged",
-        "representation": "none",
+        "name": "reflectapi_demo::tests::serde::Either",
         "variants": [
           {
-            "name": "Variant1",
+            "name": "Left",
+            "description": "Left variant documentation",
             "fields": {
               "unnamed": [
                 {
@@ -99,13 +104,14 @@ expression: schema
             }
           },
           {
-            "name": "Variant2",
+            "name": "Right",
+            "description": "Right variant documentation",
             "fields": {
-              "named": [
+              "unnamed": [
                 {
-                  "name": "field_name",
+                  "name": "0",
                   "type": {
-                    "name": "u8"
+                    "name": "std::string::String"
                   },
                   "required": true
                 }
@@ -113,6 +119,11 @@ expression: schema
             }
           }
         ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
       },
       {
         "kind": "primitive",

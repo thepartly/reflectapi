@@ -28,6 +28,7 @@ libreflectapi.rlib: libserde.rlib \
                     libbytes.rlib \
                     libhttp.rlib \
                     liburl.rlib \
+                    libfutures_util.rlib \
                     reflectapi.rs
 	$(RUSTC) --edition 2021 --crate-type=rlib --crate-name=reflectapi --emit=metadata,link -L . \
 		--extern serde=libserde.rlib \
@@ -35,6 +36,7 @@ libreflectapi.rlib: libserde.rlib \
 		--extern bytes=libbytes.rlib \
 		--extern http=libhttp.rlib \
 		--extern url=liburl.rlib \
+		--extern futures_util=libfutures_util.rlib \
 		reflectapi.rs
 
 libserde.rlib: libserde_derive.rmeta libserde_derive.so

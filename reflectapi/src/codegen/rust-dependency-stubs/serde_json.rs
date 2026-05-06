@@ -22,11 +22,25 @@ pub fn to_value<T>(_value: &T) -> Result<Value, Error> {
     unimplemented!()
 }
 
-#[derive(Debug, PartialEq, Eq)]
+pub fn from_str<T>(_s: &str) -> Result<T, Error> {
+    unimplemented!()
+}
+
+pub fn from_value<T>(_value: Value) -> Result<T, Error> {
+    unimplemented!()
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     Null,
     String(String),
     Object(std::collections::HashMap<String, Value>),
+}
+
+impl Value {
+    pub fn get(&self, _key: &str) -> Option<&Value> {
+        unimplemented!()
+    }
 }
 
 impl core::fmt::Display for Value {

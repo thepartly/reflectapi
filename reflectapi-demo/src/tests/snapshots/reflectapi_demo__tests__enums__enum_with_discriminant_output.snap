@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/enums.rs
-expression: "super::into_output_schema::<TestEnumWithDiscriminant>().output_types"
+expression: "super :: into_output_schema :: < TestEnumWithDiscriminant > ().output_types"
 ---
 {
   "types": [

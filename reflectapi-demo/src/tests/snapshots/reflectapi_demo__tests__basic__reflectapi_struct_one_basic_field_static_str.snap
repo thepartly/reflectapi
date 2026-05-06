@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "super::into_output_schema::<TestStructOneBasicFieldStaticStr>().output_types"
+expression: "super :: into_output_schema :: < TestStructOneBasicFieldStaticStr >\n().output_types"
 ---
 {
   "types": [

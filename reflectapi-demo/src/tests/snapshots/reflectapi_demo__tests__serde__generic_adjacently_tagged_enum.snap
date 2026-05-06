@@ -16,6 +16,7 @@ expression: schema
           }
         ]
       },
+      "output_kind": "complete",
       "output_type": {
         "name": "reflectapi_demo::tests::serde::Tagged",
         "arguments": [

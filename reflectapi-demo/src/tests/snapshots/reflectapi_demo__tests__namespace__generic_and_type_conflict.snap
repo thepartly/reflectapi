@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/namespace.rs
 expression: schema
-snapshot_kind: text
 ---
 {
   "name": "",
@@ -22,6 +21,7 @@ snapshot_kind: text
           }
         ]
       },
+      "output_kind": "complete",
       "output_type": {
         "name": "reflectapi_demo::tests::namespace::K",
         "arguments": [

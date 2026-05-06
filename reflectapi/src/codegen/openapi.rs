@@ -461,22 +461,36 @@ impl Converter<'_> {
     }
 
     fn convert_function(&mut self, schema: &crate::Schema, f: &crate::Function) -> PathItem {
+        let (content_type, response_schema) = match f.output_type() {
+            crate::OutputType::Complete {
+                output_type: Some(ty),
+            } => (
+                "application/json",
+                self.convert_type_ref(schema, Kind::Output, ty),
+            ),
+            crate::OutputType::Complete { output_type: None } => (
+                "application/json",
+                Inline(Schema::Flat(FlatSchema::empty_object())),
+            ),
+            crate::OutputType::Stream { item_type } => (
+                "text/event-stream",
+                self.convert_type_ref(schema, Kind::Output, item_type),
+            ),
+        };
+
         let ok_response = Response {
             description: "200 OK".to_owned(),
             content: BTreeMap::from([(
-                "application/json".to_owned(),
+                content_type.to_owned(),
                 MediaType {
-                    schema: f.output_type().map_or_else(
-                        || Inline(Schema::Flat(FlatSchema::empty_object())),
-                        |ty| self.convert_type_ref(schema, Kind::Output, ty),
-                    ),
+                    schema: response_schema,
                 },
             )]),
         };
 
         let mut responses = BTreeMap::new();
         responses.insert("200".to_owned(), ok_response);
-        if let Some(err) = f.error_type() {
+        if let Some(err) = f.error_type.as_ref() {
             let err_response = Response {
                 description: "Error cases".to_owned(),
                 content: BTreeMap::from([(
