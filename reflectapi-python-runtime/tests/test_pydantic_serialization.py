@@ -169,7 +169,8 @@ class TestClientBasePydanticSerialization:
         call_args = mock_client.build_request.call_args
         assert call_args[1]["json"] == {"name": "Dictionary User", "age": 35}
         assert "content" not in call_args[1]
-        assert "headers" not in call_args[1]
+        # Either omitted, or explicitly None — both mean "no headers".
+        assert call_args[1].get("headers") is None
 
     def test_make_request_with_params_and_pydantic_model(self, mock_httpx_client):
         """Test making a request with both query params and Pydantic model."""

@@ -28,3 +28,13 @@ jobs:
       - run: cargo fmt -- --check
       - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo test --workspace
+
+  python-runtime:
+    name: Python runtime tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Run tests
+        working-directory: reflectapi-python-runtime
+        run: uv run --extra dev pytest -q --no-cov

@@ -1,0 +1,215 @@
+name: Release
+
+# Adapted from https://github.com/thepartly/awa release.yml.
+#
+# Triggered by pushing a `v*` tag (e.g. `v0.17.2`, `v0.18.0-alpha.1`).
+# Stable tags publish full releases; tags containing `alpha`, `beta`, or
+# `rc` are marked as GitHub pre-releases automatically.
+#
+# All publish jobs depend on `version-check`, which fails fast if the tag
+# disagrees with any Cargo.toml or pyproject.toml in the repo. That stops
+# us from shipping mismatched crate/wheel versions.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  # ─── Version-consistency gate ────────────────────────────────────────
+  # Fails if the git tag, the Rust workspace versions, or the Python
+  # runtime version disagree. Everything else needs this job.
+  version-check:
+    name: Verify version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag matches all package versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, sys, tomllib
+
+          expected = os.environ["GITHUB_REF_NAME"].removeprefix("v")
+          print(f"Git tag:          {os.environ['GITHUB_REF_NAME']}")
+          print(f"Expected version: {expected}")
+
+          def cargo_version(path: str) -> str | None:
+              with open(path, "rb") as f:
+                  data = tomllib.load(f)
+              return (
+                  data.get("package", {}).get("version")
+                  or data.get("workspace", {}).get("package", {}).get("version")
+              )
+
+          def pyproject_version(path: str) -> str | None:
+              with open(path, "rb") as f:
+                  data = tomllib.load(f)
+              return data.get("project", {}).get("version")
+
+          checks = [
+              ("reflectapi/Cargo.toml", cargo_version("reflectapi/Cargo.toml")),
+              ("reflectapi-derive/Cargo.toml", cargo_version("reflectapi-derive/Cargo.toml")),
+              ("reflectapi-schema/Cargo.toml", cargo_version("reflectapi-schema/Cargo.toml")),
+              ("reflectapi-schema-codegen/Cargo.toml", cargo_version("reflectapi-schema-codegen/Cargo.toml")),
+              ("reflectapi-cli/Cargo.toml", cargo_version("reflectapi-cli/Cargo.toml")),
+              ("reflectapi-python-runtime/pyproject.toml", pyproject_version("reflectapi-python-runtime/pyproject.toml")),
+          ]
+
+          fail = 0
+          for file, value in checks:
+              if value is None:
+                  print(f"::error file={file}::could not read version from {file}")
+                  fail = 1
+              elif value != expected:
+                  print(f"::error file={file}::version mismatch: {file} says '{value}', tag says '{expected}'")
+                  fail = 1
+              else:
+                  print(f"ok: {file} = {value}")
+
+          sys.exit(fail)
+          PY
+
+  # ─── Publish Rust crates to crates.io ────────────────────────────────
+  # Uses crates.io Trusted Publishing (OIDC) — no long-lived
+  # CARGO_REGISTRY_TOKEN in the repo. Each crate must be configured on
+  # crates.io to trust this repo + workflow + the `release` environment
+  # (https://crates.io/docs/trusted-publishing).
+  #
+  # Order matters: a crate must be on the index before anything that
+  # depends on it can be published. The `sleep` between steps lets the
+  # index propagate after a successful publish.
+  #
+  # The token from crates-io-auth-action is short-lived (~30 min), so
+  # we re-mint it per crate to stay safe across the inter-publish waits.
+  publish-crates:
+    name: Publish to crates.io
+    needs: [version-check]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth-schema
+      - name: Publish reflectapi-schema
+        run: cargo publish --package reflectapi-schema --no-verify
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth-schema.outputs.token }}
+
+      - run: sleep 30
+
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth-derive
+      - name: Publish reflectapi-derive
+        run: cargo publish --package reflectapi-derive --no-verify
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth-derive.outputs.token }}
+
+      - run: sleep 30
+
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth-schema-codegen
+      - name: Publish reflectapi-schema-codegen
+        run: cargo publish --package reflectapi-schema-codegen --no-verify
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth-schema-codegen.outputs.token }}
+
+      - run: sleep 30
+
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth-reflectapi
+      - name: Publish reflectapi
+        run: cargo publish --package reflectapi --no-verify
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth-reflectapi.outputs.token }}
+
+      - run: sleep 30
+
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth-cli
+      - name: Publish reflectapi-cli
+        run: cargo publish --package reflectapi-cli --no-verify
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth-cli.outputs.token }}
+
+  # ─── Build the Python runtime sdist + wheel ─────────────────────────
+  # `reflectapi-runtime` is pure Python (hatchling), so a single wheel
+  # works on all platforms. We still build an sdist for completeness.
+  python-build:
+    name: Build Python runtime
+    needs: [version-check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build sdist + wheel
+        working-directory: reflectapi-python-runtime
+        run: |
+          python -m pip install --upgrade build
+          python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-runtime-dist
+          path: reflectapi-python-runtime/dist/*
+
+  # ─── Publish Python runtime to PyPI ─────────────────────────────────
+  # Uses PyPI Trusted Publishing (OIDC) — no API token in the repo.
+  # Requires the `release` environment to be configured in repo settings
+  # with PyPI as the trusted publisher.
+  publish-pypi:
+    name: Publish reflectapi-runtime to PyPI
+    needs: [python-build]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-runtime-dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  # ─── Publish a GitHub Release ───────────────────────────────────────
+  # Auto-generates release notes from commits/PRs since the previous tag.
+  # Pre-release tags (alpha/beta/rc) are flagged accordingly.
+  github-release:
+    name: GitHub Release
+    needs: [publish-crates, publish-pypi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-runtime-dist
+          path: dist/
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          prerelease_flag=""
+          if echo "$tag" | grep -qE 'alpha|beta|rc'; then
+            prerelease_flag="--prerelease"
+          fi
+          if ! gh release view "$tag" --json tagName >/dev/null 2>&1; then
+            gh release create "$tag" --title "$tag" --generate-notes $prerelease_flag
+          fi
+          for f in dist/*.tar.gz dist/*.whl; do
+            [ -e "$f" ] && gh release upload "$tag" "$f" --clobber
+          done
