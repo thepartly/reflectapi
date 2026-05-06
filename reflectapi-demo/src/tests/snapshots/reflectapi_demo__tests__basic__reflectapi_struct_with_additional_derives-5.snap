@@ -26,8 +26,6 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsBasicTest(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     us: list[None]
@@ -36,14 +34,10 @@ class ReflectapiDemoTestsBasicTest(BaseModel):
 
 
 class ReflectapiDemoTestsBasicX(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
 class ReflectapiDemoTestsBasicY(str, Enum):
-    """Generated enum."""
-
     Y = "Y"
 
 
@@ -155,10 +149,12 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.basic.Test.model_rebuild()
-    reflectapi_demo.tests.basic.X.model_rebuild()
-    reflectapi_demo.tests.basic.Y.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
-    pass
+for _model in [
+    ReflectapiDemoTestsBasicTest,
+    ReflectapiDemoTestsBasicX,
+    ReflectapiDemoTestsBasicY,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

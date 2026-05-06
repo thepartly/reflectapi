@@ -25,8 +25,6 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeDocument(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     title: str
@@ -37,8 +35,6 @@ class ReflectapiDemoTestsSerdeDocument(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeMetadata(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     author: str
@@ -46,8 +42,6 @@ class ReflectapiDemoTestsSerdeMetadata(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeTimestamps(BaseModel):
-    """Generated data model."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     created_at: str
@@ -162,10 +156,12 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
-try:
-    reflectapi_demo.tests.serde.Document.model_rebuild()
-    reflectapi_demo.tests.serde.Metadata.model_rebuild()
-    reflectapi_demo.tests.serde.Timestamps.model_rebuild()
-except AttributeError:
-    # Some types may not have model_rebuild method
-    pass
+for _model in [
+    ReflectapiDemoTestsSerdeDocument,
+    ReflectapiDemoTestsSerdeMetadata,
+    ReflectapiDemoTestsSerdeTimestamps,
+]:
+    try:
+        _model.model_rebuild()
+    except Exception:
+        pass

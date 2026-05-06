@@ -170,7 +170,6 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
         codegen_config: reflectapi_schema::LanguageSpecificTypeCodegenConfig,
     ) -> Struct {
         Struct {
-            id: Default::default(),
             name: type_def_name,
             serde_name,
             description: type_def_description,
@@ -385,7 +384,6 @@ fn visit_variant(
     };
 
     Variant {
-        id: Default::default(),
         name: variant_def_name,
         serde_name,
         description: parse_doc_attributes(&variant.original.attrs),
