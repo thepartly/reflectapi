@@ -2,6 +2,11 @@ mod format;
 pub mod openapi;
 pub mod python;
 pub mod rust;
+// Compiler-only helpers (symbol identity, schema-ID assignment,
+// normalization, semantic IR). Used by Python codegen today, available
+// to other backends; intentionally not re-exported as part of
+// `reflectapi`'s public API so the IR can keep evolving.
+pub(crate) mod schema;
 pub mod typescript;
 
 use std::{

@@ -6,7 +6,7 @@
 /// - Fully resolved (no dangling references)
 /// - Semantically consistent (no conflicting definitions)
 /// - Deterministically ordered (BTreeMap/BTreeSet for stable output)
-use crate::SymbolId;
+use super::SymbolId;
 use reflectapi_schema::{LanguageSpecificTypeCodegenConfig, Representation, SerializationMode};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -205,7 +205,7 @@ pub struct SymbolInfo {
     pub id: SymbolId,
     pub name: String,
     pub path: Vec<String>,
-    pub kind: crate::SymbolKind,
+    pub kind: super::SymbolKind,
 
     /// Whether this symbol is fully resolved
     pub resolved: bool,
@@ -247,7 +247,7 @@ impl SymbolTable {
     /// Get all symbols of a specific kind
     pub fn get_by_kind<'a>(
         &'a self,
-        kind: &'a crate::SymbolKind,
+        kind: &'a super::SymbolKind,
     ) -> impl Iterator<Item = &'a SymbolInfo> + 'a {
         self.symbols.values().filter(move |info| &info.kind == kind)
     }
@@ -407,8 +407,8 @@ impl ResolvedTypeReference {
     pub fn is_primitive(&self, symbol_table: &SymbolTable) -> bool {
         symbol_table
             .get(&self.target)
-            .map(|info| matches!(info.kind, crate::SymbolKind::Primitive))
-            .unwrap_or(matches!(self.target.kind, crate::SymbolKind::Primitive))
+            .map(|info| matches!(info.kind, super::SymbolKind::Primitive))
+            .unwrap_or(matches!(self.target.kind, super::SymbolKind::Primitive))
     }
 
     /// Check if this is a generic type (has arguments)
@@ -419,8 +419,8 @@ impl ResolvedTypeReference {
 
 #[cfg(test)]
 mod tests {
+    use super::super::{SymbolId, SymbolKind};
     use super::*;
-    use crate::{SymbolId, SymbolKind};
 
     #[test]
     fn test_symbol_table_basic_operations() {

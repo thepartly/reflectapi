@@ -74,7 +74,6 @@ jobs:
               ("reflectapi/Cargo.toml", cargo_version("reflectapi/Cargo.toml")),
               ("reflectapi-derive/Cargo.toml", cargo_version("reflectapi-derive/Cargo.toml")),
               ("reflectapi-schema/Cargo.toml", cargo_version("reflectapi-schema/Cargo.toml")),
-              ("reflectapi-schema-codegen/Cargo.toml", cargo_version("reflectapi-schema-codegen/Cargo.toml")),
               ("reflectapi-cli/Cargo.toml", cargo_version("reflectapi-cli/Cargo.toml")),
               ("reflectapi-python-runtime/pyproject.toml", pyproject_version("reflectapi-python-runtime/pyproject.toml")),
           ]
@@ -138,15 +137,6 @@ jobs:
         run: cargo publish --package reflectapi-derive --no-verify
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth-derive.outputs.token }}
-
-      - run: sleep 30
-
-      - uses: rust-lang/crates-io-auth-action@v1
-        id: auth-schema-codegen
-      - name: Publish reflectapi-schema-codegen
-        run: cargo publish --package reflectapi-schema-codegen --no-verify
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.auth-schema-codegen.outputs.token }}
 
       - run: sleep 30
 
