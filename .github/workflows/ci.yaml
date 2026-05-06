@@ -37,4 +37,4 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - name: Run tests
         working-directory: reflectapi-python-runtime
-        run: uv run --extra dev pytest -q
+        run: uv run --extra dev pytest -q --no-cov

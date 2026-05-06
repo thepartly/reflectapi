@@ -113,6 +113,18 @@ if HAS_HYPOTHESIS:
         if isinstance(type_hint, type) and issubclass(type_hint, BaseModel):
             return strategy_for_pydantic_model(type_hint)
 
+        # Bare builtin collections (`dict`, `list`, `tuple`, `set`) without
+        # type args fall through above because `get_origin(dict) is None`.
+        # `st.none()` would generate `None` here, which Pydantic rejects.
+        if type_hint is dict:
+            return st.dictionaries(st.text(), st.text(), max_size=10)
+        if type_hint is list:
+            return st.lists(st.text(), max_size=10)
+        if type_hint is tuple:
+            return st.tuples()
+        if type_hint is set:
+            return st.sets(st.text(), max_size=10)
+
         # Fallback for unknown types
         return st.none()
 

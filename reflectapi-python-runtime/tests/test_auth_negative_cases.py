@@ -58,7 +58,7 @@ class TestAuthHandlerEdgeCases:
         request.headers = {}
 
         # This will set Authorization header to "Bearer None"
-        auth.auth_flow(request)
+        next(auth.auth_flow(request))
         assert request.headers["Authorization"] == "Bearer None"
 
     def test_bearer_token_with_non_string_token(self):
@@ -69,7 +69,7 @@ class TestAuthHandlerEdgeCases:
         request = Mock()
         request.headers = {}
 
-        auth.auth_flow(request)
+        next(auth.auth_flow(request))
         assert request.headers["Authorization"] == "Bearer 123"
 
         # Test with list
@@ -77,7 +77,7 @@ class TestAuthHandlerEdgeCases:
         request2 = Mock()
         request2.headers = {}
 
-        auth2.auth_flow(request2)
+        next(auth2.auth_flow(request2))
         assert request2.headers["Authorization"] == "Bearer ['token']"
 
     def test_bearer_token_with_whitespace_token(self):
@@ -89,7 +89,7 @@ class TestAuthHandlerEdgeCases:
             request = Mock()
             request.headers = {}
 
-            auth.auth_flow(request)
+            next(auth.auth_flow(request))
             assert request.headers["Authorization"] == f"Bearer {token}"
 
     def test_api_key_auth_with_invalid_parameters(self):
@@ -100,14 +100,14 @@ class TestAuthHandlerEdgeCases:
         request1 = Mock()
         request1.headers = {}
 
-        auth1.auth_flow(request1)
+        next(auth1.auth_flow(request1))
         assert request1.headers["X-API-Key"] is None
 
         auth2 = APIKeyAuth("key", None)
         request2 = Mock()
         request2.headers = {}
 
-        auth2.auth_flow(request2)
+        next(auth2.auth_flow(request2))
         assert request2.headers[None] == "key"
 
         # Empty strings should be allowed but unusual
@@ -115,7 +115,7 @@ class TestAuthHandlerEdgeCases:
         request = Mock()
         request.headers = {}
 
-        auth.auth_flow(request)
+        next(auth.auth_flow(request))
         assert "" in request.headers
 
     def test_basic_auth_with_invalid_credentials(self):
@@ -145,7 +145,7 @@ class TestAuthHandlerEdgeCases:
             request = Mock()
             request.headers = {}
 
-            auth.auth_flow(request)
+            next(auth.auth_flow(request))
             assert "Authorization" in request.headers
             assert request.headers["Authorization"].startswith("Basic ")
 
@@ -365,7 +365,7 @@ class TestAuthSecurityEdgeCases:
             request = Mock()
             request.headers = {}
 
-            auth.auth_flow(request)
+            next(auth.auth_flow(request))
 
             # Should only set Authorization header
             assert len(request.headers) == 1
@@ -386,7 +386,7 @@ class TestAuthSecurityEdgeCases:
             request = Mock()
             request.headers = {}
 
-            auth.auth_flow(request)
+            next(auth.auth_flow(request))
 
             # Should only set the API key header
             assert "X-API-Key" in request.headers
@@ -408,7 +408,7 @@ class TestAuthSecurityEdgeCases:
             request = Mock()
             request.headers = {}
 
-            auth.auth_flow(request)
+            next(auth.auth_flow(request))
 
             auth_header = request.headers["Authorization"]
             assert auth_header.startswith("Basic ")
@@ -498,7 +498,7 @@ class TestConcurrentAuthEdgeCases:
             try:
                 request = Mock()
                 request.headers = {}
-                auth.auth_flow(request)
+                next(auth.auth_flow(request))
                 results.put(request.headers.get("Authorization"))
             except Exception as e:
                 errors.put(e)

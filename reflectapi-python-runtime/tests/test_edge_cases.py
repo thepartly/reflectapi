@@ -420,7 +420,7 @@ class TestAuthEdgeCases:
         # Should still work, just send empty Authorization header
         request = Mock()
         request.headers = {}
-        auth.auth_flow(request)
+        next(auth.auth_flow(request))
         assert request.headers.get("Authorization") == "Bearer "
 
     def test_bearer_token_with_special_characters(self):
@@ -430,7 +430,7 @@ class TestAuthEdgeCases:
 
         request = Mock()
         request.headers = {}
-        auth.auth_flow(request)
+        next(auth.auth_flow(request))
         assert request.headers["Authorization"] == f"Bearer {special_token}"
 
     def test_api_key_auth_with_empty_values(self):
@@ -439,7 +439,7 @@ class TestAuthEdgeCases:
 
         request = Mock()
         request.headers = {}
-        auth.auth_flow(request)
+        next(auth.auth_flow(request))
 
         # Should set empty header
         assert "" in request.headers
@@ -452,7 +452,7 @@ class TestAuthEdgeCases:
 
         request = Mock()
         request.headers = {}
-        auth.auth_flow(request)
+        next(auth.auth_flow(request))
 
         # Should properly encode special characters
         assert "Authorization" in request.headers
