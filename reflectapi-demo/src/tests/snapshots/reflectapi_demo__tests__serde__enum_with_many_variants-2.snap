@@ -41,7 +41,7 @@ export namespace reflectapi_demo {
         | { type: "Beta" }
         | {
             type: "Gamma";
-            x: number; /* i32 */
+            x: number /* i32 */;
           }
         | {
             type: "Delta";
@@ -55,18 +55,18 @@ export namespace reflectapi_demo {
         | { type: "Eta" }
         | {
             type: "Theta";
-            value: number; /* u32 */
+            value: number /* u32 */;
           }
         | { type: "Iota" }
         | {
             type: "Kappa";
-            z: number; /* f64 */
+            z: number /* f64 */;
           }
         | { type: "Lambda" }
         | {
             type: "Mu";
             w: string;
-            v: number; /* i32 */
+            v: number /* i32 */;
           };
     }
   }

@@ -39,7 +39,7 @@ export namespace reflectapi_demo {
       export type Test =
         | {
             type: "Variant1";
-            field_name: number; /* u8 */
+            field_name: number /* u8 */;
           }
         | string;
     }

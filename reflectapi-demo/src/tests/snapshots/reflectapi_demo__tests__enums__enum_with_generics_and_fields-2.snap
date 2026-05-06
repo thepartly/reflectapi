@@ -38,7 +38,7 @@ export namespace reflectapi_demo {
     export namespace enums {
       export type TestEnumWithGenericsAndFields<T> =
         | {
-            Variant1: number; /* u8 */
+            Variant1: number /* u8 */;
           }
         | {
             Variant2: [T, T];

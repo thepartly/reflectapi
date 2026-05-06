@@ -42,7 +42,7 @@ export namespace reflectapi_demo {
 
       export type Value =
         | {
-            value: number; /* f64 */
+            value: number /* f64 */;
           }
         | {
             text: string;

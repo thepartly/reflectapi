@@ -50,7 +50,7 @@ export namespace reflectapi_demo {
         | {
             kind: "Binary";
             data: {
-              size: number; /* u32 */
+              size: number /* u32 */;
             };
           };
     }

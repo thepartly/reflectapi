@@ -40,7 +40,7 @@ export namespace reflectapi_demo {
         | {
             type: "Variant1";
             content: {
-              field_name: number; /* u8 */
+              field_name: number /* u8 */;
             };
           }
         | { type: "Variant2"; content: number /* u8 */ };

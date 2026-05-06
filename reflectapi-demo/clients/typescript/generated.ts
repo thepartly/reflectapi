@@ -321,7 +321,9 @@ class ClientInstance {
 }
 
 type UnionToIntersection<U> = (
-  U extends any ? (k: U) => unknown : never
+  U extends any
+    ? (k: U) => unknown
+    : never
 ) extends (k: infer I) => void
   ? I
   : never;
@@ -740,7 +742,7 @@ export namespace myapi {
           /**
            * lives left
            */
-          lives: number; /* u8 */
+          lives: number /* u8 */;
         }
       /**
        * Test for unit variants in internally tagged enums

@@ -43,13 +43,13 @@ export namespace reflectapi_demo {
       export type Shape =
         | {
             Circle: {
-              radius: number; /* f64 */
+              radius: number /* f64 */;
             };
           }
         | {
             Rect: {
               width: number /* f64 */;
-              height: number; /* f64 */
+              height: number /* f64 */;
             };
           };
     }

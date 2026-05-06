@@ -41,7 +41,7 @@ export namespace reflectapi_demo {
     export namespace serde {
       export type TestEnumRenameVariantField = {
         Variant2: {
-          variant2_field_name: number; /* u8 */
+          variant2_field_name: number /* u8 */;
         };
       };
     }

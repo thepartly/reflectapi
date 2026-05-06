@@ -123,10 +123,16 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
 
     let mut generated_code = generated_code.join("\n");
     if config.format {
+        // NOTE: When updating the biome version, also update .github/workflows/ci.yaml
+        let biome_package = "@biomejs/biome@1.8.3";
         generated_code = format_with(
             // In descending order of speed. The output should be the same.
             [
                 Command::new("biome").args(["format", "--stdin-file-path", "dummy.ts"]),
+                Command::new("npx")
+                    .arg("-y")
+                    .arg(biome_package)
+                    .args(["format", "--stdin-file-path", "dummy.ts"]),
                 Command::new("prettier").args(["--parser", "typescript"]),
                 Command::new("npx")
                     .arg("-y")
