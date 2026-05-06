@@ -1,6 +1,6 @@
 [package]
 name = "reflectapi"
-version = "0.17.0"
+version = "0.17.1"
 edition = "2021"
 
 license = "Apache-2.0"
@@ -20,9 +20,9 @@ workspace = true
 
 [dependencies]
 # workspace dependencies
-reflectapi-derive = { path = "../reflectapi-derive", version = "0.17.0" }
-reflectapi-schema = { path = "../reflectapi-schema", version = "0.17.0" }
-reflectapi-schema-codegen = { path = "../reflectapi-schema-codegen", version = "0.17.0", optional = true }
+reflectapi-derive = { path = "../reflectapi-derive", version = "0.17.1" }
+reflectapi-schema = { path = "../reflectapi-schema", version = "0.17.1" }
+reflectapi-schema-codegen = { path = "../reflectapi-schema-codegen", version = "0.17.1", optional = true }
 
 # mandatory 3rd party dependencies
 serde = { version = "1.0.197", features = ["derive"] }
