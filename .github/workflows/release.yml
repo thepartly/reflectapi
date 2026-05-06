@@ -31,15 +31,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Tag matches all package versions
         shell: bash
+        # SemVer (Cargo) and PEP 440 (Python) spell pre-releases
+        # differently — `0.17.2-alpha.1` vs `0.17.2a1`. We compare both
+        # against the tag using `packaging.version.Version`, which
+        # accepts both forms and normalises before equality.
         run: |
           set -euo pipefail
+          python3 -m pip install --quiet packaging
           python3 - <<'PY'
           import os, sys, tomllib
+          from packaging.version import InvalidVersion, Version
 
-          expected = os.environ["GITHUB_REF_NAME"].removeprefix("v")
-          print(f"Git tag:          {os.environ['GITHUB_REF_NAME']}")
+          tag = os.environ["GITHUB_REF_NAME"]
+          expected_str = tag.removeprefix("v")
+          try:
+              expected = Version(expected_str)
+          except InvalidVersion as e:
+              print(f"::error::tag '{tag}' is not a valid version: {e}")
+              sys.exit(1)
+          print(f"Git tag:          {tag}")
           print(f"Expected version: {expected}")
 
           def cargo_version(path: str) -> str | None:
@@ -65,15 +80,22 @@ jobs:
           ]
 
           fail = 0
-          for file, value in checks:
-              if value is None:
+          for file, raw in checks:
+              if raw is None:
                   print(f"::error file={file}::could not read version from {file}")
                   fail = 1
-              elif value != expected:
-                  print(f"::error file={file}::version mismatch: {file} says '{value}', tag says '{expected}'")
+                  continue
+              try:
+                  parsed = Version(raw)
+              except InvalidVersion as e:
+                  print(f"::error file={file}::'{raw}' is not a valid version: {e}")
+                  fail = 1
+                  continue
+              if parsed != expected:
+                  print(f"::error file={file}::version mismatch: {file} says '{raw}' ({parsed}), tag says '{expected_str}' ({expected})")
                   fail = 1
               else:
-                  print(f"ok: {file} = {value}")
+                  print(f"ok: {file} = {raw}")
 
           sys.exit(fail)
           PY
