@@ -58,13 +58,9 @@ async function main() {
 
     const received: string[] = [];
     const streamDone = (async () => {
-        try {
-            for await (const pet of streamResult.unwrap_ok()) {
-                console.log('received event:', pet.name, JSON.stringify(pet.kind));
-                received.push(pet.name);
-            }
-        } catch (e: any) {
-            if (e.name !== 'AbortError') throw e;
+        for await (const pet of streamResult.unwrap_ok()) {
+            console.log('received event:', pet.name, JSON.stringify(pet.kind));
+            received.push(pet.name);
         }
     })();
 

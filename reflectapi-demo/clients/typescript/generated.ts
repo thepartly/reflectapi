@@ -295,6 +295,8 @@ async function* __sse_to_async_iterable<O>(
       if (done) break;
       yield JSON.parse(value.data) as O;
     }
+  } catch (e) {
+    if (!options?.signal?.aborted) throw e;
   } finally {
     reader.cancel().catch(() => {});
   }
