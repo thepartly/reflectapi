@@ -1,5 +1,6 @@
 """Tests for Pydantic request serialization in client classes."""
 
+import json
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -164,13 +165,17 @@ class TestClientBasePydanticSerialization:
         assert isinstance(result, ApiResponse)
         assert isinstance(result.value, ResponseModel)
 
-        # Verify request was built with json parameter (not content)
+        # Bodies now flow through ClientRequest serialization, so
+        # build_request gets `content=<bytes>` (never `json=`) and a
+        # Content-Type: application/json header.
         mock_client.build_request.assert_called_once()
         call_args = mock_client.build_request.call_args
-        assert call_args[1]["json"] == {"name": "Dictionary User", "age": 35}
-        assert "content" not in call_args[1]
-        # Either omitted, or explicitly None — both mean "no headers".
-        assert call_args[1].get("headers") is None
+        assert "json" not in call_args[1]
+        assert json.loads(call_args[1]["content"]) == {
+            "name": "Dictionary User",
+            "age": 35,
+        }
+        assert call_args[1]["headers"]["Content-Type"] == "application/json"
 
     def test_make_request_with_params_and_pydantic_model(self, mock_httpx_client):
         """Test making a request with both query params and Pydantic model."""
@@ -287,11 +292,16 @@ class TestAsyncClientBasePydanticSerialization:
         assert isinstance(result, ApiResponse)
         assert isinstance(result.value, ResponseModel)
 
-        # Verify request was built with json parameter (not content)
+        # Async client uses the same ClientRequest serialization path as
+        # the sync one, so it sends `content=<bytes>` rather than `json=`.
         mock_client.build_request.assert_called_once()
         call_args = mock_client.build_request.call_args
-        assert call_args[1]["json"] == {"name": "Async Dict User", "age": 33}
-        assert "content" not in call_args[1]
+        assert "json" not in call_args[1]
+        assert json.loads(call_args[1]["content"]) == {
+            "name": "Async Dict User",
+            "age": 33,
+        }
+        assert call_args[1]["headers"]["Content-Type"] == "application/json"
 
 
 class TestPydanticSerializationEdgeCases:
