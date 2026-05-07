@@ -2,16 +2,34 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
-export interface Client {
-  request(
-    path: string,
-    body: string,
-    headers: Record<string, string>,
-    options?: RequestOptions,
-  ): Promise<Response>;
+export interface ClientRequest {
+  path: string;
+  method: "POST";
+  headers: Record<string, string>;
+  body: Uint8Array;
+  signal?: AbortSignal;
 }
 
-export type NullToEmptyObject<T> = T extends null ? {} : T;
+export interface ClientHeaders {
+  get(name: string): string | null;
+}
+
+export interface ClientResponse {
+  status: number;
+  headers: ClientHeaders;
+  body: ReadableStream<Uint8Array> | null;
+}
+
+export interface Client {
+  request(request: ClientRequest): Promise<ClientResponse>;
+}
+
+type IsAny<T> = 0 extends (1 & T) ? true : false;
+export type NullToEmptyObject<T> = IsAny<T> extends true
+  ? unknown
+  : T extends null
+    ? {}
+    : T;
 
 export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
 
@@ -180,9 +198,15 @@ export function __request<I, H, O, E>(
     }
   }
   return client
-    .request(path, JSON.stringify(input), hdrs, options)
+    .request({
+      path,
+      method: "POST",
+      headers: hdrs,
+      body: new TextEncoder().encode(JSON.stringify(input) ?? "{}"),
+      signal: options?.signal,
+    })
     .then(async (response) => {
-      const response_body = await response.text();
+      const response_body = await __read_response_body(response);
       if (response.status >= 200 && response.status < 300) {
         try {
           return new Result<O, Err<E>>({ ok: JSON.parse(response_body) as O });
@@ -233,17 +257,36 @@ export async function __stream_request<I, H, O, E>(
     }
   }
   try {
-    const response = await client.request(path, JSON.stringify(input), hdrs, options);
+    const response = await client.request({
+      path,
+      method: "POST",
+      headers: hdrs,
+      body: new TextEncoder().encode(JSON.stringify(input) ?? "{}"),
+      signal: options?.signal,
+    });
     if (response.status >= 200 && response.status < 300) {
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.toLowerCase().includes("text/event-stream")) {
+        return new Result<AsyncIterable<O>, Err<E>>({
+          err: new Err({
+            other_err: `expected text/event-stream response, got ${contentType || "missing content-type"}`,
+          }),
+        });
+      }
+      if (!response.body || typeof response.body.pipeThrough !== "function") {
+        return new Result<AsyncIterable<O>, Err<E>>({
+          err: new Err({ other_err: "expected response body to be a WHATWG ReadableStream" }),
+        });
+      }
       const stream = __sse_to_async_iterable<O>(response, options);
       return new Result<AsyncIterable<O>, Err<E>>({ ok: stream });
     } else if (response.status >= 500) {
-      const body = await response.text();
+      const body = await __read_response_body(response);
       return new Result<AsyncIterable<O>, Err<E>>({
         err: new Err({ other_err: `[${response.status}] ${body}` }),
       });
     } else {
-      const body = await response.text();
+      const body = await __read_response_body(response);
       try {
         return new Result<AsyncIterable<O>, Err<E>>({
           err: new Err({ application_err: JSON.parse(body) as E }),
@@ -262,18 +305,24 @@ export async function __stream_request<I, H, O, E>(
 }
 
 async function* __sse_to_async_iterable<O>(
-  response: Response,
+  response: ClientResponse,
   options?: RequestOptions,
 ): AsyncIterable<O> {
   const body = response.body;
   if (!body) return;
-  const reader = body.pipeThrough(new TextDecoderStream()).pipeThrough(new __EventSourceParserStream()).getReader();
+  const reader = body.pipeThrough(__text_decoder_stream()).pipeThrough(new __EventSourceParserStream()).getReader();
   try {
     while (true) {
       if (options?.signal?.aborted) break;
       const { done, value } = await reader.read();
       if (done) break;
-      yield JSON.parse(value.data) as O;
+      try {
+        yield JSON.parse(value.data) as O;
+      } catch (e) {
+        throw new Error(
+          `SSE parse error: ${e instanceof Error ? e.message : String(e)} (raw: ${value.data})`,
+        );
+      }
     }
   } catch (e) {
     if (!options?.signal?.aborted) throw e;
@@ -282,20 +331,47 @@ async function* __sse_to_async_iterable<O>(
   }
 }
 
+function __text_decoder_stream(): TransformStream<Uint8Array, string> {
+  const decoder = new TextDecoder();
+  return new TransformStream<Uint8Array, string>({
+    transform(chunk, controller) {
+      const text = decoder.decode(chunk, { stream: true });
+      if (text) controller.enqueue(text);
+    },
+    flush(controller) {
+      const text = decoder.decode();
+      if (text) controller.enqueue(text);
+    },
+  });
+}
+
+async function __read_response_body(response: ClientResponse): Promise<string> {
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let body = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      body += decoder.decode(value, { stream: true });
+    }
+    body += decoder.decode();
+    return body;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 class ClientInstance {
   constructor(private base: string) { }
 
-  public request(
-    path: string,
-    body: string,
-    headers: Record<string, string>,
-    options?: RequestOptions,
-  ): Promise<Response> {
-    return (globalThis as any).fetch(`${this.base}${path}`, {
-      method: "POST",
-      headers: headers,
-      body: body,
-      signal: options?.signal,
+  public request(request: ClientRequest): Promise<ClientResponse> {
+    return (globalThis as any).fetch(`${this.base}${request.path}`, {
+      method: request.method,
+      headers: request.headers,
+      body: request.body,
+      signal: request.signal,
     });
   }
 }

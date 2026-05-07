@@ -9,6 +9,10 @@ impl Url {
     pub fn cannot_be_a_base(&self) -> bool {
         todo!()
     }
+
+    pub fn path(&self) -> &str {
+        todo!()
+    }
 }
 
 impl std::fmt::Display for Url {

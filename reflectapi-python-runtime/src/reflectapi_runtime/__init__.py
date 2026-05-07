@@ -19,7 +19,14 @@ from .auth import (
     oauth2_client_credentials,
 )
 from .batch import BatchClient
-from .client import AsyncClientBase, ClientBase
+from .client import (
+    AsyncClient,
+    AsyncClientBase,
+    Client,
+    ClientBase,
+    ClientRequest,
+    ClientResponse,
+)
 from .exceptions import (
     ApiError,
     ApplicationError,
@@ -78,12 +85,16 @@ __all__ = [
     "ApplicationError",
     "AsyncCassetteMiddleware",
     "AsyncClientBase",
+    "AsyncClient",
     "AsyncStreamingClient",
     "BatchClient",
     "BatchResult",
     "CassetteClient",
     "CassetteMiddleware",
+    "Client",
     "ClientBase",
+    "ClientRequest",
+    "ClientResponse",
     "HAS_HYPOTHESIS",
     "AsyncMiddleware",
     "MockClient",

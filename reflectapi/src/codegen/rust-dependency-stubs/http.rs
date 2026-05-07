@@ -1,5 +1,12 @@
 use core::fmt;
 
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Method;
+
+impl Method {
+    pub const POST: Self = Self;
+}
+
 #[derive(Debug)]
 pub struct StatusCode {}
 
@@ -10,6 +17,8 @@ impl core::fmt::Display for StatusCode {
 }
 
 impl StatusCode {
+    pub const OK: Self = Self {};
+
     pub fn is_client_error(&self) -> bool {
         unimplemented!()
     }

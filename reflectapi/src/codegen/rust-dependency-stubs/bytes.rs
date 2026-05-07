@@ -4,6 +4,10 @@ impl Bytes {
     pub fn new() -> Self {
         unimplemented!()
     }
+
+    pub fn from_static(_bytes: &'static [u8]) -> Self {
+        unimplemented!()
+    }
 }
 
 impl std::ops::Deref for Bytes {

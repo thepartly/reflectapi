@@ -9,8 +9,12 @@ from pydantic import BaseModel
 from reflectapi_runtime import (
     ApiResponse,
     ApplicationError,
+    AsyncClient,
     AsyncClientBase,
+    Client,
     ClientBase,
+    ClientRequest,
+    ClientResponse,
     NetworkError,
     TimeoutError,
     TransportMetadata,
@@ -21,6 +25,32 @@ from reflectapi_runtime import (
 class SampleModel(BaseModel):
     name: str
     age: int
+
+
+class ShapeClient:
+    def __init__(self) -> None:
+        self.requests: list[ClientRequest] = []
+
+    def request(self, request: ClientRequest) -> ClientResponse:
+        self.requests.append(request)
+        return ClientResponse(
+            status=200,
+            headers=httpx.Headers({"content-type": "application/json"}),
+            body=b'{"name":"test","age":25}',
+        )
+
+
+class AsyncShapeClient:
+    def __init__(self) -> None:
+        self.requests: list[ClientRequest] = []
+
+    async def request(self, request: ClientRequest) -> ClientResponse:
+        self.requests.append(request)
+        return ClientResponse(
+            status=200,
+            headers=httpx.Headers({"content-type": "application/json"}),
+            body=b'{"name":"test","age":25}',
+        )
 
 
 @pytest.fixture
@@ -115,6 +145,49 @@ class TestClientBase:
         assert result.value.age == 25
         assert isinstance(result.metadata, TransportMetadata)
         assert result.metadata.status_code == 200
+
+    def test_make_request_without_body_omits_httpx_content(self, mock_httpx_client):
+        mock_client, _ = mock_httpx_client
+        client = ClientBase("http://example.com", client=mock_client)
+
+        client._make_request("GET", "/test", response_model=SampleModel)
+
+        _, kwargs = mock_client.build_request.call_args
+        assert "content" not in kwargs
+        assert kwargs["headers"] is None
+
+    def test_make_request_uses_client_request_shape(self):
+        shape_client = ShapeClient()
+        client = ClientBase("http://example.com", client=shape_client)
+
+        result = client._make_request(
+            "POST",
+            "/test",
+            json_model=SampleModel(name="input", age=12),
+            response_model=SampleModel,
+        )
+
+        assert isinstance(shape_client, Client)
+        assert isinstance(result.value, SampleModel)
+        assert shape_client.requests == [
+            ClientRequest(
+                path="/test",
+                method="POST",
+                headers={"Content-Type": "application/json"},
+                body=b'{"name":"input","age":12}',
+            )
+        ]
+
+    def test_make_request_without_body_uses_empty_client_request_body(self):
+        shape_client = ShapeClient()
+        client = ClientBase("http://example.com", client=shape_client)
+
+        result = client._make_request("GET", "/test", response_model=SampleModel)
+
+        assert isinstance(result.value, SampleModel)
+        assert shape_client.requests == [
+            ClientRequest(path="/test", method="GET", headers={}, body=b"")
+        ]
 
     def test_make_request_error_response(self, mock_httpx_client):
         mock_client, mock_response = mock_httpx_client
@@ -302,6 +375,54 @@ class TestAsyncClientBase:
         assert isinstance(result.value, SampleModel)
         assert result.value.name == "test"
         assert result.value.age == 25
+
+    @pytest.mark.asyncio
+    async def test_make_request_without_body_omits_httpx_content(
+        self, mock_async_httpx_client
+    ):
+        mock_client, _ = mock_async_httpx_client
+        client = AsyncClientBase("http://example.com", client=mock_client)
+
+        await client._make_request("GET", "/test", response_model=SampleModel)
+
+        _, kwargs = mock_client.build_request.call_args
+        assert "content" not in kwargs
+        assert kwargs["headers"] is None
+
+    @pytest.mark.asyncio
+    async def test_make_request_uses_client_request_shape(self):
+        shape_client = AsyncShapeClient()
+        client = AsyncClientBase("http://example.com", client=shape_client)
+
+        result = await client._make_request(
+            "POST",
+            "/test",
+            json_model=SampleModel(name="input", age=12),
+            response_model=SampleModel,
+        )
+
+        assert isinstance(shape_client, AsyncClient)
+        assert isinstance(result.value, SampleModel)
+        assert shape_client.requests == [
+            ClientRequest(
+                path="/test",
+                method="POST",
+                headers={"Content-Type": "application/json"},
+                body=b'{"name":"input","age":12}',
+            )
+        ]
+
+    @pytest.mark.asyncio
+    async def test_make_request_without_body_uses_empty_client_request_body(self):
+        shape_client = AsyncShapeClient()
+        client = AsyncClientBase("http://example.com", client=shape_client)
+
+        result = await client._make_request("GET", "/test", response_model=SampleModel)
+
+        assert isinstance(result.value, SampleModel)
+        assert shape_client.requests == [
+            ClientRequest(path="/test", method="GET", headers={}, body=b"")
+        ]
 
     @pytest.mark.asyncio
     async def test_make_request_error_response(self, mock_async_httpx_client):

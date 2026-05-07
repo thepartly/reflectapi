@@ -12,26 +12,28 @@ pub trait Client {
 
     fn request(
         &self,
-        url: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> impl Future<Output = Result<(http::StatusCode, bytes::Bytes), Self::Error>>;
+        request: ClientRequest,
+    ) -> impl Future<Output = Result<ClientResponse<Self::Error>, Self::Error>>;
+}
 
-    #[allow(clippy::type_complexity)]
-    fn stream_request(
-        &self,
-        url: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> impl Future<
-        Output = Result<
-            (
-                http::StatusCode,
-                Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Self::Error>> + Send + 'static>>,
-            ),
-            Self::Error,
-        >,
-    >;
+pub struct ClientRequest {
+    pub url: Url,
+    pub method: http::Method,
+    pub headers: http::HeaderMap,
+    pub body: bytes::Bytes,
+}
+
+impl ClientRequest {
+    pub fn path(&self) -> &str {
+        self.url.path()
+    }
+}
+
+#[allow(clippy::type_complexity)]
+pub struct ClientResponse<E> {
+    pub status: http::StatusCode,
+    pub headers: http::HeaderMap,
+    pub body: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, E>> + Send + 'static>>,
 }
 
 pub enum Error<AE, NE> {
@@ -239,8 +241,17 @@ where
         }
     }
 
-    let (status, body) = client
-        .request(url, body, header_map)
+    let response = client
+        .request(ClientRequest {
+            url,
+            method: http::Method::POST,
+            headers: header_map,
+            body,
+        })
+        .await
+        .map_err(Error::Network)?;
+    let status = response.status;
+    let body = __collect_byte_stream(response.body)
         .await
         .map_err(Error::Network)?;
 
@@ -330,10 +341,17 @@ where
     let header_map = __serialize_headers_for_stream(headers)
         .map_err(|(info, stage)| Error::Protocol { info, stage })?;
 
-    let (status, byte_stream) = client
-        .stream_request(url, body, header_map)
+    let response = client
+        .request(ClientRequest {
+            url,
+            method: http::Method::POST,
+            headers: header_map,
+            body,
+        })
         .await
         .map_err(Error::Network)?;
+    let status = response.status;
+    let byte_stream = response.body;
 
     if status.is_success() {
         let event_stream = EventStream::new(byte_stream);
@@ -369,7 +387,6 @@ where
     }
 }
 
-#[cfg(feature = "rt-sse")]
 async fn __collect_byte_stream<E>(
     stream: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, E>> + Send>>,
 ) -> Result<bytes::Bytes, E> {
@@ -393,31 +410,19 @@ impl Client for reqwest::Client {
 
     async fn request(
         &self,
-        path: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> Result<(http::StatusCode, bytes::Bytes), Self::Error> {
-        let response = self.post(path).headers(headers).body(body).send().await?;
-        let status = response.status();
-        let body = response.bytes().await?;
-        Ok((status, body))
-    }
-
-    async fn stream_request(
-        &self,
-        path: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> Result<
-        (
-            http::StatusCode,
-            Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Self::Error>> + Send + 'static>>,
-        ),
-        Self::Error,
-    > {
-        let response = self.post(path).headers(headers).body(body).send().await?;
-        let status = response.status();
-        Ok((status, Box::pin(response.bytes_stream())))
+        request: ClientRequest,
+    ) -> Result<ClientResponse<Self::Error>, Self::Error> {
+        let response = self
+            .request(request.method, request.url)
+            .headers(request.headers)
+            .body(request.body)
+            .send()
+            .await?;
+        Ok(ClientResponse {
+            status: response.status(),
+            headers: response.headers().clone(),
+            body: Box::pin(response.bytes_stream()),
+        })
     }
 }
 
@@ -427,35 +432,89 @@ impl Client for reqwest_middleware::ClientWithMiddleware {
 
     async fn request(
         &self,
-        path: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> Result<(http::StatusCode, bytes::Bytes), Self::Error> {
-        let response = self.post(path).headers(headers).body(body).send().await?;
-        let status = response.status();
-        let body = response.bytes().await?;
-        Ok((status, body))
-    }
-
-    async fn stream_request(
-        &self,
-        path: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> Result<
-        (
-            http::StatusCode,
-            Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Self::Error>> + Send + 'static>>,
-        ),
-        Self::Error,
-    > {
-        let response = self.post(path).headers(headers).body(body).send().await?;
-        let status = response.status();
-        Ok((
-            status,
-            Box::pin(futures_util::StreamExt::map(response.bytes_stream(), |r| {
+        request: ClientRequest,
+    ) -> Result<ClientResponse<Self::Error>, Self::Error> {
+        let response = self
+            .request(request.method, request.url)
+            .headers(request.headers)
+            .body(request.body)
+            .send()
+            .await?;
+        Ok(ClientResponse {
+            status: response.status(),
+            headers: response.headers().clone(),
+            body: Box::pin(futures_util::StreamExt::map(response.bytes_stream(), |r| {
                 r.map_err(reqwest_middleware::Error::Reqwest)
             })),
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use futures_util::stream;
+
+    #[derive(Clone)]
+    struct ShapeClient;
+
+    impl Client for ShapeClient {
+        type Error = std::convert::Infallible;
+
+        async fn request(
+            &self,
+            request: ClientRequest,
+        ) -> Result<ClientResponse<Self::Error>, Self::Error> {
+            assert_eq!(request.method, http::Method::POST);
+            assert_eq!(request.path(), "/shape.test");
+            assert_eq!(request.body.as_ref(), br#"{"name":"input"}"#);
+
+            Ok(ClientResponse {
+                status: http::StatusCode::OK,
+                headers: http::HeaderMap::new(),
+                body: Box::pin(stream::once(async {
+                    Ok(bytes::Bytes::from_static(br#"{"name":"output"}"#))
+                })),
+            })
+        }
+    }
+
+    #[derive(serde::Deserialize, serde::Serialize)]
+    struct ShapeRequest {
+        name: String,
+    }
+
+    #[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+    struct ShapeResponse {
+        name: String,
+    }
+
+    #[derive(Debug, serde::Deserialize, serde::Serialize)]
+    struct ShapeError {}
+
+    #[test]
+    fn client_request_shape_is_used() {
+        let output = futures::executor::block_on(__request_impl::<
+            _,
+            _,
+            crate::Empty,
+            ShapeResponse,
+            ShapeError,
+        >(
+            &ShapeClient,
+            Url::parse("https://example.com/shape.test").unwrap(),
+            ShapeRequest {
+                name: "input".to_string(),
+            },
+            crate::Empty {},
         ))
+        .unwrap();
+
+        assert_eq!(
+            output,
+            ShapeResponse {
+                name: "output".to_string()
+            }
+        );
     }
 }

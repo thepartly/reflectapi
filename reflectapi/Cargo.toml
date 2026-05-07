@@ -61,6 +61,8 @@ sseer = { version = "0.1", optional = true, features = ["json"] }
 document-features = { version = "0.2", optional = true }
 
 [dev-dependencies]
+futures = "0.3"
+futures-util = "0.3"
 serde_json = { version = "1.0.114" }
 
 [features]
