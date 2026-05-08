@@ -17,43 +17,26 @@ pub mod interface {
         pub health: HealthInterface<C>,
         pub pets: PetsInterface<C>,
         client: C,
-        base_url: reflectapi::rt::Url,
     }
 
     impl<C: reflectapi::rt::Client + Clone> Interface<C> {
-        pub fn try_new(
-            client: C,
-            base_url: reflectapi::rt::Url,
-        ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
-            if base_url.cannot_be_a_base() {
-                return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);
-            }
-
-            Ok(Self {
-                health: HealthInterface::try_new(client.clone(), base_url.clone())?,
-                pets: PetsInterface::try_new(client.clone(), base_url.clone())?,
+        pub fn new(client: C) -> Self {
+            Self {
+                health: HealthInterface::new(client.clone()),
+                pets: PetsInterface::new(client.clone()),
                 client,
-                base_url,
-            })
+            }
         }
     }
 
     #[derive(Debug)]
     pub struct HealthInterface<C: reflectapi::rt::Client + Clone> {
         client: C,
-        base_url: reflectapi::rt::Url,
     }
 
     impl<C: reflectapi::rt::Client + Clone> HealthInterface<C> {
-        pub fn try_new(
-            client: C,
-            base_url: reflectapi::rt::Url,
-        ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
-            if base_url.cannot_be_a_base() {
-                return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);
-            }
-
-            Ok(Self { client, base_url })
+        pub fn new(client: C) -> Self {
+            Self { client }
         }
         /// Check the health of the service
         #[tracing::instrument(name = "/health.check", skip(self, headers))]
@@ -65,34 +48,18 @@ pub mod interface {
             reflectapi::Empty,
             reflectapi::rt::Error<super::types::myapi::HealthCheckFail, C::Error>,
         > {
-            reflectapi::rt::__request_impl(
-                &self.client,
-                self.base_url
-                    .join("/health.check")
-                    .expect("checked base_url already and path is valid"),
-                input,
-                headers,
-            )
-            .await
+            reflectapi::rt::__request_impl(&self.client, "/health.check", input, headers).await
         }
     }
 
     #[derive(Debug)]
     pub struct PetsInterface<C: reflectapi::rt::Client + Clone> {
         client: C,
-        base_url: reflectapi::rt::Url,
     }
 
     impl<C: reflectapi::rt::Client + Clone> PetsInterface<C> {
-        pub fn try_new(
-            client: C,
-            base_url: reflectapi::rt::Url,
-        ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
-            if base_url.cannot_be_a_base() {
-                return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);
-            }
-
-            Ok(Self { client, base_url })
+        pub fn new(client: C) -> Self {
+            Self { client }
         }
         /// List available pets
         #[tracing::instrument(name = "/pets.list", skip(self, headers))]
@@ -104,15 +71,7 @@ pub mod interface {
             super::types::myapi::proto::Paginated<super::types::myapi::model::output::Pet>,
             reflectapi::rt::Error<super::types::myapi::proto::PetsListError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(
-                &self.client,
-                self.base_url
-                    .join("/pets.list")
-                    .expect("checked base_url already and path is valid"),
-                input,
-                headers,
-            )
-            .await
+            reflectapi::rt::__request_impl(&self.client, "/pets.list", input, headers).await
         }
         /// Create a new pet
         #[tracing::instrument(name = "/pets.create", skip(self, headers))]
@@ -124,15 +83,7 @@ pub mod interface {
             reflectapi::Empty,
             reflectapi::rt::Error<super::types::myapi::proto::PetsCreateError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(
-                &self.client,
-                self.base_url
-                    .join("/pets.create")
-                    .expect("checked base_url already and path is valid"),
-                input,
-                headers,
-            )
-            .await
+            reflectapi::rt::__request_impl(&self.client, "/pets.create", input, headers).await
         }
         /// Update an existing pet
         #[tracing::instrument(name = "/pets.update", skip(self, headers))]
@@ -144,15 +95,7 @@ pub mod interface {
             reflectapi::Empty,
             reflectapi::rt::Error<super::types::myapi::proto::PetsUpdateError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(
-                &self.client,
-                self.base_url
-                    .join("/pets.update")
-                    .expect("checked base_url already and path is valid"),
-                input,
-                headers,
-            )
-            .await
+            reflectapi::rt::__request_impl(&self.client, "/pets.update", input, headers).await
         }
         /// Remove an existing pet
         #[tracing::instrument(name = "/pets.remove", skip(self, headers))]
@@ -164,15 +107,7 @@ pub mod interface {
             reflectapi::Empty,
             reflectapi::rt::Error<super::types::myapi::proto::PetsRemoveError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(
-                &self.client,
-                self.base_url
-                    .join("/pets.remove")
-                    .expect("checked base_url already and path is valid"),
-                input,
-                headers,
-            )
-            .await
+            reflectapi::rt::__request_impl(&self.client, "/pets.remove", input, headers).await
         }
         #[deprecated(note = "Use pets.remove instead")]
         /// Remove an existing pet
@@ -185,15 +120,7 @@ pub mod interface {
             reflectapi::Empty,
             reflectapi::rt::Error<super::types::myapi::proto::PetsRemoveError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(
-                &self.client,
-                self.base_url
-                    .join("/pets.delete")
-                    .expect("checked base_url already and path is valid"),
-                input,
-                headers,
-            )
-            .await
+            reflectapi::rt::__request_impl(&self.client, "/pets.delete", input, headers).await
         }
         /// Fetch first pet, if any exists
         #[tracing::instrument(name = "/pets.get-first", skip(self, headers))]
@@ -205,15 +132,7 @@ pub mod interface {
             std::option::Option<super::types::myapi::model::output::Pet>,
             reflectapi::rt::Error<super::types::myapi::proto::UnauthorizedError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(
-                &self.client,
-                self.base_url
-                    .join("/pets.get-first")
-                    .expect("checked base_url already and path is valid"),
-                input,
-                headers,
-            )
-            .await
+            reflectapi::rt::__request_impl(&self.client, "/pets.get-first", input, headers).await
         }
         /// Stream of change data capture events for pets
         #[tracing::instrument(name = "/pets.cdc-events", skip(self, headers))]
@@ -229,15 +148,8 @@ pub mod interface {
         where
             C::Error: Send + 'static,
         {
-            reflectapi::rt::__stream_request_impl(
-                &self.client,
-                self.base_url
-                    .join("/pets.cdc-events")
-                    .expect("checked base_url already and path is valid"),
-                input,
-                headers,
-            )
-            .await
+            reflectapi::rt::__stream_request_impl(&self.client, "/pets.cdc-events", input, headers)
+                .await
         }
     }
 }

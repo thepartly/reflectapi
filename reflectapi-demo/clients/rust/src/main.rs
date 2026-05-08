@@ -5,7 +5,7 @@ use reflectapi_demo_client_generated::types::myapi::model::Kind;
 use reflectapi_demo_client_generated::types::myapi::proto::Headers;
 use reflectapi_demo_client_generated::DemoServerClient;
 
-type Client = DemoServerClient<reqwest::Client>;
+type Client = DemoServerClient<reflectapi::rt::ReqwestClient>;
 
 fn headers() -> Headers {
     Headers {
@@ -26,11 +26,10 @@ fn pet(name: &str, kind: Kind) -> Pet {
 
 #[tokio::main]
 async fn main() {
-    let client: Client = DemoServerClient::try_new(
+    let client: Client = DemoServerClient::new(reflectapi::rt::ReqwestClient::new(
         reqwest::Client::new(),
         "http://localhost:3000".parse().unwrap(),
-    )
-    .unwrap();
+    ));
 
     let result = client
         .health

@@ -822,7 +822,7 @@ mod templates {
                 out,
                 "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
                      -> Result<{}, reflectapi::rt::Error<{}, C::Error>> {{\n\
-                         reflectapi::rt::__request_impl(&self.client, self.base_url.join(\"{}\").expect(\"checked base_url already and path is valid\"), input, headers).await\n\
+                         reflectapi::rt::__request_impl(&self.client, \"{}\", input, headers).await\n\
                      }}",
                 self.description,
                 self.attributes,
@@ -865,7 +865,7 @@ mod templates {
                 "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
                      -> reflectapi::rt::StreamResponse<{}, {}, C::Error>\n\
                      where C::Error: Send + 'static {{\n\
-                         reflectapi::rt::__stream_request_impl(&self.client, self.base_url.join(\"{}\").expect(\"checked base_url already and path is valid\"), input, headers).await\n\
+                         reflectapi::rt::__stream_request_impl(&self.client, \"{}\", input, headers).await\n\
                      }}",
                 self.description,
                 self.attributes,
@@ -905,26 +905,21 @@ mod templates {
         pub fn render(&self) -> String {
             let mut out = format!(
                 "\nimpl<C: reflectapi::rt::Client + Clone> {} {{\n\
-                     pub fn try_new(client: C, base_url: reflectapi::rt::Url) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {{\n\
-                         if base_url.cannot_be_a_base() {{\n\
-                             return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);\n\
-                         }}\n\
-                 \n\
-                         Ok(Self {{",
+                     pub fn new(client: C) -> Self {{\n\
+                         Self {{",
                 self.name,
             );
             for field in &self.fields {
                 write!(
                     out,
-                    "\n            {}: {}::try_new(client.clone(), base_url.clone())?,",
+                    "\n            {}: {}::new(client.clone()),",
                     field.name, field.type_
                 )
                 .unwrap();
             }
             out.push_str(
                 "\n            client,\n\
-                             base_url,\n\
-                         })\n\
+                         }\n\
                      }",
             );
             for func in &self.functions {
@@ -1121,18 +1116,18 @@ fn __interface_types_from_function_group(
             public: true,
         });
     }
-    for field in [("client", "C"), ("base_url", "reflectapi::rt::Url")] {
-        type_template.fields.push(templates::__Field {
-            name: field.0.into(),
-            deprecation_note: None,
-            serde_name: field.0.into(),
-            description: "".into(),
-            type_: field.1.into(),
-            optional: false,
-            flatten: false,
-            public: false,
-        });
-    }
+    // The transport carries its own base URL via `Client::base_url`; we
+    // don't need to thread it through every nested interface anymore.
+    type_template.fields.push(templates::__Field {
+        name: "client".into(),
+        deprecation_note: None,
+        serde_name: "client".into(),
+        description: "".into(),
+        type_: "C".into(),
+        optional: false,
+        flatten: false,
+        public: false,
+    });
 
     for function_name in group.functions.iter() {
         let function = functions_by_name.get(function_name).unwrap();

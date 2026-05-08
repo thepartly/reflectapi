@@ -7,8 +7,18 @@ pub fn error_to_string<T: serde::Serialize>(error: &T) -> String {
     serde_json::to_string(error).unwrap_or_else(|e| format!("Failed to serialize error: {e}"))
 }
 
+/// Transport contract for reflectapi-generated clients.
+///
+/// Implementations carry the API base URL on the transport so the
+/// per-request DTO is just `path + headers + body` — same shape as the
+/// TypeScript and Python clients. Built-in implementations of `Client`
+/// for raw `reqwest::Client` / `reqwest_middleware::ClientWithMiddleware`
+/// don't carry a base URL, so we ship [`ReqwestClient`] /
+/// [`ReqwestMiddlewareClient`] wrappers instead.
 pub trait Client {
     type Error;
+
+    fn base_url(&self) -> &Url;
 
     fn request(
         &self,
@@ -18,19 +28,17 @@ pub trait Client {
 
 /// Transport request handed to user-provided [`Client`] implementations.
 ///
+/// Carries only the per-request data: the relative `path`, headers,
+/// and body. The transport joins `path` against its [`Client::base_url`]
+/// to form the full URL.
+///
 /// `method` is intentionally absent: every reflectapi endpoint is `POST`
 /// by design, so transports hardcode it. If that ever changes it's a
 /// wire-protocol break and clients regenerate.
 pub struct Request {
-    pub url: Url,
+    pub path: String,
     pub headers: http::HeaderMap,
     pub body: bytes::Bytes,
-}
-
-impl Request {
-    pub fn path(&self) -> &str {
-        self.url.path()
-    }
 }
 
 /// Transport response returned by user-provided [`Client`] implementations.
@@ -196,7 +204,7 @@ impl core::fmt::Debug for ProtocolErrorStage {
 #[doc(hidden)]
 pub async fn __request_impl<C, I, H, O, E>(
     client: &C,
-    url: Url,
+    path: &str,
     body: I,
     headers: H,
 ) -> Result<O, Error<E, C::Error>>
@@ -212,43 +220,12 @@ where
         stage: ProtocolErrorStage::SerializeRequestBody,
     })?;
     let body = bytes::Bytes::from(body);
-    let headers = serde_json::to_value(&headers).map_err(|e| Error::Protocol {
-        info: e.to_string(),
-        stage: ProtocolErrorStage::SerializeRequestHeaders,
-    })?;
-
-    let mut header_map = http::HeaderMap::new();
-    match headers {
-        serde_json::Value::Object(headers) => {
-            for (k, v) in headers.into_iter() {
-                let v_str = match v {
-                    serde_json::Value::String(v) => v,
-                    v => v.to_string(),
-                };
-                header_map.insert(
-                    http::HeaderName::from_bytes(k.as_bytes()).map_err(|err| Error::Protocol {
-                        info: err.to_string(),
-                        stage: ProtocolErrorStage::SerializeRequestHeaders,
-                    })?,
-                    http::HeaderValue::from_str(&v_str).map_err(|err| Error::Protocol {
-                        info: err.to_string(),
-                        stage: ProtocolErrorStage::SerializeRequestHeaders,
-                    })?,
-                );
-            }
-        }
-        serde_json::Value::Null => {}
-        _ => {
-            return Err(Error::Protocol {
-                info: "Headers must be an object".to_string(),
-                stage: ProtocolErrorStage::SerializeRequestHeaders,
-            });
-        }
-    }
+    let header_map =
+        __serialize_headers(headers).map_err(|(info, stage)| Error::Protocol { info, stage })?;
 
     let response = client
         .request(Request {
-            url,
+            path: path.to_owned(),
             headers: header_map,
             body,
         })
@@ -276,18 +253,31 @@ where
     }
 }
 
+fn __serialize_headers<H: serde::Serialize>(
+    headers: H,
+) -> Result<http::HeaderMap, (String, ProtocolErrorStage)> {
+    __serialize_headers_into(headers, http::HeaderMap::new())
+}
+
 #[cfg(feature = "rt-sse")]
 fn __serialize_headers_for_stream<H: serde::Serialize>(
     headers: H,
 ) -> Result<http::HeaderMap, (String, ProtocolErrorStage)> {
-    let headers = serde_json::to_value(&headers)
-        .map_err(|e| (e.to_string(), ProtocolErrorStage::SerializeRequestHeaders))?;
-
     let mut header_map = http::HeaderMap::new();
     header_map.insert(
         http::header::ACCEPT,
         http::HeaderValue::from_static("text/event-stream"),
     );
+    __serialize_headers_into(headers, header_map)
+}
+
+fn __serialize_headers_into<H: serde::Serialize>(
+    headers: H,
+    mut header_map: http::HeaderMap,
+) -> Result<http::HeaderMap, (String, ProtocolErrorStage)> {
+    let headers = serde_json::to_value(&headers)
+        .map_err(|e| (e.to_string(), ProtocolErrorStage::SerializeRequestHeaders))?;
+
     match headers {
         serde_json::Value::Object(headers) => {
             for (k, v) in headers.into_iter() {
@@ -320,7 +310,7 @@ fn __serialize_headers_for_stream<H: serde::Serialize>(
 #[cfg(feature = "rt-sse")]
 pub async fn __stream_request_impl<C, I, H, O, E>(
     client: &C,
-    url: Url,
+    path: &str,
     body: I,
     headers: H,
 ) -> Result<BoxStream<Result<O, StreamItemError<C::Error>>>, Error<E, C::Error>>
@@ -347,7 +337,7 @@ where
 
     let response = client
         .request(Request {
-            url,
+            path: path.to_owned(),
             headers: header_map,
             body,
         })
@@ -407,13 +397,38 @@ async fn __collect_byte_stream<E>(
     Ok(buf.freeze())
 }
 
+/// Built-in [`Client`] adapter wrapping a [`reqwest::Client`] with a base URL.
+///
+/// Reqwest's own client doesn't carry a base URL, so we pair them at this
+/// layer instead — that way generated `Interface<C>` types only need to
+/// hold the transport and the base URL lives in one place.
 #[cfg(feature = "reqwest")]
-impl Client for reqwest::Client {
+#[derive(Clone, Debug)]
+pub struct ReqwestClient {
+    pub inner: reqwest::Client,
+    pub base_url: Url,
+}
+
+#[cfg(feature = "reqwest")]
+impl ReqwestClient {
+    pub fn new(inner: reqwest::Client, base_url: Url) -> Self {
+        Self { inner, base_url }
+    }
+}
+
+#[cfg(feature = "reqwest")]
+impl Client for ReqwestClient {
     type Error = reqwest::Error;
 
+    fn base_url(&self) -> &Url {
+        &self.base_url
+    }
+
     async fn request(&self, request: Request) -> Result<Response<Self::Error>, Self::Error> {
+        let url = __join_base_path(&self.base_url, &request.path);
         let response = self
-            .request(http::Method::POST, request.url)
+            .inner
+            .request(http::Method::POST, url)
             .headers(request.headers)
             .body(request.body)
             .send()
@@ -426,13 +441,35 @@ impl Client for reqwest::Client {
     }
 }
 
+/// Built-in [`Client`] adapter wrapping a
+/// [`reqwest_middleware::ClientWithMiddleware`] with a base URL.
 #[cfg(feature = "reqwest-middleware")]
-impl Client for reqwest_middleware::ClientWithMiddleware {
+#[derive(Clone, Debug)]
+pub struct ReqwestMiddlewareClient {
+    pub inner: reqwest_middleware::ClientWithMiddleware,
+    pub base_url: Url,
+}
+
+#[cfg(feature = "reqwest-middleware")]
+impl ReqwestMiddlewareClient {
+    pub fn new(inner: reqwest_middleware::ClientWithMiddleware, base_url: Url) -> Self {
+        Self { inner, base_url }
+    }
+}
+
+#[cfg(feature = "reqwest-middleware")]
+impl Client for ReqwestMiddlewareClient {
     type Error = reqwest_middleware::Error;
 
+    fn base_url(&self) -> &Url {
+        &self.base_url
+    }
+
     async fn request(&self, request: Request) -> Result<Response<Self::Error>, Self::Error> {
+        let url = __join_base_path(&self.base_url, &request.path);
         let response = self
-            .request(http::Method::POST, request.url)
+            .inner
+            .request(http::Method::POST, url)
             .headers(request.headers)
             .body(request.body)
             .send()
@@ -447,19 +484,34 @@ impl Client for reqwest_middleware::ClientWithMiddleware {
     }
 }
 
+#[cfg(any(feature = "reqwest", feature = "reqwest-middleware"))]
+fn __join_base_path(base: &Url, path: &str) -> Url {
+    // `Url::join` handles the cases the codegen actually emits (paths
+    // beginning with "/api/...") plus malformed paths. Falls back to
+    // returning the base URL unchanged on parse failure, which then
+    // surfaces as a transport-level error from the HTTP client.
+    base.join(path).unwrap_or_else(|_| base.clone())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use futures_util::stream;
 
     #[derive(Clone)]
-    struct ShapeClient;
+    struct ShapeClient {
+        base_url: Url,
+    }
 
     impl Client for ShapeClient {
         type Error = std::convert::Infallible;
 
+        fn base_url(&self) -> &Url {
+            &self.base_url
+        }
+
         async fn request(&self, request: Request) -> Result<Response<Self::Error>, Self::Error> {
-            assert_eq!(request.path(), "/shape.test");
+            assert_eq!(request.path, "/shape.test");
             assert_eq!(request.body.as_ref(), br#"{"name":"input"}"#);
 
             Ok(Response {
@@ -487,6 +539,9 @@ mod tests {
 
     #[test]
     fn client_request_shape_is_used() {
+        let client = ShapeClient {
+            base_url: Url::parse("https://example.com").unwrap(),
+        };
         let output = futures::executor::block_on(__request_impl::<
             _,
             _,
@@ -494,8 +549,8 @@ mod tests {
             ShapeResponse,
             ShapeError,
         >(
-            &ShapeClient,
-            Url::parse("https://example.com/shape.test").unwrap(),
+            &client,
+            "/shape.test",
             ShapeRequest {
                 name: "input".to_string(),
             },
