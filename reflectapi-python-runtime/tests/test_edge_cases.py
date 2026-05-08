@@ -89,6 +89,7 @@ class TestClientEdgeCases:
         mock_response.status_code = 200
         mock_response.json.return_value = {"result": "ok"}
         mock_response.headers = {}
+        mock_response.content = b'{"result": "ok"}'
         mock_response.elapsed.total_seconds.return_value = 0.1
         mock_send.return_value = mock_response
 
@@ -104,6 +105,7 @@ class TestClientEdgeCases:
         mock_response.status_code = 200
         mock_response.json.return_value = {"result": "ok"}
         mock_response.headers = {}
+        mock_response.content = b'{"result": "ok"}'
         mock_response.elapsed.total_seconds.return_value = 0.1
         mock_send.return_value = mock_response
 
@@ -131,6 +133,7 @@ class TestClientEdgeCases:
         mock_response.status_code = 200
         mock_response.json.return_value = {"result": "ok"}
         mock_response.headers = {}
+        mock_response.content = b'{"result": "ok"}'
         mock_response.elapsed.total_seconds.return_value = 0.1
         mock_send.return_value = mock_response
 
@@ -162,6 +165,7 @@ class TestAsyncClientEdgeCases:
             mock_response.status_code = 200
             mock_response.json.return_value = {"result": "ok"}
             mock_response.headers = {}
+            mock_response.content = b'{"result": "ok"}'
             mock_response.elapsed.total_seconds.return_value = 0.1
             mock_send.return_value = mock_response
 
@@ -272,6 +276,7 @@ class TestErrorHandlingEdgeCases:
         mock_response.json.side_effect = json.JSONDecodeError("Invalid JSON", "doc", 0)
         mock_response.text = "Invalid JSON response"
         mock_response.headers = {}
+        mock_response.content = b'{"result": "ok"}'
         mock_response.elapsed.total_seconds.return_value = 0.1
         mock_send.return_value = mock_response
 
@@ -288,8 +293,12 @@ class TestErrorHandlingEdgeCases:
         """Test handling of invalid JSON in success response."""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.side_effect = json.JSONDecodeError("Invalid JSON", "doc", 0)
         mock_response.headers = {}
+        mock_response.content = b"not valid json"
+        # The runtime now passes the actual response to error/json
+        # handling (so metadata.raw_response is real); a Mock therefore
+        # needs the .json() failure mocked too.
+        mock_response.json.side_effect = json.JSONDecodeError("Invalid JSON", "doc", 0)
         mock_response.elapsed.total_seconds.return_value = 0.1
         mock_send.return_value = mock_response
 
@@ -309,6 +318,7 @@ class TestErrorHandlingEdgeCases:
         mock_response.status_code = 500
         mock_response.json.return_value = large_error_data
         mock_response.headers = {}
+        mock_response.content = b'{"result": "ok"}'
         mock_response.elapsed.total_seconds.return_value = 0.1
         mock_send.return_value = mock_response
 
@@ -325,6 +335,7 @@ class TestErrorHandlingEdgeCases:
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.headers = {}
+        mock_response.content = b'{"result": "ok"}'
 
         metadata = TransportMetadata(
             status_code=500,
@@ -486,6 +497,7 @@ class TestConcurrencyEdgeCases:
                 mock_response.status_code = 200
                 mock_response.json.return_value = {"result": "ok"}
                 mock_response.headers = {}
+                mock_response.content = b'{"result": "ok"}'
                 mock_response.elapsed.total_seconds.return_value = 0.1
                 return mock_response
 
@@ -564,6 +576,7 @@ class TestTypeValidationEdgeCases:
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.headers = {}
+        mock_response.content = b'{"result": "ok"}'
 
         # Negative response time
         metadata = TransportMetadata(

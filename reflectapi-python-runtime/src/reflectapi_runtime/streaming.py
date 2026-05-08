@@ -278,11 +278,14 @@ class AsyncStreamingClient:
 
         response = None
         try:
-            # Execute through middleware chain
-            if self.middleware_chain.middleware:
-                response = await self.middleware_chain.execute(request, self._client)
-            else:
-                response = await self._client.send(request, stream=True)
+            # Middleware is intentionally bypassed for raw byte streaming:
+            # the middleware chain operates on transport `Request` /
+            # `Response` (whole-body bytes), which doesn't fit a stream
+            # whose body is consumed lazily. Logging/retry middleware would
+            # see no body and a retry would have to re-issue the whole
+            # request anyway. If you need request-side observability for a
+            # download, wrap the surrounding code, not this helper.
+            response = await self._client.send(request, stream=True)
 
             metadata = TransportMetadata.from_response(response, start_time)
 

@@ -206,6 +206,7 @@ class TestClientBase:
 
     def test_make_request_json_parse_error(self, mock_httpx_client):
         mock_client, mock_response = mock_httpx_client
+        mock_response.content = b"not valid json"
         mock_response.json.side_effect = ValueError("Invalid JSON")
 
         client = ClientBase("http://example.com", client=mock_client)
@@ -259,6 +260,10 @@ class TestClientBase:
         mock_client, mock_response = mock_httpx_client
         mock_response.status_code = 500
         mock_response.reason_phrase = "Internal Server Error"
+        mock_response.content = b"not valid json"
+        # The runtime now hands the actual httpx.Response through to
+        # error handling (so `metadata.raw_response.request` is real); a
+        # spec'd Mock therefore needs the .json() failure mocked too.
         mock_response.json.side_effect = ValueError("Invalid JSON")
 
         client = ClientBase("http://example.com", client=mock_client)
@@ -484,6 +489,7 @@ class TestAsyncClientBase:
         mock_client, mock_response = mock_async_httpx_client
         mock_response.status_code = 500
         mock_response.reason_phrase = "Internal Server Error"
+        mock_response.content = b"not valid json"
         mock_response.json.side_effect = ValueError("Invalid JSON")
 
         client = AsyncClientBase("http://example.com", client=mock_client)
@@ -543,3 +549,361 @@ class TestAsyncClientBase:
 
         assert "Response validation failed" in str(exc_info.value)
         assert hasattr(exc_info.value, "validation_errors")
+
+
+# ---------------------------------------------------------------------------
+# Regression tests for the transport refactor invariants.
+# ---------------------------------------------------------------------------
+
+
+class _CountingShapeClient:
+    """Sync custom Client that counts Requests it sees."""
+
+    def __init__(self) -> None:
+        self.requests: list[Request] = []
+
+    def request(self, request: Request) -> Response:
+        self.requests.append(request)
+        return Response(
+            status=200,
+            headers=httpx.Headers({"content-type": "application/json"}),
+            body=b'{"name":"test","age":25}',
+        )
+
+
+class _AsyncCountingShapeClient:
+    def __init__(self) -> None:
+        self.requests: list[Request] = []
+
+    async def request(self, request: Request) -> Response:
+        self.requests.append(request)
+        return Response(
+            status=200,
+            headers=httpx.Headers({"content-type": "application/json"}),
+            body=b'{"name":"test","age":25}',
+        )
+
+
+class TestSingleClientRequestBuild:
+    """``_build_client_request`` should run exactly once per ``_make_request``,
+    on either transport branch — protects against the double-build the
+    earlier shape (path="" placeholder + later rebuild) caused.
+    """
+
+    def test_sync_custom_client_path_builds_once(self):
+        shape_client = _CountingShapeClient()
+        client = ClientBase("http://example.com", client=shape_client)
+
+        client._make_request("/users", json_data={"a": 1})
+
+        assert len(shape_client.requests) == 1
+        assert shape_client.requests[0].path == "/users"
+
+    def test_sync_httpx_path_builds_client_request_once(self, mock_httpx_client):
+        from unittest.mock import patch
+
+        mock_client, _ = mock_httpx_client
+        client = ClientBase("http://example.com", client=mock_client)
+
+        with patch.object(
+            client,
+            "_build_client_request",
+            wraps=client._build_client_request,
+        ) as spy:
+            client._make_request(
+                "/users", json_data={"a": 1}, response_model=SampleModel
+            )
+            assert spy.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_async_custom_client_path_builds_once(self):
+        shape_client = _AsyncCountingShapeClient()
+        client = AsyncClientBase("http://example.com", client=shape_client)
+
+        await client._make_request("/users", json_data={"a": 1})
+
+        assert len(shape_client.requests) == 1
+        assert shape_client.requests[0].path == "/users"
+
+    @pytest.mark.asyncio
+    async def test_async_httpx_path_builds_client_request_once(
+        self, mock_async_httpx_client
+    ):
+        from unittest.mock import patch
+
+        mock_client, _ = mock_async_httpx_client
+        client = AsyncClientBase("http://example.com", client=mock_client)
+
+        with patch.object(
+            client,
+            "_build_client_request",
+            wraps=client._build_client_request,
+        ) as spy:
+            await client._make_request(
+                "/users", json_data={"a": 1}, response_model=SampleModel
+            )
+            assert spy.call_count == 1
+
+
+class TestMiddlewareRunsOnBothTransports:
+    """The headline contract of this refactor: middleware sees the same
+    ``Request`` whether the underlying transport is httpx or a custom
+    Client. Without this, the refactor's value-add isn't observable.
+    """
+
+    def test_sync_middleware_runs_on_custom_client(self):
+        from reflectapi_runtime.middleware import SyncMiddleware
+
+        seen: list[Request] = []
+
+        class _Recorder(SyncMiddleware):
+            def handle(self, request, next_call):
+                seen.append(request)
+                return next_call(request)
+
+        shape = _CountingShapeClient()
+        client = ClientBase(
+            "http://example.com", client=shape, middleware=[_Recorder()]
+        )
+        client._make_request("/users", json_data={"a": 1})
+
+        assert len(seen) == 1
+        assert seen[0].path == "/users"
+        assert len(shape.requests) == 1  # terminal also ran
+
+    def test_sync_middleware_runs_on_httpx_transport(self, mock_httpx_client):
+        from reflectapi_runtime.middleware import SyncMiddleware
+
+        seen: list[Request] = []
+
+        class _Recorder(SyncMiddleware):
+            def handle(self, request, next_call):
+                seen.append(request)
+                return next_call(request)
+
+        mock_client, _ = mock_httpx_client
+        client = ClientBase(
+            "http://example.com", client=mock_client, middleware=[_Recorder()]
+        )
+        client._make_request("/users", json_data={"a": 1})
+
+        assert len(seen) == 1
+        assert seen[0].path == "/users"
+
+    @pytest.mark.asyncio
+    async def test_async_middleware_runs_on_custom_client(self):
+        from reflectapi_runtime.middleware import AsyncMiddleware
+
+        seen: list[Request] = []
+
+        class _Recorder(AsyncMiddleware):
+            async def handle(self, request, next_call):
+                seen.append(request)
+                return await next_call(request)
+
+        shape = _AsyncCountingShapeClient()
+        client = AsyncClientBase(
+            "http://example.com", client=shape, middleware=[_Recorder()]
+        )
+        await client._make_request("/users", json_data={"a": 1})
+
+        assert len(seen) == 1
+        assert seen[0].path == "/users"
+        assert len(shape.requests) == 1
+
+
+class TestDispatchUsesIsinstanceHttpxClient:
+    """A custom Client that *happens* to expose ``build_request`` and
+    ``send`` should still take the Protocol path — proving the dispatch
+    is ``isinstance(httpx.Client)``, not duck-typed names.
+    """
+
+    def test_duck_typed_client_with_httpx_method_names_uses_protocol_path(self):
+        class _DucktypedClient:
+            def __init__(self) -> None:
+                self.requests: list[Request] = []
+
+            # Names that match httpx but are unrelated; would crash if
+            # the dispatch wrongly forwarded into httpx APIs.
+            def build_request(self, *args, **kwargs):  # noqa: ARG002
+                raise AssertionError("must not be called: not httpx.Client")
+
+            def send(self, *args, **kwargs):  # noqa: ARG002
+                raise AssertionError("must not be called: not httpx.Client")
+
+            def request(self, request: Request) -> Response:
+                self.requests.append(request)
+                return Response(
+                    status=200,
+                    headers=httpx.Headers({"content-type": "application/json"}),
+                    body=b'{"name":"x","age":1}',
+                )
+
+        ducked = _DucktypedClient()
+        client = ClientBase("http://example.com", client=ducked)
+        client._make_request("/test", response_model=SampleModel)
+        assert len(ducked.requests) == 1
+
+
+class TestRawResponsePreserved:
+    """``metadata.raw_response`` should be the real ``httpx.Response`` from
+    the wire (with ``.request`` / ``.extensions`` / ``.history`` populated),
+    not a synthetic ``httpx.Response`` rebuilt from the transport DTO.
+    """
+
+    def test_sync_metadata_raw_response_carries_request(self):
+        # Use a real httpx.Client backed by a MockTransport so the
+        # response is a wire-shaped httpx.Response with .request set.
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, content=b'{"name":"x","age":1}')
+
+        transport = httpx.MockTransport(handler)
+        with httpx.Client(transport=transport) as raw:
+            client = ClientBase("http://example.com", client=raw)
+            result = client._make_request("/test", response_model=SampleModel)
+
+        assert result.metadata.raw_response.request is not None
+        assert str(result.metadata.raw_response.request.url) == (
+            "http://example.com/test"
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_metadata_raw_response_carries_request(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, content=b'{"name":"x","age":1}')
+
+        transport = httpx.MockTransport(handler)
+        async with httpx.AsyncClient(transport=transport) as raw:
+            client = AsyncClientBase("http://example.com", client=raw)
+            result = await client._make_request(
+                "/test", response_model=SampleModel
+            )
+
+        assert result.metadata.raw_response.request is not None
+        assert str(result.metadata.raw_response.request.url) == (
+            "http://example.com/test"
+        )
+
+
+class TestCustomTransportReturningHttpxResponse:
+    """For backward compatibility, a custom transport that returns an
+    ``httpx.Response`` (instead of the structural ``Response`` DTO) is
+    adapted at the boundary rather than failing on attribute access.
+    """
+
+    def test_sync_transport_returning_httpx_response(self):
+        class _HttpxReturningClient:
+            def request(self, request: Request):
+                return httpx.Response(
+                    200,
+                    headers={"content-type": "application/json"},
+                    content=b'{"name":"x","age":1}',
+                )
+
+        client = ClientBase("http://example.com", client=_HttpxReturningClient())
+        result = client._make_request("/test", response_model=SampleModel)
+        assert result.value.name == "x"
+
+    @pytest.mark.asyncio
+    async def test_async_transport_returning_httpx_response(self):
+        class _AsyncHttpxReturningClient:
+            async def request(self, request: Request):
+                return httpx.Response(
+                    200,
+                    headers={"content-type": "application/json"},
+                    content=b'{"name":"x","age":1}',
+                )
+
+        client = AsyncClientBase(
+            "http://example.com", client=_AsyncHttpxReturningClient()
+        )
+        result = await client._make_request("/test", response_model=SampleModel)
+        assert result.value.name == "x"
+
+
+class TestMiddlewareTransformsAreParsed:
+    """Middleware that transforms the response body must be honoured by
+    the parsing path. The earlier shape leaked ``Response.raw`` through to
+    parsing — if middleware replaced ``body`` via ``dataclasses.replace``,
+    ``raw`` was carried forward and the original wire bytes were parsed
+    instead. ``raw`` is now strictly a metadata sidecar.
+    """
+
+    def test_sync_body_rewrite_is_visible_to_caller(self):
+        from dataclasses import replace
+
+        from reflectapi_runtime.middleware import SyncMiddleware
+
+        class _Rewrite(SyncMiddleware):
+            def handle(self, request, next_call):
+                resp = next_call(request)
+                # `replace` would naturally carry `raw` along — the runtime
+                # must not be tempted by it for body parsing.
+                return replace(resp, body=b'{"name":"middleware","age":2}')
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, content=b'{"name":"wire","age":1}')
+
+        with httpx.Client(transport=httpx.MockTransport(handler)) as raw:
+            client = ClientBase(
+                "http://example.com", client=raw, middleware=[_Rewrite()]
+            )
+            result = client._make_request("/test", response_model=SampleModel)
+
+        assert result.value.name == "middleware"
+        assert result.value.age == 2
+
+    @pytest.mark.asyncio
+    async def test_async_body_rewrite_is_visible_to_caller(self):
+        from dataclasses import replace
+
+        from reflectapi_runtime.middleware import AsyncMiddleware
+
+        class _Rewrite(AsyncMiddleware):
+            async def handle(self, request, next_call):
+                resp = await next_call(request)
+                return replace(resp, body=b'{"name":"middleware","age":2}')
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, content=b'{"name":"wire","age":1}')
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as raw:
+            client = AsyncClientBase(
+                "http://example.com", client=raw, middleware=[_Rewrite()]
+            )
+            result = await client._make_request(
+                "/test", response_model=SampleModel
+            )
+
+        assert result.value.name == "middleware"
+        assert result.value.age == 2
+
+    def test_sync_status_rewrite_is_visible(self):
+        """Middleware that flips a 5xx into a 200 should suppress the
+        ApplicationError path — proves status comes from the structural
+        response, not from `raw`.
+        """
+        from dataclasses import replace
+
+        from reflectapi_runtime.middleware import SyncMiddleware
+
+        class _Heal(SyncMiddleware):
+            def handle(self, request, next_call):
+                resp = next_call(request)
+                if resp.status >= 500:
+                    return replace(
+                        resp, status=200, body=b'{"name":"healed","age":0}'
+                    )
+                return resp
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(503, content=b"server is sad")
+
+        with httpx.Client(transport=httpx.MockTransport(handler)) as raw:
+            client = ClientBase(
+                "http://example.com", client=raw, middleware=[_Heal()]
+            )
+            result = client._make_request("/test", response_model=SampleModel)
+
+        assert result.value.name == "healed"
+        assert result.metadata.status_code == 200
