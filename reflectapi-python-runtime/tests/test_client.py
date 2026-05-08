@@ -206,7 +206,7 @@ class TestClientBase:
 
     def test_make_request_json_parse_error(self, mock_httpx_client):
         mock_client, mock_response = mock_httpx_client
-        mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_response.content = b"not valid json"
 
         client = ClientBase("http://example.com", client=mock_client)
 
@@ -259,7 +259,7 @@ class TestClientBase:
         mock_client, mock_response = mock_httpx_client
         mock_response.status_code = 500
         mock_response.reason_phrase = "Internal Server Error"
-        mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_response.content = b"not valid json"
 
         client = ClientBase("http://example.com", client=mock_client)
 
@@ -484,7 +484,7 @@ class TestAsyncClientBase:
         mock_client, mock_response = mock_async_httpx_client
         mock_response.status_code = 500
         mock_response.reason_phrase = "Internal Server Error"
-        mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_response.content = b"not valid json"
 
         client = AsyncClientBase("http://example.com", client=mock_client)
 

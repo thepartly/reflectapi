@@ -19,14 +19,8 @@ from .auth import (
     oauth2_client_credentials,
 )
 from .batch import BatchClient
-from .client import (
-    AsyncClient,
-    AsyncClientBase,
-    Client,
-    ClientBase,
-    Request,
-    Response,
-)
+from .client import AsyncClientBase, ClientBase
+from .transport import AsyncClient, Client, Request, Response
 from .exceptions import (
     ApiError,
     ApplicationError,

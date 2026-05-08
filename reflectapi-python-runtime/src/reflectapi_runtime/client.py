@@ -6,9 +6,8 @@ import datetime
 import json
 import time
 from abc import ABC
-from collections.abc import AsyncIterator, Iterator
-from dataclasses import dataclass
-from typing import Any, Protocol, TypeVar, overload, runtime_checkable
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from typing import Any, TypeVar, overload
 
 import httpx
 from pydantic import BaseModel, TypeAdapter
@@ -25,6 +24,7 @@ from .middleware import (
 from .option import serialize_option_dict
 from .response import ApiResponse, TransportMetadata
 from .sse import aparse_sse, parse_sse
+from .transport import AsyncClient, Client, Request, Response
 
 
 # Sentinel object to represent "no validation needed"
@@ -35,43 +35,6 @@ class _NoValidation:
 NO_VALIDATION = _NoValidation()
 
 T = TypeVar("T", bound=BaseModel)
-
-
-@dataclass(frozen=True)
-class Request:
-    """Transport request passed to custom ReflectAPI Python clients.
-
-    ``method`` is intentionally absent: every reflectapi endpoint is POST
-    by design, so transports hardcode it. If that ever changes it's a
-    wire-protocol break and clients regenerate.
-    """
-
-    path: str
-    headers: dict[str, str]
-    body: bytes
-
-
-@dataclass(frozen=True)
-class Response:
-    """Transport response returned by custom ReflectAPI Python clients."""
-
-    status: int
-    headers: httpx.Headers
-    body: bytes
-
-
-@runtime_checkable
-class Client(Protocol):
-    """Synchronous transport protocol for generated clients."""
-
-    def request(self, request: Request) -> Response: ...
-
-
-@runtime_checkable
-class AsyncClient(Protocol):
-    """Asynchronous transport protocol for generated clients."""
-
-    async def request(self, request: Request) -> Response: ...
 
 
 def _json_serializer(obj: Any) -> Any:
@@ -361,6 +324,7 @@ class ClientBase(ABC):
 
     def _build_client_request(
         self,
+        path: str,
         json_data: Any | None,
         json_model: BaseModel | None,
         headers_model: BaseModel | None,
@@ -369,69 +333,77 @@ class ClientBase(ABC):
         if json_model is not None:
             content, base_headers = self._serialize_request_body(json_model)
             headers = self._build_headers(base_headers, headers_model)
-        else:
-            if json_data is not None:
-                if isinstance(json_data, dict):
-                    processed_json_data = serialize_option_dict(json_data)
-                else:
-                    processed_json_data = json_data
-                content = json.dumps(
-                    processed_json_data,
-                    default=_json_serializer,
-                    separators=(",", ":"),
-                ).encode("utf-8")
-                headers = self._build_headers(
-                    {"Content-Type": "application/json"}, headers_model
-                )
+        elif json_data is not None:
+            if isinstance(json_data, dict):
+                processed_json_data = serialize_option_dict(json_data)
             else:
-                content = b""
-                headers = self._build_headers({}, headers_model)
+                processed_json_data = json_data
+            content = json.dumps(
+                processed_json_data,
+                default=_json_serializer,
+                separators=(",", ":"),
+            ).encode("utf-8")
+            headers = self._build_headers(
+                {"Content-Type": "application/json"}, headers_model
+            )
+        else:
+            content = b""
+            headers = self._build_headers({}, headers_model)
 
-        return Request(
-            path="",
-            headers=headers,
-            body=content,
-        )
+        return Request(path=path, headers=headers, body=content)
 
-    def _build_request(
+    def _build_httpx_request(
         self,
+        request: Request,
         url: str,
         params: dict[str, Any] | None,
-        json_data: Any | None,
-        json_model: BaseModel | None,
-        headers_model: BaseModel | None,
     ) -> httpx.Request:
-        """Build HTTP request object. Method is always POST by design."""
-        client_request = self._build_client_request(
-            json_data, json_model, headers_model
-        )
+        """Materialise an httpx.Request from a transport Request.
+
+        Method is always POST by design.
+        """
         request_kwargs: dict[str, Any] = {
             "method": "POST",
             "url": url,
             "params": params,
-            "headers": client_request.headers if client_request.headers else None,
+            "headers": request.headers if request.headers else None,
         }
-        if client_request.body:
-            request_kwargs["content"] = client_request.body
+        if request.body:
+            request_kwargs["content"] = request.body
         return self._client.build_request(**request_kwargs)
 
-    def _execute_client_request(self, request: Request) -> Response:
-        """Execute a request through the injected ReflectAPI transport."""
-        response = self._client.request(request)
-        if isinstance(response, httpx.Response):
-            return Response(
-                status=response.status_code,
-                headers=response.headers,
-                body=response.content,
-            )
-        return response
+    def _make_terminal(
+        self,
+        params: dict[str, Any] | None,
+    ) -> Callable[[Request], Response]:
+        """Return the chain-terminal handler for the active transport.
 
-    def _execute_request(self, request: httpx.Request) -> httpx.Response:
-        """Execute HTTP request through middleware chain."""
-        if self.middleware_chain.middleware:
-            return self.middleware_chain.execute(request, self._client)
-        else:
-            return self._client.send(request)
+        For an ``httpx.Client``, the terminal lifts the Request into an
+        ``httpx.Request``, sends it, and converts back. For a custom
+        :class:`Client`, the terminal calls ``client.request`` directly
+        and trusts the structural shape of the returned response.
+        """
+        if isinstance(self._client, httpx.Client):
+            base_url = self.base_url
+
+            def terminal(req: Request) -> Response:
+                url = f"{base_url}/{req.path.lstrip('/')}"
+                httpx_req = self._build_httpx_request(req, url, params)
+                httpx_resp = self._client.send(httpx_req)
+                return Response(
+                    status=httpx_resp.status_code,
+                    headers=httpx_resp.headers,
+                    body=httpx_resp.content,
+                )
+
+            return terminal
+
+        def terminal(req: Request) -> Response:
+            # Trust the structural shape: anything with .status / .headers
+            # / .body satisfies the Protocol.
+            return self._client.request(req)
+
+        return terminal
 
     def _handle_error_response(
         self,
@@ -528,33 +500,24 @@ class ClientBase(ABC):
         # Validate request parameters
         self._validate_request_params(json_data, json_model)
 
-        # Build URL and request
+        # Build the transport request once and drive it through the
+        # middleware chain. The chain's terminal handler is transport-
+        # specific; middleware itself is transport-agnostic.
         request = self._build_client_request(
-            json_data, json_model, headers_model
+            path, json_data, json_model, headers_model
         )
-        request = Request(
-            path=path,
-            headers=request.headers,
-            body=request.body,
-        )
+        terminal = self._make_terminal(params)
 
         # Execute request with timing
         start_time = time.time()
 
         try:
-            if hasattr(self._client, "build_request") and hasattr(self._client, "send"):
-                url = f"{self.base_url}/{path.lstrip('/')}"
-                httpx_request = self._build_request(
-                    url, params, json_data, json_model, headers_model
-                )
-                response = self._execute_request(httpx_request)
-            else:
-                client_response = self._execute_client_request(request)
-                response = httpx.Response(
-                    status_code=client_response.status,
-                    headers=client_response.headers,
-                    content=client_response.body,
-                )
+            client_response = self.middleware_chain.execute(request, terminal)
+            response = httpx.Response(
+                status_code=client_response.status,
+                headers=client_response.headers,
+                content=client_response.body,
+            )
             metadata = TransportMetadata.from_response(response, start_time)
 
             # Handle error responses
@@ -601,9 +564,10 @@ class ClientBase(ABC):
         self._validate_request_params(json_data, json_model)
 
         url = f"{self.base_url}/{path.lstrip('/')}"
-        request = self._build_request(
-            url, params, json_data, json_model, headers_model
+        client_request = self._build_client_request(
+            path, json_data, json_model, headers_model
         )
+        request = self._build_httpx_request(client_request, url, params)
         request.headers["accept"] = "text/event-stream"
 
         start_time = time.time()
@@ -924,6 +888,7 @@ class AsyncClientBase(ABC):
 
     def _build_client_request(
         self,
+        path: str,
         json_data: Any | None,
         json_model: BaseModel | None,
         headers_model: BaseModel | None,
@@ -932,69 +897,75 @@ class AsyncClientBase(ABC):
         if json_model is not None:
             content, base_headers = self._serialize_request_body(json_model)
             headers = self._build_headers(base_headers, headers_model)
-        else:
-            if json_data is not None:
-                if isinstance(json_data, dict):
-                    processed_json_data = serialize_option_dict(json_data)
-                else:
-                    processed_json_data = json_data
-                content = json.dumps(
-                    processed_json_data,
-                    default=_json_serializer,
-                    separators=(",", ":"),
-                ).encode("utf-8")
-                headers = self._build_headers(
-                    {"Content-Type": "application/json"}, headers_model
-                )
+        elif json_data is not None:
+            if isinstance(json_data, dict):
+                processed_json_data = serialize_option_dict(json_data)
             else:
-                content = b""
-                headers = self._build_headers({}, headers_model)
+                processed_json_data = json_data
+            content = json.dumps(
+                processed_json_data,
+                default=_json_serializer,
+                separators=(",", ":"),
+            ).encode("utf-8")
+            headers = self._build_headers(
+                {"Content-Type": "application/json"}, headers_model
+            )
+        else:
+            content = b""
+            headers = self._build_headers({}, headers_model)
 
-        return Request(
-            path="",
-            headers=headers,
-            body=content,
-        )
+        return Request(path=path, headers=headers, body=content)
 
-    def _build_request(
+    def _build_httpx_request(
         self,
+        request: Request,
         url: str,
         params: dict[str, Any] | None,
-        json_data: Any | None,
-        json_model: BaseModel | None,
-        headers_model: BaseModel | None,
     ) -> httpx.Request:
-        """Build HTTP request object. Method is always POST by design."""
-        client_request = self._build_client_request(
-            json_data, json_model, headers_model
-        )
+        """Materialise an httpx.Request from a transport Request.
+
+        Method is always POST by design.
+        """
         request_kwargs: dict[str, Any] = {
             "method": "POST",
             "url": url,
             "params": params,
-            "headers": client_request.headers if client_request.headers else None,
+            "headers": request.headers if request.headers else None,
         }
-        if client_request.body:
-            request_kwargs["content"] = client_request.body
+        if request.body:
+            request_kwargs["content"] = request.body
         return self._client.build_request(**request_kwargs)
 
-    async def _execute_client_request(self, request: Request) -> Response:
-        """Execute a request through the injected ReflectAPI transport."""
-        response = await self._client.request(request)
-        if isinstance(response, httpx.Response):
-            return Response(
-                status=response.status_code,
-                headers=response.headers,
-                body=response.content,
-            )
-        return response
+    def _make_terminal(
+        self,
+        params: dict[str, Any] | None,
+    ) -> Callable[[Request], Awaitable[Response]]:
+        """Return the chain-terminal handler for the active transport.
 
-    async def _execute_request(self, request: httpx.Request) -> httpx.Response:
-        """Execute HTTP request through middleware chain."""
-        if self.middleware_chain.middleware:
-            return await self.middleware_chain.execute(request, self._client)
-        else:
-            return await self._client.send(request)
+        For an ``httpx.AsyncClient``, the terminal lifts the Request into
+        an ``httpx.Request``, sends it, and converts back. For a custom
+        :class:`AsyncClient`, the terminal calls ``client.request``
+        directly and trusts the structural shape of the returned response.
+        """
+        if isinstance(self._client, httpx.AsyncClient):
+            base_url = self.base_url
+
+            async def terminal(req: Request) -> Response:
+                url = f"{base_url}/{req.path.lstrip('/')}"
+                httpx_req = self._build_httpx_request(req, url, params)
+                httpx_resp = await self._client.send(httpx_req)
+                return Response(
+                    status=httpx_resp.status_code,
+                    headers=httpx_resp.headers,
+                    body=httpx_resp.content,
+                )
+
+            return terminal
+
+        async def terminal(req: Request) -> Response:
+            return await self._client.request(req)
+
+        return terminal
 
     def _handle_error_response(
         self,
@@ -1079,32 +1050,24 @@ class AsyncClientBase(ABC):
         # Validate request parameters
         self._validate_request_params(json_data, json_model)
 
+        # Build the transport request once and drive it through the
+        # middleware chain. The chain's terminal handler is transport-
+        # specific; middleware itself is transport-agnostic.
         request = self._build_client_request(
-            json_data, json_model, headers_model
+            path, json_data, json_model, headers_model
         )
-        request = Request(
-            path=path,
-            headers=request.headers,
-            body=request.body,
-        )
+        terminal = self._make_terminal(params)
 
         # Execute request with timing
         start_time = time.time()
 
         try:
-            if hasattr(self._client, "build_request") and hasattr(self._client, "send"):
-                url = f"{self.base_url}/{path.lstrip('/')}"
-                httpx_request = self._build_request(
-                    url, params, json_data, json_model, headers_model
-                )
-                response = await self._execute_request(httpx_request)
-            else:
-                client_response = await self._execute_client_request(request)
-                response = httpx.Response(
-                    status_code=client_response.status,
-                    headers=client_response.headers,
-                    content=client_response.body,
-                )
+            client_response = await self.middleware_chain.execute(request, terminal)
+            response = httpx.Response(
+                status_code=client_response.status,
+                headers=client_response.headers,
+                content=client_response.body,
+            )
             metadata = TransportMetadata.from_response(response, start_time)
 
             # Handle error responses
@@ -1150,9 +1113,10 @@ class AsyncClientBase(ABC):
         self._validate_request_params(json_data, json_model)
 
         url = f"{self.base_url}/{path.lstrip('/')}"
-        request = self._build_request(
-            url, params, json_data, json_model, headers_model
+        client_request = self._build_client_request(
+            path, json_data, json_model, headers_model
         )
+        request = self._build_httpx_request(client_request, url, params)
         request.headers["accept"] = "text/event-stream"
 
         start_time = time.time()
