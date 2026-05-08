@@ -154,19 +154,14 @@ fn main() -> anyhow::Result<()> {
                 .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
 
             let files: std::collections::BTreeMap<String, String> = match language {
-                Language::Typescript => {
-                    let content = reflectapi::codegen::typescript::generate(
-                        schema,
-                        reflectapi::codegen::typescript::Config::default()
-                            .format(format)
-                            .typecheck(typecheck)
-                            .include_tags(include_tags)
-                            .exclude_tags(exclude_tags),
-                    )?;
-                    let mut files = std::collections::BTreeMap::new();
-                    files.insert("generated.ts".to_string(), content);
-                    files
-                }
+                Language::Typescript => reflectapi::codegen::typescript::generate(
+                    schema,
+                    reflectapi::codegen::typescript::Config::default()
+                        .format(format)
+                        .typecheck(typecheck)
+                        .include_tags(include_tags)
+                        .exclude_tags(exclude_tags),
+                )?,
                 Language::Rust => {
                     let content = reflectapi::codegen::rust::generate(
                         schema,

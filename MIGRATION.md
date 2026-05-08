@@ -60,17 +60,23 @@ already enable both don't need to change anything.
 
 ### TypeScript
 
-The transport DTOs are exported as bare `Request` / `Response` / `Headers`
-from `generated.ts`. These names shadow the DOM globals of the same name
-in any consumer module that also uses `fetch` types. Workarounds while a
-fix lands (tracking in #143):
+Codegen now emits two files: `generated.ts` (the API surface) and
+`generated.transport.ts` (the transport contract). Most consumers only
+need `generated.ts`. Custom transports import from the transport
+submodule:
 
 ```ts
-import { Request as ApiRequest, Response as ApiResponse } from './generated';
-// or
-import * as api from './generated';
-// then api.Request, api.Response
+import type { Client, Request, Response } from './generated.transport';
 ```
+
+The bare `Request` / `Response` / `Headers` names live behind the
+`./generated.transport` import path, so they no longer shadow the DOM
+globals of the same name when imported from `generated.ts`. See #143
+for the rationale.
+
+If your build tooling assumed a single generated file, update it to
+include the new sibling. Typical pnpm/npm workflows pick it up
+automatically (the file sits in the same directory).
 
 ### Python
 

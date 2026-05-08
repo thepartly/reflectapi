@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    collections::{BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
     process::{Command, Stdio},
 };
 
@@ -43,7 +43,10 @@ impl Config {
     }
 }
 
-pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
+pub fn generate(
+    mut schema: crate::Schema,
+    config: &Config,
+) -> anyhow::Result<BTreeMap<String, String>> {
     let implemented_types = build_implemented_types();
 
     let mut rendered_types = HashMap::new();
@@ -121,39 +124,54 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     };
     generated_code.push(file_template.render());
 
-    let mut generated_code = generated_code.join("\n");
+    let mut main = generated_code.join("\n");
+    let mut transport = include_str!("./lib_transport.ts").to_owned();
     if config.format {
-        // NOTE: When updating the biome version, also update .github/workflows/ci.yaml
-        let biome_package = "@biomejs/biome@1.8.3";
-        generated_code = format_with(
-            // In descending order of speed. The output should be the same.
-            [
-                Command::new("biome").args(["format", "--stdin-file-path", "dummy.ts"]),
-                Command::new("npx").arg("-y").arg(biome_package).args([
-                    "format",
-                    "--stdin-file-path",
-                    "dummy.ts",
-                ]),
-                Command::new("prettier").args(["--parser", "typescript"]),
-                Command::new("npx")
-                    .arg("-y")
-                    .arg("prettier")
-                    .args(["--parser", "typescript"]),
-            ],
-            generated_code,
-        )?;
+        main = format_ts(main)?;
+        transport = format_ts(transport)?;
     };
 
     if config.typecheck {
-        typecheck(&generated_code)?;
+        typecheck(&main, &transport)?;
     }
 
-    Ok(generated_code)
+    let mut files = BTreeMap::new();
+    files.insert("generated.ts".to_string(), main);
+    files.insert("generated.transport.ts".to_string(), transport);
+    Ok(files)
 }
 
-fn typecheck(src: &str) -> anyhow::Result<()> {
-    let path = super::tmp_path(src).with_extension("ts");
-    std::fs::write(&path, src)?;
+fn format_ts(src: String) -> anyhow::Result<String> {
+    // NOTE: When updating the biome version, also update .github/workflows/ci.yaml
+    let biome_package = "@biomejs/biome@1.8.3";
+    Ok(format_with(
+        // In descending order of speed. The output should be the same.
+        [
+            Command::new("biome").args(["format", "--stdin-file-path", "dummy.ts"]),
+            Command::new("npx").arg("-y").arg(biome_package).args([
+                "format",
+                "--stdin-file-path",
+                "dummy.ts",
+            ]),
+            Command::new("prettier").args(["--parser", "typescript"]),
+            Command::new("npx")
+                .arg("-y")
+                .arg("prettier")
+                .args(["--parser", "typescript"]),
+        ],
+        src,
+    )?)
+}
+
+fn typecheck(main: &str, transport: &str) -> anyhow::Result<()> {
+    // tsc resolves `import ... from './generated.transport'` against
+    // the filesystem, so both files must live in the same directory.
+    let dir = super::tmp_path(main).with_extension("dir");
+    std::fs::create_dir_all(&dir)?;
+    let main_path = dir.join("generated.ts");
+    let transport_path = dir.join("generated.transport.ts");
+    std::fs::write(&main_path, main)?;
+    std::fs::write(&transport_path, transport)?;
 
     for cmd in [
         &mut Command::new("tsc"),
@@ -168,7 +186,8 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
             .arg("--skipLibCheck")
             .arg("--strict")
             .args(["--lib", "esnext,DOM"])
-            .arg(&path)
+            .arg(&main_path)
+            .arg(&transport_path)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -190,8 +209,8 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
             ));
         }
 
-        // Remove only after success check to keep file around for debugging
-        std::fs::remove_file(&path)?;
+        // Remove only after success check to keep files around for debugging
+        let _ = std::fs::remove_dir_all(&dir);
 
         return Ok(());
     }
