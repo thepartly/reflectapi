@@ -241,20 +241,15 @@ fn main() -> anyhow::Result<()> {
                     .file_name()
                     .and_then(|n| n.to_str())
                     .unwrap_or_default();
+                let parent = parent_or_dot(&output_path);
                 if !files.contains_key(primary_name) {
                     let expected: Vec<&str> = files.keys().map(String::as_str).collect();
                     anyhow::bail!(
                         "output path {output_path:?} looks like a file, but {language:?} \
                          codegen now emits multiple files: {expected:?}. \
-                         Pass a directory path (e.g. --output {:?}) instead.",
-                        output_path.parent().unwrap_or(std::path::Path::new(".")),
+                         Pass a directory path (e.g. --output {parent:?}) instead.",
                     );
                 }
-                let parent = output_path
-                    .parent()
-                    .filter(|p| !p.as_os_str().is_empty())
-                    .map(std::path::Path::to_path_buf)
-                    .unwrap_or_else(|| std::path::PathBuf::from("."));
                 std::fs::create_dir_all(&parent)
                     .context(format!("Failed to create output directory: {parent:?}"))?;
                 for (filename, content) in &files {
@@ -269,6 +264,13 @@ fn main() -> anyhow::Result<()> {
             Ok(())
         }
     }
+}
+
+fn parent_or_dot(path: &std::path::Path) -> std::path::PathBuf {
+    path.parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .map(std::path::Path::to_path_buf)
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
 }
 
 fn write_file(path: &std::path::Path, content: &str) -> anyhow::Result<()> {
