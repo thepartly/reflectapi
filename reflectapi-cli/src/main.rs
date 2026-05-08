@@ -93,7 +93,7 @@ enum DocSubcommand {
     },
 }
 
-#[derive(ValueEnum, Clone, PartialEq)]
+#[derive(ValueEnum, Clone, Debug, PartialEq)]
 enum Language {
     Typescript,
     Rust,
@@ -213,36 +213,68 @@ fn main() -> anyhow::Result<()> {
 
             let output_path = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
 
-            // For single-file languages, write directly to the specified path if it's a file,
-            // or to default filename in the directory if it's a directory
-            // For multi-file languages (like Python), create directory and write multiple files
-            if files.len() == 1 {
-                let (filename, content) = files.iter().next().unwrap();
-                let final_path =
-                    if output_path.is_dir() || output_path.to_string_lossy().ends_with('/') {
-                        output_path.join(filename)
-                    } else {
-                        output_path
-                    };
-                let mut file = std::fs::File::create(&final_path)
-                    .context(format!("Failed to create file: {final_path:?}"))?;
-                file.write_all(content.as_bytes())
-                    .context(format!("Failed to write to file: {final_path:?}"))?;
-            } else {
-                // Multi-file: create directory and write all files
+            // Resolve where each generated file lands.
+            //
+            // - If the output path looks like a directory (existing dir, or
+            //   ends with a separator), every file is placed inside it
+            //   under its codegen-assigned filename.
+            // - If the output path looks like a file, the codegen file
+            //   whose name matches goes there and any siblings land in the
+            //   same parent directory under their codegen-assigned names.
+            //   This preserves backward compat with existing scripts that
+            //   pass `--output .../generated.ts`.
+            // - If the output path looks like a file but no codegen file
+            //   matches its name, we error rather than create a directory
+            //   at that path (which would surprise existing users).
+            let looks_like_dir =
+                output_path.is_dir() || output_path.to_string_lossy().ends_with('/');
+
+            if looks_like_dir {
                 std::fs::create_dir_all(&output_path).context(format!(
                     "Failed to create output directory: {output_path:?}"
                 ))?;
-
-                for (filename, content) in files {
-                    let file_path = output_path.join(&filename);
-                    let mut file = std::fs::File::create(&file_path)
-                        .context(format!("Failed to create file: {file_path:?}"))?;
-                    file.write_all(content.as_bytes())
-                        .context(format!("Failed to write to file: {file_path:?}"))?;
+                for (filename, content) in &files {
+                    write_file(&output_path.join(filename), content)?;
+                }
+            } else {
+                let primary_name = output_path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or_default();
+                if !files.contains_key(primary_name) {
+                    let expected: Vec<&str> = files.keys().map(String::as_str).collect();
+                    anyhow::bail!(
+                        "output path {output_path:?} looks like a file, but {language:?} \
+                         codegen now emits multiple files: {expected:?}. \
+                         Pass a directory path (e.g. --output {:?}) instead.",
+                        output_path.parent().unwrap_or(std::path::Path::new(".")),
+                    );
+                }
+                let parent = output_path
+                    .parent()
+                    .filter(|p| !p.as_os_str().is_empty())
+                    .map(std::path::Path::to_path_buf)
+                    .unwrap_or_else(|| std::path::PathBuf::from("."));
+                std::fs::create_dir_all(&parent)
+                    .context(format!("Failed to create output directory: {parent:?}"))?;
+                for (filename, content) in &files {
+                    let dest = if filename == primary_name {
+                        output_path.clone()
+                    } else {
+                        parent.join(filename)
+                    };
+                    write_file(&dest, content)?;
                 }
             }
             Ok(())
         }
     }
+}
+
+fn write_file(path: &std::path::Path, content: &str) -> anyhow::Result<()> {
+    let mut file =
+        std::fs::File::create(path).context(format!("Failed to create file: {path:?}"))?;
+    file.write_all(content.as_bytes())
+        .context(format!("Failed to write to file: {path:?}"))?;
+    Ok(())
 }
