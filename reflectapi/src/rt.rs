@@ -12,25 +12,30 @@ pub trait Client {
 
     fn request(
         &self,
-        request: ClientRequest,
-    ) -> impl Future<Output = Result<ClientResponse<Self::Error>, Self::Error>>;
+        request: Request,
+    ) -> impl Future<Output = Result<Response<Self::Error>, Self::Error>>;
 }
 
-pub struct ClientRequest {
+/// Transport request handed to user-provided [`Client`] implementations.
+///
+/// `method` is intentionally absent: every reflectapi endpoint is `POST`
+/// by design, so transports hardcode it. If that ever changes it's a
+/// wire-protocol break and clients regenerate.
+pub struct Request {
     pub url: Url,
-    pub method: http::Method,
     pub headers: http::HeaderMap,
     pub body: bytes::Bytes,
 }
 
-impl ClientRequest {
+impl Request {
     pub fn path(&self) -> &str {
         self.url.path()
     }
 }
 
+/// Transport response returned by user-provided [`Client`] implementations.
 #[allow(clippy::type_complexity)]
-pub struct ClientResponse<E> {
+pub struct Response<E> {
     pub status: http::StatusCode,
     pub headers: http::HeaderMap,
     pub body: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, E>> + Send + 'static>>,
@@ -242,9 +247,8 @@ where
     }
 
     let response = client
-        .request(ClientRequest {
+        .request(Request {
             url,
-            method: http::Method::POST,
             headers: header_map,
             body,
         })
@@ -342,9 +346,8 @@ where
         .map_err(|(info, stage)| Error::Protocol { info, stage })?;
 
     let response = client
-        .request(ClientRequest {
+        .request(Request {
             url,
-            method: http::Method::POST,
             headers: header_map,
             body,
         })
@@ -408,17 +411,14 @@ async fn __collect_byte_stream<E>(
 impl Client for reqwest::Client {
     type Error = reqwest::Error;
 
-    async fn request(
-        &self,
-        request: ClientRequest,
-    ) -> Result<ClientResponse<Self::Error>, Self::Error> {
+    async fn request(&self, request: Request) -> Result<Response<Self::Error>, Self::Error> {
         let response = self
-            .request(request.method, request.url)
+            .request(http::Method::POST, request.url)
             .headers(request.headers)
             .body(request.body)
             .send()
             .await?;
-        Ok(ClientResponse {
+        Ok(Response {
             status: response.status(),
             headers: response.headers().clone(),
             body: Box::pin(response.bytes_stream()),
@@ -430,17 +430,14 @@ impl Client for reqwest::Client {
 impl Client for reqwest_middleware::ClientWithMiddleware {
     type Error = reqwest_middleware::Error;
 
-    async fn request(
-        &self,
-        request: ClientRequest,
-    ) -> Result<ClientResponse<Self::Error>, Self::Error> {
+    async fn request(&self, request: Request) -> Result<Response<Self::Error>, Self::Error> {
         let response = self
-            .request(request.method, request.url)
+            .request(http::Method::POST, request.url)
             .headers(request.headers)
             .body(request.body)
             .send()
             .await?;
-        Ok(ClientResponse {
+        Ok(Response {
             status: response.status(),
             headers: response.headers().clone(),
             body: Box::pin(futures_util::StreamExt::map(response.bytes_stream(), |r| {
@@ -461,15 +458,11 @@ mod tests {
     impl Client for ShapeClient {
         type Error = std::convert::Infallible;
 
-        async fn request(
-            &self,
-            request: ClientRequest,
-        ) -> Result<ClientResponse<Self::Error>, Self::Error> {
-            assert_eq!(request.method, http::Method::POST);
+        async fn request(&self, request: Request) -> Result<Response<Self::Error>, Self::Error> {
             assert_eq!(request.path(), "/shape.test");
             assert_eq!(request.body.as_ref(), br#"{"name":"input"}"#);
 
-            Ok(ClientResponse {
+            Ok(Response {
                 status: http::StatusCode::OK,
                 headers: http::HeaderMap::new(),
                 body: Box::pin(stream::once(async {

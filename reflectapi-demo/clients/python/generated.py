@@ -514,7 +514,6 @@ class AsyncHealthClient:
 
         params: dict[str, Any] = {}
         return await self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             response_model=None,
@@ -541,7 +540,6 @@ class AsyncPetsClient:
 
         params: dict[str, Any] = {}
         return self._client._make_sse_request(
-            "POST",
             path,
             params=params if params else None,
             headers_model=headers,
@@ -566,7 +564,6 @@ class AsyncPetsClient:
 
         params: dict[str, Any] = {}
         return await self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,
@@ -602,7 +599,6 @@ class AsyncPetsClient:
 
         params: dict[str, Any] = {}
         return await self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,
@@ -624,7 +620,6 @@ class AsyncPetsClient:
 
         params: dict[str, Any] = {}
         return await self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             headers_model=headers,
@@ -651,7 +646,6 @@ class AsyncPetsClient:
 
         params: dict[str, Any] = {}
         return await self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,
@@ -677,7 +671,6 @@ class AsyncPetsClient:
 
         params: dict[str, Any] = {}
         return await self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,
@@ -703,7 +696,6 @@ class AsyncPetsClient:
 
         params: dict[str, Any] = {}
         return await self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,
@@ -746,7 +738,6 @@ class HealthClient:
 
         params: dict[str, Any] = {}
         return self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             response_model=None,
@@ -773,7 +764,6 @@ class PetsClient:
 
         params: dict[str, Any] = {}
         return self._client._make_sse_request(
-            "POST",
             path,
             params=params if params else None,
             headers_model=headers,
@@ -798,7 +788,6 @@ class PetsClient:
 
         params: dict[str, Any] = {}
         return self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,
@@ -834,7 +823,6 @@ class PetsClient:
 
         params: dict[str, Any] = {}
         return self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,
@@ -856,7 +844,6 @@ class PetsClient:
 
         params: dict[str, Any] = {}
         return self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             headers_model=headers,
@@ -883,7 +870,6 @@ class PetsClient:
 
         params: dict[str, Any] = {}
         return self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,
@@ -909,7 +895,6 @@ class PetsClient:
 
         params: dict[str, Any] = {}
         return self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,
@@ -935,7 +920,6 @@ class PetsClient:
 
         params: dict[str, Any] = {}
         return self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,

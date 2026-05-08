@@ -63,7 +63,6 @@ class AsyncOutputClient:
 
         params: dict[str, Any] = {}
         return await self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             response_model=reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored,
@@ -101,7 +100,6 @@ class OutputClient:
 
         params: dict[str, Any] = {}
         return self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             response_model=reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored,

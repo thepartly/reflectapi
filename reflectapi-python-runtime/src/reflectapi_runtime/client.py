@@ -38,17 +38,21 @@ T = TypeVar("T", bound=BaseModel)
 
 
 @dataclass(frozen=True)
-class ClientRequest:
-    """Transport request passed to custom ReflectAPI Python clients."""
+class Request:
+    """Transport request passed to custom ReflectAPI Python clients.
+
+    ``method`` is intentionally absent: every reflectapi endpoint is POST
+    by design, so transports hardcode it. If that ever changes it's a
+    wire-protocol break and clients regenerate.
+    """
 
     path: str
-    method: str
     headers: dict[str, str]
     body: bytes
 
 
 @dataclass(frozen=True)
-class ClientResponse:
+class Response:
     """Transport response returned by custom ReflectAPI Python clients."""
 
     status: int
@@ -60,14 +64,14 @@ class ClientResponse:
 class Client(Protocol):
     """Synchronous transport protocol for generated clients."""
 
-    def request(self, request: ClientRequest) -> ClientResponse: ...
+    def request(self, request: Request) -> Response: ...
 
 
 @runtime_checkable
 class AsyncClient(Protocol):
     """Asynchronous transport protocol for generated clients."""
 
-    async def request(self, request: ClientRequest) -> ClientResponse: ...
+    async def request(self, request: Request) -> Response: ...
 
 
 def _json_serializer(obj: Any) -> Any:
@@ -199,7 +203,7 @@ class ClientBase(ABC):
     @overload
     def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -212,7 +216,7 @@ class ClientBase(ABC):
     @overload
     def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -225,7 +229,7 @@ class ClientBase(ABC):
     @overload
     def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -238,7 +242,7 @@ class ClientBase(ABC):
     @overload
     def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -250,7 +254,7 @@ class ClientBase(ABC):
     @overload
     def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -263,7 +267,7 @@ class ClientBase(ABC):
     @overload
     def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -357,11 +361,10 @@ class ClientBase(ABC):
 
     def _build_client_request(
         self,
-        method: str,
         json_data: Any | None,
         json_model: BaseModel | None,
         headers_model: BaseModel | None,
-    ) -> ClientRequest:
+    ) -> Request:
         """Build ReflectAPI transport request object."""
         if json_model is not None:
             content, base_headers = self._serialize_request_body(json_model)
@@ -384,28 +387,26 @@ class ClientBase(ABC):
                 content = b""
                 headers = self._build_headers({}, headers_model)
 
-        return ClientRequest(
+        return Request(
             path="",
-            method=method,
             headers=headers,
             body=content,
         )
 
     def _build_request(
         self,
-        method: str,
         url: str,
         params: dict[str, Any] | None,
         json_data: Any | None,
         json_model: BaseModel | None,
         headers_model: BaseModel | None,
     ) -> httpx.Request:
-        """Build HTTP request object."""
+        """Build HTTP request object. Method is always POST by design."""
         client_request = self._build_client_request(
-            method, json_data, json_model, headers_model
+            json_data, json_model, headers_model
         )
         request_kwargs: dict[str, Any] = {
-            "method": client_request.method,
+            "method": "POST",
             "url": url,
             "params": params,
             "headers": client_request.headers if client_request.headers else None,
@@ -414,11 +415,11 @@ class ClientBase(ABC):
             request_kwargs["content"] = client_request.body
         return self._client.build_request(**request_kwargs)
 
-    def _execute_client_request(self, request: ClientRequest) -> ClientResponse:
+    def _execute_client_request(self, request: Request) -> Response:
         """Execute a request through the injected ReflectAPI transport."""
         response = self._client.request(request)
         if isinstance(response, httpx.Response):
-            return ClientResponse(
+            return Response(
                 status=response.status_code,
                 headers=response.headers,
                 body=response.content,
@@ -513,7 +514,7 @@ class ClientBase(ABC):
 
     def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -529,11 +530,10 @@ class ClientBase(ABC):
 
         # Build URL and request
         request = self._build_client_request(
-            method, json_data, json_model, headers_model
+            json_data, json_model, headers_model
         )
-        request = ClientRequest(
+        request = Request(
             path=path,
-            method=request.method,
             headers=request.headers,
             body=request.body,
         )
@@ -545,7 +545,7 @@ class ClientBase(ABC):
             if hasattr(self._client, "build_request") and hasattr(self._client, "send"):
                 url = f"{self.base_url}/{path.lstrip('/')}"
                 httpx_request = self._build_request(
-                    method, url, params, json_data, json_model, headers_model
+                    url, params, json_data, json_model, headers_model
                 )
                 response = self._execute_request(httpx_request)
             else:
@@ -575,7 +575,7 @@ class ClientBase(ABC):
 
     def _make_sse_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -602,7 +602,7 @@ class ClientBase(ABC):
 
         url = f"{self.base_url}/{path.lstrip('/')}"
         request = self._build_request(
-            method, url, params, json_data, json_model, headers_model
+            url, params, json_data, json_model, headers_model
         )
         request.headers["accept"] = "text/event-stream"
 
@@ -766,7 +766,7 @@ class AsyncClientBase(ABC):
     @overload
     async def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -778,7 +778,7 @@ class AsyncClientBase(ABC):
     @overload
     async def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -791,7 +791,7 @@ class AsyncClientBase(ABC):
     @overload
     async def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -804,7 +804,7 @@ class AsyncClientBase(ABC):
     @overload
     async def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -816,7 +816,7 @@ class AsyncClientBase(ABC):
     @overload
     async def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -829,7 +829,7 @@ class AsyncClientBase(ABC):
     @overload
     async def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -924,11 +924,10 @@ class AsyncClientBase(ABC):
 
     def _build_client_request(
         self,
-        method: str,
         json_data: Any | None,
         json_model: BaseModel | None,
         headers_model: BaseModel | None,
-    ) -> ClientRequest:
+    ) -> Request:
         """Build ReflectAPI transport request object."""
         if json_model is not None:
             content, base_headers = self._serialize_request_body(json_model)
@@ -951,28 +950,26 @@ class AsyncClientBase(ABC):
                 content = b""
                 headers = self._build_headers({}, headers_model)
 
-        return ClientRequest(
+        return Request(
             path="",
-            method=method,
             headers=headers,
             body=content,
         )
 
     def _build_request(
         self,
-        method: str,
         url: str,
         params: dict[str, Any] | None,
         json_data: Any | None,
         json_model: BaseModel | None,
         headers_model: BaseModel | None,
     ) -> httpx.Request:
-        """Build HTTP request object."""
+        """Build HTTP request object. Method is always POST by design."""
         client_request = self._build_client_request(
-            method, json_data, json_model, headers_model
+            json_data, json_model, headers_model
         )
         request_kwargs: dict[str, Any] = {
-            "method": client_request.method,
+            "method": "POST",
             "url": url,
             "params": params,
             "headers": client_request.headers if client_request.headers else None,
@@ -981,11 +978,11 @@ class AsyncClientBase(ABC):
             request_kwargs["content"] = client_request.body
         return self._client.build_request(**request_kwargs)
 
-    async def _execute_client_request(self, request: ClientRequest) -> ClientResponse:
+    async def _execute_client_request(self, request: Request) -> Response:
         """Execute a request through the injected ReflectAPI transport."""
         response = await self._client.request(request)
         if isinstance(response, httpx.Response):
-            return ClientResponse(
+            return Response(
                 status=response.status_code,
                 headers=response.headers,
                 body=response.content,
@@ -1068,7 +1065,7 @@ class AsyncClientBase(ABC):
 
     async def _make_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -1083,11 +1080,10 @@ class AsyncClientBase(ABC):
         self._validate_request_params(json_data, json_model)
 
         request = self._build_client_request(
-            method, json_data, json_model, headers_model
+            json_data, json_model, headers_model
         )
-        request = ClientRequest(
+        request = Request(
             path=path,
-            method=request.method,
             headers=request.headers,
             body=request.body,
         )
@@ -1099,7 +1095,7 @@ class AsyncClientBase(ABC):
             if hasattr(self._client, "build_request") and hasattr(self._client, "send"):
                 url = f"{self.base_url}/{path.lstrip('/')}"
                 httpx_request = self._build_request(
-                    method, url, params, json_data, json_model, headers_model
+                    url, params, json_data, json_model, headers_model
                 )
                 response = await self._execute_request(httpx_request)
             else:
@@ -1128,7 +1124,7 @@ class AsyncClientBase(ABC):
 
     async def _make_sse_request(
         self,
-        method: str,
+
         path: str,
         *,
         params: dict[str, Any] | None = None,
@@ -1155,7 +1151,7 @@ class AsyncClientBase(ABC):
 
         url = f"{self.base_url}/{path.lstrip('/')}"
         request = self._build_request(
-            method, url, params, json_data, json_model, headers_model
+            url, params, json_data, json_model, headers_model
         )
         request.headers["accept"] = "text/event-stream"
 

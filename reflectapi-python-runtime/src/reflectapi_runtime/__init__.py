@@ -24,8 +24,8 @@ from .client import (
     AsyncClientBase,
     Client,
     ClientBase,
-    ClientRequest,
-    ClientResponse,
+    Request,
+    Response,
 )
 from .exceptions import (
     ApiError,
@@ -93,8 +93,8 @@ __all__ = [
     "CassetteMiddleware",
     "Client",
     "ClientBase",
-    "ClientRequest",
-    "ClientResponse",
+    "Request",
+    "Response",
     "HAS_HYPOTHESIS",
     "AsyncMiddleware",
     "MockClient",

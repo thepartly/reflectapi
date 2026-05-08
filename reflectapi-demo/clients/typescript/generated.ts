@@ -12,26 +12,28 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
-export interface ClientRequest {
+// Transport DTOs. Method is intentionally absent: every reflectapi
+// endpoint is POST by design, so transports hardcode it; if that ever
+// changes it's a wire-protocol break and clients regenerate.
+export interface Request {
   path: string;
-  method: "POST";
   headers: Record<string, string>;
   body: Uint8Array;
   signal?: AbortSignal;
 }
 
-export interface ClientHeaders {
+export interface Headers {
   get(name: string): string | null;
 }
 
-export interface ClientResponse {
+export interface Response {
   status: number;
-  headers: ClientHeaders;
+  headers: Headers;
   body: ReadableStream<Uint8Array> | null;
 }
 
 export interface Client {
-  request(request: ClientRequest): Promise<ClientResponse>;
+  request(request: Request): Promise<Response>;
 }
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
@@ -207,7 +209,6 @@ export function __request<I, H, O, E>(
   return client
     .request({
       path,
-      method: "POST",
       headers: hdrs,
       body: new TextEncoder().encode(JSON.stringify(input) ?? "{}"),
       signal: options?.signal,
@@ -268,7 +269,6 @@ export async function __stream_request<I, H, O, E>(
   try {
     const response = await client.request({
       path,
-      method: "POST",
       headers: hdrs,
       body: new TextEncoder().encode(JSON.stringify(input) ?? "{}"),
       signal: options?.signal,
@@ -316,13 +316,22 @@ export async function __stream_request<I, H, O, E>(
 }
 
 async function* __sse_to_async_iterable<O>(
-  response: ClientResponse,
+  response: Response,
   options?: RequestOptions,
 ): AsyncIterable<O> {
   const body = response.body;
   if (!body) return;
+  // Native TextDecoderStream handles cross-chunk multi-byte sequences.
+  // The cast bridges a TS variance mismatch: TextDecoderStream is typed
+  // `TransformStream<BufferSource, string>` while pipeThrough demands
+  // exact `Uint8Array` writable. The runtime behaviour is correct.
   const reader = body
-    .pipeThrough(__text_decoder_stream())
+    .pipeThrough(
+      new TextDecoderStream() as unknown as ReadableWritablePair<
+        string,
+        Uint8Array
+      >,
+    )
     .pipeThrough(new __EventSourceParserStream())
     .getReader();
   try {
@@ -345,44 +354,19 @@ async function* __sse_to_async_iterable<O>(
   }
 }
 
-function __text_decoder_stream(): TransformStream<Uint8Array, string> {
-  const decoder = new TextDecoder();
-  return new TransformStream<Uint8Array, string>({
-    transform(chunk, controller) {
-      const text = decoder.decode(chunk, { stream: true });
-      if (text) controller.enqueue(text);
-    },
-    flush(controller) {
-      const text = decoder.decode();
-      if (text) controller.enqueue(text);
-    },
-  });
-}
-
-async function __read_response_body(response: ClientResponse): Promise<string> {
+async function __read_response_body(response: Response): Promise<string> {
   if (!response.body) return "";
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let body = "";
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      body += decoder.decode(value, { stream: true });
-    }
-    body += decoder.decode();
-    return body;
-  } finally {
-    reader.releaseLock();
-  }
+  // Hand decoding to the platform; new (global) Response wraps any
+  // ReadableStream<Uint8Array> and exposes the well-tested .text() path.
+  return await new (globalThis as any).Response(response.body).text();
 }
 
 class ClientInstance {
   constructor(private base: string) {}
 
-  public request(request: ClientRequest): Promise<ClientResponse> {
+  public request(request: Request): Promise<Response> {
     return (globalThis as any).fetch(`${this.base}${request.path}`, {
-      method: request.method,
+      method: "POST",
       headers: request.headers,
       body: request.body,
       signal: request.signal,

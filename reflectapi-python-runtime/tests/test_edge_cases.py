@@ -93,7 +93,7 @@ class TestClientEdgeCases:
         mock_send.return_value = mock_response
 
         client = ClientBase("https://api.example.com")
-        response = client._make_request("GET", "")
+        response = client._make_request("")
 
         assert response.value == {"result": "ok"}
 
@@ -108,7 +108,7 @@ class TestClientEdgeCases:
         mock_send.return_value = mock_response
 
         client = ClientBase("https://api.example.com")
-        response = client._make_request("GET", "/path with spaces/αβγ/数字/🚀")
+        response = client._make_request("/path with spaces/αβγ/数字/🚀")
 
         assert response.value == {"result": "ok"}
 
@@ -121,8 +121,7 @@ class TestClientEdgeCases:
         with pytest.raises(
             ValueError, match="Cannot specify both json_data and json_model"
         ):
-            client._make_request(
-                "POST", "/test", json_data={"key": "value"}, json_model=model
+            client._make_request("/test", json_data={"key": "value"}, json_model=model
             )
 
     @patch("httpx.Client.send")
@@ -142,7 +141,7 @@ class TestClientEdgeCases:
         client = ClientBase("https://api.example.com")
         # Should raise RecursionError for circular references
         with pytest.raises(RecursionError):
-            client._make_request("POST", "/test", json_data=data)
+            client._make_request("/test", json_data=data)
 
 
 class TestAsyncClientEdgeCases:
@@ -169,7 +168,7 @@ class TestAsyncClientEdgeCases:
             client = AsyncClientBase("https://api.example.com")
 
             # Run 100 concurrent requests
-            tasks = [client._make_request("GET", f"/test/{i}") for i in range(100)]
+            tasks = [client._make_request(f"/test/{i}") for i in range(100)]
             responses = await asyncio.gather(*tasks)
 
             assert len(responses) == 100
@@ -279,7 +278,7 @@ class TestErrorHandlingEdgeCases:
         client = ClientBase("https://api.example.com")
 
         with pytest.raises(ApplicationError) as exc_info:
-            client._make_request("GET", "/test")
+            client._make_request("/test")
 
         # Should still create ApplicationError even with malformed JSON
         assert exc_info.value.status_code == 400
@@ -299,7 +298,7 @@ class TestErrorHandlingEdgeCases:
         with pytest.raises(
             ReflectApiValidationError, match="Failed to parse JSON response"
         ):
-            client._make_request("GET", "/test")
+            client._make_request("/test")
 
     @patch("httpx.Client.send")
     def test_extremely_large_error_response(self, mock_send):
@@ -316,7 +315,7 @@ class TestErrorHandlingEdgeCases:
         client = ClientBase("https://api.example.com")
 
         with pytest.raises(ApplicationError) as exc_info:
-            client._make_request("GET", "/test")
+            client._make_request("/test")
 
         # Should handle large error data without issues
         assert exc_info.value.status_code == 500
@@ -494,7 +493,7 @@ class TestConcurrencyEdgeCases:
 
             async with AsyncClientBase("https://api.example.com") as client:
                 # Start request but don't wait for it
-                task = asyncio.create_task(client._make_request("GET", "/test"))
+                task = asyncio.create_task(client._make_request("/test"))
 
                 # Let request start
                 await asyncio.sleep(0.01)
