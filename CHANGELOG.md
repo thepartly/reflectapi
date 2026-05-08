@@ -95,6 +95,25 @@ If your build tooling assumed a single generated file, update it to
 include the new sibling. Typical pnpm/npm workflows pick it up
 automatically (the file sits in the same directory).
 
+#### Library API: `typescript::generate` returns multiple files
+
+For consumers calling the codegen library directly rather than
+through the `reflectapi` CLI, the signature changed:
+
+```rust
+// before
+pub fn generate(schema: Schema, config: &Config) -> Result<String>;
+
+// after
+pub fn generate(schema: Schema, config: &Config) -> Result<BTreeMap<String, String>>;
+```
+
+The map is keyed by filename (`"generated.ts"`,
+`"generated.transport.ts"`). The CLI handles `--output <file>.ts` paths
+by writing the matching file at the requested path and the sibling in
+the parent directory; downstream callers wrapping the library should
+do the same.
+
 ### Python
 
 `Request` / `Response` / `Client` / `AsyncClient` are exported from the
