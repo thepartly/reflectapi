@@ -12,7 +12,10 @@ The trait gained a `base_url` method and `Request::url` was renamed to `Request:
 pub trait Client {
     type Error;
     fn base_url(&self) -> &Url;
-    fn request(&self, request: Request) -> impl Future<Output = Result<Response, Self::Error>>;
+    fn request(
+        &self,
+        request: Request,
+    ) -> impl Future<Output = Result<Response<Self::Error>, Self::Error>>;
 }
 
 pub struct Request {
@@ -52,7 +55,7 @@ let api = MyClient::new(
 );
 ```
 
-`ReqwestClient::try_new` returns `Result<Self, url::ParseError>` because it validates that `base_url` is a valid HTTP base. There is no infallible `ReqwestClient::new` constructor.
+`ReqwestClient::try_new` returns `Result<Self, reflectapi::rt::UrlParseError>` (a re-export of `url::ParseError`). It rejects URLs that can't have a base (`data:`, `mailto:`, etc.) via `Url::cannot_be_a_base`. There is no infallible `ReqwestClient::new` constructor.
 
 #### `reqwest-middleware` feature implies `reqwest` (alpha.4)
 
@@ -86,4 +89,4 @@ The map is keyed by filename (`"generated.ts"`, `"generated.transport.ts"`). The
 
 ### Python
 
-`Request` / `Response` / `Client` / `AsyncClient` are exported from the `reflectapi_runtime.transport` module. They are also re-exported from the top-level `reflectapi_runtime` package for convenience. No collision with standard-library names.
+End-user generated clients are unchanged. Authors of custom middleware or transports should target the transport-agnostic types in `reflectapi_runtime.transport` (`Request`, `Response`, `Client`, `AsyncClient`) rather than reaching for `httpx` types directly. They are also re-exported from the top-level `reflectapi_runtime` package.
