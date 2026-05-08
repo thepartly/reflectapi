@@ -8,7 +8,14 @@ workspace = true
 
 [dependencies]
 reflectapi = { workspace = true, features = ["rt", "rt-sse", "reqwest", "chrono"] }
+reqwest = { version = "0.12.2", optional = true }
 chrono = { version = "0.4.37", features = ["serde"] }
 tracing = "0.1"
 serde = { version = "1.0.218", features = ["derive"] }
+
+[features]
+default = ["reqwest"]
+# Enables `Interface::try_new(reqwest::Client, base_url)` — a convenience
+# constructor that hides the `reflectapi::rt::ReqwestClient` adapter.
+reqwest = ["dep:reqwest"]
 

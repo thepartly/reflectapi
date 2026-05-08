@@ -79,7 +79,20 @@ The demo repository includes extra project scaffolding around some generated cli
 ### Rust
 
 - Generates typed async client methods.
-- Integrates with `reflectapi::rt::Client`.
+- Integrates with `reflectapi::rt::Client`. The transport carries the
+  base URL (`Client::base_url`); the per-request `Request` DTO carries
+  only `path`, `headers`, and `body` — same shape as TypeScript and
+  Python.
+- Built-in transports: `reflectapi::rt::ReqwestClient` (a thin wrapper
+  around `reqwest::Client` + base URL) and the type alias
+  `ReqwestMiddlewareClient` for `reqwest_middleware::ClientWithMiddleware`.
+- Generated `Interface<C>` exposes:
+    - `Interface::new(client: C)` — generic, takes any `Client` impl.
+    - `Interface::try_new(reqwest::Client, base_url) -> Result<Self, UrlParseError>` —
+      convenience constructor that hides the `ReqwestClient` adapter for
+      the most common case. Available when the generated crate enables
+      its own `reqwest` feature (which should re-export
+      `reflectapi/reqwest`).
 - Supports optional tracing instrumentation through `--instrument`.
 - Generates serde-compatible types and request helpers for JSON-based transport.
 
