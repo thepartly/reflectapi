@@ -822,7 +822,7 @@ mod templates {
                 out,
                 "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
                      -> Result<{}, reflectapi::rt::Error<{}, C::Error>> {{\n\
-                         reflectapi::rt::__request_impl(&self.client, self.base_url.join(\"{}\").expect(\"checked base_url already and path is valid\"), input, headers).await\n\
+                         reflectapi::rt::__request_impl(&self.client, \"{}\", input, headers).await\n\
                      }}",
                 self.description,
                 self.attributes,
@@ -865,7 +865,7 @@ mod templates {
                 "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
                      -> reflectapi::rt::StreamResponse<{}, {}, C::Error>\n\
                      where C::Error: Send + 'static {{\n\
-                         reflectapi::rt::__stream_request_impl(&self.client, self.base_url.join(\"{}\").expect(\"checked base_url already and path is valid\"), input, headers).await\n\
+                         reflectapi::rt::__stream_request_impl(&self.client, \"{}\", input, headers).await\n\
                      }}",
                 self.description,
                 self.attributes,
@@ -905,26 +905,21 @@ mod templates {
         pub fn render(&self) -> String {
             let mut out = format!(
                 "\nimpl<C: reflectapi::rt::Client + Clone> {} {{\n\
-                     pub fn try_new(client: C, base_url: reflectapi::rt::Url) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {{\n\
-                         if base_url.cannot_be_a_base() {{\n\
-                             return Err(reflectapi::rt::UrlParseError::RelativeUrlWithCannotBeABaseBase);\n\
-                         }}\n\
-                 \n\
-                         Ok(Self {{",
+                     pub fn new(client: C) -> Self {{\n\
+                         Self {{",
                 self.name,
             );
             for field in &self.fields {
                 write!(
                     out,
-                    "\n            {}: {}::try_new(client.clone(), base_url.clone())?,",
+                    "\n            {}: {}::new(client.clone()),",
                     field.name, field.type_
                 )
                 .unwrap();
             }
             out.push_str(
                 "\n            client,\n\
-                             base_url,\n\
-                         })\n\
+                         }\n\
                      }",
             );
             for func in &self.functions {
@@ -1121,18 +1116,16 @@ fn __interface_types_from_function_group(
             public: true,
         });
     }
-    for field in [("client", "C"), ("base_url", "reflectapi::rt::Url")] {
-        type_template.fields.push(templates::__Field {
-            name: field.0.into(),
-            deprecation_note: None,
-            serde_name: field.0.into(),
-            description: "".into(),
-            type_: field.1.into(),
-            optional: false,
-            flatten: false,
-            public: false,
-        });
-    }
+    type_template.fields.push(templates::__Field {
+        name: "client".into(),
+        deprecation_note: None,
+        serde_name: "client".into(),
+        description: "".into(),
+        type_: "C".into(),
+        optional: false,
+        flatten: false,
+        public: false,
+    });
 
     for function_name in group.functions.iter() {
         let function = functions_by_name.get(function_name).unwrap();
@@ -1185,6 +1178,15 @@ fn __interface_types_from_function_group(
 
     let mut result = vec![type_template.render(), interface_implementation.render()];
 
+    // For the top-level interface only, emit convenience constructors
+    // that hide the runtime adapter for built-in transports. With these,
+    // callers get the pre-refactor ergonomics back —
+    // `Interface::try_new(reqwest::Client::new(), base_url)` — without
+    // ever naming `ReqwestClient`.
+    if group.parent.is_empty() && name.is_empty() {
+        result.push(__top_level_convenience_constructors());
+    }
+
     for (subgroup_name, subgroup) in group.subgroups.iter() {
         result.extend(__interface_types_from_function_group(
             subgroup_name.clone(),
@@ -1196,6 +1198,34 @@ fn __interface_types_from_function_group(
         ));
     }
     result
+}
+
+fn __top_level_convenience_constructors() -> String {
+    // Static — same shape for every generated client. We only emit the
+    // bare-reqwest specialisation: a second `try_new` targeting
+    // `reqwest_middleware::ClientWithMiddleware` would create a method-
+    // resolution ambiguity at call sites like `Client::try_new(...)`.
+    // Middleware users go one level deeper:
+    //     Interface::new(reflectapi::rt::ReqwestClient::try_new(mw, url)?)
+    //
+    // Gated on the generated crate's own `reqwest` feature; it should
+    // re-export `reflectapi/reqwest` so the type names resolve.
+    r#"
+#[cfg(feature = "reqwest")]
+impl Interface<reflectapi::rt::ReqwestClient<reqwest::Client>> {
+    /// Convenience: build the client backed by a bare `reqwest::Client`
+    /// and the given base URL. Hides the
+    /// [`reflectapi::rt::ReqwestClient`] adapter so callers don't need
+    /// to name it.
+    pub fn try_new(
+        client: reqwest::Client,
+        base_url: reflectapi::rt::Url,
+    ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
+        Ok(Self::new(reflectapi::rt::ReqwestClient::try_new(client, base_url)?))
+    }
+}
+"#
+    .to_owned()
 }
 
 fn __modules_from_rendered_types(

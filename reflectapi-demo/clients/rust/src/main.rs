@@ -5,7 +5,7 @@ use reflectapi_demo_client_generated::types::myapi::model::Kind;
 use reflectapi_demo_client_generated::types::myapi::proto::Headers;
 use reflectapi_demo_client_generated::DemoServerClient;
 
-type Client = DemoServerClient<reqwest::Client>;
+type Client = DemoServerClient<reflectapi::rt::ReqwestClient>;
 
 fn headers() -> Headers {
     Headers {
