@@ -110,14 +110,14 @@ class _SyncDemo(ClientBase):
 
     def stream_pets(self) -> Any:
         return self._make_sse_request(
-            "POST", "pets", item_model=_Pet, error_model=None
+            "pets", item_model=_Pet, error_model=None
         )
 
 
 class _AsyncDemo(AsyncClientBase):
     def stream_pets(self) -> Any:
         return self._make_sse_request(
-            "POST", "pets", item_model=_Pet, error_model=None
+            "pets", item_model=_Pet, error_model=None
         )
 
 

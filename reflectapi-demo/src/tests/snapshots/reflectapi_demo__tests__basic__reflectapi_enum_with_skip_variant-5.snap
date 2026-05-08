@@ -84,7 +84,6 @@ class AsyncInoutClient:
 
         params: dict[str, Any] = {}
         return await self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,
@@ -129,7 +128,6 @@ class InoutClient:
 
         params: dict[str, Any] = {}
         return self._client._make_request(
-            "POST",
             path,
             params=params if params else None,
             json_model=data,

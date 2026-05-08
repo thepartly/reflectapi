@@ -253,7 +253,7 @@ class TestBatchContextManager:
         manager = BatchContextManager(client)
 
         async with manager as batch:
-            batch.add_task(lambda: client._make_request("GET", "/test"))
+            batch.add_task(lambda: client._make_request("/test"))
             results = await batch.gather()
 
         assert len(results) == 1

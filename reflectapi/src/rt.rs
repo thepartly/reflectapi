@@ -12,26 +12,33 @@ pub trait Client {
 
     fn request(
         &self,
-        url: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> impl Future<Output = Result<(http::StatusCode, bytes::Bytes), Self::Error>>;
+        request: Request,
+    ) -> impl Future<Output = Result<Response<Self::Error>, Self::Error>>;
+}
 
-    #[allow(clippy::type_complexity)]
-    fn stream_request(
-        &self,
-        url: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> impl Future<
-        Output = Result<
-            (
-                http::StatusCode,
-                Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Self::Error>> + Send + 'static>>,
-            ),
-            Self::Error,
-        >,
-    >;
+/// Transport request handed to user-provided [`Client`] implementations.
+///
+/// `method` is intentionally absent: every reflectapi endpoint is `POST`
+/// by design, so transports hardcode it. If that ever changes it's a
+/// wire-protocol break and clients regenerate.
+pub struct Request {
+    pub url: Url,
+    pub headers: http::HeaderMap,
+    pub body: bytes::Bytes,
+}
+
+impl Request {
+    pub fn path(&self) -> &str {
+        self.url.path()
+    }
+}
+
+/// Transport response returned by user-provided [`Client`] implementations.
+#[allow(clippy::type_complexity)]
+pub struct Response<E> {
+    pub status: http::StatusCode,
+    pub headers: http::HeaderMap,
+    pub body: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, E>> + Send + 'static>>,
 }
 
 pub enum Error<AE, NE> {
@@ -239,8 +246,16 @@ where
         }
     }
 
-    let (status, body) = client
-        .request(url, body, header_map)
+    let response = client
+        .request(Request {
+            url,
+            headers: header_map,
+            body,
+        })
+        .await
+        .map_err(Error::Network)?;
+    let status = response.status;
+    let body = __collect_byte_stream(response.body)
         .await
         .map_err(Error::Network)?;
 
@@ -330,10 +345,16 @@ where
     let header_map = __serialize_headers_for_stream(headers)
         .map_err(|(info, stage)| Error::Protocol { info, stage })?;
 
-    let (status, byte_stream) = client
-        .stream_request(url, body, header_map)
+    let response = client
+        .request(Request {
+            url,
+            headers: header_map,
+            body,
+        })
         .await
         .map_err(Error::Network)?;
+    let status = response.status;
+    let byte_stream = response.body;
 
     if status.is_success() {
         let event_stream = EventStream::new(byte_stream);
@@ -369,7 +390,6 @@ where
     }
 }
 
-#[cfg(feature = "rt-sse")]
 async fn __collect_byte_stream<E>(
     stream: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, E>> + Send>>,
 ) -> Result<bytes::Bytes, E> {
@@ -391,33 +411,18 @@ async fn __collect_byte_stream<E>(
 impl Client for reqwest::Client {
     type Error = reqwest::Error;
 
-    async fn request(
-        &self,
-        path: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> Result<(http::StatusCode, bytes::Bytes), Self::Error> {
-        let response = self.post(path).headers(headers).body(body).send().await?;
-        let status = response.status();
-        let body = response.bytes().await?;
-        Ok((status, body))
-    }
-
-    async fn stream_request(
-        &self,
-        path: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> Result<
-        (
-            http::StatusCode,
-            Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Self::Error>> + Send + 'static>>,
-        ),
-        Self::Error,
-    > {
-        let response = self.post(path).headers(headers).body(body).send().await?;
-        let status = response.status();
-        Ok((status, Box::pin(response.bytes_stream())))
+    async fn request(&self, request: Request) -> Result<Response<Self::Error>, Self::Error> {
+        let response = self
+            .request(http::Method::POST, request.url)
+            .headers(request.headers)
+            .body(request.body)
+            .send()
+            .await?;
+        Ok(Response {
+            status: response.status(),
+            headers: response.headers().clone(),
+            body: Box::pin(response.bytes_stream()),
+        })
     }
 }
 
@@ -425,37 +430,84 @@ impl Client for reqwest::Client {
 impl Client for reqwest_middleware::ClientWithMiddleware {
     type Error = reqwest_middleware::Error;
 
-    async fn request(
-        &self,
-        path: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> Result<(http::StatusCode, bytes::Bytes), Self::Error> {
-        let response = self.post(path).headers(headers).body(body).send().await?;
-        let status = response.status();
-        let body = response.bytes().await?;
-        Ok((status, body))
-    }
-
-    async fn stream_request(
-        &self,
-        path: Url,
-        body: bytes::Bytes,
-        headers: http::HeaderMap,
-    ) -> Result<
-        (
-            http::StatusCode,
-            Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Self::Error>> + Send + 'static>>,
-        ),
-        Self::Error,
-    > {
-        let response = self.post(path).headers(headers).body(body).send().await?;
-        let status = response.status();
-        Ok((
-            status,
-            Box::pin(futures_util::StreamExt::map(response.bytes_stream(), |r| {
+    async fn request(&self, request: Request) -> Result<Response<Self::Error>, Self::Error> {
+        let response = self
+            .request(http::Method::POST, request.url)
+            .headers(request.headers)
+            .body(request.body)
+            .send()
+            .await?;
+        Ok(Response {
+            status: response.status(),
+            headers: response.headers().clone(),
+            body: Box::pin(futures_util::StreamExt::map(response.bytes_stream(), |r| {
                 r.map_err(reqwest_middleware::Error::Reqwest)
             })),
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use futures_util::stream;
+
+    #[derive(Clone)]
+    struct ShapeClient;
+
+    impl Client for ShapeClient {
+        type Error = std::convert::Infallible;
+
+        async fn request(&self, request: Request) -> Result<Response<Self::Error>, Self::Error> {
+            assert_eq!(request.path(), "/shape.test");
+            assert_eq!(request.body.as_ref(), br#"{"name":"input"}"#);
+
+            Ok(Response {
+                status: http::StatusCode::OK,
+                headers: http::HeaderMap::new(),
+                body: Box::pin(stream::once(async {
+                    Ok(bytes::Bytes::from_static(br#"{"name":"output"}"#))
+                })),
+            })
+        }
+    }
+
+    #[derive(serde::Deserialize, serde::Serialize)]
+    struct ShapeRequest {
+        name: String,
+    }
+
+    #[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+    struct ShapeResponse {
+        name: String,
+    }
+
+    #[derive(Debug, serde::Deserialize, serde::Serialize)]
+    struct ShapeError {}
+
+    #[test]
+    fn client_request_shape_is_used() {
+        let output = futures::executor::block_on(__request_impl::<
+            _,
+            _,
+            crate::Empty,
+            ShapeResponse,
+            ShapeError,
+        >(
+            &ShapeClient,
+            Url::parse("https://example.com/shape.test").unwrap(),
+            ShapeRequest {
+                name: "input".to_string(),
+            },
+            crate::Empty {},
         ))
+        .unwrap();
+
+        assert_eq!(
+            output,
+            ShapeResponse {
+                name: "output".to_string()
+            }
+        );
     }
 }

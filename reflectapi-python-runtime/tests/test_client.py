@@ -9,8 +9,12 @@ from pydantic import BaseModel
 from reflectapi_runtime import (
     ApiResponse,
     ApplicationError,
+    AsyncClient,
     AsyncClientBase,
+    Client,
     ClientBase,
+    Request,
+    Response,
     NetworkError,
     TimeoutError,
     TransportMetadata,
@@ -21,6 +25,32 @@ from reflectapi_runtime import (
 class SampleModel(BaseModel):
     name: str
     age: int
+
+
+class ShapeClient:
+    def __init__(self) -> None:
+        self.requests: list[Request] = []
+
+    def request(self, request: Request) -> Response:
+        self.requests.append(request)
+        return Response(
+            status=200,
+            headers=httpx.Headers({"content-type": "application/json"}),
+            body=b'{"name":"test","age":25}',
+        )
+
+
+class AsyncShapeClient:
+    def __init__(self) -> None:
+        self.requests: list[Request] = []
+
+    async def request(self, request: Request) -> Response:
+        self.requests.append(request)
+        return Response(
+            status=200,
+            headers=httpx.Headers({"content-type": "application/json"}),
+            body=b'{"name":"test","age":25}',
+        )
 
 
 @pytest.fixture
@@ -107,7 +137,7 @@ class TestClientBase:
 
         client = ClientBase("http://example.com", client=mock_client)
 
-        result = client._make_request("GET", "/test", response_model=SampleModel)
+        result = client._make_request("/test", response_model=SampleModel)
 
         assert isinstance(result, ApiResponse)
         assert isinstance(result.value, SampleModel)
@@ -115,6 +145,46 @@ class TestClientBase:
         assert result.value.age == 25
         assert isinstance(result.metadata, TransportMetadata)
         assert result.metadata.status_code == 200
+
+    def test_make_request_without_body_omits_httpx_content(self, mock_httpx_client):
+        mock_client, _ = mock_httpx_client
+        client = ClientBase("http://example.com", client=mock_client)
+
+        client._make_request("/test", response_model=SampleModel)
+
+        _, kwargs = mock_client.build_request.call_args
+        assert "content" not in kwargs
+        assert kwargs["headers"] is None
+
+    def test_make_request_uses_client_request_shape(self):
+        shape_client = ShapeClient()
+        client = ClientBase("http://example.com", client=shape_client)
+
+        result = client._make_request("/test",
+            json_model=SampleModel(name="input", age=12),
+            response_model=SampleModel,
+        )
+
+        assert isinstance(shape_client, Client)
+        assert isinstance(result.value, SampleModel)
+        assert shape_client.requests == [
+            Request(
+                path="/test",
+                headers={"Content-Type": "application/json"},
+                body=b'{"name":"input","age":12}',
+            )
+        ]
+
+    def test_make_request_without_body_uses_empty_client_request_body(self):
+        shape_client = ShapeClient()
+        client = ClientBase("http://example.com", client=shape_client)
+
+        result = client._make_request("/test", response_model=SampleModel)
+
+        assert isinstance(result.value, SampleModel)
+        assert shape_client.requests == [
+            Request(path="/test", headers={}, body=b"")
+        ]
 
     def test_make_request_error_response(self, mock_httpx_client):
         mock_client, mock_response = mock_httpx_client
@@ -126,7 +196,7 @@ class TestClientBase:
         client = ClientBase("http://example.com", client=mock_client)
 
         with pytest.raises(ApplicationError) as exc_info:
-            client._make_request("GET", "/test")
+            client._make_request("/test")
 
         from typing import cast
 
@@ -141,7 +211,7 @@ class TestClientBase:
         client = ClientBase("http://example.com", client=mock_client)
 
         with pytest.raises(ValidationError) as exc_info:
-            client._make_request("GET", "/test")
+            client._make_request("/test")
 
         assert "Failed to parse JSON response" in str(exc_info.value)
 
@@ -152,7 +222,7 @@ class TestClientBase:
         client = ClientBase("http://example.com", client=mock_client)
 
         with pytest.raises(TimeoutError):
-            client._make_request("GET", "/test")
+            client._make_request("/test")
 
     def test_make_request_network_error(self, mock_httpx_client):
         mock_client, _ = mock_httpx_client
@@ -161,7 +231,7 @@ class TestClientBase:
         client = ClientBase("http://example.com", client=mock_client)
 
         with pytest.raises(NetworkError):
-            client._make_request("GET", "/test")
+            client._make_request("/test")
 
     def test_make_request_with_middleware(self, mock_httpx_client):
         from reflectapi_runtime.middleware import SyncLoggingMiddleware
@@ -179,7 +249,7 @@ class TestClientBase:
             "http://example.com", client=mock_client, middleware=middleware
         )
 
-        result = client._make_request("GET", "/test", response_model=SampleModel)
+        result = client._make_request("/test", response_model=SampleModel)
 
         assert isinstance(result, ApiResponse)
         mock_client.send.assert_called_once()
@@ -194,7 +264,7 @@ class TestClientBase:
         client = ClientBase("http://example.com", client=mock_client)
 
         with pytest.raises(ApplicationError) as exc_info:
-            client._make_request("GET", "/test")
+            client._make_request("/test")
 
         from typing import cast
 
@@ -211,7 +281,7 @@ class TestClientBase:
 
         client = ClientBase("http://example.com", client=mock_client)
 
-        result = client._make_request("GET", "/test", response_model=Any)
+        result = client._make_request("/test", response_model=Any)
         assert isinstance(result, ApiResponse)
         assert result.value == {"arbitrary": "data"}
 
@@ -222,7 +292,7 @@ class TestClientBase:
 
         client = ClientBase("http://example.com", client=mock_client)
 
-        result = client._make_request("GET", "/test", response_model="Any")
+        result = client._make_request("/test", response_model="Any")
         assert isinstance(result, ApiResponse)
         assert result.value == {"arbitrary": "data"}
 
@@ -237,7 +307,7 @@ class TestClientBase:
         client = ClientBase("http://example.com", client=mock_client)
 
         with pytest.raises(ValidationError) as exc_info:
-            client._make_request("GET", "/test", response_model=SampleModel)
+            client._make_request("/test", response_model=SampleModel)
 
         assert "Response validation failed" in str(exc_info.value)
         assert hasattr(exc_info.value, "validation_errors")
@@ -296,12 +366,57 @@ class TestAsyncClientBase:
 
         client = AsyncClientBase("http://example.com", client=mock_client)
 
-        result = await client._make_request("GET", "/test", response_model=SampleModel)
+        result = await client._make_request("/test", response_model=SampleModel)
 
         assert isinstance(result, ApiResponse)
         assert isinstance(result.value, SampleModel)
         assert result.value.name == "test"
         assert result.value.age == 25
+
+    @pytest.mark.asyncio
+    async def test_make_request_without_body_omits_httpx_content(
+        self, mock_async_httpx_client
+    ):
+        mock_client, _ = mock_async_httpx_client
+        client = AsyncClientBase("http://example.com", client=mock_client)
+
+        await client._make_request("/test", response_model=SampleModel)
+
+        _, kwargs = mock_client.build_request.call_args
+        assert "content" not in kwargs
+        assert kwargs["headers"] is None
+
+    @pytest.mark.asyncio
+    async def test_make_request_uses_client_request_shape(self):
+        shape_client = AsyncShapeClient()
+        client = AsyncClientBase("http://example.com", client=shape_client)
+
+        result = await client._make_request("/test",
+            json_model=SampleModel(name="input", age=12),
+            response_model=SampleModel,
+        )
+
+        assert isinstance(shape_client, AsyncClient)
+        assert isinstance(result.value, SampleModel)
+        assert shape_client.requests == [
+            Request(
+                path="/test",
+                headers={"Content-Type": "application/json"},
+                body=b'{"name":"input","age":12}',
+            )
+        ]
+
+    @pytest.mark.asyncio
+    async def test_make_request_without_body_uses_empty_client_request_body(self):
+        shape_client = AsyncShapeClient()
+        client = AsyncClientBase("http://example.com", client=shape_client)
+
+        result = await client._make_request("/test", response_model=SampleModel)
+
+        assert isinstance(result.value, SampleModel)
+        assert shape_client.requests == [
+            Request(path="/test", headers={}, body=b"")
+        ]
 
     @pytest.mark.asyncio
     async def test_make_request_error_response(self, mock_async_httpx_client):
@@ -312,7 +427,7 @@ class TestAsyncClientBase:
         client = AsyncClientBase("http://example.com", client=mock_client)
 
         with pytest.raises(ApplicationError) as exc_info:
-            await client._make_request("GET", "/test")
+            await client._make_request("/test")
 
         from typing import cast
 
@@ -327,7 +442,7 @@ class TestAsyncClientBase:
         client = AsyncClientBase("http://example.com", client=mock_client)
 
         with pytest.raises(TimeoutError):
-            await client._make_request("GET", "/test")
+            await client._make_request("/test")
 
     @pytest.mark.asyncio
     async def test_make_request_network_error(self, mock_async_httpx_client):
@@ -337,7 +452,7 @@ class TestAsyncClientBase:
         client = AsyncClientBase("http://example.com", client=mock_client)
 
         with pytest.raises(NetworkError):
-            await client._make_request("GET", "/test")
+            await client._make_request("/test")
 
     @pytest.mark.asyncio
     async def test_make_request_with_middleware(self, mock_async_httpx_client):
@@ -356,7 +471,7 @@ class TestAsyncClientBase:
             "http://example.com", client=mock_client, middleware=middleware
         )
 
-        result = await client._make_request("GET", "/test", response_model=SampleModel)
+        result = await client._make_request("/test", response_model=SampleModel)
 
         assert isinstance(result, ApiResponse)
         mock_client.send.assert_called_once()
@@ -374,7 +489,7 @@ class TestAsyncClientBase:
         client = AsyncClientBase("http://example.com", client=mock_client)
 
         with pytest.raises(ApplicationError) as exc_info:
-            await client._make_request("GET", "/test")
+            await client._make_request("/test")
 
         from typing import cast
 
@@ -392,7 +507,7 @@ class TestAsyncClientBase:
 
         client = AsyncClientBase("http://example.com", client=mock_client)
 
-        result = await client._make_request("GET", "/test", response_model=Any)
+        result = await client._make_request("/test", response_model=Any)
         assert isinstance(result, ApiResponse)
         assert result.value == {"arbitrary": "data"}
 
@@ -406,7 +521,7 @@ class TestAsyncClientBase:
 
         client = AsyncClientBase("http://example.com", client=mock_client)
 
-        result = await client._make_request("GET", "/test", response_model="Any")
+        result = await client._make_request("/test", response_model="Any")
         assert isinstance(result, ApiResponse)
         assert result.value == {"arbitrary": "data"}
 
@@ -424,7 +539,7 @@ class TestAsyncClientBase:
         client = AsyncClientBase("http://example.com", client=mock_client)
 
         with pytest.raises(ValidationError) as exc_info:
-            await client._make_request("GET", "/test", response_model=SampleModel)
+            await client._make_request("/test", response_model=SampleModel)
 
         assert "Response validation failed" in str(exc_info.value)
         assert hasattr(exc_info.value, "validation_errors")

@@ -4806,7 +4806,8 @@ pub mod templates {
             } else {
                 writeln!(s, "        return {client_prefix}_make_request(").unwrap();
             }
-            writeln!(s, "            \"{}\",", function.method).unwrap();
+            // HTTP method intentionally elided — every reflectapi endpoint
+            // is POST by design, hardcoded in the runtime.
             writeln!(s, "            path,").unwrap();
             writeln!(s, "            params=params if params else None,").unwrap();
             if function.has_body {

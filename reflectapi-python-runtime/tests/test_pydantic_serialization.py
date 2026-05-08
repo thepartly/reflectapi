@@ -1,5 +1,6 @@
 """Tests for Pydantic request serialization in client classes."""
 
+import json
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -79,8 +80,7 @@ class TestClientBasePydanticSerialization:
             name="John Doe", age=30, email="john@example.com", active=True
         )
 
-        result = client._make_request(
-            "POST", "/users", json_model=request_data, response_model=ResponseModel
+        result = client._make_request("/users", json_model=request_data, response_model=ResponseModel
         )
 
         # Verify response
@@ -120,7 +120,7 @@ class TestClientBasePydanticSerialization:
 
         request_data = RequestModel(name="Jane Smith", age=25, email="jane@example.com")
 
-        result = client._make_request("POST", "/users", json_model=request_data)
+        result = client._make_request("/users", json_model=request_data)
 
         # Should return dict when no response model specified
         assert isinstance(result, ApiResponse)
@@ -139,9 +139,7 @@ class TestClientBasePydanticSerialization:
         with pytest.raises(
             ValueError, match="Cannot specify both json_data and json_model"
         ):
-            client._make_request(
-                "POST",
-                "/users",
+            client._make_request("/users",
                 json_data={"name": "dict data"},
                 json_model=request_data,
                 response_model=ResponseModel,
@@ -153,9 +151,7 @@ class TestClientBasePydanticSerialization:
 
         client = ClientBase("http://example.com", client=mock_client)
 
-        result = client._make_request(
-            "POST",
-            "/users",
+        result = client._make_request("/users",
             json_data={"name": "Dictionary User", "age": 35},
             response_model=ResponseModel,
         )
@@ -164,13 +160,17 @@ class TestClientBasePydanticSerialization:
         assert isinstance(result, ApiResponse)
         assert isinstance(result.value, ResponseModel)
 
-        # Verify request was built with json parameter (not content)
+        # Bodies now flow through Request serialization, so
+        # build_request gets `content=<bytes>` (never `json=`) and a
+        # Content-Type: application/json header.
         mock_client.build_request.assert_called_once()
         call_args = mock_client.build_request.call_args
-        assert call_args[1]["json"] == {"name": "Dictionary User", "age": 35}
-        assert "content" not in call_args[1]
-        # Either omitted, or explicitly None — both mean "no headers".
-        assert call_args[1].get("headers") is None
+        assert "json" not in call_args[1]
+        assert json.loads(call_args[1]["content"]) == {
+            "name": "Dictionary User",
+            "age": 35,
+        }
+        assert call_args[1]["headers"]["Content-Type"] == "application/json"
 
     def test_make_request_with_params_and_pydantic_model(self, mock_httpx_client):
         """Test making a request with both query params and Pydantic model."""
@@ -182,9 +182,7 @@ class TestClientBasePydanticSerialization:
             name="Param User", age=40, email="param@example.com"
         )
 
-        result = client._make_request(
-            "POST",
-            "/users",
+        result = client._make_request("/users",
             params={"source": "api", "version": "v1"},
             json_model=request_data,
             response_model=ResponseModel,
@@ -220,8 +218,7 @@ class TestAsyncClientBasePydanticSerialization:
             name="Async User", age=28, email="async@example.com", active=False
         )
 
-        result = await client._make_request(
-            "PUT", "/users/123", json_model=request_data, response_model=ResponseModel
+        result = await client._make_request("/users/123", json_model=request_data, response_model=ResponseModel
         )
 
         # Verify response
@@ -233,7 +230,8 @@ class TestAsyncClientBasePydanticSerialization:
         # Verify request was built with correct parameters
         mock_client.build_request.assert_called_once()
         call_args = mock_client.build_request.call_args
-        assert call_args[1]["method"] == "PUT"
+        # Method is always POST by design — every endpoint POSTs.
+        assert call_args[1]["method"] == "POST"
         assert call_args[1]["url"] == "http://example.com/users/123"
 
         # Verify content and headers
@@ -259,9 +257,7 @@ class TestAsyncClientBasePydanticSerialization:
         with pytest.raises(
             ValueError, match="Cannot specify both json_data and json_model"
         ):
-            await client._make_request(
-                "POST",
-                "/users",
+            await client._make_request("/users",
                 json_data={"name": "dict data"},
                 json_model=request_data,
                 response_model=ResponseModel,
@@ -276,9 +272,7 @@ class TestAsyncClientBasePydanticSerialization:
 
         client = AsyncClientBase("http://example.com", client=mock_client)
 
-        result = await client._make_request(
-            "POST",
-            "/users",
+        result = await client._make_request("/users",
             json_data={"name": "Async Dict User", "age": 33},
             response_model=ResponseModel,
         )
@@ -287,11 +281,16 @@ class TestAsyncClientBasePydanticSerialization:
         assert isinstance(result, ApiResponse)
         assert isinstance(result.value, ResponseModel)
 
-        # Verify request was built with json parameter (not content)
+        # Async client uses the same Request serialization path as
+        # the sync one, so it sends `content=<bytes>` rather than `json=`.
         mock_client.build_request.assert_called_once()
         call_args = mock_client.build_request.call_args
-        assert call_args[1]["json"] == {"name": "Async Dict User", "age": 33}
-        assert "content" not in call_args[1]
+        assert "json" not in call_args[1]
+        assert json.loads(call_args[1]["content"]) == {
+            "name": "Async Dict User",
+            "age": 33,
+        }
+        assert call_args[1]["headers"]["Content-Type"] == "application/json"
 
 
 class TestPydanticSerializationEdgeCases:
@@ -321,8 +320,7 @@ class TestPydanticSerializationEdgeCases:
             metadata={"source": "test", "priority": "high"},
         )
 
-        client._make_request(
-            "POST", "/complex", json_model=complex_data, response_model=ResponseModel
+        client._make_request("/complex", json_model=complex_data, response_model=ResponseModel
         )
 
         # Verify the complex model was serialized correctly
@@ -353,8 +351,7 @@ class TestPydanticSerializationEdgeCases:
 
         empty_data = EmptyModel()
 
-        client._make_request(
-            "POST", "/empty", json_model=empty_data, response_model=ResponseModel
+        client._make_request("/empty", json_model=empty_data, response_model=ResponseModel
         )
 
         # Verify the empty model serializes to empty JSON object
