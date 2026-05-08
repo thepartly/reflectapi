@@ -56,7 +56,7 @@ from .testing import (
 )
 from .types import BatchResult, ReflectapiEmpty, ReflectapiInfallible
 
-__version__ = "0.17.2a3"
+__version__ = "0.17.2a4"
 
 __all__ = [
     # Authentication
