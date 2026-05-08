@@ -1,4 +1,11 @@
-"""Middleware system for ReflectAPI Python clients."""
+"""Middleware system for ReflectAPI Python clients.
+
+Middleware operates on the transport-agnostic
+:class:`~reflectapi_runtime.transport.Request` /
+:class:`~reflectapi_runtime.transport.Response` shape, so the same
+middleware works whether the underlying transport is an ``httpx.Client``
+or a user-defined :class:`~reflectapi_runtime.transport.Client`.
+"""
 
 from __future__ import annotations
 
@@ -11,58 +18,72 @@ from typing import Union
 
 import httpx
 
+from .transport import Request, Response
+
 logger = logging.getLogger(__name__)
 
-# Type aliases for handlers in the middleware chain
-AsyncNextHandler = Callable[[httpx.Request], Awaitable[httpx.Response]]
-SyncNextHandler = Callable[[httpx.Request], httpx.Response]
+# Type aliases for the per-request handler chain.
+AsyncNextHandler = Callable[[Request], Awaitable[Response]]
+SyncNextHandler = Callable[[Request], Response]
 NextHandler = Union[AsyncNextHandler, SyncNextHandler]
 
 
 class AsyncMiddleware(ABC):
-    """Base class for asynchronous client middleware.
-
-    Middleware can intercept and transform requests and responses,
-    enabling cross-cutting concerns like caching, logging, retry logic, etc.
-    """
+    """Base class for asynchronous client middleware."""
 
     @abstractmethod
     async def handle(
-        self, request: httpx.Request, next_call: AsyncNextHandler
-    ) -> httpx.Response:
+        self, request: Request, next_call: AsyncNextHandler
+    ) -> Response:
         """Handle a request and return a response.
 
         Args:
-            request: The HTTP request to process
-            next_call: Async callable to continue the middleware chain
+            request: the transport request about to be sent.
+            next_call: invoke to continue the middleware chain.
 
         Returns:
-            The HTTP response (possibly modified)
+            The response to surface to the caller (possibly modified).
         """
-        pass
+        ...
 
 
 class SyncMiddleware(ABC):
-    """Base class for synchronous client middleware.
-
-    Middleware can intercept and transform requests and responses,
-    enabling cross-cutting concerns like caching, logging, retry logic, etc.
-    """
+    """Base class for synchronous client middleware."""
 
     @abstractmethod
     def handle(
-        self, request: httpx.Request, next_call: SyncNextHandler
-    ) -> httpx.Response:
+        self, request: Request, next_call: SyncNextHandler
+    ) -> Response:
         """Handle a request and return a response.
 
         Args:
-            request: The HTTP request to process
-            next_call: Callable to continue the middleware chain
-
-        Returns:
-            The HTTP response (possibly modified)
+            request: the transport request about to be sent.
+            next_call: invoke to continue the middleware chain.
         """
-        pass
+        ...
+
+
+# ---------------------------------------------------------------------------
+# Built-in middleware
+# ---------------------------------------------------------------------------
+
+
+def _request_log_extra(request: Request) -> dict[str, object]:
+    return {
+        "path": request.path,
+        "headers": dict(request.headers),
+    }
+
+
+def _response_log_extra(
+    request: Request, response: Response
+) -> dict[str, object]:
+    return {
+        "status": response.status,
+        "path": request.path,
+        # Headers can be httpx.Headers or a dict — both behave like mappings.
+        "headers": dict(response.headers),
+    }
 
 
 class AsyncLoggingMiddleware(AsyncMiddleware):
@@ -72,29 +93,13 @@ class AsyncLoggingMiddleware(AsyncMiddleware):
         self.logger = logging.getLogger(logger_name)
 
     async def handle(
-        self, request: httpx.Request, next_call: AsyncNextHandler
-    ) -> httpx.Response:
-        """Log request and response details."""
-        self.logger.debug(
-            "Making request",
-            extra={
-                "method": request.method,
-                "url": str(request.url),
-                "headers": dict(request.headers),
-            },
-        )
-
+        self, request: Request, next_call: AsyncNextHandler
+    ) -> Response:
+        self.logger.debug("Making request", extra=_request_log_extra(request))
         response = await next_call(request)
-
         self.logger.debug(
-            "Received response",
-            extra={
-                "status_code": response.status_code,
-                "headers": dict(response.headers),
-                "url": str(request.url),
-            },
+            "Received response", extra=_response_log_extra(request, response)
         )
-
         return response
 
 
@@ -105,154 +110,143 @@ class SyncLoggingMiddleware(SyncMiddleware):
         self.logger = logging.getLogger(logger_name)
 
     def handle(
-        self, request: httpx.Request, next_call: SyncNextHandler
-    ) -> httpx.Response:
-        """Log request and response details."""
-        self.logger.debug(
-            "Making request",
-            extra={
-                "method": request.method,
-                "url": str(request.url),
-                "headers": dict(request.headers),
-            },
-        )
-
+        self, request: Request, next_call: SyncNextHandler
+    ) -> Response:
+        self.logger.debug("Making request", extra=_request_log_extra(request))
         response = next_call(request)
-
         self.logger.debug(
-            "Received response",
-            extra={
-                "status_code": response.status_code,
-                "headers": dict(response.headers),
-                "url": str(request.url),
-            },
+            "Received response", extra=_response_log_extra(request, response)
         )
-
         return response
 
 
 class RetryMiddleware(AsyncMiddleware):
-    """Middleware that retries requests on transient failures with exponential backoff and jitter."""
+    """Retry transient failures with exponential backoff and jitter.
 
-    # Methods that are safe to retry automatically on network failures
-    IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE", "TRACE"})
+    Retries on 4xx/5xx status codes from ``retry_status_codes`` and on any
+    exception of type ``retry_on`` raised by the downstream handler.
+    Defaults retry exceptions to ``httpx.RequestError`` so the existing
+    httpx-backed flow keeps working; users with custom transports can pass
+    their own exception types via ``retry_on``.
+    """
 
     def __init__(
         self,
         max_retries: int = 3,
         retry_status_codes: set[int] | None = None,
-        backoff_factor: float = 0.5,  # Start with a shorter backoff
+        backoff_factor: float = 0.5,
+        retry_on: tuple[type[Exception], ...] = (httpx.RequestError,),
+        retry_non_idempotent: bool = False,
     ) -> None:
         self.max_retries = max_retries
         self.retry_status_codes = retry_status_codes or {429, 502, 503, 504}
         self.backoff_factor = backoff_factor
+        self.retry_on = retry_on
+        self.retry_non_idempotent = retry_non_idempotent
 
     async def handle(
-        self, request: httpx.Request, next_call: AsyncNextHandler
-    ) -> httpx.Response:
-        """Retry requests on transient failures."""
-        last_exception = None
+        self, request: Request, next_call: AsyncNextHandler
+    ) -> Response:
+        last_exception: Exception | None = None
+        last_response: Response | None = None
 
         for attempt in range(self.max_retries + 1):
             try:
                 response = await next_call(request)
-
                 if (
                     attempt == self.max_retries
-                    or response.status_code not in self.retry_status_codes
+                    or response.status not in self.retry_status_codes
                 ):
                     return response
-
-                # If we are going to retry, store the response as the last exception
-                last_exception = response
-
-            except httpx.RequestError as e:
+                last_response = response
+            except self.retry_on as e:
                 last_exception = e
-                # Do not retry non-idempotent methods on network errors
+                # reflectapi is always POST; only retry on network errors
+                # if the caller has opted in.
                 if (
-                    request.method not in self.IDEMPOTENT_METHODS
+                    not self.retry_non_idempotent
                     or attempt == self.max_retries
                 ):
                     raise
 
-            # Backoff with Jitter (AWS-recommended approach)
-            # Cap the backoff at 30 seconds and add jitter for better distribution
-            temp = min(self.backoff_factor * (2**attempt), 30.0)  # Cap backoff
-            sleep_duration = temp / 2 + random.uniform(0, temp / 2)
-
+            # Exponential backoff with jitter, capped at 30s.
+            cap = min(self.backoff_factor * (2**attempt), 30.0)
+            sleep_duration = cap / 2 + random.uniform(0, cap / 2)
             logger.debug(
-                f"Retrying request to {request.url} after {sleep_duration:.2f}s (attempt {attempt + 1}/{self.max_retries})"
+                "Retrying %s after %.2fs (attempt %d/%d)",
+                request.path,
+                sleep_duration,
+                attempt + 1,
+                self.max_retries,
             )
             await asyncio.sleep(sleep_duration)
 
-        # This part should be unreachable, but linters might complain.
-        # It's better to re-raise the last known exception.
-        if isinstance(last_exception, httpx.Response):
-            return last_exception
-        raise last_exception from None
+        # Loop ended without an early return: surface whatever we last saw.
+        if last_response is not None:
+            return last_response
+        if last_exception is not None:
+            raise last_exception from None
+        # Unreachable: the loop body either returns, raises, or sets one of
+        # the two `last_*` slots before continuing.
+        raise RuntimeError("RetryMiddleware exhausted retries without an outcome")
+
+
+# ---------------------------------------------------------------------------
+# Middleware chains
+# ---------------------------------------------------------------------------
 
 
 class AsyncMiddlewareChain:
-    """Manages a chain of async middleware for processing requests."""
+    """Drive an async middleware list around a terminal handler."""
 
     def __init__(self, middleware: list[AsyncMiddleware]) -> None:
         self.middleware = middleware
 
     async def execute(
         self,
-        request: httpx.Request,
-        transport: httpx.AsyncClient,
-    ) -> httpx.Response:
-        """Execute the middleware chain with the given request."""
+        request: Request,
+        terminal: AsyncNextHandler,
+    ) -> Response:
+        """Run ``request`` through every middleware, ending in ``terminal``.
 
-        async def create_handler(
-            middleware_list: list[AsyncMiddleware], index: int
-        ) -> AsyncNextHandler:
-            """Create a handler for the middleware at the given index."""
+        ``terminal`` is the handler that actually performs the request —
+        the chain itself is transport-agnostic.
+        """
 
-            async def handler(req: httpx.Request) -> httpx.Response:
-                if index >= len(middleware_list):
-                    # End of chain - make the actual HTTP request
-                    return await transport.send(req)
-
-                # Process through next middleware
-                next_handler = await create_handler(middleware_list, index + 1)
-                return await middleware_list[index].handle(req, next_handler)
+        async def chain_at(index: int) -> AsyncNextHandler:
+            async def handler(req: Request) -> Response:
+                if index >= len(self.middleware):
+                    return await terminal(req)
+                next_handler = await chain_at(index + 1)
+                return await self.middleware[index].handle(req, next_handler)
 
             return handler
 
-        handler = await create_handler(self.middleware, 0)
+        handler = await chain_at(0)
         return await handler(request)
 
 
 class SyncMiddlewareChain:
-    """Manages a chain of sync middleware for processing requests."""
+    """Drive a sync middleware list around a terminal handler."""
 
     def __init__(self, middleware: list[SyncMiddleware]) -> None:
         self.middleware = middleware
 
     def execute(
         self,
-        request: httpx.Request,
-        transport: httpx.Client,
-    ) -> httpx.Response:
-        """Execute the middleware chain with the given request."""
+        request: Request,
+        terminal: SyncNextHandler,
+    ) -> Response:
+        """Run ``request`` through every middleware, ending in ``terminal``."""
 
-        def create_handler(
-            middleware_list: list[SyncMiddleware], index: int
-        ) -> SyncNextHandler:
-            """Create a handler for the middleware at the given index."""
-
-            def handler(req: httpx.Request) -> httpx.Response:
-                if index >= len(middleware_list):
-                    # End of chain - make the actual HTTP request
-                    return transport.send(req)
-
-                # Process through next middleware
-                next_handler = create_handler(middleware_list, index + 1)
-                return middleware_list[index].handle(req, next_handler)
+        def chain_at(index: int) -> SyncNextHandler:
+            def handler(req: Request) -> Response:
+                if index >= len(self.middleware):
+                    return terminal(req)
+                next_handler = chain_at(index + 1)
+                return self.middleware[index].handle(req, next_handler)
 
             return handler
 
-        handler = create_handler(self.middleware, 0)
+        handler = chain_at(0)
         return handler(request)

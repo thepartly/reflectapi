@@ -642,3 +642,46 @@ class TestAsyncStreamingClientConvenienceMethods:
         assert client.auth.client_id == "client_id"
         assert client.auth.client_secret == "client_secret"
         assert client.auth.scope == "read write"
+
+
+class TestStreamRequestBypassesMiddleware:
+    """``AsyncStreamingClient.stream_request`` deals in raw byte chunks,
+    which can't pass through the transport-shaped middleware chain (it
+    operates on whole-body bytes). The chain is intentionally bypassed.
+    """
+
+    @pytest.mark.asyncio
+    async def test_middleware_is_not_invoked_during_streaming_download(self):
+        from reflectapi_runtime.middleware import AsyncMiddleware
+
+        invocations = []
+
+        class _Recorder(AsyncMiddleware):
+            async def handle(self, request, next_call):
+                invocations.append(request)
+                return await next_call(request)
+
+        # Mock-style fixture: we just need to verify the middleware
+        # chain isn't entered. Uses spec=httpx.AsyncClient so attribute
+        # access matches the real client surface.
+        mock_client = AsyncMock(spec=httpx.AsyncClient)
+        mock_response = Mock(spec=httpx.Response)
+        mock_response.status_code = 200
+        mock_response.headers = httpx.Headers({"content-type": "text/plain"})
+        mock_response.aclose = AsyncMock()
+        mock_request = Mock(spec=httpx.Request)
+        mock_client.build_request.return_value = mock_request
+        mock_client.send.return_value = mock_response
+
+        client = AsyncStreamingClient(
+            "https://api.example.com", client=mock_client, middleware=[_Recorder()]
+        )
+        async with client.stream_request("GET", "/file") as response:
+            assert isinstance(response, StreamingResponse)
+
+        # Middleware MUST NOT have been called during raw byte streaming.
+        assert invocations == [], (
+            "middleware must be skipped on raw byte-streaming downloads"
+        )
+        # Confirm we did go through the bare httpx send path with stream=True.
+        mock_client.send.assert_called_once_with(mock_request, stream=True)
