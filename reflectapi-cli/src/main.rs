@@ -203,9 +203,24 @@ fn main() -> anyhow::Result<()> {
                 }
             };
 
+            // The "main" emitted file per language. Used both for
+            // stdout selection (--output -) and for matching a
+            // file-shaped --output path against the codegen output.
+            let primary_filename = match language {
+                Language::Typescript => "generated.ts",
+                Language::Rust => "generated.rs",
+                Language::Python => "generated.py",
+                Language::Openapi => "openapi.json",
+            };
+
             if output == Some(std::path::PathBuf::from("-")) {
-                // For stdout, output the first/main file
-                if let Some(content) = files.values().next() {
+                // Print the language's primary file, not the
+                // alphabetically-first one — for TS that would be
+                // generated.transport.ts (sibling), for Python it
+                // would be __init__.py.
+                if let Some(content) = files.get(primary_filename) {
+                    println!("{content}");
+                } else if let Some(content) = files.values().next() {
                     println!("{content}");
                 }
                 return Ok(());
@@ -213,23 +228,27 @@ fn main() -> anyhow::Result<()> {
 
             let output_path = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
 
-            // Resolve where each generated file lands.
+            // Decide whether `output_path` names a single file or a
+            // directory. "File" means the path's filename matches one
+            // of the codegen-emitted filenames AND the path doesn't
+            // already exist as a directory; everything else is a
+            // directory (whether it exists yet or not).
             //
-            // - If the output path looks like a directory (existing dir, or
-            //   ends with a separator), every file is placed inside it
-            //   under its codegen-assigned filename.
-            // - If the output path looks like a file, the codegen file
-            //   whose name matches goes there and any siblings land in the
-            //   same parent directory under their codegen-assigned names.
-            //   This preserves backward compat with existing scripts that
-            //   pass `--output .../generated.ts`.
-            // - If the output path looks like a file but no codegen file
-            //   matches its name, we error rather than create a directory
-            //   at that path (which would surprise existing users).
-            let looks_like_dir =
-                output_path.is_dir() || output_path.to_string_lossy().ends_with('/');
+            // This matters for two cases:
+            //   --output ./clients/python/  → directory, write all files inside
+            //   --output ./generated.ts     → file path: write generated.ts there
+            //                                 and place siblings (e.g.
+            //                                 generated.transport.ts) next to it
+            //   --output ./brand-new-dir    → fresh directory, create + write
+            let primary_name_in_path = output_path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or_default();
+            let looks_like_file = files.contains_key(primary_name_in_path)
+                && !output_path.is_dir()
+                && !output_path.to_string_lossy().ends_with('/');
 
-            if looks_like_dir {
+            if !looks_like_file {
                 std::fs::create_dir_all(&output_path).context(format!(
                     "Failed to create output directory: {output_path:?}"
                 ))?;
@@ -237,23 +256,11 @@ fn main() -> anyhow::Result<()> {
                     write_file(&output_path.join(filename), content)?;
                 }
             } else {
-                let primary_name = output_path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or_default();
                 let parent = parent_or_dot(&output_path);
-                if !files.contains_key(primary_name) {
-                    let expected: Vec<&str> = files.keys().map(String::as_str).collect();
-                    anyhow::bail!(
-                        "output path {output_path:?} looks like a file, but {language:?} \
-                         codegen now emits multiple files: {expected:?}. \
-                         Pass a directory path (e.g. --output {parent:?}) instead.",
-                    );
-                }
                 std::fs::create_dir_all(&parent)
                     .context(format!("Failed to create output directory: {parent:?}"))?;
                 for (filename, content) in &files {
-                    let dest = if filename == primary_name {
+                    let dest = if filename == primary_name_in_path {
                         output_path.clone()
                     } else {
                         parent.join(filename)

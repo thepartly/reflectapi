@@ -32,7 +32,9 @@ class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
     inner_b: str
 
 
-class ReflectapiDemoTestsSerdeInputTestOptionalFlattenTestFlattenInner(BaseModel):
+class ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerde356d19e7(
+    BaseModel
+):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     code: int
@@ -40,7 +42,9 @@ class ReflectapiDemoTestsSerdeInputTestOptionalFlattenTestFlattenInner(BaseModel
     inner_b: str | None = None
 
 
-class ReflectapiDemoTestsSerdeOutputTestOptionalFlattenTestFlattenInner(BaseModel):
+class ReflectapiDemoTestsSerdeOutputTestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30(
+    BaseModel
+):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     code: int
@@ -63,16 +67,12 @@ class reflectapi_demo:
             class input:
                 """Namespace for input types."""
 
-                TestOptionalFlattenTestFlattenInner = (
-                    ReflectapiDemoTestsSerdeInputTestOptionalFlattenTestFlattenInner
-                )
+                TestOptionalFlattenReflectapiDemoTestsSerde356d19e7 = ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerde356d19e7
 
             class output:
                 """Namespace for output types."""
 
-                TestOptionalFlattenTestFlattenInner = (
-                    ReflectapiDemoTestsSerdeOutputTestOptionalFlattenTestFlattenInner
-                )
+                TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30 = ReflectapiDemoTestsSerdeOutputTestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30
 
 
 class AsyncInoutClient:
@@ -84,10 +84,10 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.input.TestOptionalFlattenTestFlattenInner
+            reflectapi_demo.tests.serde.input.TestOptionalFlattenReflectapiDemoTestsSerde356d19e7
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner
+        reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30
     ]:
         """
 
@@ -95,7 +95,7 @@ class AsyncInoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner]: Response containing reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30]: Response containing reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30 data
         """
         path = "/inout_test"
 
@@ -104,7 +104,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner,
+            response_model=reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30,
         )
 
 
@@ -130,10 +130,10 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.input.TestOptionalFlattenTestFlattenInner
+            reflectapi_demo.tests.serde.input.TestOptionalFlattenReflectapiDemoTestsSerde356d19e7
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner
+        reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30
     ]:
         """
 
@@ -141,7 +141,7 @@ class InoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner]: Response containing reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30]: Response containing reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30 data
         """
         path = "/inout_test"
 
@@ -150,7 +150,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner,
+            response_model=reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30,
         )
 
 
@@ -176,8 +176,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 for _model in [
     ReflectapiDemoTestsSerdeTestFlattenInner,
-    ReflectapiDemoTestsSerdeInputTestOptionalFlattenTestFlattenInner,
-    ReflectapiDemoTestsSerdeOutputTestOptionalFlattenTestFlattenInner,
+    ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerde356d19e7,
+    ReflectapiDemoTestsSerdeOutputTestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30,
 ]:
     try:
         _model.model_rebuild()

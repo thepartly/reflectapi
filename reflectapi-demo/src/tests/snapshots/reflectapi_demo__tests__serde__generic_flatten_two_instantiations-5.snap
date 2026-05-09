@@ -47,20 +47,11 @@ class ReflectapiDemoTestsSerdeTestFlattenInnerAlt(BaseModel):
 class ReflectapiDemoTestsSerdeTestTwoInstantiations(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    a: reflectapi_demo.tests.serde.TestUpdateOrElseTestFlattenInnerTestFlattenIfElse
-    b: reflectapi_demo.tests.serde.TestUpdateOrElseTestFlattenInnerAltTestFlattenIfElse
+    a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
+    b: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20
 
 
-class ReflectapiDemoTestsSerdeTestUpdateOrElseTestFlattenInnerAltTestFlattenIfElse(
-    BaseModel
-):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
-    alt_x: bool
-
-
-class ReflectapiDemoTestsSerdeTestUpdateOrElseTestFlattenInnerTestFlattenIfElse(
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69(
     BaseModel
 ):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -68,6 +59,15 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseTestFlattenInnerTestFlattenIfElse(
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
     inner_a: int
     inner_b: str
+
+
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20(
+    BaseModel
+):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
+    alt_x: bool
 
 
 # Namespace classes for dotted access to types
@@ -84,8 +84,8 @@ class reflectapi_demo:
             TestFlattenInner = ReflectapiDemoTestsSerdeTestFlattenInner
             TestFlattenInnerAlt = ReflectapiDemoTestsSerdeTestFlattenInnerAlt
             TestTwoInstantiations = ReflectapiDemoTestsSerdeTestTwoInstantiations
-            TestUpdateOrElseTestFlattenInnerAltTestFlattenIfElse = ReflectapiDemoTestsSerdeTestUpdateOrElseTestFlattenInnerAltTestFlattenIfElse
-            TestUpdateOrElseTestFlattenInnerTestFlattenIfElse = ReflectapiDemoTestsSerdeTestUpdateOrElseTestFlattenInnerTestFlattenIfElse
+            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
+            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20
 
 
 class AsyncInoutClient:
@@ -184,8 +184,8 @@ for _model in [
     ReflectapiDemoTestsSerdeTestFlattenInner,
     ReflectapiDemoTestsSerdeTestFlattenInnerAlt,
     ReflectapiDemoTestsSerdeTestTwoInstantiations,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseTestFlattenInnerAltTestFlattenIfElse,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseTestFlattenInnerTestFlattenIfElse,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20,
 ]:
     try:
         _model.model_rebuild()

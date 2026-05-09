@@ -37,7 +37,9 @@ class ReflectapiDemoTestsSerdeB(BaseModel):
     b: int
 
 
-class ReflectapiDemoTestsSerdeSAB(BaseModel):
+class ReflectapiDemoTestsSerdeSReflectapiDemoTestsSerdeAReflectapiDemoTestsSerdeB(
+    BaseModel
+):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     a: int
@@ -68,7 +70,7 @@ class reflectapi_demo:
 
             A = ReflectapiDemoTestsSerdeA
             B = ReflectapiDemoTestsSerdeB
-            SAB = ReflectapiDemoTestsSerdeSAB
+            SReflectapiDemoTestsSerdeAReflectapiDemoTestsSerdeB = ReflectapiDemoTestsSerdeSReflectapiDemoTestsSerdeAReflectapiDemoTestsSerdeB
             TestS = ReflectapiDemoTestsSerdeTestS
             Test = ReflectapiDemoTestsSerdeTest
 
@@ -167,7 +169,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 for _model in [
     ReflectapiDemoTestsSerdeA,
     ReflectapiDemoTestsSerdeB,
-    ReflectapiDemoTestsSerdeSAB,
+    ReflectapiDemoTestsSerdeSReflectapiDemoTestsSerdeAReflectapiDemoTestsSerdeB,
     ReflectapiDemoTestsSerdeTest,
 ]:
     try:

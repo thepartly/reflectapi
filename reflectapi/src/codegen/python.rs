@@ -5698,7 +5698,10 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
 /// Mangle a `(struct, args)` instantiation into a fresh schema type
 /// name. The struct's full namespace-qualified name is preserved so
 /// downstream namespace mangling stays sensible; the suffix encodes
-/// each argument's *leaf* name (the part after the final `::`).
+/// each argument's *full* path (`::` flattened to `_`) so two args
+/// that share a leaf name but live in different modules don't fuse
+/// into one mangled name (which would silently lose one type's
+/// fields).
 ///
 /// If the resulting suffix is long enough that downstream class-name
 /// handling would hash-truncate (and produce a mismatch between the
@@ -5707,9 +5710,9 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
 /// references stay consistent.
 fn mangle_monomorphized_name(struct_name: &str, args: &[TypeReference]) -> String {
     fn arg_suffix(arg: &TypeReference) -> String {
-        let leaf = arg.name.rsplit("::").next().unwrap_or(&arg.name);
+        let base = arg.name.replace("::", "_");
         if arg.arguments.is_empty() {
-            leaf.to_string()
+            base
         } else {
             let inner = arg
                 .arguments
@@ -5717,7 +5720,7 @@ fn mangle_monomorphized_name(struct_name: &str, args: &[TypeReference]) -> Strin
                 .map(arg_suffix)
                 .collect::<Vec<_>>()
                 .join("_");
-            format!("{leaf}_{inner}")
+            format!("{base}_{inner}")
         }
     }
     let suffix = args.iter().map(arg_suffix).collect::<Vec<_>>().join("_");

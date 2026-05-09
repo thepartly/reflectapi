@@ -1327,14 +1327,30 @@ fn test_generic_flatten_pydantic_roundtrip() {
     let module_path = tmp.path().join("generated.py");
     std::fs::write(&module_path, py_source).unwrap();
 
-    let class_name = "TestUpdateOrElseTestFlattenInnerTestFlattenIfElse";
+    // The mangled class name depends on namespace and length-budget
+    // hashing, so the test discovers it by walking the generated
+    // namespace and matching on the expected field set.
     let driver = format!(
         r#"
-import importlib.util, json, sys, pathlib
+import importlib.util, json
+from pydantic import BaseModel
 spec = importlib.util.spec_from_file_location("gen", r"{module}")
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
-cls = m.reflectapi_demo.tests.serde.{class_name}
+ns = m.reflectapi_demo.tests.serde
+expected = {{"inner_a", "inner_b", "if_else"}}
+candidates = [
+    getattr(ns, attr)
+    for attr in dir(ns)
+    if isinstance(getattr(ns, attr, None), type)
+    and issubclass(getattr(ns, attr), BaseModel)
+    and set(getattr(ns, attr).model_fields.keys()) == expected
+]
+assert len(candidates) == 1, (
+    "expected exactly one class with fields {{inner_a, inner_b, if_else}}; "
+    "got " + repr([c.__name__ for c in candidates])
+)
+cls = candidates[0]
 parsed = cls.model_validate(json.loads(r'''{payload}'''))
 assert parsed.inner_a == 7, ("inner_a", parsed.inner_a)
 assert parsed.inner_b == "hello", ("inner_b", parsed.inner_b)
@@ -1348,7 +1364,6 @@ assert out["if_else"]["code"] == 409
 print("OK")
 "#,
         module = module_path.display(),
-        class_name = class_name,
         payload = wire_payload,
     );
 
@@ -1424,4 +1439,37 @@ print("OK")
         );
     }
     eprintln!("test_generic_flatten_pydantic_roundtrip skipped: no working python+pydantic found");
+}
+
+// Two args that share a *leaf* name but live in different modules
+// must NOT collide when mangled. Earlier mangling used only the leaf
+// name; both ./module_a::Sample and ./module_b::Sample produced
+// identical keys, fusing two distinct UpdateOrElse instantiations
+// into one and losing one type's wire fields.
+mod module_a {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct Sample {
+        pub a_field: u32,
+    }
+}
+mod module_b {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct Sample {
+        pub b_field: bool,
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestLeafCollisionPair {
+    a: TestUpdateOrElse<module_a::Sample, TestFlattenIfElse>,
+    b: TestUpdateOrElse<module_b::Sample, TestFlattenIfElse>,
+}
+
+#[test]
+fn test_generic_flatten_leaf_collision() {
+    assert_snapshot!(TestLeafCollisionPair);
 }

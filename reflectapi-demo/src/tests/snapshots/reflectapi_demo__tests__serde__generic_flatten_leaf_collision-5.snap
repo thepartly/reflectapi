@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super :: into_python_code :: <\nTestUpdateOrElse<TestFlattenInner, TestFlattenIfElse> > ()"
+expression: "super :: into_python_code :: < TestLeafCollisionPair > ()"
 ---
 """
 Generated Python client for api_client.
@@ -31,21 +31,41 @@ class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
     code: int
 
 
-class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
+class ReflectapiDemoTestsSerdeTestLeafCollisionPair(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    inner_a: int
-    inner_b: str
+    a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb
+    b: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc
 
 
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69(
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb(
     BaseModel
 ):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
-    inner_a: int
-    inner_b: str
+    a_field: int
+
+
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc(
+    BaseModel
+):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
+    b_field: bool
+
+
+class ReflectapiDemoTestsSerdeModuleASample(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    a_field: int
+
+
+class ReflectapiDemoTestsSerdeModuleBSample(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    b_field: bool
 
 
 # Namespace classes for dotted access to types
@@ -59,8 +79,19 @@ class reflectapi_demo:
             """Namespace for serde types."""
 
             TestFlattenIfElse = ReflectapiDemoTestsSerdeTestFlattenIfElse
-            TestFlattenInner = ReflectapiDemoTestsSerdeTestFlattenInner
-            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
+            TestLeafCollisionPair = ReflectapiDemoTestsSerdeTestLeafCollisionPair
+            TestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb
+            TestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc
+
+            class module_a:
+                """Namespace for module_a types."""
+
+                Sample = ReflectapiDemoTestsSerdeModuleASample
+
+            class module_b:
+                """Namespace for module_b types."""
+
+                Sample = ReflectapiDemoTestsSerdeModuleBSample
 
 
 class AsyncInoutClient:
@@ -71,19 +102,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[
-            reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
-        ] = None,
-    ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
-    ]:
+        data: Optional[reflectapi_demo.tests.serde.TestLeafCollisionPair] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestLeafCollisionPair]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69]: Response containing reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69 data
+            ApiResponse[reflectapi_demo.tests.serde.TestLeafCollisionPair]: Response containing reflectapi_demo.tests.serde.TestLeafCollisionPair data
         """
         path = "/inout_test"
 
@@ -92,7 +119,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69,
+            response_model=reflectapi_demo.tests.serde.TestLeafCollisionPair,
         )
 
 
@@ -117,19 +144,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[
-            reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
-        ] = None,
-    ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
-    ]:
+        data: Optional[reflectapi_demo.tests.serde.TestLeafCollisionPair] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestLeafCollisionPair]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69]: Response containing reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69 data
+            ApiResponse[reflectapi_demo.tests.serde.TestLeafCollisionPair]: Response containing reflectapi_demo.tests.serde.TestLeafCollisionPair data
         """
         path = "/inout_test"
 
@@ -138,7 +161,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69,
+            response_model=reflectapi_demo.tests.serde.TestLeafCollisionPair,
         )
 
 
@@ -164,8 +187,11 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 for _model in [
     ReflectapiDemoTestsSerdeTestFlattenIfElse,
-    ReflectapiDemoTestsSerdeTestFlattenInner,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69,
+    ReflectapiDemoTestsSerdeTestLeafCollisionPair,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc,
+    ReflectapiDemoTestsSerdeModuleASample,
+    ReflectapiDemoTestsSerdeModuleBSample,
 ]:
     try:
         _model.model_rebuild()

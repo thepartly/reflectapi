@@ -31,3 +31,6 @@ clap_derive = "4.5.3"
 
 anyhow = "1.0.81"
 serde_json = "1.0.114"
+
+[dev-dependencies]
+tempfile = "3"
