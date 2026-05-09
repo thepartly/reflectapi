@@ -1473,3 +1473,26 @@ struct TestLeafCollisionPair {
 fn test_generic_flatten_leaf_collision() {
     assert_snapshot!(TestLeafCollisionPair);
 }
+
+// Wrapper that USES a marked struct in generic position with its own
+// TypeVars as args. Reproduces the case the previous monomorphizer
+// tripped over: walking `IdentityData<I, D>` inside a generic context
+// where `I` and `D` are TypeVars (not real types). Should not
+// register a monomorphization for that — only the concrete
+// instantiation `WithMarkedInner<TestFlattenIdent, TestFlattenIdentData>`
+// triggers monomorphization, and its substituted IdentityData ref is
+// the one that gets a concrete monomorph.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "I: serde::Serialize, D: serde::Serialize",
+    deserialize = "I: serde::de::DeserializeOwned, D: serde::de::DeserializeOwned",
+))]
+struct TestWithMarkedInner<I, D> {
+    body: TestIdentityData<I, D>,
+    extra: bool,
+}
+
+#[test]
+fn test_generic_flatten_typevar_in_generic_context() {
+    assert_snapshot!(TestWithMarkedInner<TestFlattenIdent, TestFlattenIdentData>);
+}

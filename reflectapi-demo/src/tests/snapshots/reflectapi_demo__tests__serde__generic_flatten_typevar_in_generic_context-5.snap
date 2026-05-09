@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super :: into_python_code :: <\nTestUpdateOrElse< TestIdentityData<TestFlattenIdent, TestFlattenIdentData>,\nTestFlattenIfElse, > > ()"
+expression: "super :: into_python_code :: <\nTestWithMarkedInner<TestFlattenIdent, TestFlattenIdentData> > ()"
 ---
 """
 Generated Python client for api_client.
@@ -13,7 +13,6 @@ from __future__ import annotations
 
 
 # Standard library imports
-from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
@@ -37,12 +36,6 @@ class ReflectapiDemoTestsSerdeTestFlattenIdentData(BaseModel):
     payload: str
 
 
-class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    code: int
-
-
 class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4(
     BaseModel
 ):
@@ -50,6 +43,15 @@ class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF6
 
     job_id: int
     payload: str
+
+
+class ReflectapiDemoTestsSerdeTestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66(
+    BaseModel
+):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    body: reflectapi_demo.tests.serde.TestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4
+    extra: bool
 
 
 # Namespace classes for dotted access to types
@@ -64,8 +66,8 @@ class reflectapi_demo:
 
             TestFlattenIdent = ReflectapiDemoTestsSerdeTestFlattenIdent
             TestFlattenIdentData = ReflectapiDemoTestsSerdeTestFlattenIdentData
-            TestFlattenIfElse = ReflectapiDemoTestsSerdeTestFlattenIfElse
             TestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4 = ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4
+            TestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66 = ReflectapiDemoTestsSerdeTestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66
 
 
 class AsyncInoutClient:
@@ -77,12 +79,10 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            Annotated[
-                Any, "External type: reflectapi_demo::tests::serde::TestUpdateOrElse"
-            ]
+            reflectapi_demo.tests.serde.TestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66
         ] = None,
     ) -> ApiResponse[
-        Annotated[Any, "External type: reflectapi_demo::tests::serde::TestUpdateOrElse"]
+        reflectapi_demo.tests.serde.TestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66
     ]:
         """
 
@@ -90,7 +90,7 @@ class AsyncInoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[Annotated[Any, "External type: reflectapi_demo::tests::serde::TestUpdateOrElse"]]: Response containing Annotated[Any, "External type: reflectapi_demo::tests::serde::TestUpdateOrElse"] data
+            ApiResponse[reflectapi_demo.tests.serde.TestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66]: Response containing reflectapi_demo.tests.serde.TestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66 data
         """
         path = "/inout_test"
 
@@ -99,9 +99,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=Annotated[
-                Any, "External type: reflectapi_demo::tests::serde::TestUpdateOrElse"
-            ],
+            response_model=reflectapi_demo.tests.serde.TestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66,
         )
 
 
@@ -127,12 +125,10 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            Annotated[
-                Any, "External type: reflectapi_demo::tests::serde::TestUpdateOrElse"
-            ]
+            reflectapi_demo.tests.serde.TestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66
         ] = None,
     ) -> ApiResponse[
-        Annotated[Any, "External type: reflectapi_demo::tests::serde::TestUpdateOrElse"]
+        reflectapi_demo.tests.serde.TestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66
     ]:
         """
 
@@ -140,7 +136,7 @@ class InoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[Annotated[Any, "External type: reflectapi_demo::tests::serde::TestUpdateOrElse"]]: Response containing Annotated[Any, "External type: reflectapi_demo::tests::serde::TestUpdateOrElse"] data
+            ApiResponse[reflectapi_demo.tests.serde.TestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66]: Response containing reflectapi_demo.tests.serde.TestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66 data
         """
         path = "/inout_test"
 
@@ -149,9 +145,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=Annotated[
-                Any, "External type: reflectapi_demo::tests::serde::TestUpdateOrElse"
-            ],
+            response_model=reflectapi_demo.tests.serde.TestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66,
         )
 
 
@@ -178,8 +172,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 for _model in [
     ReflectapiDemoTestsSerdeTestFlattenIdent,
     ReflectapiDemoTestsSerdeTestFlattenIdentData,
-    ReflectapiDemoTestsSerdeTestFlattenIfElse,
     ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4,
+    ReflectapiDemoTestsSerdeTestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66,
 ]:
     try:
         _model.model_rebuild()

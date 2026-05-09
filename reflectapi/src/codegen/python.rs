@@ -5474,7 +5474,7 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
         false
     }
 
-    let marked: BTreeSet<String> = {
+    let mut marked: BTreeSet<String> = {
         let mut out = BTreeSet::new();
         for ts in [&schema.input_types, &schema.output_types] {
             for typ in ts.types() {
@@ -5499,6 +5499,60 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
         return Ok(());
     }
 
+    // Transitive marking: a generic struct G that doesn't itself have
+    // flatten-over-typevar must still be monomorphized if any of its
+    // fields references a (transitively-)marked struct using G's
+    // TypeVars as args. Otherwise, when concrete usages of G are
+    // resolved to monomorphized forms, the inner marked-struct ref
+    // would be left dangling at G's TypeVar — and removing the
+    // original marked struct would leave G's leftover reference
+    // pointing at nothing.
+    //
+    // Iterate to fixed point so chains like A<T> → B<T> → MarkedC<T>
+    // all get marked.
+    fn ref_uses_marked_with_typevar(
+        type_ref: &TypeReference,
+        marked: &BTreeSet<String>,
+        typevars: &BTreeSet<&str>,
+    ) -> bool {
+        if marked.contains(&type_ref.name)
+            && type_ref
+                .arguments
+                .iter()
+                .any(|a| typevars.contains(a.name.as_str()))
+        {
+            return true;
+        }
+        type_ref
+            .arguments
+            .iter()
+            .any(|a| ref_uses_marked_with_typevar(a, marked, typevars))
+    }
+    loop {
+        let mut new_marks: BTreeSet<String> = BTreeSet::new();
+        for ts in [&schema.input_types, &schema.output_types] {
+            for typ in ts.types() {
+                if let Type::Struct(s) = typ {
+                    if s.parameters.is_empty() || marked.contains(&s.name) {
+                        continue;
+                    }
+                    let typevars: BTreeSet<&str> =
+                        s.parameters.iter().map(|p| p.name.as_str()).collect();
+                    if s.fields
+                        .iter()
+                        .any(|f| ref_uses_marked_with_typevar(&f.type_ref, &marked, &typevars))
+                    {
+                        new_marks.insert(s.name.clone());
+                    }
+                }
+            }
+        }
+        if new_marks.is_empty() {
+            break;
+        }
+        marked.extend(new_marks);
+    }
+
     // 2. Walk every type reference reachable from functions and types,
     //    rewriting marked refs in place (bottom-up) to their mangled
     //    monomorphized names. Each new (struct, normalized_args) pair
@@ -5508,6 +5562,18 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
     //    `(OuterMarked, [InnerMarked_I_D, C])` — concrete on both
     //    sides.
     let mut concrete: BTreeMap<(String, Vec<TypeReference>), String> = BTreeMap::new();
+
+    /// A type-ref is "concrete" if it resolves to a real schema type or
+    /// is built up from concrete refs. A bare ref like `T` with no
+    /// arguments and no schema entry is a TypeVar from some enclosing
+    /// generic context and isn't safe to monomorphize against — when
+    /// that context resolves, the substitution will replace it.
+    fn is_concrete(type_ref: &TypeReference, schema: &Schema) -> bool {
+        if type_ref.arguments.is_empty() && schema.get_type(&type_ref.name).is_none() {
+            return false;
+        }
+        type_ref.arguments.iter().all(|a| is_concrete(a, schema))
+    }
 
     fn normalize_marked_refs(
         type_ref: &mut TypeReference,
@@ -5521,6 +5587,15 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
             normalize_marked_refs(a, marked, concrete, schema)?;
         }
         if !marked.contains(&type_ref.name) || type_ref.arguments.is_empty() {
+            return Ok(());
+        }
+        // If any arg is a TypeVar from an enclosing generic context
+        // (e.g. `Inner<T>` inside `struct Outer<T> { ... }`), this
+        // ref isn't a concrete instantiation — it's a generic-position
+        // use of a marked struct. Don't register: when the enclosing
+        // generic resolves to a concrete instantiation, the
+        // substituted args will be concrete and we'll register then.
+        if !type_ref.arguments.iter().all(|a| is_concrete(a, schema)) {
             return Ok(());
         }
         let key = (type_ref.name.clone(), type_ref.arguments.clone());
