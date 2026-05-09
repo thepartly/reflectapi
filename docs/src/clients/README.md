@@ -6,7 +6,7 @@
 
 | Output | Status | Notes |
 |--------|--------|-------|
-| TypeScript | Stable | Single generated file |
+| TypeScript | Stable | Two generated files: API surface + transport contract |
 | Rust | Stable | Single generated file |
 | Python | Experimental | Package-style output with `__init__.py` and `generated.py` |
 
@@ -27,6 +27,7 @@ The CLI defaults to `reflectapi.json` if `--schema` is omitted. The demo project
 mkdir -p clients/typescript clients/python clients/rust
 
 # Generate TypeScript client -> clients/typescript/generated.ts
+#                          and clients/typescript/generated.transport.ts
 cargo run --bin reflectapi -- codegen \
   --language typescript \
   --schema reflectapi.json \
@@ -54,7 +55,7 @@ The generators do not all emit the same file layout:
 
 | Output | Files written by the generator |
 |--------|--------------------------------|
-| TypeScript | `generated.ts` |
+| TypeScript | `generated.ts`, `generated.transport.ts` |
 | Rust | `generated.rs` |
 | Python | `__init__.py`, `generated.py` |
 
@@ -64,6 +65,13 @@ The demo repository includes extra project scaffolding around some generated cli
 
 ### TypeScript
 
+- Emits two files alongside each other: `generated.ts` (the API
+  surface — types, functions, the `client(base)` factory) and
+  `generated.transport.ts` (the transport contract — `Request`,
+  `Response`, `Headers`, `Client`, `RequestOptions`, `ClientInstance`).
+  The split keeps the bare DTO names from shadowing the DOM globals of
+  the same name when imported from `generated.ts`. Custom transports
+  import from `./generated.transport`.
 - Uses generated TypeScript types and function wrappers.
 - Uses a `fetch`-based default client implementation.
 - Parses JSON responses, but does not generate runtime schema validators today.

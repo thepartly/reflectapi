@@ -1,0 +1,214 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::TestGenericWithConcreteFlatten",
+        "arguments": [
+          {
+            "name": "reflectapi_demo::tests::serde::TestFlattenIfElse"
+          }
+        ]
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::TestGenericWithConcreteFlatten",
+        "arguments": [
+          {
+            "name": "reflectapi_demo::tests::serde::TestFlattenIfElse"
+          }
+        ]
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenIfElse",
+        "fields": {
+          "named": [
+            {
+              "name": "code",
+              "type": {
+                "name": "u16"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenInner",
+        "fields": {
+          "named": [
+            {
+              "name": "inner_a",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "inner_b",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestGenericWithConcreteFlatten",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "extra",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestFlattenInner"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "other",
+              "type": {
+                "name": "T"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u16",
+        "description": "16-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenIfElse",
+        "fields": {
+          "named": [
+            {
+              "name": "code",
+              "type": {
+                "name": "u16"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenInner",
+        "fields": {
+          "named": [
+            {
+              "name": "inner_a",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "inner_b",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestGenericWithConcreteFlatten",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "extra",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestFlattenInner"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "other",
+              "type": {
+                "name": "T"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u16",
+        "description": "16-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  }
+}

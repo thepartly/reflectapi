@@ -93,7 +93,7 @@ enum DocSubcommand {
     },
 }
 
-#[derive(ValueEnum, Clone, PartialEq)]
+#[derive(ValueEnum, Clone, Debug, PartialEq)]
 enum Language {
     Typescript,
     Rust,
@@ -154,19 +154,14 @@ fn main() -> anyhow::Result<()> {
                 .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
 
             let files: std::collections::BTreeMap<String, String> = match language {
-                Language::Typescript => {
-                    let content = reflectapi::codegen::typescript::generate(
-                        schema,
-                        reflectapi::codegen::typescript::Config::default()
-                            .format(format)
-                            .typecheck(typecheck)
-                            .include_tags(include_tags)
-                            .exclude_tags(exclude_tags),
-                    )?;
-                    let mut files = std::collections::BTreeMap::new();
-                    files.insert("generated.ts".to_string(), content);
-                    files
-                }
+                Language::Typescript => reflectapi::codegen::typescript::generate(
+                    schema,
+                    reflectapi::codegen::typescript::Config::default()
+                        .format(format)
+                        .typecheck(typecheck)
+                        .include_tags(include_tags)
+                        .exclude_tags(exclude_tags),
+                )?,
                 Language::Rust => {
                     let content = reflectapi::codegen::rust::generate(
                         schema,
@@ -208,9 +203,24 @@ fn main() -> anyhow::Result<()> {
                 }
             };
 
+            // The "main" emitted file per language. Used both for
+            // stdout selection (--output -) and for matching a
+            // file-shaped --output path against the codegen output.
+            let primary_filename = match language {
+                Language::Typescript => "generated.ts",
+                Language::Rust => "generated.rs",
+                Language::Python => "generated.py",
+                Language::Openapi => "openapi.json",
+            };
+
             if output == Some(std::path::PathBuf::from("-")) {
-                // For stdout, output the first/main file
-                if let Some(content) = files.values().next() {
+                // Print the language's primary file, not the
+                // alphabetically-first one — for TS that would be
+                // generated.transport.ts (sibling), for Python it
+                // would be __init__.py.
+                if let Some(content) = files.get(primary_filename) {
+                    println!("{content}");
+                } else if let Some(content) = files.values().next() {
                     println!("{content}");
                 }
                 return Ok(());
@@ -218,36 +228,62 @@ fn main() -> anyhow::Result<()> {
 
             let output_path = output.unwrap_or_else(|| std::path::PathBuf::from("./"));
 
-            // For single-file languages, write directly to the specified path if it's a file,
-            // or to default filename in the directory if it's a directory
-            // For multi-file languages (like Python), create directory and write multiple files
-            if files.len() == 1 {
-                let (filename, content) = files.iter().next().unwrap();
-                let final_path =
-                    if output_path.is_dir() || output_path.to_string_lossy().ends_with('/') {
-                        output_path.join(filename)
-                    } else {
-                        output_path
-                    };
-                let mut file = std::fs::File::create(&final_path)
-                    .context(format!("Failed to create file: {final_path:?}"))?;
-                file.write_all(content.as_bytes())
-                    .context(format!("Failed to write to file: {final_path:?}"))?;
-            } else {
-                // Multi-file: create directory and write all files
+            // Decide whether `output_path` names a single file or a
+            // directory. "File" means the path's filename matches one
+            // of the codegen-emitted filenames AND the path doesn't
+            // already exist as a directory; everything else is a
+            // directory (whether it exists yet or not).
+            //
+            // This matters for two cases:
+            //   --output ./clients/python/  → directory, write all files inside
+            //   --output ./generated.ts     → file path: write generated.ts there
+            //                                 and place siblings (e.g.
+            //                                 generated.transport.ts) next to it
+            //   --output ./brand-new-dir    → fresh directory, create + write
+            let primary_name_in_path = output_path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or_default();
+            let looks_like_file = files.contains_key(primary_name_in_path)
+                && !output_path.is_dir()
+                && !output_path.to_string_lossy().ends_with('/');
+
+            if !looks_like_file {
                 std::fs::create_dir_all(&output_path).context(format!(
                     "Failed to create output directory: {output_path:?}"
                 ))?;
-
-                for (filename, content) in files {
-                    let file_path = output_path.join(&filename);
-                    let mut file = std::fs::File::create(&file_path)
-                        .context(format!("Failed to create file: {file_path:?}"))?;
-                    file.write_all(content.as_bytes())
-                        .context(format!("Failed to write to file: {file_path:?}"))?;
+                for (filename, content) in &files {
+                    write_file(&output_path.join(filename), content)?;
+                }
+            } else {
+                let parent = parent_or_dot(&output_path);
+                std::fs::create_dir_all(&parent)
+                    .context(format!("Failed to create output directory: {parent:?}"))?;
+                for (filename, content) in &files {
+                    let dest = if filename == primary_name_in_path {
+                        output_path.clone()
+                    } else {
+                        parent.join(filename)
+                    };
+                    write_file(&dest, content)?;
                 }
             }
             Ok(())
         }
     }
+}
+
+fn parent_or_dot(path: &std::path::Path) -> std::path::PathBuf {
+    path.parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .map(std::path::Path::to_path_buf)
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+}
+
+fn write_file(path: &std::path::Path, content: &str) -> anyhow::Result<()> {
+    let mut file =
+        std::fs::File::create(path).context(format!("Failed to create file: {path:?}"))?;
+    file.write_all(content.as_bytes())
+        .context(format!("Failed to write to file: {path:?}"))?;
+    Ok(())
 }

@@ -1,0 +1,49 @@
+// Transport contract. Lives in its own module so the bare names
+// `Request` / `Response` / `Headers` don't shadow the DOM globals of
+// the same name inside the main generated module — consumers import
+// them only when they need to write a custom transport.
+//
+// Method is intentionally absent: every reflectapi endpoint is POST by
+// design, so transports hardcode it; if that ever changes it's a
+// wire-protocol break and clients regenerate.
+
+export interface RequestOptions {
+  signal?: AbortSignal;
+}
+
+export interface Request {
+  path: string;
+  headers: Record<string, string>;
+  body: Uint8Array;
+  signal?: AbortSignal;
+}
+
+export interface Headers {
+  get(name: string): string | null;
+}
+
+export interface Response {
+  status: number;
+  headers: Headers;
+  body: ReadableStream<Uint8Array> | null;
+}
+
+export interface Client {
+  request(request: Request): Promise<Response>;
+}
+
+export class ClientInstance {
+  constructor(private base: string) { }
+
+  public request(request: Request): Promise<Response> {
+    return fetch(`${this.base}${request.path}`, {
+      method: "POST",
+      headers: request.headers,
+      // BodyInit accepts BufferSource but TS 5's generic ArrayBufferLike
+      // typing on Uint8Array trips a structural check; the runtime
+      // behaviour is correct.
+      body: request.body as unknown as BodyInit,
+      signal: request.signal,
+    });
+  }
+}

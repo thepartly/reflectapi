@@ -60,15 +60,15 @@ fn codegen_rust(schema: reflectapi::Schema) -> String {
 }
 
 fn codegen_typescript(schema: reflectapi::Schema) -> String {
-    reflectapi::codegen::strip_boilerplate(
-        &reflectapi::codegen::typescript::generate(
-            schema,
-            reflectapi::codegen::typescript::Config::default()
-                .format(true)
-                .typecheck(std::env::var("CI").is_ok()),
-        )
-        .unwrap(),
+    let files = reflectapi::codegen::typescript::generate(
+        schema,
+        reflectapi::codegen::typescript::Config::default()
+            .format(true)
+            .typecheck(std::env::var("CI").is_ok()),
     )
+    .unwrap();
+    // Snapshot the main file only; the transport file is schema-invariant.
+    reflectapi::codegen::strip_boilerplate(&files["generated.ts"])
 }
 
 fn codegen_python(schema: reflectapi::Schema) -> String {
@@ -204,15 +204,16 @@ macro_rules! assert_builder_snapshot {
             )
             .unwrap(),
         );
-        let typescript = reflectapi::codegen::strip_boilerplate(
-            &reflectapi::codegen::typescript::generate(
+        let typescript = {
+            let files = reflectapi::codegen::typescript::generate(
                 schema.clone(),
                 &reflectapi::codegen::typescript::Config::default()
                     .format(true)
                     .typecheck(true),
             )
-            .unwrap(),
-        );
+            .unwrap();
+            reflectapi::codegen::strip_boilerplate(&files["generated.ts"])
+        };
         insta::assert_json_snapshot!(schema);
         insta::assert_snapshot!(typescript);
         insta::assert_snapshot!(rust);

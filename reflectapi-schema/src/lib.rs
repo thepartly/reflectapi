@@ -359,8 +359,14 @@ impl Typespace {
             return None;
         }
 
-        self.types_map.borrow_mut().remove(ty);
-        Some(self.types.remove(index))
+        let removed = self.types.remove(index);
+        // `Vec::remove` shifts every later element down by one, so all
+        // map entries that pointed past `index` are now stale. Drop
+        // the whole map; the next `ensure_types_map` rebuilds it.
+        // (Removing the single key for `ty` and leaving the rest
+        // alone — the previous behaviour — was the bug.)
+        self.invalidate_types_map();
+        Some(removed)
     }
 
     pub fn sort_types(&mut self) {
@@ -1393,5 +1399,64 @@ impl Representation {
 
     pub fn is_none(&self) -> bool {
         matches!(self, Representation::None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn primitive(name: &str) -> Type {
+        Type::Primitive(Primitive {
+            name: name.to_string(),
+            description: String::new(),
+            parameters: vec![],
+            fallback: None,
+            codegen_config: LanguageSpecificTypeCodegenConfig::default(),
+        })
+    }
+
+    /// Regression: `remove_type` used to drop only the removed key
+    /// from `types_map` while `Vec::remove` shifted every later
+    /// element's index down by one. The next call would either
+    /// panic on an out-of-bounds slot or silently return the wrong
+    /// type. The fix is to invalidate the whole map after removal
+    /// so the next access rebuilds it.
+    #[test]
+    fn remove_type_keeps_map_consistent_across_multiple_removals() {
+        let mut ts = Typespace::default();
+        ts.insert_type(primitive("a"));
+        ts.insert_type(primitive("b"));
+        ts.insert_type(primitive("c"));
+        ts.insert_type(primitive("d"));
+
+        // Remove two — the second one used to land on a stale index.
+        let _ = ts.remove_type("b");
+        let _ = ts.remove_type("c");
+
+        assert!(ts.has_type("a"), "untouched type 'a' should still resolve");
+        assert!(ts.has_type("d"), "untouched type 'd' should still resolve");
+        assert!(!ts.has_type("b"));
+        assert!(!ts.has_type("c"));
+
+        // Each surviving lookup should return the right Type, not
+        // some other slot that the stale index pointed at.
+        assert_eq!(ts.get_type("a").map(|t| t.name()), Some("a"));
+        assert_eq!(ts.get_type("d").map(|t| t.name()), Some("d"));
+    }
+
+    #[test]
+    fn remove_type_returns_the_value_we_asked_for() {
+        let mut ts = Typespace::default();
+        ts.insert_type(primitive("first"));
+        ts.insert_type(primitive("second"));
+        ts.insert_type(primitive("third"));
+
+        let removed = ts.remove_type("second").expect("should find 'second'");
+        assert_eq!(removed.name(), "second");
+
+        // The other two must still be there at the right names.
+        assert_eq!(ts.get_type("first").map(|t| t.name()), Some("first"));
+        assert_eq!(ts.get_type("third").map(|t| t.name()), Some("third"));
     }
 }

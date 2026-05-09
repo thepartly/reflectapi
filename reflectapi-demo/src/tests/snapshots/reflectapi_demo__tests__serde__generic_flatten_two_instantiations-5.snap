@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super :: into_python_code :: < Test > ()"
+expression: "super :: into_python_code :: < TestTwoInstantiations > ()"
 ---
 """
 Generated Python client for api_client.
@@ -14,10 +14,10 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
+from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -25,37 +25,49 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
-class ReflectapiDemoTestsSerdeA(BaseModel):
+class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    a: int
+    code: int
 
 
-class ReflectapiDemoTestsSerdeB(BaseModel):
+class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    b: int
+    inner_a: int
+    inner_b: str
 
 
-class ReflectapiDemoTestsSerdeSReflectapiDemoTestsSerdeAReflectapiDemoTestsSerdeB(
+class ReflectapiDemoTestsSerdeTestFlattenInnerAlt(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    alt_x: bool
+
+
+class ReflectapiDemoTestsSerdeTestTwoInstantiations(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
+    b: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20
+
+
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69(
     BaseModel
 ):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    a: int
-    b: int
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
+    inner_a: int
+    inner_b: str
 
 
-class ReflectapiDemoTestsSerdeTestS(BaseModel):
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20(
+    BaseModel
+):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    type: Literal["S"] = Field(default="S", description="Discriminator field")
-    a: int
-    b: int
-
-
-class ReflectapiDemoTestsSerdeTest(RootModel):
-    root: Annotated[Union[ReflectapiDemoTestsSerdeTestS], Field(discriminator="type")]
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
+    alt_x: bool
 
 
 # Namespace classes for dotted access to types
@@ -68,11 +80,12 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            A = ReflectapiDemoTestsSerdeA
-            B = ReflectapiDemoTestsSerdeB
-            SReflectapiDemoTestsSerdeAReflectapiDemoTestsSerdeB = ReflectapiDemoTestsSerdeSReflectapiDemoTestsSerdeAReflectapiDemoTestsSerdeB
-            TestS = ReflectapiDemoTestsSerdeTestS
-            Test = ReflectapiDemoTestsSerdeTest
+            TestFlattenIfElse = ReflectapiDemoTestsSerdeTestFlattenIfElse
+            TestFlattenInner = ReflectapiDemoTestsSerdeTestFlattenInner
+            TestFlattenInnerAlt = ReflectapiDemoTestsSerdeTestFlattenInnerAlt
+            TestTwoInstantiations = ReflectapiDemoTestsSerdeTestTwoInstantiations
+            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
+            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20
 
 
 class AsyncInoutClient:
@@ -83,15 +96,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.Test] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
+        data: Optional[reflectapi_demo.tests.serde.TestTwoInstantiations] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestTwoInstantiations]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.Test]: Response containing reflectapi_demo.tests.serde.Test data
+            ApiResponse[reflectapi_demo.tests.serde.TestTwoInstantiations]: Response containing reflectapi_demo.tests.serde.TestTwoInstantiations data
         """
         path = "/inout_test"
 
@@ -100,7 +113,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.Test,
+            response_model=reflectapi_demo.tests.serde.TestTwoInstantiations,
         )
 
 
@@ -125,15 +138,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.Test] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.Test]:
+        data: Optional[reflectapi_demo.tests.serde.TestTwoInstantiations] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestTwoInstantiations]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.Test]: Response containing reflectapi_demo.tests.serde.Test data
+            ApiResponse[reflectapi_demo.tests.serde.TestTwoInstantiations]: Response containing reflectapi_demo.tests.serde.TestTwoInstantiations data
         """
         path = "/inout_test"
 
@@ -142,7 +155,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.Test,
+            response_model=reflectapi_demo.tests.serde.TestTwoInstantiations,
         )
 
 
@@ -167,10 +180,12 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 for _model in [
-    ReflectapiDemoTestsSerdeA,
-    ReflectapiDemoTestsSerdeB,
-    ReflectapiDemoTestsSerdeSReflectapiDemoTestsSerdeAReflectapiDemoTestsSerdeB,
-    ReflectapiDemoTestsSerdeTest,
+    ReflectapiDemoTestsSerdeTestFlattenIfElse,
+    ReflectapiDemoTestsSerdeTestFlattenInner,
+    ReflectapiDemoTestsSerdeTestFlattenInnerAlt,
+    ReflectapiDemoTestsSerdeTestTwoInstantiations,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20,
 ]:
     try:
         _model.model_rebuild()

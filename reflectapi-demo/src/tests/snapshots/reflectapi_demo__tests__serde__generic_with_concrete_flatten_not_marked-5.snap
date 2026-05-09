@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super :: into_python_code :: < S<K> > ()"
+expression: "super :: into_python_code :: <\nTestGenericWithConcreteFlatten<TestFlattenIfElse> > ()"
 ---
 """
 Generated Python client for api_client.
@@ -24,16 +24,31 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
-class ReflectapiDemoTestsSerdeK(BaseModel):
+# Type variables for generic types
+
+
+T = TypeVar("T")
+
+
+class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    a: int
+    code: int
 
 
-class ReflectapiDemoTestsSerdeSReflectapiDemoTestsSerdeKStdTupleTuple0(BaseModel):
+class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    a: int
+    inner_a: int
+    inner_b: str
+
+
+class ReflectapiDemoTestsSerdeTestGenericWithConcreteFlatten(BaseModel, Generic[T]):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    other: T
+    inner_a: int
+    inner_b: str
 
 
 # Namespace classes for dotted access to types
@@ -46,9 +61,10 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            K = ReflectapiDemoTestsSerdeK
-            SReflectapiDemoTestsSerdeKStdTupleTuple0 = (
-                ReflectapiDemoTestsSerdeSReflectapiDemoTestsSerdeKStdTupleTuple0
+            TestFlattenIfElse = ReflectapiDemoTestsSerdeTestFlattenIfElse
+            TestFlattenInner = ReflectapiDemoTestsSerdeTestFlattenInner
+            TestGenericWithConcreteFlatten = (
+                ReflectapiDemoTestsSerdeTestGenericWithConcreteFlatten
             )
 
 
@@ -61,10 +77,14 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.SReflectapiDemoTestsSerdeKStdTupleTuple0
+            reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten[
+                reflectapi_demo.tests.serde.TestFlattenIfElse
+            ]
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.SReflectapiDemoTestsSerdeKStdTupleTuple0
+        reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten[
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+        ]
     ]:
         """
 
@@ -72,7 +92,7 @@ class AsyncInoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.SReflectapiDemoTestsSerdeKStdTupleTuple0]: Response containing reflectapi_demo.tests.serde.SReflectapiDemoTestsSerdeKStdTupleTuple0 data
+            ApiResponse[reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten[reflectapi_demo.tests.serde.TestFlattenIfElse]]: Response containing reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten[reflectapi_demo.tests.serde.TestFlattenIfElse] data
         """
         path = "/inout_test"
 
@@ -81,7 +101,9 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.SReflectapiDemoTestsSerdeKStdTupleTuple0,
+            response_model=reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten[
+                reflectapi_demo.tests.serde.TestFlattenIfElse
+            ],
         )
 
 
@@ -107,10 +129,14 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.SReflectapiDemoTestsSerdeKStdTupleTuple0
+            reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten[
+                reflectapi_demo.tests.serde.TestFlattenIfElse
+            ]
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.SReflectapiDemoTestsSerdeKStdTupleTuple0
+        reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten[
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+        ]
     ]:
         """
 
@@ -118,7 +144,7 @@ class InoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.SReflectapiDemoTestsSerdeKStdTupleTuple0]: Response containing reflectapi_demo.tests.serde.SReflectapiDemoTestsSerdeKStdTupleTuple0 data
+            ApiResponse[reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten[reflectapi_demo.tests.serde.TestFlattenIfElse]]: Response containing reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten[reflectapi_demo.tests.serde.TestFlattenIfElse] data
         """
         path = "/inout_test"
 
@@ -127,7 +153,9 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.SReflectapiDemoTestsSerdeKStdTupleTuple0,
+            response_model=reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten[
+                reflectapi_demo.tests.serde.TestFlattenIfElse
+            ],
         )
 
 
@@ -152,8 +180,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 for _model in [
-    ReflectapiDemoTestsSerdeK,
-    ReflectapiDemoTestsSerdeSReflectapiDemoTestsSerdeKStdTupleTuple0,
+    ReflectapiDemoTestsSerdeTestFlattenIfElse,
+    ReflectapiDemoTestsSerdeTestFlattenInner,
+    ReflectapiDemoTestsSerdeTestGenericWithConcreteFlatten,
 ]:
     try:
         _model.model_rebuild()

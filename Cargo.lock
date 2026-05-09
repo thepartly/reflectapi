@@ -1692,7 +1692,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi"
-version = "0.17.2-alpha.3"
+version = "0.17.2-alpha.4"
 dependencies = [
  "anyhow",
  "axum",
@@ -1721,7 +1721,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-cli"
-version = "0.17.2-alpha.3"
+version = "0.17.2-alpha.4"
 dependencies = [
  "anyhow",
  "clap",
@@ -1729,6 +1729,7 @@ dependencies = [
  "reflectapi",
  "rouille",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -1751,6 +1752,7 @@ dependencies = [
  "rmp-serde",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
  "tower 0.4.13",
  "tower-http",
@@ -1783,7 +1785,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-derive"
-version = "0.17.2-alpha.3"
+version = "0.17.2-alpha.4"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -1795,7 +1797,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-schema"
-version = "0.17.2-alpha.3"
+version = "0.17.2-alpha.4"
 dependencies = [
  "glob",
  "serde",

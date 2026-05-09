@@ -1194,3 +1194,375 @@ fn test_empty_enum() {
     enum Never {}
     assert_snapshot!(Never);
 }
+
+// Reproducer: a generic wrapper that flattens its generic parameter.
+// Pattern used in real consumer code (e.g. UpdateOrElse<T, C>).
+//
+// Wire format with serde(flatten) on `inner: T` is: T's fields ⊕ if_field
+// at the top level. Python codegen previously dropped T's fields entirely
+// because schema.get_type("T") returns None for a TypeVar.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestFlattenInner {
+    inner_a: u32,
+    inner_b: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestFlattenInnerAlt {
+    alt_x: bool,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestFlattenIfElse {
+    code: u16,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "T: serde::Serialize, C: serde::Serialize",
+    deserialize = "T: serde::de::DeserializeOwned, C: serde::de::DeserializeOwned",
+))]
+struct TestUpdateOrElse<T, C> {
+    #[serde(flatten)]
+    inner: T,
+    if_else: Option<C>,
+}
+
+// Two endpoints sharing the same generic wrapper but with different
+// instantiations. Each must produce its own monomorphized class.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestTwoInstantiations {
+    a: TestUpdateOrElse<TestFlattenInner, TestFlattenIfElse>,
+    b: TestUpdateOrElse<TestFlattenInnerAlt, TestFlattenIfElse>,
+}
+
+// Optional-wrapped flatten of a generic param: serde unwraps Option in
+// flatten position, so wire shape = T's fields ⊕ if_else (but T may
+// be missing entirely). Verify codegen still expands T's fields.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "T: serde::Serialize",
+    deserialize = "T: serde::de::DeserializeOwned",
+))]
+struct TestOptionalFlatten<T> {
+    #[serde(flatten, default = "Option::default")]
+    inner: Option<T>,
+    code: u16,
+}
+
+#[test]
+fn test_generic_flatten_drops_inner_fields() {
+    assert_snapshot!(TestUpdateOrElse<TestFlattenInner, TestFlattenIfElse>);
+}
+
+#[test]
+fn test_generic_flatten_two_instantiations() {
+    assert_snapshot!(TestTwoInstantiations);
+}
+
+#[test]
+fn test_generic_flatten_optional() {
+    assert_snapshot!(TestOptionalFlatten<TestFlattenInner>);
+}
+
+// Real-world pattern: an outer generic wrapper flattens an *inner*
+// generic wrapper. UpdateOrElse<IdentityData<I, D>, C> where
+// IdentityData itself is a marked struct (flattens its own generic
+// I and D). Codegen must monomorphize bottom-up.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestFlattenIdent {
+    job_id: u64,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestFlattenIdentData {
+    payload: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "I: serde::Serialize, D: serde::Serialize",
+    deserialize = "I: serde::de::DeserializeOwned, D: serde::de::DeserializeOwned",
+))]
+struct TestIdentityData<I, D> {
+    #[serde(flatten)]
+    identity: I,
+    #[serde(flatten)]
+    data: D,
+}
+
+#[test]
+fn test_generic_flatten_nested() {
+    assert_snapshot!(
+        TestUpdateOrElse<
+            TestIdentityData<TestFlattenIdent, TestFlattenIdentData>,
+            TestFlattenIfElse,
+        >
+    );
+}
+
+/// End-to-end Pydantic round-trip: confirms the generated class
+/// actually parses serde's wire format. Skipped if `uv` (or a Python
+/// with pydantic) isn't available locally — CI uses uv.
+#[test]
+fn test_generic_flatten_pydantic_roundtrip() {
+    use std::io::Write;
+
+    let py_source =
+        super::into_python_code::<TestUpdateOrElse<TestFlattenInner, TestFlattenIfElse>>();
+
+    // Wire format that serde would actually produce / accept: T's
+    // fields ⊕ if_else, all at top level.
+    let wire_payload =
+        serde_json::to_string(&TestUpdateOrElse::<TestFlattenInner, TestFlattenIfElse> {
+            inner: TestFlattenInner {
+                inner_a: 7,
+                inner_b: "hello".into(),
+            },
+            if_else: Some(TestFlattenIfElse { code: 409 }),
+        })
+        .unwrap();
+
+    let tmp = tempfile::tempdir().unwrap();
+    let module_path = tmp.path().join("generated.py");
+    std::fs::write(&module_path, py_source).unwrap();
+
+    // The mangled class name depends on namespace and length-budget
+    // hashing, so the test discovers it by walking the generated
+    // namespace and matching on the expected field set.
+    let driver = format!(
+        r#"
+import importlib.util, json
+from pydantic import BaseModel
+spec = importlib.util.spec_from_file_location("gen", r"{module}")
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+ns = m.reflectapi_demo.tests.serde
+expected = {{"inner_a", "inner_b", "if_else"}}
+candidates = [
+    getattr(ns, attr)
+    for attr in dir(ns)
+    if isinstance(getattr(ns, attr, None), type)
+    and issubclass(getattr(ns, attr), BaseModel)
+    and set(getattr(ns, attr).model_fields.keys()) == expected
+]
+assert len(candidates) == 1, (
+    "expected exactly one class with fields {{inner_a, inner_b, if_else}}; "
+    "got " + repr([c.__name__ for c in candidates])
+)
+cls = candidates[0]
+parsed = cls.model_validate(json.loads(r'''{payload}'''))
+assert parsed.inner_a == 7, ("inner_a", parsed.inner_a)
+assert parsed.inner_b == "hello", ("inner_b", parsed.inner_b)
+assert parsed.if_else is not None and parsed.if_else.code == 409, ("if_else", parsed.if_else)
+# Round-trip back through json: model_dump returns a dict; serialize and
+# verify the wire format still has the flatten shape (T's fields at top).
+out = parsed.model_dump(by_alias=True, exclude_none=False)
+assert out["inner_a"] == 7
+assert out["inner_b"] == "hello"
+assert out["if_else"]["code"] == 409
+print("OK")
+"#,
+        module = module_path.display(),
+        payload = wire_payload,
+    );
+
+    // Prefer `uv run python` from the python-runtime workspace (which
+    // declares pydantic as a dep). Fall back to bare `python3` if it
+    // already has pydantic on its path. Skip the test only if neither
+    // works — CI installs uv so it'll always exercise this.
+    let runtime_dir = format!(
+        "{}/../reflectapi-python-runtime",
+        env!("CARGO_MANIFEST_DIR")
+    );
+
+    let mut attempts: Vec<(String, std::process::Command)> = Vec::new();
+    {
+        let mut c = std::process::Command::new("uv");
+        c.args(["run", "--directory", &runtime_dir, "python", "-"]);
+        attempts.push(("uv run python".to_string(), c));
+    }
+    if std::process::Command::new("python3")
+        .args(["-c", "import pydantic"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+    {
+        let mut c = std::process::Command::new("python3");
+        c.args(["-"]);
+        attempts.push(("system python3+pydantic".to_string(), c));
+    }
+
+    for (label, mut cmd) in attempts {
+        let spawn = cmd
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn();
+        let mut child = match spawn {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("skip via {label}: spawn failed ({e})");
+                continue;
+            }
+        };
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin.write_all(driver.as_bytes()).unwrap();
+        }
+        let output = child.wait_with_output().expect("python wait");
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            assert!(
+                stdout.contains("OK"),
+                "{label}: missing OK marker.\nstdout:\n{stdout}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr),
+            );
+            eprintln!("{label}: pydantic roundtrip OK");
+            return;
+        }
+        // Distinguish "no pydantic" (skip) from "pydantic is there but
+        // assertions failed" (fail). We marshal the assertion error
+        // through the script's exit; pydantic missing is an
+        // ImportError before our prints fire.
+        let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+        if stderr.contains("ModuleNotFoundError") && stderr.contains("pydantic") {
+            eprintln!("skip via {label}: pydantic not installed");
+            continue;
+        }
+        panic!(
+            "{label}: roundtrip failed (exit={:?})\nstdout:\n{}\nstderr:\n{}",
+            output.status.code(),
+            String::from_utf8_lossy(&output.stdout),
+            stderr,
+        );
+    }
+    eprintln!("test_generic_flatten_pydantic_roundtrip skipped: no working python+pydantic found");
+}
+
+// Two args that share a *leaf* name but live in different modules
+// must NOT collide when mangled. Earlier mangling used only the leaf
+// name; both ./module_a::Sample and ./module_b::Sample produced
+// identical keys, fusing two distinct UpdateOrElse instantiations
+// into one and losing one type's wire fields.
+mod module_a {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct Sample {
+        pub a_field: u32,
+    }
+}
+mod module_b {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct Sample {
+        pub b_field: bool,
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestLeafCollisionPair {
+    a: TestUpdateOrElse<module_a::Sample, TestFlattenIfElse>,
+    b: TestUpdateOrElse<module_b::Sample, TestFlattenIfElse>,
+}
+
+#[test]
+fn test_generic_flatten_leaf_collision() {
+    assert_snapshot!(TestLeafCollisionPair);
+}
+
+// Wrapper that USES a marked struct in generic position with its own
+// TypeVars as args. Reproduces the case the previous monomorphizer
+// tripped over: walking `IdentityData<I, D>` inside a generic context
+// where `I` and `D` are TypeVars (not real types). Should not
+// register a monomorphization for that — only the concrete
+// instantiation `WithMarkedInner<TestFlattenIdent, TestFlattenIdentData>`
+// triggers monomorphization, and its substituted IdentityData ref is
+// the one that gets a concrete monomorph.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "I: serde::Serialize, D: serde::Serialize",
+    deserialize = "I: serde::de::DeserializeOwned, D: serde::de::DeserializeOwned",
+))]
+struct TestWithMarkedInner<I, D> {
+    body: TestIdentityData<I, D>,
+    extra: bool,
+}
+
+#[test]
+fn test_generic_flatten_typevar_in_generic_context() {
+    assert_snapshot!(TestWithMarkedInner<TestFlattenIdent, TestFlattenIdentData>);
+}
+
+// Generic enum whose variants reference a marked struct using the
+// enum's own TypeVars. Reproduces the regression where transitive
+// marking only considered structs — generic enums would survive the
+// pass while the marked structs they referenced got removed,
+// dangling the enum's variant fields.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "I: serde::Serialize, D: serde::Serialize",
+    deserialize = "I: serde::de::DeserializeOwned, D: serde::de::DeserializeOwned",
+))]
+enum TestIngestRelation<I, D> {
+    Insert(TestIdentityData<I, D>),
+    Remove(TestIdentityData<I, D>),
+    Empty,
+}
+
+#[test]
+fn test_generic_flatten_enum_variant_typevar() {
+    assert_snapshot!(TestIngestRelation<TestFlattenIdent, TestFlattenIdentData>);
+}
+
+// Note: a Rust-derive recursive marked struct (e.g.
+// `struct Tree<T> { #[flatten] value: T, children: Vec<Tree<T>> }`)
+// overflows the reflectapi derive macro during schema construction,
+// before any codegen runs — that's a derive-side limitation, not a
+// codegen one. The codegen pipeline itself handles a recursive
+// marked struct fed in via JSON; that case is exercised by
+// `recursive_marked_struct_terminates_and_renders` in
+// reflectapi/src/codegen/python.rs.
+
+// Boundary case: a generic struct whose flatten target is a
+// *concrete* type, not a TypeVar. Should NOT be marked, NOT
+// monomorphized — the existing flatten-of-concrete rendering path
+// handles it. Confirms the marked-detection predicate doesn't
+// over-trigger on any-flatten-on-a-generic-struct.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "T: serde::Serialize",
+    deserialize = "T: serde::de::DeserializeOwned",
+))]
+struct TestGenericWithConcreteFlatten<T> {
+    #[serde(flatten)]
+    extra: TestFlattenInner,
+    other: T,
+}
+
+#[test]
+fn test_generic_with_concrete_flatten_not_marked() {
+    assert_snapshot!(TestGenericWithConcreteFlatten<TestFlattenIfElse>);
+}
+
+// Marked struct used with a generic parameter wrapped inside another
+// generic (`Marked<Option<I>>`). Earlier transitive marking only
+// looked at the IMMEDIATE arg, so the wrapper wasn't marked, the
+// inner Marked got removed, and the wrapper's ref dangled.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "I: serde::Serialize",
+    deserialize = "I: serde::de::DeserializeOwned",
+))]
+struct TestWrapperWithNestedTypevarArg<I> {
+    body: TestUpdateOrElse<Option<I>, TestFlattenIfElse>,
+    extra: u32,
+}
+
+#[test]
+fn test_generic_flatten_typevar_nested_in_generic_arg() {
+    assert_snapshot!(TestWrapperWithNestedTypevarArg<TestFlattenInner>);
+}

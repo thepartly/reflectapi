@@ -62,7 +62,7 @@ fn write_rust_client() {
 #[test]
 fn write_typescript_client() {
     let (schema, _) = crate::builder().build().unwrap();
-    let src = reflectapi::codegen::typescript::generate(
+    let files = reflectapi::codegen::typescript::generate(
         schema,
         reflectapi::codegen::typescript::Config::default()
             .format(true)
@@ -70,14 +70,10 @@ fn write_typescript_client() {
     )
     .unwrap();
 
-    std::fs::write(
-        format!(
-            "{}/clients/typescript/generated.ts",
-            env!("CARGO_MANIFEST_DIR"),
-        ),
-        src,
-    )
-    .unwrap();
+    let dir = format!("{}/clients/typescript", env!("CARGO_MANIFEST_DIR"));
+    for (filename, content) in files {
+        std::fs::write(format!("{dir}/{filename}"), content).unwrap();
+    }
 }
 
 #[test]

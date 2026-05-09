@@ -832,6 +832,23 @@ fn render_struct_with_flattened_internal_enum(
                     schema.get_type(inner_name)
                 {
                     for sf in inner_struct.fields.iter() {
+                        if sf.flattened() {
+                            // The inner struct has its own flatten — expand
+                            // those fields inline so the wire shape is
+                            // preserved across the tuple-variant boundary.
+                            let nested = collect_flattened_fields(
+                                &sf.type_ref,
+                                schema,
+                                implemented_types,
+                                active_generics,
+                                sf.required,
+                                0,
+                                used_type_vars,
+                                Some(sf.name()),
+                            )?;
+                            fields.extend(nested);
+                            continue;
+                        }
                         let field_type = type_ref_to_python_type(
                             &sf.type_ref,
                             schema,
@@ -1280,6 +1297,11 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Consolidate input/output types FIRST so both the SemanticSchema and
     // the raw Schema share the same unified type names.
     let all_type_names = schema.consolidate_types();
+    // Pydantic cannot represent `serde(flatten)` over a generic parameter
+    // at runtime — the inner T's wire-level fields would silently be
+    // dropped. Monomorphize: emit one concrete class per (struct, args)
+    // pair so the flatten resolves against a concrete type.
+    monomorphize_flatten_generics(&mut schema)?;
     let implemented_types = build_implemented_types();
     validate_type_references(&schema)?;
 
@@ -1973,11 +1995,31 @@ fn collect_flattened_fields(
                 field_name,
             )?;
         }
-        Some(reflectapi_schema::Type::Primitive(_)) | None => {
-            // Primitives (including unit types) and unresolved types cannot
-            // be meaningfully flattened — skip them, matching prior behavior.
-            // This handles cases like flattened generic parameters that resolve
-            // to () (std::tuple::Tuple0).
+        Some(reflectapi_schema::Type::Primitive(p)) => {
+            // Unit-like primitives (e.g. std::tuple::Tuple0) flatten to
+            // nothing — that's legitimate. Other primitives in a
+            // flatten position are a schema error: you can't flatten an
+            // i32 etc.
+            if p.name != "std::tuple::Tuple0" {
+                anyhow::bail!(
+                    "python codegen: cannot flatten primitive type '{}' \
+                     (only structs, internally-tagged enums, and unit types \
+                     are valid flatten targets)",
+                    p.name,
+                );
+            }
+        }
+        None => {
+            // We resolved a flatten target by name and the type wasn't
+            // in the schema. After monomorphization, this should be
+            // impossible — generic parameters are substituted away
+            // before rendering. Bail rather than silently drop the
+            // inner type's fields (the bug fixed by monomorphization).
+            anyhow::bail!(
+                "python codegen: cannot resolve flatten target '{target_type_name}'. \
+                 If this is a generic parameter, monomorphization should \
+                 have replaced it; this is a codegen bug.",
+            );
         }
     }
 
@@ -2820,6 +2862,24 @@ fn render_internally_tagged_enum(
                         };
 
                         for struct_field in struct_fields {
+                            if struct_field.flattened() {
+                                // Recurse into the flattened type and lift
+                                // its fields into this variant; otherwise
+                                // the wire shape gets a wrapper layer that
+                                // serde never produced.
+                                let nested = collect_flattened_fields(
+                                    &struct_field.type_ref,
+                                    schema,
+                                    implemented_types,
+                                    &generic_params,
+                                    struct_field.required,
+                                    0,
+                                    used_type_vars,
+                                    Some(struct_field.name()),
+                                )?;
+                                fields.extend(nested);
+                                continue;
+                            }
                             let field_type = type_ref_to_python_type(
                                 &struct_field.type_ref,
                                 schema,
@@ -5384,9 +5444,638 @@ pub mod templates {
     }
 }
 
+/// Pydantic equivalent of monomorphization: for any struct that uses
+/// `serde(flatten)` over a generic parameter, rewrite every concrete
+/// instantiation as its own non-generic struct in the schema. The
+/// existing flatten-of-concrete-type rendering then handles them
+/// correctly.
+///
+/// Rust and TypeScript handle this case dynamically (serde flatten at
+/// runtime; intersection types at the type level). Pydantic has no
+/// equivalent — `Generic[T]` can't be told to lift T's fields into the
+/// outer model when T is bound. So we resolve the polymorphism here.
+fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
+    use reflectapi_schema::{Instantiate as _, Visitor};
+    use std::ops::ControlFlow;
+
+    // 1. Mark structs whose fields flatten a generic parameter
+    //    (directly, or wrapped in Option<T>).
+    fn flattened_target_is_typevar(type_ref: &TypeReference, params: &BTreeSet<&str>) -> bool {
+        if params.contains(type_ref.name.as_str()) {
+            return true;
+        }
+        // serde unwraps Option in flatten position, so a flattened
+        // `Option<T>` still requires monomorphization.
+        if (type_ref.name == "std::option::Option" || type_ref.name == "reflectapi::Option")
+            && !type_ref.arguments.is_empty()
+        {
+            return flattened_target_is_typevar(&type_ref.arguments[0], params);
+        }
+        false
+    }
+
+    let mut marked: BTreeSet<String> = {
+        let mut out = BTreeSet::new();
+        for ts in [&schema.input_types, &schema.output_types] {
+            for typ in ts.types() {
+                if let Type::Struct(s) = typ {
+                    if s.parameters.is_empty() {
+                        continue;
+                    }
+                    let params: BTreeSet<&str> =
+                        s.parameters.iter().map(|p| p.name.as_str()).collect();
+                    if s.fields
+                        .iter()
+                        .any(|f| f.flattened() && flattened_target_is_typevar(&f.type_ref, &params))
+                    {
+                        out.insert(s.name.clone());
+                    }
+                }
+            }
+        }
+        out
+    };
+    if marked.is_empty() {
+        return Ok(());
+    }
+
+    // Transitive marking: a generic struct G that doesn't itself have
+    // flatten-over-typevar must still be monomorphized if any of its
+    // fields references a (transitively-)marked struct using G's
+    // TypeVars as args. Otherwise, when concrete usages of G are
+    // resolved to monomorphized forms, the inner marked-struct ref
+    // would be left dangling at G's TypeVar — and removing the
+    // original marked struct would leave G's leftover reference
+    // pointing at nothing.
+    //
+    // Iterate to fixed point so chains like A<T> → B<T> → MarkedC<T>
+    // all get marked.
+    /// True if `tr`'s tree mentions any of the enclosing TypeVars at
+    /// any depth. A TypeVar leaf is a zero-arg ref whose name is one
+    /// of the enclosing parameters.
+    fn ref_tree_contains_typevar(tr: &TypeReference, typevars: &BTreeSet<&str>) -> bool {
+        if tr.arguments.is_empty() && typevars.contains(tr.name.as_str()) {
+            return true;
+        }
+        tr.arguments
+            .iter()
+            .any(|a| ref_tree_contains_typevar(a, typevars))
+    }
+    fn ref_uses_marked_with_typevar(
+        type_ref: &TypeReference,
+        marked: &BTreeSet<String>,
+        typevars: &BTreeSet<&str>,
+    ) -> bool {
+        // Marked struct used with at least one arg that mentions an
+        // enclosing TypeVar somewhere in its tree (not just the
+        // immediate arg). `Marked<Option<I>>`, `Marked<Vec<Box<T>>>`,
+        // and `Marked<I>` all qualify — without this, the wrapper
+        // doesn't get transitively marked, the inner marked struct
+        // gets removed in step 6, and the wrapper's ref dangles.
+        if marked.contains(&type_ref.name)
+            && type_ref
+                .arguments
+                .iter()
+                .any(|a| ref_tree_contains_typevar(a, typevars))
+        {
+            return true;
+        }
+        type_ref
+            .arguments
+            .iter()
+            .any(|a| ref_uses_marked_with_typevar(a, marked, typevars))
+    }
+    loop {
+        let mut new_marks: BTreeSet<String> = BTreeSet::new();
+        for ts in [&schema.input_types, &schema.output_types] {
+            for typ in ts.types() {
+                match typ {
+                    Type::Struct(s) => {
+                        if s.parameters.is_empty() || marked.contains(&s.name) {
+                            continue;
+                        }
+                        let typevars: BTreeSet<&str> =
+                            s.parameters.iter().map(|p| p.name.as_str()).collect();
+                        if s.fields
+                            .iter()
+                            .any(|f| ref_uses_marked_with_typevar(&f.type_ref, &marked, &typevars))
+                        {
+                            new_marks.insert(s.name.clone());
+                        }
+                    }
+                    Type::Enum(e) => {
+                        if e.parameters.is_empty() || marked.contains(&e.name) {
+                            continue;
+                        }
+                        let typevars: BTreeSet<&str> =
+                            e.parameters.iter().map(|p| p.name.as_str()).collect();
+                        let any = e.variants.iter().any(|v| {
+                            v.fields.iter().any(|f| {
+                                ref_uses_marked_with_typevar(&f.type_ref, &marked, &typevars)
+                            })
+                        });
+                        if any {
+                            new_marks.insert(e.name.clone());
+                        }
+                    }
+                    Type::Primitive(_) => {}
+                }
+            }
+        }
+        if new_marks.is_empty() {
+            break;
+        }
+        marked.extend(new_marks);
+    }
+
+    // 2. Walk every type reference reachable from functions and types,
+    //    rewriting marked refs in place (bottom-up) to their mangled
+    //    monomorphized names. Each new (struct, normalized_args) pair
+    //    is registered in `concrete`. Nested patterns like
+    //    `OuterMarked<InnerMarked<I, D>, C>` resolve correctly because
+    //    the inner ref is normalized first, so the outer's key is
+    //    `(OuterMarked, [InnerMarked_I_D, C])` — concrete on both
+    //    sides.
+    let mut concrete: BTreeMap<(String, Vec<TypeReference>), String> = BTreeMap::new();
+    let mut registered: BTreeSet<String> = BTreeSet::new();
+
+    /// A type-ref is "concrete" if it resolves to a real schema type,
+    /// to one of our own monomorphized names (which will be inserted
+    /// in step 4), or is built up from concrete refs. A bare ref like
+    /// `T` with no arguments, no schema entry, and not yet registered
+    /// as a mono'd name is a TypeVar from some enclosing generic
+    /// context — substituting it now would produce a struct body
+    /// that still references a TypeVar.
+    fn is_concrete(
+        type_ref: &TypeReference,
+        schema: &Schema,
+        registered: &BTreeSet<String>,
+    ) -> bool {
+        if type_ref.arguments.is_empty()
+            && schema.get_type(&type_ref.name).is_none()
+            && !registered.contains(&type_ref.name)
+        {
+            return false;
+        }
+        type_ref
+            .arguments
+            .iter()
+            .all(|a| is_concrete(a, schema, registered))
+    }
+
+    fn normalize_marked_refs(
+        type_ref: &mut TypeReference,
+        marked: &BTreeSet<String>,
+        concrete: &mut BTreeMap<(String, Vec<TypeReference>), String>,
+        registered: &mut BTreeSet<String>,
+        schema: &Schema,
+    ) -> anyhow::Result<()> {
+        // Bottom-up: arguments first, so this ref's args are already
+        // resolved by the time we form the lookup key.
+        for a in type_ref.arguments.iter_mut() {
+            normalize_marked_refs(a, marked, concrete, registered, schema)?;
+        }
+        if !marked.contains(&type_ref.name) || type_ref.arguments.is_empty() {
+            return Ok(());
+        }
+        // If any arg is a TypeVar from an enclosing generic context
+        // (e.g. `Inner<T>` inside `struct Outer<T> { ... }`), this
+        // ref isn't a concrete instantiation — it's a generic-position
+        // use of a marked struct. Don't register: when the enclosing
+        // generic resolves to a concrete instantiation, the
+        // substituted args will be concrete and we'll register then.
+        if !type_ref
+            .arguments
+            .iter()
+            .all(|a| is_concrete(a, schema, registered))
+        {
+            return Ok(());
+        }
+        let key = (type_ref.name.clone(), type_ref.arguments.clone());
+        let mangled = if let Some(existing) = concrete.get(&key) {
+            existing.clone()
+        } else {
+            let typ = schema
+                .input_types
+                .get_type(&type_ref.name)
+                .or_else(|| schema.output_types.get_type(&type_ref.name))
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "monomorphization: marked type '{}' missing from schema",
+                        type_ref.name
+                    )
+                })?;
+            // Register before recursing so cycles can't loop forever
+            // (a marked type that transitively contains a ref to itself
+            // with the same args would otherwise spin).
+            let mangled = mangle_monomorphized_name(&type_ref.name, &type_ref.arguments);
+            concrete.insert(key, mangled.clone());
+            registered.insert(mangled.clone());
+
+            // Substitute with the (already-normalized) args and recurse
+            // into the resulting variants/fields so any further marked
+            // refs there get registered too. Both Struct and Enum
+            // implement Instantiate.
+            match typ {
+                Type::Struct(s) => {
+                    let s = s.clone();
+                    if s.parameters.len() != type_ref.arguments.len() {
+                        anyhow::bail!(
+                            "monomorphization: arity mismatch for struct '{}': expected {}, got {}",
+                            type_ref.name,
+                            s.parameters.len(),
+                            type_ref.arguments.len(),
+                        );
+                    }
+                    let mono = s.instantiate(&type_ref.arguments);
+                    for f in mono.fields.iter() {
+                        let mut tr = f.type_ref.clone();
+                        normalize_marked_refs(&mut tr, marked, concrete, registered, schema)?;
+                    }
+                }
+                Type::Enum(e) => {
+                    let e = e.clone();
+                    if e.parameters.len() != type_ref.arguments.len() {
+                        anyhow::bail!(
+                            "monomorphization: arity mismatch for enum '{}': expected {}, got {}",
+                            type_ref.name,
+                            e.parameters.len(),
+                            type_ref.arguments.len(),
+                        );
+                    }
+                    let mono = e.instantiate(&type_ref.arguments);
+                    for v in mono.variants.iter() {
+                        for f in v.fields.iter() {
+                            let mut tr = f.type_ref.clone();
+                            normalize_marked_refs(&mut tr, marked, concrete, registered, schema)?;
+                        }
+                    }
+                }
+                Type::Primitive(_) => {
+                    anyhow::bail!(
+                        "monomorphization: marked '{}' resolved to a primitive — only structs and enums can be monomorphized",
+                        type_ref.name,
+                    );
+                }
+            }
+            mangled
+        };
+        type_ref.name = mangled;
+        type_ref.arguments.clear();
+        Ok(())
+    }
+
+    // We mutate clones to drive registration; the schema itself is
+    // rewritten in step 5 by the Visitor. Doing it here too would
+    // double-edit refs we've already normalized.
+    let mut seeds: Vec<TypeReference> = Vec::new();
+    for f in &schema.functions {
+        if let Some(t) = &f.input_type {
+            seeds.push(t.clone());
+        }
+        if let Some(t) = &f.input_headers {
+            seeds.push(t.clone());
+        }
+        match &f.output_type {
+            OutputType::Complete { output_type } => {
+                if let Some(t) = output_type {
+                    seeds.push(t.clone());
+                }
+            }
+            OutputType::Stream { item_type } => {
+                seeds.push(item_type.clone());
+            }
+        }
+        if let Some(t) = &f.error_type {
+            seeds.push(t.clone());
+        }
+    }
+    for ts in [&schema.input_types, &schema.output_types] {
+        for typ in ts.types() {
+            match typ {
+                Type::Struct(s) => {
+                    for field in s.fields.iter() {
+                        seeds.push(field.type_ref.clone());
+                    }
+                }
+                Type::Enum(e) => {
+                    for v in &e.variants {
+                        for field in v.fields.iter() {
+                            seeds.push(field.type_ref.clone());
+                        }
+                    }
+                }
+                Type::Primitive(_) => {}
+            }
+        }
+    }
+    for mut seed in seeds {
+        normalize_marked_refs(&mut seed, &marked, &mut concrete, &mut registered, schema)?;
+    }
+
+    // 4a. Sanity-check the mangling table for collisions before
+    //     inserting. If two distinct (struct, args) keys resolved to
+    //     the same mangled name, `insert_type` would silently drop
+    //     the second insert and one schema's body would survive
+    //     under both keys' lookups — exactly the silent-data-loss
+    //     class of bug we're trying to prevent.
+    {
+        let mut seen: BTreeMap<&String, &(String, Vec<TypeReference>)> = BTreeMap::new();
+        for (key, mangled) in concrete.iter() {
+            if let Some(prev) = seen.insert(mangled, key) {
+                anyhow::bail!(
+                    "monomorphization: mangled-name collision: \
+                     '{mangled}' generated by both {key:?} and {prev:?}. \
+                     This is a codegen bug — please file an issue with \
+                     the offending schema.",
+                );
+            }
+        }
+    }
+
+    // 4. Insert monomorphized types into both typespaces (mirroring the
+    //    location of the original generic). Both struct and enum
+    //    instantiations are supported — a generic enum used as a
+    //    variant container for marked structs needs its own concrete
+    //    monomorphizations or the variant's field references would
+    //    dangle after step 6 removes the originals.
+    for ((name, args), mangled) in concrete.iter() {
+        for ts_is_input in [true, false] {
+            let ts = if ts_is_input {
+                &schema.input_types
+            } else {
+                &schema.output_types
+            };
+            let typ = match ts.get_type(name) {
+                Some(t) => t.clone(),
+                None => continue,
+            };
+            let mono = match typ {
+                Type::Struct(s) => {
+                    let mut mono = s.instantiate(args);
+                    mono.name = mangled.clone();
+                    Type::Struct(mono)
+                }
+                Type::Enum(e) => {
+                    let mut mono = e.instantiate(args);
+                    mono.name = mangled.clone();
+                    Type::Enum(mono)
+                }
+                Type::Primitive(_) => continue,
+            };
+            let target = if ts_is_input {
+                &mut schema.input_types
+            } else {
+                &mut schema.output_types
+            };
+            target.insert_type(mono);
+        }
+    }
+
+    // 5. Rewrite every type reference of the form `Marked<args>` to the
+    //    mangled name with no args.
+    struct Rewriter<'a> {
+        table: &'a BTreeMap<(String, Vec<TypeReference>), String>,
+    }
+    impl<'a> Visitor for Rewriter<'a> {
+        type Output = ();
+        fn visit_type_ref(
+            &mut self,
+            type_ref: &mut TypeReference,
+        ) -> ControlFlow<Self::Output, Self::Output> {
+            // Recurse into args first so inner refs resolve before outer
+            // lookup. Cleared args after the outer match means leaf-first
+            // is fine here too.
+            for a in type_ref.arguments.iter_mut() {
+                let _ = self.visit_type_ref(a);
+            }
+            let key = (type_ref.name.clone(), type_ref.arguments.clone());
+            if let Some(mangled) = self.table.get(&key) {
+                type_ref.name = mangled.clone();
+                type_ref.arguments.clear();
+            }
+            ControlFlow::Continue(())
+        }
+    }
+    let mut r = Rewriter { table: &concrete };
+    let _ = r.visit_schema_inputs(schema);
+    let _ = r.visit_schema_outputs(schema);
+
+    // 6. Drop the original generic marked types — they have no live
+    //    references after rewriting, and emitting them would produce a
+    //    bare `Generic[T]` class with the flatten field missing (the
+    //    bug we're fixing). `remove_type` invalidates the typespace's
+    //    internal index map, so subsequent lookups rebuild it.
+    for name in &marked {
+        let _ = schema.input_types.remove_type(name);
+        let _ = schema.output_types.remove_type(name);
+    }
+
+    // 7. Post-pass invariant check (debug builds). Catches two
+    //    failure classes:
+    //      - dangling refs to a removed marked type (anywhere)
+    //      - TypeVar leak in a body we *just monomorphized* (only
+    //        on types we created — original schema bodies can
+    //        legitimately reference external names like
+    //        chrono::Utc as type-arg phantoms or const-generic
+    //        scalars that aren't standalone schema entries)
+    //
+    //    Run in debug builds only. Errors here mean the pass has
+    //    a logic bug; that's a developer-visible problem.
+    debug_assert_monomorphization_invariants(schema, &marked, &registered);
+
+    Ok(())
+}
+
+#[cfg(debug_assertions)]
+// `monomorphized` holds the names of types we just created (the
+// values of the `concrete` table). Only those bodies need the
+// TypeVar-leak check — everything else was in the schema before
+// this pass and isn't our concern here.
+fn debug_assert_monomorphization_invariants(
+    schema: &Schema,
+    marked: &BTreeSet<String>,
+    monomorphized: &BTreeSet<String>,
+) {
+    // Walk every type ref reachable from functions and types.
+    fn walk_ref<F: FnMut(&TypeReference)>(tr: &TypeReference, f: &mut F) {
+        f(tr);
+        for a in &tr.arguments {
+            walk_ref(a, f);
+        }
+    }
+
+    let mut violations: Vec<String> = Vec::new();
+
+    // Check 1: no dangling refs to removed marked types, anywhere
+    // they could appear. Function-level refs first.
+    for fn_def in &schema.functions {
+        for site in [
+            fn_def.input_type.as_ref(),
+            fn_def.input_headers.as_ref(),
+            match &fn_def.output_type {
+                OutputType::Complete { output_type } => output_type.as_ref(),
+                OutputType::Stream { item_type } => Some(item_type),
+            },
+            fn_def.error_type.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            walk_ref(site, &mut |tr| {
+                if marked.contains(&tr.name) {
+                    violations.push(format!(
+                        "function {:?} still references removed marked type '{}' \
+                         (post-pass dangling ref)",
+                        fn_def.name, tr.name,
+                    ));
+                }
+            });
+        }
+    }
+
+    // Then in every type's body. Plus a narrower TypeVar-leak
+    // check that only fires inside bodies of types we just
+    // monomorphized.
+    for ts in [&schema.input_types, &schema.output_types] {
+        for typ in ts.types() {
+            let (type_name, fields_iter): (&str, Box<dyn Iterator<Item = (&str, &TypeReference)>>) =
+                match typ {
+                    Type::Struct(s) => (
+                        s.name.as_str(),
+                        Box::new(s.fields.iter().map(|f| (f.name(), &f.type_ref))),
+                    ),
+                    Type::Enum(e) => (
+                        e.name.as_str(),
+                        Box::new(
+                            e.variants
+                                .iter()
+                                .flat_map(|v| v.fields.iter().map(|f| (f.name(), &f.type_ref))),
+                        ),
+                    ),
+                    Type::Primitive(_) => continue,
+                };
+            let we_monomorphized_this = monomorphized.contains(type_name);
+            for (field_name, type_ref) in fields_iter {
+                walk_ref(type_ref, &mut |tr| {
+                    if marked.contains(&tr.name) {
+                        violations.push(format!(
+                            "{type_name:?}, field {field_name:?} references removed marked type '{}'",
+                            tr.name,
+                        ));
+                    }
+                    if we_monomorphized_this
+                        && tr.arguments.is_empty()
+                        && schema.get_type(&tr.name).is_none()
+                    {
+                        violations.push(format!(
+                            "{type_name:?}, field {field_name:?} references unknown type '{}' \
+                             (TypeVar leak in monomorphized body)",
+                            tr.name,
+                        ));
+                    }
+                });
+            }
+        }
+    }
+    if !violations.is_empty() {
+        panic!(
+            "monomorphize_flatten_generics: post-pass invariants violated:\n  {}",
+            violations.join("\n  "),
+        );
+    }
+}
+
+#[cfg(not(debug_assertions))]
+#[allow(dead_code)]
+fn debug_assert_monomorphization_invariants(
+    _schema: &Schema,
+    _marked: &BTreeSet<String>,
+    _monomorphized: &BTreeSet<String>,
+) {
+}
+
+/// Mangle a `(struct, args)` instantiation into a fresh schema type
+/// name. The struct's full namespace-qualified name is preserved so
+/// downstream namespace mangling stays sensible; the suffix encodes
+/// each argument's *full* path (`::` flattened to `_`) so two args
+/// that share a leaf name but live in different modules don't fuse
+/// into one mangled name (which would silently lose one type's
+/// fields).
+///
+/// If the resulting suffix is long enough that downstream class-name
+/// handling would hash-truncate (and produce a mismatch between the
+/// truncated class definition and the un-truncated dotted-path
+/// reference), hash the suffix here. Same hash on both sides → all
+/// references stay consistent.
+fn mangle_monomorphized_name(struct_name: &str, args: &[TypeReference]) -> String {
+    fn arg_suffix(arg: &TypeReference) -> String {
+        let base = arg.name.replace("::", "_");
+        if arg.arguments.is_empty() {
+            base
+        } else {
+            let inner = arg
+                .arguments
+                .iter()
+                .map(arg_suffix)
+                .collect::<Vec<_>>()
+                .join("_");
+            format!("{base}_{inner}")
+        }
+    }
+    let suffix = args.iter().map(arg_suffix).collect::<Vec<_>>().join("_");
+
+    // Length budget: the FLAT PascalCase class name (namespace +
+    // struct + suffix, with `_` collapsed) must stay under 80 chars
+    // or downstream `finalize_class_name` will hash-truncate, while
+    // `type_name_to_python_ref` would still emit the un-truncated
+    // form — yielding two inconsistent names. Predict the
+    // post-PascalCase length from the struct's original name + the
+    // suffix, hash if it would overflow.
+    let candidate = format!("{struct_name}_{suffix}");
+    let pascal_len = pascal_case_len(&candidate);
+    const FLAT_NAME_BUDGET: usize = 80;
+    if pascal_len <= FLAT_NAME_BUDGET {
+        return candidate;
+    }
+    // Trim the suffix to fit. We keep as much human-readable prefix as
+    // we can; the remaining bytes are a stable 8-hex-char hash.
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut h = DefaultHasher::new();
+    struct_name.hash(&mut h);
+    suffix.hash(&mut h);
+    let hash = format!("{:08x}", h.finish() & 0xFFFF_FFFF);
+    // Pascal-collapsed budget for the suffix:
+    let head_pascal = pascal_case_len(&format!("{struct_name}_"));
+    let hash_pascal = pascal_case_len(&format!("_{hash}"));
+    let suffix_budget = FLAT_NAME_BUDGET.saturating_sub(head_pascal + hash_pascal);
+    // Walk the suffix one byte at a time tracking PascalCase length.
+    let mut keep = 0usize;
+    let mut pascal = 0usize;
+    let bytes = suffix.as_bytes();
+    while keep < bytes.len() && pascal < suffix_budget {
+        if bytes[keep] != b'_' {
+            pascal += 1;
+        }
+        keep += 1;
+    }
+    let trimmed = std::str::from_utf8(&bytes[..keep]).unwrap_or("");
+    format!("{struct_name}_{trimmed}_{hash}")
+}
+
+/// Count the chars that a `_`-separated identifier would have once
+/// PascalCased (to_pascal_case) — `_` becomes a word boundary that
+/// disappears, so the post-Pascal length is the number of non-`_`
+/// chars.
+fn pascal_case_len(s: &str) -> usize {
+    s.bytes().filter(|&b| b != b'_' && b != b':').count()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{build_python_class_name_map, generate_init_py, Config};
+    use super::{build_python_class_name_map, generate_init_py, mangle_monomorphized_name, Config};
+    use crate::TypeReference;
 
     #[test]
     fn python_init_exports_client() {
@@ -5418,5 +6107,215 @@ mod tests {
             class_names.get("system::SystemVersionInfo").unwrap(),
             "SystemVersionInfo"
         );
+    }
+
+    fn tref(name: &str) -> TypeReference {
+        TypeReference {
+            name: name.to_string(),
+            arguments: vec![],
+        }
+    }
+
+    fn tref_args(name: &str, args: Vec<TypeReference>) -> TypeReference {
+        TypeReference {
+            name: name.to_string(),
+            arguments: args,
+        }
+    }
+
+    #[test]
+    fn mangler_distinguishes_namespaces_with_same_leaf() {
+        // The pre-fix mangler used only the leaf, so a::Sample and
+        // b::Sample collided and one struct's fields were silently
+        // dropped (cf. test_generic_flatten_leaf_collision).
+        let m1 = mangle_monomorphized_name("Wrap", &[tref("a::Sample")]);
+        let m2 = mangle_monomorphized_name("Wrap", &[tref("b::Sample")]);
+        assert_ne!(
+            m1, m2,
+            "same-leaf args from distinct namespaces must mangle distinctly"
+        );
+    }
+
+    #[test]
+    fn mangler_distinguishes_arity_and_order() {
+        let foo_bar = mangle_monomorphized_name("Wrap", &[tref("Foo"), tref("Bar")]);
+        let bar_foo = mangle_monomorphized_name("Wrap", &[tref("Bar"), tref("Foo")]);
+        let foo_only = mangle_monomorphized_name("Wrap", &[tref("Foo")]);
+        assert_ne!(foo_bar, bar_foo, "arg order must affect mangling");
+        assert_ne!(foo_bar, foo_only, "arity must affect mangling");
+    }
+
+    #[test]
+    fn mangler_distinguishes_nested_args() {
+        // Foo<Vec<Bar>> vs Foo<Bar> — the latter is a single concrete
+        // arg, the former wraps. The mangler must not collapse them.
+        let plain = mangle_monomorphized_name("Wrap", &[tref("Bar")]);
+        let nested =
+            mangle_monomorphized_name("Wrap", &[tref_args("std::vec::Vec", vec![tref("Bar")])]);
+        assert_ne!(plain, nested);
+    }
+
+    #[test]
+    fn mangler_long_input_stays_under_class_name_budget() {
+        // Realistic deep-nesting case. The post-PascalCase length
+        // must not exceed 80 — otherwise downstream
+        // `finalize_class_name` would hash-truncate while
+        // `type_name_to_python_ref` would emit the un-truncated form
+        // and the two refs would disagree.
+        let deep = mangle_monomorphized_name(
+            "very::long::module::path::OuterWrapper",
+            &[
+                tref_args(
+                    "another::very::long::module::path::InnerWrapper",
+                    vec![tref("nested::module::ConcreteTypeName")],
+                ),
+                tref("yet::another::module::path::SecondArg"),
+            ],
+        );
+        let pascal_len = super::pascal_case_len(&deep);
+        assert!(
+            pascal_len <= 80,
+            "post-Pascal mangled name '{deep}' exceeds 80 chars (got {pascal_len})",
+        );
+    }
+
+    /// Regression: the post-pass invariant check used to flag
+    /// chrono::Utc as a "TypeVar leak" because it appears as an arg
+    /// of chrono::DateTime<Tz> but isn't a standalone schema type.
+    /// Const-generic scalars (`[T; 2]`'s 2) had the same issue.
+    /// Both are external/structural names that legitimately don't
+    /// have schema entries — the check should only fire on bodies
+    /// of types we actually monomorphized.
+    #[test]
+    fn invariant_check_ignores_phantom_type_args_in_unmodified_bodies() {
+        // Marked struct + a struct holding a chrono::DateTime<Utc>
+        // field. After monomorphization, the marked struct goes
+        // away and the holder remains, with its DateTime<Utc> field
+        // intact. `chrono::Utc` is registered nowhere — the
+        // earlier validator would panic; the narrowed one must not.
+        let schema_json = r#"{
+            "name": "test",
+            "functions": [{
+                "name": "f", "path": "",
+                "input_type": { "name": "Holder" },
+                "output_kind": "complete",
+                "output_type": { "name": "Wrapper", "arguments": [{ "name": "Holder" }] },
+                "serialization": ["json"]
+            }],
+            "input_types": { "types": [
+                { "kind": "primitive", "name": "chrono::DateTime", "description": "ts",
+                  "parameters": [{ "name": "Tz" }],
+                  "fallback": { "name": "std::string::String" } },
+                { "kind": "primitive", "name": "std::string::String", "description": "s" },
+                { "kind": "struct", "name": "Holder",
+                  "fields": { "named": [
+                    { "name": "ts",
+                      "type": { "name": "chrono::DateTime",
+                                "arguments": [{ "name": "chrono::Utc" }] },
+                      "required": true }
+                  ] } },
+                { "kind": "struct", "name": "Wrapper",
+                  "parameters": [{ "name": "T" }],
+                  "fields": { "named": [
+                    { "name": "inner", "type": { "name": "T" }, "required": true, "flattened": true }
+                  ] } }
+            ] },
+            "output_types": { "types": [
+                { "kind": "primitive", "name": "chrono::DateTime", "description": "ts",
+                  "parameters": [{ "name": "Tz" }],
+                  "fallback": { "name": "std::string::String" } },
+                { "kind": "primitive", "name": "std::string::String", "description": "s" },
+                { "kind": "struct", "name": "Holder",
+                  "fields": { "named": [
+                    { "name": "ts",
+                      "type": { "name": "chrono::DateTime",
+                                "arguments": [{ "name": "chrono::Utc" }] },
+                      "required": true }
+                  ] } },
+                { "kind": "struct", "name": "Wrapper",
+                  "parameters": [{ "name": "T" }],
+                  "fields": { "named": [
+                    { "name": "inner", "type": { "name": "T" }, "required": true, "flattened": true }
+                  ] } }
+            ] }
+        }"#;
+        let schema: crate::Schema = serde_json::from_str(schema_json).unwrap();
+        // No panic: the validator must not flag chrono::Utc.
+        let py = super::generate(schema, &Config::default()).expect("codegen must run cleanly");
+        // Sanity: the chrono mapping made it to the output.
+        assert!(py.contains("datetime") || py.contains("Holder"));
+    }
+
+    /// End-to-end: a marked struct that flattens its generic param
+    /// AND references itself recursively (`Vec<Self<T>>`). The
+    /// reflectapi Rust derive macros can't construct such a type
+    /// (they overflow during schema building), but a hand-built or
+    /// JSON-loaded schema can — and the codegen must terminate
+    /// thanks to the register-before-recurse guard in
+    /// `normalize_marked_refs`. Without that guard, the second
+    /// recursive lookup would re-register and spin.
+    #[test]
+    fn recursive_marked_struct_terminates_and_renders() {
+        let schema_json = r#"{
+            "name": "test",
+            "functions": [{
+                "name": "f",
+                "path": "",
+                "input_type": { "name": "FlatTree", "arguments": [{ "name": "Item" }] },
+                "output_kind": "complete",
+                "output_type": { "name": "FlatTree", "arguments": [{ "name": "Item" }] },
+                "serialization": ["json"]
+            }],
+            "input_types": { "types": [
+                { "kind": "primitive", "name": "std::string::String", "description": "UTF-8" },
+                { "kind": "primitive", "name": "u32", "description": "u32" },
+                { "kind": "primitive", "name": "std::vec::Vec", "description": "Vec",
+                  "parameters": [{ "name": "T" }] },
+                { "kind": "struct", "name": "Item",
+                  "fields": { "named": [
+                    { "name": "id", "type": { "name": "u32" }, "required": true },
+                    { "name": "label", "type": { "name": "std::string::String" }, "required": true }
+                  ] } },
+                { "kind": "struct", "name": "FlatTree",
+                  "parameters": [{ "name": "T" }],
+                  "fields": { "named": [
+                    { "name": "value", "type": { "name": "T" }, "required": true, "flattened": true },
+                    { "name": "children",
+                      "type": { "name": "std::vec::Vec",
+                                "arguments": [{ "name": "FlatTree", "arguments": [{ "name": "T" }] }] },
+                      "required": true }
+                  ] } }
+            ] },
+            "output_types": { "types": [
+                { "kind": "primitive", "name": "std::string::String", "description": "UTF-8" },
+                { "kind": "primitive", "name": "u32", "description": "u32" },
+                { "kind": "primitive", "name": "std::vec::Vec", "description": "Vec",
+                  "parameters": [{ "name": "T" }] },
+                { "kind": "struct", "name": "Item",
+                  "fields": { "named": [
+                    { "name": "id", "type": { "name": "u32" }, "required": true },
+                    { "name": "label", "type": { "name": "std::string::String" }, "required": true }
+                  ] } },
+                { "kind": "struct", "name": "FlatTree",
+                  "parameters": [{ "name": "T" }],
+                  "fields": { "named": [
+                    { "name": "value", "type": { "name": "T" }, "required": true, "flattened": true },
+                    { "name": "children",
+                      "type": { "name": "std::vec::Vec",
+                                "arguments": [{ "name": "FlatTree", "arguments": [{ "name": "T" }] }] },
+                      "required": true }
+                  ] } }
+            ] }
+        }"#;
+        let schema: crate::Schema = serde_json::from_str(schema_json).unwrap();
+        let py = super::generate(schema, &Config::default()).expect("codegen must terminate");
+        // The monomorphized class is named with both struct path and
+        // arg leaf (no namespace prefix on either here, both are
+        // top-level). The flatten pulled Item's id+label up; the
+        // recursive children list refers back to the same class.
+        assert!(py.contains("class FlatTreeItem"));
+        assert!(py.contains("children: list[FlatTreeItem]"));
+        assert!(py.contains("    id: int"));
+        assert!(py.contains("    label: str"));
     }
 }

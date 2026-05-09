@@ -1,0 +1,396 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "arguments": [
+          {
+            "name": "reflectapi_demo::tests::serde::TestIdentityData",
+            "arguments": [
+              {
+                "name": "reflectapi_demo::tests::serde::TestFlattenIdent"
+              },
+              {
+                "name": "reflectapi_demo::tests::serde::TestFlattenIdentData"
+              }
+            ]
+          },
+          {
+            "name": "reflectapi_demo::tests::serde::TestFlattenIfElse"
+          }
+        ]
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "arguments": [
+          {
+            "name": "reflectapi_demo::tests::serde::TestIdentityData",
+            "arguments": [
+              {
+                "name": "reflectapi_demo::tests::serde::TestFlattenIdent"
+              },
+              {
+                "name": "reflectapi_demo::tests::serde::TestFlattenIdentData"
+              }
+            ]
+          },
+          {
+            "name": "reflectapi_demo::tests::serde::TestFlattenIfElse"
+          }
+        ]
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenIdent",
+        "fields": {
+          "named": [
+            {
+              "name": "job_id",
+              "type": {
+                "name": "u64"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenIdentData",
+        "fields": {
+          "named": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenIfElse",
+        "fields": {
+          "named": [
+            {
+              "name": "code",
+              "type": {
+                "name": "u16"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestIdentityData",
+        "parameters": [
+          {
+            "name": "I"
+          },
+          {
+            "name": "D"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "identity",
+              "type": {
+                "name": "I"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "data",
+              "type": {
+                "name": "D"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "parameters": [
+          {
+            "name": "T"
+          },
+          {
+            "name": "C"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "inner",
+              "type": {
+                "name": "T"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "if_else",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "C"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u16",
+        "description": "16-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u64",
+        "description": "64-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenIdent",
+        "fields": {
+          "named": [
+            {
+              "name": "job_id",
+              "type": {
+                "name": "u64"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenIdentData",
+        "fields": {
+          "named": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenIfElse",
+        "fields": {
+          "named": [
+            {
+              "name": "code",
+              "type": {
+                "name": "u16"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestIdentityData",
+        "parameters": [
+          {
+            "name": "I"
+          },
+          {
+            "name": "D"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "identity",
+              "type": {
+                "name": "I"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "data",
+              "type": {
+                "name": "D"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "parameters": [
+          {
+            "name": "T"
+          },
+          {
+            "name": "C"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "inner",
+              "type": {
+                "name": "T"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "if_else",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "C"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u16",
+        "description": "16-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u64",
+        "description": "64-bit unsigned integer"
+      }
+    ]
+  }
+}

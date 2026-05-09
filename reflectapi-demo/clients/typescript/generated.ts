@@ -8,33 +8,19 @@ export function client(base: string | Client): __definition.Interface {
   return __implementation.__client(base);
 }
 /* <----- */
-export interface RequestOptions {
-  signal?: AbortSignal;
-}
+// Transport contract lives in `./generated.transport` so the bare
+// names Request/Response/Headers don't shadow the DOM globals here
+// or in any consumer module that imports from this file. We pull
+// them in under aliases so lib.ts itself can keep using DOM types.
+import type {
+  Client,
+  RequestOptions,
+  Response as ClientResponse,
+} from "./generated.transport";
+import { ClientInstance } from "./generated.transport";
 
-// Transport DTOs. Method is intentionally absent: every reflectapi
-// endpoint is POST by design, so transports hardcode it; if that ever
-// changes it's a wire-protocol break and clients regenerate.
-export interface Request {
-  path: string;
-  headers: Record<string, string>;
-  body: Uint8Array;
-  signal?: AbortSignal;
-}
-
-export interface Headers {
-  get(name: string): string | null;
-}
-
-export interface Response {
-  status: number;
-  headers: Headers;
-  body: ReadableStream<Uint8Array> | null;
-}
-
-export interface Client {
-  request(request: Request): Promise<Response>;
-}
+export { ClientInstance };
+export type { Client, RequestOptions };
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
 export type NullToEmptyObject<T> =
@@ -316,7 +302,7 @@ export async function __stream_request<I, H, O, E>(
 }
 
 async function* __sse_to_async_iterable<O>(
-  response: Response,
+  response: ClientResponse,
   options?: RequestOptions,
 ): AsyncIterable<O> {
   const body = response.body;
@@ -354,24 +340,11 @@ async function* __sse_to_async_iterable<O>(
   }
 }
 
-async function __read_response_body(response: Response): Promise<string> {
+async function __read_response_body(response: ClientResponse): Promise<string> {
   if (!response.body) return "";
-  // Hand decoding to the platform; new (global) Response wraps any
+  // Hand decoding to the platform; the global Response wraps any
   // ReadableStream<Uint8Array> and exposes the well-tested .text() path.
-  return await new (globalThis as any).Response(response.body).text();
-}
-
-class ClientInstance {
-  constructor(private base: string) {}
-
-  public request(request: Request): Promise<Response> {
-    return (globalThis as any).fetch(`${this.base}${request.path}`, {
-      method: "POST",
-      headers: request.headers,
-      body: request.body,
-      signal: request.signal,
-    });
-  }
+  return await new Response(response.body).text();
 }
 
 type UnionToIntersection<U> = (
