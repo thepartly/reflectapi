@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super :: into_python_code :: < S<K> > ()"
+expression: "super :: into_python_code :: < TestOptionalFlatten<TestFlattenInner> > ()"
 ---
 """
 Generated Python client for api_client.
@@ -13,6 +13,7 @@ from __future__ import annotations
 
 
 # Standard library imports
+from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
@@ -24,16 +25,27 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
-class ReflectapiDemoTestsSerdeK(BaseModel):
+class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    a: int
+    inner_a: int
+    inner_b: str
 
 
-class ReflectapiDemoTestsSerdeSKTuple0(BaseModel):
+class ReflectapiDemoTestsSerdeInputTestOptionalFlattenTestFlattenInner(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    a: int
+    code: int
+    inner_a: int | None = None
+    inner_b: str | None = None
+
+
+class ReflectapiDemoTestsSerdeOutputTestOptionalFlattenTestFlattenInner(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    code: int
+    inner_a: int
+    inner_b: str
 
 
 # Namespace classes for dotted access to types
@@ -46,8 +58,21 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            K = ReflectapiDemoTestsSerdeK
-            SKTuple0 = ReflectapiDemoTestsSerdeSKTuple0
+            TestFlattenInner = ReflectapiDemoTestsSerdeTestFlattenInner
+
+            class input:
+                """Namespace for input types."""
+
+                TestOptionalFlattenTestFlattenInner = (
+                    ReflectapiDemoTestsSerdeInputTestOptionalFlattenTestFlattenInner
+                )
+
+            class output:
+                """Namespace for output types."""
+
+                TestOptionalFlattenTestFlattenInner = (
+                    ReflectapiDemoTestsSerdeOutputTestOptionalFlattenTestFlattenInner
+                )
 
 
 class AsyncInoutClient:
@@ -58,15 +83,19 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.SKTuple0] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.SKTuple0]:
+        data: Optional[
+            reflectapi_demo.tests.serde.input.TestOptionalFlattenTestFlattenInner
+        ] = None,
+    ) -> ApiResponse[
+        reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner
+    ]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.SKTuple0]: Response containing reflectapi_demo.tests.serde.SKTuple0 data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner]: Response containing reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner data
         """
         path = "/inout_test"
 
@@ -75,7 +104,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.SKTuple0,
+            response_model=reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner,
         )
 
 
@@ -100,15 +129,19 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.SKTuple0] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.SKTuple0]:
+        data: Optional[
+            reflectapi_demo.tests.serde.input.TestOptionalFlattenTestFlattenInner
+        ] = None,
+    ) -> ApiResponse[
+        reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner
+    ]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.SKTuple0]: Response containing reflectapi_demo.tests.serde.SKTuple0 data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner]: Response containing reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner data
         """
         path = "/inout_test"
 
@@ -117,7 +150,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.SKTuple0,
+            response_model=reflectapi_demo.tests.serde.output.TestOptionalFlattenTestFlattenInner,
         )
 
 
@@ -142,8 +175,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
 for _model in [
-    ReflectapiDemoTestsSerdeK,
-    ReflectapiDemoTestsSerdeSKTuple0,
+    ReflectapiDemoTestsSerdeTestFlattenInner,
+    ReflectapiDemoTestsSerdeInputTestOptionalFlattenTestFlattenInner,
+    ReflectapiDemoTestsSerdeOutputTestOptionalFlattenTestFlattenInner,
 ]:
     try:
         _model.model_rebuild()

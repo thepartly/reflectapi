@@ -90,3 +90,11 @@ The map is keyed by filename (`"generated.ts"`, `"generated.transport.ts"`). The
 ### Python
 
 End-user generated clients are unchanged. Authors of custom middleware or transports should target the transport-agnostic types in `reflectapi_runtime.transport` (`Request`, `Response`, `Client`, `AsyncClient`) rather than reaching for `httpx` types directly. They are also re-exported from the top-level `reflectapi_runtime` package.
+
+#### Generic flatten correctness (alpha.4)
+
+Previously, a Rust struct that used `serde(flatten)` over a generic parameter (e.g. `IdentityData<I, D>`, `UpdateOrElse<T, C>`, `InsertManyOrElse<T, C>`) generated a Pydantic model that silently dropped the inner type's wire fields, because the Python codegen couldn't resolve a TypeVar to a concrete struct at class-definition time. With `extra="ignore"` on the model, those fields were also discarded on parse — silent data loss for any endpoint using these patterns.
+
+Fix: the Python codegen now monomorphizes — for each concrete `(struct, args)` instantiation it emits a specialized class with the flatten resolved against the concrete type. The mangled name is `OriginalStruct_Arg1_Arg2…`, e.g. `UpdateOrElse_Pet_Conflict`. Method signatures, namespace classes, and `model_rebuild` lists all use the mangled name consistently. Rust and TypeScript clients are unaffected — they handled this case correctly already (serde at runtime; intersection types at compile time).
+
+The codegen also now hard-fails (rather than silently dropping fields) if it encounters an unresolved flatten target — a defence-in-depth check so any future regression is loud.

@@ -1,0 +1,166 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestTwoInstantiations"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestTwoInstantiations"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "bool": {
+        "description": "Boolean value",
+        "type": "boolean"
+      },
+      "reflectapi_demo.tests.serde.TestFlattenIfElse": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestFlattenIfElse",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/u16"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.TestFlattenInner": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestFlattenInner",
+        "required": [
+          "inner_a",
+          "inner_b"
+        ],
+        "properties": {
+          "inner_a": {
+            "$ref": "#/components/schemas/u32"
+          },
+          "inner_b": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.TestFlattenInnerAlt": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestFlattenInnerAlt",
+        "required": [
+          "alt_x"
+        ],
+        "properties": {
+          "alt_x": {
+            "$ref": "#/components/schemas/bool"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.TestTwoInstantiations": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestTwoInstantiations",
+        "required": [
+          "a",
+          "b"
+        ],
+        "properties": {
+          "a": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenInner"
+              },
+              {
+                "type": "object",
+                "title": "reflectapi_demo.tests.serde.TestUpdateOrElse<reflectapi_demo.tests.serde.TestFlattenInner, reflectapi_demo.tests.serde.TestFlattenIfElse>",
+                "required": [
+                  "if_else"
+                ],
+                "properties": {
+                  "if_else": {
+                    "oneOf": [
+                      {
+                        "description": "Null",
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenIfElse"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "b": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenInnerAlt"
+              },
+              {
+                "type": "object",
+                "title": "reflectapi_demo.tests.serde.TestUpdateOrElse<reflectapi_demo.tests.serde.TestFlattenInnerAlt, reflectapi_demo.tests.serde.TestFlattenIfElse>",
+                "required": [
+                  "if_else"
+                ],
+                "properties": {
+                  "if_else": {
+                    "oneOf": [
+                      {
+                        "description": "Null",
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenIfElse"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "u16": {
+        "description": "16-bit unsigned integer",
+        "type": "integer"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

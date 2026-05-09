@@ -1194,3 +1194,198 @@ fn test_empty_enum() {
     enum Never {}
     assert_snapshot!(Never);
 }
+
+// Reproducer: a generic wrapper that flattens its generic parameter.
+// Pattern used in real consumer code (e.g. UpdateOrElse<T, C>).
+//
+// Wire format with serde(flatten) on `inner: T` is: T's fields ⊕ if_field
+// at the top level. Python codegen previously dropped T's fields entirely
+// because schema.get_type("T") returns None for a TypeVar.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestFlattenInner {
+    inner_a: u32,
+    inner_b: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestFlattenInnerAlt {
+    alt_x: bool,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestFlattenIfElse {
+    code: u16,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "T: serde::Serialize, C: serde::Serialize",
+    deserialize = "T: serde::de::DeserializeOwned, C: serde::de::DeserializeOwned",
+))]
+struct TestUpdateOrElse<T, C> {
+    #[serde(flatten)]
+    inner: T,
+    if_else: Option<C>,
+}
+
+// Two endpoints sharing the same generic wrapper but with different
+// instantiations. Each must produce its own monomorphized class.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestTwoInstantiations {
+    a: TestUpdateOrElse<TestFlattenInner, TestFlattenIfElse>,
+    b: TestUpdateOrElse<TestFlattenInnerAlt, TestFlattenIfElse>,
+}
+
+// Optional-wrapped flatten of a generic param: serde unwraps Option in
+// flatten position, so wire shape = T's fields ⊕ if_else (but T may
+// be missing entirely). Verify codegen still expands T's fields.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "T: serde::Serialize",
+    deserialize = "T: serde::de::DeserializeOwned",
+))]
+struct TestOptionalFlatten<T> {
+    #[serde(flatten, default = "Option::default")]
+    inner: Option<T>,
+    code: u16,
+}
+
+#[test]
+fn test_generic_flatten_drops_inner_fields() {
+    assert_snapshot!(TestUpdateOrElse<TestFlattenInner, TestFlattenIfElse>);
+}
+
+#[test]
+fn test_generic_flatten_two_instantiations() {
+    assert_snapshot!(TestTwoInstantiations);
+}
+
+#[test]
+fn test_generic_flatten_optional() {
+    assert_snapshot!(TestOptionalFlatten<TestFlattenInner>);
+}
+
+/// End-to-end Pydantic round-trip: confirms the generated class
+/// actually parses serde's wire format. Skipped if `uv` (or a Python
+/// with pydantic) isn't available locally — CI uses uv.
+#[test]
+fn test_generic_flatten_pydantic_roundtrip() {
+    use std::io::Write;
+
+    let py_source =
+        super::into_python_code::<TestUpdateOrElse<TestFlattenInner, TestFlattenIfElse>>();
+
+    // Wire format that serde would actually produce / accept: T's
+    // fields ⊕ if_else, all at top level.
+    let wire_payload =
+        serde_json::to_string(&TestUpdateOrElse::<TestFlattenInner, TestFlattenIfElse> {
+            inner: TestFlattenInner {
+                inner_a: 7,
+                inner_b: "hello".into(),
+            },
+            if_else: Some(TestFlattenIfElse { code: 409 }),
+        })
+        .unwrap();
+
+    let tmp = tempfile::tempdir().unwrap();
+    let module_path = tmp.path().join("generated.py");
+    std::fs::write(&module_path, py_source).unwrap();
+
+    let class_name = "TestUpdateOrElseTestFlattenInnerTestFlattenIfElse";
+    let driver = format!(
+        r#"
+import importlib.util, json, sys, pathlib
+spec = importlib.util.spec_from_file_location("gen", r"{module}")
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+cls = m.reflectapi_demo.tests.serde.{class_name}
+parsed = cls.model_validate(json.loads(r'''{payload}'''))
+assert parsed.inner_a == 7, ("inner_a", parsed.inner_a)
+assert parsed.inner_b == "hello", ("inner_b", parsed.inner_b)
+assert parsed.if_else is not None and parsed.if_else.code == 409, ("if_else", parsed.if_else)
+# Round-trip back through json: model_dump returns a dict; serialize and
+# verify the wire format still has the flatten shape (T's fields at top).
+out = parsed.model_dump(by_alias=True, exclude_none=False)
+assert out["inner_a"] == 7
+assert out["inner_b"] == "hello"
+assert out["if_else"]["code"] == 409
+print("OK")
+"#,
+        module = module_path.display(),
+        class_name = class_name,
+        payload = wire_payload,
+    );
+
+    // Prefer `uv run python` from the python-runtime workspace (which
+    // declares pydantic as a dep). Fall back to bare `python3` if it
+    // already has pydantic on its path. Skip the test only if neither
+    // works — CI installs uv so it'll always exercise this.
+    let runtime_dir = format!(
+        "{}/../reflectapi-python-runtime",
+        env!("CARGO_MANIFEST_DIR")
+    );
+
+    let mut attempts: Vec<(String, std::process::Command)> = Vec::new();
+    {
+        let mut c = std::process::Command::new("uv");
+        c.args(["run", "--directory", &runtime_dir, "python", "-"]);
+        attempts.push(("uv run python".to_string(), c));
+    }
+    if std::process::Command::new("python3")
+        .args(["-c", "import pydantic"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+    {
+        let mut c = std::process::Command::new("python3");
+        c.args(["-"]);
+        attempts.push(("system python3+pydantic".to_string(), c));
+    }
+
+    for (label, mut cmd) in attempts {
+        let spawn = cmd
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn();
+        let mut child = match spawn {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("skip via {label}: spawn failed ({e})");
+                continue;
+            }
+        };
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin.write_all(driver.as_bytes()).unwrap();
+        }
+        let output = child.wait_with_output().expect("python wait");
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            assert!(
+                stdout.contains("OK"),
+                "{label}: missing OK marker.\nstdout:\n{stdout}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr),
+            );
+            eprintln!("{label}: pydantic roundtrip OK");
+            return;
+        }
+        // Distinguish "no pydantic" (skip) from "pydantic is there but
+        // assertions failed" (fail). We marshal the assertion error
+        // through the script's exit; pydantic missing is an
+        // ImportError before our prints fire.
+        let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+        if stderr.contains("ModuleNotFoundError") && stderr.contains("pydantic") {
+            eprintln!("skip via {label}: pydantic not installed");
+            continue;
+        }
+        panic!(
+            "{label}: roundtrip failed (exit={:?})\nstdout:\n{}\nstderr:\n{}",
+            output.status.code(),
+            String::from_utf8_lossy(&output.stdout),
+            stderr,
+        );
+    }
+    eprintln!("test_generic_flatten_pydantic_roundtrip skipped: no working python+pydantic found");
+}

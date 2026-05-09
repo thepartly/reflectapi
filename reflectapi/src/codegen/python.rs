@@ -832,6 +832,23 @@ fn render_struct_with_flattened_internal_enum(
                     schema.get_type(inner_name)
                 {
                     for sf in inner_struct.fields.iter() {
+                        if sf.flattened() {
+                            // The inner struct has its own flatten — expand
+                            // those fields inline so the wire shape is
+                            // preserved across the tuple-variant boundary.
+                            let nested = collect_flattened_fields(
+                                &sf.type_ref,
+                                schema,
+                                implemented_types,
+                                active_generics,
+                                sf.required,
+                                0,
+                                used_type_vars,
+                                Some(sf.name()),
+                            )?;
+                            fields.extend(nested);
+                            continue;
+                        }
                         let field_type = type_ref_to_python_type(
                             &sf.type_ref,
                             schema,
@@ -1280,6 +1297,11 @@ pub fn generate(mut schema: Schema, config: &Config) -> anyhow::Result<String> {
     // Consolidate input/output types FIRST so both the SemanticSchema and
     // the raw Schema share the same unified type names.
     let all_type_names = schema.consolidate_types();
+    // Pydantic cannot represent `serde(flatten)` over a generic parameter
+    // at runtime — the inner T's wire-level fields would silently be
+    // dropped. Monomorphize: emit one concrete class per (struct, args)
+    // pair so the flatten resolves against a concrete type.
+    monomorphize_flatten_generics(&mut schema)?;
     let implemented_types = build_implemented_types();
     validate_type_references(&schema)?;
 
@@ -1973,11 +1995,31 @@ fn collect_flattened_fields(
                 field_name,
             )?;
         }
-        Some(reflectapi_schema::Type::Primitive(_)) | None => {
-            // Primitives (including unit types) and unresolved types cannot
-            // be meaningfully flattened — skip them, matching prior behavior.
-            // This handles cases like flattened generic parameters that resolve
-            // to () (std::tuple::Tuple0).
+        Some(reflectapi_schema::Type::Primitive(p)) => {
+            // Unit-like primitives (e.g. std::tuple::Tuple0) flatten to
+            // nothing — that's legitimate. Other primitives in a
+            // flatten position are a schema error: you can't flatten an
+            // i32 etc.
+            if p.name != "std::tuple::Tuple0" {
+                anyhow::bail!(
+                    "python codegen: cannot flatten primitive type '{}' \
+                     (only structs, internally-tagged enums, and unit types \
+                     are valid flatten targets)",
+                    p.name,
+                );
+            }
+        }
+        None => {
+            // We resolved a flatten target by name and the type wasn't
+            // in the schema. After monomorphization, this should be
+            // impossible — generic parameters are substituted away
+            // before rendering. Bail rather than silently drop the
+            // inner type's fields (the bug fixed by monomorphization).
+            anyhow::bail!(
+                "python codegen: cannot resolve flatten target '{target_type_name}'. \
+                 If this is a generic parameter, monomorphization should \
+                 have replaced it; this is a codegen bug.",
+            );
         }
     }
 
@@ -2820,6 +2862,24 @@ fn render_internally_tagged_enum(
                         };
 
                         for struct_field in struct_fields {
+                            if struct_field.flattened() {
+                                // Recurse into the flattened type and lift
+                                // its fields into this variant; otherwise
+                                // the wire shape gets a wrapper layer that
+                                // serde never produced.
+                                let nested = collect_flattened_fields(
+                                    &struct_field.type_ref,
+                                    schema,
+                                    implemented_types,
+                                    &generic_params,
+                                    struct_field.required,
+                                    0,
+                                    used_type_vars,
+                                    Some(struct_field.name()),
+                                )?;
+                                fields.extend(nested);
+                                continue;
+                            }
                             let field_type = type_ref_to_python_type(
                                 &struct_field.type_ref,
                                 schema,
@@ -5382,6 +5442,271 @@ pub mod templates {
             s
         }
     }
+}
+
+/// Pydantic equivalent of monomorphization: for any struct that uses
+/// `serde(flatten)` over a generic parameter, rewrite every concrete
+/// instantiation as its own non-generic struct in the schema. The
+/// existing flatten-of-concrete-type rendering then handles them
+/// correctly.
+///
+/// Rust and TypeScript handle this case dynamically (serde flatten at
+/// runtime; intersection types at the type level). Pydantic has no
+/// equivalent — `Generic[T]` can't be told to lift T's fields into the
+/// outer model when T is bound. So we resolve the polymorphism here.
+fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
+    use reflectapi_schema::{Instantiate as _, Visitor};
+    use std::ops::ControlFlow;
+
+    // 1. Mark structs whose fields flatten a generic parameter
+    //    (directly, or wrapped in Option<T>).
+    fn flattened_target_is_typevar(type_ref: &TypeReference, params: &BTreeSet<&str>) -> bool {
+        if params.contains(type_ref.name.as_str()) {
+            return true;
+        }
+        // serde unwraps Option in flatten position, so a flattened
+        // `Option<T>` still requires monomorphization.
+        if (type_ref.name == "std::option::Option" || type_ref.name == "reflectapi::Option")
+            && !type_ref.arguments.is_empty()
+        {
+            return flattened_target_is_typevar(&type_ref.arguments[0], params);
+        }
+        false
+    }
+
+    let marked: BTreeSet<String> = {
+        let mut out = BTreeSet::new();
+        for ts in [&schema.input_types, &schema.output_types] {
+            for typ in ts.types() {
+                if let Type::Struct(s) = typ {
+                    if s.parameters.is_empty() {
+                        continue;
+                    }
+                    let params: BTreeSet<&str> =
+                        s.parameters.iter().map(|p| p.name.as_str()).collect();
+                    if s.fields
+                        .iter()
+                        .any(|f| f.flattened() && flattened_target_is_typevar(&f.type_ref, &params))
+                    {
+                        out.insert(s.name.clone());
+                    }
+                }
+            }
+        }
+        out
+    };
+    if marked.is_empty() {
+        return Ok(());
+    }
+
+    // 2. Discover concrete instantiations transitively.
+    fn collect_uses(
+        type_ref: &TypeReference,
+        marked: &BTreeSet<String>,
+        out: &mut Vec<(String, Vec<TypeReference>)>,
+    ) {
+        if marked.contains(&type_ref.name) && !type_ref.arguments.is_empty() {
+            out.push((type_ref.name.clone(), type_ref.arguments.clone()));
+        }
+        for a in &type_ref.arguments {
+            collect_uses(a, marked, out);
+        }
+    }
+
+    let mut worklist: Vec<(String, Vec<TypeReference>)> = Vec::new();
+
+    for f in &schema.functions {
+        if let Some(t) = &f.input_type {
+            collect_uses(t, &marked, &mut worklist);
+        }
+        if let Some(t) = &f.input_headers {
+            collect_uses(t, &marked, &mut worklist);
+        }
+        match &f.output_type {
+            OutputType::Complete { output_type } => {
+                if let Some(t) = output_type {
+                    collect_uses(t, &marked, &mut worklist);
+                }
+            }
+            OutputType::Stream { item_type } => {
+                collect_uses(item_type, &marked, &mut worklist);
+            }
+        }
+        if let Some(t) = &f.error_type {
+            collect_uses(t, &marked, &mut worklist);
+        }
+    }
+    for ts in [&schema.input_types, &schema.output_types] {
+        for typ in ts.types() {
+            match typ {
+                Type::Struct(s) => {
+                    for field in s.fields.iter() {
+                        collect_uses(&field.type_ref, &marked, &mut worklist);
+                    }
+                }
+                Type::Enum(e) => {
+                    for v in &e.variants {
+                        for field in v.fields.iter() {
+                            collect_uses(&field.type_ref, &marked, &mut worklist);
+                        }
+                    }
+                }
+                Type::Primitive(_) => {}
+            }
+        }
+    }
+
+    // 3. Process worklist; refuse nested marked-struct args (out of scope).
+    let mut concrete: BTreeMap<(String, Vec<TypeReference>), String> = BTreeMap::new();
+    while let Some((name, args)) = worklist.pop() {
+        let key = (name.clone(), args.clone());
+        if concrete.contains_key(&key) {
+            continue;
+        }
+        for arg in &args {
+            if marked.contains(&arg.name) {
+                anyhow::bail!(
+                    "python codegen: nested generic flatten not supported: \
+                     {name}<{}> contains another marked struct '{}'. \
+                     Refactor or open an issue if you need this.",
+                    args.iter()
+                        .map(|a| a.name.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    arg.name,
+                );
+            }
+        }
+
+        let struct_def = schema
+            .input_types
+            .get_type(&name)
+            .or_else(|| schema.output_types.get_type(&name))
+            .and_then(|t| {
+                if let Type::Struct(s) = t {
+                    Some(s.clone())
+                } else {
+                    None
+                }
+            })
+            .ok_or_else(|| {
+                anyhow::anyhow!("monomorphization: marked struct '{name}' missing from schema")
+            })?;
+
+        if struct_def.parameters.len() != args.len() {
+            anyhow::bail!(
+                "monomorphization: arity mismatch for '{name}': expected {}, got {}",
+                struct_def.parameters.len(),
+                args.len(),
+            );
+        }
+
+        let mangled = mangle_monomorphized_name(&name, &args);
+        concrete.insert(key, mangled);
+
+        let mono_preview = struct_def.instantiate(&args);
+        for f in mono_preview.fields.iter() {
+            collect_uses(&f.type_ref, &marked, &mut worklist);
+        }
+    }
+
+    // 4. Insert monomorphized types into both typespaces (mirroring the
+    //    location of the original generic).
+    for ((name, args), mangled) in concrete.iter() {
+        for ts_is_input in [true, false] {
+            let ts = if ts_is_input {
+                &schema.input_types
+            } else {
+                &schema.output_types
+            };
+            let s = match ts.get_type(name) {
+                Some(Type::Struct(s)) => s.clone(),
+                _ => continue,
+            };
+            let mut mono = s.instantiate(args);
+            mono.name = mangled.clone();
+            let target = if ts_is_input {
+                &mut schema.input_types
+            } else {
+                &mut schema.output_types
+            };
+            target.insert_type(Type::Struct(mono));
+        }
+    }
+
+    // 5. Rewrite every type reference of the form `Marked<args>` to the
+    //    mangled name with no args.
+    struct Rewriter<'a> {
+        table: &'a BTreeMap<(String, Vec<TypeReference>), String>,
+    }
+    impl<'a> Visitor for Rewriter<'a> {
+        type Output = ();
+        fn visit_type_ref(
+            &mut self,
+            type_ref: &mut TypeReference,
+        ) -> ControlFlow<Self::Output, Self::Output> {
+            // Recurse into args first so inner refs resolve before outer
+            // lookup. Cleared args after the outer match means leaf-first
+            // is fine here too.
+            for a in type_ref.arguments.iter_mut() {
+                let _ = self.visit_type_ref(a);
+            }
+            let key = (type_ref.name.clone(), type_ref.arguments.clone());
+            if let Some(mangled) = self.table.get(&key) {
+                type_ref.name = mangled.clone();
+                type_ref.arguments.clear();
+            }
+            ControlFlow::Continue(())
+        }
+    }
+    let mut r = Rewriter { table: &concrete };
+    let _ = r.visit_schema_inputs(schema);
+    let _ = r.visit_schema_outputs(schema);
+
+    // 6. Drop the original generic marked structs — they have no live
+    //    references after rewriting, and emitting them would produce a
+    //    bare `Generic[T]` class with the flatten field missing (the
+    //    bug we're fixing).
+    //
+    // Note: Typespace::remove_type leaves stale indices in its
+    // types_map (a separate-codepath bug). sort_types() rebuilds the
+    // map and incidentally also gives us a stable ordering.
+    for name in &marked {
+        let _ = schema.input_types.remove_type(name);
+        let _ = schema.output_types.remove_type(name);
+    }
+    schema.input_types.sort_types();
+    schema.output_types.sort_types();
+
+    Ok(())
+}
+
+/// Mangle a `(struct, args)` instantiation into a fresh schema type
+/// name. We keep the struct's full namespace-qualified name and append
+/// an underscore-joined suffix built from each argument's *leaf* name
+/// (the part after the final `::`). Using leaf names keeps the result
+/// short enough that downstream class-name handling doesn't have to
+/// hash-truncate it. Collisions across different fully-qualified args
+/// with the same leaf are extremely rare in practice and would surface
+/// as `insert_type` no-ops; if that ever happens we'll add a hash
+/// disambiguator.
+fn mangle_monomorphized_name(struct_name: &str, args: &[TypeReference]) -> String {
+    fn arg_suffix(arg: &TypeReference) -> String {
+        let leaf = arg.name.rsplit("::").next().unwrap_or(&arg.name);
+        if arg.arguments.is_empty() {
+            leaf.to_string()
+        } else {
+            let inner = arg
+                .arguments
+                .iter()
+                .map(arg_suffix)
+                .collect::<Vec<_>>()
+                .join("_");
+            format!("{leaf}_{inner}")
+        }
+    }
+    let suffix = args.iter().map(arg_suffix).collect::<Vec<_>>().join("_");
+    format!("{struct_name}_{suffix}")
 }
 
 #[cfg(test)]
