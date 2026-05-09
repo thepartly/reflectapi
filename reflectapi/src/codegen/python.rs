@@ -6087,7 +6087,8 @@ fn pascal_case_len(s: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_python_class_name_map, generate_init_py, Config};
+    use super::{build_python_class_name_map, generate_init_py, mangle_monomorphized_name, Config};
+    use crate::TypeReference;
 
     #[test]
     fn python_init_exports_client() {
@@ -6119,5 +6120,148 @@ mod tests {
             class_names.get("system::SystemVersionInfo").unwrap(),
             "SystemVersionInfo"
         );
+    }
+
+    fn tref(name: &str) -> TypeReference {
+        TypeReference {
+            name: name.to_string(),
+            arguments: vec![],
+        }
+    }
+
+    fn tref_args(name: &str, args: Vec<TypeReference>) -> TypeReference {
+        TypeReference {
+            name: name.to_string(),
+            arguments: args,
+        }
+    }
+
+    #[test]
+    fn mangler_distinguishes_namespaces_with_same_leaf() {
+        // The pre-fix mangler used only the leaf, so a::Sample and
+        // b::Sample collided and one struct's fields were silently
+        // dropped (cf. test_generic_flatten_leaf_collision).
+        let m1 = mangle_monomorphized_name("Wrap", &[tref("a::Sample")]);
+        let m2 = mangle_monomorphized_name("Wrap", &[tref("b::Sample")]);
+        assert_ne!(
+            m1, m2,
+            "same-leaf args from distinct namespaces must mangle distinctly"
+        );
+    }
+
+    #[test]
+    fn mangler_distinguishes_arity_and_order() {
+        let foo_bar = mangle_monomorphized_name("Wrap", &[tref("Foo"), tref("Bar")]);
+        let bar_foo = mangle_monomorphized_name("Wrap", &[tref("Bar"), tref("Foo")]);
+        let foo_only = mangle_monomorphized_name("Wrap", &[tref("Foo")]);
+        assert_ne!(foo_bar, bar_foo, "arg order must affect mangling");
+        assert_ne!(foo_bar, foo_only, "arity must affect mangling");
+    }
+
+    #[test]
+    fn mangler_distinguishes_nested_args() {
+        // Foo<Vec<Bar>> vs Foo<Bar> — the latter is a single concrete
+        // arg, the former wraps. The mangler must not collapse them.
+        let plain = mangle_monomorphized_name("Wrap", &[tref("Bar")]);
+        let nested =
+            mangle_monomorphized_name("Wrap", &[tref_args("std::vec::Vec", vec![tref("Bar")])]);
+        assert_ne!(plain, nested);
+    }
+
+    #[test]
+    fn mangler_long_input_stays_under_class_name_budget() {
+        // Realistic deep-nesting case. The post-PascalCase length
+        // must not exceed 80 — otherwise downstream
+        // `finalize_class_name` would hash-truncate while
+        // `type_name_to_python_ref` would emit the un-truncated form
+        // and the two refs would disagree.
+        let deep = mangle_monomorphized_name(
+            "very::long::module::path::OuterWrapper",
+            &[
+                tref_args(
+                    "another::very::long::module::path::InnerWrapper",
+                    vec![tref("nested::module::ConcreteTypeName")],
+                ),
+                tref("yet::another::module::path::SecondArg"),
+            ],
+        );
+        let pascal_len = super::pascal_case_len(&deep);
+        assert!(
+            pascal_len <= 80,
+            "post-Pascal mangled name '{deep}' exceeds 80 chars (got {pascal_len})",
+        );
+    }
+
+    /// End-to-end: a marked struct that flattens its generic param
+    /// AND references itself recursively (`Vec<Self<T>>`). The
+    /// reflectapi Rust derive macros can't construct such a type
+    /// (they overflow during schema building), but a hand-built or
+    /// JSON-loaded schema can — and the codegen must terminate
+    /// thanks to the register-before-recurse guard in
+    /// `normalize_marked_refs`. Without that guard, the second
+    /// recursive lookup would re-register and spin.
+    #[test]
+    fn recursive_marked_struct_terminates_and_renders() {
+        let schema_json = r#"{
+            "name": "test",
+            "functions": [{
+                "name": "f",
+                "path": "",
+                "input_type": { "name": "FlatTree", "arguments": [{ "name": "Item" }] },
+                "output_kind": "complete",
+                "output_type": { "name": "FlatTree", "arguments": [{ "name": "Item" }] },
+                "serialization": ["json"]
+            }],
+            "input_types": { "types": [
+                { "kind": "primitive", "name": "std::string::String", "description": "UTF-8" },
+                { "kind": "primitive", "name": "u32", "description": "u32" },
+                { "kind": "primitive", "name": "std::vec::Vec", "description": "Vec",
+                  "parameters": [{ "name": "T" }] },
+                { "kind": "struct", "name": "Item",
+                  "fields": { "named": [
+                    { "name": "id", "type": { "name": "u32" }, "required": true },
+                    { "name": "label", "type": { "name": "std::string::String" }, "required": true }
+                  ] } },
+                { "kind": "struct", "name": "FlatTree",
+                  "parameters": [{ "name": "T" }],
+                  "fields": { "named": [
+                    { "name": "value", "type": { "name": "T" }, "required": true, "flattened": true },
+                    { "name": "children",
+                      "type": { "name": "std::vec::Vec",
+                                "arguments": [{ "name": "FlatTree", "arguments": [{ "name": "T" }] }] },
+                      "required": true }
+                  ] } }
+            ] },
+            "output_types": { "types": [
+                { "kind": "primitive", "name": "std::string::String", "description": "UTF-8" },
+                { "kind": "primitive", "name": "u32", "description": "u32" },
+                { "kind": "primitive", "name": "std::vec::Vec", "description": "Vec",
+                  "parameters": [{ "name": "T" }] },
+                { "kind": "struct", "name": "Item",
+                  "fields": { "named": [
+                    { "name": "id", "type": { "name": "u32" }, "required": true },
+                    { "name": "label", "type": { "name": "std::string::String" }, "required": true }
+                  ] } },
+                { "kind": "struct", "name": "FlatTree",
+                  "parameters": [{ "name": "T" }],
+                  "fields": { "named": [
+                    { "name": "value", "type": { "name": "T" }, "required": true, "flattened": true },
+                    { "name": "children",
+                      "type": { "name": "std::vec::Vec",
+                                "arguments": [{ "name": "FlatTree", "arguments": [{ "name": "T" }] }] },
+                      "required": true }
+                  ] } }
+            ] }
+        }"#;
+        let schema: crate::Schema = serde_json::from_str(schema_json).unwrap();
+        let py = super::generate(schema, &Config::default()).expect("codegen must terminate");
+        // The monomorphized class is named with both struct path and
+        // arg leaf (no namespace prefix on either here, both are
+        // top-level). The flatten pulled Item's id+label up; the
+        // recursive children list refers back to the same class.
+        assert!(py.contains("class FlatTreeItem"));
+        assert!(py.contains("children: list[FlatTreeItem]"));
+        assert!(py.contains("    id: int"));
+        assert!(py.contains("    label: str"));
     }
 }

@@ -1,0 +1,118 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenInner"
+                  },
+                  {
+                    "type": "object",
+                    "title": "reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten<reflectapi_demo.tests.serde.TestFlattenIfElse>",
+                    "required": [
+                      "other"
+                    ],
+                    "properties": {
+                      "other": {
+                        "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenIfElse"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenInner"
+                    },
+                    {
+                      "type": "object",
+                      "title": "reflectapi_demo.tests.serde.TestGenericWithConcreteFlatten<reflectapi_demo.tests.serde.TestFlattenIfElse>",
+                      "required": [
+                        "other"
+                      ],
+                      "properties": {
+                        "other": {
+                          "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenIfElse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.TestFlattenIfElse": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestFlattenIfElse",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/u16"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.TestFlattenInner": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestFlattenInner",
+        "required": [
+          "inner_a",
+          "inner_b"
+        ],
+        "properties": {
+          "inner_a": {
+            "$ref": "#/components/schemas/u32"
+          },
+          "inner_b": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "u16": {
+        "description": "16-bit unsigned integer",
+        "type": "integer"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

@@ -1518,13 +1518,35 @@ fn test_generic_flatten_enum_variant_typevar() {
     assert_snapshot!(TestIngestRelation<TestFlattenIdent, TestFlattenIdentData>);
 }
 
-// (Cycle / self-recursive marked struct test omitted: reflectapi's
-// schema builder itself doesn't support recursive type definitions
-// — `struct Tree<T> { children: Vec<Tree<T>> }` overflows during
-// schema construction, before any codegen runs. The
-// register-before-recurse guard in `normalize_marked_refs` is still
-// the right defence in depth, but the case is unreachable in the
-// current schema language.)
+// Note: a Rust-derive recursive marked struct (e.g.
+// `struct Tree<T> { #[flatten] value: T, children: Vec<Tree<T>> }`)
+// overflows the reflectapi derive macro during schema construction,
+// before any codegen runs — that's a derive-side limitation, not a
+// codegen one. The codegen pipeline itself handles a recursive
+// marked struct fed in via JSON; that case is exercised by
+// `recursive_marked_struct_terminates_and_renders` in
+// reflectapi/src/codegen/python.rs.
+
+// Boundary case: a generic struct whose flatten target is a
+// *concrete* type, not a TypeVar. Should NOT be marked, NOT
+// monomorphized — the existing flatten-of-concrete rendering path
+// handles it. Confirms the marked-detection predicate doesn't
+// over-trigger on any-flatten-on-a-generic-struct.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "T: serde::Serialize",
+    deserialize = "T: serde::de::DeserializeOwned",
+))]
+struct TestGenericWithConcreteFlatten<T> {
+    #[serde(flatten)]
+    extra: TestFlattenInner,
+    other: T,
+}
+
+#[test]
+fn test_generic_with_concrete_flatten_not_marked() {
+    assert_snapshot!(TestGenericWithConcreteFlatten<TestFlattenIfElse>);
+}
 
 // Marked struct used with a generic parameter wrapped inside another
 // generic (`Marked<Option<I>>`). Earlier transitive marking only
