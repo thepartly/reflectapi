@@ -5532,18 +5532,36 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
         let mut new_marks: BTreeSet<String> = BTreeSet::new();
         for ts in [&schema.input_types, &schema.output_types] {
             for typ in ts.types() {
-                if let Type::Struct(s) = typ {
-                    if s.parameters.is_empty() || marked.contains(&s.name) {
-                        continue;
+                match typ {
+                    Type::Struct(s) => {
+                        if s.parameters.is_empty() || marked.contains(&s.name) {
+                            continue;
+                        }
+                        let typevars: BTreeSet<&str> =
+                            s.parameters.iter().map(|p| p.name.as_str()).collect();
+                        if s.fields
+                            .iter()
+                            .any(|f| ref_uses_marked_with_typevar(&f.type_ref, &marked, &typevars))
+                        {
+                            new_marks.insert(s.name.clone());
+                        }
                     }
-                    let typevars: BTreeSet<&str> =
-                        s.parameters.iter().map(|p| p.name.as_str()).collect();
-                    if s.fields
-                        .iter()
-                        .any(|f| ref_uses_marked_with_typevar(&f.type_ref, &marked, &typevars))
-                    {
-                        new_marks.insert(s.name.clone());
+                    Type::Enum(e) => {
+                        if e.parameters.is_empty() || marked.contains(&e.name) {
+                            continue;
+                        }
+                        let typevars: BTreeSet<&str> =
+                            e.parameters.iter().map(|p| p.name.as_str()).collect();
+                        let any = e.variants.iter().any(|v| {
+                            v.fields.iter().any(|f| {
+                                ref_uses_marked_with_typevar(&f.type_ref, &marked, &typevars)
+                            })
+                        });
+                        if any {
+                            new_marks.insert(e.name.clone());
+                        }
                     }
+                    Type::Primitive(_) => {}
                 }
             }
         }
@@ -5602,44 +5620,67 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
         let mangled = if let Some(existing) = concrete.get(&key) {
             existing.clone()
         } else {
-            let struct_def = schema
+            let typ = schema
                 .input_types
                 .get_type(&type_ref.name)
                 .or_else(|| schema.output_types.get_type(&type_ref.name))
-                .and_then(|t| {
-                    if let Type::Struct(s) = t {
-                        Some(s.clone())
-                    } else {
-                        None
-                    }
-                })
                 .ok_or_else(|| {
                     anyhow::anyhow!(
-                        "monomorphization: marked struct '{}' missing from schema",
+                        "monomorphization: marked type '{}' missing from schema",
                         type_ref.name
                     )
                 })?;
-            if struct_def.parameters.len() != type_ref.arguments.len() {
-                anyhow::bail!(
-                    "monomorphization: arity mismatch for '{}': expected {}, got {}",
-                    type_ref.name,
-                    struct_def.parameters.len(),
-                    type_ref.arguments.len(),
-                );
-            }
-            let mangled = mangle_monomorphized_name(&type_ref.name, &type_ref.arguments);
             // Register before recursing so cycles can't loop forever
-            // (a marked struct that transitively contains a ref to
-            // itself with the same args would otherwise spin).
+            // (a marked type that transitively contains a ref to itself
+            // with the same args would otherwise spin).
+            let mangled = mangle_monomorphized_name(&type_ref.name, &type_ref.arguments);
             concrete.insert(key, mangled.clone());
 
             // Substitute with the (already-normalized) args and recurse
-            // into the resulting fields, so any further marked refs in
-            // the substituted struct's fields get registered too.
-            let mono = struct_def.instantiate(&type_ref.arguments);
-            for f in mono.fields.iter() {
-                let mut tr = f.type_ref.clone();
-                normalize_marked_refs(&mut tr, marked, concrete, schema)?;
+            // into the resulting variants/fields so any further marked
+            // refs there get registered too. Both Struct and Enum
+            // implement Instantiate.
+            match typ {
+                Type::Struct(s) => {
+                    let s = s.clone();
+                    if s.parameters.len() != type_ref.arguments.len() {
+                        anyhow::bail!(
+                            "monomorphization: arity mismatch for struct '{}': expected {}, got {}",
+                            type_ref.name,
+                            s.parameters.len(),
+                            type_ref.arguments.len(),
+                        );
+                    }
+                    let mono = s.instantiate(&type_ref.arguments);
+                    for f in mono.fields.iter() {
+                        let mut tr = f.type_ref.clone();
+                        normalize_marked_refs(&mut tr, marked, concrete, schema)?;
+                    }
+                }
+                Type::Enum(e) => {
+                    let e = e.clone();
+                    if e.parameters.len() != type_ref.arguments.len() {
+                        anyhow::bail!(
+                            "monomorphization: arity mismatch for enum '{}': expected {}, got {}",
+                            type_ref.name,
+                            e.parameters.len(),
+                            type_ref.arguments.len(),
+                        );
+                    }
+                    let mono = e.instantiate(&type_ref.arguments);
+                    for v in mono.variants.iter() {
+                        for f in v.fields.iter() {
+                            let mut tr = f.type_ref.clone();
+                            normalize_marked_refs(&mut tr, marked, concrete, schema)?;
+                        }
+                    }
+                }
+                Type::Primitive(_) => {
+                    anyhow::bail!(
+                        "monomorphization: marked '{}' resolved to a primitive — only structs and enums can be monomorphized",
+                        type_ref.name,
+                    );
+                }
             }
             mangled
         };
@@ -5697,7 +5738,11 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
     }
 
     // 4. Insert monomorphized types into both typespaces (mirroring the
-    //    location of the original generic).
+    //    location of the original generic). Both struct and enum
+    //    instantiations are supported — a generic enum used as a
+    //    variant container for marked structs needs its own concrete
+    //    monomorphizations or the variant's field references would
+    //    dangle after step 6 removes the originals.
     for ((name, args), mangled) in concrete.iter() {
         for ts_is_input in [true, false] {
             let ts = if ts_is_input {
@@ -5705,18 +5750,29 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
             } else {
                 &schema.output_types
             };
-            let s = match ts.get_type(name) {
-                Some(Type::Struct(s)) => s.clone(),
-                _ => continue,
+            let typ = match ts.get_type(name) {
+                Some(t) => t.clone(),
+                None => continue,
             };
-            let mut mono = s.instantiate(args);
-            mono.name = mangled.clone();
+            let mono = match typ {
+                Type::Struct(s) => {
+                    let mut mono = s.instantiate(args);
+                    mono.name = mangled.clone();
+                    Type::Struct(mono)
+                }
+                Type::Enum(e) => {
+                    let mut mono = e.instantiate(args);
+                    mono.name = mangled.clone();
+                    Type::Enum(mono)
+                }
+                Type::Primitive(_) => continue,
+            };
             let target = if ts_is_input {
                 &mut schema.input_types
             } else {
                 &mut schema.output_types
             };
-            target.insert_type(Type::Struct(mono));
+            target.insert_type(mono);
         }
     }
 

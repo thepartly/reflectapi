@@ -1496,3 +1496,24 @@ struct TestWithMarkedInner<I, D> {
 fn test_generic_flatten_typevar_in_generic_context() {
     assert_snapshot!(TestWithMarkedInner<TestFlattenIdent, TestFlattenIdentData>);
 }
+
+// Generic enum whose variants reference a marked struct using the
+// enum's own TypeVars. Reproduces the regression where transitive
+// marking only considered structs — generic enums would survive the
+// pass while the marked structs they referenced got removed,
+// dangling the enum's variant fields.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "I: serde::Serialize, D: serde::Serialize",
+    deserialize = "I: serde::de::DeserializeOwned, D: serde::de::DeserializeOwned",
+))]
+enum TestIngestRelation<I, D> {
+    Insert(TestIdentityData<I, D>),
+    Remove(TestIdentityData<I, D>),
+    Empty,
+}
+
+#[test]
+fn test_generic_flatten_enum_variant_typevar() {
+    assert_snapshot!(TestIngestRelation<TestFlattenIdent, TestFlattenIdentData>);
+}
