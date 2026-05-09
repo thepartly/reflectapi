@@ -1517,3 +1517,30 @@ enum TestIngestRelation<I, D> {
 fn test_generic_flatten_enum_variant_typevar() {
     assert_snapshot!(TestIngestRelation<TestFlattenIdent, TestFlattenIdentData>);
 }
+
+// (Cycle / self-recursive marked struct test omitted: reflectapi's
+// schema builder itself doesn't support recursive type definitions
+// — `struct Tree<T> { children: Vec<Tree<T>> }` overflows during
+// schema construction, before any codegen runs. The
+// register-before-recurse guard in `normalize_marked_refs` is still
+// the right defence in depth, but the case is unreachable in the
+// current schema language.)
+
+// Marked struct used with a generic parameter wrapped inside another
+// generic (`Marked<Option<I>>`). Earlier transitive marking only
+// looked at the IMMEDIATE arg, so the wrapper wasn't marked, the
+// inner Marked got removed, and the wrapper's ref dangled.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "I: serde::Serialize",
+    deserialize = "I: serde::de::DeserializeOwned",
+))]
+struct TestWrapperWithNestedTypevarArg<I> {
+    body: TestUpdateOrElse<Option<I>, TestFlattenIfElse>,
+    extra: u32,
+}
+
+#[test]
+fn test_generic_flatten_typevar_nested_in_generic_arg() {
+    assert_snapshot!(TestWrapperWithNestedTypevarArg<TestFlattenInner>);
+}

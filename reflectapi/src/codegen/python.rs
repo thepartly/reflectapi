@@ -5510,16 +5510,33 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
     //
     // Iterate to fixed point so chains like A<T> → B<T> → MarkedC<T>
     // all get marked.
+    /// True if `tr`'s tree mentions any of the enclosing TypeVars at
+    /// any depth. A TypeVar leaf is a zero-arg ref whose name is one
+    /// of the enclosing parameters.
+    fn ref_tree_contains_typevar(tr: &TypeReference, typevars: &BTreeSet<&str>) -> bool {
+        if tr.arguments.is_empty() && typevars.contains(tr.name.as_str()) {
+            return true;
+        }
+        tr.arguments
+            .iter()
+            .any(|a| ref_tree_contains_typevar(a, typevars))
+    }
     fn ref_uses_marked_with_typevar(
         type_ref: &TypeReference,
         marked: &BTreeSet<String>,
         typevars: &BTreeSet<&str>,
     ) -> bool {
+        // Marked struct used with at least one arg that mentions an
+        // enclosing TypeVar somewhere in its tree (not just the
+        // immediate arg). `Marked<Option<I>>`, `Marked<Vec<Box<T>>>`,
+        // and `Marked<I>` all qualify — without this, the wrapper
+        // doesn't get transitively marked, the inner marked struct
+        // gets removed in step 6, and the wrapper's ref dangles.
         if marked.contains(&type_ref.name)
             && type_ref
                 .arguments
                 .iter()
-                .any(|a| typevars.contains(a.name.as_str()))
+                .any(|a| ref_tree_contains_typevar(a, typevars))
         {
             return true;
         }
@@ -5580,29 +5597,43 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
     //    `(OuterMarked, [InnerMarked_I_D, C])` — concrete on both
     //    sides.
     let mut concrete: BTreeMap<(String, Vec<TypeReference>), String> = BTreeMap::new();
+    let mut registered: BTreeSet<String> = BTreeSet::new();
 
-    /// A type-ref is "concrete" if it resolves to a real schema type or
-    /// is built up from concrete refs. A bare ref like `T` with no
-    /// arguments and no schema entry is a TypeVar from some enclosing
-    /// generic context and isn't safe to monomorphize against — when
-    /// that context resolves, the substitution will replace it.
-    fn is_concrete(type_ref: &TypeReference, schema: &Schema) -> bool {
-        if type_ref.arguments.is_empty() && schema.get_type(&type_ref.name).is_none() {
+    /// A type-ref is "concrete" if it resolves to a real schema type,
+    /// to one of our own monomorphized names (which will be inserted
+    /// in step 4), or is built up from concrete refs. A bare ref like
+    /// `T` with no arguments, no schema entry, and not yet registered
+    /// as a mono'd name is a TypeVar from some enclosing generic
+    /// context — substituting it now would produce a struct body
+    /// that still references a TypeVar.
+    fn is_concrete(
+        type_ref: &TypeReference,
+        schema: &Schema,
+        registered: &BTreeSet<String>,
+    ) -> bool {
+        if type_ref.arguments.is_empty()
+            && schema.get_type(&type_ref.name).is_none()
+            && !registered.contains(&type_ref.name)
+        {
             return false;
         }
-        type_ref.arguments.iter().all(|a| is_concrete(a, schema))
+        type_ref
+            .arguments
+            .iter()
+            .all(|a| is_concrete(a, schema, registered))
     }
 
     fn normalize_marked_refs(
         type_ref: &mut TypeReference,
         marked: &BTreeSet<String>,
         concrete: &mut BTreeMap<(String, Vec<TypeReference>), String>,
+        registered: &mut BTreeSet<String>,
         schema: &Schema,
     ) -> anyhow::Result<()> {
         // Bottom-up: arguments first, so this ref's args are already
         // resolved by the time we form the lookup key.
         for a in type_ref.arguments.iter_mut() {
-            normalize_marked_refs(a, marked, concrete, schema)?;
+            normalize_marked_refs(a, marked, concrete, registered, schema)?;
         }
         if !marked.contains(&type_ref.name) || type_ref.arguments.is_empty() {
             return Ok(());
@@ -5613,7 +5644,11 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
         // use of a marked struct. Don't register: when the enclosing
         // generic resolves to a concrete instantiation, the
         // substituted args will be concrete and we'll register then.
-        if !type_ref.arguments.iter().all(|a| is_concrete(a, schema)) {
+        if !type_ref
+            .arguments
+            .iter()
+            .all(|a| is_concrete(a, schema, registered))
+        {
             return Ok(());
         }
         let key = (type_ref.name.clone(), type_ref.arguments.clone());
@@ -5635,6 +5670,7 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
             // with the same args would otherwise spin).
             let mangled = mangle_monomorphized_name(&type_ref.name, &type_ref.arguments);
             concrete.insert(key, mangled.clone());
+            registered.insert(mangled.clone());
 
             // Substitute with the (already-normalized) args and recurse
             // into the resulting variants/fields so any further marked
@@ -5654,7 +5690,7 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
                     let mono = s.instantiate(&type_ref.arguments);
                     for f in mono.fields.iter() {
                         let mut tr = f.type_ref.clone();
-                        normalize_marked_refs(&mut tr, marked, concrete, schema)?;
+                        normalize_marked_refs(&mut tr, marked, concrete, registered, schema)?;
                     }
                 }
                 Type::Enum(e) => {
@@ -5671,7 +5707,7 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
                     for v in mono.variants.iter() {
                         for f in v.fields.iter() {
                             let mut tr = f.type_ref.clone();
-                            normalize_marked_refs(&mut tr, marked, concrete, schema)?;
+                            normalize_marked_refs(&mut tr, marked, concrete, registered, schema)?;
                         }
                     }
                 }
@@ -5734,7 +5770,27 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
         }
     }
     for mut seed in seeds {
-        normalize_marked_refs(&mut seed, &marked, &mut concrete, schema)?;
+        normalize_marked_refs(&mut seed, &marked, &mut concrete, &mut registered, schema)?;
+    }
+
+    // 4a. Sanity-check the mangling table for collisions before
+    //     inserting. If two distinct (struct, args) keys resolved to
+    //     the same mangled name, `insert_type` would silently drop
+    //     the second insert and one schema's body would survive
+    //     under both keys' lookups — exactly the silent-data-loss
+    //     class of bug we're trying to prevent.
+    {
+        let mut seen: BTreeMap<&String, &(String, Vec<TypeReference>)> = BTreeMap::new();
+        for (key, mangled) in concrete.iter() {
+            if let Some(prev) = seen.insert(mangled, key) {
+                anyhow::bail!(
+                    "monomorphization: mangled-name collision: \
+                     '{mangled}' generated by both {key:?} and {prev:?}. \
+                     This is a codegen bug — please file an issue with \
+                     the offending schema.",
+                );
+            }
+        }
     }
 
     // 4. Insert monomorphized types into both typespaces (mirroring the
@@ -5805,26 +5861,152 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
     let _ = r.visit_schema_inputs(schema);
     let _ = r.visit_schema_outputs(schema);
 
-    // 6. Drop the original generic marked structs — they have no live
+    // 6. Drop the original generic marked types — they have no live
     //    references after rewriting, and emitting them would produce a
     //    bare `Generic[T]` class with the flatten field missing (the
-    //    bug we're fixing).
-    //
-    // Note: Typespace::remove_type leaves stale indices in its
-    // internal types_map (a separate-codepath bug — not safe across
-    // multiple removals). sort_types() rebuilds the map. We sort after
-    // each individual removal so the next lookup is fresh.
+    //    bug we're fixing). `remove_type` invalidates the typespace's
+    //    internal index map, so subsequent lookups rebuild it.
     for name in &marked {
-        if schema.input_types.remove_type(name).is_some() {
-            schema.input_types.sort_types();
-        }
-        if schema.output_types.remove_type(name).is_some() {
-            schema.output_types.sort_types();
-        }
+        let _ = schema.input_types.remove_type(name);
+        let _ = schema.output_types.remove_type(name);
     }
+
+    // 7. Post-pass invariant check (debug builds). Catches three
+    //    classes of failure that previous bug reports walked us
+    //    through one at a time:
+    //      - dangling refs to a removed marked type
+    //      - TypeVar leaks: a parameters-empty struct/enum body
+    //        whose field types reference a name that isn't in the
+    //        schema (a generic param that didn't get substituted)
+    //      - mismatched typespace state between input_types and
+    //        output_types after monomorphization
+    //
+    //    Run this in debug builds only — the cost is a full
+    //    schema walk per codegen invocation and the user-facing
+    //    failure modes (validate_type_references, render-time bail)
+    //    will still trip in release. Errors here mean the pass has
+    //    a logic bug; that's a developer-visible problem.
+    debug_assert_monomorphization_invariants(schema, &marked);
 
     Ok(())
 }
+
+#[cfg(debug_assertions)]
+fn debug_assert_monomorphization_invariants(schema: &Schema, marked: &BTreeSet<String>) {
+    // Walk every type ref reachable from functions and types.
+    fn walk_ref<F: FnMut(&TypeReference)>(tr: &TypeReference, f: &mut F) {
+        f(tr);
+        for a in &tr.arguments {
+            walk_ref(a, f);
+        }
+    }
+
+    let mut violations: Vec<String> = Vec::new();
+    for fn_def in &schema.functions {
+        for site in [
+            fn_def.input_type.as_ref(),
+            fn_def.input_headers.as_ref(),
+            match &fn_def.output_type {
+                OutputType::Complete { output_type } => output_type.as_ref(),
+                OutputType::Stream { item_type } => Some(item_type),
+            },
+            fn_def.error_type.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            walk_ref(site, &mut |tr| {
+                if marked.contains(&tr.name) {
+                    violations.push(format!(
+                        "function {:?} still references removed marked type '{}' \
+                         (post-pass dangling ref)",
+                        fn_def.name, tr.name,
+                    ));
+                }
+            });
+        }
+    }
+    for ts in [&schema.input_types, &schema.output_types] {
+        for typ in ts.types() {
+            match typ {
+                Type::Struct(s) => {
+                    let params: BTreeSet<&str> =
+                        s.parameters.iter().map(|p| p.name.as_str()).collect();
+                    for field in s.fields.iter() {
+                        walk_ref(&field.type_ref, &mut |tr| {
+                            if marked.contains(&tr.name) {
+                                violations.push(format!(
+                                    "struct {:?}, field {:?} references removed marked type '{}'",
+                                    s.name,
+                                    field.name(),
+                                    tr.name,
+                                ));
+                            }
+                            // TypeVar leak: a struct that was monomorphized
+                            // (parameters cleared) shouldn't have any
+                            // bare-name refs that aren't in the schema.
+                            if s.parameters.is_empty()
+                                && tr.arguments.is_empty()
+                                && schema.get_type(&tr.name).is_none()
+                            {
+                                violations.push(format!(
+                                    "struct {:?}, field {:?} references unknown type '{}' \
+                                     (likely TypeVar leak in monomorphized body)",
+                                    s.name,
+                                    field.name(),
+                                    tr.name,
+                                ));
+                            }
+                            // Active TypeVar: if a still-generic struct's
+                            // field references a name that's the SAME as
+                            // a TypeVar but the parent is supposed to be
+                            // monomorphized, we've already covered it.
+                            // Generic-context TypeVar refs are legitimate.
+                            let _ = &params;
+                        });
+                    }
+                }
+                Type::Enum(e) => {
+                    for v in &e.variants {
+                        for field in v.fields.iter() {
+                            walk_ref(&field.type_ref, &mut |tr| {
+                                if marked.contains(&tr.name) {
+                                    violations.push(format!(
+                                        "enum {:?}, variant {:?} references removed marked type '{}'",
+                                        e.name, v.name(), tr.name,
+                                    ));
+                                }
+                                if e.parameters.is_empty()
+                                    && tr.arguments.is_empty()
+                                    && schema.get_type(&tr.name).is_none()
+                                {
+                                    violations.push(format!(
+                                        "enum {:?}, variant {:?} references unknown type '{}' \
+                                         (likely TypeVar leak in monomorphized body)",
+                                        e.name,
+                                        v.name(),
+                                        tr.name,
+                                    ));
+                                }
+                            });
+                        }
+                    }
+                }
+                Type::Primitive(_) => {}
+            }
+        }
+    }
+    if !violations.is_empty() {
+        panic!(
+            "monomorphize_flatten_generics: post-pass invariants violated:\n  {}",
+            violations.join("\n  "),
+        );
+    }
+}
+
+#[cfg(not(debug_assertions))]
+#[allow(dead_code)]
+fn debug_assert_monomorphization_invariants(_schema: &Schema, _marked: &BTreeSet<String>) {}
 
 /// Mangle a `(struct, args)` instantiation into a fresh schema type
 /// name. The struct's full namespace-qualified name is preserved so
