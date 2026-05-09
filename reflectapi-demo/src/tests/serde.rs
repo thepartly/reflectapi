@@ -1265,6 +1265,42 @@ fn test_generic_flatten_optional() {
     assert_snapshot!(TestOptionalFlatten<TestFlattenInner>);
 }
 
+// Real-world pattern: an outer generic wrapper flattens an *inner*
+// generic wrapper. UpdateOrElse<IdentityData<I, D>, C> where
+// IdentityData itself is a marked struct (flattens its own generic
+// I and D). Codegen must monomorphize bottom-up.
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestFlattenIdent {
+    job_id: u64,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+struct TestFlattenIdentData {
+    payload: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output)]
+#[serde(bound(
+    serialize = "I: serde::Serialize, D: serde::Serialize",
+    deserialize = "I: serde::de::DeserializeOwned, D: serde::de::DeserializeOwned",
+))]
+struct TestIdentityData<I, D> {
+    #[serde(flatten)]
+    identity: I,
+    #[serde(flatten)]
+    data: D,
+}
+
+#[test]
+fn test_generic_flatten_nested() {
+    assert_snapshot!(
+        TestUpdateOrElse<
+            TestIdentityData<TestFlattenIdent, TestFlattenIdentData>,
+            TestFlattenIfElse,
+        >
+    );
+}
+
 /// End-to-end Pydantic round-trip: confirms the generated class
 /// actually parses serde's wire format. Skipped if `uv` (or a Python
 /// with pydantic) isn't available locally — CI uses uv.

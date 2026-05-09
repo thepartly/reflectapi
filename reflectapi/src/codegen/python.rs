@@ -5499,41 +5499,103 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    // 2. Discover concrete instantiations transitively.
-    fn collect_uses(
-        type_ref: &TypeReference,
+    // 2. Walk every type reference reachable from functions and types,
+    //    rewriting marked refs in place (bottom-up) to their mangled
+    //    monomorphized names. Each new (struct, normalized_args) pair
+    //    is registered in `concrete`. Nested patterns like
+    //    `OuterMarked<InnerMarked<I, D>, C>` resolve correctly because
+    //    the inner ref is normalized first, so the outer's key is
+    //    `(OuterMarked, [InnerMarked_I_D, C])` — concrete on both
+    //    sides.
+    let mut concrete: BTreeMap<(String, Vec<TypeReference>), String> = BTreeMap::new();
+
+    fn normalize_marked_refs(
+        type_ref: &mut TypeReference,
         marked: &BTreeSet<String>,
-        out: &mut Vec<(String, Vec<TypeReference>)>,
-    ) {
-        if marked.contains(&type_ref.name) && !type_ref.arguments.is_empty() {
-            out.push((type_ref.name.clone(), type_ref.arguments.clone()));
+        concrete: &mut BTreeMap<(String, Vec<TypeReference>), String>,
+        schema: &Schema,
+    ) -> anyhow::Result<()> {
+        // Bottom-up: arguments first, so this ref's args are already
+        // resolved by the time we form the lookup key.
+        for a in type_ref.arguments.iter_mut() {
+            normalize_marked_refs(a, marked, concrete, schema)?;
         }
-        for a in &type_ref.arguments {
-            collect_uses(a, marked, out);
+        if !marked.contains(&type_ref.name) || type_ref.arguments.is_empty() {
+            return Ok(());
         }
+        let key = (type_ref.name.clone(), type_ref.arguments.clone());
+        let mangled = if let Some(existing) = concrete.get(&key) {
+            existing.clone()
+        } else {
+            let struct_def = schema
+                .input_types
+                .get_type(&type_ref.name)
+                .or_else(|| schema.output_types.get_type(&type_ref.name))
+                .and_then(|t| {
+                    if let Type::Struct(s) = t {
+                        Some(s.clone())
+                    } else {
+                        None
+                    }
+                })
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "monomorphization: marked struct '{}' missing from schema",
+                        type_ref.name
+                    )
+                })?;
+            if struct_def.parameters.len() != type_ref.arguments.len() {
+                anyhow::bail!(
+                    "monomorphization: arity mismatch for '{}': expected {}, got {}",
+                    type_ref.name,
+                    struct_def.parameters.len(),
+                    type_ref.arguments.len(),
+                );
+            }
+            let mangled = mangle_monomorphized_name(&type_ref.name, &type_ref.arguments);
+            // Register before recursing so cycles can't loop forever
+            // (a marked struct that transitively contains a ref to
+            // itself with the same args would otherwise spin).
+            concrete.insert(key, mangled.clone());
+
+            // Substitute with the (already-normalized) args and recurse
+            // into the resulting fields, so any further marked refs in
+            // the substituted struct's fields get registered too.
+            let mono = struct_def.instantiate(&type_ref.arguments);
+            for f in mono.fields.iter() {
+                let mut tr = f.type_ref.clone();
+                normalize_marked_refs(&mut tr, marked, concrete, schema)?;
+            }
+            mangled
+        };
+        type_ref.name = mangled;
+        type_ref.arguments.clear();
+        Ok(())
     }
 
-    let mut worklist: Vec<(String, Vec<TypeReference>)> = Vec::new();
-
+    // We mutate clones to drive registration; the schema itself is
+    // rewritten in step 5 by the Visitor. Doing it here too would
+    // double-edit refs we've already normalized.
+    let mut seeds: Vec<TypeReference> = Vec::new();
     for f in &schema.functions {
         if let Some(t) = &f.input_type {
-            collect_uses(t, &marked, &mut worklist);
+            seeds.push(t.clone());
         }
         if let Some(t) = &f.input_headers {
-            collect_uses(t, &marked, &mut worklist);
+            seeds.push(t.clone());
         }
         match &f.output_type {
             OutputType::Complete { output_type } => {
                 if let Some(t) = output_type {
-                    collect_uses(t, &marked, &mut worklist);
+                    seeds.push(t.clone());
                 }
             }
             OutputType::Stream { item_type } => {
-                collect_uses(item_type, &marked, &mut worklist);
+                seeds.push(item_type.clone());
             }
         }
         if let Some(t) = &f.error_type {
-            collect_uses(t, &marked, &mut worklist);
+            seeds.push(t.clone());
         }
     }
     for ts in [&schema.input_types, &schema.output_types] {
@@ -5541,13 +5603,13 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
             match typ {
                 Type::Struct(s) => {
                     for field in s.fields.iter() {
-                        collect_uses(&field.type_ref, &marked, &mut worklist);
+                        seeds.push(field.type_ref.clone());
                     }
                 }
                 Type::Enum(e) => {
                     for v in &e.variants {
                         for field in v.fields.iter() {
-                            collect_uses(&field.type_ref, &marked, &mut worklist);
+                            seeds.push(field.type_ref.clone());
                         }
                     }
                 }
@@ -5555,59 +5617,8 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
             }
         }
     }
-
-    // 3. Process worklist; refuse nested marked-struct args (out of scope).
-    let mut concrete: BTreeMap<(String, Vec<TypeReference>), String> = BTreeMap::new();
-    while let Some((name, args)) = worklist.pop() {
-        let key = (name.clone(), args.clone());
-        if concrete.contains_key(&key) {
-            continue;
-        }
-        for arg in &args {
-            if marked.contains(&arg.name) {
-                anyhow::bail!(
-                    "python codegen: nested generic flatten not supported: \
-                     {name}<{}> contains another marked struct '{}'. \
-                     Refactor or open an issue if you need this.",
-                    args.iter()
-                        .map(|a| a.name.as_str())
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                    arg.name,
-                );
-            }
-        }
-
-        let struct_def = schema
-            .input_types
-            .get_type(&name)
-            .or_else(|| schema.output_types.get_type(&name))
-            .and_then(|t| {
-                if let Type::Struct(s) = t {
-                    Some(s.clone())
-                } else {
-                    None
-                }
-            })
-            .ok_or_else(|| {
-                anyhow::anyhow!("monomorphization: marked struct '{name}' missing from schema")
-            })?;
-
-        if struct_def.parameters.len() != args.len() {
-            anyhow::bail!(
-                "monomorphization: arity mismatch for '{name}': expected {}, got {}",
-                struct_def.parameters.len(),
-                args.len(),
-            );
-        }
-
-        let mangled = mangle_monomorphized_name(&name, &args);
-        concrete.insert(key, mangled);
-
-        let mono_preview = struct_def.instantiate(&args);
-        for f in mono_preview.fields.iter() {
-            collect_uses(&f.type_ref, &marked, &mut worklist);
-        }
+    for mut seed in seeds {
+        normalize_marked_refs(&mut seed, &marked, &mut concrete, schema)?;
     }
 
     // 4. Insert monomorphized types into both typespaces (mirroring the
@@ -5669,27 +5680,31 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
     //    bug we're fixing).
     //
     // Note: Typespace::remove_type leaves stale indices in its
-    // types_map (a separate-codepath bug). sort_types() rebuilds the
-    // map and incidentally also gives us a stable ordering.
+    // internal types_map (a separate-codepath bug — not safe across
+    // multiple removals). sort_types() rebuilds the map. We sort after
+    // each individual removal so the next lookup is fresh.
     for name in &marked {
-        let _ = schema.input_types.remove_type(name);
-        let _ = schema.output_types.remove_type(name);
+        if schema.input_types.remove_type(name).is_some() {
+            schema.input_types.sort_types();
+        }
+        if schema.output_types.remove_type(name).is_some() {
+            schema.output_types.sort_types();
+        }
     }
-    schema.input_types.sort_types();
-    schema.output_types.sort_types();
 
     Ok(())
 }
 
 /// Mangle a `(struct, args)` instantiation into a fresh schema type
-/// name. We keep the struct's full namespace-qualified name and append
-/// an underscore-joined suffix built from each argument's *leaf* name
-/// (the part after the final `::`). Using leaf names keeps the result
-/// short enough that downstream class-name handling doesn't have to
-/// hash-truncate it. Collisions across different fully-qualified args
-/// with the same leaf are extremely rare in practice and would surface
-/// as `insert_type` no-ops; if that ever happens we'll add a hash
-/// disambiguator.
+/// name. The struct's full namespace-qualified name is preserved so
+/// downstream namespace mangling stays sensible; the suffix encodes
+/// each argument's *leaf* name (the part after the final `::`).
+///
+/// If the resulting suffix is long enough that downstream class-name
+/// handling would hash-truncate (and produce a mismatch between the
+/// truncated class definition and the un-truncated dotted-path
+/// reference), hash the suffix here. Same hash on both sides → all
+/// references stay consistent.
 fn mangle_monomorphized_name(struct_name: &str, args: &[TypeReference]) -> String {
     fn arg_suffix(arg: &TypeReference) -> String {
         let leaf = arg.name.rsplit("::").next().unwrap_or(&arg.name);
@@ -5706,7 +5721,52 @@ fn mangle_monomorphized_name(struct_name: &str, args: &[TypeReference]) -> Strin
         }
     }
     let suffix = args.iter().map(arg_suffix).collect::<Vec<_>>().join("_");
-    format!("{struct_name}_{suffix}")
+
+    // Length budget: the FLAT PascalCase class name (namespace +
+    // struct + suffix, with `_` collapsed) must stay under 80 chars
+    // or downstream `finalize_class_name` will hash-truncate, while
+    // `type_name_to_python_ref` would still emit the un-truncated
+    // form — yielding two inconsistent names. Predict the
+    // post-PascalCase length from the struct's original name + the
+    // suffix, hash if it would overflow.
+    let candidate = format!("{struct_name}_{suffix}");
+    let pascal_len = pascal_case_len(&candidate);
+    const FLAT_NAME_BUDGET: usize = 80;
+    if pascal_len <= FLAT_NAME_BUDGET {
+        return candidate;
+    }
+    // Trim the suffix to fit. We keep as much human-readable prefix as
+    // we can; the remaining bytes are a stable 8-hex-char hash.
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut h = DefaultHasher::new();
+    struct_name.hash(&mut h);
+    suffix.hash(&mut h);
+    let hash = format!("{:08x}", h.finish() & 0xFFFF_FFFF);
+    // Pascal-collapsed budget for the suffix:
+    let head_pascal = pascal_case_len(&format!("{struct_name}_"));
+    let hash_pascal = pascal_case_len(&format!("_{hash}"));
+    let suffix_budget = FLAT_NAME_BUDGET.saturating_sub(head_pascal + hash_pascal);
+    // Walk the suffix one byte at a time tracking PascalCase length.
+    let mut keep = 0usize;
+    let mut pascal = 0usize;
+    let bytes = suffix.as_bytes();
+    while keep < bytes.len() && pascal < suffix_budget {
+        if bytes[keep] != b'_' {
+            pascal += 1;
+        }
+        keep += 1;
+    }
+    let trimmed = std::str::from_utf8(&bytes[..keep]).unwrap_or("");
+    format!("{struct_name}_{trimmed}_{hash}")
+}
+
+/// Count the chars that a `_`-separated identifier would have once
+/// PascalCased (to_pascal_case) — `_` becomes a word boundary that
+/// disappears, so the post-Pascal length is the number of non-`_`
+/// chars.
+fn pascal_case_len(s: &str) -> usize {
+    s.bytes().filter(|&b| b != b'_' && b != b':').count()
 }
 
 #[cfg(test)]
