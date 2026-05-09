@@ -5871,28 +5871,32 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
         let _ = schema.output_types.remove_type(name);
     }
 
-    // 7. Post-pass invariant check (debug builds). Catches three
-    //    classes of failure that previous bug reports walked us
-    //    through one at a time:
-    //      - dangling refs to a removed marked type
-    //      - TypeVar leaks: a parameters-empty struct/enum body
-    //        whose field types reference a name that isn't in the
-    //        schema (a generic param that didn't get substituted)
-    //      - mismatched typespace state between input_types and
-    //        output_types after monomorphization
+    // 7. Post-pass invariant check (debug builds). Catches two
+    //    failure classes:
+    //      - dangling refs to a removed marked type (anywhere)
+    //      - TypeVar leak in a body we *just monomorphized* (only
+    //        on types we created — original schema bodies can
+    //        legitimately reference external names like
+    //        chrono::Utc as type-arg phantoms or const-generic
+    //        scalars that aren't standalone schema entries)
     //
-    //    Run this in debug builds only — the cost is a full
-    //    schema walk per codegen invocation and the user-facing
-    //    failure modes (validate_type_references, render-time bail)
-    //    will still trip in release. Errors here mean the pass has
+    //    Run in debug builds only. Errors here mean the pass has
     //    a logic bug; that's a developer-visible problem.
-    debug_assert_monomorphization_invariants(schema, &marked);
+    debug_assert_monomorphization_invariants(schema, &marked, &registered);
 
     Ok(())
 }
 
 #[cfg(debug_assertions)]
-fn debug_assert_monomorphization_invariants(schema: &Schema, marked: &BTreeSet<String>) {
+// `monomorphized` holds the names of types we just created (the
+// values of the `concrete` table). Only those bodies need the
+// TypeVar-leak check — everything else was in the schema before
+// this pass and isn't our concern here.
+fn debug_assert_monomorphization_invariants(
+    schema: &Schema,
+    marked: &BTreeSet<String>,
+    monomorphized: &BTreeSet<String>,
+) {
     // Walk every type ref reachable from functions and types.
     fn walk_ref<F: FnMut(&TypeReference)>(tr: &TypeReference, f: &mut F) {
         f(tr);
@@ -5902,6 +5906,9 @@ fn debug_assert_monomorphization_invariants(schema: &Schema, marked: &BTreeSet<S
     }
 
     let mut violations: Vec<String> = Vec::new();
+
+    // Check 1: no dangling refs to removed marked types, anywhere
+    // they could appear. Function-level refs first.
     for fn_def in &schema.functions {
         for site in [
             fn_def.input_type.as_ref(),
@@ -5926,73 +5933,48 @@ fn debug_assert_monomorphization_invariants(schema: &Schema, marked: &BTreeSet<S
             });
         }
     }
+
+    // Then in every type's body. Plus a narrower TypeVar-leak
+    // check that only fires inside bodies of types we just
+    // monomorphized.
     for ts in [&schema.input_types, &schema.output_types] {
         for typ in ts.types() {
-            match typ {
-                Type::Struct(s) => {
-                    let params: BTreeSet<&str> =
-                        s.parameters.iter().map(|p| p.name.as_str()).collect();
-                    for field in s.fields.iter() {
-                        walk_ref(&field.type_ref, &mut |tr| {
-                            if marked.contains(&tr.name) {
-                                violations.push(format!(
-                                    "struct {:?}, field {:?} references removed marked type '{}'",
-                                    s.name,
-                                    field.name(),
-                                    tr.name,
-                                ));
-                            }
-                            // TypeVar leak: a struct that was monomorphized
-                            // (parameters cleared) shouldn't have any
-                            // bare-name refs that aren't in the schema.
-                            if s.parameters.is_empty()
-                                && tr.arguments.is_empty()
-                                && schema.get_type(&tr.name).is_none()
-                            {
-                                violations.push(format!(
-                                    "struct {:?}, field {:?} references unknown type '{}' \
-                                     (likely TypeVar leak in monomorphized body)",
-                                    s.name,
-                                    field.name(),
-                                    tr.name,
-                                ));
-                            }
-                            // Active TypeVar: if a still-generic struct's
-                            // field references a name that's the SAME as
-                            // a TypeVar but the parent is supposed to be
-                            // monomorphized, we've already covered it.
-                            // Generic-context TypeVar refs are legitimate.
-                            let _ = &params;
-                        });
+            let (type_name, fields_iter): (&str, Box<dyn Iterator<Item = (&str, &TypeReference)>>) =
+                match typ {
+                    Type::Struct(s) => (
+                        s.name.as_str(),
+                        Box::new(s.fields.iter().map(|f| (f.name(), &f.type_ref))),
+                    ),
+                    Type::Enum(e) => (
+                        e.name.as_str(),
+                        Box::new(
+                            e.variants
+                                .iter()
+                                .flat_map(|v| v.fields.iter().map(|f| (f.name(), &f.type_ref))),
+                        ),
+                    ),
+                    Type::Primitive(_) => continue,
+                };
+            let we_monomorphized_this = monomorphized.contains(type_name);
+            for (field_name, type_ref) in fields_iter {
+                walk_ref(type_ref, &mut |tr| {
+                    if marked.contains(&tr.name) {
+                        violations.push(format!(
+                            "{type_name:?}, field {field_name:?} references removed marked type '{}'",
+                            tr.name,
+                        ));
                     }
-                }
-                Type::Enum(e) => {
-                    for v in &e.variants {
-                        for field in v.fields.iter() {
-                            walk_ref(&field.type_ref, &mut |tr| {
-                                if marked.contains(&tr.name) {
-                                    violations.push(format!(
-                                        "enum {:?}, variant {:?} references removed marked type '{}'",
-                                        e.name, v.name(), tr.name,
-                                    ));
-                                }
-                                if e.parameters.is_empty()
-                                    && tr.arguments.is_empty()
-                                    && schema.get_type(&tr.name).is_none()
-                                {
-                                    violations.push(format!(
-                                        "enum {:?}, variant {:?} references unknown type '{}' \
-                                         (likely TypeVar leak in monomorphized body)",
-                                        e.name,
-                                        v.name(),
-                                        tr.name,
-                                    ));
-                                }
-                            });
-                        }
+                    if we_monomorphized_this
+                        && tr.arguments.is_empty()
+                        && schema.get_type(&tr.name).is_none()
+                    {
+                        violations.push(format!(
+                            "{type_name:?}, field {field_name:?} references unknown type '{}' \
+                             (TypeVar leak in monomorphized body)",
+                            tr.name,
+                        ));
                     }
-                }
-                Type::Primitive(_) => {}
+                });
             }
         }
     }
@@ -6006,7 +5988,12 @@ fn debug_assert_monomorphization_invariants(schema: &Schema, marked: &BTreeSet<S
 
 #[cfg(not(debug_assertions))]
 #[allow(dead_code)]
-fn debug_assert_monomorphization_invariants(_schema: &Schema, _marked: &BTreeSet<String>) {}
+fn debug_assert_monomorphization_invariants(
+    _schema: &Schema,
+    _marked: &BTreeSet<String>,
+    _monomorphized: &BTreeSet<String>,
+) {
+}
 
 /// Mangle a `(struct, args)` instantiation into a fresh schema type
 /// name. The struct's full namespace-qualified name is preserved so
@@ -6190,6 +6177,73 @@ mod tests {
             pascal_len <= 80,
             "post-Pascal mangled name '{deep}' exceeds 80 chars (got {pascal_len})",
         );
+    }
+
+    /// Regression: the post-pass invariant check used to flag
+    /// chrono::Utc as a "TypeVar leak" because it appears as an arg
+    /// of chrono::DateTime<Tz> but isn't a standalone schema type.
+    /// Const-generic scalars (`[T; 2]`'s 2) had the same issue.
+    /// Both are external/structural names that legitimately don't
+    /// have schema entries — the check should only fire on bodies
+    /// of types we actually monomorphized.
+    #[test]
+    fn invariant_check_ignores_phantom_type_args_in_unmodified_bodies() {
+        // Marked struct + a struct holding a chrono::DateTime<Utc>
+        // field. After monomorphization, the marked struct goes
+        // away and the holder remains, with its DateTime<Utc> field
+        // intact. `chrono::Utc` is registered nowhere — the
+        // earlier validator would panic; the narrowed one must not.
+        let schema_json = r#"{
+            "name": "test",
+            "functions": [{
+                "name": "f", "path": "",
+                "input_type": { "name": "Holder" },
+                "output_kind": "complete",
+                "output_type": { "name": "Wrapper", "arguments": [{ "name": "Holder" }] },
+                "serialization": ["json"]
+            }],
+            "input_types": { "types": [
+                { "kind": "primitive", "name": "chrono::DateTime", "description": "ts",
+                  "parameters": [{ "name": "Tz" }],
+                  "fallback": { "name": "std::string::String" } },
+                { "kind": "primitive", "name": "std::string::String", "description": "s" },
+                { "kind": "struct", "name": "Holder",
+                  "fields": { "named": [
+                    { "name": "ts",
+                      "type": { "name": "chrono::DateTime",
+                                "arguments": [{ "name": "chrono::Utc" }] },
+                      "required": true }
+                  ] } },
+                { "kind": "struct", "name": "Wrapper",
+                  "parameters": [{ "name": "T" }],
+                  "fields": { "named": [
+                    { "name": "inner", "type": { "name": "T" }, "required": true, "flattened": true }
+                  ] } }
+            ] },
+            "output_types": { "types": [
+                { "kind": "primitive", "name": "chrono::DateTime", "description": "ts",
+                  "parameters": [{ "name": "Tz" }],
+                  "fallback": { "name": "std::string::String" } },
+                { "kind": "primitive", "name": "std::string::String", "description": "s" },
+                { "kind": "struct", "name": "Holder",
+                  "fields": { "named": [
+                    { "name": "ts",
+                      "type": { "name": "chrono::DateTime",
+                                "arguments": [{ "name": "chrono::Utc" }] },
+                      "required": true }
+                  ] } },
+                { "kind": "struct", "name": "Wrapper",
+                  "parameters": [{ "name": "T" }],
+                  "fields": { "named": [
+                    { "name": "inner", "type": { "name": "T" }, "required": true, "flattened": true }
+                  ] } }
+            ] }
+        }"#;
+        let schema: crate::Schema = serde_json::from_str(schema_json).unwrap();
+        // No panic: the validator must not flag chrono::Utc.
+        let py = super::generate(schema, &Config::default()).expect("codegen must run cleanly");
+        // Sanity: the chrono mapping made it to the output.
+        assert!(py.contains("datetime") || py.contains("Holder"));
     }
 
     /// End-to-end: a marked struct that flattens its generic param
