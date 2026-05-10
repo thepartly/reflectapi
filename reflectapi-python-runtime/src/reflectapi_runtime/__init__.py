@@ -46,6 +46,7 @@ from .option import (
     undefined,
 )
 from .response import ApiResponse, TransportMetadata
+from .serde import parse_externally_tagged, serialize_externally_tagged
 from .streaming import AsyncStreamingClient, StreamingResponse
 from .testing import (
     AsyncCassetteMiddleware,
@@ -97,6 +98,8 @@ __all__ = [
     "ReflectapiEmpty",
     "ReflectapiInfallible",
     "ReflectapiOption",
+    "parse_externally_tagged",
+    "serialize_externally_tagged",
     "StreamingResponse",
     "TestClientMixin",
     "TimeoutError",

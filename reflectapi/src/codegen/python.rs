@@ -381,6 +381,9 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
         third_party_imports.insert("RootModel");
         third_party_imports.insert("model_validator");
         third_party_imports.insert("model_serializer");
+        runtime_imports.insert(
+            "parse_externally_tagged as _parse_externally_tagged, serialize_externally_tagged as _serialize_externally_tagged".to_string(),
+        );
     }
 
     // Runtime imports - client bases
@@ -1405,41 +1408,6 @@ fn build_python_generation(
     };
     // Use optimized import generation instead of template
     generated_code.push(generate_optimized_imports(&imports));
-
-    // Emit reusable helper functions for externally tagged enums (once, not per-enum)
-    if has_externally_tagged_enums {
-        generated_code.push(
-            r#"
-# Helper functions for externally tagged enum serialization/deserialization
-def _parse_externally_tagged(data, variants: dict, types: tuple, enum_name: str):
-    """Parse an externally tagged enum from {key: value} format."""
-    if types and isinstance(data, types):
-        return data
-    if isinstance(data, str) and data in variants:
-        handler = variants[data]
-        if handler == "_unit":
-            return data
-    if isinstance(data, dict):
-        if len(data) != 1:
-            raise ValueError("Externally tagged enum must have exactly one key")
-        key, value = next(iter(data.items()))
-        if key in variants:
-            handler = variants[key]
-            if handler == "_unit":
-                return key
-            return handler(value)
-    raise ValueError(f"Unknown variant for {enum_name}: {data}")
-
-
-def _serialize_externally_tagged(root, serializers: dict, enum_name: str):
-    """Serialize an externally tagged enum to {key: value} format."""
-    for variant_name, (check, serialize) in serializers.items():
-        if check(root):
-            return serialize(root)
-    raise ValueError(f"Cannot serialize {enum_name} variant: {type(root)}")"#
-                .to_string(),
-        );
-    }
 
     // Types that are provided by the runtime library and should not be generated
     let mut non_rendered_types = python_metadata.runtime_provided_types.clone();
