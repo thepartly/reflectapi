@@ -1255,6 +1255,142 @@ struct PythonGeneration {
     testing_code: Option<String>,
 }
 
+fn collect_type_refs(type_ref: &TypeReference, type_refs: &mut Vec<TypeReference>) {
+    type_refs.push(type_ref.clone());
+    for argument in &type_ref.arguments {
+        collect_type_refs(argument, type_refs);
+    }
+}
+
+fn collect_concrete_type_refs(schema: &Schema) -> Vec<TypeReference> {
+    let mut type_refs = Vec::new();
+
+    for function in schema.functions() {
+        if let Some(input_type) = &function.input_type {
+            collect_type_refs(input_type, &mut type_refs);
+        }
+        if let Some(input_headers) = &function.input_headers {
+            collect_type_refs(input_headers, &mut type_refs);
+        }
+        match &function.output_type {
+            OutputType::Complete {
+                output_type: Some(output_type),
+            } => collect_type_refs(output_type, &mut type_refs),
+            OutputType::Stream { item_type } => collect_type_refs(item_type, &mut type_refs),
+            OutputType::Complete { output_type: None } => {}
+        }
+        if let Some(error_type) = &function.error_type {
+            collect_type_refs(error_type, &mut type_refs);
+        }
+    }
+
+    type_refs
+}
+
+fn type_ref_pascal_suffix(type_ref: &TypeReference) -> String {
+    let mut suffix = python_class_name(&type_ref.name, &BTreeMap::new());
+    for argument in &type_ref.arguments {
+        suffix.push_str(&type_ref_pascal_suffix(argument));
+    }
+    suffix
+}
+
+fn concrete_type_ref_name(type_ref: &TypeReference) -> String {
+    format!(
+        "{}{}",
+        python_class_name(&type_ref.name, &BTreeMap::new()),
+        type_ref
+            .arguments
+            .iter()
+            .map(type_ref_pascal_suffix)
+            .collect::<Vec<_>>()
+            .join("")
+    )
+}
+
+fn substitute_type_params(
+    type_ref: &TypeReference,
+    substitutions: &BTreeMap<String, TypeReference>,
+) -> TypeReference {
+    if type_ref.arguments.is_empty() {
+        if let Some(substitution) = substitutions.get(&type_ref.name) {
+            return substitution.clone();
+        }
+    }
+
+    TypeReference {
+        name: type_ref.name.clone(),
+        arguments: type_ref
+            .arguments
+            .iter()
+            .map(|argument| substitute_type_params(argument, substitutions))
+            .collect(),
+    }
+}
+
+fn concrete_struct_from_type_ref(
+    type_ref: &TypeReference,
+    struct_def: &reflectapi_schema::Struct,
+) -> reflectapi_schema::Struct {
+    let substitutions: BTreeMap<String, TypeReference> = struct_def
+        .parameters
+        .iter()
+        .zip(type_ref.arguments.iter())
+        .map(|(parameter, argument)| (parameter.name.clone(), argument.clone()))
+        .collect();
+
+    let mut concrete = struct_def.clone();
+    concrete.name = concrete_type_ref_name(type_ref);
+    concrete.parameters.clear();
+
+    match &mut concrete.fields {
+        reflectapi_schema::Fields::Named(fields) | reflectapi_schema::Fields::Unnamed(fields) => {
+            for field in fields {
+                field.type_ref = substitute_type_params(&field.type_ref, &substitutions);
+            }
+        }
+        reflectapi_schema::Fields::None => {}
+    }
+
+    concrete
+}
+
+fn render_concrete_flattened_generic_structs(
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
+) -> anyhow::Result<BTreeMap<String, String>> {
+    let mut rendered_types = BTreeMap::new();
+    let mut used_type_vars = BTreeSet::new();
+
+    for type_ref in collect_concrete_type_refs(schema) {
+        if type_ref.arguments.is_empty()
+            || rendered_types.contains_key(&concrete_type_ref_name(&type_ref))
+        {
+            continue;
+        }
+
+        let Some(Type::Struct(struct_def)) = schema.get_type(&type_ref.name) else {
+            continue;
+        };
+        if struct_def.parameters.is_empty() || !struct_def.fields().any(|field| field.flattened()) {
+            continue;
+        }
+
+        let concrete = concrete_struct_from_type_ref(&type_ref, struct_def);
+        let rendered = render_struct(
+            &concrete,
+            schema,
+            implemented_types,
+            class_names,
+            &mut used_type_vars,
+        )?;
+        rendered_types.insert(concrete.name.clone(), rendered);
+    }
+
+    Ok(rendered_types)
+}
+
 /// Build a tree of namespace modules from rendered type strings.
 ///
 /// Each original type name is split on `::`.  The last segment is the leaf
@@ -1520,6 +1656,13 @@ fn build_python_generation(
             rendered_types.insert(type_name.clone(), rendered);
             rendered_type_names_in_order.push(type_name);
         }
+    }
+
+    for (type_name, rendered) in
+        render_concrete_flattened_generic_structs(&schema, &implemented_types, &class_names)?
+    {
+        rendered_types.insert(type_name.clone(), rendered);
+        rendered_type_names_in_order.push(type_name);
     }
 
     // Collect rendered type keys before passing ownership to the module tree builder.
@@ -4400,6 +4543,16 @@ fn type_ref_to_python_type(
             active_generics,
             used_type_vars,
         );
+    }
+
+    if !type_ref.arguments.is_empty() {
+        if let Some(Type::Struct(struct_def)) = schema.get_type(&type_ref.name) {
+            if !struct_def.parameters.is_empty()
+                && struct_def.fields().any(|field| field.flattened())
+            {
+                return Ok(concrete_type_ref_name(type_ref));
+            }
+        }
     }
 
     // 3. THIRD: Only after checking fallbacks, check if it's a user-defined type in the schema
