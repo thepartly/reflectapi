@@ -1820,6 +1820,18 @@ fn module_import_path(ns_path: &[String]) -> String {
         .join(".")
 }
 
+fn root_relative_prefix(depth: usize) -> String {
+    ".".repeat(depth + 1)
+}
+
+fn root_module(ns_path: &[String]) -> String {
+    safe_python_module_segment(&ns_path[0])
+}
+
+fn relative_module_import_path(ns_path: &[String]) -> String {
+    format!(".{}", module_import_path(ns_path))
+}
+
 fn module_file_path(ns_path: &[String]) -> String {
     let mut path = ns_path
         .iter()
@@ -1852,7 +1864,8 @@ fn render_module_file(
 
     if !root_type_names.is_empty() {
         parts.push(format!(
-            "from _types import {}",
+            "from {}_types import {}",
+            root_relative_prefix(ns_path.len()),
             root_type_names
                 .iter()
                 .cloned()
@@ -1900,7 +1913,7 @@ fn render_module_file(
             body.push('\n');
         }
         body.push_str("try:\n");
-        body.push_str("    from _rebuild import rebuild_models as _rebuild_models\n\n");
+        body.push_str("    from .._rebuild import rebuild_models as _rebuild_models\n\n");
         body.push_str("    _rebuild_models()\n");
         body.push_str("except Exception:\n");
         body.push_str("    pass\n");
@@ -1967,18 +1980,18 @@ fn render_rebuild_file(
         if ns_path.is_empty() {
             continue;
         }
-        lines.push(format!("import {}", module_import_path(ns_path)));
+        lines.push(format!("from . import {}", root_module(ns_path)));
         lines.push(format!(
             "from {} import {}",
-            module_import_path(ns_path),
+            relative_module_import_path(ns_path),
             names.iter().cloned().collect::<Vec<_>>().join(", ")
         ));
     }
 
     if !root_type_names.is_empty() {
-        lines.push("import _types".to_string());
+        lines.push("from . import _types".to_string());
         lines.push(format!(
-            "from _types import {}",
+            "from ._types import {}",
             root_type_names
                 .iter()
                 .cloned()
@@ -2037,12 +2050,12 @@ fn render_client_file(
         .filter(|sub| !sub.is_empty())
         .map(|sub| safe_python_module_segment(&sub.name))
     {
-        parts.push(format!("import {root}"));
+        parts.push(format!("from . import {root}"));
     }
 
     if !root_type_names.is_empty() {
         parts.push(format!(
-            "from _types import {}",
+            "from ._types import {}",
             root_type_names
                 .iter()
                 .cloned()
@@ -2052,7 +2065,7 @@ fn render_client_file(
     }
 
     parts.push(
-        "from _rebuild import rebuild_models as _rebuild_models\n\n_rebuild_models()".to_string(),
+        "from ._rebuild import rebuild_models as _rebuild_models\n\n_rebuild_models()".to_string(),
     );
     parts.push(generation.client_code.clone());
     render_python_file(config, parts.join("\n\n"))
@@ -2068,11 +2081,11 @@ fn render_generated_facade(
             package_name: config.package_name.clone(),
         }
         .render(),
-        "from _client import AsyncClient".to_string(),
+        "from ._client import AsyncClient".to_string(),
     ];
 
     if config.generate_sync {
-        lines.push("from _client import Client".to_string());
+        lines.push("from ._client import Client".to_string());
     }
 
     let mut all_names = BTreeSet::new();
@@ -2085,10 +2098,10 @@ fn render_generated_facade(
         if ns_path.is_empty() {
             continue;
         }
-        lines.push(format!("import {}", module_import_path(ns_path)));
+        lines.push(format!("from . import {}", root_module(ns_path)));
         lines.push(format!(
             "from {} import {}",
-            module_import_path(ns_path),
+            relative_module_import_path(ns_path),
             names.iter().cloned().collect::<Vec<_>>().join(", ")
         ));
         all_names.extend(names.iter().cloned());
@@ -2096,7 +2109,7 @@ fn render_generated_facade(
 
     if !root_type_names.is_empty() {
         lines.push(format!(
-            "from _types import {}",
+            "from ._types import {}",
             root_type_names
                 .iter()
                 .cloned()
@@ -2106,7 +2119,7 @@ fn render_generated_facade(
         all_names.extend(root_type_names.iter().cloned());
     }
 
-    lines.push("from _rebuild import rebuild_models as _rebuild_models".to_string());
+    lines.push("from ._rebuild import rebuild_models as _rebuild_models".to_string());
     lines.push("_rebuild_models()".to_string());
     lines.push(format!(
         "__all__ = {:?}",

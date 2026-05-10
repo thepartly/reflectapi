@@ -148,6 +148,9 @@ fn test_python_init_exports_client() {
     assert!(namespace_file.contains("class ReflectapiDemoTestsNamespaceTestType(BaseModel):"));
     assert!(namespace_file.contains("TestType = ReflectapiDemoTestsNamespaceTestType"));
     assert!(namespace_file.contains("__all__"));
+    let client_file = files.get("_client.py").unwrap();
+    assert!(client_file.contains("from . import reflectapi_demo"));
+    assert!(client_file.contains("from ._rebuild import rebuild_models as _rebuild_models"));
     assert!(files.values().all(|src| !src.contains("Namespace classes")));
     assert!(files
         .values()
