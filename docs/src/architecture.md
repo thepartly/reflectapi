@@ -120,6 +120,8 @@ ReflectAPI includes special API-facing types whose semantics matter to codegen:
 - `reflectapi::Infallible`: explicit “no error payload” type
 
 The Python backend treats these as runtime-provided abstractions rather than generated models.
+Generated Python clients use real package modules for reflected namespaces; the
+flat `generated.py` file is only a compatibility facade over those modules.
 
 ## Testing and Validation
 

@@ -50,7 +50,7 @@ class TestAsyncClient:
         assert "Create a new pet" in docstring
         assert "Args:" in docstring
         assert "Returns:" in docstring
-        assert "ApiResponse[Any]" in docstring
+        assert "ApiResponse[Any, myapi.proto.PetsCreateError]" in docstring
 
     @pytest.mark.asyncio
     async def test_deprecated_method_warning(self):

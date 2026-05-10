@@ -253,7 +253,10 @@ fn main() -> anyhow::Result<()> {
                     "Failed to create output directory: {output_path:?}"
                 ))?;
                 for (filename, content) in &files {
-                    write_file(&output_path.join(filename), content)?;
+                    write_file(
+                        &output_path.join(generated_relative_path(filename)?),
+                        content,
+                    )?;
                 }
             } else {
                 let parent = parent_or_dot(&output_path);
@@ -263,7 +266,7 @@ fn main() -> anyhow::Result<()> {
                     let dest = if filename == primary_name_in_path {
                         output_path.clone()
                     } else {
-                        parent.join(filename)
+                        parent.join(generated_relative_path(filename)?)
                     };
                     write_file(&dest, content)?;
                 }
@@ -280,7 +283,23 @@ fn parent_or_dot(path: &std::path::Path) -> std::path::PathBuf {
         .unwrap_or_else(|| std::path::PathBuf::from("."))
 }
 
+fn generated_relative_path(filename: &str) -> anyhow::Result<&std::path::Path> {
+    let relative_path = std::path::Path::new(filename);
+    anyhow::ensure!(
+        relative_path.is_relative()
+            && !relative_path
+                .components()
+                .any(|component| matches!(component, std::path::Component::ParentDir)),
+        "Generated file path must be relative and stay within output directory: {filename}"
+    );
+    Ok(relative_path)
+}
+
 fn write_file(path: &std::path::Path, content: &str) -> anyhow::Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .context(format!("Failed to create output directory: {parent:?}"))?;
+    }
     let mut file =
         std::fs::File::create(path).context(format!("Failed to create file: {path:?}"))?;
     file.write_all(content.as_bytes())

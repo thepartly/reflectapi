@@ -10,10 +10,15 @@ from generated import (
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
     MyapiProtoPetsCreateError as PetsCreateError,
+    MyapiProtoPetsCreateErrorInvalidIdentityVariant as PetsCreateErrorInvalidIdentityVariant,
     MyapiProtoPetsListError as PetsListError,
+    MyapiProtoPetsListErrorInvalidCursor as PetsListErrorInvalidCursor,
+    MyapiProtoPetsListErrorUnauthorized as PetsListErrorUnauthorized,
+    MyapiProtoPetsListErrorInternal as PetsListErrorInternal,
     MyapiProtoPetsUpdateError as PetsUpdateError,
     MyapiProtoPetsRemoveError as PetsRemoveError,
 )
+from tests.model_helpers import aggressive_behavior, calm_behavior, root_value
 
 
 class TestModelValidation:
@@ -83,31 +88,34 @@ class TestErrorEnums:
     """Test error enum types."""
 
     def test_pets_create_error_values(self):
-        """Test PetsCreateError factory-created variants."""
-        from generated import MyapiProtoPetsCreateErrorFactory as PetsCreateErrorFactory
-
-        conflict = PetsCreateErrorFactory.CONFLICT
+        """Test PetsCreateError root-model variants."""
+        conflict = PetsCreateError(root="Conflict")
         assert conflict.root == "Conflict"
-        not_auth = PetsCreateErrorFactory.NOTAUTHORIZED
+        not_auth = PetsCreateError(root="NotAuthorized")
         assert not_auth.root == "NotAuthorized"
-        invalid = PetsCreateErrorFactory.invalid_identity("test")
-        assert hasattr(invalid, "message")
-        assert invalid.message == "test"
+        invalid = PetsCreateError(
+            root=PetsCreateErrorInvalidIdentityVariant(message="test")
+        )
+        assert invalid.root.message == "test"
 
     def test_pets_list_error_values(self):
-        """Test PetsListError enum values."""
-        assert PetsListError.INVALID_CURSOR == "InvalidCursor"
-        assert PetsListError.UNAUTHORIZED == "Unauthorized"
+        """Test PetsListError tagged union values."""
+        invalid_cursor = PetsListError(root=PetsListErrorInvalidCursor())
+        unauthorized = PetsListError(root=PetsListErrorUnauthorized())
+        internal = PetsListError(root=PetsListErrorInternal(message="boom"))
 
-        # Test enum completeness
-        expected_values = {"InvalidCursor", "Unauthorized"}
-        actual_values = {error.value for error in PetsListError}
+        expected_values = {"InvalidCursor", "Unauthorized", "Internal"}
+        actual_values = {
+            invalid_cursor.root.kind,
+            unauthorized.root.kind,
+            internal.root.kind,
+        }
         assert actual_values == expected_values
 
     def test_pets_update_error_values(self):
-        """Test PetsUpdateError enum values."""
-        assert PetsUpdateError.NOT_FOUND == "NotFound"
-        assert PetsUpdateError.NOT_AUTHORIZED == "NotAuthorized"
+        """Test PetsUpdateError root-model values."""
+        assert PetsUpdateError(root="NotFound").root == "NotFound"
+        assert PetsUpdateError(root="NotAuthorized").root == "NotAuthorized"
 
     def test_pets_remove_error_values(self):
         """Test PetsRemoveError enum values."""
@@ -157,15 +165,13 @@ class TestEdgeCases:
 
     def test_pet_duplicate_behaviors(self):
         """Test pet with duplicate behaviors."""
-        from generated import MyapiModelBehaviorFactory as BehaviorFactory
-
         pet = Pet(
             name="Test",
             kind=PetKindDog(type="dog", breed="Labrador"),
             behaviors=[
-                BehaviorFactory.CALM,
-                BehaviorFactory.CALM,
-                BehaviorFactory.aggressive(3.0, "test"),
+                calm_behavior(),
+                calm_behavior(),
+                aggressive_behavior(3.0, "test"),
             ],
         )
         # Duplicates should be preserved - check root values for externally tagged enums
@@ -192,7 +198,7 @@ class TestSerialization:
         reconstructed_pet = Pet.model_validate(pet_dict)
 
         assert reconstructed_pet.name == sample_pet.name
-        assert reconstructed_pet.kind.type == sample_pet.kind.type
+        assert root_value(reconstructed_pet.kind).type == root_value(sample_pet.kind).type
         assert reconstructed_pet.age == sample_pet.age
         assert reconstructed_pet.behaviors == sample_pet.behaviors
 
@@ -224,4 +230,4 @@ class TestSerialization:
 
         assert updated_pet.name == "Updated"
         assert updated_pet.age == 6
-        assert updated_pet.kind.breed == "Labrador"  # Unchanged
+        assert root_value(updated_pet.kind).breed == "Labrador"  # Unchanged

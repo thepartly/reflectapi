@@ -138,7 +138,18 @@ fn test_python_init_exports_client() {
     .unwrap();
     let init_py = files.get("__init__.py").unwrap();
 
-    assert!(init_py.contains("from .generated import AsyncClient, Client"));
-    assert!(init_py.contains("__all__ = [\"AsyncClient\", \"Client\"]"));
+    assert!(init_py.contains("from ._client import AsyncClient, Client"));
+    assert!(init_py.contains("__all__ = [\"AsyncClient\", \"Client\", \"reflectapi_demo\"]"));
     assert!(!init_py.contains("SyncClient"));
+
+    let namespace_file = files
+        .get("reflectapi_demo/tests/namespace/__init__.py")
+        .unwrap();
+    assert!(namespace_file.contains("class ReflectapiDemoTestsNamespaceTestType(BaseModel):"));
+    assert!(namespace_file.contains("TestType = ReflectapiDemoTestsNamespaceTestType"));
+    assert!(namespace_file.contains("__all__"));
+    assert!(files.values().all(|src| !src.contains("Namespace classes")));
+    assert!(files
+        .values()
+        .all(|src| !src.contains("class reflectapi_demo:")));
 }

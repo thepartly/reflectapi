@@ -24,7 +24,6 @@ from generated import (
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
-    MyapiModelBehaviorFactory as BehaviorFactory,
     MyapiModelInputPet as PetsCreateRequest,  # Create uses input model
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     MyapiProtoPetsRemoveRequest as PetsRemoveRequest,
@@ -32,6 +31,7 @@ from generated import (
     MyapiProtoHeaders as Headers,
 )
 from reflectapi_runtime import ReflectapiOption, ApiError
+from tests.model_helpers import calm_behavior, other_behavior, root_value
 
 
 @pytest.mark.asyncio
@@ -83,7 +83,7 @@ class TestClientServerIntegration:
             name=f"test_dog_{datetime.now().timestamp()}",
             kind=dog_kind,
             age=3,
-            behaviors=[BehaviorFactory.CALM],
+            behaviors=[calm_behavior()],
         )
 
         # Send create request
@@ -111,7 +111,7 @@ class TestClientServerIntegration:
             name=f"test_cat_{datetime.now().timestamp()}",
             kind=cat_kind,
             age=2,
-            behaviors=[BehaviorFactory.CALM, BehaviorFactory.other("Custom")],
+            behaviors=[calm_behavior(), other_behavior("Custom")],
         )
 
         # Send create request
@@ -192,7 +192,7 @@ class TestSerializationRoundTrip:
         # Create original dog
         original_dog = PetKindDog(type="dog", breed="German Shepherd")
         original_pet = Pet(
-            name="Rex", kind=original_dog, age=5, behaviors=[BehaviorFactory.CALM]
+            name="Rex", kind=original_dog, age=5, behaviors=[calm_behavior()]
         )
 
         # Serialize to dict (like JSON)
@@ -203,8 +203,10 @@ class TestSerializationRoundTrip:
 
         # Should be equivalent
         assert deserialized_pet.name == original_pet.name
-        assert deserialized_pet.kind.type == original_pet.kind.type
-        assert deserialized_pet.kind.breed == original_pet.kind.breed
+        deserialized_kind = root_value(deserialized_pet.kind)
+        original_kind = root_value(original_pet.kind)
+        assert deserialized_kind.type == original_kind.type
+        assert deserialized_kind.breed == original_kind.breed
         assert deserialized_pet.age == original_pet.age
         assert deserialized_pet.behaviors == original_pet.behaviors
 
@@ -216,7 +218,7 @@ class TestSerializationRoundTrip:
             name="Whiskers",
             kind=original_cat,
             age=3,
-            behaviors=[BehaviorFactory.other("Custom")],
+            behaviors=[other_behavior("Custom")],
         )
 
         # Serialize to dict (like JSON)
@@ -227,8 +229,10 @@ class TestSerializationRoundTrip:
 
         # Should be equivalent
         assert deserialized_pet.name == original_pet.name
-        assert deserialized_pet.kind.type == original_pet.kind.type
-        assert deserialized_pet.kind.lives == original_pet.kind.lives
+        deserialized_kind = root_value(deserialized_pet.kind)
+        original_kind = root_value(original_pet.kind)
+        assert deserialized_kind.type == original_kind.type
+        assert deserialized_kind.lives == original_kind.lives
         assert deserialized_pet.age == original_pet.age
         assert deserialized_pet.behaviors == original_pet.behaviors
 
@@ -254,13 +258,15 @@ class TestSerializationRoundTrip:
 
         # Validate first pet (dog)
         assert deserialized_pets[0].name == "Bruno"
-        assert deserialized_pets[0].kind.type == "dog"
-        assert deserialized_pets[0].kind.breed == "Bulldog"
+        first_kind = root_value(deserialized_pets[0].kind)
+        assert first_kind.type == "dog"
+        assert first_kind.breed == "Bulldog"
 
         # Validate second pet (cat)
         assert deserialized_pets[1].name == "Luna"
-        assert deserialized_pets[1].kind.type == "cat"
-        assert deserialized_pets[1].kind.lives == 9
+        second_kind = root_value(deserialized_pets[1].kind)
+        assert second_kind.type == "cat"
+        assert second_kind.lives == 9
 
     def test_json_compatibility(self):
         """Test that tagged enums work with JSON serialization."""
@@ -279,8 +285,10 @@ class TestSerializationRoundTrip:
 
         # Should match original
         assert reconstructed_pet.name == pet.name
-        assert reconstructed_pet.kind.type == pet.kind.type
-        assert reconstructed_pet.kind.breed == pet.kind.breed
+        reconstructed_kind = root_value(reconstructed_pet.kind)
+        pet_kind = root_value(pet.kind)
+        assert reconstructed_kind.type == pet_kind.type
+        assert reconstructed_kind.breed == pet_kind.breed
         assert reconstructed_pet.age == pet.age
 
 

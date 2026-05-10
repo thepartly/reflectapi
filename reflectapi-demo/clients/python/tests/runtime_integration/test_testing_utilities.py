@@ -13,6 +13,7 @@ from generated import (
     MyapiModelBehaviorOtherVariant as BehaviorOther,
     MyapiProtoPaginated as Paginated,
 )
+from tests.model_helpers import root_value
 
 # For externally tagged enums, unit variants are just string literals
 BehaviorCalm = "Calm"
@@ -30,8 +31,9 @@ class TestBasicModelFunctionality:
         pet = Pet(name="test_dog", kind=dog_kind)
 
         assert pet.name == "test_dog"
-        assert pet.kind.type == "dog"
-        assert pet.kind.breed == "Labrador"
+        kind = root_value(pet.kind)
+        assert kind.type == "dog"
+        assert kind.breed == "Labrador"
 
     def test_pet_creation_with_cat_kind(self):
         """Test creating a Pet with cat kind."""
@@ -39,8 +41,9 @@ class TestBasicModelFunctionality:
         pet = Pet(name="test_cat", kind=cat_kind)
 
         assert pet.name == "test_cat"
-        assert pet.kind.type == "cat"
-        assert pet.kind.lives == 9
+        kind = root_value(pet.kind)
+        assert kind.type == "cat"
+        assert kind.lives == 9
 
     def test_pet_details_creation(self):
         """Test creating PetDetails."""
@@ -50,8 +53,9 @@ class TestBasicModelFunctionality:
         )
 
         assert pet_details.name == "detailed_cat"
-        assert pet_details.kind.type == "cat"
-        assert pet_details.kind.lives == 7
+        kind = root_value(pet_details.kind)
+        assert kind.type == "cat"
+        assert kind.lives == 7
         assert pet_details.updated_at is not None
 
     def test_paginated_creation(self):
@@ -98,7 +102,7 @@ class TestBasicModelFunctionality:
         cat_kind = PetKindCat(type="cat", lives=8)
 
         def process_pet_kind(kind: PetKind) -> str:
-            return kind.type
+            return root_value(kind).type
 
         assert process_pet_kind(dog_kind) == "dog"
         assert process_pet_kind(cat_kind) == "cat"
