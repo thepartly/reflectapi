@@ -144,10 +144,11 @@ fn python_stdout_emits_generated_not_init() {
     ]);
     assert!(out.status.success());
     let stdout = String::from_utf8_lossy(&out.stdout);
-    // __init__.py is a 5-line shim; generated.py contains the actual
-    // pydantic models / client classes.
+    // __init__.py is a package-root shim; generated.py is the flat
+    // compatibility facade and should include model re-exports.
     assert!(
-        stdout.contains("AsyncClientBase") || stdout.contains("class "),
-        "expected stdout to be generated.py. got:\n{stdout}",
+        stdout.contains("from ._rebuild import rebuild_models")
+            && stdout.contains("from .myapi.proto import"),
+        "expected stdout to be generated.py compatibility facade. got:\n{stdout}",
     );
 }
