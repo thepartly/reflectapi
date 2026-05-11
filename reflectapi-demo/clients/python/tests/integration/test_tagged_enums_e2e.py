@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Union
 from pydantic import ValidationError
 
-from generated import (
+from tests.package_imports import (
     MyapiModelInputPet as Pet,
     MyapiModelOutputPet as PetDetails,
     MyapiModelKind as PetKind,
@@ -20,6 +20,7 @@ from generated import (
     MyapiProtoPaginated as Paginated,
 )
 from reflectapi_runtime import ReflectapiOption
+from tests.model_helpers import root_value
 
 # For externally tagged enums, unit variants are just string literals
 BehaviorCalm = "Calm"
@@ -118,8 +119,9 @@ class TestTaggedEnumInModels:
         pet = Pet(name="Rex", kind=dog, age=5, behaviors=[BehaviorCalm])
 
         assert pet.name == "Rex"
-        assert pet.kind.type == "dog"
-        assert pet.kind.breed == "Border Collie"
+        kind = root_value(pet.kind)
+        assert kind.type == "dog"
+        assert kind.breed == "Border Collie"
         assert pet.age == 5
 
     def test_pet_with_cat_kind(self):
@@ -133,8 +135,9 @@ class TestTaggedEnumInModels:
         )
 
         assert pet.name == "Whiskers"
-        assert pet.kind.type == "cat"
-        assert pet.kind.lives == 7
+        kind = root_value(pet.kind)
+        assert kind.type == "cat"
+        assert kind.lives == 7
         assert pet.age == 3
 
     def test_pet_serialization_with_tagged_enum(self):
@@ -160,8 +163,9 @@ class TestTaggedEnumInModels:
 
         pet = Pet.model_validate(data)
         assert pet.name == "Luna"
-        assert pet.kind.type == "cat"
-        assert pet.kind.lives == 9
+        kind = root_value(pet.kind)
+        assert kind.type == "cat"
+        assert kind.lives == 9
         assert pet.age == 2
         assert len(pet.behaviors) == 1
         assert pet.behaviors[0].root == "Calm"
@@ -176,8 +180,9 @@ class TestTaggedEnumInRequests:
         request = PetsUpdateRequest(name="Buddy", kind=dog, age=ReflectapiOption(6))
 
         assert request.name == "Buddy"
-        assert request.kind.type == "dog"
-        assert request.kind.breed == "Retriever"
+        kind = root_value(request.kind)
+        assert kind.type == "dog"
+        assert kind.breed == "Retriever"
         assert request.age._value == 6
 
     def test_update_request_serialization_with_tagged_enum(self):
@@ -209,10 +214,12 @@ class TestTaggedEnumCompatibility:
         paginated = Paginated[PetDetails](items=pets)
 
         assert len(paginated.items) == 2
-        assert paginated.items[0].kind.type == "dog"
-        assert paginated.items[0].kind.breed == "Husky"
-        assert paginated.items[1].kind.type == "cat"
-        assert paginated.items[1].kind.lives == 9
+        first_kind = root_value(paginated.items[0].kind)
+        second_kind = root_value(paginated.items[1].kind)
+        assert first_kind.type == "dog"
+        assert first_kind.breed == "Husky"
+        assert second_kind.type == "cat"
+        assert second_kind.lives == 9
 
     def test_union_type_annotation(self):
         """Test that PetKind is properly typed as Union."""
@@ -222,7 +229,7 @@ class TestTaggedEnumCompatibility:
 
         # Both should be acceptable as PetKind
         def accept_pet_kind(kind: PetKind) -> str:
-            return kind.type
+            return root_value(kind).type
 
         assert accept_pet_kind(dog) == "dog"
         assert accept_pet_kind(cat) == "cat"

@@ -5,16 +5,20 @@ import asyncio
 import sys
 from datetime import datetime
 
+import pytest
+
 sys.path.insert(0, "../../../reflectapi-python-runtime/src")
 
-from generated import (
+from tests.package_imports import (
     AsyncClient,
     MyapiModelInputPet as Pet,
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
-    MyapiModelBehaviorFactory as BehaviorFactory,
     MyapiProtoHeaders as Headers,
 )
+from tests.model_helpers import aggressive_behavior, calm_behavior
+
+pytestmark = pytest.mark.e2e
 
 
 async def test_e2e():
@@ -37,8 +41,8 @@ async def test_e2e():
         kind=PetKindDog(type="dog", breed="Golden Retriever"),
         age=3,
         behaviors=[
-            BehaviorFactory.CALM,
-            BehaviorFactory.aggressive(5.0, "sometimes barks"),
+            calm_behavior(),
+            aggressive_behavior(5.0, "sometimes barks"),
         ],
     )
 

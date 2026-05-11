@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 from pydantic import ValidationError
 
-from generated import (
+from tests.package_imports import (
     MyapiModelInputPet as Pet,
     MyapiModelOutputPet as PetDetails,
     MyapiModelKind as PetKind,
@@ -16,7 +16,6 @@ from generated import (
     MyapiModelBehavior as Behavior,
     MyapiModelBehaviorAggressiveVariant as BehaviorAggressive,
     MyapiModelBehaviorOtherVariant as BehaviorOther,
-    MyapiModelBehaviorFactory as BehaviorFactory,
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     MyapiProtoPetsListRequest as PetsListRequest,
     MyapiProtoPetsRemoveRequest as PetsRemoveRequest,
@@ -24,11 +23,21 @@ from generated import (
     MyapiProtoHeaders as Headers,
     AsyncClient,
     MyapiProtoPetsCreateError as PetsCreateError,
+    MyapiProtoPetsCreateErrorInvalidIdentityVariant as PetsCreateErrorInvalidIdentityVariant,
     MyapiProtoPetsListError as PetsListError,
+    MyapiProtoPetsListErrorInvalidCursor as PetsListErrorInvalidCursor,
+    MyapiProtoPetsListErrorUnauthorized as PetsListErrorUnauthorized,
+    MyapiProtoPetsListErrorInternal as PetsListErrorInternal,
     MyapiProtoPetsUpdateError as PetsUpdateError,
     MyapiProtoPetsRemoveError as PetsRemoveError,
 )
 from reflectapi_runtime import ReflectapiOption, ReflectapiOption as Option, Undefined
+from tests.model_helpers import (
+    aggressive_behavior,
+    calm_behavior,
+    other_behavior,
+    root_value,
+)
 
 # For externally tagged enums, unit variants are just string literals
 BehaviorCalm = "Calm"
@@ -235,10 +244,10 @@ class TestReflectapiOptionAdvancedCases:
     def test_reflectapi_option_with_complex_nested_data(self):
         """Test ReflectapiOption containing complex nested structures."""
         complex_behaviors = [
-            BehaviorFactory.CALM,
-            BehaviorFactory.aggressive(8.5, "Very aggressive"),
-            BehaviorFactory.other("Custom behavior", "Some notes"),
-            BehaviorFactory.CALM,  # Duplicate
+            calm_behavior(),
+            aggressive_behavior(8.5, "Very aggressive"),
+            other_behavior("Custom behavior", "Some notes"),
+            calm_behavior(),  # Duplicate
         ]
 
         request = PetsUpdateRequest(
@@ -297,9 +306,9 @@ class TestEnumEdgeCases:
     def test_all_behavior_combinations(self):
         """Test all possible behavior combinations."""
         all_behaviors = [
-            BehaviorFactory.CALM,
-            BehaviorFactory.aggressive(7.0, "test aggressive"),
-            BehaviorFactory.other("test other", "notes"),
+            calm_behavior(),
+            aggressive_behavior(7.0, "test aggressive"),
+            other_behavior("test other", "notes"),
         ]
 
         # Test empty list
@@ -315,17 +324,17 @@ class TestEnumEdgeCases:
                 kind=PetKindDog(type="dog", breed="Variable"),
                 behaviors=[behavior],
             )
-            # The behavior gets wrapped in the RootModel when assigned to the pet
             assert len(pet.behaviors) == 1
-            # Check if it's the same type of behavior
-            if hasattr(behavior, "field_0"):  # Aggressive variant
-                assert hasattr(pet.behaviors[0].root, "field_0")
-                assert pet.behaviors[0].root.field_0 == behavior.field_0
-            elif hasattr(behavior, "description"):  # Other variant
-                assert hasattr(pet.behaviors[0].root, "description")
-                assert pet.behaviors[0].root.description == behavior.description
-            else:  # Calm variant
-                assert pet.behaviors[0].root == "Calm"
+            expected = root_value(behavior)
+            actual = root_value(pet.behaviors[0])
+            if hasattr(expected, "field_0"):
+                assert hasattr(actual, "field_0")
+                assert actual.field_0 == expected.field_0
+            elif hasattr(expected, "description"):
+                assert hasattr(actual, "description")
+                assert actual.description == expected.description
+            else:
+                assert actual == "Calm"
 
         # Test all behaviors combined
         pet = Pet(
@@ -336,36 +345,44 @@ class TestEnumEdgeCases:
         assert len(pet.behaviors) == len(all_behaviors)
 
     def test_error_enum_completeness(self):
-        """Test that error enums contain expected values."""
-        # PetsCreateError is a discriminated union, test the factory
-        from generated import MyapiProtoPetsCreateErrorFactory
-
+        """Test that generated error types contain expected values."""
         # Test unit variants
-        conflict_error = MyapiProtoPetsCreateErrorFactory.CONFLICT
+        conflict_error = PetsCreateError(root="Conflict")
         assert conflict_error.root == "Conflict"
 
-        not_authorized_error = MyapiProtoPetsCreateErrorFactory.NOTAUTHORIZED
+        not_authorized_error = PetsCreateError(root="NotAuthorized")
         assert not_authorized_error.root == "NotAuthorized"
 
         # Test complex variant
-        invalid_identity_error = MyapiProtoPetsCreateErrorFactory.invalid_identity(
-            "test message"
+        invalid_identity_error = PetsCreateError(
+            root=PetsCreateErrorInvalidIdentityVariant(message="test message")
         )
-        assert hasattr(invalid_identity_error, "message")
-        assert invalid_identity_error.message == "test message"
+        assert invalid_identity_error.root.message == "test message"
 
-        # Test primitive enums (these are still regular enums)
-        list_errors = list(PetsListError)
-        update_errors = list(PetsUpdateError)
+        # Test other generated error shapes.
+        list_errors = [
+            PetsListError(root=PetsListErrorInvalidCursor()),
+            PetsListError(root=PetsListErrorUnauthorized()),
+            PetsListError(root=PetsListErrorInternal(message="test")),
+        ]
+        update_errors = [
+            PetsUpdateError(root="NotFound"),
+            PetsUpdateError(root="NotAuthorized"),
+        ]
         remove_errors = list(PetsRemoveError)
 
         assert len(list_errors) > 0
         assert len(update_errors) > 0
         assert len(remove_errors) > 0
 
-        # Test that all enum values are strings
-        all_primitive_errors = list_errors + update_errors + remove_errors
-        for error in all_primitive_errors:
+        assert {error.root.kind for error in list_errors} == {
+            "InvalidCursor",
+            "Unauthorized",
+            "Internal",
+        }
+        assert {error.root for error in update_errors} == {"NotFound", "NotAuthorized"}
+
+        for error in remove_errors:
             assert isinstance(error.value, str)
             assert len(error.value) > 0
 
@@ -423,7 +440,7 @@ class TestValidationEdgeCases:
     def test_extremely_large_json_payload(self):
         """Test handling of extremely large JSON payloads."""
         # Create pet with very large behavior list
-        large_behaviors = [BehaviorFactory.CALM] * 10000
+        large_behaviors = [calm_behavior()] * 10000
 
         pet = Pet(
             name="Large Pet",
@@ -489,9 +506,9 @@ class TestMemoryAndPerformanceEdgeCases:
                 name=f"Pet_{i}_{'x' * 100}",  # Long name
                 kind=PetKindDog(type="dog", breed=f"Breed_{i}_{'y' * 100}"),
                 behaviors=[
-                    BehaviorFactory.CALM,
-                    BehaviorFactory.aggressive(5.0, "test"),
-                    BehaviorFactory.other("test"),
+                    calm_behavior(),
+                    aggressive_behavior(5.0, "test"),
+                    other_behavior("test"),
                 ]
                 * 10,
             )
@@ -512,7 +529,7 @@ class TestMemoryAndPerformanceEdgeCases:
         complex_pet = Pet(
             name="Performance Test Pet",
             kind=PetKindDog(type="dog", breed="Performance Breed"),
-            behaviors=[BehaviorFactory.CALM] * 1000,  # Large behavior list
+            behaviors=[calm_behavior()] * 1000,  # Large behavior list
             age=5,
         )
 

@@ -4,7 +4,7 @@ import pytest
 from datetime import datetime
 from pydantic import ValidationError
 
-from generated import (
+from tests.package_imports import (
     MyapiModelInputPet as Pet,
     MyapiModelOutputPet as PetDetails,
     MyapiModelKind as PetKind,
@@ -21,6 +21,7 @@ from generated import (
 )
 from reflectapi_runtime import ReflectapiOption as Option
 from reflectapi_runtime import ReflectapiOption, Undefined
+from tests.model_helpers import root_value
 
 # For externally tagged enums, unit variants are just string literals
 BehaviorCalm = "Calm"
@@ -37,9 +38,10 @@ class TestBasicModels:
     def test_pet_creation_with_fixture(self, sample_pet: Pet):
         """Test creating a Pet model using fixture."""
         assert sample_pet.name == "Buddy"
-        assert isinstance(sample_pet.kind, PetKindDog)
-        assert sample_pet.kind.type == "dog"
-        assert sample_pet.kind.breed == "Golden Retriever"
+        kind = root_value(sample_pet.kind)
+        assert isinstance(kind, PetKindDog)
+        assert kind.type == "dog"
+        assert kind.breed == "Golden Retriever"
         assert sample_pet.age == 3
         # Check that sample pet has the expected behavior types
         behavior_roots = [b.root for b in sample_pet.behaviors]
@@ -56,9 +58,10 @@ class TestBasicModels:
             behaviors=[BehaviorCalm],
         )
         assert pet.name == "fluffy"
-        assert isinstance(pet.kind, PetKindCat)
-        assert pet.kind.type == "cat"
-        assert pet.kind.lives == 9
+        kind = root_value(pet.kind)
+        assert isinstance(kind, PetKindCat)
+        assert kind.type == "cat"
+        assert kind.lives == 9
         assert pet.age == 3
         assert len(pet.behaviors) == 1
         assert pet.behaviors[0].root == BehaviorCalm
@@ -68,8 +71,9 @@ class TestBasicModels:
         dog_kind = PetKindDog(type="dog", breed="Golden Retriever")
         pet = Pet(name="buddy", kind=dog_kind)
         assert pet.name == "buddy"
-        assert pet.kind.type == "dog"
-        assert pet.kind.breed == "Golden Retriever"
+        kind = root_value(pet.kind)
+        assert kind.type == "dog"
+        assert kind.breed == "Golden Retriever"
         assert pet.age is None
         assert pet.behaviors is None
 
@@ -104,8 +108,8 @@ class TestDiscriminatedUnions:
         pet_dog = Pet(name="Buddy", kind=dog)
         pet_cat = Pet(name="Whiskers", kind=cat)
 
-        assert pet_dog.kind.type == "dog"
-        assert pet_cat.kind.type == "cat"
+        assert root_value(pet_dog.kind).type == "dog"
+        assert root_value(pet_cat.kind).type == "cat"
 
     def test_behavior_values(self):
         """Test Behavior discriminated union variant creation."""
@@ -224,8 +228,9 @@ class TestSerialization:
         }
         pet = Pet.model_validate(data)
         assert pet.name == "buddy"
-        assert pet.kind.type == "dog"
-        assert pet.kind.breed == "Golden Retriever"
+        kind = root_value(pet.kind)
+        assert kind.type == "dog"
+        assert kind.breed == "Golden Retriever"
         assert pet.age == 2
 
     def test_reflectapi_option_serialization(self):

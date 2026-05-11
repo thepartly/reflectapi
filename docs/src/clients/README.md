@@ -8,7 +8,7 @@
 |--------|--------|-------|
 | TypeScript | Stable | Two generated files: API surface + transport contract |
 | Rust | Stable | Single generated file |
-| Python | Experimental | Package-style output with `__init__.py` and `generated.py` |
+| Python | Experimental | Package-style output with real namespace submodules |
 
 OpenAPI generation is also supported by the CLI, but it is documented separately as an API description format rather than a client library.
 
@@ -33,11 +33,13 @@ cargo run --bin reflectapi -- codegen \
   --schema reflectapi.json \
   --output clients/typescript/
 
-# Generate Python client -> clients/python/__init__.py and generated.py
+# Generate Python client -> clients/python/api_client/__init__.py,
+# clients/python/api_client/_client.py, and namespace packages such as
+# clients/python/api_client/myapi/model/
 cargo run --bin reflectapi -- codegen \
   --language python \
   --schema reflectapi.json \
-  --output clients/python/ \
+  --output clients/python/api_client/ \
   --python-sync
 
 # Generate Rust client -> clients/rust/generated.rs
@@ -57,7 +59,7 @@ The generators do not all emit the same file layout:
 |--------|--------------------------------|
 | TypeScript | `generated.ts`, `generated.transport.ts` |
 | Rust | `generated.rs` |
-| Python | `__init__.py`, `generated.py` |
+| Python | A package directory containing `__init__.py`, `generated.py`, `_client.py`, `_rebuild.py`, and namespace package files |
 
 The demo repository includes extra project scaffolding around some generated clients, but that scaffolding is not produced by `reflectapi codegen` itself.
 
@@ -82,6 +84,8 @@ The demo repository includes extra project scaffolding around some generated cli
 - Generates Pydantic-based models and client code.
 - Generates an async client by default.
 - Adds a sync client only when `--python-sync` is passed.
+- Emits reflected Rust namespaces as real Python packages. `generated.py` is kept
+  as a temporary compatibility facade inside the package.
 - Uses `reflectapi_runtime` for client base classes and runtime helpers.
 
 ### Rust

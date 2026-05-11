@@ -79,15 +79,19 @@ fn write_typescript_client() {
 #[test]
 fn write_python_client() {
     let (schema, _) = crate::builder().build().unwrap();
-    let src = reflectapi::codegen::python::generate(
+    let files = reflectapi::codegen::python::generate_files(
         schema,
         &reflectapi::codegen::python::Config::default(),
     )
     .unwrap();
 
-    std::fs::write(
-        format!("{}/clients/python/generated.py", env!("CARGO_MANIFEST_DIR"),),
-        src,
-    )
-    .unwrap();
+    let client_dir =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("clients/python/api_client");
+    for (filename, src) in files {
+        let path = client_dir.join(filename);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        }
+        std::fs::write(path, src).unwrap();
+    }
 }

@@ -5,7 +5,7 @@ import time
 import asyncio
 from typing import List
 
-from generated import (
+from tests.package_imports import (
     MyapiModelInputPet as Pet,
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
@@ -148,7 +148,7 @@ class TestStress:
 
     def test_deep_nesting_serialization(self):
         """Test serialization with deeply nested data structures."""
-        from generated import MyapiProtoPaginated as Paginated
+        from tests.package_imports import MyapiProtoPaginated as Paginated
 
         # Create nested paginated responses
         pets = []

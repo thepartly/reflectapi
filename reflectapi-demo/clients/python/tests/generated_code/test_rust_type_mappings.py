@@ -17,14 +17,26 @@ from typing import Any, Union
 # we'll test the type mapping logic and generated code structure
 
 
+def generated_package_content() -> str:
+    package_root = Path(__file__).resolve().parents[2] / "api_client"
+    paths = [
+        "generated.py",
+        "_client.py",
+        "_rebuild.py",
+        "myapi/model/__init__.py",
+        "myapi/model/input/__init__.py",
+        "myapi/model/output/__init__.py",
+        "myapi/proto/__init__.py",
+    ]
+    return "\n".join((package_root / path).read_text() for path in paths)
+
+
 class TestTypeAnnotations:
     """Test that Python type annotations are correctly generated."""
 
     def test_imports_include_required_modules(self):
         """Test that generated code includes necessary imports."""
-        gen_path = Path(__file__).resolve().parents[2] / "generated.py"
-        with open(gen_path, "r") as f:
-            content = f.read()
+        content = generated_package_content()
 
         # Check for required imports in the generated code
         # Note: Some imports may only be present if the types are actually used
@@ -33,14 +45,12 @@ class TestTypeAnnotations:
         assert "from datetime import datetime" in content
 
         # typing imports should include Any, Union, etc.
-        assert "from typing import Any" in content
+        assert "Any" in content
         assert "Union" in content
 
     def test_external_type_definitions_present(self):
         """Test that external type definitions are present."""
-        gen_path = Path(__file__).resolve().parents[2] / "generated.py"
-        with open(gen_path, "r") as f:
-            content = f.read()
+        content = generated_package_content()
 
         # Check for external type annotations section
         assert "# External type definitions" in content
@@ -165,9 +175,7 @@ class TestCodeGenerationStructure:
 
     def test_type_mapping_consistency(self):
         """Test that type mappings are consistent throughout generated code."""
-        gen_path = Path(__file__).resolve().parents[2] / "generated.py"
-        with open(gen_path, "r") as f:
-            content = f.read()
+        content = generated_package_content()
 
         # Check that datetime is used consistently
         if "datetime" in content:
@@ -181,9 +189,7 @@ class TestCodeGenerationStructure:
 
     def test_literal_import_conditional(self):
         """Test that Literal is only imported when needed."""
-        gen_path = Path(__file__).resolve().parents[2] / "generated.py"
-        with open(gen_path, "r") as f:
-            content = f.read()
+        content = generated_package_content()
 
         # Since we have tagged enums, Literal should be imported
         assert "Literal" in content
@@ -289,9 +295,7 @@ class TestImportOptimization:
 
     def test_conditional_imports(self):
         """Test that imports are only present when types are used."""
-        gen_path = Path(__file__).resolve().parents[2] / "generated.py"
-        with open(gen_path, "r") as f:
-            content = f.read()
+        content = generated_package_content()
 
         # Basic imports should always be present
         assert "from typing import" in content

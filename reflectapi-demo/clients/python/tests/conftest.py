@@ -24,18 +24,26 @@ def pytest_collection_modifyitems(config, items):
 
 from typing import Any
 
-# No local sys.path manipulation; runtime is installed via uv
 from reflectapi_runtime import ReflectapiOption
-from generated import (
-    MyapiModelInputPet as Pet,
-    MyapiModelOutputPet as PetDetails,
-    MyapiModelKind as PetKind,
-    MyapiModelKindDog as PetKindDog,
-    MyapiModelKindCat as PetKindCat,
-    MyapiModelBehavior as Behavior,
-    MyapiModelBehaviorFactory as BehaviorFactory,
-    MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
-    MyapiProtoPaginated as Paginated,
+from api_client.myapi.model import (
+    Kind as PetKind,
+    KindDog as PetKindDog,
+    KindCat as PetKindCat,
+    Behavior,
+)
+from api_client.myapi.model.input import Pet
+from api_client.myapi.model.output import Pet as PetDetails
+from api_client.myapi.proto import (
+    PetsUpdateRequest,
+    Paginated,
+)
+from tests.model_helpers import (
+    aggressive_behavior,
+    calm_behavior,
+    other_behavior,
+    root_value,
+)
+from tests.package_imports import (
     AsyncClient,
 )
 
@@ -62,7 +70,7 @@ def sample_pet(sample_dog: PetKindDog) -> Pet:
         name="Buddy",
         kind=sample_dog,
         age=3,
-        behaviors=[BehaviorFactory.CALM, BehaviorFactory.aggressive(5.0, "growls")],
+        behaviors=[calm_behavior(), aggressive_behavior(5.0, "growls")],
     )
 
 
@@ -76,7 +84,7 @@ def sample_pet_details(sample_cat: PetKindCat) -> PetDetails:
         kind=sample_cat,
         age=2,
         updated_at=datetime.now(),
-        behaviors=[BehaviorFactory.CALM],
+        behaviors=[calm_behavior()],
     )
 
 
@@ -87,7 +95,7 @@ def sample_update_request() -> PetsUpdateRequest:
         name="TestPet",
         kind=PetKindDog(type="dog", breed="Labrador"),
         age=ReflectapiOption(5),
-        behaviors=ReflectapiOption([BehaviorFactory.CALM]),
+        behaviors=ReflectapiOption([calm_behavior()]),
     )
 
 
@@ -117,9 +125,9 @@ def paginated_pets(sample_pet_details: PetDetails) -> Paginated[PetDetails]:
 def behavior_samples() -> list[Behavior]:
     """Sample behavior instances."""
     return [
-        BehaviorFactory.CALM,
-        BehaviorFactory.aggressive(5.0, "test"),
-        BehaviorFactory.other("Custom", "Some notes"),
+        calm_behavior(),
+        aggressive_behavior(5.0, "test"),
+        other_behavior("Custom", "Some notes"),
     ]
 
 
@@ -162,7 +170,7 @@ class TestDataFactory:
             request.age = ReflectapiOption(kwargs.get("age", 5))
         if with_behaviors:
             request.behaviors = ReflectapiOption(
-                kwargs.get("behaviors", [BehaviorFactory.CALM])
+                kwargs.get("behaviors", [calm_behavior()])
             )
 
         return request
@@ -184,6 +192,7 @@ pytest.mark.slow = pytest.mark.slow
 # Test helpers
 def assert_petkind_dog(pet_kind: PetKind, expected_breed: str) -> None:
     """Assert that a PetKind is a dog with expected breed."""
+    pet_kind = root_value(pet_kind)
     assert isinstance(pet_kind, PetKindDog)
     assert pet_kind.type == "dog"
     assert pet_kind.breed == expected_breed
@@ -191,6 +200,7 @@ def assert_petkind_dog(pet_kind: PetKind, expected_breed: str) -> None:
 
 def assert_petkind_cat(pet_kind: PetKind, expected_lives: int) -> None:
     """Assert that a PetKind is a cat with expected lives."""
+    pet_kind = root_value(pet_kind)
     assert isinstance(pet_kind, PetKindCat)
     assert pet_kind.type == "cat"
     assert pet_kind.lives == expected_lives
@@ -228,5 +238,9 @@ __all__ = [
     "assert_reflectapi_option_some",
     "assert_reflectapi_option_undefined",
     "assert_reflectapi_option_none",
+    "aggressive_behavior",
+    "calm_behavior",
+    "other_behavior",
+    "root_value",
     "TestDataFactory",
 ]

@@ -7,7 +7,9 @@ import time
 from unittest.mock import Mock, patch, AsyncMock
 from typing import Dict, Any
 
-from generated import (
+import httpx
+
+from tests.package_imports import (
     MyapiModelInputPet as Pet,
     MyapiModelOutputPet as PetDetails,
     MyapiModelKind as PetKind,
@@ -15,6 +17,7 @@ from generated import (
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
+    MyapiProtoPetsListRequest as PetsListRequest,
     AsyncClient,
     MyapiProtoPaginated as Paginated,
 )
@@ -26,6 +29,30 @@ from reflectapi_runtime import (
     TimeoutError,
     ValidationError,
 )
+from tests.model_helpers import root_value
+
+
+def httpx_response(
+    status_code: int,
+    *,
+    json_data: Any | None = None,
+    content: str | bytes = b"",
+    headers: dict[str, str] | None = None,
+    request: httpx.Request | None = None,
+) -> httpx.Response:
+    response_headers = dict(headers or {})
+    if json_data is not None:
+        content = json.dumps(json_data).encode("utf-8")
+        response_headers.setdefault("Content-Type", "application/json")
+    elif isinstance(content, str):
+        content = content.encode("utf-8")
+
+    return httpx.Response(
+        status_code,
+        headers=response_headers,
+        content=content,
+        request=request or httpx.Request("POST", "https://api.example.com/test"),
+    )
 
 
 @pytest.mark.integration
@@ -77,7 +104,7 @@ class TestClientNetworkEdgeCases:
             )  # 1ms timeout
 
             with pytest.raises(TimeoutError):
-                await client._make_request("GET", "/delay/2")
+                await client._make_request("/delay/2")
 
     @pytest.mark.asyncio
     async def test_client_with_large_response_payload(self):
@@ -98,17 +125,12 @@ class TestClientNetworkEdgeCases:
 
             large_response_data = {"items": large_pets, "cursor": "large_cursor"}
 
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = large_response_data
-            mock_response.headers = {}
-            mock_response.elapsed.total_seconds.return_value = 5.0
-            mock_send.return_value = mock_response
+            mock_send.return_value = httpx_response(200, json_data=large_response_data)
 
             client = AsyncClient("https://api.example.com")
 
             # Should handle large response without issues
-            response = await client._make_request("GET", "/pets", response_model="Any")
+            response = await client._make_request("/pets", response_model="Any")
 
             assert len(response.data["items"]) == 10000
 
@@ -177,7 +199,7 @@ class TestReflectapiOptionIntegrationEdgeCases:
 
     def test_option_with_complex_nested_types(self):
         """Test ReflectapiOption with complex nested behavior data."""
-        from generated import (
+        from tests.package_imports import (
             MyapiModelBehavior as Behavior,
             MyapiModelBehaviorAggressiveVariant as BehaviorAggressive,
             MyapiModelBehaviorOtherVariant as BehaviorOther,
@@ -249,6 +271,7 @@ class TestDiscriminatedUnionEdgeCases:
             from pydantic import TypeAdapter
 
             reconstructed = TypeAdapter(PetKind).validate_python(json_data)
+            reconstructed = root_value(reconstructed)
 
             assert type(reconstructed) == type(pet_kind)
             if isinstance(pet_kind, PetKindDog):
@@ -282,12 +305,9 @@ class TestClientMethodEdgeCases:
     async def test_pets_list_with_extreme_parameters(self):
         """Test pets.list with extreme parameter values."""
         with patch("httpx.AsyncClient.send") as mock_send:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"items": [], "cursor": None}
-            mock_response.headers = {}
-            mock_response.elapsed.total_seconds.return_value = 0.1
-            mock_send.return_value = mock_response
+            mock_send.return_value = httpx_response(
+                200, json_data={"items": [], "cursor": None}
+            )
 
             client = AsyncClient("https://api.example.com")
 
@@ -303,7 +323,7 @@ class TestClientMethodEdgeCases:
 
             for params in extreme_cases:
                 # Should not crash, though server might reject parameters
-                response = await client.pets.list(**params)
+                response = await client.pets.list(data=PetsListRequest(**params))
                 assert response.data.items == []
 
     @pytest.mark.asyncio
@@ -311,12 +331,9 @@ class TestClientMethodEdgeCases:
         """Test pets.create with invalid data that should fail server-side."""
         with patch("httpx.AsyncClient.send") as mock_send:
             # Mock server error response
-            mock_response = Mock()
-            mock_response.status_code = 400
-            mock_response.json.return_value = {"error": "Invalid pet data"}
-            mock_response.headers = {}
-            mock_response.elapsed.total_seconds.return_value = 0.1
-            mock_send.return_value = mock_response
+            mock_send.return_value = httpx_response(
+                400, json_data={"error": "Invalid pet data"}
+            )
 
             client = AsyncClient("https://api.example.com")
 
@@ -333,12 +350,7 @@ class TestClientMethodEdgeCases:
     async def test_client_with_none_data_parameters(self):
         """Test client methods with None data parameters."""
         with patch("httpx.AsyncClient.send") as mock_send:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"result": "ok"}
-            mock_response.headers = {}
-            mock_response.elapsed.total_seconds.return_value = 0.1
-            mock_send.return_value = mock_response
+            mock_send.return_value = httpx_response(200, json_data={"result": "ok"})
 
             client = AsyncClient("https://api.example.com")
 
@@ -355,15 +367,11 @@ class TestErrorResponseHandling:
     async def test_server_returning_html_error(self):
         """Test handling when server returns HTML instead of JSON."""
         with patch("httpx.AsyncClient.send") as mock_send:
-            mock_response = Mock()
-            mock_response.status_code = 500
-            mock_response.json.side_effect = json.JSONDecodeError(
-                "Expecting value", "doc", 0
+            mock_send.return_value = httpx_response(
+                500,
+                content="<html><body>Internal Server Error</body></html>",
+                headers={"Content-Type": "text/html"},
             )
-            mock_response.text = "<html><body>Internal Server Error</body></html>"
-            mock_response.headers = {"Content-Type": "text/html"}
-            mock_response.elapsed.total_seconds.return_value = 0.1
-            mock_send.return_value = mock_response
 
             client = AsyncClient("https://api.example.com")
 
@@ -377,22 +385,14 @@ class TestErrorResponseHandling:
     async def test_server_returning_empty_response(self):
         """Test handling when server returns empty response."""
         with patch("httpx.AsyncClient.send") as mock_send:
-            mock_response = Mock()
-            mock_response.status_code = 204  # No Content
-            mock_response.json.side_effect = json.JSONDecodeError(
-                "Expecting value", "doc", 0
-            )
-            mock_response.text = ""
-            mock_response.headers = {}
-            mock_response.elapsed.total_seconds.return_value = 0.1
-            mock_send.return_value = mock_response
+            mock_send.return_value = httpx_response(204)
 
             client = AsyncClient("https://api.example.com")
 
             # Should handle empty response gracefully
             # Note: This depends on how the client is supposed to handle 204 responses
             try:
-                response = await client._make_request("POST", "/test")
+                response = await client._make_request("/test")
                 # If successful, response should handle empty body
             except (ValidationError, ApplicationError):
                 # Empty responses might cause validation errors, which is acceptable
@@ -402,20 +402,16 @@ class TestErrorResponseHandling:
     async def test_server_returning_malformed_json(self):
         """Test handling when server returns malformed JSON."""
         with patch("httpx.AsyncClient.send") as mock_send:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.side_effect = json.JSONDecodeError(
-                "Invalid JSON", "doc", 5
+            mock_send.return_value = httpx_response(
+                200,
+                content='{"incomplete": json',
+                headers={"Content-Type": "application/json"},
             )
-            mock_response.text = '{"incomplete": json'
-            mock_response.headers = {"Content-Type": "application/json"}
-            mock_response.elapsed.total_seconds.return_value = 0.1
-            mock_send.return_value = mock_response
 
             client = AsyncClient("https://api.example.com")
 
             # Should raise ValidationError for malformed JSON
-            with pytest.raises(ValidationError, match="Failed to parse JSON response"):
+            with pytest.raises(ValidationError, match="Response validation failed"):
                 await client.pets.list()
 
 
@@ -427,12 +423,9 @@ class TestConcurrentRequestEdgeCases:
     async def test_many_concurrent_requests_same_client(self):
         """Test many concurrent requests using the same client instance."""
         with patch("httpx.AsyncClient.send") as mock_send:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"items": [], "cursor": None}
-            mock_response.headers = {}
-            mock_response.elapsed.total_seconds.return_value = 0.1
-            mock_send.return_value = mock_response
+            mock_send.return_value = httpx_response(
+                200, json_data={"items": [], "cursor": None}
+            )
 
             client = AsyncClient("https://api.example.com")
 
@@ -451,27 +444,25 @@ class TestConcurrentRequestEdgeCases:
             def mixed_response(request):
                 # Simulate success/failure based on URL
                 if "success" in str(request.url):
-                    mock_response = Mock()
-                    mock_response.status_code = 200
-                    mock_response.json.return_value = {"items": [], "cursor": None}
-                    mock_response.headers = {}
-                    mock_response.elapsed.total_seconds.return_value = 0.1
-                    return mock_response
+                    return httpx_response(
+                        200,
+                        json_data={"items": [], "cursor": None},
+                        request=request,
+                    )
                 else:
-                    mock_response = Mock()
-                    mock_response.status_code = 500
-                    mock_response.json.return_value = {"error": "Server error"}
-                    mock_response.headers = {}
-                    mock_response.elapsed.total_seconds.return_value = 0.1
-                    return mock_response
+                    return httpx_response(
+                        500,
+                        json_data={"error": "Server error"},
+                        request=request,
+                    )
 
             mock_send.side_effect = mixed_response
 
             client = AsyncClient("https://api.example.com")
 
             # Mix of success and failure requests
-            success_tasks = [client._make_request("GET", "/success") for _ in range(5)]
-            failure_tasks = [client._make_request("GET", "/failure") for _ in range(5)]
+            success_tasks = [client._make_request("/success") for _ in range(5)]
+            failure_tasks = [client._make_request("/failure") for _ in range(5)]
 
             # Gather with return_exceptions to handle failures
             results = await asyncio.gather(
@@ -492,12 +483,7 @@ class TestConcurrentRequestEdgeCases:
 
         async def slow_response(request):
             await asyncio.sleep(0.05)  # Slow response (reduced from 0.2s)
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"result": "ok"}
-            mock_response.headers = {}
-            mock_response.elapsed.total_seconds.return_value = 0.05
-            return mock_response
+            return httpx_response(200, json_data={"result": "ok"}, request=request)
 
         with patch("httpx.AsyncClient.send", side_effect=slow_response):
             async with AsyncClient("https://api.example.com") as client:
