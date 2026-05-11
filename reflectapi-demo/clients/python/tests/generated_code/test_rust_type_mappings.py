@@ -18,7 +18,7 @@ from typing import Any, Union
 
 
 def generated_package_content() -> str:
-    package_root = Path(__file__).resolve().parents[2]
+    package_root = Path(__file__).resolve().parents[2] / "api_client"
     paths = [
         "generated.py",
         "_client.py",

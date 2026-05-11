@@ -12,7 +12,7 @@ import json
 import httpx
 import pytest
 
-from generated import AsyncClient, Client, MyapiModelOutputPet as Pet
+from tests.package_imports import AsyncClient, Client, MyapiModelOutputPet as Pet
 from reflectapi_runtime import ApplicationError
 
 

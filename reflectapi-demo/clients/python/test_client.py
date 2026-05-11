@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 import pytest
 
-from generated import (
+from tests.package_imports import (
     AsyncClient,
     MyapiModelInputPet as Pet,
     MyapiModelKindDog as PetKindDog,

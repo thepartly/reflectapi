@@ -16,7 +16,7 @@ from datetime import datetime
 # E2E gating handled centrally in tests/conftest.py
 
 
-from generated import (
+from tests.package_imports import (
     AsyncClient,
     MyapiModelInputPet as Pet,
     MyapiModelOutputPet as PetDetails,

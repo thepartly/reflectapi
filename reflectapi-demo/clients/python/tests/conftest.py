@@ -25,15 +25,15 @@ def pytest_collection_modifyitems(config, items):
 from typing import Any
 
 from reflectapi_runtime import ReflectapiOption
-from myapi.model import (
+from api_client.myapi.model import (
     Kind as PetKind,
     KindDog as PetKindDog,
     KindCat as PetKindCat,
     Behavior,
 )
-from myapi.model.input import Pet
-from myapi.model.output import Pet as PetDetails
-from myapi.proto import (
+from api_client.myapi.model.input import Pet
+from api_client.myapi.model.output import Pet as PetDetails
+from api_client.myapi.proto import (
     PetsUpdateRequest,
     Paginated,
 )
@@ -43,7 +43,7 @@ from tests.model_helpers import (
     other_behavior,
     root_value,
 )
-from generated import (
+from tests.package_imports import (
     AsyncClient,
 )
 

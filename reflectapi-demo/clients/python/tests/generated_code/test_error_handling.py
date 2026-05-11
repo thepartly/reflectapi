@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from generated import (
+from tests.package_imports import (
     MyapiModelInputPet as Pet,
     MyapiModelKind as PetKind,
     MyapiModelKindDog as PetKindDog,

@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Union
 from pydantic import ValidationError
 
-from generated import (
+from tests.package_imports import (
     MyapiModelInputPet as Pet,
     MyapiModelOutputPet as PetDetails,
     MyapiModelKind as PetKind,

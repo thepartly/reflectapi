@@ -156,3 +156,51 @@ fn test_python_init_exports_client() {
         .values()
         .all(|src| !src.contains("class reflectapi_demo:")));
 }
+
+#[test]
+fn test_python_module_path_collision_errors() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct First {
+        value: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Second {
+        value: String,
+    }
+
+    async fn first_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> First {
+        First {
+            value: String::new(),
+        }
+    }
+
+    async fn second_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> Second {
+        Second {
+            value: String::new(),
+        }
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(first_get, |b| b.name("first.get"))
+        .route(second_get, |b| b.name("second.get"))
+        .rename_types("reflectapi_demo::tests::namespace::First", "foo-bar::First")
+        .rename_types(
+            "reflectapi_demo::tests::namespace::Second",
+            "foo_bar::Second",
+        )
+        .build()
+        .unwrap();
+
+    let error = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("Python module path collision"));
+}

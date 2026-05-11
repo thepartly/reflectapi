@@ -4,7 +4,7 @@ import pytest
 import json
 from pydantic import ValidationError
 
-from generated import (
+from tests.package_imports import (
     MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     MyapiModelBehavior as Behavior,
     MyapiModelBehaviorAggressiveVariant as BehaviorAggressive,

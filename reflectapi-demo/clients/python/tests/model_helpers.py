@@ -1,11 +1,11 @@
 """Helpers that construct generated models through the real module API."""
 
-from myapi.model import (
+from api_client.myapi.model import (
     Behavior,
     BehaviorAggressiveVariant,
     BehaviorOtherVariant,
 )
-from myapi.proto import (
+from api_client.myapi.proto import (
     PetsCreateError,
     PetsCreateErrorInvalidIdentityVariant,
 )

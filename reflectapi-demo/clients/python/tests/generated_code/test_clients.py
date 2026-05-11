@@ -4,7 +4,7 @@ import pytest
 import warnings
 from unittest.mock import Mock, AsyncMock, patch
 
-from generated import (
+from tests.package_imports import (
     AsyncClient,
     MyapiModelInputPet as Pet,
     MyapiModelKind as PetKind,

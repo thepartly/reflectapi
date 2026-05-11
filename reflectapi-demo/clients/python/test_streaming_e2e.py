@@ -19,7 +19,7 @@ import pytest
 if os.environ.get("RUN_DEMO_E2E") != "1":  # pragma: no cover
     pytest.skip("set RUN_DEMO_E2E=1 to run", allow_module_level=True)
 
-from generated import (  # noqa: E402
+from tests.package_imports import (  # noqa: E402
     AsyncClient,
     MyapiModelInputPet as Pet,
     MyapiModelKindDog as Dog,

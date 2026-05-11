@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, "../../../reflectapi-python-runtime/src")
 
-from generated import (
+from tests.package_imports import (
     AsyncClient,
     MyapiModelInputPet as Pet,
     MyapiModelKindDog as PetKindDog,

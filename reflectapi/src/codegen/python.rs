@@ -2090,9 +2090,14 @@ fn render_package_module_files(
     files: &mut BTreeMap<String, String>,
 ) -> anyhow::Result<()> {
     if !ns_path.is_empty() {
-        files.insert(
-            module_file_path(ns_path),
+        let path = module_file_path(ns_path);
+        let previous = files.insert(
+            path.clone(),
             render_module_file(generation, module, ns_path, root_type_names, config)?,
+        );
+        anyhow::ensure!(
+            previous.is_none(),
+            "Python module path collision while generating {path:?}"
         );
     }
 

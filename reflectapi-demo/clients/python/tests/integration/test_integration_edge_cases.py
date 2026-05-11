@@ -9,7 +9,7 @@ from typing import Dict, Any
 
 import httpx
 
-from generated import (
+from tests.package_imports import (
     MyapiModelInputPet as Pet,
     MyapiModelOutputPet as PetDetails,
     MyapiModelKind as PetKind,
@@ -199,7 +199,7 @@ class TestReflectapiOptionIntegrationEdgeCases:
 
     def test_option_with_complex_nested_types(self):
         """Test ReflectapiOption with complex nested behavior data."""
-        from generated import (
+        from tests.package_imports import (
             MyapiModelBehavior as Behavior,
             MyapiModelBehaviorAggressiveVariant as BehaviorAggressive,
             MyapiModelBehaviorOtherVariant as BehaviorOther,

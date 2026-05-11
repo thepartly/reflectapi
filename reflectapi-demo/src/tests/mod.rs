@@ -85,7 +85,8 @@ fn write_python_client() {
     )
     .unwrap();
 
-    let client_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("clients/python");
+    let client_dir =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("clients/python/api_client");
     for (filename, src) in files {
         let path = client_dir.join(filename);
         if let Some(parent) = path.parent() {
