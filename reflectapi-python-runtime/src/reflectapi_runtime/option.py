@@ -78,11 +78,6 @@ class ReflectapiOption(Generic[T]):
         origin = get_origin(source_type)
         args = get_args(source_type)
 
-        def validate_option(value: Any) -> ReflectapiOption[Any]:
-            if isinstance(value, cls):
-                return value
-            return cls(value)
-
         def serialize_option(option_value: ReflectapiOption[Any]) -> Any:
             """Serialize ReflectapiOption handling all three states correctly."""
             if isinstance(option_value, cls):
@@ -95,12 +90,31 @@ class ReflectapiOption(Generic[T]):
             return option_value
 
         if origin is cls and args:
-            # We have ReflectapiOption[SomeType]
+            # We have ReflectapiOption[SomeType] — run the inner type's
+            # validator against the wire value so the wrapped payload is
+            # the typed object (or container of typed objects), not the
+            # raw dict/list that Pydantic handed us.
+            #
+            # Use a *wrap* validator so the inner schema is resolved in
+            # the outer model's definition scope. Pre-building a
+            # SchemaValidator(inner_schema) here would fail on forward
+            # refs that haven't been bundled into the definitions table
+            # yet.
             inner_type = args[0]
             inner_schema = handler(inner_type)
 
-            return core_schema.no_info_plain_validator_function(
-                validate_option,
+            def validate_typed_option(
+                value: Any, validate_inner: core_schema.ValidatorFunctionWrapHandler
+            ) -> ReflectapiOption[Any]:
+                if isinstance(value, cls):
+                    return value
+                if value is None or value is Undefined:
+                    return cls(value)
+                return cls(validate_inner(value))
+
+            return core_schema.no_info_wrap_validator_function(
+                validate_typed_option,
+                inner_schema,
                 serialization=core_schema.plain_serializer_function_ser_schema(
                     serialize_option,
                     return_schema=core_schema.union_schema(
@@ -112,9 +126,14 @@ class ReflectapiOption(Generic[T]):
                     when_used="json",
                 ),
             )
-        else:
-            # Fallback for untyped ReflectapiOption
-            return core_schema.no_info_plain_validator_function(validate_option)
+
+        # Fallback for untyped ReflectapiOption: nothing to validate against.
+        def validate_untyped_option(value: Any) -> ReflectapiOption[Any]:
+            if isinstance(value, cls):
+                return value
+            return cls(value)
+
+        return core_schema.no_info_plain_validator_function(validate_untyped_option)
 
     @property
     def is_undefined(self) -> bool:
@@ -135,14 +154,14 @@ class ReflectapiOption(Generic[T]):
     def value(self) -> T | None:
         """Get the wrapped value.
 
-        Returns:
-            The wrapped value, or None if undefined or null.
-
-        Raises:
-            ValueError: If trying to access value when undefined.
+        Returns ``None`` for both the undefined and explicit-null states.
+        Use [`is_undefined`][reflectapi_runtime.ReflectapiOption.is_undefined]
+        / [`is_none`][reflectapi_runtime.ReflectapiOption.is_none] when the
+        distinction matters, or [`unwrap`][reflectapi_runtime.ReflectapiOption.unwrap]
+        when you want an exception on absence.
         """
         if self.is_undefined:
-            raise ValueError("Cannot access value of undefined option")
+            return None
         return self._value
 
     def unwrap(self) -> T:

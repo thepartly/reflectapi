@@ -73,11 +73,9 @@ class TestReflectapiOption:
         assert option.is_some
 
     def test_value_property_undefined(self):
-        """Test value property with undefined option."""
+        """`.value` returns ``None`` for both undefined and explicit-null."""
         option = ReflectapiOption(Undefined)
-
-        with pytest.raises(ValueError, match="Cannot access value of undefined option"):
-            _ = option.value
+        assert option.value is None
 
     def test_value_property_none(self):
         """Test value property with None."""
@@ -409,3 +407,102 @@ class TestPydanticIntegration:
 
         expected = {"name": "Alice"}
         assert processed_dict == expected
+
+
+class TestInnerTypeValidation:
+    """Regression tests for the inner-type validation in `ReflectapiOption[T]`.
+
+    Pre-2026-05 the schema generator built `inner_schema = handler(inner_type)`
+    but only used it for the *serializer* return type — `validate_option` was
+    a raw `cls(value)` wrapper. As a result, a wire payload of `{...}` for a
+    `ReflectapiOption[Model]` field left a plain dict inside the wrapper and
+    `option.value.attr` raised `AttributeError: 'dict' object has no attribute
+    'attr'`. These tests pin the symmetric behaviour: validate the inner
+    schema on the way in, just like the serializer renders it on the way out.
+    """
+
+    def test_inner_model_is_validated_to_typed_instance(self):
+        class Snapshot(BaseModel):
+            name: str
+            description: str | None = None
+
+        class Item(BaseModel):
+            identity: str
+            snapshot: ReflectapiOption[Snapshot] = ReflectapiOption(Undefined)
+
+        item = Item.model_validate(
+            {"identity": "x", "snapshot": {"name": "Bumper", "description": "Front"}}
+        )
+
+        assert isinstance(item.snapshot.value, Snapshot)
+        assert item.snapshot.value.name == "Bumper"
+
+    def test_inner_model_validation_rejects_garbage(self):
+        class Snapshot(BaseModel):
+            name: str
+
+        class Item(BaseModel):
+            snapshot: ReflectapiOption[Snapshot] = ReflectapiOption(Undefined)
+
+        with pytest.raises(Exception) as excinfo:
+            Item.model_validate({"snapshot": {"wrong_field": True}})
+        # Pydantic ValidationError — match the schema-level rejection
+        # ("missing" for name) without importing ValidationError here.
+        assert "name" in str(excinfo.value)
+
+    def test_undefined_field_does_not_validate_inner(self):
+        """`Undefined` and `None` must skip inner validation."""
+
+        class Snapshot(BaseModel):
+            name: str  # would fail validation against None or Undefined
+
+        class Item(BaseModel):
+            snapshot: ReflectapiOption[Snapshot] = ReflectapiOption(Undefined)
+
+        # Undefined when key is absent
+        item_absent = Item.model_validate({})
+        assert item_absent.snapshot.is_undefined
+
+        # Explicit null
+        item_null = Item.model_validate({"snapshot": None})
+        assert item_null.snapshot.is_none
+
+    def test_container_of_models_is_validated(self):
+        """`ReflectapiOption[list[Model]]` must coerce each list element."""
+
+        class Snapshot(BaseModel):
+            name: str
+
+        class Bag(BaseModel):
+            items: ReflectapiOption[list[Snapshot]] = ReflectapiOption(Undefined)
+
+        bag = Bag.model_validate({"items": [{"name": "a"}, {"name": "b"}]})
+
+        assert all(isinstance(s, Snapshot) for s in bag.items.value)
+        assert [s.name for s in bag.items.value] == ["a", "b"]
+
+    def test_round_trip_preserves_typed_inner(self):
+        class Snapshot(BaseModel):
+            name: str
+
+        class Item(BaseModel):
+            snapshot: ReflectapiOption[Snapshot] = ReflectapiOption(Undefined)
+
+        original = Item.model_validate({"snapshot": {"name": "n"}})
+        reloaded = Item.model_validate_json(original.model_dump_json())
+
+        assert isinstance(reloaded.snapshot.value, Snapshot)
+        assert reloaded.snapshot.value.name == "n"
+
+    def test_already_wrapped_value_passthrough(self):
+        """Passing an existing `ReflectapiOption` instance is not re-validated."""
+
+        class Snapshot(BaseModel):
+            name: str
+
+        class Item(BaseModel):
+            snapshot: ReflectapiOption[Snapshot] = ReflectapiOption(Undefined)
+
+        pre = ReflectapiOption(Snapshot(name="pre"))
+        item = Item(snapshot=pre)
+        assert item.snapshot is pre
