@@ -27,6 +27,19 @@ pub mod interface {
                 client,
             }
         }
+        /// Regression-test endpoint pinning codegen bugs
+        #[tracing::instrument(name = "/codegen-regression", skip(self, headers))]
+        pub async fn codegen_regression(
+            &self,
+            input: super::types::myapi::CodegenRegressionRequest,
+            headers: reflectapi::Empty,
+        ) -> Result<
+            super::types::myapi::CodegenRegressionResponse,
+            reflectapi::rt::Error<reflectapi::Empty, C::Error>,
+        > {
+            reflectapi::rt::__request_impl(&self.client, "/codegen-regression", input, headers)
+                .await
+        }
     }
 
     #[cfg(feature = "reqwest")]
@@ -172,6 +185,22 @@ pub mod interface {
 pub mod types {
     pub mod myapi {
 
+        #[derive(Debug, serde::Serialize)]
+        pub struct CodegenRegressionRequest {
+            /// Pulls in `order::OrderInsertData` (bug 1) and Rust tuple
+            /// (bug 2) reachability.
+            pub order: super::myapi::order::OrderInsertData,
+            /// Pulls in `order::RateLimit` for Duration (bug 3).
+            pub rate_limit: super::myapi::order::RateLimit,
+            /// Pulls in `order::Policy<C, T>` for PhantomData (bug 4).
+            pub policy: super::myapi::order::Policy<std::string::String, u32>,
+        }
+
+        #[derive(Debug, serde::Deserialize)]
+        pub struct CodegenRegressionResponse {
+            pub ok: bool,
+        }
+
         #[derive(Debug, serde::Deserialize, serde::Serialize)]
         pub struct HealthCheckFail {}
 
@@ -275,6 +304,44 @@ pub mod types {
                     )]
                     pub behaviors: std::vec::Vec<super::super::super::myapi::model::Behavior>,
                 }
+            }
+        }
+        pub mod order {
+
+            /// Bug 1 (namespace alias mismatch). The struct name starts with
+            /// the parent namespace\'s cap (`Order…`) — the alias-stripping
+            /// pass used to strip the leading cap from the namespace alias
+            /// (`order.InsertData = OrderInsertData`) while field annotations
+            /// kept the un-stripped form, producing `order.OrderInsertData`
+            /// which doesn\'t resolve at `model_rebuild()` time.
+            #[derive(Debug, serde::Serialize)]
+            pub struct OrderInsertData {
+                pub identity: std::string::String,
+                /// Bug 2 (tuple types). serde emits Rust tuples as JSON arrays;
+                /// the Python codegen used to emit `std.tuple.Tuple2[...]`
+                /// with no matching class, so any reference broke at rebuild.
+                pub alternative_part_number:
+                    std::option::Option<(std::string::String, std::string::String)>,
+            }
+
+            /// Bug 4 (PhantomData). PhantomData has no wire data — serde
+            /// skips it. The codegen used to emit `std.marker.PhantomData[T]`
+            /// as a field annotation, leaving a dangling reference.
+            #[derive(Debug, serde::Serialize)]
+            pub struct Policy<C, T> {
+                pub name: std::string::String,
+                pub _context_marker: std::marker::PhantomData<C>,
+                pub _output_marker: std::marker::PhantomData<T>,
+            }
+
+            /// Bug 3 (Duration shape). serde emits `Duration` as
+            /// `{\"secs\": <u64>, \"nanos\": <u32>}`. Pydantic\'s `timedelta`
+            /// validator rejects that shape, so any response with a Duration
+            /// failed validation.
+            #[derive(Debug, serde::Serialize)]
+            pub struct RateLimit {
+                pub retry_after: std::time::Duration,
+                pub max_wait: std::option::Option<std::time::Duration>,
             }
         }
         pub mod proto {

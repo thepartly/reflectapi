@@ -225,16 +225,54 @@ fn python_type_mappings() -> &'static HashMap<&'static str, PythonTypeMapping> {
         m.insert(
             "std::time::Duration",
             PythonTypeMapping {
-                type_hint: "timedelta",
-                imports: &["from datetime import timedelta"],
-                runtime_imports: &[],
-                provided_by_runtime: false,
+                // serde renders Duration as `{"secs": <u64>, "nanos": <u32>}`.
+                // Pydantic's bare `timedelta` validator rejects that
+                // dict shape (it expects ISO-8601 / int / float).
+                // `ReflectapiDuration` is `Annotated[timedelta,
+                // BeforeValidator(...), PlainSerializer(...)]` —
+                // accepts both the serde wire shape and python
+                // timedelta values, emits the serde shape on the way
+                // out.
+                type_hint: "ReflectapiDuration",
+                imports: &[],
+                runtime_imports: &["ReflectapiDuration"],
+                provided_by_runtime: true,
                 ignore_type_arguments: false,
             },
         );
 
         // Special types
         m.insert("std::tuple::Tuple0", PythonTypeMapping::simple("None"));
+        // Rust tuples of arity >=1 serialise as JSON arrays of the same
+        // arity. Pydantic's `tuple[A, B, …]` annotation validates that
+        // exactly: a fixed-length heterogeneous sequence. Anything not
+        // mapped here would otherwise render via
+        // `type_name_to_python_ref` as `std.tuple.TupleN[A, B]`, which
+        // is a dangling reference (there's no `std.tuple` submodule).
+        // Cover up to Tuple16 — matches the arity ceiling enforced by
+        // `reflectapi-schema` and Rust's own std trait impls.
+        for arity in 1..=16 {
+            let name: &'static str = match arity {
+                1 => "std::tuple::Tuple1",
+                2 => "std::tuple::Tuple2",
+                3 => "std::tuple::Tuple3",
+                4 => "std::tuple::Tuple4",
+                5 => "std::tuple::Tuple5",
+                6 => "std::tuple::Tuple6",
+                7 => "std::tuple::Tuple7",
+                8 => "std::tuple::Tuple8",
+                9 => "std::tuple::Tuple9",
+                10 => "std::tuple::Tuple10",
+                11 => "std::tuple::Tuple11",
+                12 => "std::tuple::Tuple12",
+                13 => "std::tuple::Tuple13",
+                14 => "std::tuple::Tuple14",
+                15 => "std::tuple::Tuple15",
+                16 => "std::tuple::Tuple16",
+                _ => unreachable!(),
+            };
+            m.insert(name, PythonTypeMapping::simple("tuple"));
+        }
         m.insert("serde_json::Value", PythonTypeMapping::simple("Any"));
 
         // Wrapper types (transparent)
@@ -1007,6 +1045,50 @@ fn render_struct_with_flatten_standard(
 }
 
 /// Validate that all type references in the schema exist
+/// Drop every `PhantomData<T>` field from every struct/variant in
+/// both input and output typespaces. PhantomData is purely a Rust
+/// type-system marker — serde renders it as `null` and the field
+/// carries no information for a wire consumer. Leaving it in the
+/// schema forced the Python codegen to render
+/// `std.marker.PhantomData[T]` annotations that didn't resolve.
+fn strip_phantom_data_fields(schema: &mut Schema) {
+    fn strip_from_typespace(
+        typespace_name_iter: impl IntoIterator<Item = String>,
+        ts: &mut reflectapi_schema::Typespace,
+    ) {
+        for name in typespace_name_iter {
+            let Some(ty) = ts.get_type_mut(&name) else {
+                continue;
+            };
+            match ty {
+                reflectapi_schema::Type::Struct(s) => {
+                    s.fields
+                        .retain(|f| f.type_ref.name != "std::marker::PhantomData");
+                }
+                reflectapi_schema::Type::Enum(e) => {
+                    for v in &mut e.variants {
+                        v.fields
+                            .retain(|f| f.type_ref.name != "std::marker::PhantomData");
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    let input_names: Vec<String> = schema
+        .input_types
+        .types()
+        .map(|t| t.name().to_string())
+        .collect();
+    strip_from_typespace(input_names, &mut schema.input_types);
+    let output_names: Vec<String> = schema
+        .output_types
+        .types()
+        .map(|t| t.name().to_string())
+        .collect();
+    strip_from_typespace(output_names, &mut schema.output_types);
+}
+
 /// Walk every input/output struct in the schema and return `true` if
 /// any field uses the three-state `reflectapi::Option<T>`. Used to
 /// decide whether to import `ReflectapiPartialModel` into the generated
@@ -1459,6 +1541,7 @@ fn modules_from_rendered_types(
         if let Some(rendered_type) = rendered_types.remove(&original_type_name) {
             module.types.push(templates::ModuleType {
                 rendered: rendered_type,
+                rust_path: original_type_name.clone(),
             });
         }
     }
@@ -1470,6 +1553,15 @@ fn build_python_generation(
     mut schema: Schema,
     config: &Config,
 ) -> anyhow::Result<PythonGeneration> {
+    // PhantomData<T> carries no wire data in Rust. serde serialises
+    // each occurrence as `null`, but the field still appears in the
+    // reflectapi schema with `type_ref.name == "std::marker::PhantomData"`.
+    // Render-time the codegen used to emit
+    // `std.marker.PhantomData[T]`, a dangling reference that broke
+    // `model_rebuild()`. Strip the fields entirely — they have no
+    // observable behaviour for a Python client.
+    strip_phantom_data_fields(&mut schema);
+
     // Consolidate input/output types FIRST so both the SemanticSchema and
     // the raw Schema share the same unified type names.
     let all_type_names = schema.consolidate_types();
@@ -1856,8 +1948,26 @@ fn render_external_types_and_rebuilds(rebuild_models: &[String]) -> String {
     ];
 
     if !rebuild_models.is_empty() {
+        // Same strict-rebuild contract as `render_rebuild_file` (see
+        // its comment for the rationale).
         external_types_and_rebuilds.push(format!(
-            "for _model in [\n    {},\n]:\n    try:\n        _model.model_rebuild()\n    except Exception:\n        pass",
+            "_rebuild_errors: list[str] = []\n\
+             for _model in [\n    {},\n]:\n\
+             \x20   if not hasattr(_model, \"model_rebuild\"):\n\
+             \x20       continue\n\
+             \x20   try:\n\
+             \x20       _model.model_rebuild()\n\
+             \x20   except Exception as _exc:\n\
+             \x20       _rebuild_errors.append(\
+             f\"  - {{_model.__name__}}: {{type(_exc).__name__}}: {{_exc}}\")\n\
+             if _rebuild_errors:\n\
+             \x20   raise RuntimeError(\n\
+             \x20       \"reflectapi: failed to rebuild \" + str(len(_rebuild_errors)) + \
+             \" generated model(s). This usually means the codegen emitted an annotation \
+             pointing at a symbol that was never defined (a dangling type reference). \
+             Fix the codegen rather than catching this error.\\n\" + \
+             \"\\n\".join(_rebuild_errors)\n\
+             \x20   )",
             rebuild_models.join(",\n    ")
         ));
     }
@@ -1956,14 +2066,45 @@ fn module_aliases(module: &templates::Module, ns_path: &[String]) -> BTreeMap<St
     let mut aliases = BTreeMap::new();
 
     for mt in &module.types {
-        for flat_name in extract_defined_python_names(&mt.rendered) {
-            let leaf = if flat_name.starts_with(&flat_prefix) {
+        let flat_names = extract_defined_python_names(&mt.rendered);
+        // Heuristic: the "primary" flat name for this type is the
+        // class whose name matches the rust leaf when both pass through
+        // the same PascalCase pipeline. We prefer it for the Rust-leaf
+        // alias below. If we can't identify a primary (e.g. variant
+        // models that don't carry their own rust path), fall back to
+        // emitting only the prefix-stripped alias.
+        let rust_leaf = mt.rust_path.rsplit("::").next().unwrap_or("");
+        let primary_flat_name = flat_names
+            .iter()
+            .find(|name| name.ends_with(&to_pascal_case(rust_leaf)))
+            .cloned();
+
+        for flat_name in &flat_names {
+            // 1. Stripped form: drop the *full* namespace prefix so the
+            //    namespace exposes the short ergonomic name. This is
+            //    what `__all__` advertises.
+            let stripped = if flat_name.starts_with(&flat_prefix) {
                 flat_name[flat_prefix.len()..].to_string()
             } else {
                 flat_name.clone()
             };
-            if !leaf.is_empty() {
-                aliases.insert(leaf, flat_name);
+            if !stripped.is_empty() {
+                aliases.insert(stripped, flat_name.clone());
+            }
+        }
+
+        // 2. Rust-leaf form (e.g. `OrderInsertData = MyapiOrderInsertData`).
+        //    `type_name_to_python_ref` generates field annotations as
+        //    `<namespace>.<rust_leaf>`, so the namespace must also
+        //    answer to that name or `model_rebuild()` raises
+        //    AttributeError. Only emit when the leaf differs from the
+        //    stripped form (otherwise we're duplicating an alias).
+        if !rust_leaf.is_empty() {
+            let leaf_pascal = improve_class_name_part(rust_leaf);
+            if let Some(flat_name) = primary_flat_name {
+                if !leaf_pascal.is_empty() && !aliases.contains_key(&leaf_pascal) {
+                    aliases.insert(leaf_pascal, flat_name);
+                }
             }
         }
     }
@@ -2094,10 +2235,17 @@ fn render_module_file(
         if !body.trim().is_empty() {
             body.push('\n');
         }
+        // Narrow the suppression to `ImportError` only: the wide
+        // `except Exception: pass` here used to swallow every
+        // `model_rebuild()` failure raised by `_rebuild_models()`,
+        // which is the same class of bug we want to surface. The
+        // remaining ImportError suppression covers the legitimate case
+        // where this namespace is imported standalone before the root
+        // package finishes initialising.
         body.push_str("try:\n");
         body.push_str("    from .._rebuild import rebuild_models as _rebuild_models\n\n");
         body.push_str("    _rebuild_models()\n");
-        body.push_str("except Exception:\n");
+        body.push_str("except ImportError:\n");
         body.push_str("    pass\n");
     }
 
@@ -2209,15 +2357,42 @@ fn render_rebuild_file(
                 body.push_str(&format!("    _types.{root} = {root}\n"));
             }
         }
+        // Run `model_rebuild()` against every generated model and
+        // collect every failure into one structured report. The old
+        // shape (`try: model_rebuild() except: pass`) silently
+        // swallowed dangling-annotation bugs at import time — they
+        // surfaced much later as `AttributeError: module has no
+        // attribute X` when a user tried to construct a model. By
+        // raising here we catch the whole class of "codegen emitted a
+        // dangling reference" bugs the moment the package loads,
+        // making CI smoke tests like `python -c 'import api_client'`
+        // genuinely informative.
+        body.push_str("    errors: list[str] = []\n");
         body.push_str("    for _model in [\n");
         for model in &generation.rebuild_models {
             body.push_str(&format!("        {model},\n"));
         }
         body.push_str("    ]:\n");
+        // Some rendered types are Python enums (or other non-Pydantic
+        // classes) — they don't have `model_rebuild()` and don't need
+        // one. Skip them without flagging an error.
+        body.push_str("        if not hasattr(_model, \"model_rebuild\"):\n");
+        body.push_str("            continue\n");
         body.push_str("        try:\n");
         body.push_str("            _model.model_rebuild()\n");
-        body.push_str("        except Exception:\n");
-        body.push_str("            pass\n");
+        body.push_str("        except Exception as exc:\n");
+        body.push_str(
+            "            errors.append(f\"  - {_model.__name__}: {type(exc).__name__}: {exc}\")\n",
+        );
+        body.push_str("    if errors:\n");
+        body.push_str(
+            "        raise RuntimeError(\n            \
+             \"reflectapi: failed to rebuild \" + str(len(errors)) + \
+             \" generated model(s). This usually means the codegen \
+             emitted an annotation pointing at a symbol that was never \
+             defined (a dangling type reference). Fix the codegen \
+             rather than catching this error.\\n\" + \"\\n\".join(errors)\n        )\n",
+        );
     }
     lines.push(body);
 
@@ -4884,6 +5059,13 @@ pub mod templates {
     pub struct ModuleType {
         /// The rendered Python source code for this type.
         pub rendered: String,
+        /// Original fully-qualified Rust type name (e.g.
+        /// `myapi::order::OrderInsertData`). Used by the alias
+        /// generator to expose the type under both its
+        /// flat-prefix-stripped form (`InsertData`) and its Rust-leaf
+        /// form (`OrderInsertData`); field annotations elsewhere use
+        /// the Rust leaf, so both names must be live in the namespace.
+        pub rust_path: String,
     }
 
     pub struct Module {

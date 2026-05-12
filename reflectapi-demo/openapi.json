@@ -6,6 +6,35 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/codegen-regression": {
+      "description": "Regression-test endpoint pinning codegen bugs",
+      "post": {
+        "operationId": "codegen-regression",
+        "description": "Regression-test endpoint pinning codegen bugs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/myapi.CodegenRegressionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/myapi.CodegenRegressionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/pets.cdc-events": {
       "description": "Stream of change data capture events for pets",
       "post": {
@@ -381,9 +410,67 @@
   },
   "components": {
     "schemas": {
+      "bool": {
+        "description": "Boolean value",
+        "type": "boolean"
+      },
       "f64": {
         "description": "64-bit floating point number",
         "type": "number"
+      },
+      "myapi.CodegenRegressionRequest": {
+        "type": "object",
+        "title": "myapi.CodegenRegressionRequest",
+        "required": [
+          "order",
+          "policy",
+          "rate_limit"
+        ],
+        "properties": {
+          "order": {
+            "description": "Pulls in `order::OrderInsertData` (bug 1) and Rust tuple\n(bug 2) reachability.",
+            "$ref": "#/components/schemas/myapi.order.OrderInsertData"
+          },
+          "policy": {
+            "description": "Pulls in `order::Policy<C, T>` for PhantomData (bug 4).",
+            "type": "object",
+            "title": "myapi.order.Policy<std.string.String, u32>",
+            "required": [
+              "_context_marker",
+              "_output_marker",
+              "name"
+            ],
+            "properties": {
+              "_context_marker": {
+                "description": "Zero-sized phantom data",
+                "type": "null"
+              },
+              "_output_marker": {
+                "description": "Zero-sized phantom data",
+                "type": "null"
+              },
+              "name": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          },
+          "rate_limit": {
+            "description": "Pulls in `order::RateLimit` for Duration (bug 3).",
+            "$ref": "#/components/schemas/myapi.order.RateLimit"
+          }
+        }
+      },
+      "myapi.CodegenRegressionResponse": {
+        "type": "object",
+        "title": "myapi.CodegenRegressionResponse",
+        "required": [
+          "ok"
+        ],
+        "properties": {
+          "ok": {
+            "$ref": "#/components/schemas/bool"
+          }
+        }
       },
       "myapi.model.Behavior": {
         "oneOf": [
@@ -574,6 +661,66 @@
             "description": "DateTime at a given timezone (RFC3339 format)",
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "myapi.order.OrderInsertData": {
+        "description": "Bug 1 (namespace alias mismatch). The struct name starts with\nthe parent namespace\\'s cap (`Order…`) — the alias-stripping\npass used to strip the leading cap from the namespace alias\n(`order.InsertData = OrderInsertData`) while field annotations\nkept the un-stripped form, producing `order.OrderInsertData`\nwhich doesn\\'t resolve at `model_rebuild()` time.",
+        "type": "object",
+        "title": "myapi.order.OrderInsertData",
+        "required": [
+          "alternative_part_number",
+          "identity"
+        ],
+        "properties": {
+          "alternative_part_number": {
+            "description": "Bug 2 (tuple types). serde emits Rust tuples as JSON arrays;\nthe Python codegen used to emit `std.tuple.Tuple2[...]`\nwith no matching class, so any reference broke at rebuild.",
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "description": "Tuple holding 2 elements",
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              }
+            ]
+          },
+          "identity": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.order.RateLimit": {
+        "description": "Bug 3 (Duration shape). serde emits `Duration` as\n`{\\\"secs\\\": <u64>, \\\"nanos\\\": <u32>}`. Pydantic\\'s `timedelta`\nvalidator rejects that shape, so any response with a Duration\nfailed validation.",
+        "type": "object",
+        "title": "myapi.order.RateLimit",
+        "required": [
+          "max_wait",
+          "retry_after"
+        ],
+        "properties": {
+          "max_wait": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.time.Duration"
+              }
+            ]
+          },
+          "retry_after": {
+            "$ref": "#/components/schemas/std.time.Duration"
           }
         }
       },
@@ -842,9 +989,34 @@
         "description": "UTF-8 encoded string",
         "type": "string"
       },
+      "std.time.Duration": {
+        "description": "Time duration type",
+        "type": "object",
+        "title": "std.time.Duration",
+        "required": [
+          "nanos",
+          "secs"
+        ],
+        "properties": {
+          "nanos": {
+            "$ref": "#/components/schemas/u32"
+          },
+          "secs": {
+            "$ref": "#/components/schemas/u64"
+          }
+        }
+      },
       "std.tuple.Tuple0": {
         "description": "Unit type",
         "type": "null"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      },
+      "u64": {
+        "description": "64-bit unsigned integer",
+        "type": "integer"
       },
       "u8": {
         "description": "8-bit unsigned integer",

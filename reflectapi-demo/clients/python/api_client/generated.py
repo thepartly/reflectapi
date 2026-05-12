@@ -15,7 +15,11 @@ from ._client import Client
 
 from . import myapi
 
-from .myapi import MyapiHealthCheckFail
+from .myapi import (
+    MyapiCodegenRegressionRequest,
+    MyapiCodegenRegressionResponse,
+    MyapiHealthCheckFail,
+)
 
 from . import myapi
 
@@ -36,6 +40,10 @@ from .myapi.model.input import MyapiModelInputPet
 from . import myapi
 
 from .myapi.model.output import MyapiModelOutputPet
+
+from . import myapi
+
+from .myapi.order import MyapiOrderInsertData, MyapiOrderPolicy, MyapiOrderRateLimit
 
 from . import myapi
 
@@ -76,6 +84,8 @@ _rebuild_models()
 __all__ = [
     "AsyncClient",
     "Client",
+    "MyapiCodegenRegressionRequest",
+    "MyapiCodegenRegressionResponse",
     "MyapiHealthCheckFail",
     "MyapiModelBehavior",
     "MyapiModelBehaviorAggressiveVariant",
@@ -86,6 +96,9 @@ __all__ = [
     "MyapiModelKindCat",
     "MyapiModelKindDog",
     "MyapiModelOutputPet",
+    "MyapiOrderInsertData",
+    "MyapiOrderPolicy",
+    "MyapiOrderRateLimit",
     "MyapiProtoHeaders",
     "MyapiProtoInternalError",
     "MyapiProtoPaginated",

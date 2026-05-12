@@ -634,6 +634,14 @@ class __EventSourceParserStream extends TransformStream<
 
 export namespace __definition {
   export interface Interface {
+    /**
+     * Regression-test endpoint pinning codegen bugs
+     */
+    codegen_regression: (
+      input: myapi.CodegenRegressionRequest,
+      headers: {},
+      options?: RequestOptions,
+    ) => AsyncResult<myapi.CodegenRegressionResponse, {}>;
     health: HealthInterface;
     pets: PetsInterface;
   }
@@ -719,6 +727,26 @@ export namespace __definition {
   }
 }
 export namespace myapi {
+  export interface CodegenRegressionRequest {
+    /**
+     * Pulls in `order::OrderInsertData` (bug 1) and Rust tuple
+     * (bug 2) reachability.
+     */
+    order: myapi.order.OrderInsertData;
+    /**
+     * Pulls in `order::RateLimit` for Duration (bug 3).
+     */
+    rate_limit: myapi.order.RateLimit;
+    /**
+     * Pulls in `order::Policy<C, T>` for PhantomData (bug 4).
+     */
+    policy: myapi.order.Policy<string, number /* u32 */>;
+  }
+
+  export interface CodegenRegressionResponse {
+    ok: boolean;
+  }
+
   export interface HealthCheckFail {}
 
   export namespace model {
@@ -823,6 +851,48 @@ export namespace myapi {
     }
   }
 
+  export namespace order {
+    /**
+     * Bug 1 (namespace alias mismatch). The struct name starts with
+     * the parent namespace\'s cap (`Order…`) — the alias-stripping
+     * pass used to strip the leading cap from the namespace alias
+     * (`order.InsertData = OrderInsertData`) while field annotations
+     * kept the un-stripped form, producing `order.OrderInsertData`
+     * which doesn\'t resolve at `model_rebuild()` time.
+     */
+    export interface OrderInsertData {
+      identity: string;
+      /**
+       * Bug 2 (tuple types). serde emits Rust tuples as JSON arrays;
+       * the Python codegen used to emit `std.tuple.Tuple2[...]`
+       * with no matching class, so any reference broke at rebuild.
+       */
+      alternative_part_number: [string, string] | null;
+    }
+
+    /**
+     * Bug 4 (PhantomData). PhantomData has no wire data — serde
+     * skips it. The codegen used to emit `std.marker.PhantomData[T]`
+     * as a field annotation, leaving a dangling reference.
+     */
+    export interface Policy<C, T> {
+      name: string;
+      _context_marker: undefined | C /* phantom data */;
+      _output_marker: undefined | T /* phantom data */;
+    }
+
+    /**
+     * Bug 3 (Duration shape). serde emits `Duration` as
+     * `{\"secs\": <u64>, \"nanos\": <u32>}`. Pydantic\'s `timedelta`
+     * validator rejects that shape, so any response with a Duration
+     * failed validation.
+     */
+    export interface RateLimit {
+      retry_after: std.time.Duration;
+      max_wait: std.time.Duration | null;
+    }
+  }
+
   export namespace proto {
     export interface Headers {
       /**
@@ -919,6 +989,23 @@ export namespace reflectapi {
    * Struct object with no fields
    */
   export interface Empty {}
+
+  /**
+   * Error object which is expected to be never returned
+   */
+  export interface Infallible {}
+}
+
+export namespace std {
+  export namespace time {
+    /**
+     * Time duration type
+     */
+    export interface Duration {
+      secs: number /* u64 */;
+      nanos: number /* u32 */;
+    }
+  }
 }
 
 namespace __implementation {
@@ -929,6 +1016,7 @@ namespace __implementation {
       typeof base === "string" ? new ClientInstance(base) : base;
     return {
       impl: {
+        codegen_regression: codegen_regression(client_instance),
         health: {
           check: health__check(client_instance),
         },
@@ -1047,5 +1135,18 @@ namespace __implementation {
         myapi.model.output.Pet,
         myapi.proto.UnauthorizedError
       >(client, "/pets.cdc-events", input, headers, options);
+  }
+  function codegen_regression(client: Client) {
+    return (
+      input: myapi.CodegenRegressionRequest,
+      headers: {},
+      options?: RequestOptions,
+    ) =>
+      __request<
+        myapi.CodegenRegressionRequest,
+        {},
+        myapi.CodegenRegressionResponse,
+        {}
+      >(client, "/codegen-regression", input, headers, options);
   }
 }

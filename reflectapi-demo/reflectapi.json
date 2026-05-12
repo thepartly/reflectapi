@@ -167,6 +167,22 @@
         "msgpack"
       ],
       "readonly": true
+    },
+    {
+      "name": "codegen-regression",
+      "path": "",
+      "description": "Regression-test endpoint pinning codegen bugs",
+      "input_type": {
+        "name": "myapi::CodegenRegressionRequest"
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "myapi::CodegenRegressionResponse"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
     }
   ],
   "input_types": {
@@ -188,6 +204,46 @@
         "kind": "primitive",
         "name": "f64",
         "description": "64-bit floating point number"
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::CodegenRegressionRequest",
+        "fields": {
+          "named": [
+            {
+              "name": "order",
+              "description": "Pulls in `order::OrderInsertData` (bug 1) and Rust tuple\n(bug 2) reachability.",
+              "type": {
+                "name": "myapi::order::OrderInsertData"
+              },
+              "required": true
+            },
+            {
+              "name": "rate_limit",
+              "description": "Pulls in `order::RateLimit` for Duration (bug 3).",
+              "type": {
+                "name": "myapi::order::RateLimit"
+              },
+              "required": true
+            },
+            {
+              "name": "policy",
+              "description": "Pulls in `order::Policy<C, T>` for PhantomData (bug 4).",
+              "type": {
+                "name": "myapi::order::Policy",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u32"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "enum",
@@ -348,6 +404,119 @@
                   }
                 ]
               }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::order::OrderInsertData",
+        "description": "Bug 1 (namespace alias mismatch). The struct name starts with\nthe parent namespace\\'s cap (`Order…`) — the alias-stripping\npass used to strip the leading cap from the namespace alias\n(`order.InsertData = OrderInsertData`) while field annotations\nkept the un-stripped form, producing `order.OrderInsertData`\nwhich doesn\\'t resolve at `model_rebuild()` time.",
+        "fields": {
+          "named": [
+            {
+              "name": "identity",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "alternative_part_number",
+              "description": "Bug 2 (tuple types). serde emits Rust tuples as JSON arrays;\nthe Python codegen used to emit `std.tuple.Tuple2[...]`\nwith no matching class, so any reference broke at rebuild.",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::tuple::Tuple2",
+                    "arguments": [
+                      {
+                        "name": "std::string::String"
+                      },
+                      {
+                        "name": "std::string::String"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::order::Policy",
+        "description": "Bug 4 (PhantomData). PhantomData has no wire data — serde\nskips it. The codegen used to emit `std.marker.PhantomData[T]`\nas a field annotation, leaving a dangling reference.",
+        "parameters": [
+          {
+            "name": "C"
+          },
+          {
+            "name": "T"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "name",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "_context_marker",
+              "type": {
+                "name": "std::marker::PhantomData",
+                "arguments": [
+                  {
+                    "name": "C"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "_output_marker",
+              "type": {
+                "name": "std::marker::PhantomData",
+                "arguments": [
+                  {
+                    "name": "T"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::order::RateLimit",
+        "description": "Bug 3 (Duration shape). serde emits `Duration` as\n`{\\\"secs\\\": <u64>, \\\"nanos\\\": <u32>}`. Pydantic\\'s `timedelta`\nvalidator rejects that shape, so any response with a Duration\nfailed validation.",
+        "fields": {
+          "named": [
+            {
+              "name": "retry_after",
+              "type": {
+                "name": "std::time::Duration"
+              },
+              "required": true
+            },
+            {
+              "name": "max_wait",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::time::Duration"
+                  }
+                ]
+              },
+              "required": true
             }
           ]
         }
@@ -530,6 +699,16 @@
         ]
       },
       {
+        "kind": "primitive",
+        "name": "std::marker::PhantomData",
+        "description": "Zero-sized phantom data",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      },
+      {
         "kind": "enum",
         "name": "std::option::Option",
         "description": "Optional nullable type",
@@ -567,6 +746,42 @@
         "description": "UTF-8 encoded string"
       },
       {
+        "kind": "struct",
+        "name": "std::time::Duration",
+        "description": "Time duration type",
+        "fields": {
+          "named": [
+            {
+              "name": "secs",
+              "type": {
+                "name": "u64"
+              },
+              "required": true
+            },
+            {
+              "name": "nanos",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::tuple::Tuple2",
+        "description": "Tuple holding 2 elements",
+        "parameters": [
+          {
+            "name": "T1"
+          },
+          {
+            "name": "T2"
+          }
+        ]
+      },
+      {
         "kind": "primitive",
         "name": "std::vec::Vec",
         "description": "Expandable array type",
@@ -578,6 +793,16 @@
       },
       {
         "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u64",
+        "description": "64-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
         "name": "u8",
         "description": "8-bit unsigned integer"
       }
@@ -585,6 +810,11 @@
   },
   "output_types": {
     "types": [
+      {
+        "kind": "primitive",
+        "name": "bool",
+        "description": "Boolean value"
+      },
       {
         "kind": "primitive",
         "name": "chrono::DateTime",
@@ -602,6 +832,21 @@
         "kind": "primitive",
         "name": "f64",
         "description": "64-bit floating point number"
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::CodegenRegressionResponse",
+        "fields": {
+          "named": [
+            {
+              "name": "ok",
+              "type": {
+                "name": "bool"
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "struct",
@@ -988,6 +1233,12 @@
         "kind": "struct",
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
         "fields": "none"
       },
       {

@@ -49,6 +49,10 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
                 .readonly(true)
                 .description("Stream of change data capture events for pets")
         })
+        .route(codegen_regression, |b| {
+            b.name("codegen-regression")
+                .description("Regression-test endpoint pinning codegen bugs")
+        })
         .rename_types("reflectapi_demo::", "myapi::")
         // and some optional linting rules
         .validate(|schema| {
@@ -83,6 +87,34 @@ async fn health_check(
     Ok(reflectapi::Empty {})
 }
 
+#[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+pub struct CodegenRegressionRequest {
+    /// Pulls in `order::OrderInsertData` (bug 1) and Rust tuple
+    /// (bug 2) reachability.
+    pub order: order::OrderInsertData,
+    /// Pulls in `order::RateLimit` for Duration (bug 3).
+    pub rate_limit: order::RateLimit,
+    /// Pulls in `order::Policy<C, T>` for PhantomData (bug 4).
+    pub policy: order::Policy<String, u32>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+pub struct CodegenRegressionResponse {
+    pub ok: bool,
+}
+
+/// Pure regression-test endpoint. Doesn't run in the demo server — it
+/// only exists so the four bug-pinning types appear in the generated
+/// schema and the Python codegen has to render them.
+async fn codegen_regression(
+    _: Arc<AppState>,
+    request: CodegenRegressionRequest,
+    _headers: reflectapi::Empty,
+) -> Result<CodegenRegressionResponse, reflectapi::Infallible> {
+    let _ = request;
+    Ok(CodegenRegressionResponse { ok: true })
+}
+
 #[derive(Debug)]
 pub struct AppState {
     pets: Mutex<Vec<model::Pet>>,
@@ -95,6 +127,63 @@ impl Default for AppState {
             pets: Mutex::new(Vec::new()),
             tx: broadcast::channel(100).0,
         }
+    }
+}
+
+// Regression-test module: every type here exists to exercise a
+// previously-broken Python codegen path. Each comment block links the
+// type to the bug it pins.
+mod order {
+    use std::marker::PhantomData;
+    use std::time::Duration;
+
+    /// Bug 1 (namespace alias mismatch). The struct name starts with
+    /// the parent namespace's cap (`Order…`) — the alias-stripping
+    /// pass used to strip the leading cap from the namespace alias
+    /// (`order.InsertData = OrderInsertData`) while field annotations
+    /// kept the un-stripped form, producing `order.OrderInsertData`
+    /// which doesn't resolve at `model_rebuild()` time.
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct OrderInsertData {
+        pub identity: String,
+        /// Bug 2 (tuple types). serde emits Rust tuples as JSON arrays;
+        /// the Python codegen used to emit `std.tuple.Tuple2[...]`
+        /// with no matching class, so any reference broke at rebuild.
+        pub alternative_part_number: Option<(String, String)>,
+    }
+
+    /// Bug 3 (Duration shape). serde emits `Duration` as
+    /// `{"secs": <u64>, "nanos": <u32>}`. Pydantic's `timedelta`
+    /// validator rejects that shape, so any response with a Duration
+    /// failed validation.
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct RateLimit {
+        pub retry_after: Duration,
+        pub max_wait: Option<Duration>,
+    }
+
+    /// Bug 4 (PhantomData). PhantomData has no wire data — serde
+    /// skips it. The codegen used to emit `std.marker.PhantomData[T]`
+    /// as a field annotation, leaving a dangling reference.
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct Policy<C, T>
+    where
+        C: 'static,
+        T: 'static,
+    {
+        pub name: String,
+        // No `#[serde(skip)]` here — serde emits PhantomData as JSON
+        // `null`, and reflectapi-derive surfaces the field in the
+        // schema. The Python codegen used to render it as
+        // `std.marker.PhantomData[T]`, which broke `model_rebuild()`.
+        pub _context_marker: PhantomData<C>,
+        pub _output_marker: PhantomData<T>,
     }
 }
 

@@ -20,6 +20,7 @@ from .auth import (
 )
 from .batch import BatchClient
 from .client import AsyncClientBase, ClientBase
+from .duration import ReflectapiDuration
 from .transport import AsyncClient, Client, Request, Response
 from .exceptions import (
     ApiError,
@@ -86,6 +87,7 @@ __all__ = [
     "AsyncMiddleware",
     "MockClient",
     "NetworkError",
+    "ReflectapiDuration",
     "ReflectapiEmpty",
     "ReflectapiInfallible",
     "ReflectapiPartialModel",

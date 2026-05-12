@@ -28,7 +28,9 @@ from pydantic import (
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
+from reflectapi_runtime import ReflectapiDuration
 from reflectapi_runtime import ReflectapiEmpty
+from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     parse_externally_tagged as _parse_externally_tagged,
@@ -38,6 +40,8 @@ from reflectapi_runtime import (
 
 # Type variables for generic types
 
+
+C = TypeVar("C")
 
 T = TypeVar("T")
 
@@ -274,6 +278,28 @@ class AsyncClient(AsyncClientBase):
 
         self.pets = AsyncPetsClient(self)
 
+    async def codegen_regression(
+        self,
+        data: Optional[myapi.CodegenRegressionRequest] = None,
+    ) -> ApiResponse[myapi.CodegenRegressionResponse]:
+        """Regression-test endpoint pinning codegen bugs
+
+        Args:
+            data: Request data for the codegen_regression operation.
+
+        Returns:
+            ApiResponse[myapi.CodegenRegressionResponse]: Response containing myapi.CodegenRegressionResponse data
+        """
+        path = "/codegen-regression"
+
+        params: dict[str, Any] = {}
+        return await self._make_request(
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=myapi.CodegenRegressionResponse,
+        )
+
 
 class HealthClient:
     """Synchronous client for health operations."""
@@ -497,3 +523,25 @@ class Client(ClientBase):
         self.health = HealthClient(self)
 
         self.pets = PetsClient(self)
+
+    def codegen_regression(
+        self,
+        data: Optional[myapi.CodegenRegressionRequest] = None,
+    ) -> ApiResponse[myapi.CodegenRegressionResponse]:
+        """Regression-test endpoint pinning codegen bugs
+
+        Args:
+            data: Request data for the codegen_regression operation.
+
+        Returns:
+            ApiResponse[myapi.CodegenRegressionResponse]: Response containing myapi.CodegenRegressionResponse data
+        """
+        path = "/codegen-regression"
+
+        params: dict[str, Any] = {}
+        return self._make_request(
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=myapi.CodegenRegressionResponse,
+        )

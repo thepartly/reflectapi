@@ -28,7 +28,9 @@ from pydantic import (
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
+from reflectapi_runtime import ReflectapiDuration
 from reflectapi_runtime import ReflectapiEmpty
+from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     parse_externally_tagged as _parse_externally_tagged,
@@ -38,6 +40,8 @@ from reflectapi_runtime import (
 
 # Type variables for generic types
 
+
+C = TypeVar("C")
 
 T = TypeVar("T")
 
@@ -49,21 +53,54 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
+class MyapiCodegenRegressionRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    order: myapi.order.OrderInsertData = Field(
+        description="Pulls in `order::OrderInsertData` (bug 1) and Rust tuple\n(bug 2) reachability."
+    )
+    rate_limit: myapi.order.RateLimit = Field(
+        description="Pulls in `order::RateLimit` for Duration (bug 3)."
+    )
+    policy: myapi.order.Policy[str, int] = Field(
+        description="Pulls in `order::Policy<C, T>` for PhantomData (bug 4)."
+    )
+
+
+class MyapiCodegenRegressionResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    ok: bool
+
+
 class MyapiHealthCheckFail(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
 # Public aliases for this module
+CodegenRegressionRequest = MyapiCodegenRegressionRequest
+CodegenRegressionResponse = MyapiCodegenRegressionResponse
 HealthCheckFail = MyapiHealthCheckFail
 
 from . import model
+from . import order
 from . import proto
 
 try:
     from .._rebuild import rebuild_models as _rebuild_models
 
     _rebuild_models()
-except Exception:
+except ImportError:
     pass
 
-__all__ = ["HealthCheckFail", "MyapiHealthCheckFail", "model", "proto"]
+__all__ = [
+    "CodegenRegressionRequest",
+    "CodegenRegressionResponse",
+    "HealthCheckFail",
+    "MyapiCodegenRegressionRequest",
+    "MyapiCodegenRegressionResponse",
+    "MyapiHealthCheckFail",
+    "model",
+    "order",
+    "proto",
+]

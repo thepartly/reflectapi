@@ -38,3 +38,30 @@ jobs:
       - name: Run tests
         working-directory: reflectapi-python-runtime
         run: uv run --extra dev pytest -q --no-cov
+
+  # Regenerates the demo Python client from the in-repo schema and
+  # imports it. The generated package's strict `_rebuild_models()` runs
+  # at import time and raises on any dangling type reference (the class
+  # of bug that produced four user-reported issues in 0.17.x:
+  # namespace-alias mismatches, std.tuple/std.marker references with no
+  # backing class, etc.). If this job is green the whole class is gone;
+  # if it ever goes red, the codegen has regressed.
+  python-codegen-smoke:
+    name: Python codegen smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: astral-sh/setup-uv@v3
+      - name: Regenerate demo Python client from schema
+        run: |
+          cargo run -p reflectapi-cli --quiet -- codegen \
+            -s reflectapi-demo/reflectapi.json \
+            -o reflectapi-demo/clients/python/api_client \
+            -l python --python-package-name api_client --python-sync -f
+      - name: Import demo client (triggers strict model_rebuild)
+        working-directory: reflectapi-demo/clients/python
+        run: uv run python -c "import api_client; print('demo client import OK')"
+      - name: Snapshot is committed (no drift)
+        run: git diff --exit-code reflectapi-demo/clients/python/api_client/

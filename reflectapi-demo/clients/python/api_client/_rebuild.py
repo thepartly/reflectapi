@@ -11,7 +11,11 @@ from __future__ import annotations
 
 from . import myapi
 
-from .myapi import MyapiHealthCheckFail
+from .myapi import (
+    MyapiCodegenRegressionRequest,
+    MyapiCodegenRegressionResponse,
+    MyapiHealthCheckFail,
+)
 
 from . import myapi
 
@@ -32,6 +36,10 @@ from .myapi.model.input import MyapiModelInputPet
 from . import myapi
 
 from .myapi.model.output import MyapiModelOutputPet
+
+from . import myapi
+
+from .myapi.order import MyapiOrderInsertData, MyapiOrderPolicy, MyapiOrderRateLimit
 
 from . import myapi
 
@@ -71,14 +79,21 @@ def rebuild_models() -> None:
     myapi.model.myapi = myapi
     myapi.model.input.myapi = myapi
     myapi.model.output.myapi = myapi
+    myapi.order.myapi = myapi
     myapi.proto.myapi = myapi
     reflectapi.reflectapi = reflectapi
+    errors: list[str] = []
     for _model in [
+        MyapiCodegenRegressionRequest,
+        MyapiCodegenRegressionResponse,
         MyapiHealthCheckFail,
         MyapiModelBehavior,
         MyapiModelKind,
         MyapiModelInputPet,
         MyapiModelOutputPet,
+        MyapiOrderInsertData,
+        MyapiOrderPolicy,
+        MyapiOrderRateLimit,
         MyapiProtoHeaders,
         MyapiProtoInternalError,
         MyapiProtoPaginated,
@@ -92,7 +107,16 @@ def rebuild_models() -> None:
         MyapiProtoValidationA,
         MyapiProtoValidationError,
     ]:
+        if not hasattr(_model, "model_rebuild"):
+            continue
         try:
             _model.model_rebuild()
-        except Exception:
-            pass
+        except Exception as exc:
+            errors.append(f"  - {_model.__name__}: {type(exc).__name__}: {exc}")
+    if errors:
+        raise RuntimeError(
+            "reflectapi: failed to rebuild "
+            + str(len(errors))
+            + " generated model(s). This usually means the codegen emitted an annotation pointing at a symbol that was never defined (a dangling type reference). Fix the codegen rather than catching this error.\n"
+            + "\n".join(errors)
+        )

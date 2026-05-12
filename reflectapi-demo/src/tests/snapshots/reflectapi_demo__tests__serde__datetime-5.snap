@@ -13,7 +13,7 @@ from __future__ import annotations
 
 
 # Standard library imports
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
+from reflectapi_runtime import ReflectapiDuration
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
@@ -28,22 +29,13 @@ from reflectapi_runtime import ReflectapiInfallible
 class ReflectapiDemoTestsSerdeTestStruct(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    duration: timedelta
+    duration: ReflectapiDuration
     naive_time: str
     naive_date: date
     naive_datetime: datetime
     date_time_fixed_offset: datetime
     date_time_utc: datetime
     date_time_local: datetime
-
-
-class StdTimeDuration(BaseModel):
-    """Time duration type"""
-
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    secs: int
-    nanos: int
 
 
 # Namespace classes for dotted access to types
@@ -57,15 +49,6 @@ class reflectapi_demo:
             """Namespace for serde types."""
 
             TestStruct = ReflectapiDemoTestsSerdeTestStruct
-
-
-class std:
-    """Namespace for std types."""
-
-    class time:
-        """Namespace for time types."""
-
-        Duration = StdTimeDuration
 
 
 class AsyncInoutClient:
@@ -159,10 +142,20 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
+_rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsSerdeTestStruct,
 ]:
+    if not hasattr(_model, "model_rebuild"):
+        continue
     try:
         _model.model_rebuild()
-    except Exception:
-        pass
+    except Exception as _exc:
+        _rebuild_errors.append(f"  - {_model.__name__}: {type(_exc).__name__}: {_exc}")
+if _rebuild_errors:
+    raise RuntimeError(
+        "reflectapi: failed to rebuild "
+        + str(len(_rebuild_errors))
+        + " generated model(s). This usually means the codegen emitted an annotation pointing at a symbol that was never defined (a dangling type reference). Fix the codegen rather than catching this error.\n"
+        + "\n".join(_rebuild_errors)
+    )
