@@ -19,10 +19,8 @@ from reflectapi_runtime import (
     BearerTokenAuth,
     ClientBase,
     NetworkError,
-    ReflectapiOption,
     TimeoutError,
     TransportMetadata,
-    Undefined,
 )
 from reflectapi_runtime import (
     ValidationError as ReflectApiValidationError,
@@ -34,7 +32,7 @@ class EdgeCaseTestModel(BaseModel):
 
     name: str
     value: int
-    optional_field: ReflectapiOption[str] = ReflectapiOption()
+    optional_field: str | None = None
 
 
 class TestClientEdgeCases:
@@ -142,8 +140,12 @@ class TestClientEdgeCases:
         data["self"] = data
 
         client = ClientBase("https://api.example.com")
-        # Should raise RecursionError for circular references
-        with pytest.raises(RecursionError):
+        # `json.dumps` detects circular references and raises ValueError.
+        # (The previous implementation hit Python's recursion limit
+        # because it pre-traversed the dict; the current path delegates
+        # directly to the JSON encoder, which surfaces the error sooner
+        # with a clearer message.)
+        with pytest.raises(ValueError, match="Circular reference"):
             client._make_request("/test", json_data=data)
 
 
@@ -188,81 +190,6 @@ class TestAsyncClientEdgeCases:
         except ValueError:
             pass  # Expected
         # Should not raise additional exceptions during cleanup
-
-
-class TestReflectapiOptionEdgeCases:
-    """Test edge cases for ReflectapiOption."""
-
-    def test_option_with_complex_objects(self):
-        """Test ReflectapiOption with complex nested objects."""
-        complex_data = {
-            "nested": {
-                "list": [1, 2, {"deep": "value"}],
-                "tuple": (1, 2, 3),
-                "set": {1, 2, 3},  # Sets are not JSON serializable
-            }
-        }
-
-        option = ReflectapiOption(complex_data)
-        assert option.is_some
-        assert option.unwrap() == complex_data
-
-    def test_option_with_large_data(self):
-        """Test ReflectapiOption with very large data."""
-        large_string = "x" * 1000000  # 1MB string
-        option = ReflectapiOption(large_string)
-
-        assert option.is_some
-        assert len(option.unwrap()) == 1000000
-
-    def test_option_equality_with_different_types(self):
-        """Test ReflectapiOption equality with different types."""
-        option_int = ReflectapiOption(42)
-        option_str = ReflectapiOption("42")
-        option_list = ReflectapiOption([42])
-
-        assert option_int != option_str
-        assert option_int != option_list  # Different types
-        assert option_str != option_list  # Different types
-
-    def test_option_hash_with_unhashable_values(self):
-        """Test ReflectapiOption hash with unhashable values."""
-        unhashable_data = {"key": [1, 2, 3]}  # Lists are unhashable
-        option = ReflectapiOption(unhashable_data)
-
-        # Should raise TypeError when trying to hash
-        with pytest.raises(TypeError):
-            hash(option)
-
-    def test_option_map_chain(self):
-        """Test chaining multiple map operations."""
-        option = ReflectapiOption(10)
-        result = option.map(lambda x: x * 2).map(lambda x: x + 5).map(str)
-
-        assert result.is_some
-        assert result.unwrap() == "25"
-
-    def test_option_filter_with_exception_in_predicate(self):
-        """Test filter with predicate that raises exception."""
-        option = ReflectapiOption("test")
-
-        def bad_predicate(x):
-            raise ValueError("Predicate error")
-
-        # Should propagate the exception
-        with pytest.raises(ValueError, match="Predicate error"):
-            option.filter(bad_predicate)
-
-    def test_option_map_with_exception_in_function(self):
-        """Test map with function that raises exception."""
-        option = ReflectapiOption(10)
-
-        def bad_function(x):
-            raise RuntimeError("Function error")
-
-        # Should propagate the exception
-        with pytest.raises(RuntimeError, match="Function error"):
-            option.map(bad_function)
 
 
 class TestErrorHandlingEdgeCases:
@@ -355,68 +282,6 @@ class TestErrorHandlingEdgeCases:
 
 class TestSerializationEdgeCases:
     """Test edge cases in serialization."""
-
-    def test_serialize_option_dict_with_nested_options(self):
-        """Test serializing dictionary with nested ReflectapiOption values."""
-        from reflectapi_runtime.option import serialize_option_dict
-
-        nested_data = {
-            "level1": {
-                "level2": {
-                    "option_field": ReflectapiOption("value"),
-                    "undefined_field": ReflectapiOption(Undefined),
-                    "none_field": ReflectapiOption(None),
-                }
-            },
-            "list_with_options": [
-                ReflectapiOption("item1"),
-                ReflectapiOption(Undefined),
-                ReflectapiOption(None),
-                "regular_item",
-            ],
-        }
-
-        result = serialize_option_dict(nested_data)
-
-        # Should properly handle nested structures
-        assert result["level1"]["level2"]["option_field"] == "value"
-        assert "undefined_field" not in result["level1"]["level2"]
-        assert result["level1"]["level2"]["none_field"] is None
-
-        # Should handle lists with options
-        expected_list = ["item1", None, "regular_item"]
-        assert result["list_with_options"] == expected_list
-
-    def test_serialize_option_dict_with_circular_references(self):
-        """Test serializing dictionary with circular references."""
-        from reflectapi_runtime.option import serialize_option_dict
-
-        # Create circular reference
-        data = {"option": ReflectapiOption("value"), "nested": {}}
-        data["nested"]["parent"] = data
-
-        # Should handle circular references gracefully or raise appropriate error
-        try:
-            result = serialize_option_dict(data)
-            # If it succeeds, verify the option was processed
-            assert result["option"] == "value"
-        except RecursionError:
-            # Circular references might cause recursion error - that's acceptable
-            pass
-
-    def test_pydantic_model_with_invalid_reflectapi_option(self):
-        """Test Pydantic model creation and validation."""
-
-        class TestModel(BaseModel):
-            field: ReflectapiOption[str] = ReflectapiOption()
-
-        # Should work with valid data
-        model = TestModel(field=ReflectapiOption("valid"))
-        assert model.field.unwrap() == "valid"
-
-        # Should work with automatic wrapping
-        model2 = TestModel(field="auto_wrapped")
-        assert model2.field.unwrap() == "auto_wrapped"
 
 
 class TestAuthEdgeCases:
@@ -526,21 +391,6 @@ class TestMemoryAndResourceEdgeCases:
 
         client = ClientBase("https://api.example.com", headers=large_headers)
         assert hasattr(client, "_client")
-
-    def test_reflectapi_option_memory_usage(self):
-        """Test ReflectapiOption memory usage with large data."""
-        import sys
-
-        # Create option with large data
-        large_data = list(range(100000))
-        option = ReflectapiOption(large_data)
-
-        # Should not use significantly more memory than the data itself
-        option_size = sys.getsizeof(option)
-        data_size = sys.getsizeof(large_data)
-
-        # Option should not add significant overhead
-        assert option_size < data_size * 1.1  # Less than 10% overhead
 
     def test_transport_metadata_with_large_headers(self):
         """Test TransportMetadata with very large headers."""

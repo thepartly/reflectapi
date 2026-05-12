@@ -21,7 +21,6 @@ from .middleware import (
     SyncMiddleware,
     SyncMiddlewareChain,
 )
-from .option import serialize_option_dict
 from .response import ApiResponse, TransportMetadata
 from .sse import aparse_sse, parse_sse
 from .transport import AsyncClient, Client, Request, Response
@@ -252,60 +251,24 @@ class ClientBase(ABC):
     def _serialize_request_body(
         self, json_model: BaseModel | int | float | str | bool | list | dict
     ) -> tuple[bytes, dict[str, str]]:
-        """Serialize request body from Pydantic model or primitive type."""
-        from .option import ReflectapiOption
+        """Serialize the request body.
 
+        Generated models that contain partial (``reflectapi::Option<T>``)
+        fields inherit from :class:`ReflectapiPartialModel`, whose
+        ``@model_serializer`` already omits keys not in
+        ``model_fields_set``. Plain Pydantic models serialise normally.
+        Either way, ``model_dump_json(by_alias=True)`` is the right call —
+        the model decides what goes on the wire, not the transport.
+        """
         # Handle primitive types (for untagged unions)
-        if not hasattr(json_model, "model_dump"):
+        if not hasattr(json_model, "model_dump_json"):
             content = json.dumps(
                 json_model, default=_json_serializer, separators=(",", ":")
             ).encode("utf-8")
-            headers = {"Content-Type": "application/json"}
-            return content, headers
+            return content, {"Content-Type": "application/json"}
 
-        # Check if model has any ReflectapiOption fields that need special handling
-        raw_data = json_model.model_dump(exclude_none=False)
-
-        # Handle case where RootModel serializes to primitive value (e.g., strings for unit variants)
-        if not isinstance(raw_data, dict):
-            # For primitive values, use Pydantic's built-in JSON serialization
-            content = json_model.model_dump_json(
-                exclude_none=True, by_alias=True
-            ).encode("utf-8")
-            headers = {"Content-Type": "application/json"}
-            return content, headers
-
-        has_reflectapi_options = any(
-            isinstance(field_value, ReflectapiOption)
-            for field_value in raw_data.values()
-        )
-
-        if has_reflectapi_options:
-            # Process each field to handle ReflectapiOption properly
-            processed_fields = {}
-            for field_name, field_value in raw_data.items():
-                if isinstance(field_value, ReflectapiOption):
-                    if not field_value.is_undefined:
-                        # Include the unwrapped value (including None for explicit null)
-                        processed_fields[field_name] = field_value._value
-                    # Skip undefined fields entirely - don't include them at all
-                else:
-                    # Include all other fields that aren't None (unless they're meaningful None values)
-                    if field_value is not None:
-                        processed_fields[field_name] = field_value
-
-            # Use json serialization with datetime handler for proper serialization
-            content = json.dumps(
-                processed_fields, default=_json_serializer, separators=(",", ":")
-            ).encode("utf-8")
-        else:
-            # Use Pydantic's built-in JSON serialization with exclude_none and by_alias for proper handling
-            content = json_model.model_dump_json(
-                exclude_none=True, by_alias=True
-            ).encode("utf-8")
-
-        headers = {"Content-Type": "application/json"}
-        return content, headers
+        content = json_model.model_dump_json(by_alias=True).encode("utf-8")
+        return content, {"Content-Type": "application/json"}
 
     def _build_headers(
         self, base_headers: dict[str, str], headers_model: BaseModel | None
@@ -334,12 +297,8 @@ class ClientBase(ABC):
             content, base_headers = self._serialize_request_body(json_model)
             headers = self._build_headers(base_headers, headers_model)
         elif json_data is not None:
-            if isinstance(json_data, dict):
-                processed_json_data = serialize_option_dict(json_data)
-            else:
-                processed_json_data = json_data
             content = json.dumps(
-                processed_json_data,
+                json_data,
                 default=_json_serializer,
                 separators=(",", ":"),
             ).encode("utf-8")
@@ -844,61 +803,24 @@ class AsyncClientBase(ABC):
     def _serialize_request_body(
         self, json_model: BaseModel | int | float | str | bool | list | dict
     ) -> tuple[bytes, dict[str, str]]:
-        """Serialize request body from Pydantic model or primitive type."""
-        from .option import ReflectapiOption
+        """Serialize the request body.
 
+        Generated models that contain partial (``reflectapi::Option<T>``)
+        fields inherit from :class:`ReflectapiPartialModel`, whose
+        ``@model_serializer`` already omits keys not in
+        ``model_fields_set``. Plain Pydantic models serialise normally.
+        Either way, ``model_dump_json(by_alias=True)`` is the right call —
+        the model decides what goes on the wire, not the transport.
+        """
         # Handle primitive types (for untagged unions)
-        if not hasattr(json_model, "model_dump"):
+        if not hasattr(json_model, "model_dump_json"):
             content = json.dumps(
                 json_model, default=_json_serializer, separators=(",", ":")
             ).encode("utf-8")
-            headers = {"Content-Type": "application/json"}
-            return content, headers
+            return content, {"Content-Type": "application/json"}
 
-        # Check if model has any ReflectapiOption fields that need special handling
-        raw_data = json_model.model_dump(exclude_none=False)
-
-        # Handle case where RootModel serializes to primitive value (e.g., strings for unit variants)
-        if not isinstance(raw_data, dict):
-            # For primitive values, use Pydantic's built-in JSON serialization
-            content = json_model.model_dump_json(
-                exclude_none=True, by_alias=True
-            ).encode("utf-8")
-            headers = {"Content-Type": "application/json"}
-            return content, headers
-
-        has_reflectapi_options = any(
-            isinstance(field_value, ReflectapiOption)
-            for field_value in raw_data.values()
-        )
-
-        if has_reflectapi_options:
-            # Process each field to handle ReflectapiOption properly
-            processed_fields = {}
-            for field_name, field_value in raw_data.items():
-                if isinstance(field_value, ReflectapiOption):
-                    if not field_value.is_undefined:
-                        # Include the unwrapped value (including None for explicit null)
-                        processed_fields[field_name] = field_value._value
-                    # Skip undefined fields entirely - don't include them at all
-                else:
-                    # Include all other fields that aren't None (unless they're meaningful None values)
-                    if field_value is not None:
-                        processed_fields[field_name] = field_value
-
-            # Use json serialization with datetime handler for proper serialization
-            content = json.dumps(
-                processed_fields, default=_json_serializer, separators=(",", ":")
-            ).encode("utf-8")
-        else:
-            # Use Pydantic's built-in JSON serialization with exclude_none and by_alias for proper handling
-            content = json_model.model_dump_json(
-                exclude_none=True, by_alias=True
-            ).encode("utf-8")
-
-        headers = {"Content-Type": "application/json"}
-
-        return content, headers
+        content = json_model.model_dump_json(by_alias=True).encode("utf-8")
+        return content, {"Content-Type": "application/json"}
 
     def _build_headers(
         self, base_headers: dict[str, str], headers_model: BaseModel | None
@@ -927,12 +849,8 @@ class AsyncClientBase(ABC):
             content, base_headers = self._serialize_request_body(json_model)
             headers = self._build_headers(base_headers, headers_model)
         elif json_data is not None:
-            if isinstance(json_data, dict):
-                processed_json_data = serialize_option_dict(json_data)
-            else:
-                processed_json_data = json_data
             content = json.dumps(
-                processed_json_data,
+                json_data,
                 default=_json_serializer,
                 separators=(",", ":"),
             ).encode("utf-8")

@@ -29,7 +29,7 @@ from pydantic import (
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
-from reflectapi_runtime import ReflectapiOption
+from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     parse_externally_tagged as _parse_externally_tagged,
     serialize_externally_tagged as _serialize_externally_tagged,
@@ -81,17 +81,19 @@ class MyapiProtoPetsRemoveRequest(BaseModel):
     name: str = Field(description="identity")
 
 
-class MyapiProtoPetsUpdateRequest(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+class MyapiProtoPetsUpdateRequest(ReflectapiPartialModel):
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, validate_assignment=True
+    )
 
     name: str = Field(description="identity")
     kind: myapi.model.Kind | None = Field(
         default=None, description="kind of pet, non nullable in the model"
     )
-    age: ReflectapiOption[int] = Field(
+    age: int | None = Field(
         default=None, description="age of the pet, nullable in the model"
     )
-    behaviors: ReflectapiOption[list[myapi.model.Behavior]] = Field(
+    behaviors: list[myapi.model.Behavior] | None = Field(
         default=None, description="behaviors of the pet, nullable in the model"
     )
 

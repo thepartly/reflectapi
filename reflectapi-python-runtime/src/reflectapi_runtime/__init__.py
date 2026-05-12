@@ -36,15 +36,7 @@ from .hypothesis_strategies import (
     strategy_for_type,
 )
 from .middleware import AsyncMiddleware
-from .option import (
-    Option,
-    ReflectapiOption,
-    Undefined,
-    none,
-    serialize_option_dict,
-    some,
-    undefined,
-)
+from .partial import ReflectapiPartialModel
 from .response import ApiResponse, TransportMetadata
 from .serde import parse_externally_tagged, serialize_externally_tagged
 from .streaming import AsyncStreamingClient, StreamingResponse
@@ -94,24 +86,18 @@ __all__ = [
     "AsyncMiddleware",
     "MockClient",
     "NetworkError",
-    "Option",
     "ReflectapiEmpty",
     "ReflectapiInfallible",
-    "ReflectapiOption",
+    "ReflectapiPartialModel",
     "parse_externally_tagged",
     "serialize_externally_tagged",
     "StreamingResponse",
     "TestClientMixin",
     "TimeoutError",
     "TransportMetadata",
-    "Undefined",
     "ValidationError",
     "api_model_strategy",
     "enhanced_strategy_for_type",
-    "none",
-    "serialize_option_dict",
-    "some",
     "strategy_for_pydantic_model",
     "strategy_for_type",
-    "undefined",
 ]

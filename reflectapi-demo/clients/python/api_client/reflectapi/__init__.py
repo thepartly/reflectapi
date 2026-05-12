@@ -49,19 +49,52 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
-class MyapiModelOutputPet(BaseModel):
+class ReflectapiOptionUndefined(BaseModel):
+    """The value is missing, i.e. undefined in JavaScript"""
+
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    name: str = Field(description="identity")
-    kind: myapi.model.Kind = Field(description="kind of pet")
-    age: int | None = Field(default=None, description="age of the pet")
-    updated_at: datetime
-    behaviors: list[myapi.model.Behavior] | None = Field(
-        default=None, description="behaviors of the pet"
-    )
+
+class ReflectapiOptionNone(BaseModel):
+    """The value is provided but set to none, i.e. null in JavaScript"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+
+class ReflectapiOptionSome(BaseModel):
+    """The value is provided and set to some value"""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    value: T | None = None
+
+
+ReflectapiOption = Union[
+    ReflectapiOptionUndefined, ReflectapiOptionNone, ReflectapiOptionSome
+]
+"""Undefinable Option type"""
 
 
 # Public aliases for this module
-Pet = MyapiModelOutputPet
+Option = ReflectapiOption
+OptionNone = ReflectapiOptionNone
+OptionSome = ReflectapiOptionSome
+OptionUndefined = ReflectapiOptionUndefined
 
-__all__ = ["MyapiModelOutputPet", "Pet"]
+try:
+    from .._rebuild import rebuild_models as _rebuild_models
+
+    _rebuild_models()
+except Exception:
+    pass
+
+__all__ = [
+    "Option",
+    "OptionNone",
+    "OptionSome",
+    "OptionUndefined",
+    "ReflectapiOption",
+    "ReflectapiOptionNone",
+    "ReflectapiOptionSome",
+    "ReflectapiOptionUndefined",
+]

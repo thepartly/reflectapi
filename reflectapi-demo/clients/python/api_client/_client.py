@@ -29,7 +29,7 @@ from pydantic import (
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
-from reflectapi_runtime import ReflectapiOption
+from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     parse_externally_tagged as _parse_externally_tagged,
     serialize_externally_tagged as _serialize_externally_tagged,
@@ -43,6 +43,8 @@ T = TypeVar("T")
 
 
 from . import myapi
+
+from . import reflectapi
 
 from ._rebuild import rebuild_models as _rebuild_models
 

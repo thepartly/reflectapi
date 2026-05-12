@@ -162,16 +162,12 @@ fn python_type_mappings() -> &'static HashMap<&'static str, PythonTypeMapping> {
         m.insert("std::result::Result", PythonTypeMapping::simple("T | E"));
 
         // ReflectAPI runtime types
-        m.insert(
-            "reflectapi::Option",
-            PythonTypeMapping {
-                type_hint: "ReflectapiOption[T]",
-                imports: &[],
-                runtime_imports: &["ReflectapiOption"],
-                provided_by_runtime: true,
-                ignore_type_arguments: false,
-            },
-        );
+        // The three-state Option from reflectapi-schema renders as plain
+        // `T | None`. The "absent on the wire" state is preserved at the
+        // model level: classes with any `reflectapi::Option<_>` field
+        // inherit from `ReflectapiPartialModel`, whose `@model_serializer`
+        // drops fields not in `model_fields_set`.
+        m.insert("reflectapi::Option", PythonTypeMapping::simple("T | None"));
         m.insert(
             "reflectapi::Empty",
             PythonTypeMapping {
@@ -393,6 +389,10 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
         runtime_imports.insert("AsyncClientBase, ApiResponse".to_string());
     } else if imports.has_sync {
         runtime_imports.insert("ClientBase, ApiResponse".to_string());
+    }
+
+    if imports.has_partial_models {
+        runtime_imports.insert("ReflectapiPartialModel".to_string());
     }
 
     runtime_imports.extend(imports.extra_runtime_imports.iter().cloned());
@@ -715,6 +715,8 @@ fn render_struct_with_flattened_internal_enum(
                 Some("None".to_string())
             },
             alias,
+
+            is_partial: field.type_ref.name == "reflectapi::Option",
         });
     }
 
@@ -767,6 +769,8 @@ fn render_struct_with_flattened_internal_enum(
                         Some("None".to_string())
                     },
                     alias,
+
+                    is_partial: field.type_ref.name == "reflectapi::Option",
                 });
             }
         }
@@ -790,6 +794,8 @@ fn render_struct_with_flattened_internal_enum(
             optional: false,
             default_value: Some(format!("\"{}\"", variant.serde_name())),
             alias: tag_alias.clone(),
+
+            is_partial: false,
         });
 
         // Add variant-specific fields
@@ -815,6 +821,8 @@ fn render_struct_with_flattened_internal_enum(
                         optional,
                         default_value,
                         alias,
+
+                        is_partial: vf.type_ref.name == "reflectapi::Option",
                     });
                 }
             }
@@ -877,6 +885,8 @@ fn render_struct_with_flattened_internal_enum(
                                 Some("None".to_string())
                             },
                             alias,
+
+                            is_partial: sf.type_ref.name == "reflectapi::Option",
                         });
                     }
                 }
@@ -963,6 +973,8 @@ fn render_struct_with_flatten_standard(
                 Some("None".to_string())
             },
             alias,
+
+            is_partial: field.type_ref.name == "reflectapi::Option",
         });
     }
 
@@ -995,6 +1007,27 @@ fn render_struct_with_flatten_standard(
 }
 
 /// Validate that all type references in the schema exist
+/// Walk every input/output struct in the schema and return `true` if
+/// any field uses the three-state `reflectapi::Option<T>`. Used to
+/// decide whether to import `ReflectapiPartialModel` into the generated
+/// bundle. Cheap — runs once per generation.
+fn schema_has_partial_field(schema: &Schema) -> bool {
+    fn iter_typespace_has_partial(typespace: &reflectapi_schema::Typespace) -> bool {
+        typespace.types().any(|t| match t {
+            reflectapi_schema::Type::Struct(s) => {
+                s.fields().any(|f| f.type_ref.name == "reflectapi::Option")
+            }
+            reflectapi_schema::Type::Enum(e) => e
+                .variants
+                .iter()
+                .any(|v| v.fields().any(|f| f.type_ref.name == "reflectapi::Option")),
+            _ => false,
+        })
+    }
+    iter_typespace_has_partial(&schema.input_types)
+        || iter_typespace_has_partial(&schema.output_types)
+}
+
 fn validate_type_references(schema: &Schema) -> anyhow::Result<()> {
     // Collect all defined types
     let mut defined_types = HashSet::new();
@@ -1525,6 +1558,7 @@ fn build_python_generation(
     let has_streaming = schema
         .functions()
         .any(|f| matches!(f.output_type, OutputType::Stream { .. }));
+    let has_partial_models = schema_has_partial_field(&schema);
     let python_metadata = collect_python_metadata_usage(&all_type_names);
 
     // Generate imports
@@ -1543,6 +1577,7 @@ fn build_python_generation(
         has_externally_tagged_enums,
         global_type_vars: Vec::new(), // Will be added later after tracking usage
         has_streaming,
+        has_partial_models,
     };
     // Use optimized import generation instead of template
     generated_code.push(generate_optimized_imports(&imports));
@@ -2640,6 +2675,8 @@ fn collect_flattened_fields(
             optional: true,
             default_value: Some("None".to_string()),
             alias: None,
+
+            is_partial: false,
         }]);
     }
 
@@ -2775,6 +2812,8 @@ fn make_flattened_field(
         optional,
         default_value,
         alias,
+
+        is_partial: field.type_ref.name == "reflectapi::Option",
     })
 }
 
@@ -2835,6 +2874,8 @@ fn collect_flattened_enum_fields(
         optional,
         default_value,
         alias,
+
+        is_partial: false,
     });
 
     Ok(())
@@ -2903,6 +2944,8 @@ fn render_struct(
                 optional,
                 default_value,
                 alias,
+
+                is_partial: field.type_ref.name == "reflectapi::Option",
             })
         })
         .collect::<Result<Vec<_>, anyhow::Error>>()?;
@@ -3070,6 +3113,8 @@ fn render_adjacently_tagged_enum(
             optional: false,
             default_value: discriminator_default_value,
             alias: None,
+
+            is_partial: false,
         }];
 
         // Add the content field based on variant type
@@ -3096,6 +3141,8 @@ fn render_adjacently_tagged_enum(
                         optional: false,
                         default_value: None,
                         alias: None,
+
+                        is_partial: false,
                     });
                 } else {
                     // Multi-field tuple: content is a list
@@ -3117,6 +3164,8 @@ fn render_adjacently_tagged_enum(
                         optional: false,
                         default_value: None,
                         alias: None,
+
+                        is_partial: false,
                     });
                 }
             }
@@ -3145,6 +3194,8 @@ fn render_adjacently_tagged_enum(
                         optional,
                         default_value,
                         alias,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
                 let content_model = templates::DataClass {
@@ -3171,6 +3222,8 @@ fn render_adjacently_tagged_enum(
                     optional: false,
                     default_value: None,
                     alias: None,
+
+                    is_partial: false,
                 });
             }
         }
@@ -3302,6 +3355,8 @@ fn render_externally_tagged_enum(
                         optional: false,
                         default_value: None,
                         alias: None,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
 
@@ -3379,6 +3434,8 @@ fn render_externally_tagged_enum(
                         optional,
                         default_value,
                         alias,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
 
@@ -3522,6 +3579,8 @@ fn render_internally_tagged_enum(
             optional: false,
             default_value: discriminator_default_value,
             alias: None,
+
+            is_partial: false,
         }];
 
         // Handle variant fields based on type
@@ -3615,6 +3674,8 @@ fn render_internally_tagged_enum(
                                 optional,
                                 default_value,
                                 alias,
+
+                                is_partial: struct_field.type_ref.name == "reflectapi::Option",
                             });
                         }
                     }
@@ -3637,6 +3698,8 @@ fn render_internally_tagged_enum(
                             optional: false,
                             default_value: None,
                             alias: None,
+
+                            is_partial: inner_field.type_ref.name == "reflectapi::Option",
                         });
                     }
                 }
@@ -3665,6 +3728,8 @@ fn render_internally_tagged_enum(
                         optional,
                         default_value,
                         alias,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
             }
@@ -3807,6 +3872,8 @@ fn render_untagged_enum(
                         optional,
                         default_value,
                         alias,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
             }
@@ -3835,6 +3902,8 @@ fn render_untagged_enum(
                         optional,
                         default_value,
                         alias: None,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
             }
@@ -4367,7 +4436,6 @@ fn improve_class_name_part(name_part: &str) -> String {
         ("StdTuple", "Tuple"),
         ("StdCollectionsHashMap", "HashMap"),
         ("StdCollectionsBTreeMap", "BTreeMap"),
-        ("ReflectapiOption", "ReflectapiOption"), // Keep this one
         // Handle namespace prefixes
         ("Crate::", ""),
         ("Self::", ""),
@@ -5042,6 +5110,10 @@ pub mod templates {
         pub global_type_vars: Vec<String>,
         /// At least one streaming endpoint is exposed by the client.
         pub has_streaming: bool,
+        /// At least one generated class has a `reflectapi::Option<T>`
+        /// field, so the bundle needs to import
+        /// `ReflectapiPartialModel`.
+        pub has_partial_models: bool,
     }
 
     pub struct DataClass {
@@ -5054,13 +5126,25 @@ pub mod templates {
     }
 
     impl DataClass {
+        /// True iff any field came from `reflectapi::Option<T>`; the
+        /// containing class then needs `ReflectapiPartialModel` so that
+        /// `model_fields_set` drives wire-format presence.
+        fn is_partial(&self) -> bool {
+            self.fields.iter().any(|f| f.is_partial)
+        }
+
         pub fn render(&self) -> String {
             let mut s = String::new();
+            let base_class = if self.is_partial() {
+                "ReflectapiPartialModel"
+            } else {
+                "BaseModel"
+            };
             if self.is_generic {
                 let params = self.generic_params.join(", ");
-                writeln!(s, "class {}(BaseModel, Generic[{}]):", self.name, params).unwrap();
+                writeln!(s, "class {}({base_class}, Generic[{}]):", self.name, params).unwrap();
             } else {
-                writeln!(s, "class {}(BaseModel):", self.name).unwrap();
+                writeln!(s, "class {}({base_class}):", self.name).unwrap();
             }
             if let Some(desc) = &self.description {
                 let desc = super::sanitize_for_docstring(desc);
@@ -5069,11 +5153,17 @@ pub mod templates {
                 }
             }
             writeln!(s).unwrap();
-            writeln!(
-                s,
-                "    model_config = ConfigDict(extra=\"ignore\", populate_by_name=True)"
-            )
-            .unwrap();
+            // `validate_assignment=True` for partial models keeps
+            // `model_fields_set` in sync when callers do
+            // `m.field = value` after construction (so the assignment
+            // actually lands on the wire). Plain BaseModel classes
+            // don't need it.
+            let config = if self.is_partial() {
+                "ConfigDict(extra=\"ignore\", populate_by_name=True, validate_assignment=True)"
+            } else {
+                "ConfigDict(extra=\"ignore\", populate_by_name=True)"
+            };
+            writeln!(s, "    model_config = {config}").unwrap();
             writeln!(s).unwrap();
             for field in &self.fields {
                 write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
@@ -5682,6 +5772,11 @@ pub mod templates {
         pub optional: bool,
         pub default_value: Option<String>,
         pub alias: Option<String>,
+        /// `true` iff this field came from `reflectapi::Option<T>` in the
+        /// source schema (the three-state Option). The renderer uses this
+        /// to decide whether the containing class needs to inherit from
+        /// `ReflectapiPartialModel`.
+        pub is_partial: bool,
     }
 
     pub struct EnumVariant {

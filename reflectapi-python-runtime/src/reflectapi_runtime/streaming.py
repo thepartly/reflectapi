@@ -11,7 +11,6 @@ import httpx
 from .auth import AuthHandler
 from .exceptions import ApplicationError, NetworkError, TimeoutError
 from .middleware import AsyncMiddleware, AsyncMiddlewareChain
-from .option import serialize_option_dict
 from .response import TransportMetadata
 
 if TYPE_CHECKING:
@@ -237,26 +236,14 @@ class AsyncStreamingClient:
 
         request_headers = headers.copy() if headers else {}
 
-        # Serialize Pydantic model
+        # Serialize Pydantic model. ReflectapiPartialModel emits its own
+        # @model_serializer that omits keys not in `model_fields_set`, so
+        # plain `model_dump_json(by_alias=True)` produces the right wire
+        # shape for both partial and plain generated models.
         if json_model is not None:
-            # Use Pydantic with improved ReflectapiOption serialization
-            model_dict = json_model.model_dump(exclude_none=False)  # Keep explicit None
-
-            # Filter out Undefined values (ReflectapiOption serializer returns Undefined sentinel)
-            from .option import Undefined
-
-            final_dict = {
-                k: v
-                for k, v in model_dict.items()
-                if not (hasattr(v, "__class__") and v is Undefined)
-            }
-
-            import json
-
-            content = json.dumps(final_dict, separators=(",", ":")).encode("utf-8")
+            content = json_model.model_dump_json(by_alias=True).encode("utf-8")
             request_headers["Content-Type"] = "application/json"
 
-            # Build request with raw content
             request = self._client.build_request(
                 method=method,
                 url=url,
