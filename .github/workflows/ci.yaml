@@ -59,6 +59,10 @@ jobs:
       - uses: astral-sh/ruff-action@v3
         with:
           version: "0.15.8"
+          # `args` short-circuits the action's default `ruff check` —
+          # we only want ruff on PATH so the codegen can shell out to
+          # `ruff format`, not for the action itself to lint the repo.
+          args: "--version"
       - name: Regenerate demo Python client from schema
         run: |
           cargo run -p reflectapi-cli --quiet -- codegen \
