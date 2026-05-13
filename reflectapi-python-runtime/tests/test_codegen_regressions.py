@@ -80,3 +80,72 @@ class TestDurationRoundTrip:
         M = self._model()
         with pytest.raises(ValidationError):
             M.model_validate({"d": {"secs": "not-a-number"}})
+
+
+class TestRequestSerializationOmitsUnsetOptional:
+    """Plain ``BaseModel`` request types must omit unset optional fields
+    from the wire, matching what ``#[serde(skip_serializing_if =
+    "Option::is_none")]`` produces on the server side. Partial models,
+    by contrast, must keep explicit ``None`` to preserve the
+    absent-vs-null distinction.
+    """
+
+    def _client(self):
+        from reflectapi_runtime import ClientBase
+
+        return ClientBase("http://test")
+
+    def test_plain_model_omits_unset_optional(self):
+        from reflectapi_runtime import ReflectapiPartialModel  # noqa: F401
+
+        class Req(BaseModel):
+            cursor: str | None = None
+            limit: int | None = None
+
+        client = self._client()
+        # `Req()` leaves both fields at their `None` default; the wire
+        # payload should drop them.
+        body, _headers = client._serialize_request_body(Req())
+        assert body == b"{}"
+
+    def test_plain_model_keeps_explicit_value(self):
+        class Req(BaseModel):
+            cursor: str | None = None
+            limit: int | None = None
+
+        client = self._client()
+        body, _ = client._serialize_request_body(Req(cursor="abc", limit=10))
+        assert body == b'{"cursor":"abc","limit":10}'
+
+    def test_partial_model_emits_explicit_null(self):
+        """``ReflectapiPartialModel`` must round-trip explicit ``None``
+        as ``null`` (the wire's "field present, value cleared" state)."""
+        from reflectapi_runtime import ReflectapiPartialModel
+
+        class Req(ReflectapiPartialModel):
+            model_config = {
+                "extra": "ignore",
+                "populate_by_name": True,
+                "validate_assignment": True,
+            }
+            cursor: str | None = None
+            limit: int | None = None
+
+        client = self._client()
+        body, _ = client._serialize_request_body(Req(cursor=None, limit=10))
+        # Both keys were set (one to None, one to a value) — both go on the wire.
+        assert b'"cursor":null' in body
+        assert b'"limit":10' in body
+
+    def test_partial_model_omits_unset_field(self):
+        from reflectapi_runtime import ReflectapiPartialModel
+
+        class Req(ReflectapiPartialModel):
+            cursor: str | None = None
+            limit: int | None = None
+
+        client = self._client()
+        body, _ = client._serialize_request_body(Req(limit=10))
+        # `cursor` was not set on the instance — not in `model_fields_set` → omitted.
+        assert b"cursor" not in body
+        assert b'"limit":10' in body

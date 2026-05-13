@@ -28,9 +28,7 @@ from pydantic import (
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
-from reflectapi_runtime import ReflectapiDuration
 from reflectapi_runtime import ReflectapiEmpty
-from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     parse_externally_tagged as _parse_externally_tagged,
@@ -40,8 +38,6 @@ from reflectapi_runtime import (
 
 # Type variables for generic types
 
-
-C = TypeVar("C")
 
 T = TypeVar("T")
 
@@ -276,50 +272,6 @@ class AsyncClient(AsyncClientBase):
 
         self.pets = AsyncPetsClient(self)
 
-    async def codegen_coverage(
-        self,
-        data: Optional[myapi.coverage.CoverageRequest] = None,
-    ) -> ApiResponse[myapi.coverage.CoverageResponse]:
-        """Coverage fixtures for codegen edge cases
-
-        Args:
-            data: Request data for the codegen_coverage operation.
-
-        Returns:
-            ApiResponse[myapi.coverage.CoverageResponse]: Response containing myapi.coverage.CoverageResponse data
-        """
-        path = "/codegen-coverage"
-
-        params: dict[str, Any] = {}
-        return await self._make_request(
-            path,
-            params=params if params else None,
-            json_model=data,
-            response_model=myapi.coverage.CoverageResponse,
-        )
-
-    async def codegen_order_coverage(
-        self,
-        data: Optional[myapi.OrderCoverageRequest] = None,
-    ) -> ApiResponse[myapi.OrderCoverageResponse]:
-        """Coverage fixtures for namespace/tuple/Duration/PhantomData rendering
-
-        Args:
-            data: Request data for the codegen_order_coverage operation.
-
-        Returns:
-            ApiResponse[myapi.OrderCoverageResponse]: Response containing myapi.OrderCoverageResponse data
-        """
-        path = "/codegen-order-coverage"
-
-        params: dict[str, Any] = {}
-        return await self._make_request(
-            path,
-            params=params if params else None,
-            json_model=data,
-            response_model=myapi.OrderCoverageResponse,
-        )
-
 
 class HealthClient:
     """Synchronous client for health operations."""
@@ -543,47 +495,3 @@ class Client(ClientBase):
         self.health = HealthClient(self)
 
         self.pets = PetsClient(self)
-
-    def codegen_coverage(
-        self,
-        data: Optional[myapi.coverage.CoverageRequest] = None,
-    ) -> ApiResponse[myapi.coverage.CoverageResponse]:
-        """Coverage fixtures for codegen edge cases
-
-        Args:
-            data: Request data for the codegen_coverage operation.
-
-        Returns:
-            ApiResponse[myapi.coverage.CoverageResponse]: Response containing myapi.coverage.CoverageResponse data
-        """
-        path = "/codegen-coverage"
-
-        params: dict[str, Any] = {}
-        return self._make_request(
-            path,
-            params=params if params else None,
-            json_model=data,
-            response_model=myapi.coverage.CoverageResponse,
-        )
-
-    def codegen_order_coverage(
-        self,
-        data: Optional[myapi.OrderCoverageRequest] = None,
-    ) -> ApiResponse[myapi.OrderCoverageResponse]:
-        """Coverage fixtures for namespace/tuple/Duration/PhantomData rendering
-
-        Args:
-            data: Request data for the codegen_order_coverage operation.
-
-        Returns:
-            ApiResponse[myapi.OrderCoverageResponse]: Response containing myapi.OrderCoverageResponse data
-        """
-        path = "/codegen-order-coverage"
-
-        params: dict[str, Any] = {}
-        return self._make_request(
-            path,
-            params=params if params else None,
-            json_model=data,
-            response_model=myapi.OrderCoverageResponse,
-        )

@@ -642,22 +642,6 @@ class __EventSourceParserStream extends TransformStream<
 
 export namespace __definition {
   export interface Interface {
-    /**
-     * Coverage fixtures for namespace/tuple/Duration/PhantomData rendering
-     */
-    codegen_order_coverage: (
-      input: myapi.OrderCoverageRequest,
-      headers: {},
-      options?: RequestOptions,
-    ) => AsyncResult<myapi.OrderCoverageResponse, {}>;
-    /**
-     * Coverage fixtures for codegen edge cases
-     */
-    codegen_coverage: (
-      input: myapi.coverage.CoverageRequest,
-      headers: {},
-      options?: RequestOptions,
-    ) => AsyncResult<myapi.coverage.CoverageResponse, {}>;
     health: HealthInterface;
     pets: PetsInterface;
   }
@@ -744,140 +728,6 @@ export namespace __definition {
 }
 export namespace myapi {
   export interface HealthCheckFail {}
-
-  export interface OrderCoverageRequest {
-    order: myapi.order.OrderInsertData;
-    rate_limit: myapi.order.RateLimit;
-    policy: myapi.order.Policy<string, number /* u32 */>;
-  }
-
-  export interface OrderCoverageResponse {
-    ok: boolean;
-  }
-
-  export namespace coverage {
-    export interface BaseModel {
-      label: string;
-    }
-
-    export interface CoverageRequest {
-      keywords: myapi.coverage.PyKeywordFields;
-      reserved: myapi.coverage.PydanticReservedFields;
-      tree: myapi.coverage.TreeNode;
-      mutual: myapi.coverage.MutualA;
-      generic_tree: myapi.coverage.GenericTree<number /* i32 */>;
-      keyword_variants: myapi.coverage.KeywordVariants;
-      int_keyed: myapi.coverage.IntKeyedMap;
-      user_id: myapi.coverage.UserId;
-      deep_option: myapi.coverage.DeepOption;
-      shadowing: myapi.coverage.ShadowingFields;
-      empty: myapi.coverage.EmptyStruct;
-      weird_doc: myapi.coverage.WeirdDocstring;
-      shadow_base_model: myapi.coverage.BaseModel;
-      wrapper_int: myapi.coverage.Wrapper<number /* i32 */>;
-      wrapper_str: myapi.coverage.Wrapper<string>;
-      defaulted: myapi.coverage.DefaultedField;
-    }
-
-    export interface CoverageResponse {
-      ok: boolean;
-    }
-
-    export interface DeepOption {
-      maybe_maybe: (string | null) | null | undefined;
-    }
-
-    export interface DefaultedField {
-      count?: number /* u32 */;
-    }
-
-    export interface EmptyStruct {}
-
-    export interface GenericTree<T> {
-      value: T;
-      children: Array<myapi.coverage.GenericTree<T>>;
-    }
-
-    export interface IntKeyedMap {
-      by_id: Record<number /* u64 */, string>;
-      uuid_keyed: Record<string, string>;
-    }
-
-    export type KeywordVariants =
-      | { kind: "class" }
-      | {
-          kind: "lambda";
-          name: string;
-        }
-      | {
-          kind: "return";
-          value: number /* i32 */;
-        };
-
-    export interface MutualA {
-      name: string;
-      b: myapi.coverage.MutualB | null;
-    }
-
-    export interface MutualB {
-      name: string;
-      a: myapi.coverage.MutualA | null;
-    }
-
-    export interface PyKeywordFields {
-      class: string;
-      from: number /* u32 */;
-      import: boolean;
-      lambda: number /* i64 */;
-      return: Array<number /* u8 */>;
-      yield: string | null;
-      None: number /* i32 */ | null;
-      True: boolean;
-      type: string;
-      match: string;
-    }
-
-    export interface PydanticReservedFields {
-      model_config: string;
-      model_fields_set: string;
-      model_dump_json: string;
-    }
-
-    export interface ShadowingFields {
-      field: string;
-      annotated: string;
-      generic: string;
-      base_model: string;
-    }
-
-    export interface TreeNode {
-      value: string;
-      children: Array<myapi.coverage.TreeNode>;
-      parent: myapi.coverage.TreeNode | null;
-    }
-
-    export type UserId = number /* u64 */;
-
-    /**
-     * A docstring with "quotes" and 'apostrophes' and a backslash: \\
-     * And a """triple quote""" inside.
-     */
-    export interface WeirdDocstring {
-      value: string;
-      /**
-       * Field description with "double quotes" and 'single quotes'.
-       */
-      mixed_quotes: string;
-      /**
-       * Field description with only "double quotes" — should use single-quoted Python literal.
-       */
-      doubles_only: string;
-    }
-
-    export interface Wrapper<T> {
-      inner: T;
-    }
-  }
 
   export namespace model {
     export type Behavior =
@@ -981,41 +831,6 @@ export namespace myapi {
     }
   }
 
-  export namespace order {
-    /**
-     * A struct whose name begins with the parent namespace cap.
-     * Exercises the namespace-alias path for both the stripped
-     * (`order.InsertData`) and Rust-leaf (`order.OrderInsertData`)
-     * forms.
-     */
-    export interface OrderInsertData {
-      identity: string;
-      /**
-       * Exercises the `tuple[A, B]` rendering for `(A, B)`.
-       */
-      alternative_part_number: [string, string] | null;
-    }
-
-    /**
-     * Exercises `PhantomData<T>` elision (the field carries no wire
-     * data and must not appear in the Python model).
-     */
-    export interface Policy<C, T> {
-      name: string;
-      _context_marker: undefined | C /* phantom data */;
-      _output_marker: undefined | T /* phantom data */;
-    }
-
-    /**
-     * Exercises the `std::time::Duration` ↔ `{secs, nanos}` wire
-     * adapter.
-     */
-    export interface RateLimit {
-      retry_after: std.time.Duration;
-      max_wait: std.time.Duration | null;
-    }
-  }
-
   export namespace proto {
     export interface Headers {
       /**
@@ -1112,23 +927,6 @@ export namespace reflectapi {
    * Struct object with no fields
    */
   export interface Empty {}
-
-  /**
-   * Error object which is expected to be never returned
-   */
-  export interface Infallible {}
-}
-
-export namespace std {
-  export namespace time {
-    /**
-     * Time duration type
-     */
-    export interface Duration {
-      secs: number /* u64 */;
-      nanos: number /* u32 */;
-    }
-  }
 }
 
 namespace __implementation {
@@ -1139,8 +937,6 @@ namespace __implementation {
       typeof base === "string" ? new ClientInstance(base) : base;
     return {
       impl: {
-        codegen_order_coverage: codegen_order_coverage(client_instance),
-        codegen_coverage: codegen_coverage(client_instance),
         health: {
           check: health__check(client_instance),
         },
@@ -1259,31 +1055,5 @@ namespace __implementation {
         myapi.model.output.Pet,
         myapi.proto.UnauthorizedError
       >(client, "/pets.cdc-events", input, headers, options);
-  }
-  function codegen_order_coverage(client: Client) {
-    return (
-      input: myapi.OrderCoverageRequest,
-      headers: {},
-      options?: RequestOptions,
-    ) =>
-      __request<
-        myapi.OrderCoverageRequest,
-        {},
-        myapi.OrderCoverageResponse,
-        {}
-      >(client, "/codegen-order-coverage", input, headers, options);
-  }
-  function codegen_coverage(client: Client) {
-    return (
-      input: myapi.coverage.CoverageRequest,
-      headers: {},
-      options?: RequestOptions,
-    ) =>
-      __request<
-        myapi.coverage.CoverageRequest,
-        {},
-        myapi.coverage.CoverageResponse,
-        {}
-      >(client, "/codegen-coverage", input, headers, options);
   }
 }

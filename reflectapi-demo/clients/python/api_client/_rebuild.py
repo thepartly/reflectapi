@@ -11,36 +11,7 @@ from __future__ import annotations
 
 from . import myapi
 
-from .myapi import (
-    MyapiHealthCheckFail,
-    MyapiOrderCoverageRequest,
-    MyapiOrderCoverageResponse,
-)
-
-from . import myapi
-
-from .myapi.coverage import (
-    MyapiCoverageBaseModel,
-    MyapiCoverageDeepOption,
-    MyapiCoverageDefaultedField,
-    MyapiCoverageEmptyStruct,
-    MyapiCoverageGenericTree,
-    MyapiCoverageIntKeyedMap,
-    MyapiCoverageKeywordVariants,
-    MyapiCoverageKeywordVariantsClass,
-    MyapiCoverageKeywordVariantsLambda,
-    MyapiCoverageKeywordVariantsReturn,
-    MyapiCoverageMutualA,
-    MyapiCoverageMutualB,
-    MyapiCoveragePyKeywordFields,
-    MyapiCoveragePydanticReservedFields,
-    MyapiCoverageRequest,
-    MyapiCoverageResponse,
-    MyapiCoverageShadowingFields,
-    MyapiCoverageTreeNode,
-    MyapiCoverageWeirdDocstring,
-    MyapiCoverageWrapper,
-)
+from .myapi import MyapiHealthCheckFail
 
 from . import myapi
 
@@ -61,10 +32,6 @@ from .myapi.model.input import MyapiModelInputPet
 from . import myapi
 
 from .myapi.model.output import MyapiModelOutputPet
-
-from . import myapi
-
-from .myapi.order import MyapiOrderInsertData, MyapiOrderPolicy, MyapiOrderRateLimit
 
 from . import myapi
 
@@ -92,41 +59,17 @@ from .myapi.proto import (
 
 def rebuild_models() -> None:
     myapi.myapi = myapi
-    myapi.coverage.myapi = myapi
     myapi.model.myapi = myapi
     myapi.model.input.myapi = myapi
     myapi.model.output.myapi = myapi
-    myapi.order.myapi = myapi
     myapi.proto.myapi = myapi
     errors: list[str] = []
     for _model in [
         MyapiHealthCheckFail,
-        MyapiOrderCoverageRequest,
-        MyapiOrderCoverageResponse,
-        MyapiCoverageBaseModel,
-        MyapiCoverageRequest,
-        MyapiCoverageResponse,
-        MyapiCoverageDeepOption,
-        MyapiCoverageDefaultedField,
-        MyapiCoverageEmptyStruct,
-        MyapiCoverageGenericTree,
-        MyapiCoverageIntKeyedMap,
-        MyapiCoverageKeywordVariants,
-        MyapiCoverageMutualA,
-        MyapiCoverageMutualB,
-        MyapiCoveragePyKeywordFields,
-        MyapiCoveragePydanticReservedFields,
-        MyapiCoverageShadowingFields,
-        MyapiCoverageTreeNode,
-        MyapiCoverageWeirdDocstring,
-        MyapiCoverageWrapper,
         MyapiModelBehavior,
         MyapiModelKind,
         MyapiModelInputPet,
         MyapiModelOutputPet,
-        MyapiOrderInsertData,
-        MyapiOrderPolicy,
-        MyapiOrderRateLimit,
         MyapiProtoHeaders,
         MyapiProtoInternalError,
         MyapiProtoPaginated,

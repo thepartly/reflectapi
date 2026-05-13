@@ -236,12 +236,21 @@ class AsyncStreamingClient:
 
         request_headers = headers.copy() if headers else {}
 
-        # Serialize Pydantic model. ReflectapiPartialModel emits its own
-        # @model_serializer that omits keys not in `model_fields_set`, so
-        # plain `model_dump_json(by_alias=True)` produces the right wire
-        # shape for both partial and plain generated models.
+        # Serialize Pydantic model. `ReflectapiPartialModel` emits its
+        # own @model_serializer that omits keys not in
+        # `model_fields_set`; explicit `None` values must round-trip
+        # for it. Plain Pydantic models use `exclude_none=True` so
+        # unset optional fields stay absent on the wire (matches
+        # serde's `skip_serializing_if = "Option::is_none"`).
         if json_model is not None:
-            content = json_model.model_dump_json(by_alias=True).encode("utf-8")
+            from .partial import ReflectapiPartialModel
+
+            if isinstance(json_model, ReflectapiPartialModel):
+                content = json_model.model_dump_json(by_alias=True).encode("utf-8")
+            else:
+                content = json_model.model_dump_json(
+                    by_alias=True, exclude_none=True
+                ).encode("utf-8")
             request_headers["Content-Type"] = "application/json"
 
             request = self._client.build_request(

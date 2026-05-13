@@ -28,9 +28,7 @@ from pydantic import (
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
-from reflectapi_runtime import ReflectapiDuration
 from reflectapi_runtime import ReflectapiEmpty
-from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     parse_externally_tagged as _parse_externally_tagged,
@@ -40,8 +38,6 @@ from reflectapi_runtime import (
 
 # Type variables for generic types
 
-
-C = TypeVar("C")
 
 T = TypeVar("T")
 

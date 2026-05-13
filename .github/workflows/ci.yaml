@@ -72,5 +72,22 @@ jobs:
       - name: Import demo client (triggers strict model_rebuild)
         working-directory: reflectapi-demo/clients/python
         run: uv run python -c "import api_client; print('demo client import OK')"
-      - name: Snapshot is committed (no drift)
+      - name: Demo snapshot is committed (no drift)
         run: git diff --exit-code reflectapi-demo/clients/python/api_client/
+      # Codegen coverage fixtures live in the integration test at
+      # `reflectapi-demo/tests/codegen_coverage.rs` (not in the
+      # public demo schema). The test writes a Python client to
+      # `target/codegen-coverage-client/`; the next step imports it
+      # so the strict `_rebuild_models()` raises on any dangling
+      # reference.
+      - name: Generate codegen coverage client
+        run: cargo test -p reflectapi-demo --test codegen_coverage
+      - name: Import codegen coverage client
+        working-directory: reflectapi-demo/clients/python
+        run: |
+          uv run python -c "
+          import sys, pathlib
+          sys.path.insert(0, str(pathlib.Path('../../target/codegen-coverage-client').resolve()))
+          import codegen_coverage_client
+          print('coverage client import OK')
+          "

@@ -253,12 +253,16 @@ class ClientBase(ABC):
     ) -> tuple[bytes, dict[str, str]]:
         """Serialize the request body.
 
-        Generated models that contain partial (``reflectapi::Option<T>``)
-        fields inherit from :class:`ReflectapiPartialModel`, whose
-        ``@model_serializer`` already omits keys not in
-        ``model_fields_set``. Plain Pydantic models serialise normally.
-        Either way, ``model_dump_json(by_alias=True)`` is the right call —
-        the model decides what goes on the wire, not the transport.
+        ``ReflectapiPartialModel`` subclasses carry their own
+        ``@model_serializer`` that omits keys not in
+        ``model_fields_set``, so explicit ``None`` values must reach
+        the wire (they encode the protocol's "explicit null" state).
+
+        Plain Pydantic models use ``exclude_none=True`` so an unset
+        optional field renders as an absent key rather than a JSON
+        ``null`` — matching what serde sees as
+        ``#[serde(skip_serializing_if = "Option::is_none")]`` and
+        preserving the historical wire format.
         """
         # Handle primitive types (for untagged unions)
         if not hasattr(json_model, "model_dump_json"):
@@ -267,7 +271,14 @@ class ClientBase(ABC):
             ).encode("utf-8")
             return content, {"Content-Type": "application/json"}
 
-        content = json_model.model_dump_json(by_alias=True).encode("utf-8")
+        from .partial import ReflectapiPartialModel
+
+        if isinstance(json_model, ReflectapiPartialModel):
+            content = json_model.model_dump_json(by_alias=True).encode("utf-8")
+        else:
+            content = json_model.model_dump_json(
+                by_alias=True, exclude_none=True
+            ).encode("utf-8")
         return content, {"Content-Type": "application/json"}
 
     def _build_headers(
@@ -805,12 +816,16 @@ class AsyncClientBase(ABC):
     ) -> tuple[bytes, dict[str, str]]:
         """Serialize the request body.
 
-        Generated models that contain partial (``reflectapi::Option<T>``)
-        fields inherit from :class:`ReflectapiPartialModel`, whose
-        ``@model_serializer`` already omits keys not in
-        ``model_fields_set``. Plain Pydantic models serialise normally.
-        Either way, ``model_dump_json(by_alias=True)`` is the right call —
-        the model decides what goes on the wire, not the transport.
+        ``ReflectapiPartialModel`` subclasses carry their own
+        ``@model_serializer`` that omits keys not in
+        ``model_fields_set``, so explicit ``None`` values must reach
+        the wire (they encode the protocol's "explicit null" state).
+
+        Plain Pydantic models use ``exclude_none=True`` so an unset
+        optional field renders as an absent key rather than a JSON
+        ``null`` — matching what serde sees as
+        ``#[serde(skip_serializing_if = "Option::is_none")]`` and
+        preserving the historical wire format.
         """
         # Handle primitive types (for untagged unions)
         if not hasattr(json_model, "model_dump_json"):
@@ -819,7 +834,14 @@ class AsyncClientBase(ABC):
             ).encode("utf-8")
             return content, {"Content-Type": "application/json"}
 
-        content = json_model.model_dump_json(by_alias=True).encode("utf-8")
+        from .partial import ReflectapiPartialModel
+
+        if isinstance(json_model, ReflectapiPartialModel):
+            content = json_model.model_dump_json(by_alias=True).encode("utf-8")
+        else:
+            content = json_model.model_dump_json(
+                by_alias=True, exclude_none=True
+            ).encode("utf-8")
         return content, {"Content-Type": "application/json"}
 
     def _build_headers(

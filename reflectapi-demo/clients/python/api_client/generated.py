@@ -15,36 +15,7 @@ from ._client import Client
 
 from . import myapi
 
-from .myapi import (
-    MyapiHealthCheckFail,
-    MyapiOrderCoverageRequest,
-    MyapiOrderCoverageResponse,
-)
-
-from . import myapi
-
-from .myapi.coverage import (
-    MyapiCoverageBaseModel,
-    MyapiCoverageDeepOption,
-    MyapiCoverageDefaultedField,
-    MyapiCoverageEmptyStruct,
-    MyapiCoverageGenericTree,
-    MyapiCoverageIntKeyedMap,
-    MyapiCoverageKeywordVariants,
-    MyapiCoverageKeywordVariantsClass,
-    MyapiCoverageKeywordVariantsLambda,
-    MyapiCoverageKeywordVariantsReturn,
-    MyapiCoverageMutualA,
-    MyapiCoverageMutualB,
-    MyapiCoveragePyKeywordFields,
-    MyapiCoveragePydanticReservedFields,
-    MyapiCoverageRequest,
-    MyapiCoverageResponse,
-    MyapiCoverageShadowingFields,
-    MyapiCoverageTreeNode,
-    MyapiCoverageWeirdDocstring,
-    MyapiCoverageWrapper,
-)
+from .myapi import MyapiHealthCheckFail
 
 from . import myapi
 
@@ -65,10 +36,6 @@ from .myapi.model.input import MyapiModelInputPet
 from . import myapi
 
 from .myapi.model.output import MyapiModelOutputPet
-
-from . import myapi
-
-from .myapi.order import MyapiOrderInsertData, MyapiOrderPolicy, MyapiOrderRateLimit
 
 from . import myapi
 
@@ -100,26 +67,6 @@ _rebuild_models()
 __all__ = [
     "AsyncClient",
     "Client",
-    "MyapiCoverageBaseModel",
-    "MyapiCoverageDeepOption",
-    "MyapiCoverageDefaultedField",
-    "MyapiCoverageEmptyStruct",
-    "MyapiCoverageGenericTree",
-    "MyapiCoverageIntKeyedMap",
-    "MyapiCoverageKeywordVariants",
-    "MyapiCoverageKeywordVariantsClass",
-    "MyapiCoverageKeywordVariantsLambda",
-    "MyapiCoverageKeywordVariantsReturn",
-    "MyapiCoverageMutualA",
-    "MyapiCoverageMutualB",
-    "MyapiCoveragePyKeywordFields",
-    "MyapiCoveragePydanticReservedFields",
-    "MyapiCoverageRequest",
-    "MyapiCoverageResponse",
-    "MyapiCoverageShadowingFields",
-    "MyapiCoverageTreeNode",
-    "MyapiCoverageWeirdDocstring",
-    "MyapiCoverageWrapper",
     "MyapiHealthCheckFail",
     "MyapiModelBehavior",
     "MyapiModelBehaviorAggressiveVariant",
@@ -130,11 +77,6 @@ __all__ = [
     "MyapiModelKindCat",
     "MyapiModelKindDog",
     "MyapiModelOutputPet",
-    "MyapiOrderCoverageRequest",
-    "MyapiOrderCoverageResponse",
-    "MyapiOrderInsertData",
-    "MyapiOrderPolicy",
-    "MyapiOrderRateLimit",
     "MyapiProtoHeaders",
     "MyapiProtoInternalError",
     "MyapiProtoPaginated",
