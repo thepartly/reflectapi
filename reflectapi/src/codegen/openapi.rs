@@ -609,6 +609,10 @@ impl Converter<'_> {
         kind: Kind,
         ty_ref: &crate::TypeReference,
     ) -> InlineOrRef<Schema> {
+        if let Some(fallback) = primitive_fallback_type_ref(schema, kind, ty_ref) {
+            return self.convert_type_ref(schema, kind, &fallback);
+        }
+
         let name = normalize(&ty_ref.name);
         let schema_ref = Ref::new(format!("#/components/schemas/{name}"));
         if self.components.schemas.contains_key(&name) {
@@ -1279,6 +1283,24 @@ impl Converter<'_> {
 
         Inline(s)
     }
+}
+
+fn primitive_fallback_type_ref(
+    schema: &crate::Schema,
+    kind: Kind,
+    ty_ref: &crate::TypeReference,
+) -> Option<crate::TypeReference> {
+    let crate::Type::Primitive(primitive) = match kind {
+        Kind::Input => schema.input_types.get_type(&ty_ref.name),
+        Kind::Output => schema.output_types.get_type(&ty_ref.name),
+    }?
+    else {
+        return None;
+    };
+
+    let fallback = primitive.fallback()?.clone();
+    let subst = reflectapi_schema::mk_subst(&primitive.parameters, &ty_ref.arguments);
+    Some(fallback.subst(&subst))
 }
 
 fn normalize(name: impl AsRef<str>) -> String {
