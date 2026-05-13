@@ -29,7 +29,7 @@ from pydantic import (
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
-from reflectapi_runtime import ReflectapiOption
+from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     parse_externally_tagged as _parse_externally_tagged,
     serialize_externally_tagged as _serialize_externally_tagged,
@@ -52,7 +52,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 class MyapiModelBehaviorAggressiveVariant(BaseModel):
     """Aggressive variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     field_0: float = Field(description="aggressiveness level")
     field_1: str = Field(description="some notes")
@@ -61,7 +63,9 @@ class MyapiModelBehaviorAggressiveVariant(BaseModel):
 class MyapiModelBehaviorOtherVariant(BaseModel):
     """Other variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     description: str = Field(description="Custom provided description of a behavior")
     notes: str | None = Field(
@@ -120,7 +124,9 @@ class MyapiModelBehavior(RootModel[MyapiModelBehaviorVariants]):
 class MyapiModelKindDog(BaseModel):
     """A dog"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["dog"] = Field(default="dog", description="Discriminator field")
     breed: str = Field(description="breed of the dog")
@@ -129,7 +135,9 @@ class MyapiModelKindDog(BaseModel):
 class MyapiModelKindCat(BaseModel):
     """A cat"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["cat"] = Field(default="cat", description="Discriminator field")
     lives: int = Field(description="lives left")
@@ -138,7 +146,9 @@ class MyapiModelKindCat(BaseModel):
 class MyapiModelKindBird(BaseModel):
     """Test for unit variants in internally tagged enums"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["bird"] = Field(default="bird", description="Discriminator field")
 

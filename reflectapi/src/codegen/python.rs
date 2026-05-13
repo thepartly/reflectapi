@@ -12,13 +12,23 @@ fn sanitize_for_docstring(text: &str) -> String {
     text.replace('\\', "\\\\").replace("\"\"\"", "\\\"\\\"\\\"")
 }
 
-/// Sanitize text for inclusion in a Python double-quoted string literal.
-/// Escapes backslashes, double quotes, and replaces newlines with \n.
-fn sanitize_for_string_literal(text: &str) -> String {
-    text.replace('\\', "\\\\")
-        .replace('"', "\\\"")
+/// Format ``text`` as a Python string literal, choosing single or
+/// double quotes to minimise the number of escapes (matching
+/// ``repr()``'s convention). Backslashes, newlines, and carriage
+/// returns are always escaped; the quote character only gets escaped
+/// when both forms appear in the input.
+fn python_string_literal(text: &str) -> String {
+    let escaped_common = text
+        .replace('\\', "\\\\")
         .replace('\n', "\\n")
-        .replace('\r', "\\r")
+        .replace('\r', "\\r");
+    let has_double = escaped_common.contains('"');
+    let has_single = escaped_common.contains('\'');
+    let (quote, body) = match (has_double, has_single) {
+        (true, false) => ('\'', escaped_common),
+        (false, _) | (true, true) => ('"', escaped_common.replace('"', "\\\"")),
+    };
+    format!("{quote}{body}{quote}")
 }
 
 /// Configuration for Python client generation
@@ -162,16 +172,12 @@ fn python_type_mappings() -> &'static HashMap<&'static str, PythonTypeMapping> {
         m.insert("std::result::Result", PythonTypeMapping::simple("T | E"));
 
         // ReflectAPI runtime types
-        m.insert(
-            "reflectapi::Option",
-            PythonTypeMapping {
-                type_hint: "ReflectapiOption[T]",
-                imports: &[],
-                runtime_imports: &["ReflectapiOption"],
-                provided_by_runtime: true,
-                ignore_type_arguments: false,
-            },
-        );
+        // The three-state Option from reflectapi-schema renders as plain
+        // `T | None`. The "absent on the wire" state is preserved at the
+        // model level: classes with any `reflectapi::Option<_>` field
+        // inherit from `ReflectapiPartialModel`, whose `@model_serializer`
+        // drops fields not in `model_fields_set`.
+        m.insert("reflectapi::Option", PythonTypeMapping::simple("T | None"));
         m.insert(
             "reflectapi::Empty",
             PythonTypeMapping {
@@ -229,16 +235,54 @@ fn python_type_mappings() -> &'static HashMap<&'static str, PythonTypeMapping> {
         m.insert(
             "std::time::Duration",
             PythonTypeMapping {
-                type_hint: "timedelta",
-                imports: &["from datetime import timedelta"],
-                runtime_imports: &[],
-                provided_by_runtime: false,
+                // serde renders Duration as `{"secs": <u64>, "nanos": <u32>}`.
+                // Pydantic's bare `timedelta` validator rejects that
+                // dict shape (it expects ISO-8601 / int / float).
+                // `ReflectapiDuration` is `Annotated[timedelta,
+                // BeforeValidator(...), PlainSerializer(...)]` —
+                // accepts both the serde wire shape and python
+                // timedelta values, emits the serde shape on the way
+                // out.
+                type_hint: "ReflectapiDuration",
+                imports: &[],
+                runtime_imports: &["ReflectapiDuration"],
+                provided_by_runtime: true,
                 ignore_type_arguments: false,
             },
         );
 
         // Special types
         m.insert("std::tuple::Tuple0", PythonTypeMapping::simple("None"));
+        // Rust tuples of arity >=1 serialise as JSON arrays of the same
+        // arity. Pydantic's `tuple[A, B, …]` annotation validates that
+        // exactly: a fixed-length heterogeneous sequence. Anything not
+        // mapped here would otherwise render via
+        // `type_name_to_python_ref` as `std.tuple.TupleN[A, B]`, which
+        // is a dangling reference (there's no `std.tuple` submodule).
+        // Cover up to Tuple16 — matches the arity ceiling enforced by
+        // `reflectapi-schema` and Rust's own std trait impls.
+        for arity in 1..=16 {
+            let name: &'static str = match arity {
+                1 => "std::tuple::Tuple1",
+                2 => "std::tuple::Tuple2",
+                3 => "std::tuple::Tuple3",
+                4 => "std::tuple::Tuple4",
+                5 => "std::tuple::Tuple5",
+                6 => "std::tuple::Tuple6",
+                7 => "std::tuple::Tuple7",
+                8 => "std::tuple::Tuple8",
+                9 => "std::tuple::Tuple9",
+                10 => "std::tuple::Tuple10",
+                11 => "std::tuple::Tuple11",
+                12 => "std::tuple::Tuple12",
+                13 => "std::tuple::Tuple13",
+                14 => "std::tuple::Tuple14",
+                15 => "std::tuple::Tuple15",
+                16 => "std::tuple::Tuple16",
+                _ => unreachable!(),
+            };
+            m.insert(name, PythonTypeMapping::simple("tuple"));
+        }
         m.insert("serde_json::Value", PythonTypeMapping::simple("Any"));
 
         // Wrapper types (transparent)
@@ -393,6 +437,10 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
         runtime_imports.insert("AsyncClientBase, ApiResponse".to_string());
     } else if imports.has_sync {
         runtime_imports.insert("ClientBase, ApiResponse".to_string());
+    }
+
+    if imports.has_partial_models {
+        runtime_imports.insert("ReflectapiPartialModel".to_string());
     }
 
     runtime_imports.extend(imports.extra_runtime_imports.iter().cloned());
@@ -715,6 +763,8 @@ fn render_struct_with_flattened_internal_enum(
                 Some("None".to_string())
             },
             alias,
+
+            is_partial: field.type_ref.name == "reflectapi::Option",
         });
     }
 
@@ -767,6 +817,8 @@ fn render_struct_with_flattened_internal_enum(
                         Some("None".to_string())
                     },
                     alias,
+
+                    is_partial: field.type_ref.name == "reflectapi::Option",
                 });
             }
         }
@@ -790,6 +842,8 @@ fn render_struct_with_flattened_internal_enum(
             optional: false,
             default_value: Some(format!("\"{}\"", variant.serde_name())),
             alias: tag_alias.clone(),
+
+            is_partial: false,
         });
 
         // Add variant-specific fields
@@ -815,6 +869,8 @@ fn render_struct_with_flattened_internal_enum(
                         optional,
                         default_value,
                         alias,
+
+                        is_partial: vf.type_ref.name == "reflectapi::Option",
                     });
                 }
             }
@@ -877,6 +933,8 @@ fn render_struct_with_flattened_internal_enum(
                                 Some("None".to_string())
                             },
                             alias,
+
+                            is_partial: sf.type_ref.name == "reflectapi::Option",
                         });
                     }
                 }
@@ -963,6 +1021,8 @@ fn render_struct_with_flatten_standard(
                 Some("None".to_string())
             },
             alias,
+
+            is_partial: field.type_ref.name == "reflectapi::Option",
         });
     }
 
@@ -995,6 +1055,71 @@ fn render_struct_with_flatten_standard(
 }
 
 /// Validate that all type references in the schema exist
+/// Drop every `PhantomData<T>` field from every struct/variant in
+/// both input and output typespaces. PhantomData is purely a Rust
+/// type-system marker — serde renders it as `null` and the field
+/// carries no information for a wire consumer. Leaving it in the
+/// schema forced the Python codegen to render
+/// `std.marker.PhantomData[T]` annotations that didn't resolve.
+fn strip_phantom_data_fields(schema: &mut Schema) {
+    fn strip_from_typespace(
+        typespace_name_iter: impl IntoIterator<Item = String>,
+        ts: &mut reflectapi_schema::Typespace,
+    ) {
+        for name in typespace_name_iter {
+            let Some(ty) = ts.get_type_mut(&name) else {
+                continue;
+            };
+            match ty {
+                reflectapi_schema::Type::Struct(s) => {
+                    s.fields
+                        .retain(|f| f.type_ref.name != "std::marker::PhantomData");
+                }
+                reflectapi_schema::Type::Enum(e) => {
+                    for v in &mut e.variants {
+                        v.fields
+                            .retain(|f| f.type_ref.name != "std::marker::PhantomData");
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    let input_names: Vec<String> = schema
+        .input_types
+        .types()
+        .map(|t| t.name().to_string())
+        .collect();
+    strip_from_typespace(input_names, &mut schema.input_types);
+    let output_names: Vec<String> = schema
+        .output_types
+        .types()
+        .map(|t| t.name().to_string())
+        .collect();
+    strip_from_typespace(output_names, &mut schema.output_types);
+}
+
+/// Walk every input/output struct in the schema and return `true` if
+/// any field uses the three-state `reflectapi::Option<T>`. Used to
+/// decide whether to import `ReflectapiPartialModel` into the generated
+/// bundle. Cheap — runs once per generation.
+fn schema_has_partial_field(schema: &Schema) -> bool {
+    fn iter_typespace_has_partial(typespace: &reflectapi_schema::Typespace) -> bool {
+        typespace.types().any(|t| match t {
+            reflectapi_schema::Type::Struct(s) => {
+                s.fields().any(|f| f.type_ref.name == "reflectapi::Option")
+            }
+            reflectapi_schema::Type::Enum(e) => e
+                .variants
+                .iter()
+                .any(|v| v.fields().any(|f| f.type_ref.name == "reflectapi::Option")),
+            _ => false,
+        })
+    }
+    iter_typespace_has_partial(&schema.input_types)
+        || iter_typespace_has_partial(&schema.output_types)
+}
+
 fn validate_type_references(schema: &Schema) -> anyhow::Result<()> {
     // Collect all defined types
     let mut defined_types = HashSet::new();
@@ -1426,6 +1551,7 @@ fn modules_from_rendered_types(
         if let Some(rendered_type) = rendered_types.remove(&original_type_name) {
             module.types.push(templates::ModuleType {
                 rendered: rendered_type,
+                rust_path: original_type_name.clone(),
             });
         }
     }
@@ -1437,6 +1563,12 @@ fn build_python_generation(
     mut schema: Schema,
     config: &Config,
 ) -> anyhow::Result<PythonGeneration> {
+    // `PhantomData<T>` is a Rust-only type-system marker — it carries
+    // no wire data. Strip every such field before rendering so the
+    // Python model doesn't reference a non-existent
+    // `std.marker.PhantomData`.
+    strip_phantom_data_fields(&mut schema);
+
     // Consolidate input/output types FIRST so both the SemanticSchema and
     // the raw Schema share the same unified type names.
     let all_type_names = schema.consolidate_types();
@@ -1525,6 +1657,7 @@ fn build_python_generation(
     let has_streaming = schema
         .functions()
         .any(|f| matches!(f.output_type, OutputType::Stream { .. }));
+    let has_partial_models = schema_has_partial_field(&schema);
     let python_metadata = collect_python_metadata_usage(&all_type_names);
 
     // Generate imports
@@ -1543,13 +1676,22 @@ fn build_python_generation(
         has_externally_tagged_enums,
         global_type_vars: Vec::new(), // Will be added later after tracking usage
         has_streaming,
+        has_partial_models,
     };
     // Use optimized import generation instead of template
     generated_code.push(generate_optimized_imports(&imports));
 
-    // Types that are provided by the runtime library and should not be generated
+    // Types that are mapped directly to Python primitives / built-ins
+    // and so don't need a generated class.
     let mut non_rendered_types = python_metadata.runtime_provided_types.clone();
     non_rendered_types.insert("std::option::Option".to_string());
+    // `reflectapi::Option<T>` renders as `T | None` at every use site
+    // (its three states are carried by `model_fields_set` on the
+    // containing `ReflectapiPartialModel`). The schema still declares
+    // it as a tagged enum, so without this exclusion the codegen would
+    // emit a parallel ADT (`ReflectapiOption`, `ReflectapiOptionSome`,
+    // …) that nothing references.
+    non_rendered_types.insert("reflectapi::Option".to_string());
 
     let class_names = build_python_class_name_map(
         semantic
@@ -1821,8 +1963,26 @@ fn render_external_types_and_rebuilds(rebuild_models: &[String]) -> String {
     ];
 
     if !rebuild_models.is_empty() {
+        // Same strict-rebuild contract as `render_rebuild_file` (see
+        // its comment for the rationale).
         external_types_and_rebuilds.push(format!(
-            "for _model in [\n    {},\n]:\n    try:\n        _model.model_rebuild()\n    except Exception:\n        pass",
+            "_rebuild_errors: list[str] = []\n\
+             for _model in [\n    {},\n]:\n\
+             \x20   if not hasattr(_model, \"model_rebuild\"):\n\
+             \x20       continue\n\
+             \x20   try:\n\
+             \x20       _model.model_rebuild()\n\
+             \x20   except Exception as _exc:\n\
+             \x20       _rebuild_errors.append(\
+             f\"  - {{_model.__name__}}: {{type(_exc).__name__}}: {{_exc}}\")\n\
+             if _rebuild_errors:\n\
+             \x20   raise RuntimeError(\n\
+             \x20       \"reflectapi: failed to rebuild \" + str(len(_rebuild_errors)) + \
+             \" generated model(s). This usually means the codegen emitted an annotation \
+             pointing at a symbol that was never defined (a dangling type reference). \
+             Fix the codegen rather than catching this error.\\n\" + \
+             \"\\n\".join(_rebuild_errors)\n\
+             \x20   )",
             rebuild_models.join(",\n    ")
         ));
     }
@@ -1921,14 +2081,45 @@ fn module_aliases(module: &templates::Module, ns_path: &[String]) -> BTreeMap<St
     let mut aliases = BTreeMap::new();
 
     for mt in &module.types {
-        for flat_name in extract_defined_python_names(&mt.rendered) {
-            let leaf = if flat_name.starts_with(&flat_prefix) {
+        let flat_names = extract_defined_python_names(&mt.rendered);
+        // Heuristic: the "primary" flat name for this type is the
+        // class whose name matches the rust leaf when both pass through
+        // the same PascalCase pipeline. We prefer it for the Rust-leaf
+        // alias below. If we can't identify a primary (e.g. variant
+        // models that don't carry their own rust path), fall back to
+        // emitting only the prefix-stripped alias.
+        let rust_leaf = mt.rust_path.rsplit("::").next().unwrap_or("");
+        let primary_flat_name = flat_names
+            .iter()
+            .find(|name| name.ends_with(&to_pascal_case(rust_leaf)))
+            .cloned();
+
+        for flat_name in &flat_names {
+            // 1. Stripped form: drop the *full* namespace prefix so the
+            //    namespace exposes the short ergonomic name. This is
+            //    what `__all__` advertises.
+            let stripped = if flat_name.starts_with(&flat_prefix) {
                 flat_name[flat_prefix.len()..].to_string()
             } else {
                 flat_name.clone()
             };
-            if !leaf.is_empty() {
-                aliases.insert(leaf, flat_name);
+            if !stripped.is_empty() {
+                aliases.insert(stripped, flat_name.clone());
+            }
+        }
+
+        // 2. Rust-leaf form (e.g. `OrderInsertData = MyapiOrderInsertData`).
+        //    `type_name_to_python_ref` generates field annotations as
+        //    `<namespace>.<rust_leaf>`, so the namespace must also
+        //    answer to that name or `model_rebuild()` raises
+        //    AttributeError. Only emit when the leaf differs from the
+        //    stripped form (otherwise we're duplicating an alias).
+        if !rust_leaf.is_empty() {
+            let leaf_pascal = improve_class_name_part(rust_leaf);
+            if let Some(flat_name) = primary_flat_name {
+                if !leaf_pascal.is_empty() && !aliases.contains_key(&leaf_pascal) {
+                    aliases.insert(leaf_pascal, flat_name);
+                }
             }
         }
     }
@@ -2059,10 +2250,14 @@ fn render_module_file(
         if !body.trim().is_empty() {
             body.push('\n');
         }
+        // Suppress only `ImportError` (which can occur if the
+        // namespace is imported standalone before the root package
+        // finishes initialising) — let `model_rebuild()` failures
+        // propagate so dangling references surface at import time.
         body.push_str("try:\n");
         body.push_str("    from .._rebuild import rebuild_models as _rebuild_models\n\n");
         body.push_str("    _rebuild_models()\n");
-        body.push_str("except Exception:\n");
+        body.push_str("except ImportError:\n");
         body.push_str("    pass\n");
     }
 
@@ -2158,10 +2353,23 @@ fn render_rebuild_file(
     if generation.rebuild_models.is_empty() {
         body.push_str("    return\n");
     } else {
+        // Every namespace module needs every *top-level* namespace
+        // bound as a global so forward-reference annotations like
+        // `auth.AuthError` resolve from inside (say) `upload.py`.
+        // Binding only each namespace's own root would handle paths
+        // like `myapi.model.X` (one shared root) but not the more
+        // common case where namespaces are siblings under the
+        // package and a type in one references a type in another.
+        let top_level_namespaces: BTreeSet<String> = flat_imports
+            .keys()
+            .filter_map(|p| p.first().cloned())
+            .map(|s| safe_python_module_segment(&s))
+            .collect();
         for ns_path in flat_imports.keys().filter(|path| !path.is_empty()) {
             let module = module_import_path(ns_path);
-            let root = safe_python_module_segment(&ns_path[0]);
-            body.push_str(&format!("    {module}.{root} = {root}\n"));
+            for top in &top_level_namespaces {
+                body.push_str(&format!("    {module}.{top} = {top}\n"));
+            }
         }
         if !root_type_names.is_empty() {
             for root in generation
@@ -2174,15 +2382,42 @@ fn render_rebuild_file(
                 body.push_str(&format!("    _types.{root} = {root}\n"));
             }
         }
+        // Run `model_rebuild()` against every generated model and
+        // collect every failure into one structured report. The old
+        // shape (`try: model_rebuild() except: pass`) silently
+        // swallowed dangling-annotation bugs at import time — they
+        // surfaced much later as `AttributeError: module has no
+        // attribute X` when a user tried to construct a model. By
+        // raising here we catch the whole class of "codegen emitted a
+        // dangling reference" bugs the moment the package loads,
+        // making CI smoke tests like `python -c 'import api_client'`
+        // genuinely informative.
+        body.push_str("    errors: list[str] = []\n");
         body.push_str("    for _model in [\n");
         for model in &generation.rebuild_models {
             body.push_str(&format!("        {model},\n"));
         }
         body.push_str("    ]:\n");
+        // Some rendered types are Python enums (or other non-Pydantic
+        // classes) — they don't have `model_rebuild()` and don't need
+        // one. Skip them without flagging an error.
+        body.push_str("        if not hasattr(_model, \"model_rebuild\"):\n");
+        body.push_str("            continue\n");
         body.push_str("        try:\n");
         body.push_str("            _model.model_rebuild()\n");
-        body.push_str("        except Exception:\n");
-        body.push_str("            pass\n");
+        body.push_str("        except Exception as exc:\n");
+        body.push_str(
+            "            errors.append(f\"  - {_model.__name__}: {type(exc).__name__}: {exc}\")\n",
+        );
+        body.push_str("    if errors:\n");
+        body.push_str(
+            "        raise RuntimeError(\n            \
+             \"reflectapi: failed to rebuild \" + str(len(errors)) + \
+             \" generated model(s). This usually means the codegen \
+             emitted an annotation pointing at a symbol that was never \
+             defined (a dangling type reference). Fix the codegen \
+             rather than catching this error.\\n\" + \"\\n\".join(errors)\n        )\n",
+        );
     }
     lines.push(body);
 
@@ -2640,6 +2875,8 @@ fn collect_flattened_fields(
             optional: true,
             default_value: Some("None".to_string()),
             alias: None,
+
+            is_partial: false,
         }]);
     }
 
@@ -2775,6 +3012,8 @@ fn make_flattened_field(
         optional,
         default_value,
         alias,
+
+        is_partial: field.type_ref.name == "reflectapi::Option",
     })
 }
 
@@ -2835,6 +3074,8 @@ fn collect_flattened_enum_fields(
         optional,
         default_value,
         alias,
+
+        is_partial: false,
     });
 
     Ok(())
@@ -2903,6 +3144,8 @@ fn render_struct(
                 optional,
                 default_value,
                 alias,
+
+                is_partial: field.type_ref.name == "reflectapi::Option",
             })
         })
         .collect::<Result<Vec<_>, anyhow::Error>>()?;
@@ -3070,6 +3313,8 @@ fn render_adjacently_tagged_enum(
             optional: false,
             default_value: discriminator_default_value,
             alias: None,
+
+            is_partial: false,
         }];
 
         // Add the content field based on variant type
@@ -3096,6 +3341,8 @@ fn render_adjacently_tagged_enum(
                         optional: false,
                         default_value: None,
                         alias: None,
+
+                        is_partial: false,
                     });
                 } else {
                     // Multi-field tuple: content is a list
@@ -3117,6 +3364,8 @@ fn render_adjacently_tagged_enum(
                         optional: false,
                         default_value: None,
                         alias: None,
+
+                        is_partial: false,
                     });
                 }
             }
@@ -3145,6 +3394,8 @@ fn render_adjacently_tagged_enum(
                         optional,
                         default_value,
                         alias,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
                 let content_model = templates::DataClass {
@@ -3171,6 +3422,8 @@ fn render_adjacently_tagged_enum(
                     optional: false,
                     default_value: None,
                     alias: None,
+
+                    is_partial: false,
                 });
             }
         }
@@ -3302,6 +3555,8 @@ fn render_externally_tagged_enum(
                         optional: false,
                         default_value: None,
                         alias: None,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
 
@@ -3379,6 +3634,8 @@ fn render_externally_tagged_enum(
                         optional,
                         default_value,
                         alias,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
 
@@ -3522,6 +3779,8 @@ fn render_internally_tagged_enum(
             optional: false,
             default_value: discriminator_default_value,
             alias: None,
+
+            is_partial: false,
         }];
 
         // Handle variant fields based on type
@@ -3615,6 +3874,8 @@ fn render_internally_tagged_enum(
                                 optional,
                                 default_value,
                                 alias,
+
+                                is_partial: struct_field.type_ref.name == "reflectapi::Option",
                             });
                         }
                     }
@@ -3637,6 +3898,8 @@ fn render_internally_tagged_enum(
                             optional: false,
                             default_value: None,
                             alias: None,
+
+                            is_partial: inner_field.type_ref.name == "reflectapi::Option",
                         });
                     }
                 }
@@ -3665,6 +3928,8 @@ fn render_internally_tagged_enum(
                         optional,
                         default_value,
                         alias,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
             }
@@ -3807,6 +4072,8 @@ fn render_untagged_enum(
                         optional,
                         default_value,
                         alias,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
             }
@@ -3835,6 +4102,8 @@ fn render_untagged_enum(
                         optional,
                         default_value,
                         alias: None,
+
+                        is_partial: field.type_ref.name == "reflectapi::Option",
                     });
                 }
             }
@@ -4367,7 +4636,6 @@ fn improve_class_name_part(name_part: &str) -> String {
         ("StdTuple", "Tuple"),
         ("StdCollectionsHashMap", "HashMap"),
         ("StdCollectionsBTreeMap", "BTreeMap"),
-        ("ReflectapiOption", "ReflectapiOption"), // Keep this one
         // Handle namespace prefixes
         ("Crate::", ""),
         ("Self::", ""),
@@ -4429,18 +4697,71 @@ fn to_screaming_snake_case(s: &str) -> String {
     to_snake_case(s).to_uppercase()
 }
 
+/// Pydantic v2 methods that we must not shadow with a field of the
+/// same name. If a user has a field named exactly one of these on the
+/// wire, we have to rename the Python attribute and carry the wire
+/// name as an alias. The `model_` prefix conflict more broadly is
+/// silenced via `protected_namespaces=()` in the generated
+/// ConfigDict — that's the lighter-touch fix for the
+/// `model_<anything>` namespace; this list is the heavier-touch fix
+/// for names that would also shadow real methods at the instance level.
+fn is_pydantic_method_name(name: &str) -> bool {
+    matches!(
+        name,
+        "model_dump"
+            | "model_dump_json"
+            | "model_validate"
+            | "model_validate_json"
+            | "model_validate_strings"
+            | "model_construct"
+            | "model_copy"
+            | "model_rebuild"
+            | "model_json_schema"
+            | "model_parametrized_name"
+            | "model_post_init"
+            | "model_config"
+            | "model_fields"
+            | "model_fields_set"
+            | "model_extra"
+            | "model_computed_fields"
+            // Deprecated-but-still-present BaseModel methods that
+            // Pydantic v2 warns about when a field shadows them.
+            | "schema"
+            | "schema_json"
+            | "json"
+            | "dict"
+            | "parse_obj"
+            | "parse_raw"
+            | "parse_file"
+            | "from_orm"
+            | "construct"
+            | "copy"
+            | "validate"
+            | "update_forward_refs"
+    )
+}
+
 fn sanitize_field_name_with_alias(name: &str, serde_name: &str) -> (String, Option<String>) {
     let snake_case = to_snake_case(name);
     let sanitized = safe_python_identifier(&snake_case);
 
     // Strip leading underscores - Pydantic v2 treats _-prefixed fields as private
     let sanitized = sanitized.trim_start_matches('_').to_string();
-    let sanitized = if sanitized.is_empty() {
+    let mut sanitized = if sanitized.is_empty() {
         // Edge case: name was all underscores
         "field".to_string()
     } else {
         sanitized
     };
+
+    // If the field exact-matches a Pydantic v2 method/attribute name,
+    // shadowing it at the instance level breaks `.model_dump_json()`
+    // and friends. Suffix with `_` so the field is reachable as
+    // `obj.model_dump_json_` while the wire name (`model_dump_json`)
+    // continues to round-trip via the alias.
+    if is_pydantic_method_name(&sanitized) {
+        sanitized.push('_');
+    }
 
     // The wire name (serde_name) is what goes over JSON.
     // We need an alias whenever the Python field name differs from the wire name.
@@ -4480,13 +4801,16 @@ fn type_ref_to_python_type(
             return Ok(python_type.clone());
         }
 
-        // Special case: Vec<u8> should be bytes in Python
-        if type_ref.name == "std::vec::Vec" && type_ref.arguments.len() == 1 {
-            let arg = &type_ref.arguments[0];
-            if arg.name == "u8" {
-                return Ok("bytes".to_string());
-            }
-        }
+        // Note on `Vec<u8>`: serde's *default* JSON representation is
+        // a JSON array of integers, **not** a base64-encoded string.
+        // Rendering it as Python `bytes` would force users to base64-
+        // encode their data manually and confuse Pydantic's validator
+        // (which expects a base64 string for `bytes`). The
+        // base64-encoded form requires the user to opt in on the Rust
+        // side via the `serde_bytes` crate, which surfaces as a
+        // different schema type entirely. Until that's modelled
+        // explicitly we keep `Vec<u8>` as `list[int]` — matches what
+        // the wire actually carries.
 
         if python_type_mappings()
             .get(type_ref.name.as_str())
@@ -4816,6 +5140,13 @@ pub mod templates {
     pub struct ModuleType {
         /// The rendered Python source code for this type.
         pub rendered: String,
+        /// Original fully-qualified Rust type name (e.g.
+        /// `myapi::order::OrderInsertData`). Used by the alias
+        /// generator to expose the type under both its
+        /// flat-prefix-stripped form (`InsertData`) and its Rust-leaf
+        /// form (`OrderInsertData`); field annotations elsewhere use
+        /// the Rust leaf, so both names must be live in the namespace.
+        pub rust_path: String,
     }
 
     pub struct Module {
@@ -5042,6 +5373,10 @@ pub mod templates {
         pub global_type_vars: Vec<String>,
         /// At least one streaming endpoint is exposed by the client.
         pub has_streaming: bool,
+        /// At least one generated class has a `reflectapi::Option<T>`
+        /// field, so the bundle needs to import
+        /// `ReflectapiPartialModel`.
+        pub has_partial_models: bool,
     }
 
     pub struct DataClass {
@@ -5054,13 +5389,25 @@ pub mod templates {
     }
 
     impl DataClass {
+        /// True iff any field came from `reflectapi::Option<T>`; the
+        /// containing class then needs `ReflectapiPartialModel` so that
+        /// `model_fields_set` drives wire-format presence.
+        fn is_partial(&self) -> bool {
+            self.fields.iter().any(|f| f.is_partial)
+        }
+
         pub fn render(&self) -> String {
             let mut s = String::new();
+            let base_class = if self.is_partial() {
+                "ReflectapiPartialModel"
+            } else {
+                "BaseModel"
+            };
             if self.is_generic {
                 let params = self.generic_params.join(", ");
-                writeln!(s, "class {}(BaseModel, Generic[{}]):", self.name, params).unwrap();
+                writeln!(s, "class {}({base_class}, Generic[{}]):", self.name, params).unwrap();
             } else {
-                writeln!(s, "class {}(BaseModel):", self.name).unwrap();
+                writeln!(s, "class {}({base_class}):", self.name).unwrap();
             }
             if let Some(desc) = &self.description {
                 let desc = super::sanitize_for_docstring(desc);
@@ -5069,11 +5416,23 @@ pub mod templates {
                 }
             }
             writeln!(s).unwrap();
-            writeln!(
-                s,
-                "    model_config = ConfigDict(extra=\"ignore\", populate_by_name=True)"
-            )
-            .unwrap();
+            // `validate_assignment=True` for partial models keeps
+            // `model_fields_set` in sync when callers do
+            // `m.field = value` after construction (so the assignment
+            // actually lands on the wire). Plain BaseModel classes
+            // don't need it.
+            // `protected_namespaces=()` disables Pydantic's prefix
+            // check (it defaults to `("model_",)` so any user field
+            // starting with `model_` would raise at class-construction
+            // time). `is_pydantic_method_name` already renames the
+            // exact-match collisions; this kills the warning for the
+            // remaining safe-but-prefixed cases.
+            let config = if self.is_partial() {
+                "ConfigDict(extra=\"ignore\", populate_by_name=True, validate_assignment=True, protected_namespaces=())"
+            } else {
+                "ConfigDict(extra=\"ignore\", populate_by_name=True, protected_namespaces=())"
+            };
+            writeln!(s, "    model_config = {config}").unwrap();
             writeln!(s).unwrap();
             for field in &self.fields {
                 write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
@@ -5083,7 +5442,7 @@ pub mod templates {
                     .description
                     .as_ref()
                     .filter(|d| !d.is_empty() && !d.starts_with("(flattened"))
-                    .map(|d| super::sanitize_for_string_literal(d));
+                    .map(|d| super::python_string_literal(d));
                 let has_field_args = desc.is_some()
                     || field.alias.is_some()
                     || (field.optional && field.alias.is_none());
@@ -5102,7 +5461,10 @@ pub mod templates {
                         args.push(format!("validation_alias='{alias}'"));
                     }
                     if let Some(ref d) = desc {
-                        args.push(format!("description=\"{d}\""));
+                        // `d` is already a complete Python string
+                        // literal (quotes included) from
+                        // `python_string_literal`.
+                        args.push(format!("description={d}"));
                     }
                     write!(s, "{}", args.join(", ")).unwrap();
                     write!(s, ")").unwrap();
@@ -5682,6 +6044,11 @@ pub mod templates {
         pub optional: bool,
         pub default_value: Option<String>,
         pub alias: Option<String>,
+        /// `true` iff this field came from `reflectapi::Option<T>` in the
+        /// source schema (the three-state Option). The renderer uses this
+        /// to decide whether the containing class needs to inherit from
+        /// `ReflectapiPartialModel`.
+        pub is_partial: bool,
     }
 
     pub struct EnumVariant {
@@ -5766,7 +6133,11 @@ pub mod templates {
                 )
                 .unwrap();
             }
-            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(
+                s,
+                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=())"
+            )
+            .unwrap();
             writeln!(s).unwrap();
             writeln!(s, "    def model_dump(self, **kwargs):").unwrap();
             writeln!(
@@ -5818,7 +6189,11 @@ pub mod templates {
                 .unwrap();
             }
             writeln!(s).unwrap();
-            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(
+                s,
+                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=())"
+            )
+            .unwrap();
             writeln!(s).unwrap();
             for field in &self.fields {
                 write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
@@ -5885,7 +6260,11 @@ pub mod templates {
                 )
                 .unwrap();
             }
-            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(
+                s,
+                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=())"
+            )
+            .unwrap();
             writeln!(s).unwrap();
             for field in &self.fields {
                 write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
@@ -6754,7 +7133,19 @@ fn debug_assert_monomorphization_invariants(
 /// references stay consistent.
 fn mangle_monomorphized_name(struct_name: &str, args: &[TypeReference]) -> String {
     fn arg_suffix(arg: &TypeReference) -> String {
-        let base = arg.name.replace("::", "_");
+        // Run the arg name through the same destutter the rest of
+        // the class-name pipeline uses. Without this, a type like
+        // `uuid::Uuid` produces the suffix `uuid_Uuid`, which then
+        // PascalCases to `UuidUuid` in the final class name — making
+        // `IdentityData<uuid::Uuid, X>` emit
+        // `IdentityDataUuidUuidX` instead of `IdentityDataUuidX`.
+        let base = if arg.name.contains("::") {
+            let parts: Vec<&str> = arg.name.split("::").collect();
+            let pascal_parts: Vec<String> = parts.iter().map(|p| to_pascal_case(p)).collect();
+            maybe_destutter_pascal_parts(&pascal_parts)
+        } else {
+            arg.name.replace("::", "_")
+        };
         if arg.arguments.is_empty() {
             base
         } else {

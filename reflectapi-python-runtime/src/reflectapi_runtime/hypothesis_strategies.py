@@ -20,24 +20,7 @@ except ImportError:
 
 from pydantic import BaseModel
 
-from .option import ReflectapiOption, Undefined
-
 if HAS_HYPOTHESIS:
-
-    def strategy_for_option(inner_strategy: st.SearchStrategy) -> st.SearchStrategy:
-        """Create a strategy for ReflectapiOption types.
-
-        Args:
-            inner_strategy: Strategy for the inner type T in Option<T>.
-
-        Returns:
-            Strategy that produces ReflectapiOption instances with undefined, None, or values.
-        """
-        return st.one_of(
-            st.just(ReflectapiOption(Undefined)),  # Undefined case
-            st.just(ReflectapiOption(None)),  # None case
-            inner_strategy.map(ReflectapiOption),  # Some(value) case
-        )
 
     def strategy_for_type(type_hint: type) -> st.SearchStrategy:
         """Generate a Hypothesis strategy for a given type hint.
@@ -68,15 +51,6 @@ if HAS_HYPOTHESIS:
             return st.dates()
         elif type_hint is uuid.UUID:
             return st.uuids()
-
-        # Handle ReflectapiOption specifically
-        if (
-            hasattr(type_hint, "__origin__")
-            and type_hint.__origin__ is ReflectapiOption
-        ):
-            inner_type = get_args(type_hint)[0] if get_args(type_hint) else Any
-            inner_strategy = strategy_for_type(inner_type)
-            return strategy_for_option(inner_strategy)
 
         # Handle generic types
         origin = get_origin(type_hint)

@@ -38,3 +38,56 @@ jobs:
       - name: Run tests
         working-directory: reflectapi-python-runtime
         run: uv run --extra dev pytest -q --no-cov
+
+  # Regenerates the demo Python client from the in-repo schema and
+  # imports it. The generated package's strict `_rebuild_models()`
+  # runs at import time and raises on any dangling type reference, so
+  # this job catches the class of bug where the codegen emits a
+  # Python annotation pointing at a symbol it never defined.
+  python-codegen-smoke:
+    name: Python codegen smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: astral-sh/setup-uv@v3
+      # The Python codegen shells out to `ruff format`; different ruff
+      # versions wrap long lines differently, so the snapshot-drift
+      # check below is meaningless unless CI and local devs use the
+      # same ruff version. Pin it explicitly.
+      - uses: astral-sh/ruff-action@v3
+        with:
+          version: "0.15.8"
+          # `args` short-circuits the action's default `ruff check` —
+          # we only want ruff on PATH so the codegen can shell out to
+          # `ruff format`, not for the action itself to lint the repo.
+          args: "--version"
+      - name: Regenerate demo Python client from schema
+        run: |
+          cargo run -p reflectapi-cli --quiet -- codegen \
+            -s reflectapi-demo/reflectapi.json \
+            -o reflectapi-demo/clients/python/api_client \
+            -l python --python-package-name api_client --python-sync -f
+      - name: Import demo client (triggers strict model_rebuild)
+        working-directory: reflectapi-demo/clients/python
+        run: uv run python -c "import api_client; print('demo client import OK')"
+      - name: Demo snapshot is committed (no drift)
+        run: git diff --exit-code reflectapi-demo/clients/python/api_client/
+      # Codegen coverage fixtures (recursive types, Python keyword
+      # field names, Pydantic-reserved names, ...) live in the
+      # integration test at `reflectapi-demo/tests/codegen_coverage.rs`.
+      # The test writes a Python client to
+      # `target/codegen-coverage-client/`; the next step imports it
+      # so `_rebuild_models()` raises on any dangling reference.
+      - name: Generate codegen coverage client
+        run: cargo test -p reflectapi-demo --test codegen_coverage
+      - name: Import codegen coverage client
+        working-directory: reflectapi-demo/clients/python
+        run: |
+          uv run python -c "
+          import sys, pathlib
+          sys.path.insert(0, str(pathlib.Path('../../target/codegen-coverage-client').resolve()))
+          import codegen_coverage_client
+          print('coverage client import OK')
+          "

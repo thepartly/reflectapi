@@ -26,26 +26,32 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     inner_a: int
     inner_b: str
 
 
-class ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerde356d19e7(
+class ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerdeEee9b477(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     code: int
     inner_a: int | None = None
     inner_b: str | None = None
 
 
-class ReflectapiDemoTestsSerdeOutputTestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30(
+class ReflectapiDemoTestsSerdeOutputTestOptionalFlattenReflectapiDemoTestsSerd85639aef(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     code: int
     inner_a: int
@@ -67,12 +73,12 @@ class reflectapi_demo:
             class input:
                 """Namespace for input types."""
 
-                TestOptionalFlattenReflectapiDemoTestsSerde356d19e7 = ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerde356d19e7
+                TestOptionalFlattenReflectapiDemoTestsSerdeEee9b477 = ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerdeEee9b477
 
             class output:
                 """Namespace for output types."""
 
-                TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30 = ReflectapiDemoTestsSerdeOutputTestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30
+                TestOptionalFlattenReflectapiDemoTestsSerd85639aef = ReflectapiDemoTestsSerdeOutputTestOptionalFlattenReflectapiDemoTestsSerd85639aef
 
 
 class AsyncInoutClient:
@@ -84,10 +90,10 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.input.TestOptionalFlattenReflectapiDemoTestsSerde356d19e7
+            reflectapi_demo.tests.serde.input.TestOptionalFlattenReflectapiDemoTestsSerdeEee9b477
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30
+        reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd85639aef
     ]:
         """
 
@@ -95,7 +101,7 @@ class AsyncInoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30]: Response containing reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30 data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd85639aef]: Response containing reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd85639aef data
         """
         path = "/inout_test"
 
@@ -104,7 +110,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30,
+            response_model=reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd85639aef,
         )
 
 
@@ -130,10 +136,10 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.input.TestOptionalFlattenReflectapiDemoTestsSerde356d19e7
+            reflectapi_demo.tests.serde.input.TestOptionalFlattenReflectapiDemoTestsSerdeEee9b477
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30
+        reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd85639aef
     ]:
         """
 
@@ -141,7 +147,7 @@ class InoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30]: Response containing reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30 data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd85639aef]: Response containing reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd85639aef data
         """
         path = "/inout_test"
 
@@ -150,7 +156,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30,
+            response_model=reflectapi_demo.tests.serde.output.TestOptionalFlattenReflectapiDemoTestsSerd85639aef,
         )
 
 
@@ -174,12 +180,22 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
+_rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsSerdeTestFlattenInner,
-    ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerde356d19e7,
-    ReflectapiDemoTestsSerdeOutputTestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30,
+    ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerdeEee9b477,
+    ReflectapiDemoTestsSerdeOutputTestOptionalFlattenReflectapiDemoTestsSerd85639aef,
 ]:
+    if not hasattr(_model, "model_rebuild"):
+        continue
     try:
         _model.model_rebuild()
-    except Exception:
-        pass
+    except Exception as _exc:
+        _rebuild_errors.append(f"  - {_model.__name__}: {type(_exc).__name__}: {_exc}")
+if _rebuild_errors:
+    raise RuntimeError(
+        "reflectapi: failed to rebuild "
+        + str(len(_rebuild_errors))
+        + " generated model(s). This usually means the codegen emitted an annotation pointing at a symbol that was never defined (a dangling type reference). Fix the codegen rather than catching this error.\n"
+        + "\n".join(_rebuild_errors)
+    )

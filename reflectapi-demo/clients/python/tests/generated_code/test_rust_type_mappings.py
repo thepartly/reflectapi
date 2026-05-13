@@ -306,5 +306,6 @@ class TestImportOptimization:
         if has_datetime_usage:
             assert "from datetime import datetime" in content
 
-        # ReflectapiOption should be imported since it's used
-        assert "from reflectapi_runtime import ReflectapiOption" in content
+        # Partial models use `ReflectapiPartialModel`; the import
+        # should be present whenever the schema has a partial field.
+        assert "from reflectapi_runtime import ReflectapiPartialModel" in content

@@ -24,7 +24,6 @@ def pytest_collection_modifyitems(config, items):
 
 from typing import Any
 
-from reflectapi_runtime import ReflectapiOption
 from api_client.myapi.model import (
     Kind as PetKind,
     KindDog as PetKindDog,
@@ -90,12 +89,12 @@ def sample_pet_details(sample_cat: PetKindCat) -> PetDetails:
 
 @pytest.fixture
 def sample_update_request() -> PetsUpdateRequest:
-    """Create a sample PetsUpdateRequest with ReflectapiOption fields."""
+    """Create a sample PetsUpdateRequest with every partial field set."""
     return PetsUpdateRequest(
         name="TestPet",
         kind=PetKindDog(type="dog", breed="Labrador"),
-        age=ReflectapiOption(5),
-        behaviors=ReflectapiOption([calm_behavior()]),
+        age=5,
+        behaviors=[calm_behavior()],
     )
 
 
@@ -167,11 +166,9 @@ class TestDataFactory:
         request = PetsUpdateRequest(name=name)
 
         if with_age:
-            request.age = ReflectapiOption(kwargs.get("age", 5))
+            request.age = kwargs.get("age", 5)
         if with_behaviors:
-            request.behaviors = ReflectapiOption(
-                kwargs.get("behaviors", [calm_behavior()])
-            )
+            request.behaviors = kwargs.get("behaviors", [calm_behavior()])
 
         return request
 
@@ -206,38 +203,30 @@ def assert_petkind_cat(pet_kind: PetKind, expected_lives: int) -> None:
     assert pet_kind.lives == expected_lives
 
 
-def assert_reflectapi_option_some(
-    option: ReflectapiOption, expected_value: Any
-) -> None:
-    """Assert that a ReflectapiOption contains the expected value."""
-    assert option.is_some
-    assert not option.is_undefined
-    assert not option.is_none
-    assert option.unwrap() == expected_value
+def assert_partial_field_value(model: Any, field: str, expected: Any) -> None:
+    """Assert that a partial field is set and matches ``expected``."""
+    assert field in model.model_fields_set, f"field {field!r} not set"
+    assert getattr(model, field) == expected
 
 
-def assert_reflectapi_option_undefined(option: ReflectapiOption) -> None:
-    """Assert that a ReflectapiOption is undefined."""
-    assert option.is_undefined
-    assert not option.is_some
-    assert not option.is_none
+def assert_partial_field_unset(model: Any, field: str) -> None:
+    """Assert that a partial field was never explicitly set on the wire."""
+    assert field not in model.model_fields_set, f"field {field!r} was set"
 
 
-def assert_reflectapi_option_none(option: ReflectapiOption) -> None:
-    """Assert that a ReflectapiOption is explicitly None."""
-    assert option.is_none
-    assert not option.is_undefined
-    assert not option.is_some
-    assert option.value is None
+def assert_partial_field_null(model: Any, field: str) -> None:
+    """Assert that a partial field was explicitly set to ``None``."""
+    assert field in model.model_fields_set, f"field {field!r} not set"
+    assert getattr(model, field) is None
 
 
 # Export test helpers for use in test modules
 __all__ = [
     "assert_petkind_dog",
     "assert_petkind_cat",
-    "assert_reflectapi_option_some",
-    "assert_reflectapi_option_undefined",
-    "assert_reflectapi_option_none",
+    "assert_partial_field_value",
+    "assert_partial_field_unset",
+    "assert_partial_field_null",
     "aggressive_behavior",
     "calm_behavior",
     "other_behavior",

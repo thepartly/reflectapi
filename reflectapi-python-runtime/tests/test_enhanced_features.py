@@ -497,67 +497,53 @@ class TestTestClientMixin:
 class TestIntegration:
     """Test integration between different enhanced features."""
 
-    def test_option_serialization_with_apiresponse(self):
-        """Test Option serialization working with ApiResponse."""
-        from reflectapi_runtime import (
-            ReflectapiOption,
-            Undefined,
-            serialize_option_dict,
-        )
+    def test_partial_model_serialization_with_apiresponse(self):
+        """A ReflectapiPartialModel inside ApiResponse round-trips correctly."""
+        from reflectapi_runtime import ReflectapiPartialModel
 
-        # Create response data with Options
-        response_data = {
-            "name": "test",
-            "age": ReflectapiOption(25),
-            "email": ReflectapiOption(Undefined),
-            "active": ReflectapiOption(None),
-        }
+        class User(ReflectapiPartialModel):
+            name: str
+            age: int | None = None
+            email: str | None = None
+            active: bool | None = None
+
+        # Build a model with mixed states: a value, an explicit null, and an absent field.
+        model = User(name="test", age=25, active=None)
 
         metadata = TransportMetadata(
             status_code=200, headers=httpx.Headers({}), timing=0.1, raw_response=Mock()
         )
+        response = ApiResponse(model, metadata)
 
-        response = ApiResponse(response_data, metadata)
-
-        # Test that we can access the data through delegation
-        assert response["name"] == "test"
-        assert response["age"].unwrap() == 25
-
-        # Test serialization
-        serialized = serialize_option_dict(response.value)
-        expected = {
-            "name": "test",
-            "age": 25,
-            "active": None,
-            # email excluded because it's undefined
-        }
-        assert serialized == expected
+        # Wire shape: only kwargs we passed land in the payload.
+        # `email` was not set → omitted entirely (not even `null`).
+        assert response.value.model_dump_json() == (
+            '{"name":"test","age":25,"active":null}'
+        )
 
     def test_complete_workflow(self):
-        """Test complete workflow with all enhanced features."""
-        # This would be a comprehensive integration test in a real scenario
-        # For now, just verify that all components can be imported and instantiated
-
+        """Smoke-test that the public exports cooperate end-to-end."""
         from reflectapi_runtime import (
             ApiResponse,
             CassetteClient,
-            ReflectapiOption,
+            ReflectapiPartialModel,
             TestClientMixin,
             TransportMetadata,
-            Undefined,
         )
 
-        # Create Option
-        option = ReflectapiOption(42)
-        assert option.is_some
+        class Item(ReflectapiPartialModel):
+            kind: str | None = None
 
-        # Create CassetteClient
+        # The partial-model serialiser omits the field because it wasn't set.
+        assert Item().model_dump_json() == "{}"
+
+        # CassetteClient still works.
         with tempfile.TemporaryDirectory() as temp_dir:
             cassette_path = Path(temp_dir) / "test.json"
             client = CassetteClient.record(cassette_path)
             assert client.is_recording
 
-        # Create ApiResponse with enhanced __dir__
+        # ApiResponse __dir__ still surfaces fields from delegated objects.
         metadata = TransportMetadata(
             status_code=200, headers=httpx.Headers({}), timing=0.1, raw_response=Mock()
         )
@@ -566,6 +552,3 @@ class TestIntegration:
         assert "data" in dir_result
         assert "value" in dir_result
         assert "metadata" in dir_result
-
-        # All components working together
-        assert True  # If we get here, everything imported and worked correctly

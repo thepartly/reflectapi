@@ -26,34 +26,42 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     code: int
 
 
 class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     inner_a: int
     inner_b: str
 
 
-class ReflectapiDemoTestsSerdeTestUpdateOrElseStdOptionOptionReflectapiDemoTesB9dceb2e(
+class ReflectapiDemoTestsSerdeTestUpdateOrElseStdOptionReflectapiDemoTestsSerd2c778819(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
     inner_a: int
     inner_b: str
 
 
-class ReflectapiDemoTestsSerdeTestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b(
+class ReflectapiDemoTestsSerdeTestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
-    body: reflectapi_demo.tests.serde.TestUpdateOrElseStdOptionOptionReflectapiDemoTesB9dceb2e
+    body: reflectapi_demo.tests.serde.TestUpdateOrElseStdOptionReflectapiDemoTestsSerd2c778819
     extra: int
 
 
@@ -69,8 +77,8 @@ class reflectapi_demo:
 
             TestFlattenIfElse = ReflectapiDemoTestsSerdeTestFlattenIfElse
             TestFlattenInner = ReflectapiDemoTestsSerdeTestFlattenInner
-            TestUpdateOrElseStdOptionOptionReflectapiDemoTesB9dceb2e = ReflectapiDemoTestsSerdeTestUpdateOrElseStdOptionOptionReflectapiDemoTesB9dceb2e
-            TestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b = ReflectapiDemoTestsSerdeTestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b
+            TestUpdateOrElseStdOptionReflectapiDemoTestsSerd2c778819 = ReflectapiDemoTestsSerdeTestUpdateOrElseStdOptionReflectapiDemoTestsSerd2c778819
+            TestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff = ReflectapiDemoTestsSerdeTestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff
 
 
 class AsyncInoutClient:
@@ -82,10 +90,10 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b
+            reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b
+        reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff
     ]:
         """
 
@@ -93,7 +101,7 @@ class AsyncInoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b]: Response containing reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b data
+            ApiResponse[reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff]: Response containing reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff data
         """
         path = "/inout_test"
 
@@ -102,7 +110,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b,
+            response_model=reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff,
         )
 
 
@@ -128,10 +136,10 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b
+            reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b
+        reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff
     ]:
         """
 
@@ -139,7 +147,7 @@ class InoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b]: Response containing reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b data
+            ApiResponse[reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff]: Response containing reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff data
         """
         path = "/inout_test"
 
@@ -148,7 +156,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b,
+            response_model=reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff,
         )
 
 
@@ -172,13 +180,23 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
+_rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsSerdeTestFlattenIfElse,
     ReflectapiDemoTestsSerdeTestFlattenInner,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseStdOptionOptionReflectapiDemoTesB9dceb2e,
-    ReflectapiDemoTestsSerdeTestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseStdOptionReflectapiDemoTestsSerd2c778819,
+    ReflectapiDemoTestsSerdeTestWrapperWithNestedTypevarArgReflectapiDemoTes807013ff,
 ]:
+    if not hasattr(_model, "model_rebuild"):
+        continue
     try:
         _model.model_rebuild()
-    except Exception:
-        pass
+    except Exception as _exc:
+        _rebuild_errors.append(f"  - {_model.__name__}: {type(_exc).__name__}: {_exc}")
+if _rebuild_errors:
+    raise RuntimeError(
+        "reflectapi: failed to rebuild "
+        + str(len(_rebuild_errors))
+        + " generated model(s). This usually means the codegen emitted an annotation pointing at a symbol that was never defined (a dangling type reference). Fix the codegen rather than catching this error.\n"
+        + "\n".join(_rebuild_errors)
+    )

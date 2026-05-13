@@ -1,5 +1,56 @@
 # Changelog
 
+## Unreleased
+
+### Python — partial fields without a wrapper class
+
+The hand-rolled `ReflectapiOption[T]` runtime class is gone. Generated clients now express `reflectapi::Option<T>` fields as plain `T | None` on a `ReflectapiPartialModel` base class, with the absent-vs-null distinction carried by Pydantic's `model_fields_set`:
+
+```python
+# Field omitted from the wire if you don't pass it
+Item(name="rex").model_dump_json()             == '{"name":"rex"}'
+
+# Null on the wire if you pass None explicitly
+Item(name="rex", kind=None).model_dump_json()  == '{"name":"rex","kind":null}'
+
+# "Was this field on the wire?" — analogue of TypeScript `obj.kind !== undefined`
+"kind" in item.model_fields_set
+```
+
+Migration for hand-written consumer code that touched the wrapper API:
+
+| Before | After |
+|---|---|
+| `ReflectapiOption(Undefined)` | don't set the field |
+| `ReflectapiOption(None)` | `field=None` |
+| `ReflectapiOption(value)` | `field=value` |
+| `opt.is_undefined` | `"field" not in model.model_fields_set` |
+| `opt.is_none` | `model.field is None and "field" in model.model_fields_set` |
+| `opt.unwrap_or(default)` | `model.field if "field" in model.model_fields_set else default` |
+
+The runtime drops `ReflectapiOption`, `Undefined`, `Option`, `some`, `none`, `undefined`, and `serialize_option_dict`. `ReflectapiDuration` is added as the wire-format adapter for `std::time::Duration` (`{secs, nanos}` ↔ `timedelta`).
+
+Other Python codegen fixes in the same pass:
+
+- `Vec<u8>` renders as `list[int]` to match serde's default JSON shape (was `bytes`, which Pydantic rejected against the wire form).
+- `PhantomData<T>` fields are dropped from generated models (Rust-only type marker, no wire data).
+- `std::tuple::TupleN` types render as Python `tuple[…]`.
+- Field names that exact-match Pydantic methods (`model_dump`, `schema`, `json`, …) are renamed with a trailing underscore and aliased to the wire name; `model_*` field prefixes work without warnings via `protected_namespaces=()`.
+- `_rebuild_models()` raises a structured `RuntimeError` listing every model whose annotations don't resolve, instead of silently swallowing the failures.
+
+### TypeScript — SSE final-event flush
+
+The generated `__EventSourceParserStream` gains a `flush()` that feeds `'\n\n'` to the parser on stream close. Without it, a server that closes the connection immediately after the final `data:` line — without the spec's trailing blank-line terminator — silently dropped the last event. Regenerated clients pick up the fix.
+
+### Rust
+
+No generated-code changes.
+
+### Internals
+
+- OpenAPI codegen now tracks in-progress conversions by full monomorphization, so generic self-referential types no longer recurse forever.
+- `reflectapi-derive` reads `#[doc]` literals via `LitStr::value()` so doc comments with literal quotes land in the schema without source-level `\"` escaping.
+
 ## 0.17.2 — transport-shape refactor
 
 The Rust, TypeScript, and Python clients now share a single `Request` DTO shape: `{ path, headers, body }`. The base URL lives on the transport, not on the generated `Interface`.

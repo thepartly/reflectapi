@@ -1023,6 +1023,17 @@ impl Fields {
             Fields::None => [].iter_mut(),
         }
     }
+
+    /// Keep only fields for which `predicate` returns `true`.
+    pub fn retain<F>(&mut self, mut predicate: F)
+    where
+        F: FnMut(&Field) -> bool,
+    {
+        match self {
+            Fields::Named(fields) | Fields::Unnamed(fields) => fields.retain(|f| predicate(f)),
+            Fields::None => {}
+        }
+    }
 }
 
 impl Index<usize> for Fields {

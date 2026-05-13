@@ -95,6 +95,31 @@ async def test_aparse_yields_events_lazily() -> None:
     assert [e.data for e in events] == ["1", "2"]
 
 
+@pytest.mark.asyncio
+async def test_aparse_flushes_trailing_event_on_eof() -> None:
+    """The async parser must surface a final event whose terminator was
+    cut off by stream close."""
+
+    async def gen():
+        yield "data: tail"
+
+    events = [e async for e in aparse_sse(gen())]
+    assert events == [SseEvent(data="tail")]
+
+
+@pytest.mark.asyncio
+async def test_aparse_flushes_multiline_event_on_eof() -> None:
+    """Multi-line events also need to dispatch on eof when the trailing
+    blank line is missing."""
+
+    async def gen():
+        for line in ["event: ping", "data: hi", "data: there"]:
+            yield line
+
+    events = [e async for e in aparse_sse(gen())]
+    assert events == [SseEvent(data="hi\nthere", event="ping")]
+
+
 # ---------------------------------------------------------------------------
 # Full streaming flow against an in-process httpx MockTransport
 # ---------------------------------------------------------------------------
@@ -267,6 +292,50 @@ async def test_async_streaming_unknown_event_terminates_stream_after_prior_items
         async for pet in client.stream_pets():
             received.append(pet.name)
     assert received == ["fido"]
+    await client.aclose()
+
+
+# ---------------------------------------------------------------------------
+# End-of-stream flush (server closes without a trailing blank line).
+# A symmetric bug bit the TypeScript SSE template — the parser stream
+# had no flush() so the final buffered event was dropped. Python's
+# `feed_eof()` covers the same case; these tests pin the end-to-end
+# behaviour through the streaming client.
+# ---------------------------------------------------------------------------
+
+
+def _sse_body_no_trailing_blank(items: list[dict]) -> bytes:
+    """SSE body whose final event is *not* followed by the spec's
+    blank-line terminator — simulates a server that closes the
+    connection immediately after the last event."""
+    joined = "\n\n".join(f"data: {json.dumps(it)}" for it in items)
+    return joined.encode()  # no trailing \n\n
+
+
+def test_sync_streaming_emits_final_event_when_server_closes_mid_event() -> None:
+    pets = [{"name": "fido", "weight": 1.5}, {"name": "rex", "weight": 4.0}]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=_sse_body_no_trailing_blank(pets))
+
+    client = _make_sync_client(httpx.MockTransport(handler))
+    received = list(client.stream_pets())
+    assert received == [_Pet(**p) for p in pets]
+    client.close()
+
+
+@pytest.mark.asyncio
+async def test_async_streaming_emits_final_event_when_server_closes_mid_event() -> None:
+    pets = [{"name": "fido", "weight": 1.5}, {"name": "rex", "weight": 4.0}]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=_sse_body_no_trailing_blank(pets))
+
+    client = _make_async_client(httpx.MockTransport(handler))
+    received: list[_Pet] = []
+    async for pet in client.stream_pets():
+        received.append(pet)
+    assert received == [_Pet(**p) for p in pets]
     await client.aclose()
 
 

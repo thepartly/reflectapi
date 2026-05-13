@@ -26,28 +26,36 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedInt(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     t: Literal["int"] = Field(default="int", description="Discriminator field")
     c: int
 
 
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedString(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     t: Literal["string"] = Field(default="string", description="Discriminator field")
     c: str
 
 
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedBool(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     t: Literal["bool"] = Field(default="bool", description="Discriminator field")
     c: bool
 
 
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedUnit(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     t: Literal["unit"] = Field(default="unit", description="Discriminator field")
 
@@ -186,10 +194,20 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
+_rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTagged,
 ]:
+    if not hasattr(_model, "model_rebuild"):
+        continue
     try:
         _model.model_rebuild()
-    except Exception:
-        pass
+    except Exception as _exc:
+        _rebuild_errors.append(f"  - {_model.__name__}: {type(_exc).__name__}: {_exc}")
+if _rebuild_errors:
+    raise RuntimeError(
+        "reflectapi: failed to rebuild "
+        + str(len(_rebuild_errors))
+        + " generated model(s). This usually means the codegen emitted an annotation pointing at a symbol that was never defined (a dangling type reference). Fix the codegen rather than catching this error.\n"
+        + "\n".join(_rebuild_errors)
+    )

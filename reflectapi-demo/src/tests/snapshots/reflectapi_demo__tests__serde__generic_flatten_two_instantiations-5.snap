@@ -26,48 +26,60 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     code: int
 
 
 class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     inner_a: int
     inner_b: str
 
 
 class ReflectapiDemoTestsSerdeTestFlattenInnerAlt(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     alt_x: bool
 
 
 class ReflectapiDemoTestsSerdeTestTwoInstantiations(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
-    a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
-    b: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20
+    a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC43b4b99
+    b: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b3f870b
 
 
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69(
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b3f870b(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
+
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
+    alt_x: bool
+
+
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC43b4b99(
+    BaseModel
+):
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
     inner_a: int
     inner_b: str
-
-
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20(
-    BaseModel
-):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
-    alt_x: bool
 
 
 # Namespace classes for dotted access to types
@@ -84,8 +96,8 @@ class reflectapi_demo:
             TestFlattenInner = ReflectapiDemoTestsSerdeTestFlattenInner
             TestFlattenInnerAlt = ReflectapiDemoTestsSerdeTestFlattenInnerAlt
             TestTwoInstantiations = ReflectapiDemoTestsSerdeTestTwoInstantiations
-            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
-            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20
+            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b3f870b = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b3f870b
+            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC43b4b99 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC43b4b99
 
 
 class AsyncInoutClient:
@@ -179,15 +191,25 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
+_rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsSerdeTestFlattenIfElse,
     ReflectapiDemoTestsSerdeTestFlattenInner,
     ReflectapiDemoTestsSerdeTestFlattenInnerAlt,
     ReflectapiDemoTestsSerdeTestTwoInstantiations,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b3f870b,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC43b4b99,
 ]:
+    if not hasattr(_model, "model_rebuild"):
+        continue
     try:
         _model.model_rebuild()
-    except Exception:
-        pass
+    except Exception as _exc:
+        _rebuild_errors.append(f"  - {_model.__name__}: {type(_exc).__name__}: {_exc}")
+if _rebuild_errors:
+    raise RuntimeError(
+        "reflectapi: failed to rebuild "
+        + str(len(_rebuild_errors))
+        + " generated model(s). This usually means the codegen emitted an annotation pointing at a symbol that was never defined (a dangling type reference). Fix the codegen rather than catching this error.\n"
+        + "\n".join(_rebuild_errors)
+    )

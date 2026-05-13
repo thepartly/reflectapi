@@ -29,7 +29,7 @@ from pydantic import (
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
-from reflectapi_runtime import ReflectapiOption
+from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     parse_externally_tagged as _parse_externally_tagged,
     serialize_externally_tagged as _serialize_externally_tagged,
@@ -50,7 +50,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
 class MyapiHealthCheckFail(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
 
 # Public aliases for this module
@@ -63,7 +65,7 @@ try:
     from .._rebuild import rebuild_models as _rebuild_models
 
     _rebuild_models()
-except Exception:
+except ImportError:
     pass
 
 __all__ = ["HealthCheckFail", "MyapiHealthCheckFail", "model", "proto"]

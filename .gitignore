@@ -1,5 +1,11 @@
 /target
+reflectapi-demo/target/
 docs/book
 .vscode/settings.json
 *.pyc
 __pycache__/
+
+# Python coverage artefacts
+reflectapi-python-runtime/.coverage
+reflectapi-python-runtime/coverage.xml
+reflectapi-python-runtime/dist/

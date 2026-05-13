@@ -26,14 +26,18 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestV1(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     version: Literal["v1"] = Field(default="v1", description="Discriminator field")
     value: reflectapi_demo.tests.serde.V1 = Field(description="Tuple variant value")
 
 
 class ReflectapiDemoTestsSerdeTestV2(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     version: Literal["v2"] = Field(default="v2", description="Discriminator field")
     value: reflectapi_demo.tests.serde.V2 = Field(description="Tuple variant value")
@@ -47,14 +51,18 @@ class ReflectapiDemoTestsSerdeTest(RootModel):
 
 
 class ReflectapiDemoTestsSerdeV1A(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["A"] = Field(default="A", description="Discriminator field")
     a: int
 
 
 class ReflectapiDemoTestsSerdeV1B(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["B"] = Field(default="B", description="Discriminator field")
     b: int
@@ -68,14 +76,18 @@ class ReflectapiDemoTestsSerdeV1(RootModel):
 
 
 class ReflectapiDemoTestsSerdeV2C(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["C"] = Field(default="C", description="Discriminator field")
     c: int
 
 
 class ReflectapiDemoTestsSerdeV2D(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["D"] = Field(default="D", description="Discriminator field")
     d: int
@@ -200,12 +212,22 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
+_rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsSerdeTest,
     ReflectapiDemoTestsSerdeV1,
     ReflectapiDemoTestsSerdeV2,
 ]:
+    if not hasattr(_model, "model_rebuild"):
+        continue
     try:
         _model.model_rebuild()
-    except Exception:
-        pass
+    except Exception as _exc:
+        _rebuild_errors.append(f"  - {_model.__name__}: {type(_exc).__name__}: {_exc}")
+if _rebuild_errors:
+    raise RuntimeError(
+        "reflectapi: failed to rebuild "
+        + str(len(_rebuild_errors))
+        + " generated model(s). This usually means the codegen emitted an annotation pointing at a symbol that was never defined (a dangling type reference). Fix the codegen rather than catching this error.\n"
+        + "\n".join(_rebuild_errors)
+    )

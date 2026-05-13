@@ -585,6 +585,12 @@ class __EventSourceParserStream extends TransformStream<string, __EventSourceMes
         })
       },
       transform(chunk) { parser.feed(chunk) },
+      // SSE events are terminated by a blank line. If the upstream
+      // closes after the final `data:` line without a trailing
+      // separator, the parser still has that event buffered — feed
+      // the terminator on stream close so it gets dispatched
+      // instead of silently dropped.
+      flush() { parser.feed('\n\n') },
     })
   }
 }

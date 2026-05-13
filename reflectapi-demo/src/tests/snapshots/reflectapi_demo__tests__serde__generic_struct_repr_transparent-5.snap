@@ -32,15 +32,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[bytes] = None,
-    ) -> ApiResponse[bytes]:
+        data: Optional[list[int]] = None,
+    ) -> ApiResponse[list[int]]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[bytes]: Response containing bytes data
+            ApiResponse[list[int]]: Response containing list[int] data
         """
         path = "/inout_test"
 
@@ -49,7 +49,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=bytes,
+            response_model=list[int],
         )
 
 
@@ -74,15 +74,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[bytes] = None,
-    ) -> ApiResponse[bytes]:
+        data: Optional[list[int]] = None,
+    ) -> ApiResponse[list[int]]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[bytes]: Response containing bytes data
+            ApiResponse[list[int]]: Response containing list[int] data
         """
         path = "/inout_test"
 
@@ -91,7 +91,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=bytes,
+            response_model=list[int],
         )
 
 

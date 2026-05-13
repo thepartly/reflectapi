@@ -29,7 +29,7 @@ from pydantic import (
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
-from reflectapi_runtime import ReflectapiOption
+from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     parse_externally_tagged as _parse_externally_tagged,
     serialize_externally_tagged as _serialize_externally_tagged,
@@ -50,54 +50,71 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
 class MyapiProtoHeaders(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     authorization: str = Field(description="Authorization header")
 
 
 class MyapiProtoInternalError(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     message: str
 
 
 class MyapiProtoPaginated(BaseModel, Generic[T]):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     items: list[T] = Field(description="slice of a collection")
     cursor: str | None = Field(default=None, description="cursor for getting next page")
 
 
 class MyapiProtoPetsListRequest(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     limit: int | None = None
     cursor: str | None = None
 
 
 class MyapiProtoPetsRemoveRequest(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     name: str = Field(description="identity")
 
 
-class MyapiProtoPetsUpdateRequest(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+class MyapiProtoPetsUpdateRequest(ReflectapiPartialModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+    )
 
     name: str = Field(description="identity")
     kind: myapi.model.Kind | None = Field(
         default=None, description="kind of pet, non nullable in the model"
     )
-    age: ReflectapiOption[int] = Field(
+    age: int | None = Field(
         default=None, description="age of the pet, nullable in the model"
     )
-    behaviors: ReflectapiOption[list[myapi.model.Behavior]] = Field(
+    behaviors: list[myapi.model.Behavior] | None = Field(
         default=None, description="behaviors of the pet, nullable in the model"
     )
 
 
 class MyapiProtoValidationA(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     message: str
 
@@ -105,7 +122,9 @@ class MyapiProtoValidationA(BaseModel):
 class MyapiProtoPetsCreateErrorInvalidIdentityVariant(BaseModel):
     """InvalidIdentity variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     message: str
 
@@ -159,7 +178,9 @@ class MyapiProtoPetsCreateError(RootModel[MyapiProtoPetsCreateErrorVariants]):
 
 
 class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     kind: Literal["InvalidCursor"] = Field(
         default="InvalidCursor", description="Discriminator field"
@@ -167,7 +188,9 @@ class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
 
 
 class MyapiProtoPetsListErrorUnauthorized(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     kind: Literal["Unauthorized"] = Field(
         default="Unauthorized", description="Discriminator field"
@@ -175,7 +198,9 @@ class MyapiProtoPetsListErrorUnauthorized(BaseModel):
 
 
 class MyapiProtoPetsListErrorInternal(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     kind: Literal["Internal"] = Field(
         default="Internal", description="Discriminator field"
@@ -202,7 +227,9 @@ class MyapiProtoPetsRemoveError(str, Enum):
 class MyapiProtoPetsUpdateErrorValidationVariant(BaseModel):
     """Validation variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     field_0: list[myapi.proto.ValidationError]
 
@@ -256,7 +283,9 @@ class MyapiProtoPetsUpdateError(RootModel[MyapiProtoPetsUpdateErrorVariants]):
 class MyapiProtoValidationErrorValidationAVariant(BaseModel):
     """ValidationA variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     field_0: myapi.proto.ValidationA
 

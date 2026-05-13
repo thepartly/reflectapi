@@ -63,6 +63,7 @@ def rebuild_models() -> None:
     myapi.model.input.myapi = myapi
     myapi.model.output.myapi = myapi
     myapi.proto.myapi = myapi
+    errors: list[str] = []
     for _model in [
         MyapiHealthCheckFail,
         MyapiModelBehavior,
@@ -82,7 +83,16 @@ def rebuild_models() -> None:
         MyapiProtoValidationA,
         MyapiProtoValidationError,
     ]:
+        if not hasattr(_model, "model_rebuild"):
+            continue
         try:
             _model.model_rebuild()
-        except Exception:
-            pass
+        except Exception as exc:
+            errors.append(f"  - {_model.__name__}: {type(exc).__name__}: {exc}")
+    if errors:
+        raise RuntimeError(
+            "reflectapi: failed to rebuild "
+            + str(len(errors))
+            + " generated model(s). This usually means the codegen emitted an annotation pointing at a symbol that was never defined (a dangling type reference). Fix the codegen rather than catching this error.\n"
+            + "\n".join(errors)
+        )

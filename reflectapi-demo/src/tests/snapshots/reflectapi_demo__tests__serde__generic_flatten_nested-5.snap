@@ -26,36 +26,46 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIdent(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     job_id: int
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIdentData(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     payload: str
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     code: int
 
 
-class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4(
+class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     job_id: int
     payload: str
 
 
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1(
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
     job_id: int
@@ -75,8 +85,8 @@ class reflectapi_demo:
             TestFlattenIdent = ReflectapiDemoTestsSerdeTestFlattenIdent
             TestFlattenIdentData = ReflectapiDemoTestsSerdeTestFlattenIdentData
             TestFlattenIfElse = ReflectapiDemoTestsSerdeTestFlattenIfElse
-            TestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4 = ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4
-            TestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1
+            TestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8 = ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8
+            TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
 
 
 class AsyncInoutClient:
@@ -88,10 +98,10 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1
+            reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1
+        reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
     ]:
         """
 
@@ -99,7 +109,7 @@ class AsyncInoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1]: Response containing reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1 data
+            ApiResponse[reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8]: Response containing reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8 data
         """
         path = "/inout_test"
 
@@ -108,7 +118,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1,
+            response_model=reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8,
         )
 
 
@@ -134,10 +144,10 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1
+            reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1
+        reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
     ]:
         """
 
@@ -145,7 +155,7 @@ class InoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1]: Response containing reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1 data
+            ApiResponse[reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8]: Response containing reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8 data
         """
         path = "/inout_test"
 
@@ -154,7 +164,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1,
+            response_model=reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8,
         )
 
 
@@ -178,14 +188,24 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
+_rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsSerdeTestFlattenIdent,
     ReflectapiDemoTestsSerdeTestFlattenIdentData,
     ReflectapiDemoTestsSerdeTestFlattenIfElse,
-    ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1,
+    ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8,
 ]:
+    if not hasattr(_model, "model_rebuild"):
+        continue
     try:
         _model.model_rebuild()
-    except Exception:
-        pass
+    except Exception as _exc:
+        _rebuild_errors.append(f"  - {_model.__name__}: {type(_exc).__name__}: {_exc}")
+if _rebuild_errors:
+    raise RuntimeError(
+        "reflectapi: failed to rebuild "
+        + str(len(_rebuild_errors))
+        + " generated model(s). This usually means the codegen emitted an annotation pointing at a symbol that was never defined (a dangling type reference). Fix the codegen rather than catching this error.\n"
+        + "\n".join(_rebuild_errors)
+    )

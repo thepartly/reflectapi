@@ -35,7 +35,9 @@ B = TypeVar("B")
 class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox(
     BaseModel, Generic[A, B]
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f1: A = Field(serialization_alias="_f1", validation_alias="_f1")
     f2: B = Field(serialization_alias="_f2", validation_alias="_f2")
@@ -44,7 +46,9 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBo
 class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be812837(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
         reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
@@ -165,11 +169,21 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
+_rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox,
     ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be812837,
 ]:
+    if not hasattr(_model, "model_rebuild"):
+        continue
     try:
         _model.model_rebuild()
-    except Exception:
-        pass
+    except Exception as _exc:
+        _rebuild_errors.append(f"  - {_model.__name__}: {type(_exc).__name__}: {_exc}")
+if _rebuild_errors:
+    raise RuntimeError(
+        "reflectapi: failed to rebuild "
+        + str(len(_rebuild_errors))
+        + " generated model(s). This usually means the codegen emitted an annotation pointing at a symbol that was never defined (a dangling type reference). Fix the codegen rather than catching this error.\n"
+        + "\n".join(_rebuild_errors)
+    )

@@ -26,7 +26,9 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f_u8: int = Field(serialization_alias="_f_u8", validation_alias="_f_u8")
     f_u16: int = Field(serialization_alias="_f_u16", validation_alias="_f_u16")
@@ -49,47 +51,49 @@ class ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields(BaseModel):
     f_option: int | None = Field(
         default=None, serialization_alias="_f_option", validation_alias="_f_option"
     )
-    f_vec: bytes = Field(serialization_alias="_f_vec", validation_alias="_f_vec")
+    f_vec: list[int] = Field(serialization_alias="_f_vec", validation_alias="_f_vec")
     f_hashmap: dict[int, str] = Field(
         serialization_alias="_f_hashmap", validation_alias="_f_hashmap"
     )
-    f_hashset: bytes = Field(
+    f_hashset: list[int] = Field(
         serialization_alias="_f_hashset", validation_alias="_f_hashset"
     )
-    f_tuple: std.tuple.Tuple2[int, str] = Field(
+    f_tuple: tuple[int, str] = Field(
         serialization_alias="_f_tuple", validation_alias="_f_tuple"
     )
-    f_tuple3: std.tuple.Tuple3[int, str, int] = Field(
+    f_tuple3: tuple[int, str, int] = Field(
         serialization_alias="_f_tuple3", validation_alias="_f_tuple3"
     )
-    f_tuple4: std.tuple.Tuple4[int, str, int, str] = Field(
+    f_tuple4: tuple[int, str, int, str] = Field(
         serialization_alias="_f_tuple4", validation_alias="_f_tuple4"
     )
-    f_tuple5: std.tuple.Tuple5[int, str, int, str, int] = Field(
+    f_tuple5: tuple[int, str, int, str, int] = Field(
         serialization_alias="_f_tuple5", validation_alias="_f_tuple5"
     )
-    f_tuple6: std.tuple.Tuple6[int, str, int, str, int, str] = Field(
+    f_tuple6: tuple[int, str, int, str, int, str] = Field(
         serialization_alias="_f_tuple6", validation_alias="_f_tuple6"
     )
-    f_tuple7: std.tuple.Tuple7[int, str, int, str, int, str, int] = Field(
+    f_tuple7: tuple[int, str, int, str, int, str, int] = Field(
         serialization_alias="_f_tuple7", validation_alias="_f_tuple7"
     )
-    f_tuple8: std.tuple.Tuple8[int, str, int, str, int, str, int, str] = Field(
+    f_tuple8: tuple[int, str, int, str, int, str, int, str] = Field(
         serialization_alias="_f_tuple8", validation_alias="_f_tuple8"
     )
-    f_tuple9: std.tuple.Tuple9[int, str, int, str, int, str, int, str, int] = Field(
+    f_tuple9: tuple[int, str, int, str, int, str, int, str, int] = Field(
         serialization_alias="_f_tuple9", validation_alias="_f_tuple9"
     )
-    f_tuple10: std.tuple.Tuple10[int, str, int, str, int, str, int, str, int, str] = (
-        Field(serialization_alias="_f_tuple10", validation_alias="_f_tuple10")
+    f_tuple10: tuple[int, str, int, str, int, str, int, str, int, str] = Field(
+        serialization_alias="_f_tuple10", validation_alias="_f_tuple10"
     )
-    f_tuple11: std.tuple.Tuple11[
-        int, str, int, str, int, str, int, str, int, str, int
-    ] = Field(serialization_alias="_f_tuple11", validation_alias="_f_tuple11")
-    f_tuple12: std.tuple.Tuple12[
-        int, str, int, str, int, str, int, str, int, str, int, str
-    ] = Field(serialization_alias="_f_tuple12", validation_alias="_f_tuple12")
-    f_array: bytes = Field(serialization_alias="_f_array", validation_alias="_f_array")
+    f_tuple11: tuple[int, str, int, str, int, str, int, str, int, str, int] = Field(
+        serialization_alias="_f_tuple11", validation_alias="_f_tuple11"
+    )
+    f_tuple12: tuple[int, str, int, str, int, str, int, str, int, str, int, str] = (
+        Field(serialization_alias="_f_tuple12", validation_alias="_f_tuple12")
+    )
+    f_array: list[int] = Field(
+        serialization_alias="_f_array", validation_alias="_f_array"
+    )
     f_pointer_box: int = Field(
         serialization_alias="_f_pointer_box", validation_alias="_f_pointer_box"
     )
@@ -110,9 +114,6 @@ class ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields(BaseModel):
     )
     f_pointer_weak: int = Field(
         serialization_alias="_f_pointer_weak", validation_alias="_f_pointer_weak"
-    )
-    f_phantomdata: std.marker.PhantomData[int] = Field(
-        serialization_alias="_f_phantomdata", validation_alias="_f_phantomdata"
     )
     f_infallible: ReflectapiInfallible = Field(
         serialization_alias="_f_infallible", validation_alias="_f_infallible"
@@ -229,10 +230,20 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 # Rebuild models to resolve forward references
+_rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsBasicTestStructWithAllPrimitiveTypeFields,
 ]:
+    if not hasattr(_model, "model_rebuild"):
+        continue
     try:
         _model.model_rebuild()
-    except Exception:
-        pass
+    except Exception as _exc:
+        _rebuild_errors.append(f"  - {_model.__name__}: {type(_exc).__name__}: {_exc}")
+if _rebuild_errors:
+    raise RuntimeError(
+        "reflectapi: failed to rebuild "
+        + str(len(_rebuild_errors))
+        + " generated model(s). This usually means the codegen emitted an annotation pointing at a symbol that was never defined (a dangling type reference). Fix the codegen rather than catching this error.\n"
+        + "\n".join(_rebuild_errors)
+    )
