@@ -12,13 +12,23 @@ fn sanitize_for_docstring(text: &str) -> String {
     text.replace('\\', "\\\\").replace("\"\"\"", "\\\"\\\"\\\"")
 }
 
-/// Sanitize text for inclusion in a Python double-quoted string literal.
-/// Escapes backslashes, double quotes, and replaces newlines with \n.
-fn sanitize_for_string_literal(text: &str) -> String {
-    text.replace('\\', "\\\\")
-        .replace('"', "\\\"")
+/// Format ``text`` as a Python string literal, choosing single or
+/// double quotes to minimise the number of escapes (matching
+/// ``repr()``'s convention). Backslashes, newlines, and carriage
+/// returns are always escaped; the quote character only gets escaped
+/// when both forms appear in the input.
+fn python_string_literal(text: &str) -> String {
+    let escaped_common = text
+        .replace('\\', "\\\\")
         .replace('\n', "\\n")
-        .replace('\r', "\\r")
+        .replace('\r', "\\r");
+    let has_double = escaped_common.contains('"');
+    let has_single = escaped_common.contains('\'');
+    let (quote, body) = match (has_double, has_single) {
+        (true, false) => ('\'', escaped_common),
+        (false, _) | (true, true) => ('"', escaped_common.replace('"', "\\\"")),
+    };
+    format!("{quote}{body}{quote}")
 }
 
 /// Configuration for Python client generation
@@ -5432,7 +5442,7 @@ pub mod templates {
                     .description
                     .as_ref()
                     .filter(|d| !d.is_empty() && !d.starts_with("(flattened"))
-                    .map(|d| super::sanitize_for_string_literal(d));
+                    .map(|d| super::python_string_literal(d));
                 let has_field_args = desc.is_some()
                     || field.alias.is_some()
                     || (field.optional && field.alias.is_none());
@@ -5451,7 +5461,10 @@ pub mod templates {
                         args.push(format!("validation_alias='{alias}'"));
                     }
                     if let Some(ref d) = desc {
-                        args.push(format!("description=\"{d}\""));
+                        // `d` is already a complete Python string
+                        // literal (quotes included) from
+                        // `python_string_literal`.
+                        args.push(format!("description={d}"));
                     }
                     write!(s, "{}", args.join(", ")).unwrap();
                     write!(s, ")").unwrap();
