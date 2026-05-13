@@ -1671,9 +1671,17 @@ fn build_python_generation(
     // Use optimized import generation instead of template
     generated_code.push(generate_optimized_imports(&imports));
 
-    // Types that are provided by the runtime library and should not be generated
+    // Types that are mapped directly to Python primitives / built-ins
+    // and so don't need a generated class.
     let mut non_rendered_types = python_metadata.runtime_provided_types.clone();
     non_rendered_types.insert("std::option::Option".to_string());
+    // `reflectapi::Option<T>` renders as `T | None` at every use site
+    // (its three states are carried by `model_fields_set` on the
+    // containing `ReflectapiPartialModel`). The schema still declares
+    // it as a tagged enum, so without this exclusion the codegen would
+    // emit a parallel ADT (`ReflectapiOption`, `ReflectapiOptionSome`,
+    // …) that nothing references.
+    non_rendered_types.insert("reflectapi::Option".to_string());
 
     let class_names = build_python_class_name_map(
         semantic

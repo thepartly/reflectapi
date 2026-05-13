@@ -48,8 +48,6 @@ T = TypeVar("T")
 
 from . import myapi
 
-from . import reflectapi
-
 from ._rebuild import rebuild_models as _rebuild_models
 
 _rebuild_models()

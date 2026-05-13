@@ -10,10 +10,8 @@ from ._client import AsyncClient, Client
 
 from . import myapi
 
-from . import reflectapi
-
 from ._rebuild import rebuild_models as _rebuild_models
 
 _rebuild_models()
 
-__all__ = ["AsyncClient", "Client", "myapi", "reflectapi"]
+__all__ = ["AsyncClient", "Client", "myapi"]

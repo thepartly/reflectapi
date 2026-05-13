@@ -89,15 +89,6 @@ from .myapi.proto import (
     MyapiProtoValidationErrorValidationAVariant,
 )
 
-from . import reflectapi
-
-from .reflectapi import (
-    ReflectapiOption,
-    ReflectapiOptionNone,
-    ReflectapiOptionSome,
-    ReflectapiOptionUndefined,
-)
-
 
 def rebuild_models() -> None:
     myapi.myapi = myapi
@@ -107,7 +98,6 @@ def rebuild_models() -> None:
     myapi.model.output.myapi = myapi
     myapi.order.myapi = myapi
     myapi.proto.myapi = myapi
-    reflectapi.reflectapi = reflectapi
     errors: list[str] = []
     for _model in [
         MyapiHealthCheckFail,
