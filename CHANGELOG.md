@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.17.3-alpha.1
 
 ### Python — partial fields without a wrapper class
 
