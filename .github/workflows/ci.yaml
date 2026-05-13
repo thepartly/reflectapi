@@ -40,12 +40,10 @@ jobs:
         run: uv run --extra dev pytest -q --no-cov
 
   # Regenerates the demo Python client from the in-repo schema and
-  # imports it. The generated package's strict `_rebuild_models()` runs
-  # at import time and raises on any dangling type reference (the class
-  # of bug that produced four user-reported issues in 0.17.x:
-  # namespace-alias mismatches, std.tuple/std.marker references with no
-  # backing class, etc.). If this job is green the whole class is gone;
-  # if it ever goes red, the codegen has regressed.
+  # imports it. The generated package's strict `_rebuild_models()`
+  # runs at import time and raises on any dangling type reference, so
+  # this job catches the class of bug where the codegen emits a
+  # Python annotation pointing at a symbol it never defined.
   python-codegen-smoke:
     name: Python codegen smoke test
     runs-on: ubuntu-latest

@@ -54,7 +54,9 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
 class MyapiModelInputPet(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     name: str = Field(description="identity")
     kind: myapi.model.Kind = Field(description="kind of pet")

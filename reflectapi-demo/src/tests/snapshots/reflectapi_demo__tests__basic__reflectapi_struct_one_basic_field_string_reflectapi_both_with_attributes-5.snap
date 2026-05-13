@@ -27,7 +27,9 @@ from reflectapi_runtime import ReflectapiInfallible
 class ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDifferently(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f: int = Field(serialization_alias="_f", validation_alias="_f")
 
@@ -35,7 +37,9 @@ class ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDiffe
 class ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothD_afce1cc8(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f: int = Field(serialization_alias="_f", validation_alias="_f")
 

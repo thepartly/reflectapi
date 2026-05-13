@@ -11,10 +11,9 @@ from tests.package_imports import (
     MyapiModelKindCat as PetKindCat,
     MyapiModelBehavior as Behavior,
     MyapiModelBehaviorAggressiveVariant as BehaviorAggressive,
+    MyapiProtoPetsUpdateRequest as PetsUpdateRequest,
     AsyncClient,
 )
-from reflectapi_runtime import ReflectapiOption
-
 # For externally tagged enums, unit variants are just string literals
 BehaviorCalm = "Calm"
 
@@ -98,34 +97,26 @@ class TestPerformance:
         assert duration < 0.1  # Should deserialize 100 pets in under 0.1 seconds
         print(f"Deserialized 100 pets in {duration:.3f} seconds")
 
-    def test_reflectapi_option_performance(self):
-        """Test performance of ReflectapiOption operations."""
-        from reflectapi_runtime import ReflectapiOption, Undefined
-
+    def test_partial_model_serialization_performance(self):
+        """Building and dumping partial-model instances stays fast."""
         start_time = time.time()
 
-        # Create many ReflectapiOption instances
-        options = []
+        requests = []
         for i in range(1000):
             if i % 3 == 0:
-                option = ReflectapiOption(i)  # Some value
+                requests.append(PetsUpdateRequest(name=str(i), age=i))
             elif i % 3 == 1:
-                option = ReflectapiOption(None)  # Explicit None
+                requests.append(PetsUpdateRequest(name=str(i), age=None))
             else:
-                option = ReflectapiOption(Undefined)  # Undefined
-            options.append(option)
+                requests.append(PetsUpdateRequest(name=str(i)))  # `age` unset
 
-        # Test operations
-        some_count = sum(1 for opt in options if opt.is_some)
-        none_count = sum(1 for opt in options if opt.is_none)
-        undefined_count = sum(1 for opt in options if opt.is_undefined)
-
+        dumps = [r.model_dump_json() for r in requests]
         end_time = time.time()
         duration = end_time - start_time
 
-        assert some_count + none_count + undefined_count == 1000
-        assert duration < 0.1  # Should handle 1000 operations in under 0.1 seconds
-        print(f"Processed 1000 ReflectapiOption instances in {duration:.3f} seconds")
+        assert len(dumps) == 1000
+        assert duration < 0.5
+        print(f"Built and dumped 1000 partial models in {duration:.3f} seconds")
 
 
 @pytest.mark.slow

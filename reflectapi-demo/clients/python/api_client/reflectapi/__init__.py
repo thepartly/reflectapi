@@ -56,19 +56,25 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 class ReflectapiOptionUndefined(BaseModel):
     """The value is missing, i.e. undefined in JavaScript"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
 
 class ReflectapiOptionNone(BaseModel):
     """The value is provided but set to none, i.e. null in JavaScript"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
 
 class ReflectapiOptionSome(BaseModel):
     """The value is provided and set to some value"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     value: T | None = None
 

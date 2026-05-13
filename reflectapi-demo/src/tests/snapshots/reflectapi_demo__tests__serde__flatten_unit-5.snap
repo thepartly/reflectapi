@@ -25,13 +25,17 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeK(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     a: int
 
 
 class ReflectapiDemoTestsSerdeSReflectapiDemoTestsSerdeKStdTupleTuple0(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     a: int
 

@@ -12,9 +12,34 @@ from __future__ import annotations
 from . import myapi
 
 from .myapi import (
-    MyapiCodegenRegressionRequest,
-    MyapiCodegenRegressionResponse,
     MyapiHealthCheckFail,
+    MyapiOrderCoverageRequest,
+    MyapiOrderCoverageResponse,
+)
+
+from . import myapi
+
+from .myapi.coverage import (
+    MyapiCoverageBaseModel,
+    MyapiCoverageDeepOption,
+    MyapiCoverageDefaultedField,
+    MyapiCoverageEmptyStruct,
+    MyapiCoverageGenericTree,
+    MyapiCoverageIntKeyedMap,
+    MyapiCoverageKeywordVariants,
+    MyapiCoverageKeywordVariantsClass,
+    MyapiCoverageKeywordVariantsLambda,
+    MyapiCoverageKeywordVariantsReturn,
+    MyapiCoverageMutualA,
+    MyapiCoverageMutualB,
+    MyapiCoveragePyKeywordFields,
+    MyapiCoveragePydanticReservedFields,
+    MyapiCoverageRequest,
+    MyapiCoverageResponse,
+    MyapiCoverageShadowingFields,
+    MyapiCoverageTreeNode,
+    MyapiCoverageWeirdDocstring,
+    MyapiCoverageWrapper,
 )
 
 from . import myapi
@@ -76,6 +101,7 @@ from .reflectapi import (
 
 def rebuild_models() -> None:
     myapi.myapi = myapi
+    myapi.coverage.myapi = myapi
     myapi.model.myapi = myapi
     myapi.model.input.myapi = myapi
     myapi.model.output.myapi = myapi
@@ -84,9 +110,26 @@ def rebuild_models() -> None:
     reflectapi.reflectapi = reflectapi
     errors: list[str] = []
     for _model in [
-        MyapiCodegenRegressionRequest,
-        MyapiCodegenRegressionResponse,
         MyapiHealthCheckFail,
+        MyapiOrderCoverageRequest,
+        MyapiOrderCoverageResponse,
+        MyapiCoverageBaseModel,
+        MyapiCoverageRequest,
+        MyapiCoverageResponse,
+        MyapiCoverageDeepOption,
+        MyapiCoverageDefaultedField,
+        MyapiCoverageEmptyStruct,
+        MyapiCoverageGenericTree,
+        MyapiCoverageIntKeyedMap,
+        MyapiCoverageKeywordVariants,
+        MyapiCoverageMutualA,
+        MyapiCoverageMutualB,
+        MyapiCoveragePyKeywordFields,
+        MyapiCoveragePydanticReservedFields,
+        MyapiCoverageShadowingFields,
+        MyapiCoverageTreeNode,
+        MyapiCoverageWeirdDocstring,
+        MyapiCoverageWrapper,
         MyapiModelBehavior,
         MyapiModelKind,
         MyapiModelInputPet,

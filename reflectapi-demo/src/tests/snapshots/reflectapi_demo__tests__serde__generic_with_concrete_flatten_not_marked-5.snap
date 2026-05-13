@@ -33,7 +33,9 @@ T = TypeVar("T")
 class ReflectapiDemoTestsSerdeTestGenericWithConcreteFlattenReflectapiDemoTes_56981a18(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     other: reflectapi_demo.tests.serde.TestFlattenIfElse
     inner_a: int
@@ -41,20 +43,26 @@ class ReflectapiDemoTestsSerdeTestGenericWithConcreteFlattenReflectapiDemoTes_56
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     code: int
 
 
 class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     inner_a: int
     inner_b: str
 
 
 class ReflectapiDemoTestsSerdeTestGenericWithConcreteFlatten(BaseModel, Generic[T]):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     other: T
     inner_a: int

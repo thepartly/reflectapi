@@ -28,13 +28,17 @@ from reflectapi_runtime import ReflectapiInfallible
 class ReflectapiDemoTestsSerdeActionCreateItemContent(BaseModel):
     """create_item content"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     name: str
 
 
 class ReflectapiDemoTestsSerdeActionCreateItem(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     kind: Literal["create_item"] = Field(
         default="create_item", description="Discriminator field"
@@ -47,13 +51,17 @@ class ReflectapiDemoTestsSerdeActionCreateItem(BaseModel):
 class ReflectapiDemoTestsSerdeActionDeleteItemContent(BaseModel):
     """delete_item content"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     id: int
 
 
 class ReflectapiDemoTestsSerdeActionDeleteItem(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     kind: Literal["delete_item"] = Field(
         default="delete_item", description="Discriminator field"

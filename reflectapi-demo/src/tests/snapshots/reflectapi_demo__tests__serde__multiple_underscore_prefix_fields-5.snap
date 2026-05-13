@@ -25,7 +25,9 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeUnderscored(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     single: int = Field(serialization_alias="_single", validation_alias="_single")
     double: str = Field(serialization_alias="__double", validation_alias="__double")

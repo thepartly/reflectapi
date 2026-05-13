@@ -26,33 +26,43 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeLargeEnumAlpha(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Alpha"] = Field(default="Alpha", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumBeta(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Beta"] = Field(default="Beta", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumGamma(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Gamma"] = Field(default="Gamma", description="Discriminator field")
     x: int
 
 
 class ReflectapiDemoTestsSerdeLargeEnumDelta(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Delta"] = Field(default="Delta", description="Discriminator field")
     value: str
 
 
 class ReflectapiDemoTestsSerdeLargeEnumEpsilon(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Epsilon"] = Field(
         default="Epsilon", description="Discriminator field"
@@ -60,46 +70,60 @@ class ReflectapiDemoTestsSerdeLargeEnumEpsilon(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeLargeEnumZeta(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Zeta"] = Field(default="Zeta", description="Discriminator field")
     y: bool
 
 
 class ReflectapiDemoTestsSerdeLargeEnumEta(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Eta"] = Field(default="Eta", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumTheta(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Theta"] = Field(default="Theta", description="Discriminator field")
     value: int
 
 
 class ReflectapiDemoTestsSerdeLargeEnumIota(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Iota"] = Field(default="Iota", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumKappa(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Kappa"] = Field(default="Kappa", description="Discriminator field")
     z: float
 
 
 class ReflectapiDemoTestsSerdeLargeEnumLambda(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Lambda"] = Field(default="Lambda", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeLargeEnumMu(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Mu"] = Field(default="Mu", description="Discriminator field")
     w: str

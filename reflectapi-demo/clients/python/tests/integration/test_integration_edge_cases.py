@@ -22,8 +22,6 @@ from tests.package_imports import (
     MyapiProtoPaginated as Paginated,
 )
 from reflectapi_runtime import (
-    ReflectapiOption,
-    Undefined,
     ApplicationError,
     NetworkError,
     TimeoutError,
@@ -136,69 +134,38 @@ class TestClientNetworkEdgeCases:
 
 
 @pytest.mark.integration
-class TestReflectapiOptionIntegrationEdgeCases:
-    """Test ReflectapiOption integration edge cases."""
+class TestPartialFieldIntegration:
+    """Three-state partial field handling on update requests."""
 
-    def test_update_request_with_all_option_states(self):
-        """Test update request with all possible ReflectapiOption states."""
-        # Create request with various option states
+    def test_update_request_with_set_field_and_absent_field(self):
         request = PetsUpdateRequest(
             name="Option Test Pet",
             kind=PetKindDog(type="dog", breed="Option Breed"),
-            age=ReflectapiOption(5),  # Some value
-            behaviors=ReflectapiOption(Undefined),  # Undefined
+            age=5,
+            # `behaviors` left absent
         )
 
-        # Use JSON dump with exclude_unset to drop undefined fields
-        json_data = json.loads(request.model_dump_json(exclude_unset=True))
+        json_data = json.loads(request.model_dump_json())
 
-        # Should include defined fields
         assert json_data["name"] == "Option Test Pet"
         assert json_data["kind"]["type"] == "dog"
         assert json_data["age"] == 5
+        # Field not set → omitted from wire payload entirely
+        assert "behaviors" not in json_data
 
-        # Undefined fields are serialized as null
-        assert "behaviors" in json_data
-        assert json_data["behaviors"] is None
+    def test_distinguishes_explicit_null_from_absent(self):
+        request_with_none = PetsUpdateRequest(name="None Test", age=None)
+        request_default = PetsUpdateRequest(name="Default Test")
 
-    def test_option_with_none_vs_undefined_serialization(self):
-        """Test distinction between None and Undefined in serialization."""
-        # Request with None value
-        request_with_none = PetsUpdateRequest(
-            name="None Test",
-            age=ReflectapiOption(None),  # Explicit None
-        )
-
-        # Request with undefined value
-        request_undefined = PetsUpdateRequest(
-            name="Undefined Test",
-            age=ReflectapiOption(Undefined),  # Explicit Undefined
-        )
-
-        # Request with default (should be undefined)
-        request_default = PetsUpdateRequest(
-            name="Default Test"
-            # age field left at default
-        )
-
-        # Test serialization differences
         none_json = json.loads(request_with_none.model_dump_json())
-        undefined_json = json.loads(
-            request_undefined.model_dump_json(exclude_unset=True)
-        )
-        default_json = json.loads(request_default.model_dump_json(exclude_unset=True))
+        default_json = json.loads(request_default.model_dump_json())
 
-        # None should be included as null
-        assert "age" in none_json
+        # Explicit None lands on the wire as null …
         assert none_json["age"] is None
-
-        # Undefined should be serialized as null to match server semantics
-        assert "age" in undefined_json
-        assert undefined_json["age"] is None
+        # … and an unset field is omitted entirely.
         assert "age" not in default_json
 
-    def test_option_with_complex_nested_types(self):
-        """Test ReflectapiOption with complex nested behavior data."""
+    def test_large_behavior_list_round_trip(self):
         from tests.package_imports import (
             MyapiModelBehavior as Behavior,
             MyapiModelBehaviorAggressiveVariant as BehaviorAggressive,
@@ -209,17 +176,15 @@ class TestReflectapiOptionIntegrationEdgeCases:
             Behavior("Calm"),
             Behavior(BehaviorAggressive(field_0=1.0, field_1="test")),
             Behavior(BehaviorOther(description="Other")),
-        ] * 100  # 300 behaviors
+        ] * 100
 
         request = PetsUpdateRequest(
-            name="Complex Behaviors", behaviors=ReflectapiOption(complex_behaviors)
+            name="Complex Behaviors", behaviors=complex_behaviors
         )
 
-        # Should handle large behavior lists
-        assert request.behaviors.is_some
-        assert len(request.behaviors.unwrap()) == 300
+        assert request.behaviors is not None
+        assert len(request.behaviors) == 300
 
-        # Should serialize properly
         json_data = json.loads(request.model_dump_json())
         assert len(json_data["behaviors"]) == 300
 

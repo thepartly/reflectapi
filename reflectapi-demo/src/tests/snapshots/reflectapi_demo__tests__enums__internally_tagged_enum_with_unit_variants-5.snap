@@ -26,13 +26,17 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsEnumsAX(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["X"] = Field(default="X", description="Discriminator field")
 
 
 class ReflectapiDemoTestsEnumsAY(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Y"] = Field(default="Y", description="Discriminator field")
     value: None = Field(description="Tuple variant value")

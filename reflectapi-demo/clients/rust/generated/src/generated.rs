@@ -27,18 +27,30 @@ pub mod interface {
                 client,
             }
         }
-        /// Regression-test endpoint pinning codegen bugs
-        #[tracing::instrument(name = "/codegen-regression", skip(self, headers))]
-        pub async fn codegen_regression(
+        /// Coverage fixtures for namespace/tuple/Duration/PhantomData rendering
+        #[tracing::instrument(name = "/codegen-order-coverage", skip(self, headers))]
+        pub async fn codegen_order_coverage(
             &self,
-            input: super::types::myapi::CodegenRegressionRequest,
+            input: super::types::myapi::OrderCoverageRequest,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::myapi::CodegenRegressionResponse,
+            super::types::myapi::OrderCoverageResponse,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
-            reflectapi::rt::__request_impl(&self.client, "/codegen-regression", input, headers)
+            reflectapi::rt::__request_impl(&self.client, "/codegen-order-coverage", input, headers)
                 .await
+        }
+        /// Coverage fixtures for codegen edge cases
+        #[tracing::instrument(name = "/codegen-coverage", skip(self, headers))]
+        pub async fn codegen_coverage(
+            &self,
+            input: super::types::myapi::coverage::CoverageRequest,
+            headers: reflectapi::Empty,
+        ) -> Result<
+            super::types::myapi::coverage::CoverageResponse,
+            reflectapi::rt::Error<reflectapi::Empty, C::Error>,
+        > {
+            reflectapi::rt::__request_impl(&self.client, "/codegen-coverage", input, headers).await
         }
     }
 
@@ -185,22 +197,6 @@ pub mod interface {
 pub mod types {
     pub mod myapi {
 
-        #[derive(Debug, serde::Serialize)]
-        pub struct CodegenRegressionRequest {
-            /// Pulls in `order::OrderInsertData` (bug 1) and Rust tuple
-            /// (bug 2) reachability.
-            pub order: super::myapi::order::OrderInsertData,
-            /// Pulls in `order::RateLimit` for Duration (bug 3).
-            pub rate_limit: super::myapi::order::RateLimit,
-            /// Pulls in `order::Policy<C, T>` for PhantomData (bug 4).
-            pub policy: super::myapi::order::Policy<std::string::String, u32>,
-        }
-
-        #[derive(Debug, serde::Deserialize)]
-        pub struct CodegenRegressionResponse {
-            pub ok: bool,
-        }
-
         #[derive(Debug, serde::Deserialize, serde::Serialize)]
         pub struct HealthCheckFail {}
 
@@ -212,6 +208,156 @@ pub mod types {
 
         impl std::error::Error for HealthCheckFail {}
 
+        #[derive(Debug, serde::Serialize)]
+        pub struct OrderCoverageRequest {
+            pub order: super::myapi::order::OrderInsertData,
+            pub rate_limit: super::myapi::order::RateLimit,
+            pub policy: super::myapi::order::Policy<std::string::String, u32>,
+        }
+
+        #[derive(Debug, serde::Deserialize)]
+        pub struct OrderCoverageResponse {
+            pub ok: bool,
+        }
+
+        pub mod coverage {
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct BaseModel {
+                pub label: std::string::String,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct CoverageRequest {
+                pub keywords: super::super::myapi::coverage::PyKeywordFields,
+                pub reserved: super::super::myapi::coverage::PydanticReservedFields,
+                pub tree: super::super::myapi::coverage::TreeNode,
+                pub mutual: super::super::myapi::coverage::MutualA,
+                pub generic_tree: super::super::myapi::coverage::GenericTree<i32>,
+                pub keyword_variants: super::super::myapi::coverage::KeywordVariants,
+                pub int_keyed: super::super::myapi::coverage::IntKeyedMap,
+                pub user_id: super::super::myapi::coverage::UserId,
+                pub deep_option: super::super::myapi::coverage::DeepOption,
+                pub shadowing: super::super::myapi::coverage::ShadowingFields,
+                pub empty: super::super::myapi::coverage::EmptyStruct,
+                pub weird_doc: super::super::myapi::coverage::WeirdDocstring,
+                pub shadow_base_model: super::super::myapi::coverage::BaseModel,
+                pub wrapper_int: super::super::myapi::coverage::Wrapper<i32>,
+                pub wrapper_str: super::super::myapi::coverage::Wrapper<std::string::String>,
+                pub defaulted: super::super::myapi::coverage::DefaultedField,
+            }
+
+            #[derive(Debug, serde::Deserialize)]
+            pub struct CoverageResponse {
+                pub ok: bool,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct DeepOption {
+                pub maybe_maybe: reflectapi::Option<std::option::Option<std::string::String>>,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct DefaultedField {
+                #[serde(default = "Default::default")]
+                pub count: u32,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct EmptyStruct {}
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct GenericTree<T> {
+                pub value: T,
+                pub children: std::vec::Vec<super::super::myapi::coverage::GenericTree<T>>,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct IntKeyedMap {
+                pub by_id: std::collections::HashMap<u64, std::string::String>,
+                pub uuid_keyed: std::collections::HashMap<std::string::String, std::string::String>,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            #[serde(tag = "kind")]
+            pub enum KeywordVariants {
+                #[serde(rename = "class")]
+                Class,
+                #[serde(rename = "lambda")]
+                Lambda { name: std::string::String },
+                #[serde(rename = "return")]
+                Return { value: i32 },
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct MutualA {
+                pub name: std::string::String,
+                pub b: std::option::Option<std::boxed::Box<super::super::myapi::coverage::MutualB>>,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct MutualB {
+                pub name: std::string::String,
+                pub a: std::option::Option<std::boxed::Box<super::super::myapi::coverage::MutualA>>,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct PyKeywordFields {
+                pub class: std::string::String,
+                pub from: u32,
+                pub import: bool,
+                pub lambda: i64,
+                #[serde(rename = "return")]
+                pub return_: std::vec::Vec<u8>,
+                #[serde(rename = "yield")]
+                pub yield_: std::option::Option<std::string::String>,
+                #[serde(rename = "None")]
+                pub none: std::option::Option<i32>,
+                #[serde(rename = "True")]
+                pub true_: bool,
+                #[serde(rename = "type")]
+                pub type_: std::string::String,
+                #[serde(rename = "match")]
+                pub match_: std::string::String,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct PydanticReservedFields {
+                pub model_config: std::string::String,
+                pub model_fields_set: std::string::String,
+                pub model_dump_json: std::string::String,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct ShadowingFields {
+                pub field: std::string::String,
+                pub annotated: std::string::String,
+                pub generic: std::string::String,
+                pub base_model: std::string::String,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct TreeNode {
+                pub value: std::string::String,
+                pub children: std::vec::Vec<super::super::myapi::coverage::TreeNode>,
+                pub parent:
+                    std::option::Option<std::boxed::Box<super::super::myapi::coverage::TreeNode>>,
+            }
+
+            pub type UserId = u64;
+
+            /// A docstring with \"quotes\" and \'apostrophes\' and a backslash: \\\\
+            /// And a \"\"\"triple quote\"\"\" inside.
+            #[derive(Debug, serde::Serialize)]
+            pub struct WeirdDocstring {
+                pub value: std::string::String,
+            }
+
+            #[derive(Debug, serde::Serialize)]
+            pub struct Wrapper<T> {
+                pub inner: T,
+            }
+        }
         pub mod model {
 
             #[derive(Debug, serde::Deserialize, serde::Serialize)]
@@ -308,25 +454,20 @@ pub mod types {
         }
         pub mod order {
 
-            /// Bug 1 (namespace alias mismatch). The struct name starts with
-            /// the parent namespace\'s cap (`Order…`) — the alias-stripping
-            /// pass used to strip the leading cap from the namespace alias
-            /// (`order.InsertData = OrderInsertData`) while field annotations
-            /// kept the un-stripped form, producing `order.OrderInsertData`
-            /// which doesn\'t resolve at `model_rebuild()` time.
+            /// A struct whose name begins with the parent namespace cap.
+            /// Exercises the namespace-alias path for both the stripped
+            /// (`order.InsertData`) and Rust-leaf (`order.OrderInsertData`)
+            /// forms.
             #[derive(Debug, serde::Serialize)]
             pub struct OrderInsertData {
                 pub identity: std::string::String,
-                /// Bug 2 (tuple types). serde emits Rust tuples as JSON arrays;
-                /// the Python codegen used to emit `std.tuple.Tuple2[...]`
-                /// with no matching class, so any reference broke at rebuild.
+                /// Exercises the `tuple[A, B]` rendering for `(A, B)`.
                 pub alternative_part_number:
                     std::option::Option<(std::string::String, std::string::String)>,
             }
 
-            /// Bug 4 (PhantomData). PhantomData has no wire data — serde
-            /// skips it. The codegen used to emit `std.marker.PhantomData[T]`
-            /// as a field annotation, leaving a dangling reference.
+            /// Exercises `PhantomData<T>` elision (the field carries no wire
+            /// data and must not appear in the Python model).
             #[derive(Debug, serde::Serialize)]
             pub struct Policy<C, T> {
                 pub name: std::string::String,
@@ -334,10 +475,8 @@ pub mod types {
                 pub _output_marker: std::marker::PhantomData<T>,
             }
 
-            /// Bug 3 (Duration shape). serde emits `Duration` as
-            /// `{\"secs\": <u64>, \"nanos\": <u32>}`. Pydantic\'s `timedelta`
-            /// validator rejects that shape, so any response with a Duration
-            /// failed validation.
+            /// Exercises the `std::time::Duration` ↔ `{secs, nanos}` wire
+            /// adapter.
             #[derive(Debug, serde::Serialize)]
             pub struct RateLimit {
                 pub retry_after: std::time::Duration,

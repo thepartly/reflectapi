@@ -49,9 +49,13 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
                 .readonly(true)
                 .description("Stream of change data capture events for pets")
         })
-        .route(codegen_regression, |b| {
-            b.name("codegen-regression")
-                .description("Regression-test endpoint pinning codegen bugs")
+        .route(order_coverage, |b| {
+            b.name("codegen-order-coverage")
+                .description("Coverage fixtures for namespace/tuple/Duration/PhantomData rendering")
+        })
+        .route(codegen_coverage, |b| {
+            b.name("codegen-coverage")
+                .description("Coverage fixtures for codegen edge cases")
         })
         .rename_types("reflectapi_demo::", "myapi::")
         // and some optional linting rules
@@ -88,31 +92,37 @@ async fn health_check(
 }
 
 #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
-pub struct CodegenRegressionRequest {
-    /// Pulls in `order::OrderInsertData` (bug 1) and Rust tuple
-    /// (bug 2) reachability.
+pub struct OrderCoverageRequest {
     pub order: order::OrderInsertData,
-    /// Pulls in `order::RateLimit` for Duration (bug 3).
     pub rate_limit: order::RateLimit,
-    /// Pulls in `order::Policy<C, T>` for PhantomData (bug 4).
     pub policy: order::Policy<String, u32>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
-pub struct CodegenRegressionResponse {
+pub struct OrderCoverageResponse {
     pub ok: bool,
 }
 
-/// Pure regression-test endpoint. Doesn't run in the demo server — it
-/// only exists so the four bug-pinning types appear in the generated
-/// schema and the Python codegen has to render them.
-async fn codegen_regression(
+/// Endpoint that drags the `order::` coverage fixtures into the
+/// schema so the smoke test exercises their rendering. Not intended
+/// to be called from the demo server.
+async fn order_coverage(
     _: Arc<AppState>,
-    request: CodegenRegressionRequest,
+    request: OrderCoverageRequest,
     _headers: reflectapi::Empty,
-) -> Result<CodegenRegressionResponse, reflectapi::Infallible> {
+) -> Result<OrderCoverageResponse, reflectapi::Infallible> {
     let _ = request;
-    Ok(CodegenRegressionResponse { ok: true })
+    Ok(OrderCoverageResponse { ok: true })
+}
+
+/// Endpoint that drags the `coverage::` fixtures into the schema.
+async fn codegen_coverage(
+    _: Arc<AppState>,
+    request: coverage::CoverageRequest,
+    _headers: reflectapi::Empty,
+) -> Result<coverage::CoverageResponse, reflectapi::Infallible> {
+    let _ = request;
+    Ok(coverage::CoverageResponse { ok: true })
 }
 
 #[derive(Debug)]
@@ -130,34 +140,26 @@ impl Default for AppState {
     }
 }
 
-// Regression-test module: every type here exists to exercise a
-// previously-broken Python codegen path. Each comment block links the
-// type to the bug it pins.
+// Coverage fixtures exercised by the codegen smoke tests.
 mod order {
     use std::marker::PhantomData;
     use std::time::Duration;
 
-    /// Bug 1 (namespace alias mismatch). The struct name starts with
-    /// the parent namespace's cap (`Order…`) — the alias-stripping
-    /// pass used to strip the leading cap from the namespace alias
-    /// (`order.InsertData = OrderInsertData`) while field annotations
-    /// kept the un-stripped form, producing `order.OrderInsertData`
-    /// which doesn't resolve at `model_rebuild()` time.
+    /// A struct whose name begins with the parent namespace cap.
+    /// Exercises the namespace-alias path for both the stripped
+    /// (`order.InsertData`) and Rust-leaf (`order.OrderInsertData`)
+    /// forms.
     #[derive(
         Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
     )]
     pub struct OrderInsertData {
         pub identity: String,
-        /// Bug 2 (tuple types). serde emits Rust tuples as JSON arrays;
-        /// the Python codegen used to emit `std.tuple.Tuple2[...]`
-        /// with no matching class, so any reference broke at rebuild.
+        /// Exercises the `tuple[A, B]` rendering for `(A, B)`.
         pub alternative_part_number: Option<(String, String)>,
     }
 
-    /// Bug 3 (Duration shape). serde emits `Duration` as
-    /// `{"secs": <u64>, "nanos": <u32>}`. Pydantic's `timedelta`
-    /// validator rejects that shape, so any response with a Duration
-    /// failed validation.
+    /// Exercises the `std::time::Duration` ↔ `{secs, nanos}` wire
+    /// adapter.
     #[derive(
         Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
     )]
@@ -166,9 +168,8 @@ mod order {
         pub max_wait: Option<Duration>,
     }
 
-    /// Bug 4 (PhantomData). PhantomData has no wire data — serde
-    /// skips it. The codegen used to emit `std.marker.PhantomData[T]`
-    /// as a field annotation, leaving a dangling reference.
+    /// Exercises `PhantomData<T>` elision (the field carries no wire
+    /// data and must not appear in the Python model).
     #[derive(
         Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
     )]
@@ -178,12 +179,212 @@ mod order {
         T: 'static,
     {
         pub name: String,
-        // No `#[serde(skip)]` here — serde emits PhantomData as JSON
-        // `null`, and reflectapi-derive surfaces the field in the
-        // schema. The Python codegen used to render it as
-        // `std.marker.PhantomData[T]`, which broke `model_rebuild()`.
         pub _context_marker: PhantomData<C>,
         pub _output_marker: PhantomData<T>,
+    }
+}
+
+/// Coverage fixtures for codegen edge cases. Each type exercises a
+/// specific rendering rule; the CI smoke test (regenerate +
+/// `import api_client`) confirms every shape round-trips through
+/// JSON cleanly.
+mod coverage {
+    use std::collections::HashMap;
+
+    // ---- Python-keyword and builtin field names ----
+    // serde serialises these names verbatim; the codegen must produce
+    // a safe Python identifier and carry the wire name as a Field
+    // alias so the round-trip is preserved.
+
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct PyKeywordFields {
+        #[serde(rename = "class")]
+        pub class_: String,
+        #[serde(rename = "from")]
+        pub from_: u32,
+        #[serde(rename = "import")]
+        pub import_: bool,
+        #[serde(rename = "lambda")]
+        pub lambda_: i64,
+        #[serde(rename = "return")]
+        pub return_: Vec<u8>,
+        #[serde(rename = "yield")]
+        pub yield_: Option<String>,
+        #[serde(rename = "None")]
+        pub none_: Option<i32>,
+        #[serde(rename = "True")]
+        pub true_: bool,
+        // Python builtins that aren't keywords but shadow ergonomics.
+        pub r#type: String,
+        pub r#match: String,
+    }
+
+    // ---- Pydantic-reserved field names ----
+    // These names collide with `BaseModel`'s own attributes/methods on
+    // the Python side; the generated class must rename and alias them.
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct PydanticReservedFields {
+        #[serde(rename = "model_config")]
+        pub model_config_: String,
+        #[serde(rename = "model_fields_set")]
+        pub model_fields_set_: String,
+        #[serde(rename = "model_dump_json")]
+        pub model_dump_json_: String,
+    }
+
+    // ---- Self-referential type ----
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct TreeNode {
+        pub value: String,
+        pub children: Vec<TreeNode>,
+        pub parent: Option<Box<TreeNode>>,
+    }
+
+    // ---- Mutually recursive types ----
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct MutualA {
+        pub name: String,
+        pub b: Option<Box<MutualB>>,
+    }
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct MutualB {
+        pub name: String,
+        pub a: Option<Box<MutualA>>,
+    }
+
+    // ---- Generic recursive type ----
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct GenericTree<T> {
+        pub value: T,
+        pub children: Vec<GenericTree<T>>,
+    }
+
+    // ---- Enum with variants whose names are Python keywords ----
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(tag = "kind", rename_all = "snake_case")]
+    pub enum KeywordVariants {
+        Class,
+        Lambda { name: String },
+        Return { value: i32 },
+    }
+
+    // ---- HashMap with non-string keys (JSON stringifies them) ----
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct IntKeyedMap {
+        pub by_id: HashMap<u64, String>,
+        pub uuid_keyed: HashMap<String, String>,
+    }
+
+    // ---- Transparent newtype (no Python class emitted) ----
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(transparent)]
+    pub struct UserId(pub u64);
+
+    // ---- Three-state Option wrapping a regular Option ----
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct DeepOption {
+        pub maybe_maybe: reflectapi::Option<Option<String>>,
+    }
+
+    // ---- Field names shared with symbols imported into the
+    //      generated module (`BaseModel`, `Field`, `Annotated`, etc.) ----
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct ShadowingFields {
+        pub field: String,
+        pub annotated: String,
+        pub generic: String,
+        pub base_model: String,
+    }
+
+    // ---- Empty struct ----
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct EmptyStruct {}
+
+    // ---- Docstring with characters that need escaping ----
+    /// A docstring with "quotes" and 'apostrophes' and a backslash: \\
+    /// And a """triple quote""" inside.
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct WeirdDocstring {
+        pub value: String,
+    }
+
+    // ---- Type name that shadows a Pydantic-imported symbol ----
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct BaseModel {
+        pub label: String,
+    }
+
+    // ---- Generic used with multiple concrete arguments ----
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct Wrapper<T> {
+        pub inner: T,
+    }
+
+    // ---- Field with a non-None serde default ----
+    fn default_count() -> u32 {
+        42
+    }
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct DefaultedField {
+        #[serde(default = "default_count")]
+        pub count: u32,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct CoverageRequest {
+        pub keywords: PyKeywordFields,
+        pub reserved: PydanticReservedFields,
+        pub tree: TreeNode,
+        pub mutual: MutualA,
+        pub generic_tree: GenericTree<i32>,
+        pub keyword_variants: KeywordVariants,
+        pub int_keyed: IntKeyedMap,
+        pub user_id: UserId,
+        pub deep_option: DeepOption,
+        pub shadowing: ShadowingFields,
+        pub empty: EmptyStruct,
+        pub weird_doc: WeirdDocstring,
+        pub shadow_base_model: BaseModel,
+        pub wrapper_int: Wrapper<i32>,
+        pub wrapper_str: Wrapper<String>,
+        pub defaulted: DefaultedField,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct CoverageResponse {
+        pub ok: bool,
     }
 }
 

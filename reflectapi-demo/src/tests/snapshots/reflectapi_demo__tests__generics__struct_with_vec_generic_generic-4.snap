@@ -33,13 +33,17 @@ T = TypeVar("T")
 
 
 class ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric(BaseModel, Generic[A]):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f: A = Field(serialization_alias="_f", validation_alias="_f")
 
 
 class ReflectapiDemoTestsGenericsTestStructWithVecGenericGeneric(BaseModel, Generic[T]):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f: list[reflectapi_demo.tests.generics.TestStructWithSimpleGeneric[T]] = Field(
         serialization_alias="_f", validation_alias="_f"

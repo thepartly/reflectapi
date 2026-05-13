@@ -1,28 +1,23 @@
-"""Partial-model base class for reflectapi-generated Pydantic models.
+"""Base class for generated Pydantic models with partial fields.
 
-reflectapi schemas distinguish three states for nullable fields declared
-as ``reflectapi::Option<T>``: ``Some(value)``, explicit ``null``, and
-"key absent on the wire" (``Undefined``). TypeScript clients express
-this natively (``field?: T | null``); Rust clients use the
-``reflectapi::Option<T>`` enum. Python clients used to ship a custom
-``ReflectapiOption[T]`` wrapper class to surface the same distinction.
+reflectapi schemas distinguish three states for nullable fields
+declared as ``reflectapi::Option<T>``: ``Some(value)``, explicit
+``null``, and "key absent on the wire" (``Undefined``). TypeScript
+clients express this natively (``field?: T | null``); Rust clients use
+the ``reflectapi::Option<T>`` enum. The Python equivalent uses
+``ReflectapiPartialModel`` — a ``BaseModel`` mixin that:
 
-The wrapper duplicated information Pydantic already tracks via
-``model_fields_set`` and forced users to learn a parallel
-``.unwrap`` / ``.is_undefined`` API. This module replaces it with a
-``BaseModel`` mixin that:
-
-- leaves field types as plain ``T | None`` (so Pydantic validates them
-  exactly as it would any other nullable field),
+- leaves field types as plain ``T | None``, so Pydantic validates them
+  exactly as it would any other nullable field;
 - relies on ``model_fields_set`` — Pydantic's built-in record of which
-  fields were *actually provided* during deserialise / construction —
-  as the source of truth for "was this on the wire?",
+  fields were actually provided during deserialise or construction —
+  as the source of truth for "was this on the wire?";
 - emits a wire payload that omits keys not in ``model_fields_set``,
   preserving the absent-vs-null distinction round-trip.
 
-Codegen marks every generated class with at least one
-``reflectapi::Option<T>`` field as inheriting from
-:class:`ReflectapiPartialModel` instead of :class:`pydantic.BaseModel`.
+Codegen makes every generated class with at least one
+``reflectapi::Option<T>`` field inherit from this class instead of
+``pydantic.BaseModel``.
 """
 
 from __future__ import annotations

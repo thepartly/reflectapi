@@ -25,7 +25,9 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeCategory(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     name: str
     subcategories: list[reflectapi_demo.tests.serde.Category]

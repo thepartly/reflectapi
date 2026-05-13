@@ -278,26 +278,48 @@ class AsyncClient(AsyncClientBase):
 
         self.pets = AsyncPetsClient(self)
 
-    async def codegen_regression(
+    async def codegen_coverage(
         self,
-        data: Optional[myapi.CodegenRegressionRequest] = None,
-    ) -> ApiResponse[myapi.CodegenRegressionResponse]:
-        """Regression-test endpoint pinning codegen bugs
+        data: Optional[myapi.coverage.CoverageRequest] = None,
+    ) -> ApiResponse[myapi.coverage.CoverageResponse]:
+        """Coverage fixtures for codegen edge cases
 
         Args:
-            data: Request data for the codegen_regression operation.
+            data: Request data for the codegen_coverage operation.
 
         Returns:
-            ApiResponse[myapi.CodegenRegressionResponse]: Response containing myapi.CodegenRegressionResponse data
+            ApiResponse[myapi.coverage.CoverageResponse]: Response containing myapi.coverage.CoverageResponse data
         """
-        path = "/codegen-regression"
+        path = "/codegen-coverage"
 
         params: dict[str, Any] = {}
         return await self._make_request(
             path,
             params=params if params else None,
             json_model=data,
-            response_model=myapi.CodegenRegressionResponse,
+            response_model=myapi.coverage.CoverageResponse,
+        )
+
+    async def codegen_order_coverage(
+        self,
+        data: Optional[myapi.OrderCoverageRequest] = None,
+    ) -> ApiResponse[myapi.OrderCoverageResponse]:
+        """Coverage fixtures for namespace/tuple/Duration/PhantomData rendering
+
+        Args:
+            data: Request data for the codegen_order_coverage operation.
+
+        Returns:
+            ApiResponse[myapi.OrderCoverageResponse]: Response containing myapi.OrderCoverageResponse data
+        """
+        path = "/codegen-order-coverage"
+
+        params: dict[str, Any] = {}
+        return await self._make_request(
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=myapi.OrderCoverageResponse,
         )
 
 
@@ -524,24 +546,46 @@ class Client(ClientBase):
 
         self.pets = PetsClient(self)
 
-    def codegen_regression(
+    def codegen_coverage(
         self,
-        data: Optional[myapi.CodegenRegressionRequest] = None,
-    ) -> ApiResponse[myapi.CodegenRegressionResponse]:
-        """Regression-test endpoint pinning codegen bugs
+        data: Optional[myapi.coverage.CoverageRequest] = None,
+    ) -> ApiResponse[myapi.coverage.CoverageResponse]:
+        """Coverage fixtures for codegen edge cases
 
         Args:
-            data: Request data for the codegen_regression operation.
+            data: Request data for the codegen_coverage operation.
 
         Returns:
-            ApiResponse[myapi.CodegenRegressionResponse]: Response containing myapi.CodegenRegressionResponse data
+            ApiResponse[myapi.coverage.CoverageResponse]: Response containing myapi.coverage.CoverageResponse data
         """
-        path = "/codegen-regression"
+        path = "/codegen-coverage"
 
         params: dict[str, Any] = {}
         return self._make_request(
             path,
             params=params if params else None,
             json_model=data,
-            response_model=myapi.CodegenRegressionResponse,
+            response_model=myapi.coverage.CoverageResponse,
+        )
+
+    def codegen_order_coverage(
+        self,
+        data: Optional[myapi.OrderCoverageRequest] = None,
+    ) -> ApiResponse[myapi.OrderCoverageResponse]:
+        """Coverage fixtures for namespace/tuple/Duration/PhantomData rendering
+
+        Args:
+            data: Request data for the codegen_order_coverage operation.
+
+        Returns:
+            ApiResponse[myapi.OrderCoverageResponse]: Response containing myapi.OrderCoverageResponse data
+        """
+        path = "/codegen-order-coverage"
+
+        params: dict[str, Any] = {}
+        return self._make_request(
+            path,
+            params=params if params else None,
+            json_model=data,
+            response_model=myapi.OrderCoverageResponse,
         )

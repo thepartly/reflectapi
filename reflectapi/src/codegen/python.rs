@@ -1553,13 +1553,10 @@ fn build_python_generation(
     mut schema: Schema,
     config: &Config,
 ) -> anyhow::Result<PythonGeneration> {
-    // PhantomData<T> carries no wire data in Rust. serde serialises
-    // each occurrence as `null`, but the field still appears in the
-    // reflectapi schema with `type_ref.name == "std::marker::PhantomData"`.
-    // Render-time the codegen used to emit
-    // `std.marker.PhantomData[T]`, a dangling reference that broke
-    // `model_rebuild()`. Strip the fields entirely — they have no
-    // observable behaviour for a Python client.
+    // `PhantomData<T>` is a Rust-only type-system marker — it carries
+    // no wire data. Strip every such field before rendering so the
+    // Python model doesn't reference a non-existent
+    // `std.marker.PhantomData`.
     strip_phantom_data_fields(&mut schema);
 
     // Consolidate input/output types FIRST so both the SemanticSchema and
@@ -2235,13 +2232,10 @@ fn render_module_file(
         if !body.trim().is_empty() {
             body.push('\n');
         }
-        // Narrow the suppression to `ImportError` only: the wide
-        // `except Exception: pass` here used to swallow every
-        // `model_rebuild()` failure raised by `_rebuild_models()`,
-        // which is the same class of bug we want to surface. The
-        // remaining ImportError suppression covers the legitimate case
-        // where this namespace is imported standalone before the root
-        // package finishes initialising.
+        // Suppress only `ImportError` (which can occur if the
+        // namespace is imported standalone before the root package
+        // finishes initialising) — let `model_rebuild()` failures
+        // propagate so dangling references surface at import time.
         body.push_str("try:\n");
         body.push_str("    from .._rebuild import rebuild_models as _rebuild_models\n\n");
         body.push_str("    _rebuild_models()\n");
@@ -4672,18 +4666,57 @@ fn to_screaming_snake_case(s: &str) -> String {
     to_snake_case(s).to_uppercase()
 }
 
+/// Pydantic v2 methods that we must not shadow with a field of the
+/// same name. If a user has a field named exactly one of these on the
+/// wire, we have to rename the Python attribute and carry the wire
+/// name as an alias. The `model_` prefix conflict more broadly is
+/// silenced via `protected_namespaces=()` in the generated
+/// ConfigDict — that's the lighter-touch fix for the
+/// `model_<anything>` namespace; this list is the heavier-touch fix
+/// for names that would also shadow real methods at the instance level.
+fn is_pydantic_method_name(name: &str) -> bool {
+    matches!(
+        name,
+        "model_dump"
+            | "model_dump_json"
+            | "model_validate"
+            | "model_validate_json"
+            | "model_validate_strings"
+            | "model_construct"
+            | "model_copy"
+            | "model_rebuild"
+            | "model_json_schema"
+            | "model_parametrized_name"
+            | "model_post_init"
+            | "model_config"
+            | "model_fields"
+            | "model_fields_set"
+            | "model_extra"
+            | "model_computed_fields"
+    )
+}
+
 fn sanitize_field_name_with_alias(name: &str, serde_name: &str) -> (String, Option<String>) {
     let snake_case = to_snake_case(name);
     let sanitized = safe_python_identifier(&snake_case);
 
     // Strip leading underscores - Pydantic v2 treats _-prefixed fields as private
     let sanitized = sanitized.trim_start_matches('_').to_string();
-    let sanitized = if sanitized.is_empty() {
+    let mut sanitized = if sanitized.is_empty() {
         // Edge case: name was all underscores
         "field".to_string()
     } else {
         sanitized
     };
+
+    // If the field exact-matches a Pydantic v2 method/attribute name,
+    // shadowing it at the instance level breaks `.model_dump_json()`
+    // and friends. Suffix with `_` so the field is reachable as
+    // `obj.model_dump_json_` while the wire name (`model_dump_json`)
+    // continues to round-trip via the alias.
+    if is_pydantic_method_name(&sanitized) {
+        sanitized.push('_');
+    }
 
     // The wire name (serde_name) is what goes over JSON.
     // We need an alias whenever the Python field name differs from the wire name.
@@ -4723,13 +4756,16 @@ fn type_ref_to_python_type(
             return Ok(python_type.clone());
         }
 
-        // Special case: Vec<u8> should be bytes in Python
-        if type_ref.name == "std::vec::Vec" && type_ref.arguments.len() == 1 {
-            let arg = &type_ref.arguments[0];
-            if arg.name == "u8" {
-                return Ok("bytes".to_string());
-            }
-        }
+        // Note on `Vec<u8>`: serde's *default* JSON representation is
+        // a JSON array of integers, **not** a base64-encoded string.
+        // Rendering it as Python `bytes` would force users to base64-
+        // encode their data manually and confuse Pydantic's validator
+        // (which expects a base64 string for `bytes`). The
+        // base64-encoded form requires the user to opt in on the Rust
+        // side via the `serde_bytes` crate, which surfaces as a
+        // different schema type entirely. Until that's modelled
+        // explicitly we keep `Vec<u8>` as `list[int]` — matches what
+        // the wire actually carries.
 
         if python_type_mappings()
             .get(type_ref.name.as_str())
@@ -5340,10 +5376,16 @@ pub mod templates {
             // `m.field = value` after construction (so the assignment
             // actually lands on the wire). Plain BaseModel classes
             // don't need it.
+            // `protected_namespaces=()` disables Pydantic's prefix
+            // check (it defaults to `("model_",)` so any user field
+            // starting with `model_` would raise at class-construction
+            // time). `is_pydantic_method_name` already renames the
+            // exact-match collisions; this kills the warning for the
+            // remaining safe-but-prefixed cases.
             let config = if self.is_partial() {
-                "ConfigDict(extra=\"ignore\", populate_by_name=True, validate_assignment=True)"
+                "ConfigDict(extra=\"ignore\", populate_by_name=True, validate_assignment=True, protected_namespaces=())"
             } else {
-                "ConfigDict(extra=\"ignore\", populate_by_name=True)"
+                "ConfigDict(extra=\"ignore\", populate_by_name=True, protected_namespaces=())"
             };
             writeln!(s, "    model_config = {config}").unwrap();
             writeln!(s).unwrap();
@@ -6043,7 +6085,11 @@ pub mod templates {
                 )
                 .unwrap();
             }
-            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(
+                s,
+                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=())"
+            )
+            .unwrap();
             writeln!(s).unwrap();
             writeln!(s, "    def model_dump(self, **kwargs):").unwrap();
             writeln!(
@@ -6095,7 +6141,11 @@ pub mod templates {
                 .unwrap();
             }
             writeln!(s).unwrap();
-            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(
+                s,
+                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=())"
+            )
+            .unwrap();
             writeln!(s).unwrap();
             for field in &self.fields {
                 write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();
@@ -6162,7 +6212,11 @@ pub mod templates {
                 )
                 .unwrap();
             }
-            writeln!(s, "    model_config = ConfigDict(extra=\"ignore\")").unwrap();
+            writeln!(
+                s,
+                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=())"
+            )
+            .unwrap();
             writeln!(s).unwrap();
             for field in &self.fields {
                 write!(s, "    {}: {}", field.name, field.type_annotation).unwrap();

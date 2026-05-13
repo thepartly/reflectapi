@@ -39,7 +39,9 @@ from reflectapi_runtime import (
 class ReflectapiDemoTestsEnumsTestEnumWithFieldsVariant1Variant(BaseModel):
     """Variant1 variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     field_0: int
 
@@ -47,7 +49,9 @@ class ReflectapiDemoTestsEnumsTestEnumWithFieldsVariant1Variant(BaseModel):
 class ReflectapiDemoTestsEnumsTestEnumWithFieldsVariant2Variant(BaseModel):
     """Variant2 variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     field_0: str
     field_1: float

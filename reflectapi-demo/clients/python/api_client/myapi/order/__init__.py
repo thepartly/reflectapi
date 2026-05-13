@@ -54,39 +54,39 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
 class MyapiOrderInsertData(BaseModel):
-    """Bug 1 (namespace alias mismatch). The struct name starts with
-    the parent namespace\\'s cap (`Order…`) — the alias-stripping
-    pass used to strip the leading cap from the namespace alias
-    (`order.InsertData = OrderInsertData`) while field annotations
-    kept the un-stripped form, producing `order.OrderInsertData`
-    which doesn\\'t resolve at `model_rebuild()` time."""
+    """A struct whose name begins with the parent namespace cap.
+    Exercises the namespace-alias path for both the stripped
+    (`order.InsertData`) and Rust-leaf (`order.OrderInsertData`)
+    forms."""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     identity: str
     alternative_part_number: tuple[str, str] | None = Field(
-        default=None,
-        description="Bug 2 (tuple types). serde emits Rust tuples as JSON arrays;\nthe Python codegen used to emit `std.tuple.Tuple2[...]`\nwith no matching class, so any reference broke at rebuild.",
+        default=None, description="Exercises the `tuple[A, B]` rendering for `(A, B)`."
     )
 
 
 class MyapiOrderPolicy(BaseModel, Generic[C, T]):
-    """Bug 4 (PhantomData). PhantomData has no wire data — serde
-    skips it. The codegen used to emit `std.marker.PhantomData[T]`
-    as a field annotation, leaving a dangling reference."""
+    """Exercises `PhantomData<T>` elision (the field carries no wire
+    data and must not appear in the Python model)."""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     name: str
 
 
 class MyapiOrderRateLimit(BaseModel):
-    """Bug 3 (Duration shape). serde emits `Duration` as
-    `{\\"secs\\": <u64>, \\"nanos\\": <u32>}`. Pydantic\\'s `timedelta`
-    validator rejects that shape, so any response with a Duration
-    failed validation."""
+    """Exercises the `std::time::Duration` ↔ `{secs, nanos}` wire
+    adapter."""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     retry_after: ReflectapiDuration
     max_wait: ReflectapiDuration | None = None

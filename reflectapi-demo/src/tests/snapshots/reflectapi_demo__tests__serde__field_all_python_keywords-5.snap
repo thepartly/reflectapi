@@ -25,7 +25,9 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeKeywords(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type_: str = Field(serialization_alias="type", validation_alias="type")
     class_: str = Field(serialization_alias="class", validation_alias="class")

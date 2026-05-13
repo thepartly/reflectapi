@@ -635,13 +635,21 @@ class __EventSourceParserStream extends TransformStream<
 export namespace __definition {
   export interface Interface {
     /**
-     * Regression-test endpoint pinning codegen bugs
+     * Coverage fixtures for namespace/tuple/Duration/PhantomData rendering
      */
-    codegen_regression: (
-      input: myapi.CodegenRegressionRequest,
+    codegen_order_coverage: (
+      input: myapi.OrderCoverageRequest,
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<myapi.CodegenRegressionResponse, {}>;
+    ) => AsyncResult<myapi.OrderCoverageResponse, {}>;
+    /**
+     * Coverage fixtures for codegen edge cases
+     */
+    codegen_coverage: (
+      input: myapi.coverage.CoverageRequest,
+      headers: {},
+      options?: RequestOptions,
+    ) => AsyncResult<myapi.coverage.CoverageResponse, {}>;
     health: HealthInterface;
     pets: PetsInterface;
   }
@@ -727,27 +735,133 @@ export namespace __definition {
   }
 }
 export namespace myapi {
-  export interface CodegenRegressionRequest {
-    /**
-     * Pulls in `order::OrderInsertData` (bug 1) and Rust tuple
-     * (bug 2) reachability.
-     */
+  export interface HealthCheckFail {}
+
+  export interface OrderCoverageRequest {
     order: myapi.order.OrderInsertData;
-    /**
-     * Pulls in `order::RateLimit` for Duration (bug 3).
-     */
     rate_limit: myapi.order.RateLimit;
-    /**
-     * Pulls in `order::Policy<C, T>` for PhantomData (bug 4).
-     */
     policy: myapi.order.Policy<string, number /* u32 */>;
   }
 
-  export interface CodegenRegressionResponse {
+  export interface OrderCoverageResponse {
     ok: boolean;
   }
 
-  export interface HealthCheckFail {}
+  export namespace coverage {
+    export interface BaseModel {
+      label: string;
+    }
+
+    export interface CoverageRequest {
+      keywords: myapi.coverage.PyKeywordFields;
+      reserved: myapi.coverage.PydanticReservedFields;
+      tree: myapi.coverage.TreeNode;
+      mutual: myapi.coverage.MutualA;
+      generic_tree: myapi.coverage.GenericTree<number /* i32 */>;
+      keyword_variants: myapi.coverage.KeywordVariants;
+      int_keyed: myapi.coverage.IntKeyedMap;
+      user_id: myapi.coverage.UserId;
+      deep_option: myapi.coverage.DeepOption;
+      shadowing: myapi.coverage.ShadowingFields;
+      empty: myapi.coverage.EmptyStruct;
+      weird_doc: myapi.coverage.WeirdDocstring;
+      shadow_base_model: myapi.coverage.BaseModel;
+      wrapper_int: myapi.coverage.Wrapper<number /* i32 */>;
+      wrapper_str: myapi.coverage.Wrapper<string>;
+      defaulted: myapi.coverage.DefaultedField;
+    }
+
+    export interface CoverageResponse {
+      ok: boolean;
+    }
+
+    export interface DeepOption {
+      maybe_maybe: (string | null) | null | undefined;
+    }
+
+    export interface DefaultedField {
+      count?: number /* u32 */;
+    }
+
+    export interface EmptyStruct {}
+
+    export interface GenericTree<T> {
+      value: T;
+      children: Array<myapi.coverage.GenericTree<T>>;
+    }
+
+    export interface IntKeyedMap {
+      by_id: Record<number /* u64 */, string>;
+      uuid_keyed: Record<string, string>;
+    }
+
+    export type KeywordVariants =
+      | { kind: "class" }
+      | {
+          kind: "lambda";
+          name: string;
+        }
+      | {
+          kind: "return";
+          value: number /* i32 */;
+        };
+
+    export interface MutualA {
+      name: string;
+      b: myapi.coverage.MutualB | null;
+    }
+
+    export interface MutualB {
+      name: string;
+      a: myapi.coverage.MutualA | null;
+    }
+
+    export interface PyKeywordFields {
+      class: string;
+      from: number /* u32 */;
+      import: boolean;
+      lambda: number /* i64 */;
+      return: Array<number /* u8 */>;
+      yield: string | null;
+      None: number /* i32 */ | null;
+      True: boolean;
+      type: string;
+      match: string;
+    }
+
+    export interface PydanticReservedFields {
+      model_config: string;
+      model_fields_set: string;
+      model_dump_json: string;
+    }
+
+    export interface ShadowingFields {
+      field: string;
+      annotated: string;
+      generic: string;
+      base_model: string;
+    }
+
+    export interface TreeNode {
+      value: string;
+      children: Array<myapi.coverage.TreeNode>;
+      parent: myapi.coverage.TreeNode | null;
+    }
+
+    export type UserId = number /* u64 */;
+
+    /**
+     * A docstring with \"quotes\" and \'apostrophes\' and a backslash: \\\\
+     * And a \"\"\"triple quote\"\"\" inside.
+     */
+    export interface WeirdDocstring {
+      value: string;
+    }
+
+    export interface Wrapper<T> {
+      inner: T;
+    }
+  }
 
   export namespace model {
     export type Behavior =
@@ -853,27 +967,22 @@ export namespace myapi {
 
   export namespace order {
     /**
-     * Bug 1 (namespace alias mismatch). The struct name starts with
-     * the parent namespace\'s cap (`Order…`) — the alias-stripping
-     * pass used to strip the leading cap from the namespace alias
-     * (`order.InsertData = OrderInsertData`) while field annotations
-     * kept the un-stripped form, producing `order.OrderInsertData`
-     * which doesn\'t resolve at `model_rebuild()` time.
+     * A struct whose name begins with the parent namespace cap.
+     * Exercises the namespace-alias path for both the stripped
+     * (`order.InsertData`) and Rust-leaf (`order.OrderInsertData`)
+     * forms.
      */
     export interface OrderInsertData {
       identity: string;
       /**
-       * Bug 2 (tuple types). serde emits Rust tuples as JSON arrays;
-       * the Python codegen used to emit `std.tuple.Tuple2[...]`
-       * with no matching class, so any reference broke at rebuild.
+       * Exercises the `tuple[A, B]` rendering for `(A, B)`.
        */
       alternative_part_number: [string, string] | null;
     }
 
     /**
-     * Bug 4 (PhantomData). PhantomData has no wire data — serde
-     * skips it. The codegen used to emit `std.marker.PhantomData[T]`
-     * as a field annotation, leaving a dangling reference.
+     * Exercises `PhantomData<T>` elision (the field carries no wire
+     * data and must not appear in the Python model).
      */
     export interface Policy<C, T> {
       name: string;
@@ -882,10 +991,8 @@ export namespace myapi {
     }
 
     /**
-     * Bug 3 (Duration shape). serde emits `Duration` as
-     * `{\"secs\": <u64>, \"nanos\": <u32>}`. Pydantic\'s `timedelta`
-     * validator rejects that shape, so any response with a Duration
-     * failed validation.
+     * Exercises the `std::time::Duration` ↔ `{secs, nanos}` wire
+     * adapter.
      */
     export interface RateLimit {
       retry_after: std.time.Duration;
@@ -1016,7 +1123,8 @@ namespace __implementation {
       typeof base === "string" ? new ClientInstance(base) : base;
     return {
       impl: {
-        codegen_regression: codegen_regression(client_instance),
+        codegen_order_coverage: codegen_order_coverage(client_instance),
+        codegen_coverage: codegen_coverage(client_instance),
         health: {
           check: health__check(client_instance),
         },
@@ -1136,17 +1244,30 @@ namespace __implementation {
         myapi.proto.UnauthorizedError
       >(client, "/pets.cdc-events", input, headers, options);
   }
-  function codegen_regression(client: Client) {
+  function codegen_order_coverage(client: Client) {
     return (
-      input: myapi.CodegenRegressionRequest,
+      input: myapi.OrderCoverageRequest,
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        myapi.CodegenRegressionRequest,
+        myapi.OrderCoverageRequest,
         {},
-        myapi.CodegenRegressionResponse,
+        myapi.OrderCoverageResponse,
         {}
-      >(client, "/codegen-regression", input, headers, options);
+      >(client, "/codegen-order-coverage", input, headers, options);
+  }
+  function codegen_coverage(client: Client) {
+    return (
+      input: myapi.coverage.CoverageRequest,
+      headers: {},
+      options?: RequestOptions,
+    ) =>
+      __request<
+        myapi.coverage.CoverageRequest,
+        {},
+        myapi.coverage.CoverageResponse,
+        {}
+      >(client, "/codegen-coverage", input, headers, options);
   }
 }

@@ -25,7 +25,9 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBoth(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f: str = Field(serialization_alias="_f", validation_alias="_f")
 

@@ -141,10 +141,6 @@ class TestClientEdgeCases:
 
         client = ClientBase("https://api.example.com")
         # `json.dumps` detects circular references and raises ValueError.
-        # (The previous implementation hit Python's recursion limit
-        # because it pre-traversed the dict; the current path delegates
-        # directly to the JSON encoder, which surfaces the error sooner
-        # with a clearer message.)
         with pytest.raises(ValueError, match="Circular reference"):
             client._make_request("/test", json_data=data)
 

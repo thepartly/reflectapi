@@ -39,7 +39,9 @@ from reflectapi_runtime import (
 class ReflectapiDemoTestsSerdeTestEnumRenameVariantFieldVariant2Variant(BaseModel):
     """Variant2 variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     variant2_field_name: int
 

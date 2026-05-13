@@ -1,14 +1,8 @@
-"""Regression tests for runtime types that fix codegen bugs.
+"""Contract tests for runtime types consumed by the Python codegen.
 
-These tests pin the runtime contracts behind four user-reported bugs in
-the Python codegen. They live in the runtime test suite — alongside
-``ReflectapiPartialModel`` and the rest of the runtime API — so they
-run on every push without needing a full end-to-end demo-client
-regeneration.
-
-Each test is named after the bug it pins and includes a brief comment
-linking it to the failure mode it locks down. The complementary end-to-
-end check (regenerate the demo client + import it strictly) lives in
+These tests pin the runtime API the generated client depends on. They
+run on every push without needing a full demo-client regeneration; the
+complementary end-to-end import check lives in
 ``.github/workflows/ci.yaml::python-codegen-smoke``.
 """
 
@@ -24,10 +18,8 @@ from reflectapi_runtime import ReflectapiDuration
 
 
 class TestDurationRoundTrip:
-    """Bug 3: serde emits ``Duration`` as ``{"secs": …, "nanos": …}``;
-    Pydantic's bare ``timedelta`` validator rejects that shape. The
-    ``ReflectapiDuration`` Annotated type round-trips both directions.
-    """
+    """``ReflectapiDuration`` round-trips serde's ``{secs, nanos}``
+    wire shape through a Python ``timedelta``."""
 
     def _model(self):
         class M(BaseModel):

@@ -56,6 +56,7 @@ pub fn generate_spec(schema: &crate::Schema, config: &Config) -> Spec {
     Converter {
         config,
         components: Default::default(),
+        in_progress: Default::default(),
     }
     .convert(schema)
 }
@@ -65,6 +66,7 @@ impl From<&crate::Schema> for Spec {
         Converter {
             config: &Config::default(),
             components: Default::default(),
+            in_progress: Default::default(),
         }
         .convert(schema)
     }
@@ -422,6 +424,14 @@ impl<T> Ref<T> {
 struct Converter<'a> {
     components: Components,
     config: &'a Config,
+    /// Type references currently being converted. Keyed by
+    /// `fmt_type_ref` so different monomorphizations of the same
+    /// generic (e.g. `Tree<i32>` vs `Tree<u32>`) are tracked
+    /// independently. Required to break recursion for generic
+    /// self-referential types, which are inlined rather than
+    /// promoted to `components.schemas` and so don't benefit from
+    /// the stub-on-insert guard elsewhere in this module.
+    in_progress: std::collections::HashSet<String>,
 }
 
 impl Converter<'_> {
@@ -605,6 +615,39 @@ impl Converter<'_> {
             return InlineOrRef::Ref(schema_ref);
         }
 
+        // Recursion guard for generic self-referential types. Non-
+        // generic types are guarded by the stub-insert into
+        // `components.schemas` below, which the early-return at the
+        // top of this function uses to break re-entry. Generic types
+        // are inlined into their use sites and so don't appear in
+        // `components.schemas` at all — they need a separate
+        // in-progress set keyed by the full monomorphization, so
+        // distinct instantiations of the same generic are tracked
+        // independently.
+        let in_progress_key = fmt_type_ref(ty_ref);
+        if self.in_progress.contains(&in_progress_key) {
+            // Emit a placeholder ref. The target isn't a real
+            // component (generics aren't promoted to named
+            // components), but the schema remains parseable as
+            // documentation and bounded in size.
+            let safe_key = in_progress_key.replace(['<', '>'], "_").replace(", ", "_");
+            return InlineOrRef::Ref(Ref::new(format!("#/components/schemas/{safe_key}")));
+        }
+        self.in_progress.insert(in_progress_key.clone());
+
+        let result = self.convert_type_ref_inner(schema, kind, ty_ref, name);
+        self.in_progress.remove(&in_progress_key);
+        result
+    }
+
+    fn convert_type_ref_inner(
+        &mut self,
+        schema: &crate::Schema,
+        kind: Kind,
+        ty_ref: &crate::TypeReference,
+        name: String,
+    ) -> InlineOrRef<Schema> {
+        let schema_ref = Ref::new(format!("#/components/schemas/{name}"));
         let reflect_ty = match kind {
             Kind::Input => schema.input_types.get_type(&ty_ref.name),
             Kind::Output => schema.output_types.get_type(&ty_ref.name),

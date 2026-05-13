@@ -37,7 +37,9 @@ from reflectapi_runtime import (
 
 
 class ReflectapiDemoTestsSerdeDrawing(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     name: str
     shape: reflectapi_demo.tests.serde.Shape
@@ -46,7 +48,9 @@ class ReflectapiDemoTestsSerdeDrawing(BaseModel):
 class ReflectapiDemoTestsSerdeShapeCircleVariant(BaseModel):
     """Circle variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     radius: float
 
@@ -54,7 +58,9 @@ class ReflectapiDemoTestsSerdeShapeCircleVariant(BaseModel):
 class ReflectapiDemoTestsSerdeShapeRectVariant(BaseModel):
     """Rect variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     width: float
     height: float

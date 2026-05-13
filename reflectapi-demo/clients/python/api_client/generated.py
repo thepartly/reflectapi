@@ -16,9 +16,34 @@ from ._client import Client
 from . import myapi
 
 from .myapi import (
-    MyapiCodegenRegressionRequest,
-    MyapiCodegenRegressionResponse,
     MyapiHealthCheckFail,
+    MyapiOrderCoverageRequest,
+    MyapiOrderCoverageResponse,
+)
+
+from . import myapi
+
+from .myapi.coverage import (
+    MyapiCoverageBaseModel,
+    MyapiCoverageDeepOption,
+    MyapiCoverageDefaultedField,
+    MyapiCoverageEmptyStruct,
+    MyapiCoverageGenericTree,
+    MyapiCoverageIntKeyedMap,
+    MyapiCoverageKeywordVariants,
+    MyapiCoverageKeywordVariantsClass,
+    MyapiCoverageKeywordVariantsLambda,
+    MyapiCoverageKeywordVariantsReturn,
+    MyapiCoverageMutualA,
+    MyapiCoverageMutualB,
+    MyapiCoveragePyKeywordFields,
+    MyapiCoveragePydanticReservedFields,
+    MyapiCoverageRequest,
+    MyapiCoverageResponse,
+    MyapiCoverageShadowingFields,
+    MyapiCoverageTreeNode,
+    MyapiCoverageWeirdDocstring,
+    MyapiCoverageWrapper,
 )
 
 from . import myapi
@@ -84,8 +109,26 @@ _rebuild_models()
 __all__ = [
     "AsyncClient",
     "Client",
-    "MyapiCodegenRegressionRequest",
-    "MyapiCodegenRegressionResponse",
+    "MyapiCoverageBaseModel",
+    "MyapiCoverageDeepOption",
+    "MyapiCoverageDefaultedField",
+    "MyapiCoverageEmptyStruct",
+    "MyapiCoverageGenericTree",
+    "MyapiCoverageIntKeyedMap",
+    "MyapiCoverageKeywordVariants",
+    "MyapiCoverageKeywordVariantsClass",
+    "MyapiCoverageKeywordVariantsLambda",
+    "MyapiCoverageKeywordVariantsReturn",
+    "MyapiCoverageMutualA",
+    "MyapiCoverageMutualB",
+    "MyapiCoveragePyKeywordFields",
+    "MyapiCoveragePydanticReservedFields",
+    "MyapiCoverageRequest",
+    "MyapiCoverageResponse",
+    "MyapiCoverageShadowingFields",
+    "MyapiCoverageTreeNode",
+    "MyapiCoverageWeirdDocstring",
+    "MyapiCoverageWrapper",
     "MyapiHealthCheckFail",
     "MyapiModelBehavior",
     "MyapiModelBehaviorAggressiveVariant",
@@ -96,6 +139,8 @@ __all__ = [
     "MyapiModelKindCat",
     "MyapiModelKindDog",
     "MyapiModelOutputPet",
+    "MyapiOrderCoverageRequest",
+    "MyapiOrderCoverageResponse",
     "MyapiOrderInsertData",
     "MyapiOrderPolicy",
     "MyapiOrderRateLimit",

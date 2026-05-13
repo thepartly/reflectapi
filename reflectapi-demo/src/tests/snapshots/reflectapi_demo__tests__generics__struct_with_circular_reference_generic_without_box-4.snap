@@ -35,7 +35,9 @@ B = TypeVar("B")
 class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBox(
     BaseModel, Generic[A, B]
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f1: A = Field(serialization_alias="_f1", validation_alias="_f1")
     f2: B = Field(serialization_alias="_f2", validation_alias="_f2")

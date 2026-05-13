@@ -19,8 +19,6 @@ from tests.package_imports import (
     MyapiProtoHeaders as Headers,
     MyapiProtoPaginated as Paginated,
 )
-from reflectapi_runtime import ReflectapiOption as Option
-from reflectapi_runtime import ReflectapiOption, Undefined
 from tests.model_helpers import root_value
 
 # For externally tagged enums, unit variants are just string literals
@@ -122,40 +120,26 @@ class TestDiscriminatedUnions:
         assert aggressive == {"Aggressive": [5.0, "notes"]}
         assert other == {"Other": {"description": "Custom", "notes": "Some notes"}}
 
-    def test_option_values(self):
-        """Test ReflectapiOption creation."""
-        # ReflectapiOption is not an enum anymore, it's a wrapper class
-        from reflectapi_runtime import ReflectapiOption, Undefined
+class TestPartialFields:
+    """Three-state partial fields on update requests."""
 
-        opt_some = ReflectapiOption(42)
-        opt_none = ReflectapiOption(None)
-        opt_undefined = ReflectapiOption(Undefined)
-
-        assert opt_some.is_some
-        assert opt_none.is_none
-        assert opt_undefined.is_undefined
-
-
-class TestReflectapiOption:
-    """Test ReflectapiOption functionality."""
-
-    def test_reflectapi_option_undefined(self):
-        """Test ReflectapiOption with undefined value."""
-        request = PetsUpdateRequest(name="test", age=ReflectapiOption(Undefined))
+    def test_unset_field_not_in_fields_set(self):
+        request = PetsUpdateRequest(name="test")  # `age` left unset
         assert request.name == "test"
-        assert request.age._value is Undefined
+        assert request.age is None
+        assert "age" not in request.model_fields_set
 
-    def test_reflectapi_option_none(self):
-        """Test ReflectapiOption with None value."""
-        request = PetsUpdateRequest(name="test", age=ReflectapiOption(None))
+    def test_explicit_none_is_in_fields_set(self):
+        request = PetsUpdateRequest(name="test", age=None)
         assert request.name == "test"
-        assert request.age._value is None
+        assert request.age is None
+        assert "age" in request.model_fields_set
 
-    def test_reflectapi_option_some_value(self):
-        """Test ReflectapiOption with actual value."""
-        request = PetsUpdateRequest(name="test", age=ReflectapiOption(5))
+    def test_value_is_in_fields_set(self):
+        request = PetsUpdateRequest(name="test", age=5)
         assert request.name == "test"
-        assert request.age._value == 5
+        assert request.age == 5
+        assert "age" in request.model_fields_set
 
 
 class TestGenericModels:
@@ -233,20 +217,16 @@ class TestSerialization:
         assert kind.breed == "Golden Retriever"
         assert pet.age == 2
 
-    def test_reflectapi_option_serialization(self):
-        """Test ReflectapiOption serialization with current behavior."""
+    def test_partial_field_serialization(self):
+        """Unset partial fields are omitted; set ones round-trip."""
         request = PetsUpdateRequest(
             name="test",
-            age=ReflectapiOption(Undefined),
-            behaviors=ReflectapiOption([BehaviorCalm]),
+            behaviors=[BehaviorCalm],
+            # `age` left unset
         )
         data = request.model_dump()
-        # Note: Current implementation includes ReflectapiOption objects as-is
-        # This should be improved to properly serialize the inner values
-        assert "age" in data
-        assert "behaviors" in data
-        assert isinstance(data["age"], ReflectapiOption)
-        assert isinstance(data["behaviors"], ReflectapiOption)
+        assert data == {"name": "test", "behaviors": [BehaviorCalm]}
+        assert "age" not in data
 
 
 class TestHeaders:

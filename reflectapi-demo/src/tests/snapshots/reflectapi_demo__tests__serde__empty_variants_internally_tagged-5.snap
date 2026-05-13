@@ -26,13 +26,17 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTaggedEmpty(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Empty"] = Field(default="Empty", description="Discriminator field")
 
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTaggedEmptyStruct(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["EmptyStruct"] = Field(
         default="EmptyStruct", description="Discriminator field"

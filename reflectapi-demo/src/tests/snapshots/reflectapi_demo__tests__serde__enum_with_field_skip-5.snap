@@ -39,7 +39,9 @@ from reflectapi_runtime import (
 class ReflectapiDemoTestsSerdeTestEnumWithFieldSkipVariant1Variant(BaseModel):
     """Variant1 variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
 
 # Externally tagged enum using RootModel

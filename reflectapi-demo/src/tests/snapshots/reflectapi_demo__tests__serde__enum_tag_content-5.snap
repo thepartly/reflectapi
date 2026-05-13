@@ -28,13 +28,17 @@ from reflectapi_runtime import ReflectapiInfallible
 class ReflectapiDemoTestsSerdeTestEnumTagContentVariant1Content(BaseModel):
     """Variant1 content"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     field_name: int
 
 
 class ReflectapiDemoTestsSerdeTestEnumTagContentVariant1(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Variant1"] = Field(
         default="Variant1", description="Discriminator field"
@@ -45,7 +49,9 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentVariant1(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeTestEnumTagContentVariant2(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     type: Literal["Variant2"] = Field(
         default="Variant2", description="Discriminator field"

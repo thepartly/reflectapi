@@ -26,7 +26,9 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     inner_a: int
     inner_b: str
@@ -35,7 +37,9 @@ class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
 class ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerde356d19e7(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     code: int
     inner_a: int | None = None
@@ -45,7 +49,9 @@ class ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerde35
 class ReflectapiDemoTestsSerdeOutputTestOptionalFlattenReflectapiDemoTestsSerd6d4b6d30(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     code: int
     inner_a: int

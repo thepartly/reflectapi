@@ -39,7 +39,9 @@ from reflectapi_runtime import (
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedIntVariant(BaseModel):
     """int variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     field_0: int
 
@@ -49,7 +51,9 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedStringVariant(
 ):
     """string variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     field_0: str
 
@@ -57,7 +61,9 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedStringVariant(
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedBoolVariant(BaseModel):
     """bool variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     field_0: bool
 

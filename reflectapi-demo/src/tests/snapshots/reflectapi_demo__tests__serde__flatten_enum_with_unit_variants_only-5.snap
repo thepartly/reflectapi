@@ -28,7 +28,9 @@ from reflectapi_runtime import ReflectapiInfallible
 class ReflectapiDemoTestsSerdeItemActive(BaseModel):
     """'Active' variant of ReflectapiDemoTestsSerdeItem"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     name: str
     status: Literal["Active"] = Field(
@@ -39,7 +41,9 @@ class ReflectapiDemoTestsSerdeItemActive(BaseModel):
 class ReflectapiDemoTestsSerdeItemInactive(BaseModel):
     """'Inactive' variant of ReflectapiDemoTestsSerdeItem"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     name: str
     status: Literal["Inactive"] = Field(
@@ -50,7 +54,9 @@ class ReflectapiDemoTestsSerdeItemInactive(BaseModel):
 class ReflectapiDemoTestsSerdeItemPending(BaseModel):
     """'Pending' variant of ReflectapiDemoTestsSerdeItem"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     name: str
     status: Literal["Pending"] = Field(
@@ -70,7 +76,9 @@ class ReflectapiDemoTestsSerdeItem(RootModel):
 
 
 class ReflectapiDemoTestsSerdeStatusActive(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     status: Literal["Active"] = Field(
         default="Active", description="Discriminator field"
@@ -78,7 +86,9 @@ class ReflectapiDemoTestsSerdeStatusActive(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeStatusInactive(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     status: Literal["Inactive"] = Field(
         default="Inactive", description="Discriminator field"
@@ -86,7 +96,9 @@ class ReflectapiDemoTestsSerdeStatusInactive(BaseModel):
 
 
 class ReflectapiDemoTestsSerdeStatusPending(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     status: Literal["Pending"] = Field(
         default="Pending", description="Discriminator field"

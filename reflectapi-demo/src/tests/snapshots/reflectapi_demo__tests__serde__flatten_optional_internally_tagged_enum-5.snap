@@ -28,7 +28,9 @@ from reflectapi_runtime import ReflectapiInfallible
 class ReflectapiDemoTestsSerdeTaskHigh(BaseModel):
     """'High' variant of ReflectapiDemoTestsSerdeTask"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     title: str
     kind: Literal["High"] = Field(default="High", description="Discriminator field")
@@ -38,7 +40,9 @@ class ReflectapiDemoTestsSerdeTaskHigh(BaseModel):
 class ReflectapiDemoTestsSerdeTaskLow(BaseModel):
     """'Low' variant of ReflectapiDemoTestsSerdeTask"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     title: str
     kind: Literal["Low"] = Field(default="Low", description="Discriminator field")
@@ -55,14 +59,18 @@ class ReflectapiDemoTestsSerdeTask(RootModel):
 
 
 class ReflectapiDemoTestsSerdePriorityHigh(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     kind: Literal["High"] = Field(default="High", description="Discriminator field")
     deadline: str
 
 
 class ReflectapiDemoTestsSerdePriorityLow(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     kind: Literal["Low"] = Field(default="Low", description="Discriminator field")
 

@@ -26,19 +26,25 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIdent(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     job_id: int
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIdentData(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     payload: str
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     code: int
 
@@ -46,7 +52,9 @@ class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
 class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     job_id: int
     payload: str
@@ -55,7 +63,9 @@ class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF6
 class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden9793afe1(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
     job_id: int

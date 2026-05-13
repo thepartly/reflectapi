@@ -37,13 +37,17 @@ from reflectapi_runtime import (
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIdent(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     job_id: int
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIdentData(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     payload: str
 
@@ -51,7 +55,9 @@ class ReflectapiDemoTestsSerdeTestFlattenIdentData(BaseModel):
 class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     job_id: int
     payload: str
@@ -62,7 +68,9 @@ class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a
 ):
     """Insert variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     field_0: reflectapi_demo.tests.serde.TestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4
 
@@ -72,7 +80,9 @@ class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a
 ):
     """Remove variant"""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     field_0: reflectapi_demo.tests.serde.TestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4
 

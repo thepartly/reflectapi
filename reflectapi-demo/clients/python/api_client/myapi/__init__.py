@@ -53,35 +53,36 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
-class MyapiCodegenRegressionRequest(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    order: myapi.order.OrderInsertData = Field(
-        description="Pulls in `order::OrderInsertData` (bug 1) and Rust tuple\n(bug 2) reachability."
-    )
-    rate_limit: myapi.order.RateLimit = Field(
-        description="Pulls in `order::RateLimit` for Duration (bug 3)."
-    )
-    policy: myapi.order.Policy[str, int] = Field(
-        description="Pulls in `order::Policy<C, T>` for PhantomData (bug 4)."
+class MyapiHealthCheckFail(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
     )
 
 
-class MyapiCodegenRegressionResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+class MyapiOrderCoverageRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
+
+    order: myapi.order.OrderInsertData
+    rate_limit: myapi.order.RateLimit
+    policy: myapi.order.Policy[str, int]
+
+
+class MyapiOrderCoverageResponse(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     ok: bool
 
 
-class MyapiHealthCheckFail(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-
 # Public aliases for this module
-CodegenRegressionRequest = MyapiCodegenRegressionRequest
-CodegenRegressionResponse = MyapiCodegenRegressionResponse
 HealthCheckFail = MyapiHealthCheckFail
+OrderCoverageRequest = MyapiOrderCoverageRequest
+OrderCoverageResponse = MyapiOrderCoverageResponse
 
+from . import coverage
 from . import model
 from . import order
 from . import proto
@@ -94,12 +95,13 @@ except ImportError:
     pass
 
 __all__ = [
-    "CodegenRegressionRequest",
-    "CodegenRegressionResponse",
     "HealthCheckFail",
-    "MyapiCodegenRegressionRequest",
-    "MyapiCodegenRegressionResponse",
     "MyapiHealthCheckFail",
+    "MyapiOrderCoverageRequest",
+    "MyapiOrderCoverageResponse",
+    "OrderCoverageRequest",
+    "OrderCoverageResponse",
+    "coverage",
     "model",
     "order",
     "proto",

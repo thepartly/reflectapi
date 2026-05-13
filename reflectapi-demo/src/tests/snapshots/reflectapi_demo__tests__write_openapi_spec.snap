@@ -10,16 +10,16 @@ expression: s
     "version": "1.0.0"
   },
   "paths": {
-    "/codegen-regression": {
-      "description": "Regression-test endpoint pinning codegen bugs",
+    "/codegen-coverage": {
+      "description": "Coverage fixtures for codegen edge cases",
       "post": {
-        "operationId": "codegen-regression",
-        "description": "Regression-test endpoint pinning codegen bugs",
+        "operationId": "codegen-coverage",
+        "description": "Coverage fixtures for codegen edge cases",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/myapi.CodegenRegressionRequest"
+                "$ref": "#/components/schemas/myapi.coverage.CoverageRequest"
               }
             }
           },
@@ -31,7 +31,36 @@ expression: s
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/myapi.CodegenRegressionResponse"
+                  "$ref": "#/components/schemas/myapi.coverage.CoverageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/codegen-order-coverage": {
+      "description": "Coverage fixtures for namespace/tuple/Duration/PhantomData rendering",
+      "post": {
+        "operationId": "codegen-order-coverage",
+        "description": "Coverage fixtures for namespace/tuple/Duration/PhantomData rendering",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/myapi.OrderCoverageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/myapi.OrderCoverageResponse"
                 }
               }
             }
@@ -422,9 +451,17 @@ expression: s
         "description": "64-bit floating point number",
         "type": "number"
       },
-      "myapi.CodegenRegressionRequest": {
+      "i32": {
+        "description": "32-bit signed integer",
+        "type": "integer"
+      },
+      "i64": {
+        "description": "64-bit signed integer",
+        "type": "integer"
+      },
+      "myapi.OrderCoverageRequest": {
         "type": "object",
-        "title": "myapi.CodegenRegressionRequest",
+        "title": "myapi.OrderCoverageRequest",
         "required": [
           "order",
           "policy",
@@ -432,11 +469,10 @@ expression: s
         ],
         "properties": {
           "order": {
-            "description": "Pulls in `order::OrderInsertData` (bug 1) and Rust tuple\n(bug 2) reachability.",
             "$ref": "#/components/schemas/myapi.order.OrderInsertData"
           },
           "policy": {
-            "description": "Pulls in `order::Policy<C, T>` for PhantomData (bug 4).",
+            "description": "Exercises `PhantomData<T>` elision (the field carries no wire\ndata and must not appear in the Python model).",
             "type": "object",
             "title": "myapi.order.Policy<std.string.String, u32>",
             "required": [
@@ -459,20 +495,469 @@ expression: s
             }
           },
           "rate_limit": {
-            "description": "Pulls in `order::RateLimit` for Duration (bug 3).",
             "$ref": "#/components/schemas/myapi.order.RateLimit"
           }
         }
       },
-      "myapi.CodegenRegressionResponse": {
+      "myapi.OrderCoverageResponse": {
         "type": "object",
-        "title": "myapi.CodegenRegressionResponse",
+        "title": "myapi.OrderCoverageResponse",
         "required": [
           "ok"
         ],
         "properties": {
           "ok": {
             "$ref": "#/components/schemas/bool"
+          }
+        }
+      },
+      "myapi.coverage.BaseModel": {
+        "type": "object",
+        "title": "myapi.coverage.BaseModel",
+        "required": [
+          "label"
+        ],
+        "properties": {
+          "label": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.coverage.CoverageRequest": {
+        "type": "object",
+        "title": "myapi.coverage.CoverageRequest",
+        "required": [
+          "deep_option",
+          "defaulted",
+          "empty",
+          "generic_tree",
+          "int_keyed",
+          "keyword_variants",
+          "keywords",
+          "mutual",
+          "reserved",
+          "shadow_base_model",
+          "shadowing",
+          "tree",
+          "user_id",
+          "weird_doc",
+          "wrapper_int",
+          "wrapper_str"
+        ],
+        "properties": {
+          "deep_option": {
+            "$ref": "#/components/schemas/myapi.coverage.DeepOption"
+          },
+          "defaulted": {
+            "$ref": "#/components/schemas/myapi.coverage.DefaultedField"
+          },
+          "empty": {
+            "$ref": "#/components/schemas/myapi.coverage.EmptyStruct"
+          },
+          "generic_tree": {
+            "type": "object",
+            "title": "myapi.coverage.GenericTree<i32>",
+            "required": [
+              "children",
+              "value"
+            ],
+            "properties": {
+              "children": {
+                "description": "Expandable array type",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/myapi.coverage.GenericTree_i32_"
+                }
+              },
+              "value": {
+                "$ref": "#/components/schemas/i32"
+              }
+            }
+          },
+          "int_keyed": {
+            "$ref": "#/components/schemas/myapi.coverage.IntKeyedMap"
+          },
+          "keyword_variants": {
+            "$ref": "#/components/schemas/myapi.coverage.KeywordVariants"
+          },
+          "keywords": {
+            "$ref": "#/components/schemas/myapi.coverage.PyKeywordFields"
+          },
+          "mutual": {
+            "$ref": "#/components/schemas/myapi.coverage.MutualA"
+          },
+          "reserved": {
+            "$ref": "#/components/schemas/myapi.coverage.PydanticReservedFields"
+          },
+          "shadow_base_model": {
+            "$ref": "#/components/schemas/myapi.coverage.BaseModel"
+          },
+          "shadowing": {
+            "$ref": "#/components/schemas/myapi.coverage.ShadowingFields"
+          },
+          "tree": {
+            "$ref": "#/components/schemas/myapi.coverage.TreeNode"
+          },
+          "user_id": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "weird_doc": {
+            "$ref": "#/components/schemas/myapi.coverage.WeirdDocstring"
+          },
+          "wrapper_int": {
+            "type": "object",
+            "title": "myapi.coverage.Wrapper<i32>",
+            "required": [
+              "inner"
+            ],
+            "properties": {
+              "inner": {
+                "$ref": "#/components/schemas/i32"
+              }
+            }
+          },
+          "wrapper_str": {
+            "type": "object",
+            "title": "myapi.coverage.Wrapper<std.string.String>",
+            "required": [
+              "inner"
+            ],
+            "properties": {
+              "inner": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          }
+        }
+      },
+      "myapi.coverage.CoverageResponse": {
+        "type": "object",
+        "title": "myapi.coverage.CoverageResponse",
+        "required": [
+          "ok"
+        ],
+        "properties": {
+          "ok": {
+            "$ref": "#/components/schemas/bool"
+          }
+        }
+      },
+      "myapi.coverage.DeepOption": {
+        "type": "object",
+        "title": "myapi.coverage.DeepOption",
+        "required": [
+          "maybe_maybe"
+        ],
+        "properties": {
+          "maybe_maybe": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "myapi.coverage.DefaultedField": {
+        "type": "object",
+        "title": "myapi.coverage.DefaultedField",
+        "properties": {
+          "count": {
+            "$ref": "#/components/schemas/u32"
+          }
+        }
+      },
+      "myapi.coverage.EmptyStruct": {
+        "type": "object",
+        "title": "myapi.coverage.EmptyStruct",
+        "properties": {}
+      },
+      "myapi.coverage.IntKeyedMap": {
+        "type": "object",
+        "title": "myapi.coverage.IntKeyedMap",
+        "required": [
+          "by_id",
+          "uuid_keyed"
+        ],
+        "properties": {
+          "by_id": {
+            "description": "Key-value map type",
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/std.string.String"
+            }
+          },
+          "uuid_keyed": {
+            "description": "Key-value map type",
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/std.string.String"
+            }
+          }
+        }
+      },
+      "myapi.coverage.KeywordVariants": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "class",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "class"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "lambda",
+            "required": [
+              "kind",
+              "name"
+            ],
+            "properties": {
+              "kind": {
+                "const": "lambda"
+              },
+              "name": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "return",
+            "required": [
+              "kind",
+              "value"
+            ],
+            "properties": {
+              "kind": {
+                "const": "return"
+              },
+              "value": {
+                "$ref": "#/components/schemas/i32"
+              }
+            }
+          }
+        ]
+      },
+      "myapi.coverage.MutualA": {
+        "type": "object",
+        "title": "myapi.coverage.MutualA",
+        "required": [
+          "b",
+          "name"
+        ],
+        "properties": {
+          "b": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/myapi.coverage.MutualB"
+              }
+            ]
+          },
+          "name": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.coverage.MutualB": {
+        "type": "object",
+        "title": "myapi.coverage.MutualB",
+        "required": [
+          "a",
+          "name"
+        ],
+        "properties": {
+          "a": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/myapi.coverage.MutualA"
+              }
+            ]
+          },
+          "name": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.coverage.PyKeywordFields": {
+        "type": "object",
+        "title": "myapi.coverage.PyKeywordFields",
+        "required": [
+          "None",
+          "True",
+          "class",
+          "from",
+          "import",
+          "lambda",
+          "match",
+          "return",
+          "type",
+          "yield"
+        ],
+        "properties": {
+          "None": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/i32"
+              }
+            ]
+          },
+          "True": {
+            "$ref": "#/components/schemas/bool"
+          },
+          "class": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "from": {
+            "$ref": "#/components/schemas/u32"
+          },
+          "import": {
+            "$ref": "#/components/schemas/bool"
+          },
+          "lambda": {
+            "$ref": "#/components/schemas/i64"
+          },
+          "match": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "return": {
+            "description": "Expandable array type",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/u8"
+            }
+          },
+          "type": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "yield": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          }
+        }
+      },
+      "myapi.coverage.PydanticReservedFields": {
+        "type": "object",
+        "title": "myapi.coverage.PydanticReservedFields",
+        "required": [
+          "model_config",
+          "model_dump_json",
+          "model_fields_set"
+        ],
+        "properties": {
+          "model_config": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "model_dump_json": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "model_fields_set": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.coverage.ShadowingFields": {
+        "type": "object",
+        "title": "myapi.coverage.ShadowingFields",
+        "required": [
+          "annotated",
+          "base_model",
+          "field",
+          "generic"
+        ],
+        "properties": {
+          "annotated": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "base_model": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "field": {
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "generic": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.coverage.TreeNode": {
+        "type": "object",
+        "title": "myapi.coverage.TreeNode",
+        "required": [
+          "children",
+          "parent",
+          "value"
+        ],
+        "properties": {
+          "children": {
+            "description": "Expandable array type",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/myapi.coverage.TreeNode"
+            }
+          },
+          "parent": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/myapi.coverage.TreeNode"
+              }
+            ]
+          },
+          "value": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "myapi.coverage.WeirdDocstring": {
+        "description": "A docstring with \\\"quotes\\\" and \\'apostrophes\\' and a backslash: \\\\\\\\\nAnd a \\\"\\\"\\\"triple quote\\\"\\\"\\\" inside.",
+        "type": "object",
+        "title": "myapi.coverage.WeirdDocstring",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "$ref": "#/components/schemas/std.string.String"
           }
         }
       },
@@ -669,7 +1154,7 @@ expression: s
         }
       },
       "myapi.order.OrderInsertData": {
-        "description": "Bug 1 (namespace alias mismatch). The struct name starts with\nthe parent namespace\\'s cap (`Order…`) — the alias-stripping\npass used to strip the leading cap from the namespace alias\n(`order.InsertData = OrderInsertData`) while field annotations\nkept the un-stripped form, producing `order.OrderInsertData`\nwhich doesn\\'t resolve at `model_rebuild()` time.",
+        "description": "A struct whose name begins with the parent namespace cap.\nExercises the namespace-alias path for both the stripped\n(`order.InsertData`) and Rust-leaf (`order.OrderInsertData`)\nforms.",
         "type": "object",
         "title": "myapi.order.OrderInsertData",
         "required": [
@@ -678,7 +1163,7 @@ expression: s
         ],
         "properties": {
           "alternative_part_number": {
-            "description": "Bug 2 (tuple types). serde emits Rust tuples as JSON arrays;\nthe Python codegen used to emit `std.tuple.Tuple2[...]`\nwith no matching class, so any reference broke at rebuild.",
+            "description": "Exercises the `tuple[A, B]` rendering for `(A, B)`.",
             "oneOf": [
               {
                 "description": "Null",
@@ -704,7 +1189,7 @@ expression: s
         }
       },
       "myapi.order.RateLimit": {
-        "description": "Bug 3 (Duration shape). serde emits `Duration` as\n`{\\\"secs\\\": <u64>, \\\"nanos\\\": <u32>}`. Pydantic\\'s `timedelta`\nvalidator rejects that shape, so any response with a Duration\nfailed validation.",
+        "description": "Exercises the `std::time::Duration` ↔ `{secs, nanos}` wire\nadapter.",
         "type": "object",
         "title": "myapi.order.RateLimit",
         "required": [

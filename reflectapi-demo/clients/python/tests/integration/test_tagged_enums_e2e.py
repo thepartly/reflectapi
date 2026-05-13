@@ -19,7 +19,6 @@ from tests.package_imports import (
     MyapiProtoHeaders as Headers,
     MyapiProtoPaginated as Paginated,
 )
-from reflectapi_runtime import ReflectapiOption
 from tests.model_helpers import root_value
 
 # For externally tagged enums, unit variants are just string literals
@@ -177,13 +176,13 @@ class TestTaggedEnumInRequests:
     def test_update_request_with_dog_kind(self):
         """Test PetsUpdateRequest with dog kind."""
         dog = PetKindDog(type="dog", breed="Retriever")
-        request = PetsUpdateRequest(name="Buddy", kind=dog, age=ReflectapiOption(6))
+        request = PetsUpdateRequest(name="Buddy", kind=dog, age=6)
 
         assert request.name == "Buddy"
         kind = root_value(request.kind)
         assert kind.type == "dog"
         assert kind.breed == "Retriever"
-        assert request.age._value == 6
+        assert request.age == 6
 
     def test_update_request_serialization_with_tagged_enum(self):
         """Test serializing update request with tagged enum."""

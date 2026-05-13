@@ -26,13 +26,17 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     code: int
 
 
 class ReflectapiDemoTestsSerdeTestLeafCollisionPair(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb
     b: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc
@@ -41,7 +45,9 @@ class ReflectapiDemoTestsSerdeTestLeafCollisionPair(BaseModel):
 class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
     a_field: int
@@ -50,20 +56,26 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2
 class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
     b_field: bool
 
 
 class ReflectapiDemoTestsSerdeModuleASample(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     a_field: int
 
 
 class ReflectapiDemoTestsSerdeModuleBSample(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     b_field: bool
 

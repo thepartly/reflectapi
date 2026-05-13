@@ -25,13 +25,17 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIdent(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     job_id: int
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIdentData(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     payload: str
 
@@ -39,7 +43,9 @@ class ReflectapiDemoTestsSerdeTestFlattenIdentData(BaseModel):
 class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     job_id: int
     payload: str
@@ -48,7 +54,9 @@ class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF6
 class ReflectapiDemoTestsSerdeTestWithMarkedInnerReflectapiDemoTestsSerdeTestF02f28d66(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     body: reflectapi_demo.tests.serde.TestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4
     extra: bool

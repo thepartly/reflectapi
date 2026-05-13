@@ -31,7 +31,9 @@ A = TypeVar("A")
 
 
 class ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f: reflectapi_demo.tests.generics.TestStructWithSimpleGeneric[int] = Field(
         serialization_alias="_f", validation_alias="_f"
@@ -42,7 +44,9 @@ class ReflectapiDemoTestsGenericsTestStructWithNestedGenericStructTwice(BaseMode
 
 
 class ReflectapiDemoTestsGenericsTestStructWithSimpleGeneric(BaseModel, Generic[A]):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f: A = Field(serialization_alias="_f", validation_alias="_f")
 

@@ -31,7 +31,9 @@ G = TypeVar("G")
 
 
 class ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric(BaseModel, Generic[G]):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f_hashset: list[G] = Field(
         serialization_alias="_f_hashset", validation_alias="_f_hashset"

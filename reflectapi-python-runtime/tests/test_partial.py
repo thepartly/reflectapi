@@ -1,11 +1,12 @@
 """Tests for ``ReflectapiPartialModel``.
 
-These tests pin the wire-format contract that replaced the now-deleted
-``ReflectapiOption`` class: a field that was *never explicitly set* on
-the instance is omitted from the serialised payload entirely; a field
-set to ``None`` is emitted as ``null``; a field set to a value is
-emitted as that value. Round-trip preserves the distinction via
-``model_fields_set``.
+Contract:
+
+* A field that was never explicitly set on the instance is omitted
+  from the serialised payload entirely.
+* A field set to ``None`` is emitted as ``null``.
+* A field set to a value is emitted as that value.
+* Round-trip preserves the distinction via ``model_fields_set``.
 """
 
 from __future__ import annotations
@@ -93,14 +94,11 @@ class TestWireFormat:
         }
 
     def test_post_construction_assignment_lands_on_wire(self):
-        """Caveat: requires ``validate_assignment=True`` in ``model_config``.
+        """Post-construction assignment marks the field as set.
 
-        Generated client classes always emit that flag; constructing a
-        ``ReflectapiPartialModel`` subclass in user code without it (this
-        base ``Item`` model_config doesn't include it) leaves
-        ``model_fields_set`` untouched on assignment. This test pins the
-        behaviour for the *generated* shape — we patch the config locally
-        to match what the codegen emits.
+        Requires ``validate_assignment=True`` in ``model_config`` —
+        generated client classes always include it, so attribute
+        writes after construction land on the wire as expected.
         """
 
         class WithAssign(ReflectapiPartialModel):
@@ -150,8 +148,8 @@ class TestInnerTypeValidation:
             Item.model_validate(
                 {"identity": "x", "snapshot": {"wrong_field": True}}
             )
-        # The error path includes 'snapshot.name' to show the inner
-        # validator ran. Pre-fix it would have silently accepted the dict.
+        # The error path includes 'snapshot.name', proving the inner
+        # type's validator ran on the wire payload.
         loc = exc_info.value.errors()[0]["loc"]
         assert "snapshot" in loc and "name" in loc
 

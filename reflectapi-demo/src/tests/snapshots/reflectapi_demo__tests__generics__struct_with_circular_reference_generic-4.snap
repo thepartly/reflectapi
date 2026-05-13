@@ -33,7 +33,9 @@ T = TypeVar("T")
 class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGeneric(
     BaseModel, Generic[T]
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     f: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGeneric[T] = Field(
         serialization_alias="_f", validation_alias="_f"

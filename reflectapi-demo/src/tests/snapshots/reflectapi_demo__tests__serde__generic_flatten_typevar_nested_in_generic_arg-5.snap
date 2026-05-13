@@ -26,13 +26,17 @@ from reflectapi_runtime import ReflectapiInfallible
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     code: int
 
 
 class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     inner_a: int
     inner_b: str
@@ -41,7 +45,9 @@ class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
 class ReflectapiDemoTestsSerdeTestUpdateOrElseStdOptionOptionReflectapiDemoTesB9dceb2e(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
     inner_a: int
@@ -51,7 +57,9 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseStdOptionOptionReflectapiDemoTesB9
 class ReflectapiDemoTestsSerdeTestWrapperWithNestedTypevarArgReflectapiDemoTes59f9972b(
     BaseModel
 ):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
 
     body: reflectapi_demo.tests.serde.TestUpdateOrElseStdOptionOptionReflectapiDemoTesB9dceb2e
     extra: int
