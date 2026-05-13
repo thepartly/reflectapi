@@ -38,11 +38,11 @@ class ReflectapiDemoTestsSerdeTestLeafCollisionPair(BaseModel):
         extra="ignore", populate_by_name=True, protected_namespaces=()
     )
 
-    a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb
-    b: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc
+    a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeModuleAS0030345e
+    b: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4368653
 
 
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb(
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleAS0030345e(
     BaseModel
 ):
     model_config = ConfigDict(
@@ -53,7 +53,7 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2
     a_field: int
 
 
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc(
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4368653(
     BaseModel
 ):
     model_config = ConfigDict(
@@ -92,8 +92,8 @@ class reflectapi_demo:
 
             TestFlattenIfElse = ReflectapiDemoTestsSerdeTestFlattenIfElse
             TestLeafCollisionPair = ReflectapiDemoTestsSerdeTestLeafCollisionPair
-            TestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb
-            TestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc
+            TestUpdateOrElseReflectapiDemoTestsSerdeModuleAS0030345e = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleAS0030345e
+            TestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4368653 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4368653
 
             class module_a:
                 """Namespace for module_a types."""
@@ -201,8 +201,8 @@ _rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsSerdeTestFlattenIfElse,
     ReflectapiDemoTestsSerdeTestLeafCollisionPair,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleASC2dd36fb,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBS8b56ffdc,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleAS0030345e,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4368653,
     ReflectapiDemoTestsSerdeModuleASample,
     ReflectapiDemoTestsSerdeModuleBSample,
 ]:

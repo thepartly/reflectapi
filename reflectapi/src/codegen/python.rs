@@ -7106,7 +7106,19 @@ fn debug_assert_monomorphization_invariants(
 /// references stay consistent.
 fn mangle_monomorphized_name(struct_name: &str, args: &[TypeReference]) -> String {
     fn arg_suffix(arg: &TypeReference) -> String {
-        let base = arg.name.replace("::", "_");
+        // Run the arg name through the same destutter the rest of
+        // the class-name pipeline uses. Without this, a type like
+        // `uuid::Uuid` produces the suffix `uuid_Uuid`, which then
+        // PascalCases to `UuidUuid` in the final class name — making
+        // `IdentityData<uuid::Uuid, X>` emit
+        // `IdentityDataUuidUuidX` instead of `IdentityDataUuidX`.
+        let base = if arg.name.contains("::") {
+            let parts: Vec<&str> = arg.name.split("::").collect();
+            let pascal_parts: Vec<String> = parts.iter().map(|p| to_pascal_case(p)).collect();
+            maybe_destutter_pascal_parts(&pascal_parts)
+        } else {
+            arg.name.replace("::", "_")
+        };
         if arg.arguments.is_empty() {
             base
         } else {

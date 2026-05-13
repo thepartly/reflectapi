@@ -55,11 +55,22 @@ class ReflectapiDemoTestsSerdeTestTwoInstantiations(BaseModel):
         extra="ignore", populate_by_name=True, protected_namespaces=()
     )
 
-    a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
-    b: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20
+    a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC43b4b99
+    b: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b3f870b
 
 
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69(
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b3f870b(
+    BaseModel
+):
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=()
+    )
+
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
+    alt_x: bool
+
+
+class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC43b4b99(
     BaseModel
 ):
     model_config = ConfigDict(
@@ -69,17 +80,6 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3a
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
     inner_a: int
     inner_b: str
-
-
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20(
-    BaseModel
-):
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
-    )
-
-    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
-    alt_x: bool
 
 
 # Namespace classes for dotted access to types
@@ -96,8 +96,8 @@ class reflectapi_demo:
             TestFlattenInner = ReflectapiDemoTestsSerdeTestFlattenInner
             TestFlattenInnerAlt = ReflectapiDemoTestsSerdeTestFlattenInnerAlt
             TestTwoInstantiations = ReflectapiDemoTestsSerdeTestTwoInstantiations
-            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69
-            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20
+            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b3f870b = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b3f870b
+            TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC43b4b99 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC43b4b99
 
 
 class AsyncInoutClient:
@@ -197,8 +197,8 @@ for _model in [
     ReflectapiDemoTestsSerdeTestFlattenInner,
     ReflectapiDemoTestsSerdeTestFlattenInnerAlt,
     ReflectapiDemoTestsSerdeTestTwoInstantiations,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat3ae7cb69,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatCd6baf20,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b3f870b,
+    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC43b4b99,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

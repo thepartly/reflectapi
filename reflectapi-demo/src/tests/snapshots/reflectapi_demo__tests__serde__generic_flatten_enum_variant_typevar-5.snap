@@ -52,7 +52,7 @@ class ReflectapiDemoTestsSerdeTestFlattenIdentData(BaseModel):
     payload: str
 
 
-class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4(
+class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8(
     BaseModel
 ):
     model_config = ConfigDict(
@@ -63,7 +63,7 @@ class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF6
     payload: str
 
 
-class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451InsertVariant(
+class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4InsertVariant(
     BaseModel
 ):
     """Insert variant"""
@@ -72,10 +72,10 @@ class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a
         extra="ignore", populate_by_name=True, protected_namespaces=()
     )
 
-    field_0: reflectapi_demo.tests.serde.TestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4
+    field_0: reflectapi_demo.tests.serde.TestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8
 
 
-class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451RemoveVariant(
+class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4RemoveVariant(
     BaseModel
 ):
     """Remove variant"""
@@ -84,20 +84,20 @@ class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a
         extra="ignore", populate_by_name=True, protected_namespaces=()
     )
 
-    field_0: reflectapi_demo.tests.serde.TestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4
+    field_0: reflectapi_demo.tests.serde.TestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8
 
 
 # Externally tagged enum using RootModel
-ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451Variants = Union[
-    ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451InsertVariant,
-    ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451RemoveVariant,
+ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4Variants = Union[
+    ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4InsertVariant,
+    ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4RemoveVariant,
     Literal["Empty"],
 ]
 
 
-class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451(
+class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4(
     RootModel[
-        ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451Variants
+        ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4Variants
     ]
 ):
     """Externally tagged enum"""
@@ -109,22 +109,22 @@ class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a
             data,
             {
                 "Insert": lambda v: (
-                    ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451InsertVariant(
+                    ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4InsertVariant(
                         field_0=v
                     )
                 ),
                 "Remove": lambda v: (
-                    ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451RemoveVariant(
+                    ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4RemoveVariant(
                         field_0=v
                     )
                 ),
                 "Empty": "_unit",
             },
             (
-                ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451InsertVariant,
-                ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451RemoveVariant,
+                ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4InsertVariant,
+                ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4RemoveVariant,
             ),
-            "ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451",
+            "ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4",
         )
 
     @model_serializer
@@ -135,20 +135,20 @@ class ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a
                 "Insert": (
                     lambda r: isinstance(
                         r,
-                        ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451InsertVariant,
+                        ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4InsertVariant,
                     ),
                     lambda r: {"Insert": r.field_0},
                 ),
                 "Remove": (
                     lambda r: isinstance(
                         r,
-                        ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451RemoveVariant,
+                        ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4RemoveVariant,
                     ),
                     lambda r: {"Remove": r.field_0},
                 ),
                 "Empty": (lambda r: r == "Empty", lambda r: "Empty"),
             },
-            "ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451",
+            "ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4",
         )
 
 
@@ -164,10 +164,10 @@ class reflectapi_demo:
 
             TestFlattenIdent = ReflectapiDemoTestsSerdeTestFlattenIdent
             TestFlattenIdentData = ReflectapiDemoTestsSerdeTestFlattenIdentData
-            TestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4 = ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4
-            TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451InsertVariant = ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451InsertVariant
-            TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451RemoveVariant = ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451RemoveVariant
-            TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451 = ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451
+            TestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8 = ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8
+            TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4InsertVariant = ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4InsertVariant
+            TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4RemoveVariant = ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4RemoveVariant
+            TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4 = ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4
 
 
 class AsyncInoutClient:
@@ -179,10 +179,10 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451
+            reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451
+        reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4
     ]:
         """
 
@@ -190,7 +190,7 @@ class AsyncInoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451]: Response containing reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451 data
+            ApiResponse[reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4]: Response containing reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4 data
         """
         path = "/inout_test"
 
@@ -199,7 +199,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451,
+            response_model=reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4,
         )
 
 
@@ -225,10 +225,10 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451
+            reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451
+        reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4
     ]:
         """
 
@@ -236,7 +236,7 @@ class InoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451]: Response containing reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451 data
+            ApiResponse[reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4]: Response containing reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4 data
         """
         path = "/inout_test"
 
@@ -245,7 +245,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451,
+            response_model=reflectapi_demo.tests.serde.TestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4,
         )
 
 
@@ -273,8 +273,8 @@ _rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsSerdeTestFlattenIdent,
     ReflectapiDemoTestsSerdeTestFlattenIdentData,
-    ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlatF60133e4,
-    ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl0a834451,
+    ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8,
+    ReflectapiDemoTestsSerdeTestIngestRelationReflectapiDemoTestsSerdeTestFl36e9c2f4,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue
