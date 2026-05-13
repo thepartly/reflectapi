@@ -259,10 +259,9 @@ class ClientBase(ABC):
         the wire (they encode the protocol's "explicit null" state).
 
         Plain Pydantic models use ``exclude_none=True`` so an unset
-        optional field renders as an absent key rather than a JSON
-        ``null`` — matching what serde sees as
-        ``#[serde(skip_serializing_if = "Option::is_none")]`` and
-        preserving the historical wire format.
+        optional field renders as an absent key, matching the wire
+        shape produced by serde with
+        ``#[serde(skip_serializing_if = "Option::is_none")]``.
         """
         # Handle primitive types (for untagged unions)
         if not hasattr(json_model, "model_dump_json"):
@@ -822,10 +821,9 @@ class AsyncClientBase(ABC):
         the wire (they encode the protocol's "explicit null" state).
 
         Plain Pydantic models use ``exclude_none=True`` so an unset
-        optional field renders as an absent key rather than a JSON
-        ``null`` — matching what serde sees as
-        ``#[serde(skip_serializing_if = "Option::is_none")]`` and
-        preserving the historical wire format.
+        optional field renders as an absent key, matching the wire
+        shape produced by serde with
+        ``#[serde(skip_serializing_if = "Option::is_none")]``.
         """
         # Handle primitive types (for untagged unions)
         if not hasattr(json_model, "model_dump_json"):

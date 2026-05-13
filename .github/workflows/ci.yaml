@@ -74,12 +74,12 @@ jobs:
         run: uv run python -c "import api_client; print('demo client import OK')"
       - name: Demo snapshot is committed (no drift)
         run: git diff --exit-code reflectapi-demo/clients/python/api_client/
-      # Codegen coverage fixtures live in the integration test at
-      # `reflectapi-demo/tests/codegen_coverage.rs` (not in the
-      # public demo schema). The test writes a Python client to
+      # Codegen coverage fixtures (recursive types, Python keyword
+      # field names, Pydantic-reserved names, ...) live in the
+      # integration test at `reflectapi-demo/tests/codegen_coverage.rs`.
+      # The test writes a Python client to
       # `target/codegen-coverage-client/`; the next step imports it
-      # so the strict `_rebuild_models()` raises on any dangling
-      # reference.
+      # so `_rebuild_models()` raises on any dangling reference.
       - name: Generate codegen coverage client
         run: cargo test -p reflectapi-demo --test codegen_coverage
       - name: Import codegen coverage client

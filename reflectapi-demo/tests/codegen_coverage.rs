@@ -1,15 +1,17 @@
-//! Codegen coverage fixtures + smoke test.
+//! Codegen coverage fixtures for the Python client generator.
 //!
-//! Every type in this file exercises a specific Python codegen
-//! rendering path. They live here as an integration test (rather
-//! than in the demo's public schema) so the demo stays a clean
-//! example and the fixtures stay clearly test-only.
+//! Each type below targets one rendering path: namespace alias
+//! resolution, tuple types, Duration serialisation, PhantomData
+//! elision, Python keyword field names, recursive and mutually
+//! recursive types, and so on.
 //!
-//! The `#[test]` at the bottom builds a private schema from these
-//! fixtures, runs the Python codegen against it, and writes the
-//! result to `target/codegen-coverage-client/`. CI imports that
-//! generated package — the strict `_rebuild_models()` raises on any
-//! dangling type reference.
+//! Running this test as `cargo test -p reflectapi-demo --test
+//! codegen_coverage` builds a schema from the fixtures, runs the
+//! Python codegen, and writes the result to
+//! `target/codegen-coverage-client/`. CI imports the generated
+//! package; `_rebuild_models()` raises if any annotation points at
+//! a symbol the codegen never defined, so the import step is the
+//! actual assertion.
 
 use std::sync::Arc;
 
