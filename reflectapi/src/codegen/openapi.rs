@@ -1299,6 +1299,19 @@ fn primitive_fallback_type_ref(
     };
 
     let fallback = primitive.fallback()?.clone();
+    // Only unwrap transparent pointer-shaped primitives whose fallback is just
+    // one of their generic parameters (Box<T>, Rc<T>, Arc<T>, Cow<T>, ...).
+    // Primitives with their own OpenAPI representation (usize, chrono::DateTime,
+    // HashSet<T> -> Vec<T>, ...) must keep their richer schema instead of being
+    // collapsed to the wire fallback.
+    if !primitive
+        .parameters
+        .iter()
+        .any(|param| param.name() == fallback.name)
+    {
+        return None;
+    }
+
     let subst = reflectapi_schema::mk_subst(&primitive.parameters, &ty_ref.arguments);
     Some(fallback.subst(&subst))
 }
