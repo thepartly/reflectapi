@@ -2343,10 +2343,23 @@ fn render_rebuild_file(
     if generation.rebuild_models.is_empty() {
         body.push_str("    return\n");
     } else {
+        // Every namespace module needs every *top-level* namespace
+        // bound as a global so forward-reference annotations like
+        // `auth.AuthError` resolve from inside (say) `upload.py`.
+        // Binding only each namespace's own root would handle paths
+        // like `myapi.model.X` (one shared root) but not the more
+        // common case where namespaces are siblings under the
+        // package and a type in one references a type in another.
+        let top_level_namespaces: BTreeSet<String> = flat_imports
+            .keys()
+            .filter_map(|p| p.first().cloned())
+            .map(|s| safe_python_module_segment(&s))
+            .collect();
         for ns_path in flat_imports.keys().filter(|path| !path.is_empty()) {
             let module = module_import_path(ns_path);
-            let root = safe_python_module_segment(&ns_path[0]);
-            body.push_str(&format!("    {module}.{root} = {root}\n"));
+            for top in &top_level_namespaces {
+                body.push_str(&format!("    {module}.{top} = {top}\n"));
+            }
         }
         if !root_type_names.is_empty() {
             for root in generation
