@@ -4714,6 +4714,20 @@ fn is_pydantic_method_name(name: &str) -> bool {
             | "model_fields_set"
             | "model_extra"
             | "model_computed_fields"
+            // Deprecated-but-still-present BaseModel methods that
+            // Pydantic v2 warns about when a field shadows them.
+            | "schema"
+            | "schema_json"
+            | "json"
+            | "dict"
+            | "parse_obj"
+            | "parse_raw"
+            | "parse_file"
+            | "from_orm"
+            | "construct"
+            | "copy"
+            | "validate"
+            | "update_forward_refs"
     )
 }
 

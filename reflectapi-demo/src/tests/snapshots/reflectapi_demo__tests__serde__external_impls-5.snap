@@ -32,7 +32,7 @@ class ReflectapiDemoTestsSerdeTest(BaseModel):
     index_map: dict[int, int]
     index_set: list[str]
     url: str
-    json: Any
+    json_: Any = Field(serialization_alias="json", validation_alias="json")
 
 
 # Namespace classes for dotted access to types
