@@ -851,11 +851,19 @@ export namespace myapi {
     export type UserId = number /* u64 */;
 
     /**
-     * A docstring with \"quotes\" and \'apostrophes\' and a backslash: \\\\
-     * And a \"\"\"triple quote\"\"\" inside.
+     * A docstring with "quotes" and 'apostrophes' and a backslash: \\
+     * And a """triple quote""" inside.
      */
     export interface WeirdDocstring {
       value: string;
+      /**
+       * Field description with "double quotes" and 'single quotes'.
+       */
+      mixed_quotes: string;
+      /**
+       * Field description with only "double quotes" — should use single-quoted Python literal.
+       */
+      doubles_only: string;
     }
 
     export interface Wrapper<T> {

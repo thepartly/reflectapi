@@ -332,6 +332,10 @@ mod coverage {
     )]
     pub struct WeirdDocstring {
         pub value: String,
+        /// Field description with "double quotes" and 'single quotes'.
+        pub mixed_quotes: String,
+        /// Field description with only "double quotes" — should use single-quoted Python literal.
+        pub doubles_only: String,
     }
 
     // ---- Type name that shadows a Pydantic-imported symbol ----

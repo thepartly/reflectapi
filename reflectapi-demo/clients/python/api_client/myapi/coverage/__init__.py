@@ -212,14 +212,20 @@ class MyapiCoverageTreeNode(BaseModel):
 
 
 class MyapiCoverageWeirdDocstring(BaseModel):
-    """A docstring with \\"quotes\\" and \\'apostrophes\\' and a backslash: \\\\\\\\
-And a \\"\\"\\"triple quote\\"\\"\\" inside."""
+    """A docstring with "quotes" and 'apostrophes' and a backslash: \\\\
+And a \"\"\"triple quote\"\"\" inside."""
 
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=()
     )
 
     value: str
+    mixed_quotes: str = Field(
+        description="Field description with \"double quotes\" and 'single quotes'."
+    )
+    doubles_only: str = Field(
+        description='Field description with only "double quotes" — should use single-quoted Python literal.'
+    )
 
 
 class MyapiCoverageWrapper(BaseModel, Generic[T]):

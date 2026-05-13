@@ -346,11 +346,15 @@ pub mod types {
 
             pub type UserId = u64;
 
-            /// A docstring with \"quotes\" and \'apostrophes\' and a backslash: \\\\
-            /// And a \"\"\"triple quote\"\"\" inside.
+            /// A docstring with "quotes" and 'apostrophes' and a backslash: \\
+            /// And a """triple quote""" inside.
             #[derive(Debug, serde::Serialize)]
             pub struct WeirdDocstring {
                 pub value: std::string::String,
+                /// Field description with "double quotes" and 'single quotes'.
+                pub mixed_quotes: std::string::String,
+                /// Field description with only "double quotes" — should use single-quoted Python literal.
+                pub doubles_only: std::string::String,
             }
 
             #[derive(Debug, serde::Serialize)]

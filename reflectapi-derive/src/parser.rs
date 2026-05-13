@@ -146,16 +146,20 @@ pub(crate) fn parse_doc_attributes(attrs: &Vec<syn::Attribute>) -> String {
             continue;
         }
 
+        // Read the actual string value of the `#[doc = "..."]` literal.
+        // The previous implementation went through `to_token_stream()`,
+        // which produced the *Rust source* representation (with the
+        // surrounding quotes and any embedded `\"` escapes still in
+        // place), so a doc comment containing literal double quotes
+        // landed in the schema as `\"`-prefixed bytes.
         if let syn::Meta::NameValue(meta) = &attr.meta {
-            result.push(
-                meta.value
-                    .to_token_stream()
-                    .to_string()
-                    .as_str()
-                    .trim_matches('"')
-                    .trim()
-                    .to_string(),
-            );
+            if let syn::Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Str(litstr),
+                ..
+            }) = &meta.value
+            {
+                result.push(litstr.value().trim().to_string());
+            }
         }
     }
     result.join("\n")

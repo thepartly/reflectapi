@@ -949,13 +949,23 @@ expression: s
         }
       },
       "myapi.coverage.WeirdDocstring": {
-        "description": "A docstring with \\\"quotes\\\" and \\'apostrophes\\' and a backslash: \\\\\\\\\nAnd a \\\"\\\"\\\"triple quote\\\"\\\"\\\" inside.",
+        "description": "A docstring with \"quotes\" and 'apostrophes' and a backslash: \\\\\nAnd a \"\"\"triple quote\"\"\" inside.",
         "type": "object",
         "title": "myapi.coverage.WeirdDocstring",
         "required": [
+          "doubles_only",
+          "mixed_quotes",
           "value"
         ],
         "properties": {
+          "doubles_only": {
+            "description": "Field description with only \"double quotes\" — should use single-quoted Python literal.",
+            "$ref": "#/components/schemas/std.string.String"
+          },
+          "mixed_quotes": {
+            "description": "Field description with \"double quotes\" and 'single quotes'.",
+            "$ref": "#/components/schemas/std.string.String"
+          },
           "value": {
             "$ref": "#/components/schemas/std.string.String"
           }
