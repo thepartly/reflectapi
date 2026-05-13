@@ -52,6 +52,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v3
+      # The Python codegen shells out to `ruff format`; different ruff
+      # versions wrap long lines differently, so the snapshot-drift
+      # check below is meaningless unless CI and local devs use the
+      # same ruff version. Pin it explicitly.
+      - uses: astral-sh/ruff-action@v3
+        with:
+          version: "0.15.8"
       - name: Regenerate demo Python client from schema
         run: |
           cargo run -p reflectapi-cli --quiet -- codegen \
