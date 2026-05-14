@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.17.3
+
+Promotes the 0.17.3-alpha.1 work to stable and adds one OpenAPI codegen fix on top:
+
+- **Root-level `Box<T>` (and other transparent pointer wrappers) now resolve in OpenAPI output.** A function taking or returning `Box<TreeNode>` previously emitted `$ref: #/components/schemas/Box<TreeNode>` — a name nothing in the spec registered. The converter now unwraps transparent pointer primitives (`Box`, `Rc`, `Arc`, `Cow`, ...) at the type-reference level so the ref points at the real component. Primitives that carry their own OpenAPI representation (`chrono::DateTime`, `HashSet<T>`, `usize`, ...) are left untouched.
+- **Doc descriptions are scrubbed of embedded `<details><summary>JSON schema</summary>` blocks.** These are useful as human-readable annotations in Rust source but leaked into `info`, `paths`, and component `description` fields in the generated spec.
+
+See the alpha.1 notes below for the rest of the 0.17.3 changes (Python `ReflectapiPartialModel`, TS SSE flush, etc.).
+
 ## 0.17.3-alpha.1
 
 ### Python — partial fields without a wrapper class
