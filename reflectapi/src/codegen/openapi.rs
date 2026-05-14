@@ -441,7 +441,7 @@ impl Converter<'_> {
             tags: self.config.tags.clone(),
             info: Info {
                 title: schema.name.clone(),
-                description: schema.description.clone(),
+                description: sanitize_description(&schema.description),
                 version: "1.0.0".into(),
             },
             paths: schema
@@ -516,7 +516,7 @@ impl Converter<'_> {
         let operation = Operation {
             operation_id: f.name.clone(),
             tags: f.tags.clone(),
-            description: f.description.clone(),
+            description: sanitize_description(&f.description),
             deprecated: f.deprecated(),
             parameters: f
                 .input_headers()
@@ -535,7 +535,7 @@ impl Converter<'_> {
         };
 
         PathItem {
-            description: f.description.clone(),
+            description: sanitize_description(&f.description),
             get: None,
             // If we do this the `operation_id` will not be unique
             // get: f.readonly.then(|| operation.clone()),
@@ -597,7 +597,7 @@ impl Converter<'_> {
         field: &crate::Field,
     ) -> Property {
         Property {
-            description: field.description().to_owned(),
+            description: sanitize_description(field.description()),
             deprecated: field.deprecated(),
             schema: self.convert_type_ref(schema, kind, field.type_ref()),
         }
@@ -609,6 +609,10 @@ impl Converter<'_> {
         kind: Kind,
         ty_ref: &crate::TypeReference,
     ) -> InlineOrRef<Schema> {
+        if let Some(fallback) = primitive_fallback_type_ref(schema, kind, ty_ref) {
+            return self.convert_type_ref(schema, kind, &fallback);
+        }
+
         let name = normalize(&ty_ref.name);
         let schema_ref = Ref::new(format!("#/components/schemas/{name}"));
         if self.components.schemas.contains_key(&name) {
@@ -803,7 +807,7 @@ impl Converter<'_> {
                 };
 
                 Schema::Flat(FlatSchema {
-                    description: reflect_ty.description().to_owned(),
+                    description: sanitize_description(reflect_ty.description()),
                     ty,
                 })
             }
@@ -871,7 +875,7 @@ impl Converter<'_> {
         let mut strukt = crate::Struct {
             name: variant.name().to_owned(),
             serde_name: variant.serde_name.to_owned(),
-            description: variant.description().to_owned(),
+            description: sanitize_description(variant.description()),
             parameters: vec![],
             fields: variant.fields.clone(),
             transparent: false,
@@ -902,7 +906,7 @@ impl Converter<'_> {
                             properties: BTreeMap::from_iter([(
                                 variant.serde_name().to_owned(),
                                 Property {
-                                    description: variant.description().to_owned(),
+                                    description: sanitize_description(variant.description()),
                                     deprecated: false,
                                     schema: Inline(Schema::empty_object()),
                                 },
@@ -914,7 +918,7 @@ impl Converter<'_> {
                             properties: BTreeMap::from_iter([(
                                 variant.serde_name().to_owned(),
                                 Property {
-                                    description: variant.description().to_owned(),
+                                    description: sanitize_description(variant.description()),
                                     deprecated: false,
                                     schema: Inline(Schema::empty_tuple()),
                                 },
@@ -922,7 +926,7 @@ impl Converter<'_> {
                         },
                         reflectapi_schema::Fields::None => {
                             return Inline(Schema::Const {
-                                description: variant.description().to_owned(),
+                                description: sanitize_description(variant.description()),
                                 value: variant.serde_name().to_owned(),
                             })
                         }
@@ -930,7 +934,7 @@ impl Converter<'_> {
 
                     return Inline(
                         FlatSchema {
-                            description: variant.description().to_owned(),
+                            description: sanitize_description(variant.description()),
                             ty,
                         }
                         .into(),
@@ -946,7 +950,7 @@ impl Converter<'_> {
 
                 return Inline(
                     FlatSchema {
-                        description: variant.description().to_owned(),
+                        description: sanitize_description(variant.description()),
                         ty: Type::Object {
                             title: fmt_type_ref(&type_ref),
                             required: [variant.serde_name().to_owned()].into(),
@@ -971,7 +975,7 @@ impl Converter<'_> {
                 };
                 return Inline(
                     FlatSchema {
-                        description: variant.description().to_owned(),
+                        description: sanitize_description(variant.description()),
                         ty: Type::Object {
                             title: fmt_type_ref(&type_ref),
                             required: [tag.to_owned(), content.to_owned()].into(),
@@ -1065,7 +1069,7 @@ impl Converter<'_> {
 
                     return Inline(
                         FlatSchema {
-                            description: variant.description().to_owned(),
+                            description: sanitize_description(variant.description()),
                             ty,
                         }
                         .into(),
@@ -1143,7 +1147,7 @@ impl Converter<'_> {
                 required.insert(value.clone());
 
                 Ok(Inline(Schema::Flat(FlatSchema {
-                    description: description.clone(),
+                    description: sanitize_description(description),
                     ty: Type::Object {
                         title: String::new(),
                         required,
@@ -1160,7 +1164,7 @@ impl Converter<'_> {
                 | Type::Tuple { .. } => Err(InvalidInternalTagError(schema.ty.clone())),
                 Type::Map { .. } => todo!("map within newtype variant"),
                 Type::Null => Ok(Inline(Schema::Flat(FlatSchema {
-                    description: schema.description.to_owned(),
+                    description: sanitize_description(&schema.description),
                     ty: Type::Object {
                         title: String::new(),
                         required: [tag_name.to_owned()].into(),
@@ -1179,7 +1183,7 @@ impl Converter<'_> {
                     required,
                     properties,
                 } => Ok(Inline(Schema::Flat(FlatSchema {
-                    description: schema.description.to_owned(),
+                    description: sanitize_description(&schema.description),
                     ty: Type::Object {
                         title: title.to_owned(),
                         required: required
@@ -1256,7 +1260,7 @@ impl Converter<'_> {
         };
 
         let s = FlatSchema {
-            description: strukt.description().to_owned(),
+            description: sanitize_description(strukt.description()),
             ty,
         }
         .into();
@@ -1278,6 +1282,112 @@ impl Converter<'_> {
         };
 
         Inline(s)
+    }
+}
+
+fn primitive_fallback_type_ref(
+    schema: &crate::Schema,
+    kind: Kind,
+    ty_ref: &crate::TypeReference,
+) -> Option<crate::TypeReference> {
+    let crate::Type::Primitive(primitive) = match kind {
+        Kind::Input => schema.input_types.get_type(&ty_ref.name),
+        Kind::Output => schema.output_types.get_type(&ty_ref.name),
+    }?
+    else {
+        return None;
+    };
+
+    let fallback = primitive.fallback()?.clone();
+    // Only unwrap transparent pointer-shaped primitives whose fallback is just
+    // one of their generic parameters (Box<T>, Rc<T>, Arc<T>, Cow<T>, ...).
+    // Primitives with their own OpenAPI representation (usize, chrono::DateTime,
+    // HashSet<T> -> Vec<T>, ...) must keep their richer schema instead of being
+    // collapsed to the wire fallback.
+    if !primitive
+        .parameters
+        .iter()
+        .any(|param| param.name() == fallback.name)
+    {
+        return None;
+    }
+
+    let subst = reflectapi_schema::mk_subst(&primitive.parameters, &ty_ref.arguments);
+    Some(fallback.subst(&subst))
+}
+
+fn sanitize_description(description: &str) -> String {
+    let Some(summary_start) = description.find("<summary>JSON schema</summary>") else {
+        return description.to_owned();
+    };
+
+    let details_start = description[..summary_start]
+        .rfind("<details")
+        .unwrap_or(summary_start);
+    let Some(details_end) = description[summary_start..].find("</details>") else {
+        return description[..details_start].trim_end().to_owned();
+    };
+    let details_end = summary_start + details_end + "</details>".len();
+
+    let mut sanitized = description[..details_start].trim_end().to_owned();
+    let suffix = description[details_end..].trim_start();
+    if !sanitized.is_empty() && !suffix.is_empty() {
+        sanitized.push_str("\n\n");
+    }
+    sanitized.push_str(suffix);
+
+    sanitize_description(&sanitized)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn json_schema_doc() -> &'static str {
+        r##"Public docs.
+
+<details><summary>JSON schema</summary>
+
+```json
+{
+  "$ref": "#/components/schemas/InternalOnly"
+}
+```
+</details>
+
+Trailing docs."##
+    }
+
+    #[test]
+    fn strips_embedded_json_schema_blocks_from_descriptions() {
+        let mut schema = crate::Schema::new();
+        schema.description = json_schema_doc().to_owned();
+
+        let mut strukt = crate::Struct::new("tier1::ContextWithDiagrams");
+        strukt.description = json_schema_doc().to_owned();
+        strukt.fields = reflectapi_schema::Fields::Named(vec![crate::Field {
+            description: json_schema_doc().to_owned(),
+            required: true,
+            ..crate::Field::new("name".to_owned(), "std::string::String".into())
+        }]);
+        schema.input_types.insert_type(strukt.clone().into());
+        schema.output_types.insert_type(strukt.into());
+        schema.functions.push(crate::Function {
+            description: json_schema_doc().to_owned(),
+            input_type: Some("tier1::ContextWithDiagrams".into()),
+            output_type: crate::OutputType::Complete {
+                output_type: Some("tier1::ContextWithDiagrams".into()),
+            },
+            ..crate::Function::new("test".to_owned())
+        });
+
+        let spec_json = serde_json::to_string(&Spec::from(&schema)).unwrap();
+
+        assert!(!spec_json.contains("<details>"));
+        assert!(!spec_json.contains("InternalOnly"));
+        assert!(spec_json.contains("Public docs."));
+        assert!(spec_json.contains("Trailing docs."));
+        assert!(spec_json.contains("#/components/schemas/tier1.ContextWithDiagrams"));
     }
 }
 

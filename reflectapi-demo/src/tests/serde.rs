@@ -1078,6 +1078,20 @@ fn test_box_field_unwrapping() {
 }
 
 #[test]
+fn test_box_root_openapi_unwrapping() {
+    #[derive(
+        serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
+    )]
+    struct TreeNode {
+        label: String,
+        child: Option<Box<TreeNode>>,
+    }
+
+    let schema = super::into_schema::<Box<TreeNode>>();
+    insta::assert_json_snapshot!(reflectapi::codegen::openapi::Spec::from(&schema));
+}
+
+#[test]
 fn test_nested_generic_containers() {
     #[derive(
         serde::Serialize, serde::Deserialize, Debug, reflectapi::Input, reflectapi::Output,
