@@ -267,6 +267,7 @@ mod coverage {
     // ---- Docstring with characters that need escaping ----
     /// A docstring with "quotes" and 'apostrophes' and a backslash: \\
     /// And a """triple quote""" inside.
+    /// Ends in a "quote"
     #[derive(
         Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
     )]

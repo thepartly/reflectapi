@@ -6,10 +6,11 @@ use crate::{Schema, TypeReference};
 use reflectapi_schema::{Function, OutputType, Type};
 
 /// Sanitize text for inclusion in a Python triple-quoted docstring.
-/// Escapes backslashes (which act as line continuation) and triple-quote
-/// sequences (which would close the docstring prematurely).
+/// Escapes backslashes (which can escape the closing delimiter) and double
+/// quotes (which would otherwise collide with adjacent triple-quote
+/// delimiters).
 fn sanitize_for_docstring(text: &str) -> String {
-    text.replace('\\', "\\\\").replace("\"\"\"", "\\\"\\\"\\\"")
+    text.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
 /// Format ``text`` as a Python string literal, choosing single or
@@ -7209,8 +7210,22 @@ fn pascal_case_len(s: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_python_class_name_map, generate_init_py, mangle_monomorphized_name, Config};
+    use super::{
+        build_python_class_name_map, generate_init_py, mangle_monomorphized_name,
+        sanitize_for_docstring, Config,
+    };
     use crate::TypeReference;
+
+    #[test]
+    fn docstring_sanitizer_escapes_quotes_that_touch_delimiters() {
+        let doc = "ends in a \"quote\"";
+        let sanitized = sanitize_for_docstring(doc);
+        let rendered = format!("\"\"\"{sanitized}\"\"\"");
+
+        assert_eq!(sanitized, "ends in a \\\"quote\\\"");
+        assert_eq!(rendered, "\"\"\"ends in a \\\"quote\\\"\"\"\"");
+        assert!(!rendered.contains("\"quote\"\"\"\""));
+    }
 
     #[test]
     fn python_init_exports_client() {
