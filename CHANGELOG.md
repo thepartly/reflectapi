@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.17.4
+
+Python client codegen fixes:
+
+- Doc comments with literal quotes are emitted without source-level escape sequences in generated Python docstrings.
+- Referenced child namespaces are imported and rebound before generated model classes are defined, so nested namespace aliases resolve consistently during Pydantic model rebuilds.
+- Generated Python namespace/model snapshots now cover deferred rebuild ordering and nested namespace references.
+
 ## 0.17.3
 
 Promotes the 0.17.3-alpha.1 work to stable and adds one OpenAPI codegen fix on top:
