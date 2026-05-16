@@ -2167,6 +2167,217 @@ fn root_module(ns_path: &[String]) -> String {
     safe_python_module_segment(&ns_path[0])
 }
 
+fn module_qualified_name(ns_path: &[String]) -> String {
+    ns_path
+        .iter()
+        .map(|segment| safe_python_module_segment(segment))
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+fn contains_qualified_name(code: &str, name: &str) -> bool {
+    let needle = format!("{name}.");
+    code.match_indices(&needle).any(|(index, _)| {
+        let before_is_boundary = index == 0
+            || code[..index]
+                .chars()
+                .next_back()
+                .is_none_or(|c| !(c.is_ascii_alphanumeric() || c == '_'));
+        let after_index = index + needle.len();
+        let after_is_boundary = code[after_index..]
+            .chars()
+            .next()
+            .is_none_or(|c| c.is_ascii_alphabetic() || c == '_');
+        before_is_boundary && after_is_boundary
+    })
+}
+
+fn strip_qualified_prefix(code: &str, prefix: &str) -> String {
+    let needle = format!("{prefix}.");
+    let mut output = String::with_capacity(code.len());
+    let mut cursor = 0;
+
+    for (index, _) in code.match_indices(&needle) {
+        let before_is_boundary = index == 0
+            || code[..index]
+                .chars()
+                .next_back()
+                .is_none_or(|c| !(c.is_ascii_alphanumeric() || c == '_'));
+        let after_index = index + needle.len();
+        let after_is_boundary = code[after_index..]
+            .chars()
+            .next()
+            .is_none_or(|c| c.is_ascii_alphabetic() || c == '_');
+
+        if before_is_boundary && after_is_boundary {
+            output.push_str(&code[cursor..index]);
+            cursor = after_index;
+        }
+    }
+
+    output.push_str(&code[cursor..]);
+    output
+}
+
+fn localize_current_module_refs(code: &str, ns_path: &[String]) -> String {
+    if ns_path.is_empty() {
+        return code.to_string();
+    }
+
+    strip_qualified_prefix(code, &module_qualified_name(ns_path))
+}
+
+fn module_rendered_code(module: &templates::Module) -> String {
+    module
+        .types
+        .iter()
+        .map(|mt| mt.rendered.as_str())
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
+fn referenced_namespace_roots(
+    generation: &PythonGeneration,
+    rendered_code: &str,
+) -> BTreeSet<String> {
+    generation
+        .module_tree
+        .submodules
+        .values()
+        .filter(|sub| !sub.is_empty())
+        .map(|sub| safe_python_module_segment(&sub.name))
+        .filter(|root| contains_qualified_name(rendered_code, root))
+        .collect()
+}
+
+fn render_namespace_bindings(module: &templates::Module, ns_path: &[String]) -> String {
+    if ns_path.is_empty() {
+        return String::new();
+    }
+
+    let rendered_code = module_rendered_code(module);
+    let current_module = module_qualified_name(ns_path);
+    let references_current_module = contains_qualified_name(&rendered_code, &current_module);
+
+    if !references_current_module {
+        return String::new();
+    }
+
+    let mut lines = Vec::new();
+    lines.push("import sys".to_string());
+    if ns_path.len() > 1 {
+        lines.push(format!(
+            "from {} import {}",
+            root_relative_prefix(ns_path.len()),
+            root_module(ns_path)
+        ));
+    }
+    lines.push(format!("{current_module} = sys.modules[__name__]"));
+
+    lines.join("\n")
+}
+
+fn render_deferred_namespace_imports(
+    generation: &PythonGeneration,
+    module: &templates::Module,
+    ns_path: &[String],
+) -> String {
+    if ns_path.is_empty() {
+        return String::new();
+    }
+
+    let rendered_code = module_rendered_code(module);
+    let current_root = root_module(ns_path);
+    let referenced_roots: Vec<String> = referenced_namespace_roots(generation, &rendered_code)
+        .into_iter()
+        .filter(|root| root != &current_root)
+        .collect();
+
+    if referenced_roots.is_empty() {
+        return String::new();
+    }
+
+    format!(
+        "from {} import {}",
+        root_relative_prefix(ns_path.len()),
+        referenced_roots.join(", ")
+    )
+}
+
+fn deferred_namespace_names(
+    generation: &PythonGeneration,
+    module: &templates::Module,
+    ns_path: &[String],
+) -> BTreeSet<String> {
+    if ns_path.is_empty() {
+        return BTreeSet::new();
+    }
+
+    let rendered_code = module_rendered_code(module);
+    let current_root = root_module(ns_path);
+    let mut names: BTreeSet<String> = referenced_namespace_roots(generation, &rendered_code)
+        .into_iter()
+        .filter(|root| root != &current_root)
+        .collect();
+
+    names.extend(
+        module
+            .submodules
+            .values()
+            .filter(|sub| !sub.is_empty())
+            .map(|sub| safe_python_module_segment(&sub.name))
+            .filter(|child| contains_qualified_name(&rendered_code, child)),
+    );
+
+    names
+}
+
+fn render_deferred_namespace_placeholders(
+    generation: &PythonGeneration,
+    module: &templates::Module,
+    ns_path: &[String],
+) -> String {
+    let names = deferred_namespace_names(generation, module, ns_path);
+    if names.is_empty() {
+        return String::new();
+    }
+
+    let mut lines = vec![
+        "class _ReflectapiDeferredNamespace:".to_string(),
+        "    def __getattr__(self, name: str) -> None:".to_string(),
+        "        raise NameError(name)".to_string(),
+    ];
+    lines.extend(
+        names
+            .into_iter()
+            .map(|name| format!("{name} = _ReflectapiDeferredNamespace()")),
+    );
+    lines.join("\n")
+}
+
+fn render_root_type_namespace_bindings(
+    generation: &PythonGeneration,
+    rendered_code: &str,
+) -> String {
+    let referenced_roots: Vec<String> = generation
+        .module_tree
+        .submodules
+        .values()
+        .filter(|sub| !sub.is_empty())
+        .map(|sub| safe_python_module_segment(&sub.name))
+        .filter(|root| contains_qualified_name(rendered_code, root))
+        .collect();
+
+    if referenced_roots.is_empty() {
+        return String::new();
+    }
+
+    format!(
+        "from typing import TYPE_CHECKING\n\nif TYPE_CHECKING:\n    from . import {}",
+        referenced_roots.join(", ")
+    )
+}
+
 fn relative_module_import_path(ns_path: &[String]) -> String {
     format!(".{}", module_import_path(ns_path))
 }
@@ -2199,7 +2410,14 @@ fn render_module_file(
     root_type_names: &BTreeSet<String>,
     config: &Config,
 ) -> anyhow::Result<String> {
-    let mut parts = vec![generation.preamble.clone(), render_external_type_aliases()];
+    let mut parts = vec![generation.preamble.clone()];
+
+    let namespace_bindings = render_namespace_bindings(module, ns_path);
+    if !namespace_bindings.is_empty() {
+        parts.push(namespace_bindings);
+    }
+
+    parts.push(render_external_type_aliases());
 
     if !root_type_names.is_empty() {
         parts.push(format!(
@@ -2213,9 +2431,15 @@ fn render_module_file(
         ));
     }
 
+    let deferred_namespace_placeholders =
+        render_deferred_namespace_placeholders(generation, module, ns_path);
+    if !deferred_namespace_placeholders.is_empty() {
+        parts.push(deferred_namespace_placeholders);
+    }
+
     let mut body = String::new();
     for mt in &module.types {
-        body.push_str(&mt.rendered);
+        body.push_str(&localize_current_module_refs(&mt.rendered, ns_path));
         body.push('\n');
     }
 
@@ -2232,6 +2456,15 @@ fn render_module_file(
         }
     }
 
+    let deferred_namespace_imports = render_deferred_namespace_imports(generation, module, ns_path);
+    if !deferred_namespace_imports.is_empty() {
+        if !body.trim().is_empty() {
+            body.push('\n');
+        }
+        body.push_str(&deferred_namespace_imports);
+        body.push('\n');
+    }
+
     let child_modules: Vec<String> = module
         .submodules
         .values()
@@ -2245,21 +2478,6 @@ fn render_module_file(
         for child in &child_modules {
             body.push_str(&format!("from . import {child}\n"));
         }
-    }
-
-    if ns_path.len() == 1 {
-        if !body.trim().is_empty() {
-            body.push('\n');
-        }
-        // Suppress only `ImportError` (which can occur if the
-        // namespace is imported standalone before the root package
-        // finishes initialising) — let `model_rebuild()` failures
-        // propagate so dangling references surface at import time.
-        body.push_str("try:\n");
-        body.push_str("    from .._rebuild import rebuild_models as _rebuild_models\n\n");
-        body.push_str("    _rebuild_models()\n");
-        body.push_str("except ImportError:\n");
-        body.push_str("    pass\n");
     }
 
     let mut all_names: BTreeSet<String> = aliases.into_keys().collect();
@@ -2568,17 +2786,17 @@ fn render_package_files(
             .map(|mt| mt.rendered.as_str())
             .collect::<Vec<_>>()
             .join("\n\n");
+        let root_namespace_bindings =
+            render_root_type_namespace_bindings(&generation, &root_types_code);
+        let mut root_type_parts = vec![generation.preamble.clone()];
+        if !root_namespace_bindings.is_empty() {
+            root_type_parts.push(root_namespace_bindings);
+        }
+        root_type_parts.push(render_external_type_aliases());
+        root_type_parts.push(root_types_code);
         files.insert(
             "_types.py".to_string(),
-            render_python_file(
-                config,
-                [
-                    generation.preamble.clone(),
-                    render_external_type_aliases(),
-                    root_types_code,
-                ]
-                .join("\n\n"),
-            )?,
+            render_python_file(config, root_type_parts.join("\n\n"))?,
         );
     }
 
@@ -5428,10 +5646,13 @@ pub mod templates {
             // time). `is_pydantic_method_name` already renames the
             // exact-match collisions; this kills the warning for the
             // remaining safe-but-prefixed cases.
+            // `defer_build=True` lets the generated package finish
+            // importing all namespace modules before Pydantic resolves
+            // annotations; `_rebuild.py` then performs a strict rebuild.
             let config = if self.is_partial() {
-                "ConfigDict(extra=\"ignore\", populate_by_name=True, validate_assignment=True, protected_namespaces=())"
+                "ConfigDict(extra=\"ignore\", populate_by_name=True, validate_assignment=True, protected_namespaces=(), defer_build=True)"
             } else {
-                "ConfigDict(extra=\"ignore\", populate_by_name=True, protected_namespaces=())"
+                "ConfigDict(extra=\"ignore\", populate_by_name=True, protected_namespaces=(), defer_build=True)"
             };
             writeln!(s, "    model_config = {config}").unwrap();
             writeln!(s).unwrap();
@@ -6136,7 +6357,7 @@ pub mod templates {
             }
             writeln!(
                 s,
-                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=())"
+                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=(), defer_build=True)"
             )
             .unwrap();
             writeln!(s).unwrap();
@@ -6192,7 +6413,7 @@ pub mod templates {
             writeln!(s).unwrap();
             writeln!(
                 s,
-                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=())"
+                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=(), defer_build=True)"
             )
             .unwrap();
             writeln!(s).unwrap();
@@ -6263,7 +6484,7 @@ pub mod templates {
             }
             writeln!(
                 s,
-                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=())"
+                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=(), defer_build=True)"
             )
             .unwrap();
             writeln!(s).unwrap();
