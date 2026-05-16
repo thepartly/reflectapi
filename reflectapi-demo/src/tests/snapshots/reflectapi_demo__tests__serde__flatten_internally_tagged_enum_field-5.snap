@@ -29,7 +29,7 @@ class ReflectapiDemoTestsSerdeOfferSingle(BaseModel):
     """'Single' variant of ReflectapiDemoTestsSerdeOffer"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     id: str
@@ -46,7 +46,7 @@ class ReflectapiDemoTestsSerdeOfferGroup(BaseModel):
     """'Group' variant of ReflectapiDemoTestsSerdeOffer"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     id: str
@@ -71,7 +71,7 @@ class ReflectapiDemoTestsSerdeOffer(RootModel):
 
 class ReflectapiDemoTestsSerdeOfferKindSingle(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["Single"] = Field(default="Single", description="Discriminator field")
@@ -80,7 +80,7 @@ class ReflectapiDemoTestsSerdeOfferKindSingle(BaseModel):
 
 class ReflectapiDemoTestsSerdeOfferKindGroup(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["Group"] = Field(default="Group", description="Discriminator field")

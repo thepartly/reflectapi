@@ -28,7 +28,7 @@ class ReflectapiDemoTestsBasicInputTestStructOneBasicFieldStringReflectBothDiffe
     BaseModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     f: int = Field(serialization_alias="_f", validation_alias="_f")
@@ -38,7 +38,7 @@ class ReflectapiDemoTestsBasicOutputTestStructOneBasicFieldStringReflectBothD_af
     BaseModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     f: int = Field(serialization_alias="_f", validation_alias="_f")
@@ -77,7 +77,7 @@ class AsyncInoutClient:
             reflectapi_demo.tests.basic.input.TestStructOneBasicFieldStringReflectBothDifferently
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently
+        reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothD_afce1cc8
     ]:
         """
 
@@ -85,7 +85,7 @@ class AsyncInoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently]: Response containing reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothD_afce1cc8]: Response containing reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothD_afce1cc8 data
         """
         path = "/inout_test"
 
@@ -94,7 +94,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently,
+            response_model=reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothD_afce1cc8,
         )
 
 
@@ -123,7 +123,7 @@ class InoutClient:
             reflectapi_demo.tests.basic.input.TestStructOneBasicFieldStringReflectBothDifferently
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently
+        reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothD_afce1cc8
     ]:
         """
 
@@ -131,7 +131,7 @@ class InoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently]: Response containing reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothD_afce1cc8]: Response containing reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothD_afce1cc8 data
         """
         path = "/inout_test"
 
@@ -140,7 +140,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothDifferently,
+            response_model=reflectapi_demo.tests.basic.output.TestStructOneBasicFieldStringReflectBothD_afce1cc8,
         )
 
 

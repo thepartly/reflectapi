@@ -32,7 +32,7 @@ G = TypeVar("G")
 
 class ReflectapiDemoTestsBasicTestStructWithHashSetFieldGeneric(BaseModel, Generic[G]):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     f_hashset: list[G] = Field(

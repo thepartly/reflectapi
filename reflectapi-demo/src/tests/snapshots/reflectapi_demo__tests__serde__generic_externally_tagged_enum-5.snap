@@ -46,7 +46,7 @@ class ReflectapiDemoTestsSerdeWrapperValueVariant(BaseModel, Generic[T]):
     """Value variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_0: T

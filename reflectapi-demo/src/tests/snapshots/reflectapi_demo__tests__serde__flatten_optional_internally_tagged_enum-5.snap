@@ -29,7 +29,7 @@ class ReflectapiDemoTestsSerdeTaskHigh(BaseModel):
     """'High' variant of ReflectapiDemoTestsSerdeTask"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     title: str
@@ -41,7 +41,7 @@ class ReflectapiDemoTestsSerdeTaskLow(BaseModel):
     """'Low' variant of ReflectapiDemoTestsSerdeTask"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     title: str
@@ -60,7 +60,7 @@ class ReflectapiDemoTestsSerdeTask(RootModel):
 
 class ReflectapiDemoTestsSerdePriorityHigh(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     kind: Literal["High"] = Field(default="High", description="Discriminator field")
@@ -69,7 +69,7 @@ class ReflectapiDemoTestsSerdePriorityHigh(BaseModel):
 
 class ReflectapiDemoTestsSerdePriorityLow(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     kind: Literal["Low"] = Field(default="Low", description="Discriminator field")

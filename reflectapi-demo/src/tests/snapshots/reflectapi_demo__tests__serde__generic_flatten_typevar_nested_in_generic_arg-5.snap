@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     code: int
@@ -35,7 +35,7 @@ class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     inner_a: int
@@ -46,7 +46,7 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseStdOptionReflectapiDemoTestsSerd2c
     BaseModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
@@ -58,7 +58,7 @@ class ReflectapiDemoTestsSerdeTestWrapperWithNestedTypevarArgReflectapiDemoTes80
     BaseModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     body: reflectapi_demo.tests.serde.TestUpdateOrElseStdOptionReflectapiDemoTestsSerd2c778819

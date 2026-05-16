@@ -29,7 +29,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentVariant1Content(BaseModel):
     """Variant1 content"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_name: int
@@ -37,7 +37,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentVariant1Content(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestEnumTagContentVariant1(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["Variant1"] = Field(
@@ -50,7 +50,7 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentVariant1(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestEnumTagContentVariant2(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["Variant2"] = Field(

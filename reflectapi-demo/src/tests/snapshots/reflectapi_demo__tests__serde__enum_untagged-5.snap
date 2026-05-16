@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeTestEnumUntaggedVariant1(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     value: int
@@ -35,7 +35,7 @@ class ReflectapiDemoTestsSerdeTestEnumUntaggedVariant1(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestEnumUntaggedVariant2(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_name: int

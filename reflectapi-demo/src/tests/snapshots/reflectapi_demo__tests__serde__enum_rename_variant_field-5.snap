@@ -40,7 +40,7 @@ class ReflectapiDemoTestsSerdeTestEnumRenameVariantFieldVariant2Variant(BaseMode
     """Variant2 variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     variant2_field_name: int

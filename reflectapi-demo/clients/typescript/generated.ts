@@ -23,8 +23,11 @@ export { ClientInstance };
 export type { Client, RequestOptions };
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
-export type NullToEmptyObject<T> =
-  IsAny<T> extends true ? unknown : T extends null ? {} : T;
+export type NullToEmptyObject<T> = IsAny<T> extends true
+  ? unknown
+  : T extends null
+    ? {}
+    : T;
 
 export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
 

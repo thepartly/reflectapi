@@ -36,7 +36,7 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBo
     BaseModel, Generic[A, B]
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     f1: A = Field(serialization_alias="_f1", validation_alias="_f1")
@@ -47,7 +47,7 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_be
     BaseModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     f: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
@@ -83,7 +83,7 @@ class AsyncInputClient:
     async def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParentSpecific
+            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithou_be812837
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -127,7 +127,7 @@ class InputClient:
     def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParentSpecific
+            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithou_be812837
         ] = None,
     ) -> ApiResponse[Any]:
         """
