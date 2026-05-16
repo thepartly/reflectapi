@@ -3208,6 +3208,7 @@ fn collect_flattened_fields(
 }
 
 /// Create a single flattened field entry from a struct field
+#[allow(clippy::too_many_arguments)]
 fn make_flattened_field(
     field: &reflectapi_schema::Field,
     schema: &Schema,
