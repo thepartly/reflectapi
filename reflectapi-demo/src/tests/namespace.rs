@@ -370,6 +370,61 @@ fn test_python_split_modules_defer_peer_namespace_imports() {
 }
 
 #[test]
+fn test_python_split_modules_client_uses_hashed_namespace_class_name() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct LongRequest {
+        value: String,
+    }
+
+    async fn long_get<S>(_s: S, request: LongRequest, _: reflectapi::Empty) -> LongRequest {
+        request
+    }
+
+    let long_type_name = "tier1::GenericPredictionRequestVisionAnnotationBulkInputAnnotatedUnionVertexVisionAnnotationConfigStaticVisionAnnotationConfigRealtimeVisionAnnotationConfigBackgroundVisionAnnotationConfigRealtimeSyncVisionAnnotationConfigSymbolTextVisionAnnotationConfigRealtimeSupplierVisionAnnotationConfigLineBoxObbVisionAnnotationConfigPncocrVisionAnnotationConfigPncVisionAnnotationConfigStyleTransferPostProcessVisionAnnotationConfigStyleTransferLineBoxVisionAnnotationConfigFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorStrategy";
+    let long_leaf_name = long_type_name.split("::").last().unwrap();
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(long_get, |b| b.name("tier1.long.get"))
+        .rename_types(
+            "reflectapi_demo::tests::namespace::LongRequest",
+            long_type_name,
+        )
+        .build()
+        .unwrap();
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+
+    let tier1_file = files.get("tier1/__init__.py").unwrap();
+    let class_line = tier1_file
+        .lines()
+        .find(|line| {
+            line.starts_with("class Tier1GenericPredictionRequestVisionAnnotationBulkInput")
+        })
+        .unwrap();
+    let class_name = class_line
+        .strip_prefix("class ")
+        .unwrap()
+        .split('(')
+        .next()
+        .unwrap();
+    let alias_name = class_name.strip_prefix("Tier1").unwrap();
+
+    assert!(class_name.len() <= 80);
+    assert_ne!(class_name, format!("Tier1{long_leaf_name}"));
+    assert!(tier1_file.contains(&format!("{alias_name} = (\n    {class_name}\n)")));
+
+    let client_file = files.get("_client.py").unwrap();
+    assert!(client_file.contains(&format!("tier1.{alias_name}")));
+    assert!(!client_file.contains(&format!("tier1.{long_leaf_name}")));
+}
+
+#[test]
 fn test_python_split_modules_placeholder_deferred_builtin_namespaces() {
     #[derive(
         Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,

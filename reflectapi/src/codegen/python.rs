@@ -692,6 +692,7 @@ fn render_struct_with_flatten(
             &tag,
             schema,
             implemented_types,
+            class_names,
             &active_generics,
             used_type_vars,
         )
@@ -702,6 +703,7 @@ fn render_struct_with_flatten(
             &struct_name,
             schema,
             implemented_types,
+            class_names,
             &active_generics,
             used_type_vars,
         )
@@ -729,6 +731,7 @@ fn render_struct_with_flattened_internal_enum(
     tag: &str,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     active_generics: &[String],
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
@@ -745,6 +748,7 @@ fn render_struct_with_flattened_internal_enum(
             &field.type_ref,
             schema,
             implemented_types,
+            class_names,
             active_generics,
             used_type_vars,
         )?;
@@ -777,6 +781,7 @@ fn render_struct_with_flattened_internal_enum(
                 &field.type_ref,
                 schema,
                 implemented_types,
+                class_names,
                 active_generics,
                 field.required,
                 0,
@@ -797,6 +802,7 @@ fn render_struct_with_flattened_internal_enum(
                     &field.type_ref,
                     schema,
                     implemented_types,
+                    class_names,
                     active_generics,
                     used_type_vars,
                 )?;
@@ -855,6 +861,7 @@ fn render_struct_with_flattened_internal_enum(
                         &vf.type_ref,
                         schema,
                         implemented_types,
+                        class_names,
                         active_generics,
                         used_type_vars,
                     )?;
@@ -900,6 +907,7 @@ fn render_struct_with_flattened_internal_enum(
                                 &sf.type_ref,
                                 schema,
                                 implemented_types,
+                                class_names,
                                 active_generics,
                                 sf.required,
                                 0,
@@ -913,6 +921,7 @@ fn render_struct_with_flattened_internal_enum(
                             &sf.type_ref,
                             schema,
                             implemented_types,
+                            class_names,
                             active_generics,
                             used_type_vars,
                         )?;
@@ -990,6 +999,7 @@ fn render_struct_with_flatten_standard(
     struct_name: &str,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     active_generics: &[String],
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
@@ -1002,6 +1012,7 @@ fn render_struct_with_flatten_standard(
             &field.type_ref,
             schema,
             implemented_types,
+            class_names,
             active_generics,
             used_type_vars,
         )?;
@@ -1033,6 +1044,7 @@ fn render_struct_with_flatten_standard(
             &field.type_ref,
             schema,
             implemented_types,
+            class_names,
             active_generics,
             field.required,
             0,
@@ -1834,7 +1846,8 @@ fn build_python_generation(
             Some(f) => f,
             None => continue,
         };
-        let rendered_function = render_function(function_schema, &schema, &implemented_types)?;
+        let rendered_function =
+            render_function(function_schema, &schema, &implemented_types, &class_names)?;
 
         // Check for grouping patterns: underscore or dot notation
         if let Some(separator_pos) = sem_func.name.find('_').or_else(|| sem_func.name.find('.')) {
@@ -1894,7 +1907,7 @@ fn build_python_generation(
         // Note types with fallbacks to primitives are not added.
         let mut user_defined_types: Vec<String> = rendered_type_keys
             .iter()
-            .map(|original_name| type_name_to_python_ref(original_name))
+            .map(|original_name| type_name_to_python_ref(original_name, &class_names))
             .collect();
         user_defined_types.sort();
 
@@ -3078,6 +3091,7 @@ fn collect_flattened_fields(
     type_ref: &TypeReference,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     active_generics: &[String],
     parent_required: bool,
     depth: usize,
@@ -3120,6 +3134,7 @@ fn collect_flattened_fields(
                         &field.type_ref,
                         schema,
                         implemented_types,
+                        class_names,
                         active_generics,
                         parent_required && field.required,
                         depth + 1,
@@ -3133,6 +3148,7 @@ fn collect_flattened_fields(
                         field,
                         schema,
                         implemented_types,
+                        class_names,
                         active_generics,
                         parent_required,
                         depth,
@@ -3152,6 +3168,7 @@ fn collect_flattened_fields(
                 type_ref,
                 schema,
                 implemented_types,
+                class_names,
                 active_generics,
                 parent_required,
                 used_type_vars,
@@ -3195,6 +3212,7 @@ fn make_flattened_field(
     field: &reflectapi_schema::Field,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     active_generics: &[String],
     parent_required: bool,
     depth: usize,
@@ -3204,6 +3222,7 @@ fn make_flattened_field(
         &field.type_ref,
         schema,
         implemented_types,
+        class_names,
         active_generics,
         used_type_vars,
     )?;
@@ -3248,6 +3267,7 @@ fn collect_flattened_enum_fields(
     type_ref: &TypeReference,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     active_generics: &[String],
     parent_required: bool,
     used_type_vars: &mut BTreeSet<String>,
@@ -3258,6 +3278,7 @@ fn collect_flattened_enum_fields(
         type_ref,
         schema,
         implemented_types,
+        class_names,
         active_generics,
         used_type_vars,
     )?;
@@ -3346,6 +3367,7 @@ fn render_struct(
                 &field.type_ref,
                 schema,
                 implemented_types,
+                class_names,
                 &active_generics,
                 used_type_vars,
             )?;
@@ -3549,6 +3571,7 @@ fn render_adjacently_tagged_enum(
                         &unnamed_fields[0].type_ref,
                         schema,
                         implemented_types,
+                        class_names,
                         &generic_params,
                         used_type_vars,
                     )?;
@@ -3571,6 +3594,7 @@ fn render_adjacently_tagged_enum(
                             &f.type_ref,
                             schema,
                             implemented_types,
+                            class_names,
                             &generic_params,
                             used_type_vars,
                         )?;
@@ -3598,6 +3622,7 @@ fn render_adjacently_tagged_enum(
                         &field.type_ref,
                         schema,
                         implemented_types,
+                        class_names,
                         &generic_params,
                         used_type_vars,
                     )?;
@@ -3759,6 +3784,7 @@ fn render_externally_tagged_enum(
                         &field.type_ref,
                         schema,
                         implemented_types,
+                        class_names,
                         &generic_params,
                         used_type_vars,
                     )?;
@@ -3836,6 +3862,7 @@ fn render_externally_tagged_enum(
                         &field.type_ref,
                         schema,
                         implemented_types,
+                        class_names,
                         &generic_params,
                         used_type_vars,
                     )?;
@@ -4057,6 +4084,7 @@ fn render_internally_tagged_enum(
                                     &struct_field.type_ref,
                                     schema,
                                     implemented_types,
+                                    class_names,
                                     &generic_params,
                                     struct_field.required,
                                     0,
@@ -4070,6 +4098,7 @@ fn render_internally_tagged_enum(
                                 &struct_field.type_ref,
                                 schema,
                                 implemented_types,
+                                class_names,
                                 &generic_params,
                                 used_type_vars,
                             )?;
@@ -4105,6 +4134,7 @@ fn render_internally_tagged_enum(
                             &inner_field.type_ref,
                             schema,
                             implemented_types,
+                            class_names,
                             &generic_params,
                             used_type_vars,
                         )?;
@@ -4130,6 +4160,7 @@ fn render_internally_tagged_enum(
                         &field.type_ref,
                         schema,
                         implemented_types,
+                        class_names,
                         &generic_params,
                         used_type_vars,
                     )?;
@@ -4275,6 +4306,7 @@ fn render_untagged_enum(
                         &field.type_ref,
                         schema,
                         implemented_types,
+                        class_names,
                         &generic_params,
                         used_type_vars,
                     )?;
@@ -4303,6 +4335,7 @@ fn render_untagged_enum(
                         &field.type_ref,
                         schema,
                         implemented_types,
+                        class_names,
                         &generic_params,
                         used_type_vars,
                     )?;
@@ -4377,9 +4410,10 @@ fn render_function(
     function: &Function,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
 ) -> anyhow::Result<templates::Function> {
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
-        type_ref_to_python_type_simple(input_type, schema, implemented_types, &[])?
+        type_ref_to_python_type_simple(input_type, schema, implemented_types, class_names, &[])?
     } else {
         "None".to_string()
     };
@@ -4388,13 +4422,24 @@ fn render_function(
         OutputType::Complete {
             output_type: Some(output_type),
         } => (
-            type_ref_to_python_type_simple(output_type, schema, implemented_types, &[])?,
+            type_ref_to_python_type_simple(
+                output_type,
+                schema,
+                implemented_types,
+                class_names,
+                &[],
+            )?,
             None,
         ),
         OutputType::Complete { output_type: None } => ("Any".to_string(), None),
         OutputType::Stream { item_type } => {
-            let item_py =
-                type_ref_to_python_type_simple(item_type, schema, implemented_types, &[])?;
+            let item_py = type_ref_to_python_type_simple(
+                item_type,
+                schema,
+                implemented_types,
+                class_names,
+                &[],
+            )?;
             (item_py.clone(), Some(item_py))
         }
     };
@@ -4404,6 +4449,7 @@ fn render_function(
             error_type,
             schema,
             implemented_types,
+            class_names,
             &[],
         )?)
     } else {
@@ -4416,6 +4462,7 @@ fn render_function(
             headers_ref,
             schema,
             implemented_types,
+            class_names,
             &[],
         )?)
     } else {
@@ -4814,31 +4861,46 @@ fn python_class_name(type_name: &str, class_names: &BTreeMap<String, String>) ->
         .unwrap_or_else(|| build_flat_python_class_name(type_name, true))
 }
 
-fn improve_class_name(original_name: &str) -> String {
-    build_flat_python_class_name(original_name, true)
-}
-
 /// Convert a fully-qualified Rust type name to a dotted Python reference.
 ///
-/// Each `::` segment becomes a dot-separated component.  Namespace segments
-/// keep their original casing (typically snake_case), while the final leaf
-/// segment is run through `improve_class_name_part` (PascalCase).
+/// Namespace segments become module components, while the class leaf comes
+/// from the same resolved class-name map used to render the actual Pydantic
+/// class. This keeps references aligned with de-stuttering, collision fallback,
+/// and long-name hash truncation.
 ///
-/// Example: `"reflectapi_demo::tests::serde::Offer"` → `"reflectapi_demo.tests.serde.Offer"`
-fn type_name_to_python_ref(original_name: &str) -> String {
+/// Example: `"billing::ProductDetailItem"` → `"billing.ProductDetailItem"`.
+fn type_name_to_python_ref(original_name: &str, class_names: &BTreeMap<String, String>) -> String {
     let parts: Vec<&str> = original_name.split("::").collect();
     if parts.len() <= 1 {
         // No namespace — just return the PascalCase leaf.
-        return improve_class_name(original_name);
+        return python_class_name(original_name, class_names);
     }
-    // Namespace segments keep their original casing; the leaf gets PascalCase.
+    // Namespace segments keep their original casing. The leaf should match a
+    // public alias exposed by that namespace module, not necessarily the flat
+    // implementation class name.
     let namespace_parts = &parts[..parts.len() - 1];
     let leaf = parts.last().unwrap();
     let mut dotted_parts: Vec<String> = namespace_parts
         .iter()
         .map(|p| safe_python_module_segment(p))
         .collect();
-    dotted_parts.push(improve_class_name_part(leaf));
+    let class_name = python_class_name(original_name, class_names);
+    let rust_leaf_alias = improve_class_name_part(leaf);
+    let leaf_alias = if class_name.ends_with(&to_pascal_case(leaf)) {
+        rust_leaf_alias
+    } else {
+        let namespace_path = namespace_parts
+            .iter()
+            .map(|part| (*part).to_string())
+            .collect::<Vec<_>>();
+        let flat_prefix = flat_namespace_prefix(&namespace_path);
+        if class_name.starts_with(&flat_prefix) {
+            class_name[flat_prefix.len()..].to_string()
+        } else {
+            class_name
+        }
+    };
+    dotted_parts.push(leaf_alias);
     dotted_parts.join(".")
 }
 
@@ -5005,6 +5067,7 @@ fn type_ref_to_python_type(
     type_ref: &TypeReference,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     active_generics: &[String],
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
@@ -5052,6 +5115,7 @@ fn type_ref_to_python_type(
                     arg,
                     schema,
                     implemented_types,
+                    class_names,
                     active_generics,
                     used_type_vars,
                 )?;
@@ -5069,6 +5133,7 @@ fn type_ref_to_python_type(
                         arg,
                         schema,
                         implemented_types,
+                        class_names,
                         active_generics,
                         used_type_vars,
                     )
@@ -5092,6 +5157,7 @@ fn type_ref_to_python_type(
             &fallback_type_ref,
             schema,
             implemented_types,
+            class_names,
             active_generics,
             used_type_vars,
         );
@@ -5118,6 +5184,7 @@ fn type_ref_to_python_type(
                     &inner_field.type_ref,
                     schema,
                     implemented_types,
+                    class_names,
                     active_generics,
                     used_type_vars,
                 );
@@ -5125,7 +5192,7 @@ fn type_ref_to_python_type(
         }
 
         // Use dotted namespace path for type references (e.g. "mod::Sub::Ty" → "mod.Sub.Ty")
-        let base_type = type_name_to_python_ref(&type_ref.name);
+        let base_type = type_name_to_python_ref(&type_ref.name, class_names);
 
         // Handle generic types with arguments - follow TypeScript pattern
         if !type_ref.arguments.is_empty() {
@@ -5141,6 +5208,7 @@ fn type_ref_to_python_type(
                         arg,
                         schema,
                         implemented_types,
+                        class_names,
                         active_generics,
                         used_type_vars,
                     )
@@ -5166,6 +5234,7 @@ fn type_ref_to_python_type_simple(
     type_ref: &TypeReference,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
     active_generics: &[String],
 ) -> anyhow::Result<String> {
     let mut unused_type_vars = BTreeSet::new();
@@ -5173,6 +5242,7 @@ fn type_ref_to_python_type_simple(
         type_ref,
         schema,
         implemented_types,
+        class_names,
         active_generics,
         &mut unused_type_vars,
     )
