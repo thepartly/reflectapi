@@ -40,7 +40,7 @@ class ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant1Variant(BaseMode
     """Variant1 variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_name: int = Field(
@@ -52,7 +52,7 @@ class ReflectapiDemoTestsSerdeTestEnumRenameAllOnVariantVariant2Variant(BaseMode
     """Variant2 variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_0: int

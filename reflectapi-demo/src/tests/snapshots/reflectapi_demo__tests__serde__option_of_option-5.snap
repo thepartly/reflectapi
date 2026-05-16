@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeNested(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     value: str | None | None = None

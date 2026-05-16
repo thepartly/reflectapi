@@ -26,7 +26,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsBasicTestStructTuple(BaseModel):
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True, protected_namespaces=())
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True)
 
     0: int
     1: str

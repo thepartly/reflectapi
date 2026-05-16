@@ -40,7 +40,7 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithoutBo
     BaseModel, Generic[A, B]
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     f1: A = Field(serialization_alias="_f1", validation_alias="_f1")
@@ -51,7 +51,7 @@ class ReflectapiDemoTestsGenericsTestStructWithCircularReferenceGenericWithou_8e
     BaseModel, Generic[C, D]
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     f: reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBox[
@@ -82,11 +82,11 @@ class AsyncInputClient:
     async def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent[
-                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent[
+            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithou_8e2b5cb9[
+                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithou_8e2b5cb9[
                     int, int
                 ],
-                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent[
+                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithou_8e2b5cb9[
                     str, int
                 ],
             ]
@@ -133,11 +133,11 @@ class InputClient:
     def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent[
-                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent[
+            reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithou_8e2b5cb9[
+                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithou_8e2b5cb9[
                     int, int
                 ],
-                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithoutBoxParent[
+                reflectapi_demo.tests.generics.TestStructWithCircularReferenceGenericWithou_8e2b5cb9[
                     str, int
                 ],
             ]

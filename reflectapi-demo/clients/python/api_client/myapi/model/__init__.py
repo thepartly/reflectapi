@@ -53,7 +53,7 @@ class MyapiModelBehaviorAggressiveVariant(BaseModel):
     """Aggressive variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_0: float = Field(description="aggressiveness level")
@@ -64,7 +64,7 @@ class MyapiModelBehaviorOtherVariant(BaseModel):
     """Other variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     description: str = Field(description="Custom provided description of a behavior")
@@ -125,7 +125,7 @@ class MyapiModelKindDog(BaseModel):
     """A dog"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["dog"] = Field(default="dog", description="Discriminator field")
@@ -136,7 +136,7 @@ class MyapiModelKindCat(BaseModel):
     """A cat"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["cat"] = Field(default="cat", description="Discriminator field")
@@ -147,7 +147,7 @@ class MyapiModelKindBird(BaseModel):
     """Test for unit variants in internally tagged enums"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["bird"] = Field(default="bird", description="Discriminator field")

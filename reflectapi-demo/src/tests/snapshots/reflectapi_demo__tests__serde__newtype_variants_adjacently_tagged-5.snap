@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedInt(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     t: Literal["int"] = Field(default="int", description="Discriminator field")
@@ -36,7 +36,7 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedInt(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedString(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     t: Literal["string"] = Field(default="string", description="Discriminator field")
@@ -45,7 +45,7 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedString(BaseMode
 
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedBool(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     t: Literal["bool"] = Field(default="bool", description="Discriminator field")
@@ -54,7 +54,7 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedBool(BaseModel)
 
 class ReflectapiDemoTestsSerdeTestNewtypeVariantsAdjacentlyTaggedUnit(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     t: Literal["unit"] = Field(default="unit", description="Discriminator field")

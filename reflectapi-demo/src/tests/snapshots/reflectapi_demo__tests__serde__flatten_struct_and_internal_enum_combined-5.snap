@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeAudit(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     modified_by: str
@@ -37,7 +37,7 @@ class ReflectapiDemoTestsSerdePostText(BaseModel):
     """'Text' variant of ReflectapiDemoTestsSerdePost"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     id: str
@@ -55,7 +55,7 @@ class ReflectapiDemoTestsSerdePostImage(BaseModel):
     """'Image' variant of ReflectapiDemoTestsSerdePost"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     id: str
@@ -82,7 +82,7 @@ class ReflectapiDemoTestsSerdePost(RootModel):
 
 class ReflectapiDemoTestsSerdeContentText(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["Text"] = Field(default="Text", description="Discriminator field")
@@ -91,7 +91,7 @@ class ReflectapiDemoTestsSerdeContentText(BaseModel):
 
 class ReflectapiDemoTestsSerdeContentImage(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["Image"] = Field(default="Image", description="Discriminator field")

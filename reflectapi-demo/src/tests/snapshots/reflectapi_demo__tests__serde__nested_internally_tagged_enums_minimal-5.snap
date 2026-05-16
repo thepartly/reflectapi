@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeTestV1(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     version: Literal["v1"] = Field(default="v1", description="Discriminator field")
@@ -42,7 +42,7 @@ class ReflectapiDemoTestsSerdeTest(RootModel):
 
 class ReflectapiDemoTestsSerdeV1A(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["A"] = Field(default="A", description="Discriminator field")

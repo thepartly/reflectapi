@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     code: int
@@ -35,7 +35,7 @@ class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestLeafCollisionPair(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeModuleAS0030345e
@@ -46,7 +46,7 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleAS00
     BaseModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
@@ -57,7 +57,7 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4
     BaseModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
@@ -66,7 +66,7 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4
 
 class ReflectapiDemoTestsSerdeModuleASample(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     a_field: int
@@ -74,7 +74,7 @@ class ReflectapiDemoTestsSerdeModuleASample(BaseModel):
 
 class ReflectapiDemoTestsSerdeModuleBSample(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     b_field: bool

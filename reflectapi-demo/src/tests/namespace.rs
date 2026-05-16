@@ -158,6 +158,325 @@ fn test_python_init_exports_client() {
 }
 
 #[test]
+fn test_python_split_modules_bind_referenced_namespaces() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    enum Status {
+        Pending,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Item {
+        value: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct OutputChild {
+        value: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct OutputSummary {
+        child: OutputChild,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Order {
+        status: Status,
+        items: Vec<Item>,
+        summary: OutputSummary,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct RootWrapper {
+        order: Order,
+    }
+
+    async fn order_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> Order {
+        Order {
+            status: Status::Pending,
+            items: vec![],
+            summary: OutputSummary {
+                child: OutputChild {
+                    value: String::new(),
+                },
+            },
+        }
+    }
+
+    async fn wrapper_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> RootWrapper {
+        RootWrapper {
+            order: Order {
+                status: Status::Pending,
+                items: vec![],
+                summary: OutputSummary {
+                    child: OutputChild {
+                        value: String::new(),
+                    },
+                },
+            },
+        }
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(order_get, |b| b.name("order.get"))
+        .route(wrapper_get, |b| b.name("wrapper.get"))
+        .rename_types(
+            "reflectapi_demo::tests::namespace::Status",
+            "lookup::Status",
+        )
+        .rename_types("reflectapi_demo::tests::namespace::Item", "order::Item")
+        .rename_types("reflectapi_demo::tests::namespace::Order", "order::Order")
+        .rename_types(
+            "reflectapi_demo::tests::namespace::RootWrapper",
+            "RootWrapper",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::OutputChild",
+            "order::output::Child",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::OutputSummary",
+            "order::output::Summary",
+        )
+        .build()
+        .unwrap();
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+    let order_file = files.get("order/__init__.py").unwrap();
+
+    assert!(order_file.contains("import sys"));
+    assert!(order_file.contains("from .. import lookup"));
+    assert!(order_file.contains("order = sys.modules[__name__]"));
+    assert!(order_file.contains("from . import output"));
+    assert!(order_file.contains("status: lookup.Status"));
+    assert!(order_file.contains("items: list[Item]"));
+    assert!(order_file.contains("summary: output.Summary"));
+    assert!(order_file.contains("defer_build=True"));
+    assert!(!order_file.contains("_rebuild_models()"));
+
+    let output_file = files.get("order/output/__init__.py").unwrap();
+    assert!(output_file.contains("import sys"));
+    assert!(output_file.contains("from ... import order"));
+    assert!(output_file.contains("order.output = sys.modules[__name__]"));
+    assert!(output_file.contains("child: Child"));
+    assert!(output_file.contains("defer_build=True"));
+
+    let root_types_file = files.get("_types.py").unwrap();
+    assert!(root_types_file.contains("from typing import TYPE_CHECKING"));
+    assert!(root_types_file.contains("if TYPE_CHECKING:"));
+    assert!(root_types_file.contains("from . import order"));
+    assert!(root_types_file.contains("order: order.Order"));
+}
+
+#[test]
+fn test_python_split_modules_defer_peer_namespace_imports() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    enum Metric {
+        Price,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Sort<T> {
+        value: T,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Criterion {
+        sort: Sort<Metric>,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Basket {
+        criterion: Criterion,
+    }
+
+    async fn basket_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> Basket {
+        Basket {
+            criterion: Criterion {
+                sort: Sort {
+                    value: Metric::Price,
+                },
+            },
+        }
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(basket_get, |b| b.name("basket.get"))
+        .rename_types(
+            "reflectapi_demo::tests::namespace::Basket",
+            "basket_builder::Basket",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::Sort",
+            "basket_builder::Sort",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::Criterion",
+            "basket_builder_basket::Criterion",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::Metric",
+            "basket_builder_basket::Metric",
+        )
+        .build()
+        .unwrap();
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+    let basket_builder_file = files.get("basket_builder/__init__.py").unwrap();
+    let basket_builder_import = basket_builder_file
+        .find("from .. import basket_builder_basket")
+        .unwrap();
+    let sort_alias = basket_builder_file
+        .find("Sort = BasketBuilderSort")
+        .unwrap();
+    assert!(basket_builder_import > sort_alias);
+    assert!(basket_builder_file.contains("criterion: basket_builder_basket.Criterion"));
+
+    let basket_file = files.get("basket_builder_basket/__init__.py").unwrap();
+    let parent_import = basket_file.find("from .. import basket_builder").unwrap();
+    let metric_alias = basket_file
+        .find("Metric = BasketBuilderBasketMetric")
+        .unwrap();
+    assert!(parent_import > metric_alias);
+    assert!(basket_file.contains("sort: basket_builder.Sort[Metric]"));
+}
+
+#[test]
+fn test_python_split_modules_client_uses_hashed_namespace_class_name() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct LongRequest {
+        value: String,
+    }
+
+    async fn long_get<S>(_s: S, request: LongRequest, _: reflectapi::Empty) -> LongRequest {
+        request
+    }
+
+    let long_type_name = "tier1::GenericPredictionRequestVisionAnnotationBulkInputAnnotatedUnionVertexVisionAnnotationConfigStaticVisionAnnotationConfigRealtimeVisionAnnotationConfigBackgroundVisionAnnotationConfigRealtimeSyncVisionAnnotationConfigSymbolTextVisionAnnotationConfigRealtimeSupplierVisionAnnotationConfigLineBoxObbVisionAnnotationConfigPncocrVisionAnnotationConfigPncVisionAnnotationConfigStyleTransferPostProcessVisionAnnotationConfigStyleTransferLineBoxVisionAnnotationConfigFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorStrategy";
+    let long_leaf_name = long_type_name.split("::").last().unwrap();
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(long_get, |b| b.name("tier1.long.get"))
+        .rename_types(
+            "reflectapi_demo::tests::namespace::LongRequest",
+            long_type_name,
+        )
+        .build()
+        .unwrap();
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+
+    let tier1_file = files.get("tier1/__init__.py").unwrap();
+    let class_line = tier1_file
+        .lines()
+        .find(|line| {
+            line.starts_with("class Tier1GenericPredictionRequestVisionAnnotationBulkInput")
+        })
+        .unwrap();
+    let class_name = class_line
+        .strip_prefix("class ")
+        .unwrap()
+        .split('(')
+        .next()
+        .unwrap();
+    let alias_name = class_name.strip_prefix("Tier1").unwrap();
+
+    assert!(class_name.len() <= 80);
+    assert_ne!(class_name, format!("Tier1{long_leaf_name}"));
+    assert!(tier1_file.contains(&format!("{alias_name} = (\n    {class_name}\n)")));
+
+    let client_file = files.get("_client.py").unwrap();
+    assert!(client_file.contains(&format!("tier1.{alias_name}")));
+    assert!(!client_file.contains(&format!("tier1.{long_leaf_name}")));
+}
+
+#[test]
+fn test_python_split_modules_placeholder_deferred_builtin_namespaces() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct PricingModel {
+        value: u8,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct BillingRequest {
+        pricing_model: PricingModel,
+    }
+
+    async fn billing_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> BillingRequest {
+        BillingRequest {
+            pricing_model: PricingModel { value: 1 },
+        }
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(billing_get, |b| b.name("billing.get"))
+        .rename_types(
+            "reflectapi_demo::tests::namespace::BillingRequest",
+            "billing::Request",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::PricingModel",
+            "billing::input::PricingModel",
+        )
+        .build()
+        .unwrap();
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+    let billing_file = files.get("billing/__init__.py").unwrap();
+    let placeholder = billing_file
+        .find("input = _ReflectapiDeferredNamespace()")
+        .unwrap();
+    let request_class = billing_file.find("class BillingRequest").unwrap();
+    let child_import = billing_file.find("from . import input").unwrap();
+
+    assert!(placeholder < request_class);
+    assert!(child_import > request_class);
+    assert!(billing_file.contains("pricing_model: input.PricingModel"));
+}
+
+#[test]
 fn test_python_module_path_collision_errors() {
     #[derive(
         Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,

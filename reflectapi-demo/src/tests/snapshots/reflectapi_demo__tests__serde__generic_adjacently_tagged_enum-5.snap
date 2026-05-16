@@ -33,7 +33,7 @@ T = TypeVar("T")
 
 class ReflectapiDemoTestsSerdeTaggedItem(BaseModel, Generic[T]):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     t: Literal["Item"] = Field(default="Item", description="Discriminator field")
@@ -42,7 +42,7 @@ class ReflectapiDemoTestsSerdeTaggedItem(BaseModel, Generic[T]):
 
 class ReflectapiDemoTestsSerdeTaggedNothing(BaseModel, Generic[T]):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     t: Literal["Nothing"] = Field(default="Nothing", description="Discriminator field")

@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     code: int
@@ -35,7 +35,7 @@ class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     inner_a: int
@@ -44,7 +44,7 @@ class ReflectapiDemoTestsSerdeTestFlattenInner(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestFlattenInnerAlt(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     alt_x: bool
@@ -52,7 +52,7 @@ class ReflectapiDemoTestsSerdeTestFlattenInnerAlt(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestTwoInstantiations(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC43b4b99
@@ -63,7 +63,7 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b
     BaseModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
@@ -74,7 +74,7 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC4
     BaseModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None

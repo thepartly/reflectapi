@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeMessage(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     id: str
@@ -38,7 +38,7 @@ class ReflectapiDemoTestsSerdePayloadTextContent(BaseModel):
     """Text content"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     body: str
@@ -46,7 +46,7 @@ class ReflectapiDemoTestsSerdePayloadTextContent(BaseModel):
 
 class ReflectapiDemoTestsSerdePayloadText(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     kind: Literal["Text"] = Field(default="Text", description="Discriminator field")
@@ -57,7 +57,7 @@ class ReflectapiDemoTestsSerdePayloadBinaryContent(BaseModel):
     """Binary content"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     size: int
@@ -65,7 +65,7 @@ class ReflectapiDemoTestsSerdePayloadBinaryContent(BaseModel):
 
 class ReflectapiDemoTestsSerdePayloadBinary(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     kind: Literal["Binary"] = Field(default="Binary", description="Discriminator field")

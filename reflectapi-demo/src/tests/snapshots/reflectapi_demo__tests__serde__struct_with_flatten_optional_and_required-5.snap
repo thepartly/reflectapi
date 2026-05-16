@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeTestStructRenameAll(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_name: int = Field(
@@ -37,7 +37,7 @@ class ReflectapiDemoTestsSerdeTestStructRenameAll(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestStructWithFlattenNested(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     f: int
@@ -45,7 +45,7 @@ class ReflectapiDemoTestsSerdeTestStructWithFlattenNested(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestStructWithFlattenOptionalAndRequired(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     f: int | None = None

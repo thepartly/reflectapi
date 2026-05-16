@@ -26,7 +26,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsBasicTestStructWithNestedExternal(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     f: reflectapi_demo.tests.test_lib.TestStructNested = Field(
@@ -36,7 +36,7 @@ class ReflectapiDemoTestsBasicTestStructWithNestedExternal(BaseModel):
 
 class ReflectapiDemoTestsTestLibTestStructNested(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     f: str = Field(serialization_alias="_f", validation_alias="_f")

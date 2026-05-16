@@ -51,7 +51,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 class MyapiHealthCheckFail(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
 
@@ -60,12 +60,5 @@ HealthCheckFail = MyapiHealthCheckFail
 
 from . import model
 from . import proto
-
-try:
-    from .._rebuild import rebuild_models as _rebuild_models
-
-    _rebuild_models()
-except ImportError:
-    pass
 
 __all__ = ["HealthCheckFail", "MyapiHealthCheckFail", "model", "proto"]

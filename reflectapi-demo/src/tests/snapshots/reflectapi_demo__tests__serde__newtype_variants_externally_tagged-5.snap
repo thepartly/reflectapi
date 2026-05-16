@@ -40,7 +40,7 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedIntVariant(Base
     """int variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_0: int
@@ -52,7 +52,7 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedStringVariant(
     """string variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_0: str
@@ -62,7 +62,7 @@ class ReflectapiDemoTestsSerdeTestNewtypeVariantsExternallyTaggedBoolVariant(Bas
     """bool variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_0: bool

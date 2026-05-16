@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeStrukt1(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     a: int
@@ -36,7 +36,7 @@ class ReflectapiDemoTestsSerdeStrukt1(BaseModel):
 
 class ReflectapiDemoTestsSerdeStrukt2(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     c: int
@@ -45,7 +45,7 @@ class ReflectapiDemoTestsSerdeStrukt2(BaseModel):
 
 class ReflectapiDemoTestsSerdeEnumA(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["a"] = Field(default="a", description="Discriminator field")
@@ -55,7 +55,7 @@ class ReflectapiDemoTestsSerdeEnumA(BaseModel):
 
 class ReflectapiDemoTestsSerdeEnumB(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["b"] = Field(default="b", description="Discriminator field")

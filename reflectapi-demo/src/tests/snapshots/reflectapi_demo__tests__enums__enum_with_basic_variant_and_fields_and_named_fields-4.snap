@@ -42,7 +42,7 @@ class ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFieldsVar
     """Variant1 variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_0: int
@@ -55,7 +55,7 @@ class ReflectapiDemoTestsEnumsTestEnumWithBasicVariantAndFieldsAndNamedFieldsVar
     """Variant2 variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field1: int

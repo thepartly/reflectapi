@@ -27,7 +27,7 @@ from reflectapi_runtime import ReflectapiInfallible
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmpty(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     t: Literal["Empty"] = Field(default="Empty", description="Discriminator field")
@@ -35,7 +35,7 @@ class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmpty(BaseModel):
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnit(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     t: Literal["EmptyUnit"] = Field(
@@ -50,13 +50,13 @@ class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructConten
     """EmptyStruct content"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStruct(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     t: Literal["EmptyStruct"] = Field(

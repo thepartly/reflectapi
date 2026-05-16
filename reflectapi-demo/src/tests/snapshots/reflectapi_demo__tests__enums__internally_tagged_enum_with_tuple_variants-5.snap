@@ -32,7 +32,7 @@ class ReflectapiDemoTestsEnumsA(str, Enum):
 
 class ReflectapiDemoTestsEnumsEA(BaseModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     type: Literal["a"] = Field(default="a", description="Discriminator field")

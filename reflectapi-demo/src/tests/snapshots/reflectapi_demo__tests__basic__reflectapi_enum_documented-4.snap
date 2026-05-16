@@ -46,7 +46,7 @@ class ReflectapiDemoTestsBasicTestEnumDocumentedVariant1Variant(BaseModel, Gener
     """Variant1 variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     field_0: T = Field(description="variant1 field docs")
@@ -56,7 +56,7 @@ class ReflectapiDemoTestsBasicTestEnumDocumentedVariant2Variant(BaseModel, Gener
     """Variant2 variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=()
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     named_field: T = Field(description="named field variant2 field docs")
