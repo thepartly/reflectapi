@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+Python client codegen fixes:
+
+- Child namespace modules now import and bind their parent package whenever
+  annotations reference parent-qualified types, including top-level parent
+  types such as `offer_rules.InsurerCategory`. Same-root sibling module
+  references also get deferred placeholders so static analysis and Pydantic
+  model rebuilds resolve consistently during package import.
+- Python class names generated from namespace segments now sanitize characters
+  that are invalid in identifiers, such as dashes and leading digits.
+- Parent-package binding no longer breaks when the reflected root namespace is
+  literally named `sys`.
+- The CLI now removes stale generated files from directory outputs when a later
+  schema no longer emits them, while preserving non-generated user files.
+
 ## 0.17.4
 
 Python client codegen fixes:

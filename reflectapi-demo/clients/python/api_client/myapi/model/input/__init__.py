@@ -42,6 +42,12 @@ from reflectapi_runtime import (
 T = TypeVar("T")
 
 
+import sys
+from .... import myapi
+
+myapi.model = sys.modules[__name__.rsplit(".", 1)[0]]
+myapi.model.input = sys.modules[__name__]
+
 # External type definitions
 StdNumNonZeroU32 = Annotated[int, "Rust NonZero u32 type"]
 StdNumNonZeroU64 = Annotated[int, "Rust NonZero u64 type"]
