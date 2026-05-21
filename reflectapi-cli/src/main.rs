@@ -342,7 +342,13 @@ fn collect_legacy_generated_files(
     for entry in std::fs::read_dir(dir).context(format!("Failed to read directory: {dir:?}"))? {
         let entry = entry?;
         let path = entry.path();
-        if path.is_dir() {
+        let file_type = entry
+            .file_type()
+            .context(format!("Failed to inspect directory entry: {path:?}"))?;
+        if file_type.is_symlink() {
+            continue;
+        }
+        if file_type.is_dir() {
             collect_legacy_generated_files(output_dir, &path, language, files)?;
             continue;
         }
