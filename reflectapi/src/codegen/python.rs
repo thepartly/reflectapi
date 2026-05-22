@@ -2271,21 +2271,46 @@ fn render_namespace_bindings(module: &templates::Module, ns_path: &[String]) -> 
     let rendered_code = module_rendered_code(module);
     let current_module = module_qualified_name(ns_path);
     let references_current_module = contains_qualified_name(&rendered_code, &current_module);
+    let references_current_root =
+        ns_path.len() > 1 && contains_qualified_name(&rendered_code, &root_module(ns_path));
 
-    if !references_current_module {
+    if !references_current_module && !references_current_root {
         return String::new();
     }
 
+    let root = root_module(ns_path);
+    let sys_import = if root == "sys" {
+        "import sys as _reflectapi_sys"
+    } else {
+        "import sys"
+    };
+    let sys_module = if root == "sys" {
+        "_reflectapi_sys"
+    } else {
+        "sys"
+    };
+
     let mut lines = Vec::new();
-    lines.push("import sys".to_string());
+    lines.push(sys_import.to_string());
     if ns_path.len() > 1 {
         lines.push(format!(
             "from {} import {}",
             root_relative_prefix(ns_path.len()),
-            root_module(ns_path)
+            root
         ));
     }
-    lines.push(format!("{current_module} = sys.modules[__name__]"));
+    if ns_path.len() > 2 {
+        // During package import, Python may not have attached partially-loaded
+        // intermediate packages to the root module yet.
+        for depth in 2..ns_path.len() {
+            let parent_module = module_qualified_name(&ns_path[..depth]);
+            let split_count = ns_path.len() - depth;
+            lines.push(format!(
+                "{parent_module} = {sys_module}.modules[__name__.rsplit(\".\", {split_count})[0]]"
+            ));
+        }
+    }
+    lines.push(format!("{current_module} = {sys_module}.modules[__name__]"));
 
     lines.join("\n")
 }
@@ -2345,13 +2370,43 @@ fn deferred_namespace_names(
     names
 }
 
+fn deferred_root_namespace_names(
+    generation: &PythonGeneration,
+    module: &templates::Module,
+    ns_path: &[String],
+) -> BTreeSet<String> {
+    if ns_path.len() <= 1 {
+        return BTreeSet::new();
+    }
+
+    let rendered_code = module_rendered_code(module);
+    let current_child = ns_path
+        .get(1)
+        .map(|segment| safe_python_module_segment(segment));
+    let root_name = root_module(ns_path);
+    let Some(root) = generation.module_tree.submodules.get(&ns_path[0]) else {
+        return BTreeSet::new();
+    };
+
+    // Same-root sibling references such as `myapi.model.Input` need a
+    // placeholder on `myapi` until the real sibling package is imported.
+    root.submodules
+        .values()
+        .filter(|sub| !sub.is_empty())
+        .map(|sub| safe_python_module_segment(&sub.name))
+        .filter(|child| Some(child) != current_child.as_ref())
+        .filter(|child| contains_qualified_name(&rendered_code, &format!("{root_name}.{child}")))
+        .collect()
+}
+
 fn render_deferred_namespace_placeholders(
     generation: &PythonGeneration,
     module: &templates::Module,
     ns_path: &[String],
 ) -> String {
     let names = deferred_namespace_names(generation, module, ns_path);
-    if names.is_empty() {
+    let root_names = deferred_root_namespace_names(generation, module, ns_path);
+    if names.is_empty() && root_names.is_empty() {
         return String::new();
     }
 
@@ -2364,6 +2419,14 @@ fn render_deferred_namespace_placeholders(
         names
             .into_iter()
             .map(|name| format!("{name} = _ReflectapiDeferredNamespace()")),
+    );
+    let root_name = root_module(ns_path);
+    lines.extend(
+        root_names.into_iter().map(|name| {
+            format!(
+                "if not hasattr({root_name}, \"{name}\"):\n    {root_name}.{name} = _ReflectapiDeferredNamespace()"
+            )
+        }),
     );
     lines.join("\n")
 }
@@ -4739,10 +4802,21 @@ fn to_snake_case(s: &str) -> String {
 }
 
 fn to_pascal_case(s: &str) -> String {
-    // First, replace :: with _ to handle Rust module paths
-    let normalized = s.replace("::", "_");
+    // First, replace Rust/module separators and any other invalid Python
+    // identifier characters with `_`.
+    let normalized: String = s
+        .replace("::", "_")
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
 
-    normalized
+    let mut result = normalized
         .split('_')
         .map(|word| {
             let mut chars = word.chars();
@@ -4751,7 +4825,14 @@ fn to_pascal_case(s: &str) -> String {
                 Some(first) => first.to_uppercase().chain(chars).collect(),
             }
         })
-        .collect()
+        .collect::<String>();
+    if result.is_empty() {
+        result.push('_');
+    }
+    if result.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+        result.insert(0, '_');
+    }
+    result
 }
 
 /// Produce a unique flat Python class name from a potentially-qualified Rust

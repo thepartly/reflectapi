@@ -285,6 +285,266 @@ fn test_python_split_modules_bind_referenced_namespaces() {
 }
 
 #[test]
+fn test_python_split_modules_import_parent_for_top_level_refs() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct InsurerCategory {
+        id: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct InsurerCategorySummary {
+        name: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct CategoriesGetResponse {
+        category: InsurerCategory,
+        summaries: Vec<InsurerCategorySummary>,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct FormData {
+        value: String,
+        category: InsurerCategory,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct ConfigsInsertRequest {
+        name: String,
+        form_data: FormData,
+    }
+
+    async fn categories_get<S>(
+        _s: S,
+        _: reflectapi::Empty,
+        _: reflectapi::Empty,
+    ) -> CategoriesGetResponse {
+        CategoriesGetResponse {
+            category: InsurerCategory { id: String::new() },
+            summaries: vec![InsurerCategorySummary {
+                name: String::new(),
+            }],
+        }
+    }
+
+    async fn configs_insert<S>(
+        _s: S,
+        _request: ConfigsInsertRequest,
+        _: reflectapi::Empty,
+    ) -> reflectapi::Empty {
+        reflectapi::Empty {}
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(categories_get, |b| b.name("offer_rules.categories.get"))
+        .route(configs_insert, |b| b.name("offer_rules.configs.insert"))
+        .rename_types(
+            "reflectapi_demo::tests::namespace::InsurerCategory",
+            "offer_rules::InsurerCategory",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::InsurerCategorySummary",
+            "offer_rules::InsurerCategorySummary",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::CategoriesGetResponse",
+            "offer_rules::categories::GetResponse",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::FormData",
+            "offer_rules::model::input::FormData",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::ConfigsInsertRequest",
+            "offer_rules::configs::InsertRequest",
+        )
+        .build()
+        .unwrap();
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+
+    let categories_file = files.get("offer_rules/categories/__init__.py").unwrap();
+    assert!(categories_file.contains("import sys"), "{categories_file}");
+    assert!(
+        categories_file.contains("from ... import offer_rules"),
+        "{categories_file}"
+    );
+    assert!(
+        categories_file.contains("offer_rules.categories = sys.modules[__name__]"),
+        "{categories_file}"
+    );
+    assert!(
+        categories_file.contains("category: offer_rules.InsurerCategory"),
+        "{categories_file}"
+    );
+    assert!(
+        categories_file.contains("summaries: list[offer_rules.InsurerCategorySummary]"),
+        "{categories_file}"
+    );
+
+    let configs_file = files.get("offer_rules/configs/__init__.py").unwrap();
+    assert!(
+        configs_file.contains("from ... import offer_rules"),
+        "{configs_file}"
+    );
+    assert!(
+        configs_file.contains("offer_rules.configs = sys.modules[__name__]"),
+        "{configs_file}"
+    );
+    assert!(
+        configs_file.contains("if not hasattr(offer_rules, \"model\"):"),
+        "{configs_file}"
+    );
+    assert!(
+        configs_file.contains("    offer_rules.model = _ReflectapiDeferredNamespace()"),
+        "{configs_file}"
+    );
+    assert!(
+        configs_file.contains("form_data: offer_rules.model.input.FormData"),
+        "{configs_file}"
+    );
+
+    let form_data_file = files.get("offer_rules/model/input/__init__.py").unwrap();
+    assert!(
+        form_data_file.contains("from .... import offer_rules"),
+        "{form_data_file}"
+    );
+    assert!(
+        form_data_file.contains("offer_rules.model = sys.modules[__name__.rsplit(\".\", 1)[0]]"),
+        "{form_data_file}"
+    );
+    assert!(
+        form_data_file.contains("offer_rules.model.input = sys.modules[__name__]"),
+        "{form_data_file}"
+    );
+    assert!(
+        form_data_file.contains("category: offer_rules.InsurerCategory"),
+        "{form_data_file}"
+    );
+}
+
+#[test]
+fn test_python_split_modules_handles_sys_root_and_sanitized_class_names() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct SysTop {
+        value: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct SysUsesTop {
+        top: SysTop,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct KeywordTop {
+        value: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct KeywordThing {
+        top: KeywordTop,
+    }
+
+    async fn sys_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> SysUsesTop {
+        SysUsesTop {
+            top: SysTop {
+                value: String::new(),
+            },
+        }
+    }
+
+    async fn keyword_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> KeywordThing {
+        KeywordThing {
+            top: KeywordTop {
+                value: String::new(),
+            },
+        }
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(sys_get, |b| b.name("sys.child.get"))
+        .route(keyword_get, |b| b.name("class.1-bad.for.get"))
+        .rename_types("reflectapi_demo::tests::namespace::SysTop", "sys::Top")
+        .rename_types(
+            "reflectapi_demo::tests::namespace::SysUsesTop",
+            "sys::child::UsesTop",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::KeywordTop",
+            "class::Top",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::KeywordThing",
+            "class::1-bad::for::Thing",
+        )
+        .build()
+        .unwrap();
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+
+    let sys_child_file = files.get("sys/child/__init__.py").unwrap();
+    assert!(
+        sys_child_file.contains("import sys as _reflectapi_sys"),
+        "{sys_child_file}"
+    );
+    assert!(
+        sys_child_file.contains("from ... import sys"),
+        "{sys_child_file}"
+    );
+    assert!(
+        sys_child_file.contains("sys.child = _reflectapi_sys.modules[__name__]"),
+        "{sys_child_file}"
+    );
+    assert!(sys_child_file.contains("top: sys.Top"), "{sys_child_file}");
+
+    let keyword_file = files.get("class_/_1_bad/for_/__init__.py").unwrap();
+    assert!(
+        keyword_file.contains("class Class_1BadForThing(BaseModel):"),
+        "{keyword_file}"
+    );
+    assert!(
+        keyword_file.contains("Thing = Class_1BadForThing"),
+        "{keyword_file}"
+    );
+    assert!(
+        !keyword_file.contains("Class1-badForThing"),
+        "{keyword_file}"
+    );
+
+    let rebuild_file = files.get("_rebuild.py").unwrap();
+    assert!(
+        rebuild_file.contains("from .class_._1_bad.for_ import Class_1BadForThing"),
+        "{rebuild_file}"
+    );
+}
+
+#[test]
 fn test_python_split_modules_defer_peer_namespace_imports() {
     #[derive(
         Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
@@ -417,7 +677,14 @@ fn test_python_split_modules_client_uses_hashed_namespace_class_name() {
 
     assert!(class_name.len() <= 80);
     assert_ne!(class_name, format!("Tier1{long_leaf_name}"));
-    assert!(tier1_file.contains(&format!("{alias_name} = (\n    {class_name}\n)")));
+    let alias_assignment = format!("{alias_name} = ");
+    let alias_start = tier1_file.find(&alias_assignment).unwrap();
+    let alias_block = tier1_file[alias_start..]
+        .lines()
+        .take_while(|line| !line.trim().is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(alias_block.contains(class_name), "{alias_block}");
 
     let client_file = files.get("_client.py").unwrap();
     assert!(client_file.contains(&format!("tier1.{alias_name}")));

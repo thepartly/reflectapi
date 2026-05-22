@@ -54,6 +54,15 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
+class _ReflectapiDeferredNamespace:
+    def __getattr__(self, name: str) -> None:
+        raise NameError(name)
+
+
+if not hasattr(myapi, "model"):
+    myapi.model = _ReflectapiDeferredNamespace()
+
+
 class MyapiProtoHeaders(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+Python client generation improvements:
+
+- Generated Python clients with nested namespaces now import cleanly when models refer to parent or sibling namespaces, including cases like `offer_rules.InsurerCategory`.
+- Namespace names containing characters that are not valid in Python identifiers, such as dashes or leading digits, now generate valid Python classes.
+- Schemas with a root namespace named `sys` no longer conflict with Python's standard `sys` module.
+- Re-running `reflectapi codegen` into an existing output directory now removes generated files from older schemas while preserving hand-written files.
+
 ## 0.17.4
 
 Python client codegen fixes:
