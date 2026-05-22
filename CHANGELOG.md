@@ -2,19 +2,12 @@
 
 ## Unreleased
 
-Python client codegen fixes:
+Python client generation improvements:
 
-- Child namespace modules now import and bind their parent package whenever
-  annotations reference parent-qualified types, including top-level parent
-  types such as `offer_rules.InsurerCategory`. Same-root sibling module
-  references also get deferred placeholders so static analysis and Pydantic
-  model rebuilds resolve consistently during package import.
-- Python class names generated from namespace segments now sanitize characters
-  that are invalid in identifiers, such as dashes and leading digits.
-- Parent-package binding no longer breaks when the reflected root namespace is
-  literally named `sys`.
-- The CLI now removes stale generated files from directory outputs when a later
-  schema no longer emits them, while preserving non-generated user files.
+- Generated Python clients with nested namespaces now import cleanly when models refer to parent or sibling namespaces, including cases like `offer_rules.InsurerCategory`.
+- Namespace names containing characters that are not valid in Python identifiers, such as dashes or leading digits, now generate valid Python classes.
+- Schemas with a root namespace named `sys` no longer conflict with Python's standard `sys` module.
+- Re-running `reflectapi codegen` into an existing output directory now removes generated files from older schemas while preserving hand-written files.
 
 ## 0.17.4
 
