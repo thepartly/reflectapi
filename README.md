@@ -42,7 +42,7 @@
 
 ### Building and running
 
-Ensure that you have `prettier` and `rustfmt` available in your PATH to format generated code.
+Ensure that you have `prettier`, `rustfmt`, and `ruff` available in your PATH for consistently formatted generated code.
 
 To run the demo server:
 

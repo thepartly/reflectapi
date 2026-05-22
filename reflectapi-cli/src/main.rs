@@ -53,7 +53,14 @@ enum Commands {
         typecheck: bool,
 
         /// Format the generated code
-        #[arg(short, long, default_value = "true")]
+        #[arg(
+            short,
+            long,
+            default_value_t = true,
+            default_missing_value = "true",
+            num_args = 0..=1,
+            require_equals = true
+        )]
         format: bool,
 
         /// Instrument the generated code with tracing
