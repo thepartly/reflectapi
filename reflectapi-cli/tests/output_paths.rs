@@ -30,6 +30,15 @@ fn run(args: &[&str]) -> std::process::Output {
         .expect("spawn reflectapi")
 }
 
+#[cfg(unix)]
+fn run_with_path(args: &[&str], path: &std::path::Path) -> std::process::Output {
+    Command::new(cargo_bin())
+        .args(args)
+        .env("PATH", path)
+        .output()
+        .expect("spawn reflectapi")
+}
+
 fn write_minimal_python_schema(path: &std::path::Path, type_name: &str) {
     let schema = format!(
         r#"{{
@@ -107,6 +116,7 @@ fn python_output_into_fresh_directory() {
         "codegen",
         "--language",
         "python",
+        "--format=false",
         "--schema",
         schema.to_str().unwrap(),
         "--output",
@@ -144,6 +154,7 @@ fn python_directory_output_removes_stale_generated_files() {
         "codegen",
         "--language",
         "python",
+        "--format=false",
         "--schema",
         schema_one.to_str().unwrap(),
         "--output",
@@ -165,6 +176,7 @@ fn python_directory_output_removes_stale_generated_files() {
         "codegen",
         "--language",
         "python",
+        "--format=false",
         "--schema",
         schema_two.to_str().unwrap(),
         "--output",
@@ -211,6 +223,7 @@ fn python_legacy_cleanup_skips_symlinked_directories() {
         "codegen",
         "--language",
         "python",
+        "--format=false",
         "--schema",
         schema.to_str().unwrap(),
         "--output",
@@ -227,6 +240,110 @@ fn python_legacy_cleanup_skips_symlinked_directories() {
     );
     assert!(target.join("linked").is_symlink());
     assert!(target.join("current/__init__.py").is_file());
+}
+
+#[cfg(unix)]
+#[test]
+fn python_format_falls_back_when_ruff_is_missing() {
+    let tmp = tempfile::tempdir().unwrap();
+    let target = tmp.path().join("python-client");
+    let empty_path = tmp.path().join("bin");
+    fs::create_dir_all(&empty_path).unwrap();
+
+    let schema = tmp.path().join("schema.json");
+    write_minimal_python_schema(&schema, "current::Thing");
+
+    let out = run_with_path(
+        &[
+            "codegen",
+            "--language",
+            "python",
+            "--schema",
+            schema.to_str().unwrap(),
+            "--output",
+            target.to_str().unwrap(),
+        ],
+        &empty_path,
+    );
+    assert!(
+        out.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(target.join("current/__init__.py").is_file());
+}
+
+#[cfg(unix)]
+#[test]
+fn python_format_false_does_not_require_ruff() {
+    let tmp = tempfile::tempdir().unwrap();
+    let target = tmp.path().join("python-client");
+    let empty_path = tmp.path().join("bin");
+    fs::create_dir_all(&empty_path).unwrap();
+
+    let schema = tmp.path().join("schema.json");
+    write_minimal_python_schema(&schema, "current::Thing");
+
+    let out = run_with_path(
+        &[
+            "codegen",
+            "--language",
+            "python",
+            "--format=false",
+            "--schema",
+            schema.to_str().unwrap(),
+            "--output",
+            target.to_str().unwrap(),
+        ],
+        &empty_path,
+    );
+    assert!(
+        out.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(target.join("current/__init__.py").is_file());
+}
+
+#[cfg(unix)]
+#[test]
+fn python_format_reports_ruff_failures() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let target = tmp.path().join("python-client");
+    let bin = tmp.path().join("bin");
+    fs::create_dir_all(&bin).unwrap();
+
+    let ruff = bin.join("ruff");
+    fs::write(&ruff, "#!/bin/sh\necho 'ruff exploded' >&2\nexit 2\n").unwrap();
+    let mut permissions = fs::metadata(&ruff).unwrap().permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(&ruff, permissions).unwrap();
+
+    let schema = tmp.path().join("schema.json");
+    write_minimal_python_schema(&schema, "current::Thing");
+
+    let out = run_with_path(
+        &[
+            "codegen",
+            "--language",
+            "python",
+            "--schema",
+            schema.to_str().unwrap(),
+            "--output",
+            target.to_str().unwrap(),
+        ],
+        &bin,
+    );
+    assert!(
+        !out.status.success(),
+        "expected ruff failure to fail codegen"
+    );
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("failed to format generated Python code with `ruff format`"));
+    assert!(stderr.contains("command failed with exit code"));
+    assert!(stderr.contains("Fix Ruff or pass `--format=false`"));
 }
 
 #[test]
@@ -286,6 +403,7 @@ fn python_stdout_emits_generated_not_init() {
         "codegen",
         "--language",
         "python",
+        "--format=false",
         "--schema",
         schema.to_str().unwrap(),
         "--output",

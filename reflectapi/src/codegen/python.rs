@@ -43,8 +43,9 @@ pub struct Config {
     pub generate_sync: bool,
     /// Whether to generate testing utilities
     pub generate_testing: bool,
-    /// Attempt to format the generated code with ruff. Will fall back to basic
-    /// formatting if ruff is not available.
+    /// Attempt to format generated code with ruff. Falls back to basic
+    /// formatting when ruff is not installed, but fails if ruff is installed
+    /// and returns an error.
     pub format: bool,
     /// Base URL for the API (optional)
     pub base_url: Option<String>,
@@ -419,7 +420,7 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
     third_party_imports.insert("BaseModel");
     third_party_imports.insert("ConfigDict");
     third_party_imports.insert("Field");
-    if imports.has_discriminated_unions {
+    if imports.has_discriminated_unions || imports.has_tuple_structs {
         third_party_imports.insert("RootModel");
     }
     if imports.has_externally_tagged_enums {
@@ -1630,38 +1631,47 @@ fn build_python_generation(
         .types()
         .any(|t| matches!(t, schema_codegen::SemanticType::Enum(_)));
 
-    let (has_literal, has_discriminated_unions, has_externally_tagged_enums) = {
+    let (has_literal, has_discriminated_unions, has_externally_tagged_enums, has_tuple_structs) = {
         let mut has_literal = false;
         let mut has_discriminated_unions = false;
         let mut has_externally_tagged_enums = false;
+        let mut has_tuple_structs = false;
 
         for sem_type in semantic.types() {
-            if let schema_codegen::SemanticType::Enum(sem_enum) = sem_type {
-                match &sem_enum.representation {
-                    reflectapi_schema::Representation::Internal { .. }
-                    | reflectapi_schema::Representation::Adjacent { .. } => {
-                        // Both internally and adjacently tagged enums now use
-                        // Literal discriminator fields + Pydantic discriminated unions
-                        has_literal = true;
-                        has_discriminated_unions = true;
-                    }
-                    reflectapi_schema::Representation::External => {
-                        let has_complex_variants = sem_enum
-                            .variants
-                            .values()
-                            .any(|v| !matches!(v.field_style, schema_codegen::FieldStyle::Unit));
-                        if has_complex_variants {
-                            has_externally_tagged_enums = true;
+            match sem_type {
+                schema_codegen::SemanticType::Enum(sem_enum) => {
+                    match &sem_enum.representation {
+                        reflectapi_schema::Representation::Internal { .. }
+                        | reflectapi_schema::Representation::Adjacent { .. } => {
+                            // Both internally and adjacently tagged enums now use
+                            // Literal discriminator fields + Pydantic discriminated unions
+                            has_literal = true;
+                            has_discriminated_unions = true;
                         }
+                        reflectapi_schema::Representation::External => {
+                            let has_complex_variants = sem_enum.variants.values().any(|v| {
+                                !matches!(v.field_style, schema_codegen::FieldStyle::Unit)
+                            });
+                            if has_complex_variants {
+                                has_externally_tagged_enums = true;
+                            }
+                        }
+                        _ => {}
                     }
-                    _ => {}
                 }
+                schema_codegen::SemanticType::Struct(sem_struct) => {
+                    if sem_struct.is_tuple && sem_struct.fields.len() > 1 {
+                        has_tuple_structs = true;
+                    }
+                }
+                schema_codegen::SemanticType::Primitive(_) => {}
             }
         }
         (
             has_literal,
             has_discriminated_unions,
             has_externally_tagged_enums,
+            has_tuple_structs,
         )
     };
 
@@ -1687,6 +1697,7 @@ fn build_python_generation(
         has_literal,
         has_discriminated_unions,
         has_externally_tagged_enums,
+        has_tuple_structs,
         global_type_vars: Vec::new(), // Will be added later after tracking usage
         has_streaming,
         has_partial_models,
@@ -3411,6 +3422,40 @@ fn render_struct(
         // Skip generation for single-field tuple structs
         // They should be unwrapped and used directly
         return Ok(String::new());
+    }
+
+    if struct_def.is_tuple() {
+        let active_generics: Vec<String> =
+            struct_def.parameters().map(|p| p.name.clone()).collect();
+        for generic in &active_generics {
+            used_type_vars.insert(generic.clone());
+        }
+
+        let element_types = struct_def
+            .fields
+            .iter()
+            .map(|field| {
+                let base_field_type = type_ref_to_python_type(
+                    &field.type_ref,
+                    schema,
+                    implemented_types,
+                    class_names,
+                    &active_generics,
+                    used_type_vars,
+                )?;
+                let (_, _, field_type) = resolve_field_optionality(
+                    &field.type_ref.name,
+                    base_field_type,
+                    field.required,
+                );
+                Ok(field_type)
+            })
+            .collect::<Result<Vec<_>, anyhow::Error>>()?;
+        let tuple_type = format!("tuple[{}]", element_types.join(", "));
+        let class_name = python_class_name(&struct_def.name, class_names);
+        return Ok(format!(
+            "class {class_name}(RootModel[{tuple_type}]):\n    root: {tuple_type}\n\n"
+        ));
     }
 
     // Collect active generic parameter names for this struct, mapping to descriptive names
@@ -5405,36 +5450,15 @@ fn build_implemented_types() -> BTreeMap<String, String> {
 // Helper functions for templates
 
 fn format_python_code(code: &str) -> anyhow::Result<String> {
-    // Try to format with ruff format if available
-    use std::process::{Command, Stdio};
-
-    let child = Command::new("ruff")
-        .args(["format", "--stdin-filename", "generated.py", "-"])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn();
-
-    match child {
-        Ok(mut process) => {
-            if let Some(stdin) = process.stdin.take() {
-                use std::io::Write;
-                let mut stdin = stdin;
-                let _ = stdin.write_all(code.as_bytes());
-            }
-            let output = process.wait_with_output()?;
-            if output.status.success() {
-                let formatted = String::from_utf8_lossy(&output.stdout).to_string();
-                Ok(ensure_final_newline(formatted))
-            } else {
-                // Fall back to basic formatting if ruff fails
-                Ok(basic_python_format(code))
-            }
-        }
-        Err(_) => {
-            // ruff not available, apply basic formatting
-            Ok(basic_python_format(code))
-        }
+    let mut ruff = std::process::Command::new("ruff");
+    ruff.args(["format", "--stdin-filename", "generated.py", "-"]);
+    match super::format_with([&mut ruff], code.to_string()) {
+        Ok(formatted) => Ok(ensure_final_newline(formatted)),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(basic_python_format(code)),
+        Err(err) => Err(anyhow::anyhow!(
+            "failed to format generated Python code with `ruff format`: {err}\n\
+             Fix Ruff or pass `--format=false` to skip external formatting."
+        )),
     }
 }
 
@@ -5741,6 +5765,7 @@ pub mod templates {
         pub has_literal: bool,
         pub has_discriminated_unions: bool,
         pub has_externally_tagged_enums: bool,
+        pub has_tuple_structs: bool,
         pub global_type_vars: Vec<String>,
         /// At least one streaming endpoint is exposed by the client.
         pub has_streaming: bool,

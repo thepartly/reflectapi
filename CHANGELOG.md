@@ -4,6 +4,8 @@
 
 Python client generation improvements:
 
+- Python codegen still falls back to basic formatting when Ruff is not installed, but now reports an error if `ruff format` is available and fails; pass `--format=false` to skip external formatting.
+- Multi-field Rust tuple structs now generate valid Python `RootModel[tuple[...]]` models instead of invalid numeric field names.
 - Generated Python clients with nested namespaces now import cleanly when models refer to parent or sibling namespaces, including cases like `offer_rules.InsurerCategory`.
 - Namespace names containing characters that are not valid in Python identifiers, such as dashes or leading digits, now generate valid Python classes.
 - Schemas with a root namespace named `sys` no longer conflict with Python's standard `sys` module.

@@ -20,6 +20,7 @@ jobs:
           version: "1.8.3"
       - uses: astral-sh/ruff-action@v3
         with:
+          version: "0.15.8"
           args: "--version"
       - uses: dtolnay/rust-toolchain@stable
         with:
