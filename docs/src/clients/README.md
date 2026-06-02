@@ -86,6 +86,13 @@ The demo repository includes extra project scaffolding around some generated cli
 - Adds a sync client only when `--python-sync` is passed.
 - Emits reflected Rust namespaces as real Python packages. `generated.py` is kept
   as a temporary compatibility facade inside the package.
+- Each namespace exposes its types under short, ergonomic names (`order.Item`).
+  When a namespace defines a type whose short name clashes with a top-level type
+  of the same name (e.g. both a root `IfConflictOnUpdate` and a
+  `nomatches::IfConflictOnUpdate`), the namespace keeps the short name bound to
+  the imported top-level type and exposes its own type under a disambiguated,
+  namespace-prefixed name (`nomatches.NomatchesIfConflictOnUpdate`). This keeps
+  one Python class per logical type so `model.<X>` resolves consistently.
 - Uses `reflectapi_runtime` for client base classes and runtime helpers.
 
 ### Rust

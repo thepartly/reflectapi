@@ -122,6 +122,225 @@ fn test_python_destutter_collision_falls_back_to_original_name() {
     assert!(python.contains("OfferRequestPartIdentity = OfferRequestOfferRequestPartIdentity"));
 }
 
+/// Regression for #161: in the multi-file (package) Python client a root
+/// type and a same-leaf type under a sub-namespace must not collide on a
+/// bare public name. Previously each namespace emitted a `<Leaf> =
+/// <NamespacePrefixedLeaf>` rebind that shadowed the `from .._types import
+/// <Leaf>` it also emitted, so `_types.<Leaf>` and `<ns>.<Leaf>` resolved to
+/// two distinct classes and field annotations silently bound to the wrong
+/// one (pydantic then rejected values with a self-identical error message).
+#[test]
+fn test_python_namespace_leaf_collision_no_shadowing() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct SomeMatch {
+        id: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct RootConflict<C> {
+        not_exists: Option<C>,
+        matches: Option<SomeMatch>,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct NsConflict<C> {
+        not_exists: Option<C>,
+        matches: Option<SomeMatch>,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct TopWrapper {
+        conflict: RootConflict<SomeMatch>,
+        ns_conflict: NsConflict<SomeMatch>,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct NomatchesUpdateRequest {
+        conflict: NsConflict<SomeMatch>,
+    }
+
+    async fn top_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> TopWrapper {
+        unimplemented!()
+    }
+    async fn nomatches_update<S>(
+        _s: S,
+        _: NomatchesUpdateRequest,
+        _: reflectapi::Empty,
+    ) -> reflectapi::Empty {
+        reflectapi::Empty {}
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(top_get, |b| b.name("top.get"))
+        .route(nomatches_update, |b| b.name("nomatches.update"))
+        .rename_types(
+            "reflectapi_demo::tests::namespace::TopWrapper",
+            "TopWrapper",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::NomatchesUpdateRequest",
+            "nomatches::UpdateRequest",
+        )
+        .rename_types("reflectapi_demo::tests::namespace::SomeMatch", "SomeMatch")
+        .rename_types(
+            "reflectapi_demo::tests::namespace::RootConflict",
+            "IfConflictOnUpdate",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::NsConflict",
+            "nomatches::IfConflictOnUpdate",
+        )
+        .build()
+        .unwrap();
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+
+    let types_py = files.get("_types.py").unwrap();
+    let nomatches_py = files.get("nomatches/__init__.py").unwrap();
+
+    // The root type is defined once (in _types.py); the namespace type keeps
+    // its globally-unique, namespace-prefixed flat name.
+    assert!(types_py.contains("class IfConflictOnUpdate(BaseModel"));
+    assert!(nomatches_py.contains("class NomatchesIfConflictOnUpdate(BaseModel"));
+    assert!(nomatches_py.contains("from .._types import"));
+
+    // The namespace must NOT rebind the bare `IfConflictOnUpdate` it imports
+    // from `_types` to a *different* local class — that shadowing is the #161
+    // bug (`_types.X is not nomatches.X`).
+    assert!(
+        !nomatches_py.contains("IfConflictOnUpdate = NomatchesIfConflictOnUpdate"),
+        "namespace must not shadow the imported root `IfConflictOnUpdate`:\n{nomatches_py}"
+    );
+
+    // The namespace wrapper's field must bind to the disambiguated local
+    // class, not the bare (formerly shadowed) leaf.
+    assert!(
+        nomatches_py.contains("conflict: NomatchesIfConflictOnUpdate["),
+        "namespace field must reference the disambiguated local class:\n{nomatches_py}"
+    );
+
+    // A root type that references the namespace-local type must qualify it
+    // with the disambiguated name; `nomatches.IfConflictOnUpdate` now resolves
+    // to the imported root class, so it would otherwise be the wrong type.
+    assert!(
+        types_py.contains("nomatches.NomatchesIfConflictOnUpdate["),
+        "root cross-namespace ref must use the disambiguated name:\n{types_py}"
+    );
+    assert!(!types_py.contains("nomatches.IfConflictOnUpdate["));
+}
+
+/// Regression for #161 (Codex review follow-up): the collision can be hidden in
+/// the *Rust-leaf* alias rather than the prefix-stripped one. A namespaced
+/// `myapi::order::OrderInsertData` de-stutters to flat `MyapiOrderInsertData`,
+/// so the stripped alias is the harmless `InsertData` while the Rust-leaf alias
+/// `OrderInsertData = MyapiOrderInsertData` is what shadows the imported root
+/// `OrderInsertData`. Collision detection must cover both alias forms.
+#[test]
+fn test_python_namespace_destutter_leaf_collision_no_shadowing() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct RootOrderInsertData {
+        id: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct NsOrderInsertData {
+        name: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct TopWrapper {
+        root: RootOrderInsertData,
+        ns: NsOrderInsertData,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct OrderUpdateRequest {
+        data: NsOrderInsertData,
+    }
+
+    async fn top_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> TopWrapper {
+        unimplemented!()
+    }
+    async fn order_update<S>(
+        _s: S,
+        _: OrderUpdateRequest,
+        _: reflectapi::Empty,
+    ) -> reflectapi::Empty {
+        reflectapi::Empty {}
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(top_get, |b| b.name("top.get"))
+        .route(order_update, |b| b.name("myapi.order.update"))
+        .rename_types(
+            "reflectapi_demo::tests::namespace::TopWrapper",
+            "TopWrapper",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::OrderUpdateRequest",
+            "myapi::order::UpdateRequest",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::RootOrderInsertData",
+            "OrderInsertData",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::NsOrderInsertData",
+            "myapi::order::OrderInsertData",
+        )
+        .build()
+        .unwrap();
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+
+    let types_py = files.get("_types.py").unwrap();
+    let order_py = files.get("myapi/order/__init__.py").unwrap();
+
+    assert!(order_py.contains("class MyapiOrderInsertData(BaseModel"));
+    // The Rust-leaf alias must not rebind (shadow) the imported root type.
+    assert!(
+        !order_py.contains("OrderInsertData = MyapiOrderInsertData"),
+        "Rust-leaf alias must not shadow the imported root `OrderInsertData`:\n{order_py}"
+    );
+    // The same-module field reference resolves to the disambiguated local class.
+    assert!(
+        order_py.contains("data: MyapiOrderInsertData"),
+        "same-module ref must use the disambiguated local class:\n{order_py}"
+    );
+    // The cross-namespace reference from a root type is disambiguated too.
+    assert!(
+        types_py.contains("ns: myapi.order.MyapiOrderInsertData"),
+        "root cross-namespace ref must use the disambiguated name:\n{types_py}"
+    );
+    assert!(!types_py.contains("ns: myapi.order.OrderInsertData"));
+}
+
 #[test]
 fn test_python_init_exports_client() {
     #[derive(

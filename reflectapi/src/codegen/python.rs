@@ -2101,6 +2101,132 @@ fn flat_namespace_prefix(ns_path: &[String]) -> String {
         .join("")
 }
 
+/// Disambiguated flat class names for *colliding* leaf names, keyed by the
+/// owning namespace module path.
+///
+/// A leaf "collides" when a sub-namespace defines a type whose short
+/// (prefix-stripped) name equals a *root* type name. Every namespace module
+/// imports all root types via `from .._types import ...`, so exposing the
+/// short name as a bare alias to a different local class would shadow that
+/// import — and that shadowing is the root of #161: `_types.<Leaf>` and
+/// `<ns>.<Leaf>` then resolve to two distinct classes, and field annotations
+/// silently bind to the wrong one.
+#[derive(Default)]
+struct CollisionRegistry {
+    by_module: BTreeMap<Vec<String>, BTreeMap<String, String>>,
+}
+
+impl CollisionRegistry {
+    /// Colliding `leaf -> flat name` entries owned by `ns_path`.
+    fn for_module(&self, ns_path: &[String]) -> BTreeMap<String, String> {
+        self.by_module.get(ns_path).cloned().unwrap_or_default()
+    }
+}
+
+fn collect_collisions(
+    module: &templates::Module,
+    ns_path: &[String],
+    root_type_names: &BTreeSet<String>,
+    by_module: &mut BTreeMap<Vec<String>, BTreeMap<String, String>>,
+) {
+    if !ns_path.is_empty() {
+        // Derive collisions from the module's *actual* public aliases.
+        // `module_aliases` emits both a prefix-stripped alias and a Rust-leaf
+        // alias, and either can shadow a same-named root type imported via
+        // `from .._types import ...`. Checking only the stripped form would
+        // miss e.g. a namespaced `OrderInsertData` whose flat name de-stutters
+        // to `MyapiOrderInsertData`: there the *Rust-leaf* alias
+        // (`OrderInsertData = MyapiOrderInsertData`) is the colliding one.
+        let collisions: BTreeMap<String, String> = module_aliases(module, ns_path)
+            .into_iter()
+            .filter(|(alias, flat)| alias != flat && root_type_names.contains(alias))
+            .collect();
+        if !collisions.is_empty() {
+            by_module.insert(ns_path.to_vec(), collisions);
+        }
+    }
+
+    for sub in module.submodules.values() {
+        if sub.is_empty() {
+            continue;
+        }
+        let mut child_path = ns_path.to_vec();
+        child_path.push(sub.name.clone());
+        collect_collisions(sub, &child_path, root_type_names, by_module);
+    }
+}
+
+fn collision_registry(
+    module: &templates::Module,
+    root_type_names: &BTreeSet<String>,
+) -> CollisionRegistry {
+    let mut by_module = BTreeMap::new();
+    collect_collisions(module, &[], root_type_names, &mut by_module);
+    CollisionRegistry { by_module }
+}
+
+/// Replace every boundary-delimited occurrence of `token` with `replacement`.
+/// Both ends must fall on a non-identifier boundary so that, e.g., replacing
+/// `ns.Foo` leaves `ns.FooBar` untouched.
+fn replace_token(code: &str, token: &str, replacement: &str) -> String {
+    let is_ident = |c: char| c.is_ascii_alphanumeric() || c == '_';
+    let mut output = String::with_capacity(code.len());
+    let mut cursor = 0;
+
+    for (index, _) in code.match_indices(token) {
+        if index < cursor {
+            continue;
+        }
+        let before_is_boundary = index == 0
+            || code[..index]
+                .chars()
+                .next_back()
+                .is_none_or(|c| !is_ident(c));
+        let after_index = index + token.len();
+        let after_is_boundary = code[after_index..]
+            .chars()
+            .next()
+            .is_none_or(|c| !is_ident(c));
+        if before_is_boundary && after_is_boundary {
+            output.push_str(&code[cursor..index]);
+            output.push_str(replacement);
+            cursor = after_index;
+        }
+    }
+
+    output.push_str(&code[cursor..]);
+    output
+}
+
+/// Rewrite references to colliding types so they resolve to a single class.
+///
+/// Cross-namespace references are qualified with the disambiguated flat name
+/// (`nomatches.IfConflictOnUpdate` -> `nomatches.NomatchesIfConflictOnUpdate`);
+/// references to the current module's own colliding types are localized to the
+/// bare flat name. A no-op when no collisions exist, so non-colliding schemas
+/// generate byte-identical output.
+fn apply_collision_rewrites(
+    code: &str,
+    ns_path: &[String],
+    registry: &CollisionRegistry,
+) -> String {
+    let mut result = code.to_string();
+    for (owner_ns, collisions) in &registry.by_module {
+        if owner_ns.as_slice() == ns_path {
+            continue;
+        }
+        let owner_qualified = module_qualified_name(owner_ns);
+        for (leaf, flat) in collisions {
+            let from = format!("{owner_qualified}.{leaf}");
+            if result.contains(&from) {
+                let to = format!("{owner_qualified}.{flat}");
+                result = replace_token(&result, &from, &to);
+            }
+        }
+    }
+    localize_current_module_refs(&result, ns_path, &registry.for_module(ns_path))
+}
+
 fn module_aliases(module: &templates::Module, ns_path: &[String]) -> BTreeMap<String, String> {
     let flat_prefix = flat_namespace_prefix(ns_path);
     let mut aliases = BTreeMap::new();
@@ -2216,26 +2342,47 @@ fn contains_qualified_name(code: &str, name: &str) -> bool {
     })
 }
 
-fn strip_qualified_prefix(code: &str, prefix: &str) -> String {
+/// Strip the current module's `<prefix>.` from references to its own types so
+/// they read as bare local names. A colliding leaf is instead rewritten to its
+/// disambiguated flat name (passed in `collisions`) rather than the bare leaf,
+/// because the bare leaf is owned by the same-named root type imported via
+/// `from .._types import ...`. With an empty `collisions` map this is a plain
+/// prefix strip.
+fn rewrite_module_prefix(
+    code: &str,
+    prefix: &str,
+    collisions: &BTreeMap<String, String>,
+) -> String {
     let needle = format!("{prefix}.");
     let mut output = String::with_capacity(code.len());
     let mut cursor = 0;
 
     for (index, _) in code.match_indices(&needle) {
+        if index < cursor {
+            continue;
+        }
         let before_is_boundary = index == 0
             || code[..index]
                 .chars()
                 .next_back()
                 .is_none_or(|c| !(c.is_ascii_alphanumeric() || c == '_'));
         let after_index = index + needle.len();
-        let after_is_boundary = code[after_index..]
+        let ident: String = code[after_index..]
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+            .collect();
+        let starts_identifier = ident
             .chars()
             .next()
-            .is_none_or(|c| c.is_ascii_alphabetic() || c == '_');
+            .is_some_and(|c| c.is_ascii_alphabetic() || c == '_');
 
-        if before_is_boundary && after_is_boundary {
+        if before_is_boundary && starts_identifier {
             output.push_str(&code[cursor..index]);
-            cursor = after_index;
+            match collisions.get(&ident) {
+                Some(flat) => output.push_str(flat),
+                None => output.push_str(&ident),
+            }
+            cursor = after_index + ident.len();
         }
     }
 
@@ -2243,12 +2390,16 @@ fn strip_qualified_prefix(code: &str, prefix: &str) -> String {
     output
 }
 
-fn localize_current_module_refs(code: &str, ns_path: &[String]) -> String {
+fn localize_current_module_refs(
+    code: &str,
+    ns_path: &[String],
+    collisions: &BTreeMap<String, String>,
+) -> String {
     if ns_path.is_empty() {
         return code.to_string();
     }
 
-    strip_qualified_prefix(code, &module_qualified_name(ns_path))
+    rewrite_module_prefix(code, &module_qualified_name(ns_path), collisions)
 }
 
 fn module_rendered_code(module: &templates::Module) -> String {
@@ -2495,6 +2646,7 @@ fn render_module_file(
     module: &templates::Module,
     ns_path: &[String],
     root_type_names: &BTreeSet<String>,
+    registry: &CollisionRegistry,
     config: &Config,
 ) -> anyhow::Result<String> {
     let mut parts = vec![generation.preamble.clone()];
@@ -2524,13 +2676,20 @@ fn render_module_file(
         parts.push(deferred_namespace_placeholders);
     }
 
+    let current_collisions = registry.for_module(ns_path);
+
     let mut body = String::new();
     for mt in &module.types {
-        body.push_str(&localize_current_module_refs(&mt.rendered, ns_path));
+        body.push_str(&apply_collision_rewrites(&mt.rendered, ns_path, registry));
         body.push('\n');
     }
 
-    let aliases = module_aliases(module, ns_path);
+    let mut aliases = module_aliases(module, ns_path);
+    // Drop bare aliases whose name collides with a same-named root type
+    // imported into this module: binding the short name to a different local
+    // class would shadow that import (#161). The local class stays reachable
+    // under its disambiguated flat name.
+    aliases.retain(|leaf, _| !current_collisions.contains_key(leaf));
     if !aliases.is_empty() {
         if !body.trim().is_empty() {
             body.push('\n');
@@ -2591,6 +2750,7 @@ fn render_package_module_files(
     module: &templates::Module,
     ns_path: &[String],
     root_type_names: &BTreeSet<String>,
+    registry: &CollisionRegistry,
     config: &Config,
     files: &mut BTreeMap<String, String>,
 ) -> anyhow::Result<()> {
@@ -2598,7 +2758,14 @@ fn render_package_module_files(
         let path = module_file_path(ns_path);
         let previous = files.insert(
             path.clone(),
-            render_module_file(generation, module, ns_path, root_type_names, config)?,
+            render_module_file(
+                generation,
+                module,
+                ns_path,
+                root_type_names,
+                registry,
+                config,
+            )?,
         );
         anyhow::ensure!(
             previous.is_none(),
@@ -2612,7 +2779,15 @@ fn render_package_module_files(
         }
         let mut child_path = ns_path.to_vec();
         child_path.push(sub.name.clone());
-        render_package_module_files(generation, sub, &child_path, root_type_names, config, files)?;
+        render_package_module_files(
+            generation,
+            sub,
+            &child_path,
+            root_type_names,
+            registry,
+            config,
+            files,
+        )?;
     }
 
     Ok(())
@@ -2733,6 +2908,7 @@ fn render_rebuild_file(
 fn render_client_file(
     generation: &PythonGeneration,
     root_type_names: &BTreeSet<String>,
+    registry: &CollisionRegistry,
     config: &Config,
 ) -> anyhow::Result<String> {
     let mut parts = vec![generation.preamble.clone()];
@@ -2761,7 +2937,11 @@ fn render_client_file(
     parts.push(
         "from ._rebuild import rebuild_models as _rebuild_models\n\n_rebuild_models()".to_string(),
     );
-    parts.push(generation.client_code.clone());
+    parts.push(apply_collision_rewrites(
+        &generation.client_code,
+        &[],
+        registry,
+    ));
     render_python_file(config, parts.join("\n\n"))
 }
 
@@ -2865,6 +3045,11 @@ fn render_package_files(
     let root_key = Vec::<String>::new();
     let root_type_names = flat_imports.remove(&root_key).unwrap_or_default();
 
+    // Resolve namespace/root leaf-name collisions to a single class per logical
+    // type (#161). Empty for schemas without such collisions, leaving output
+    // byte-identical.
+    let registry = collision_registry(&generation.module_tree, &root_type_names);
+
     if !root_type_names.is_empty() {
         let root_types_code = generation
             .module_tree
@@ -2880,7 +3065,7 @@ fn render_package_files(
             root_type_parts.push(root_namespace_bindings);
         }
         root_type_parts.push(render_external_type_aliases());
-        root_type_parts.push(root_types_code);
+        root_type_parts.push(apply_collision_rewrites(&root_types_code, &[], &registry));
         files.insert(
             "_types.py".to_string(),
             render_python_file(config, root_type_parts.join("\n\n"))?,
@@ -2892,13 +3077,14 @@ fn render_package_files(
         &generation.module_tree,
         &[],
         &root_type_names,
+        &registry,
         config,
         &mut files,
     )?;
 
     files.insert(
         "_client.py".to_string(),
-        render_client_file(&generation, &root_type_names, config)?,
+        render_client_file(&generation, &root_type_names, &registry, config)?,
     );
     files.insert(
         "_rebuild.py".to_string(),
