@@ -23,7 +23,15 @@ pub fn format_with<'a>(
 
         let stdin = child.stdin.as_mut().unwrap();
 
-        stdin.write_all(src.as_bytes())?;
+        // A formatter that rejects its input can exit before draining stdin,
+        // which turns this write into a `BrokenPipe` error. Swallow only that
+        // case so the real failure (exit status + stderr) is reported by
+        // `wait_with_output` below, instead of being masked by "broken pipe".
+        if let Err(err) = stdin.write_all(src.as_bytes()) {
+            if err.kind() != io::ErrorKind::BrokenPipe {
+                return Err(err);
+            }
+        }
         let output = child.wait_with_output()?;
         if !output.status.success() {
             return Err(io::Error::other(format!(
