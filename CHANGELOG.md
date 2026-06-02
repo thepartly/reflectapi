@@ -1,14 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.17.5
 
 Python client generation improvements:
 
-- Python codegen still falls back to basic formatting when Ruff is not installed, but now reports an error if `ruff format` is available and fails; pass `--format=false` to skip external formatting.
+- Python codegen still falls back to basic formatting when Ruff is not installed, but now reports a clear error — including the formatter's own exit status and output — if `ruff format` is available and fails; pass `--format=false` to skip external formatting.
 - Multi-field Rust tuple structs now generate valid Python `RootModel[tuple[...]]` models instead of invalid numeric field names.
 - Generated Python clients with nested namespaces now import cleanly when models refer to parent or sibling namespaces, including cases like `offer_rules.InsurerCategory`.
 - Namespace names containing characters that are not valid in Python identifiers, such as dashes or leading digits, now generate valid Python classes.
-- A root type and a same-leaf type under a sub-namespace (e.g. `IfConflictOnUpdate` and `nomatches::IfConflictOnUpdate`) no longer collide on a bare public name. Previously each namespace re-emitted a `<Leaf> = <NamespacePrefixedLeaf>` alias that shadowed the `from .._types import <Leaf>` it also imported, so `_types.<Leaf>` and `<ns>.<Leaf>` resolved to two different classes and field annotations silently bound to the wrong one (pydantic then rejected values with a confusingly self-identical error). The namespace-local type now keeps its disambiguated name (`NomatchesIfConflictOnUpdate`) and references resolve to a single class per logical type.
+- Fixed generated clients silently using the wrong class when a sub-namespace defined a type whose name matched a top-level type (e.g. a top-level `IfConflictOnUpdate` and a `nomatches::IfConflictOnUpdate`). The two were emitted as separate classes sharing one name, so a value built with one was rejected by the other at runtime with a confusingly self-identical pydantic validation error. Each logical type now resolves to a single class: when names would clash, the sub-namespace type is exposed under a namespace-qualified name (e.g. `nomatches.NomatchesIfConflictOnUpdate`) while the short name (`nomatches.IfConflictOnUpdate`) refers to the top-level type.
 - Schemas with a root namespace named `sys` no longer conflict with Python's standard `sys` module.
 - Re-running `reflectapi codegen` into an existing output directory now removes generated files from older schemas while preserving hand-written files.
 
