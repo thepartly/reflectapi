@@ -8,6 +8,7 @@ Python client generation improvements:
 - Multi-field Rust tuple structs now generate valid Python `RootModel[tuple[...]]` models instead of invalid numeric field names.
 - Generated Python clients with nested namespaces now import cleanly when models refer to parent or sibling namespaces, including cases like `offer_rules.InsurerCategory`.
 - Namespace names containing characters that are not valid in Python identifiers, such as dashes or leading digits, now generate valid Python classes.
+- A root type and a same-leaf type under a sub-namespace (e.g. `IfConflictOnUpdate` and `nomatches::IfConflictOnUpdate`) no longer collide on a bare public name. Previously each namespace re-emitted a `<Leaf> = <NamespacePrefixedLeaf>` alias that shadowed the `from .._types import <Leaf>` it also imported, so `_types.<Leaf>` and `<ns>.<Leaf>` resolved to two different classes and field annotations silently bound to the wrong one (pydantic then rejected values with a confusingly self-identical error). The namespace-local type now keeps its disambiguated name (`NomatchesIfConflictOnUpdate`) and references resolve to a single class per logical type.
 - Schemas with a root namespace named `sys` no longer conflict with Python's standard `sys` module.
 - Re-running `reflectapi codegen` into an existing output directory now removes generated files from older schemas while preserving hand-written files.
 
