@@ -243,6 +243,104 @@ fn test_python_namespace_leaf_collision_no_shadowing() {
     assert!(!types_py.contains("nomatches.IfConflictOnUpdate["));
 }
 
+/// Regression for #161 (Codex review follow-up): the collision can be hidden in
+/// the *Rust-leaf* alias rather than the prefix-stripped one. A namespaced
+/// `myapi::order::OrderInsertData` de-stutters to flat `MyapiOrderInsertData`,
+/// so the stripped alias is the harmless `InsertData` while the Rust-leaf alias
+/// `OrderInsertData = MyapiOrderInsertData` is what shadows the imported root
+/// `OrderInsertData`. Collision detection must cover both alias forms.
+#[test]
+fn test_python_namespace_destutter_leaf_collision_no_shadowing() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct RootOrderInsertData {
+        id: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct NsOrderInsertData {
+        name: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct TopWrapper {
+        root: RootOrderInsertData,
+        ns: NsOrderInsertData,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct OrderUpdateRequest {
+        data: NsOrderInsertData,
+    }
+
+    async fn top_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> TopWrapper {
+        unimplemented!()
+    }
+    async fn order_update<S>(
+        _s: S,
+        _: OrderUpdateRequest,
+        _: reflectapi::Empty,
+    ) -> reflectapi::Empty {
+        reflectapi::Empty {}
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(top_get, |b| b.name("top.get"))
+        .route(order_update, |b| b.name("myapi.order.update"))
+        .rename_types(
+            "reflectapi_demo::tests::namespace::TopWrapper",
+            "TopWrapper",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::OrderUpdateRequest",
+            "myapi::order::UpdateRequest",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::RootOrderInsertData",
+            "OrderInsertData",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::NsOrderInsertData",
+            "myapi::order::OrderInsertData",
+        )
+        .build()
+        .unwrap();
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+
+    let types_py = files.get("_types.py").unwrap();
+    let order_py = files.get("myapi/order/__init__.py").unwrap();
+
+    assert!(order_py.contains("class MyapiOrderInsertData(BaseModel"));
+    // The Rust-leaf alias must not rebind (shadow) the imported root type.
+    assert!(
+        !order_py.contains("OrderInsertData = MyapiOrderInsertData"),
+        "Rust-leaf alias must not shadow the imported root `OrderInsertData`:\n{order_py}"
+    );
+    // The same-module field reference resolves to the disambiguated local class.
+    assert!(
+        order_py.contains("data: MyapiOrderInsertData"),
+        "same-module ref must use the disambiguated local class:\n{order_py}"
+    );
+    // The cross-namespace reference from a root type is disambiguated too.
+    assert!(
+        types_py.contains("ns: myapi.order.MyapiOrderInsertData"),
+        "root cross-namespace ref must use the disambiguated name:\n{types_py}"
+    );
+    assert!(!types_py.contains("ns: myapi.order.OrderInsertData"));
+}
+
 #[test]
 fn test_python_init_exports_client() {
     #[derive(

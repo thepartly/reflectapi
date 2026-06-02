@@ -2130,21 +2130,17 @@ fn collect_collisions(
     by_module: &mut BTreeMap<Vec<String>, BTreeMap<String, String>>,
 ) {
     if !ns_path.is_empty() {
-        let flat_prefix = flat_namespace_prefix(ns_path);
-        let mut collisions = BTreeMap::new();
-        for mt in &module.types {
-            for flat_name in extract_defined_python_names(&mt.rendered) {
-                let Some(stripped) = flat_name.strip_prefix(&flat_prefix) else {
-                    continue;
-                };
-                if !stripped.is_empty()
-                    && stripped != flat_name
-                    && root_type_names.contains(stripped)
-                {
-                    collisions.insert(stripped.to_string(), flat_name.clone());
-                }
-            }
-        }
+        // Derive collisions from the module's *actual* public aliases.
+        // `module_aliases` emits both a prefix-stripped alias and a Rust-leaf
+        // alias, and either can shadow a same-named root type imported via
+        // `from .._types import ...`. Checking only the stripped form would
+        // miss e.g. a namespaced `OrderInsertData` whose flat name de-stutters
+        // to `MyapiOrderInsertData`: there the *Rust-leaf* alias
+        // (`OrderInsertData = MyapiOrderInsertData`) is the colliding one.
+        let collisions: BTreeMap<String, String> = module_aliases(module, ns_path)
+            .into_iter()
+            .filter(|(alias, flat)| alias != flat && root_type_names.contains(alias))
+            .collect();
         if !collisions.is_empty() {
             by_module.insert(ns_path.to_vec(), collisions);
         }
