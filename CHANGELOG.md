@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Python package codegen now emits sibling submodule imports in dependency order, so Python 3.14/Pydantic can import generated packages where one sibling model annotation references another sibling namespace.
+- Rust codegen snapshot typechecking now handles macOS proc-macro library names instead of assuming Linux-style `.so` files.
+
 ## 0.17.5
 
 Python client generation improvements:

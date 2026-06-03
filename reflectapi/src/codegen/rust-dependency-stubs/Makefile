@@ -1,4 +1,10 @@
 RUSTC = rustc
+HOST = $(shell $(RUSTC) -vV | sed -n 's/^host: //p')
+PROC_MACRO_EXT = so
+ifneq (,$(findstring apple-darwin,$(HOST)))
+PROC_MACRO_EXT = dylib
+endif
+SERDE_DERIVE_DYLIB = libserde_derive.$(PROC_MACRO_EXT)
 
 .PHONY: check deps clean
 
@@ -20,7 +26,7 @@ check: libreflectapi.rlib \
 		generated.rs
 
 clean:
-	rm -f *.rlib *.rmeta *.so
+	rm -f *.rlib *.rmeta *.so *.dylib *.dll
 
 # Make sure to edit `typecheck` in `codegen/rust.rs` to copy all the files into the right place
 libreflectapi.rlib: libserde.rlib \
@@ -39,13 +45,12 @@ libreflectapi.rlib: libserde.rlib \
 		--extern futures_util=libfutures_util.rlib \
 		reflectapi.rs
 
-libserde.rlib: libserde_derive.rmeta libserde_derive.so
-	$(RUSTC) --edition 2021 --crate-type=rlib --crate-name=serde --emit=metadata,link -L . --extern serde_derive=libserde_derive.rmeta --extern serde_derive=libserde_derive.so serde.rs
+libserde.rlib: libserde_derive.rmeta $(SERDE_DERIVE_DYLIB)
+	$(RUSTC) --edition 2021 --crate-type=rlib --crate-name=serde --emit=metadata,link -L . --extern serde_derive=libserde_derive.rmeta --extern serde_derive=$(SERDE_DERIVE_DYLIB) serde.rs
 
-libserde_derive.rmeta libserde_derive.so: serde_derive.rs
+libserde_derive.rmeta $(SERDE_DERIVE_DYLIB): serde_derive.rs
 	$(RUSTC) --edition 2021 --crate-type=proc-macro --crate-name=serde_derive --emit=metadata,link -L . serde_derive.rs
 
 lib%.rlib: %.rs
 	$(RUSTC) --edition 2021 --crate-type=rlib --crate-name=$* --emit=metadata,link -L . $*.rs
-
 

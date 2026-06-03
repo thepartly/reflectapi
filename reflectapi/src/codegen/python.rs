@@ -2411,6 +2411,125 @@ fn module_rendered_code(module: &templates::Module) -> String {
         .join("\n\n")
 }
 
+fn module_subtree_rendered_code(module: &templates::Module) -> String {
+    let mut chunks = Vec::new();
+    let rendered = module_rendered_code(module);
+    if !rendered.is_empty() {
+        chunks.push(rendered);
+    }
+    for sub in module.submodules.values().filter(|sub| !sub.is_empty()) {
+        let rendered = module_subtree_rendered_code(sub);
+        if !rendered.is_empty() {
+            chunks.push(rendered);
+        }
+    }
+    chunks.join("\n\n")
+}
+
+fn ordered_child_modules(
+    module: &templates::Module,
+    ns_path: &[String],
+) -> anyhow::Result<Vec<String>> {
+    let children: Vec<(&templates::Module, String)> = module
+        .submodules
+        .values()
+        .filter(|sub| !sub.is_empty())
+        .map(|sub| (sub, safe_python_module_segment(&sub.name)))
+        .collect();
+    let child_names: Vec<String> = children.iter().map(|(_, name)| name.clone()).collect();
+
+    let mut deps: HashMap<String, Vec<String>> = HashMap::new();
+    for (child, child_name) in &children {
+        let rendered_code = module_subtree_rendered_code(child);
+        for sibling_name in &child_names {
+            if sibling_name == child_name {
+                continue;
+            }
+            let mut sibling_path = ns_path.to_vec();
+            sibling_path.push(sibling_name.clone());
+            let sibling_qualified_name = module_qualified_name(&sibling_path);
+            if contains_qualified_name(&rendered_code, &sibling_qualified_name) {
+                deps.entry(child_name.clone())
+                    .or_default()
+                    .push(sibling_name.clone());
+            }
+        }
+    }
+
+    fn has_cycle(
+        name: &str,
+        deps: &HashMap<String, Vec<String>>,
+        visited: &mut HashSet<String>,
+        stack: &mut Vec<String>,
+    ) -> bool {
+        if visited.contains(name) {
+            return false;
+        }
+        if stack.iter().any(|stacked| stacked == name) {
+            return true;
+        }
+
+        stack.push(name.to_string());
+        let cycle = deps.get(name).is_some_and(|child_deps| {
+            child_deps
+                .iter()
+                .any(|dep| has_cycle(dep, deps, visited, stack))
+        });
+        stack.pop();
+        visited.insert(name.to_string());
+        cycle
+    }
+
+    let mut cycle_visited = HashSet::new();
+    let mut cycle_stack = Vec::new();
+    for child_name in &child_names {
+        if has_cycle(child_name, &deps, &mut cycle_visited, &mut cycle_stack) {
+            return Ok(child_names);
+        }
+    }
+
+    fn visit(
+        name: &str,
+        deps: &HashMap<String, Vec<String>>,
+        visited: &mut HashSet<String>,
+        stack: &mut Vec<String>,
+        ordered: &mut Vec<String>,
+    ) -> anyhow::Result<()> {
+        if visited.contains(name) {
+            return Ok(());
+        }
+        if let Some(start) = stack.iter().position(|stacked| stacked == name) {
+            let mut cycle = stack[start..].to_vec();
+            cycle.push(name.to_string());
+            anyhow::bail!(
+                "Python submodule import cycle while ordering generated package imports: {}",
+                cycle.join(" -> ")
+            );
+        }
+
+        stack.push(name.to_string());
+        if let Some(child_deps) = deps.get(name) {
+            for dep in child_deps {
+                visit(dep, deps, visited, stack, ordered)?;
+            }
+        }
+        stack.pop();
+
+        visited.insert(name.to_string());
+        ordered.push(name.to_string());
+        Ok(())
+    }
+
+    let mut visited = HashSet::new();
+    let mut ordered = Vec::with_capacity(child_names.len());
+    let mut stack = Vec::new();
+    for child_name in &child_names {
+        visit(child_name, &deps, &mut visited, &mut stack, &mut ordered)?;
+    }
+
+    Ok(ordered)
+}
+
 fn referenced_namespace_roots(
     generation: &PythonGeneration,
     rendered_code: &str,
@@ -2711,12 +2830,7 @@ fn render_module_file(
         body.push('\n');
     }
 
-    let child_modules: Vec<String> = module
-        .submodules
-        .values()
-        .filter(|sub| !sub.is_empty())
-        .map(|sub| safe_python_module_segment(&sub.name))
-        .collect();
+    let child_modules = ordered_child_modules(module, ns_path)?;
     if !child_modules.is_empty() {
         if !body.trim().is_empty() {
             body.push('\n');
@@ -2913,13 +3027,7 @@ fn render_client_file(
 ) -> anyhow::Result<String> {
     let mut parts = vec![generation.preamble.clone()];
 
-    for root in generation
-        .module_tree
-        .submodules
-        .values()
-        .filter(|sub| !sub.is_empty())
-        .map(|sub| safe_python_module_segment(&sub.name))
-    {
+    for root in ordered_child_modules(&generation.module_tree, &[])? {
         parts.push(format!("from . import {root}"));
     }
 
@@ -3016,13 +3124,7 @@ fn render_root_init_py(generation: &PythonGeneration, config: &Config) -> anyhow
         format!("from ._client import {}", imports.join(", ")),
     ];
 
-    for root in generation
-        .module_tree
-        .submodules
-        .values()
-        .filter(|sub| !sub.is_empty())
-        .map(|sub| safe_python_module_segment(&sub.name))
-    {
+    for root in ordered_child_modules(&generation.module_tree, &[])? {
         lines.push(format!("from . import {root}"));
         imports.push(root);
     }

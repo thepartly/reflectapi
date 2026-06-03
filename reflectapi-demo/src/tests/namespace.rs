@@ -657,6 +657,60 @@ fn test_python_split_modules_import_parent_for_top_level_refs() {
 }
 
 #[test]
+fn test_python_split_modules_order_sibling_imports_by_references() {
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Issue164Rule {
+        id: String,
+    }
+
+    #[derive(
+        Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    struct Issue164Group {
+        rule: Issue164Rule,
+    }
+
+    async fn group_get<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> Issue164Group {
+        unimplemented!()
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(group_get, |b| b.name("commerce.group.get"))
+        .rename_types(
+            "reflectapi_demo::tests::namespace::Issue164Group",
+            "commerce::group::Group",
+        )
+        .rename_types(
+            "reflectapi_demo::tests::namespace::Issue164Rule",
+            "commerce::rule::Rule",
+        )
+        .build()
+        .unwrap();
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )
+    .unwrap();
+
+    let commerce_file = files.get("commerce/__init__.py").unwrap();
+    let group_import = commerce_file.find("from . import group").unwrap();
+    let rule_import = commerce_file.find("from . import rule").unwrap();
+    assert!(
+        rule_import < group_import,
+        "`rule` must import before `group` because `group` references `commerce.rule`:\n{commerce_file}"
+    );
+
+    let group_file = files.get("commerce/group/__init__.py").unwrap();
+    assert!(
+        group_file.contains("rule: commerce.rule.Rule"),
+        "{group_file}"
+    );
+}
+
+#[test]
 fn test_python_split_modules_handles_sys_root_and_sanitized_class_names() {
     #[derive(
         Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,

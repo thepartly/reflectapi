@@ -48,6 +48,16 @@ async fn codegen_coverage(
     Ok(coverage::CoverageResponse { ok: true })
 }
 
+async fn commerce_group(
+    _: Arc<State>,
+    _request: reflectapi::Empty,
+    _headers: reflectapi::Empty,
+) -> Result<commerce::group::Group, reflectapi::Infallible> {
+    Ok(commerce::group::Group {
+        rule: commerce::rule::Rule { id: String::new() },
+    })
+}
+
 fn builder() -> reflectapi::Builder<Arc<State>> {
     reflectapi::Builder::new()
         .name("Codegen coverage")
@@ -59,6 +69,10 @@ fn builder() -> reflectapi::Builder<Arc<State>> {
         .route(codegen_coverage, |b| {
             b.name("coverage.edges")
                 .description("Coverage fixtures for codegen edge cases")
+        })
+        .route(commerce_group, |b| {
+            b.name("coverage.commerce_group")
+                .description("Coverage fixture for sibling package import ordering")
         })
 }
 
@@ -133,6 +147,38 @@ mod order {
         pub name: String,
         pub _context_marker: PhantomData<C>,
         pub _output_marker: PhantomData<T>,
+    }
+}
+
+mod commerce {
+    pub mod rule {
+        #[derive(
+            Debug,
+            Clone,
+            serde::Serialize,
+            serde::Deserialize,
+            reflectapi::Input,
+            reflectapi::Output,
+        )]
+        pub struct Rule {
+            pub id: String,
+        }
+    }
+
+    pub mod group {
+        use super::rule::Rule;
+
+        #[derive(
+            Debug,
+            Clone,
+            serde::Serialize,
+            serde::Deserialize,
+            reflectapi::Input,
+            reflectapi::Output,
+        )]
+        pub struct Group {
+            pub rule: Rule,
+        }
     }
 }
 
