@@ -2342,6 +2342,21 @@ fn contains_qualified_name(code: &str, name: &str) -> bool {
     })
 }
 
+fn contains_bare_qualified_name(code: &str, name: &str) -> bool {
+    let needle = format!("{name}.");
+    code.match_indices(&needle).any(|(index, _)| {
+        let previous = code[..index].chars().next_back();
+        let before_is_boundary =
+            previous.is_none_or(|c| !(c.is_ascii_alphanumeric() || c == '_' || c == '.'));
+        let after_index = index + needle.len();
+        let after_is_boundary = code[after_index..]
+            .chars()
+            .next()
+            .is_none_or(|c| c.is_ascii_alphabetic() || c == '_');
+        before_is_boundary && after_is_boundary
+    })
+}
+
 /// Strip the current module's `<prefix>.` from references to its own types so
 /// they read as bare local names. A colliding leaf is instead rewritten to its
 /// disambiguated flat name (passed in `collisions`) rather than the bare leaf,
@@ -2448,7 +2463,12 @@ fn ordered_child_modules(
             let mut sibling_path = ns_path.to_vec();
             sibling_path.push(sibling_name.clone());
             let sibling_qualified_name = module_qualified_name(&sibling_path);
-            if contains_qualified_name(&rendered_code, &sibling_qualified_name) {
+            let references_sibling = if ns_path.is_empty() {
+                contains_bare_qualified_name(&rendered_code, &sibling_qualified_name)
+            } else {
+                contains_qualified_name(&rendered_code, &sibling_qualified_name)
+            };
+            if references_sibling {
                 deps.entry(child_name.clone())
                     .or_default()
                     .push(sibling_name.clone());
