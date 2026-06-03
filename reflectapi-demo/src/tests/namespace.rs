@@ -722,6 +722,7 @@ fn test_python_split_modules_root_sibling_order_ignores_nested_suffixes() {
     #[derive(
         Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
     )]
+    /// This prose mentions common.UsesX but must not affect import ordering.
     struct Issue164XRoot {
         leaf: Issue164NestedLeaf,
     }

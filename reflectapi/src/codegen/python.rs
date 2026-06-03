@@ -2357,6 +2357,66 @@ fn contains_bare_qualified_name(code: &str, name: &str) -> bool {
     })
 }
 
+fn strip_python_comments_and_strings(code: &str) -> String {
+    let chars: Vec<char> = code.chars().collect();
+    let mut stripped = String::with_capacity(code.len());
+    let mut index = 0;
+
+    while index < chars.len() {
+        let ch = chars[index];
+        if ch == '#' {
+            stripped.push(' ');
+            index += 1;
+            while index < chars.len() && chars[index] != '\n' {
+                stripped.push(' ');
+                index += 1;
+            }
+        } else if ch == '\'' || ch == '"' {
+            let quote = ch;
+            let is_triple =
+                index + 2 < chars.len() && chars[index + 1] == quote && chars[index + 2] == quote;
+            if is_triple {
+                stripped.push_str("   ");
+                index += 3;
+                while index < chars.len() {
+                    if index + 2 < chars.len()
+                        && chars[index] == quote
+                        && chars[index + 1] == quote
+                        && chars[index + 2] == quote
+                    {
+                        stripped.push_str("   ");
+                        index += 3;
+                        break;
+                    }
+                    stripped.push(if chars[index] == '\n' { '\n' } else { ' ' });
+                    index += 1;
+                }
+            } else {
+                stripped.push(' ');
+                index += 1;
+                let mut escaped = false;
+                while index < chars.len() {
+                    let current = chars[index];
+                    stripped.push(if current == '\n' { '\n' } else { ' ' });
+                    index += 1;
+                    if escaped {
+                        escaped = false;
+                    } else if current == '\\' {
+                        escaped = true;
+                    } else if current == quote {
+                        break;
+                    }
+                }
+            }
+        } else {
+            stripped.push(ch);
+            index += 1;
+        }
+    }
+
+    stripped
+}
+
 /// Strip the current module's `<prefix>.` from references to its own types so
 /// they read as bare local names. A colliding leaf is instead rewritten to its
 /// disambiguated flat name (passed in `collisions`) rather than the bare leaf,
@@ -2455,7 +2515,7 @@ fn ordered_child_modules(
 
     let mut deps: HashMap<String, Vec<String>> = HashMap::new();
     for (child, child_name) in &children {
-        let rendered_code = module_subtree_rendered_code(child);
+        let rendered_code = strip_python_comments_and_strings(&module_subtree_rendered_code(child));
         for sibling_name in &child_names {
             if sibling_name == child_name {
                 continue;
