@@ -7,6 +7,8 @@
 //! (complete main.rs example can be found in [https://github.com/thepartly/reflectapi/tree/main/reflectapi-demo](https://github.com/thepartly/reflectapi/tree/main/reflectapi-demo))
 //!
 //! ```rust
+//! # #[cfg(feature = "builder")]
+//! # mod quick_start {
 //!
 //! #[derive(Debug)]
 //! pub struct AppState {
@@ -89,6 +91,7 @@
 //!         }
 //!     }
 //! }
+//! # }
 //! ```
 //!
 //! Generated client in Typescript (one of the languages supported by the codegen) example:
