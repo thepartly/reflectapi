@@ -244,7 +244,7 @@ fn python_legacy_cleanup_skips_symlinked_directories() {
 
 #[cfg(unix)]
 #[test]
-fn python_format_falls_back_when_ruff_is_missing() {
+fn python_format_uses_bundled_formatter_when_ruff_is_missing() {
     let tmp = tempfile::tempdir().unwrap();
     let target = tmp.path().join("python-client");
     let empty_path = tmp.path().join("bin");
@@ -307,7 +307,7 @@ fn python_format_false_does_not_require_ruff() {
 
 #[cfg(unix)]
 #[test]
-fn python_format_reports_ruff_failures() {
+fn python_format_ignores_broken_external_ruff() {
     use std::os::unix::fs::PermissionsExt;
 
     let tmp = tempfile::tempdir().unwrap();
@@ -337,13 +337,11 @@ fn python_format_reports_ruff_failures() {
         &bin,
     );
     assert!(
-        !out.status.success(),
-        "expected ruff failure to fail codegen"
+        out.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&out.stderr)
     );
-    let stderr = String::from_utf8_lossy(&out.stderr);
-    assert!(stderr.contains("failed to format generated Python code with `ruff format`"));
-    assert!(stderr.contains("command failed with exit code"));
-    assert!(stderr.contains("Fix Ruff or pass `--format=false`"));
+    assert!(target.join("current/__init__.py").is_file());
 }
 
 #[test]

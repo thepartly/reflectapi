@@ -1,6 +1,7 @@
 mod format;
 pub mod openapi;
 pub mod python;
+mod python_formatter;
 pub mod rust;
 // Compiler-only helpers (symbol identity, schema-ID assignment,
 // normalization, semantic IR). Used by Python codegen today, available

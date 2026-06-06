@@ -42,7 +42,7 @@
 
 ### Building and running
 
-Ensure that you have `prettier`, `rustfmt`, and `ruff` available in your PATH for consistently formatted generated code.
+Ensure that you have `prettier` and `rustfmt` available in your PATH for consistently formatted generated TypeScript and Rust code. Python codegen uses a bundled Ruff formatter.
 
 To run the demo server:
 
