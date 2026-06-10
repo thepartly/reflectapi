@@ -510,6 +510,7 @@ fn test_reflectapi_enum_with_skip_variant() {
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSkipField {
     #[reflectapi(skip)]
+    #[serde(default)]
     _f: u8,
 }
 
@@ -521,6 +522,7 @@ fn test_reflectapi_struct_with_skip_field() {
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSkipFieldInput {
     #[reflectapi(input_skip)]
+    #[serde(default)]
     _f: u8,
 }
 #[test]

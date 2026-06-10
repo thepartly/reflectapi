@@ -1,0 +1,5 @@
+error: field is excluded from the input schema (via `skip` or `input_skip`) but has no default value; add `#[serde(default)]` so deserialization succeeds when clients omit it
+ --> tests/errors/input_skip_field_without_default.rs:3:5
+  |
+3 |     #[reflectapi(input_skip)]
+  |     ^
