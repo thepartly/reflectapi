@@ -32,7 +32,7 @@ expression: schema
         "fields": {
           "named": [
             {
-              "name": "authorization",
+              "name": "_authorization",
               "description": "Authorization header",
               "type": {
                 "name": "std::string::String"
@@ -40,7 +40,7 @@ expression: schema
               "required": true
             },
             {
-              "name": "x_internal_trace_id",
+              "name": "_x_internal_trace_id",
               "description": "Internal tracking header, hidden from clients",
               "type": {
                 "name": "std::string::String"

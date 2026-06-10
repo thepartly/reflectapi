@@ -649,11 +649,11 @@ fn test_reflectapi_struct_with_hidden_header_field() {
     #[derive(serde::Deserialize, reflectapi::Input)]
     struct HeadersWithHidden {
         /// Authorization header
-        authorization: String,
+        _authorization: String,
         /// Internal tracking header, hidden from clients
         #[reflectapi(hidden)]
         #[serde(default)]
-        x_internal_trace_id: String,
+        _x_internal_trace_id: String,
     }
 
     assert_builder_snapshot!(reflectapi::Builder::<()>::new()

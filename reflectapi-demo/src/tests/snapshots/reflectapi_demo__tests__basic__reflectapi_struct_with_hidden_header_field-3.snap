@@ -72,7 +72,7 @@ pub mod types {
                 #[derive(Debug, serde::Serialize)]
                 pub struct HeadersWithHidden {
                     /// Authorization header
-                    pub authorization: std::string::String,
+                    pub _authorization: std::string::String,
                 }
             }
         }

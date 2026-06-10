@@ -30,7 +30,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         },
         "parameters": [
           {
-            "name": "authorization",
+            "name": "_authorization",
             "in": "header",
             "required": true,
             "schema": {
