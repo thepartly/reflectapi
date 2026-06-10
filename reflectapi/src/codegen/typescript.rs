@@ -1002,13 +1002,13 @@ fn render_type(
                     fields: struct_def
                         .fields
                         .iter()
-                        .filter(|f| !f.flattened)
+                        .filter(|f| !f.flattened && !f.hidden)
                         .map(|f| field_to_ts_field(f, schema, implemented_types))
                         .collect::<Vec<_>>(),
                     flattened_types: struct_def
                         .fields
                         .iter()
-                        .filter(|f| f.flattened)
+                        .filter(|f| f.flattened && !f.hidden)
                         .map(|field| {
                             let type_ref =
                                 type_ref_to_ts_ref(&field.type_ref, schema, implemented_types);
@@ -1079,12 +1079,14 @@ fn fields_to_ts_fields(
         reflectapi_schema::Fields::Named(fields) => templates::Fields::Named(
             fields
                 .iter()
+                .filter(|f| !f.hidden)
                 .map(|f| field_to_ts_field(f, schema, implemented_types))
                 .collect::<Vec<_>>(),
         ),
         reflectapi_schema::Fields::Unnamed(fields) => templates::Fields::Unnamed(
             fields
                 .iter()
+                .filter(|f| !f.hidden)
                 .map(|f| field_to_ts_field(f, schema, implemented_types))
                 .collect(),
         ),

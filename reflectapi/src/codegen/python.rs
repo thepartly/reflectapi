@@ -743,7 +743,11 @@ fn render_struct_with_flattened_internal_enum(
 
     // Collect the parent struct's non-flattened fields + any flattened struct fields
     let mut base_fields: Vec<templates::Field> = Vec::new();
-    for field in struct_def.fields.iter().filter(|f| !f.flattened()) {
+    for field in struct_def
+        .fields
+        .iter()
+        .filter(|f| !f.flattened() && !f.hidden())
+    {
         let (python_name, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
         let field_type = type_ref_to_python_type(
             &field.type_ref,
@@ -775,7 +779,11 @@ fn render_struct_with_flattened_internal_enum(
     }
 
     // Also expand any flattened struct fields (non-enum) into base_fields
-    for field in struct_def.fields.iter().filter(|f| f.flattened()) {
+    for field in struct_def
+        .fields
+        .iter()
+        .filter(|f| f.flattened() && !f.hidden())
+    {
         let type_name = resolve_flattened_type_name(&field.type_ref);
         if let Some(reflectapi_schema::Type::Struct(_)) = schema.get_type(type_name) {
             let flattened = collect_flattened_fields(
@@ -899,7 +907,7 @@ fn render_struct_with_flattened_internal_enum(
                 if let Some(reflectapi_schema::Type::Struct(inner_struct)) =
                     schema.get_type(inner_name)
                 {
-                    for sf in inner_struct.fields.iter() {
+                    for sf in inner_struct.fields.iter().filter(|f| !f.hidden()) {
                         if sf.flattened() {
                             // The inner struct has its own flatten — expand
                             // those fields inline so the wire shape is
@@ -1007,7 +1015,11 @@ fn render_struct_with_flatten_standard(
     let mut all_fields = Vec::new();
 
     // Add regular fields
-    for field in struct_def.fields.iter().filter(|f| !f.flattened()) {
+    for field in struct_def
+        .fields
+        .iter()
+        .filter(|f| !f.flattened() && !f.hidden())
+    {
         let (python_name, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
         let field_type = type_ref_to_python_type(
             &field.type_ref,
@@ -1040,7 +1052,11 @@ fn render_struct_with_flatten_standard(
     }
 
     // Add flattened fields (expanded directly)
-    for field in struct_def.fields.iter().filter(|f| f.flattened()) {
+    for field in struct_def
+        .fields
+        .iter()
+        .filter(|f| f.flattened() && !f.hidden())
+    {
         let flattened_fields = collect_flattened_fields(
             &field.type_ref,
             schema,

@@ -1317,6 +1317,7 @@ fn __render_type(
                     fields: struct_def
                         .fields
                         .iter()
+                        .filter(|field| !field.hidden)
                         .map(|field| templates::__Field {
                             name: __field_name_to_snake_case(field.name()),
                             serde_name: field.serde_name().into(),
@@ -1358,6 +1359,7 @@ fn __render_type(
                         fields: variant
                             .fields
                             .iter()
+                            .filter(|field| !field.hidden)
                             .map(|field| templates::__Field {
                                 name: __field_name_to_snake_case(field.name()),
                                 serde_name: field.serde_name().into(),

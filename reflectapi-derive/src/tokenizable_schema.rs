@@ -104,6 +104,7 @@ impl ToTokens for TokenizableField<'_> {
         let type_ref = TokenizableTypeReference::new(&self.inner.type_ref);
         let required = self.inner.required;
         let flattened = self.inner.flattened;
+        let hidden = self.inner.hidden;
         let transform_callback = self.inner.transform_callback.as_str();
         let mut transform_callback_fn = quote::quote! {
             None
@@ -124,6 +125,7 @@ impl ToTokens for TokenizableField<'_> {
                 type_ref: #type_ref,
                 required: #required,
                 flattened: #flattened,
+                hidden: #hidden,
                 transform_callback: String::new(),
                 transform_callback_fn: #transform_callback_fn,
             }

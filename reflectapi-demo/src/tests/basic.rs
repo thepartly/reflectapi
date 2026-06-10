@@ -643,3 +643,23 @@ struct TestStructWithExternalGenericTypeFallback {
 fn test_reflectapi_struct_with_external_generic_type_fallback() {
     assert_snapshot!(TestStructWithExternalGenericTypeFallback);
 }
+
+#[test]
+fn test_reflectapi_struct_with_hidden_header_field() {
+    #[derive(serde::Deserialize, reflectapi::Input)]
+    struct HeadersWithHidden {
+        /// Authorization header
+        authorization: String,
+        /// Internal tracking header, hidden from clients
+        #[reflectapi(hidden)]
+        #[serde(default)]
+        x_internal_trace_id: String,
+    }
+
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("hidden_header_test")
+        .route(
+            |_: (), _: reflectapi::Empty, _h: HeadersWithHidden| async { reflectapi::Empty {} },
+            |b| b.name("test.endpoint")
+        ))
+}

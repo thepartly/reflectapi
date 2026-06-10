@@ -1,0 +1,76 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: schema
+---
+{
+  "name": "hidden_header_test",
+  "functions": [
+    {
+      "name": "test.endpoint",
+      "path": "",
+      "input_headers": {
+        "name": "reflectapi_demo::tests::basic::HeadersWithHidden"
+      },
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::HeadersWithHidden",
+        "fields": {
+          "named": [
+            {
+              "name": "authorization",
+              "description": "Authorization header",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            },
+            {
+              "name": "x_internal_trace_id",
+              "description": "Internal tracking header, hidden from clients",
+              "type": {
+                "name": "std::string::String"
+              },
+              "hidden": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      }
+    ]
+  }
+}

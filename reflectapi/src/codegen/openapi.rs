@@ -1226,7 +1226,10 @@ impl Converter<'_> {
             return self.convert_type_ref(schema, kind, strukt.fields[0].type_ref());
         }
 
-        let (flattened_fields, fields) = strukt.fields().partition::<Vec<_>, _>(|f| f.flattened);
+        let (flattened_fields, fields) = strukt
+            .fields()
+            .filter(|f| !f.hidden)
+            .partition::<Vec<_>, _>(|f| f.flattened);
 
         let ty = if fields.iter().all(|f| f.is_named()) {
             Type::Object {

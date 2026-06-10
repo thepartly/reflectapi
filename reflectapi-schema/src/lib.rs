@@ -1105,6 +1105,12 @@ pub struct Field {
     #[serde(skip_serializing_if = "is_false", default)]
     pub flattened: bool,
 
+    /// If true, the field is excluded from generated clients and documentation
+    /// but is still functional at runtime (e.g. for header extraction).
+    /// Default is false
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub hidden: bool,
+
     #[serde(skip, default)]
     pub transform_callback: String,
     #[serde(skip, default)]
@@ -1122,6 +1128,7 @@ impl PartialEq for Field {
             type_ref,
             required,
             flattened,
+            hidden,
             transform_callback,
             transform_callback_fn: _,
         }: &Self,
@@ -1133,6 +1140,7 @@ impl PartialEq for Field {
             && self.type_ref == *type_ref
             && self.required == *required
             && self.flattened == *flattened
+            && self.hidden == *hidden
             && self.transform_callback == *transform_callback
     }
 }
@@ -1146,6 +1154,7 @@ impl std::hash::Hash for Field {
         self.type_ref.hash(state);
         self.required.hash(state);
         self.flattened.hash(state);
+        self.hidden.hash(state);
         self.transform_callback.hash(state);
     }
 }
@@ -1160,6 +1169,7 @@ impl Field {
             deprecation_note: Default::default(),
             required: Default::default(),
             flattened: Default::default(),
+            hidden: Default::default(),
             transform_callback: Default::default(),
             transform_callback_fn: Default::default(),
         }
@@ -1196,6 +1206,10 @@ impl Field {
 
     pub fn deprecated(&self) -> bool {
         self.deprecation_note.is_some()
+    }
+
+    pub fn hidden(&self) -> bool {
+        self.hidden
     }
 
     pub fn type_ref(&self) -> &TypeReference {
