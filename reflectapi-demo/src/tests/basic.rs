@@ -66,7 +66,7 @@ struct TestStructOneBasicFieldStringReflectBothEqually2 {
 }
 #[test]
 fn test_reflectapi_struct_one_basic_field_string_reflectapi_both_equally2() {
-    assert_input_snapshot!(TestStructOneBasicFieldStringReflectBothEqually);
+    assert_input_snapshot!(TestStructOneBasicFieldStringReflectBothEqually2);
 }
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
@@ -585,6 +585,7 @@ fn test_reflectapi_struct_with_additional_derives() {
         Hash,
         Default,
     )]
+    #[allow(clippy::duplicated_attributes)]
     #[reflectapi(derive(
         Clone,
         PartialOrd,
