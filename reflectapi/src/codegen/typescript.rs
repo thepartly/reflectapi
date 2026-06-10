@@ -47,6 +47,7 @@ pub fn generate(
     mut schema: crate::Schema,
     config: &Config,
 ) -> anyhow::Result<BTreeMap<String, String>> {
+    schema.strip_hidden_fields();
     let implemented_types = build_implemented_types();
 
     let mut rendered_types = HashMap::new();
@@ -1002,13 +1003,13 @@ fn render_type(
                     fields: struct_def
                         .fields
                         .iter()
-                        .filter(|f| !f.flattened && !f.hidden)
+                        .filter(|f| !f.flattened)
                         .map(|f| field_to_ts_field(f, schema, implemented_types))
                         .collect::<Vec<_>>(),
                     flattened_types: struct_def
                         .fields
                         .iter()
-                        .filter(|f| f.flattened && !f.hidden)
+                        .filter(|f| f.flattened)
                         .map(|field| {
                             let type_ref =
                                 type_ref_to_ts_ref(&field.type_ref, schema, implemented_types);
@@ -1079,14 +1080,12 @@ fn fields_to_ts_fields(
         reflectapi_schema::Fields::Named(fields) => templates::Fields::Named(
             fields
                 .iter()
-                .filter(|f| !f.hidden)
                 .map(|f| field_to_ts_field(f, schema, implemented_types))
                 .collect::<Vec<_>>(),
         ),
         reflectapi_schema::Fields::Unnamed(fields) => templates::Fields::Unnamed(
             fields
                 .iter()
-                .filter(|f| !f.hidden)
                 .map(|f| field_to_ts_field(f, schema, implemented_types))
                 .collect(),
         ),

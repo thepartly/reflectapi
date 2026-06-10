@@ -746,7 +746,7 @@ fn render_struct_with_flattened_internal_enum(
     for field in struct_def
         .fields
         .iter()
-        .filter(|f| !f.flattened() && !f.hidden())
+        .filter(|f| !f.flattened())
     {
         let (python_name, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
         let field_type = type_ref_to_python_type(
@@ -782,7 +782,7 @@ fn render_struct_with_flattened_internal_enum(
     for field in struct_def
         .fields
         .iter()
-        .filter(|f| f.flattened() && !f.hidden())
+        .filter(|f| f.flattened())
     {
         let type_name = resolve_flattened_type_name(&field.type_ref);
         if let Some(reflectapi_schema::Type::Struct(_)) = schema.get_type(type_name) {
@@ -907,7 +907,7 @@ fn render_struct_with_flattened_internal_enum(
                 if let Some(reflectapi_schema::Type::Struct(inner_struct)) =
                     schema.get_type(inner_name)
                 {
-                    for sf in inner_struct.fields.iter().filter(|f| !f.hidden()) {
+                    for sf in inner_struct.fields.iter() {
                         if sf.flattened() {
                             // The inner struct has its own flatten — expand
                             // those fields inline so the wire shape is
@@ -1018,7 +1018,7 @@ fn render_struct_with_flatten_standard(
     for field in struct_def
         .fields
         .iter()
-        .filter(|f| !f.flattened() && !f.hidden())
+        .filter(|f| !f.flattened())
     {
         let (python_name, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
         let field_type = type_ref_to_python_type(
@@ -1055,7 +1055,7 @@ fn render_struct_with_flatten_standard(
     for field in struct_def
         .fields
         .iter()
-        .filter(|f| f.flattened() && !f.hidden())
+        .filter(|f| f.flattened())
     {
         let flattened_fields = collect_flattened_fields(
             &field.type_ref,
@@ -1593,6 +1593,7 @@ fn build_python_generation(
     mut schema: Schema,
     config: &Config,
 ) -> anyhow::Result<PythonGeneration> {
+    schema.strip_hidden_fields();
     // `PhantomData<T>` is a Rust-only type-system marker — it carries
     // no wire data. Strip every such field before rendering so the
     // Python model doesn't reference a non-existent

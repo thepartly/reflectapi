@@ -138,6 +138,7 @@ fn types_referenced_by(
 }
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
+    schema.strip_hidden_fields();
     let mut implemented_types = __build_implemented_types();
     for type_def in schema
         .input_types()
@@ -1317,7 +1318,6 @@ fn __render_type(
                     fields: struct_def
                         .fields
                         .iter()
-                        .filter(|field| !field.hidden)
                         .map(|field| templates::__Field {
                             name: __field_name_to_snake_case(field.name()),
                             serde_name: field.serde_name().into(),
@@ -1359,7 +1359,6 @@ fn __render_type(
                         fields: variant
                             .fields
                             .iter()
-                            .filter(|field| !field.hidden)
                             .map(|field| templates::__Field {
                                 name: __field_name_to_snake_case(field.name()),
                                 serde_name: field.serde_name().into(),

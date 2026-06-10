@@ -200,6 +200,27 @@ impl Schema {
         }
     }
 
+    /// Remove fields marked as `hidden` from all struct and enum variant fields
+    /// in both input and output typespaces. Intended to be called at codegen
+    /// entry points so that no backend can accidentally leak hidden fields.
+    pub fn strip_hidden_fields(&mut self) {
+        fn strip(ts: &mut Typespace) {
+            for ty in ts.types.iter_mut() {
+                match ty {
+                    Type::Struct(s) => s.fields.retain(|f| !f.hidden),
+                    Type::Enum(e) => {
+                        for v in e.variants.iter_mut() {
+                            v.fields.retain(|f| !f.hidden);
+                        }
+                    }
+                    Type::Primitive(_) => {}
+                }
+            }
+        }
+        strip(&mut self.input_types);
+        strip(&mut self.output_types);
+    }
+
     pub fn fold_transparent_types(&mut self) {
         // Replace the transparent struct `strukt` with it's single field.
         #[derive(Debug)]

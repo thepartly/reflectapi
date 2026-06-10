@@ -37,6 +37,15 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
               "$ref": "#/components/schemas/std.string.String"
             },
             "description": "Authorization header"
+          },
+          {
+            "name": "_x_internal_trace_id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/std.string.String"
+            },
+            "description": "Internal tracking header, hidden from clients"
           }
         ]
       }
