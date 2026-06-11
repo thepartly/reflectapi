@@ -753,21 +753,15 @@ fn render_struct_with_flattened_internal_enum(
             active_generics,
             used_type_vars,
         )?;
+        let (optional, default_value, final_type) =
+            resolve_field_optionality(&field.type_ref.name, field_type, field.required);
         base_fields.push(templates::Field {
             name: python_name,
-            type_annotation: if field.required {
-                field_type
-            } else {
-                format!("{field_type} | None")
-            },
+            type_annotation: final_type,
             description: Some(field.description().to_string()),
             deprecation_note: field.deprecation_note.clone(),
-            optional: !field.required,
-            default_value: if field.required {
-                None
-            } else {
-                Some("None".to_string())
-            },
+            optional,
+            default_value,
             alias,
 
             is_partial: field.type_ref.name == "reflectapi::Option",
@@ -809,21 +803,15 @@ fn render_struct_with_flattened_internal_enum(
                 )?;
                 let (python_name, alias) =
                     sanitize_field_name_with_alias(field.name(), field.serde_name());
+                let (optional, default_value, final_type) =
+                    resolve_field_optionality(&field.type_ref.name, field_type, field.required);
                 base_fields.push(templates::Field {
                     name: python_name,
-                    type_annotation: if field.required {
-                        field_type
-                    } else {
-                        format!("{field_type} | None")
-                    },
+                    type_annotation: final_type,
                     description: Some(field.description().to_string()),
                     deprecation_note: field.deprecation_note.clone(),
-                    optional: !field.required,
-                    default_value: if field.required {
-                        None
-                    } else {
-                        Some("None".to_string())
-                    },
+                    optional,
+                    default_value,
                     alias,
 
                     is_partial: field.type_ref.name == "reflectapi::Option",
@@ -928,21 +916,15 @@ fn render_struct_with_flattened_internal_enum(
                         )?;
                         let (sanitized, alias) =
                             sanitize_field_name_with_alias(sf.name(), sf.serde_name());
+                        let (optional, default_value, final_type) =
+                            resolve_field_optionality(&sf.type_ref.name, field_type, sf.required);
                         fields.push(templates::Field {
                             name: sanitized,
-                            type_annotation: if sf.required {
-                                field_type
-                            } else {
-                                format!("{field_type} | None")
-                            },
+                            type_annotation: final_type,
                             description: Some(sf.description().to_string()),
                             deprecation_note: sf.deprecation_note.clone(),
-                            optional: !sf.required,
-                            default_value: if sf.required {
-                                None
-                            } else {
-                                Some("None".to_string())
-                            },
+                            optional,
+                            default_value,
                             alias,
 
                             is_partial: sf.type_ref.name == "reflectapi::Option",
@@ -1018,21 +1000,15 @@ fn render_struct_with_flatten_standard(
             used_type_vars,
         )?;
 
+        let (optional, default_value, final_type) =
+            resolve_field_optionality(&field.type_ref.name, field_type, field.required);
         all_fields.push(templates::Field {
             name: python_name,
-            type_annotation: if field.required {
-                field_type
-            } else {
-                format!("{field_type} | None")
-            },
+            type_annotation: final_type,
             description: Some(field.description().to_string()),
             deprecation_note: field.deprecation_note.clone(),
-            optional: !field.required,
-            default_value: if field.required {
-                None
-            } else {
-                Some("None".to_string())
-            },
+            optional,
+            default_value,
             alias,
 
             is_partial: field.type_ref.name == "reflectapi::Option",
@@ -3740,15 +3716,8 @@ fn collect_flattened_enum_fields(
         });
     let (sanitized, alias) = sanitize_field_name_with_alias(&field_name, &field_name);
 
-    let (optional, default_value, final_type) = if !parent_required {
-        (
-            true,
-            Some("None".to_string()),
-            format!("{enum_python_type} | None"),
-        )
-    } else {
-        (false, None, enum_python_type)
-    };
+    let (optional, default_value, final_type) =
+        resolve_field_optionality(&type_ref.name, enum_python_type, parent_required);
 
     collected_fields.push(templates::Field {
         name: sanitized,

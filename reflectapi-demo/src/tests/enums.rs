@@ -155,6 +155,67 @@ fn test_internally_tagged_enum_with_tuple_variants() {
 }
 
 #[test]
+fn test_internally_tagged_enum_with_optional_fields() {
+    // Repro for https://github.com/thepartly/reflectapi/issues/167:
+    // a nullable `Option<T>` field on a struct used as an internally-tagged
+    // enum variant must be generated as an optional key (serde omits the key
+    // when the value is `None`), matching the standalone-struct behavior.
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    pub struct VariantBody {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub amount: Option<String>,
+        pub always_null_on_wire: Option<String>,
+    }
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type", rename_all = "snake_case")]
+    pub enum Thing {
+        Variant(VariantBody),
+        Named {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            amount: Option<String>,
+        },
+    }
+
+    assert_snapshot!(Thing);
+}
+
+#[test]
+fn test_struct_with_flattened_internally_tagged_enum_with_optional_fields() {
+    // Repro for https://github.com/thepartly/reflectapi/issues/167:
+    // same as test_internally_tagged_enum_with_optional_fields, but with the
+    // enum flattened into a parent struct, which is rendered by a separate
+    // code path generating one model per variant.
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    pub struct VariantBody {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub amount: Option<String>,
+        pub always_null_on_wire: Option<String>,
+    }
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type", rename_all = "snake_case")]
+    pub enum Thing {
+        Variant(VariantBody),
+        Named {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            amount: Option<String>,
+        },
+    }
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    pub struct Offer {
+        pub id: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub note: Option<String>,
+        #[serde(flatten)]
+        pub details: Thing,
+    }
+
+    assert_snapshot!(Offer);
+}
+
+#[test]
 fn test_internally_tagged_enum_with_unit_variants() {
     #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
     #[serde(tag = "type")]

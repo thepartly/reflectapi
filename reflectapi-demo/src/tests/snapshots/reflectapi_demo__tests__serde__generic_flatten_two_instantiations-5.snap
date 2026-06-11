@@ -66,7 +66,7 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlat7b
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None = None
     alt_x: bool
 
 
@@ -77,7 +77,7 @@ class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestFlatC4
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None = None
     inner_a: int
     inner_b: str
 

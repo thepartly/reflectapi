@@ -214,9 +214,15 @@ macro_rules! assert_builder_snapshot {
             .unwrap();
             reflectapi::codegen::strip_boilerplate(&files["generated.ts"])
         };
+        let python = reflectapi::codegen::python::generate(
+            schema.clone(),
+            &reflectapi::codegen::python::Config::default(),
+        )
+        .unwrap();
         insta::assert_json_snapshot!(schema);
         insta::assert_snapshot!(typescript);
         insta::assert_snapshot!(rust);
         insta::assert_json_snapshot!(reflectapi::codegen::openapi::Spec::from(&schema));
+        insta::assert_snapshot!(python);
     }};
 }
