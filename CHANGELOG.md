@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- TypeScript codegen now emits option-typed fields (`std::option::Option<T>` and `reflectapi::Option<T>`) as optional interface properties (`field?: T | null`) regardless of `#[serde(default)]` / `skip_serializing_if` annotations. serde accepts a missing key for option-typed fields unconditionally, so generated clients no longer force callers to pass explicit nulls. This matches the Python backend's behavior.
+
 ## 0.17.6
 
 - New `#[reflectapi(hidden)]` field attribute: the field stays in the schema (marked `"hidden": true`) and remains functional at runtime (e.g. header extraction by the axum adapter), but is excluded from generated clients, documentation, and OpenAPI specs. Not allowed on unnamed (tuple) fields, since removing a positional element would shift indices and break wire compatibility.
