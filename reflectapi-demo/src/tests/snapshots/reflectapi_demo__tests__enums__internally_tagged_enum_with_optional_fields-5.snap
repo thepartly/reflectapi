@@ -1,6 +1,6 @@
 ---
-source: reflectapi-demo/src/tests/serde.rs
-expression: "super :: into_python_code :: <\nTestUpdateOrElse< TestIdentityData<TestFlattenIdent, TestFlattenIdentData>,\nTestFlattenIfElse, > > ()"
+source: reflectapi-demo/src/tests/enums.rs
+expression: "super :: into_python_code :: < Thing > ()"
 ---
 """
 DO NOT MODIFY THIS FILE MANUALLY
@@ -14,10 +14,10 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Annotated, Any, Generic, Optional, TypeVar, Union
+from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -25,51 +25,84 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
-class ReflectapiDemoTestsSerdeTestFlattenIdent(BaseModel):
+class ReflectapiDemoTestsEnumsInputVariantBody(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    job_id: int
+    amount: str | None = None
+    always_null_on_wire: str | None = None
 
 
-class ReflectapiDemoTestsSerdeTestFlattenIdentData(BaseModel):
+class ReflectapiDemoTestsEnumsInputThingVariant(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    payload: str
+    type: Literal["variant"] = Field(
+        default="variant", description="Discriminator field"
+    )
+    amount: str | None = None
+    always_null_on_wire: str | None = None
 
 
-class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
+class ReflectapiDemoTestsEnumsInputThingNamed(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    code: int
+    type: Literal["named"] = Field(default="named", description="Discriminator field")
+    amount: str | None = None
 
 
-class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8(
-    BaseModel
-):
+class ReflectapiDemoTestsEnumsInputThing(RootModel):
+    root: Annotated[
+        Union[
+            ReflectapiDemoTestsEnumsInputThingVariant,
+            ReflectapiDemoTestsEnumsInputThingNamed,
+        ],
+        Field(discriminator="type"),
+    ]
+
+
+class ReflectapiDemoTestsEnumsOutputVariantBody(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    job_id: int
-    payload: str
+    amount: str | None = None
+    always_null_on_wire: str | None = None
 
 
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8(
-    BaseModel
-):
+class ReflectapiDemoTestsEnumsOutputThingVariant(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None = None
-    job_id: int
-    payload: str
+    type: Literal["variant"] = Field(
+        default="variant", description="Discriminator field"
+    )
+    amount: str | None = None
+    always_null_on_wire: str | None = None
+
+
+class ReflectapiDemoTestsEnumsOutputThingNamed(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+    )
+
+    type: Literal["named"] = Field(default="named", description="Discriminator field")
+    amount: str | None = None
+
+
+class ReflectapiDemoTestsEnumsOutputThing(RootModel):
+    root: Annotated[
+        Union[
+            ReflectapiDemoTestsEnumsOutputThingVariant,
+            ReflectapiDemoTestsEnumsOutputThingNamed,
+        ],
+        Field(discriminator="type"),
+    ]
 
 
 # Namespace classes for dotted access to types
@@ -79,14 +112,24 @@ class reflectapi_demo:
     class tests:
         """Namespace for tests types."""
 
-        class serde:
-            """Namespace for serde types."""
+        class enums:
+            """Namespace for enums types."""
 
-            TestFlattenIdent = ReflectapiDemoTestsSerdeTestFlattenIdent
-            TestFlattenIdentData = ReflectapiDemoTestsSerdeTestFlattenIdentData
-            TestFlattenIfElse = ReflectapiDemoTestsSerdeTestFlattenIfElse
-            TestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8 = ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8
-            TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
+            class input:
+                """Namespace for input types."""
+
+                VariantBody = ReflectapiDemoTestsEnumsInputVariantBody
+                ThingVariant = ReflectapiDemoTestsEnumsInputThingVariant
+                ThingNamed = ReflectapiDemoTestsEnumsInputThingNamed
+                Thing = ReflectapiDemoTestsEnumsInputThing
+
+            class output:
+                """Namespace for output types."""
+
+                VariantBody = ReflectapiDemoTestsEnumsOutputVariantBody
+                ThingVariant = ReflectapiDemoTestsEnumsOutputThingVariant
+                ThingNamed = ReflectapiDemoTestsEnumsOutputThingNamed
+                Thing = ReflectapiDemoTestsEnumsOutputThing
 
 
 class AsyncInoutClient:
@@ -97,19 +140,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[
-            reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
-        ] = None,
-    ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
-    ]:
+        data: Optional[reflectapi_demo.tests.enums.input.Thing] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.enums.output.Thing]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8]: Response containing reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8 data
+            ApiResponse[reflectapi_demo.tests.enums.output.Thing]: Response containing reflectapi_demo.tests.enums.output.Thing data
         """
         path = "/inout_test"
 
@@ -118,7 +157,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8,
+            response_model=reflectapi_demo.tests.enums.output.Thing,
         )
 
 
@@ -143,19 +182,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[
-            reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
-        ] = None,
-    ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
-    ]:
+        data: Optional[reflectapi_demo.tests.enums.input.Thing] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.enums.output.Thing]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8]: Response containing reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8 data
+            ApiResponse[reflectapi_demo.tests.enums.output.Thing]: Response containing reflectapi_demo.tests.enums.output.Thing data
         """
         path = "/inout_test"
 
@@ -164,7 +199,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8,
+            response_model=reflectapi_demo.tests.enums.output.Thing,
         )
 
 
@@ -190,11 +225,10 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 _rebuild_errors: list[str] = []
 for _model in [
-    ReflectapiDemoTestsSerdeTestFlattenIdent,
-    ReflectapiDemoTestsSerdeTestFlattenIdentData,
-    ReflectapiDemoTestsSerdeTestFlattenIfElse,
-    ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8,
+    ReflectapiDemoTestsEnumsInputThing,
+    ReflectapiDemoTestsEnumsInputVariantBody,
+    ReflectapiDemoTestsEnumsOutputThing,
+    ReflectapiDemoTestsEnumsOutputVariantBody,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

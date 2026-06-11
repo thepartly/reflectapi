@@ -1,0 +1,300 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.input.Offer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.output.Offer"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.enums.input.Offer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.enums.input.Thing"
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.enums.input.Offer",
+            "required": [
+              "id",
+              "note"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "note": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.enums.input.Thing": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.enums.input.VariantBody",
+            "required": [
+              "always_null_on_wire",
+              "amount",
+              "type"
+            ],
+            "properties": {
+              "always_null_on_wire": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              },
+              "amount": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              },
+              "type": {
+                "const": "variant"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "named",
+            "required": [
+              "amount",
+              "type"
+            ],
+            "properties": {
+              "amount": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              },
+              "type": {
+                "const": "named"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.enums.input.VariantBody": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.enums.input.VariantBody",
+        "required": [
+          "always_null_on_wire",
+          "amount"
+        ],
+        "properties": {
+          "always_null_on_wire": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          },
+          "amount": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          }
+        }
+      },
+      "reflectapi_demo.tests.enums.output.Offer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.enums.output.Thing"
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.enums.output.Offer",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/std.string.String"
+              },
+              "note": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.enums.output.Thing": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.enums.output.VariantBody",
+            "required": [
+              "always_null_on_wire",
+              "type"
+            ],
+            "properties": {
+              "always_null_on_wire": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              },
+              "amount": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              },
+              "type": {
+                "const": "variant"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "named",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "amount": {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              },
+              "type": {
+                "const": "named"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.enums.output.VariantBody": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.enums.output.VariantBody",
+        "required": [
+          "always_null_on_wire"
+        ],
+        "properties": {
+          "always_null_on_wire": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          },
+          "amount": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          }
+        }
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      }
+    }
+  }
+}
