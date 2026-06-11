@@ -41,7 +41,13 @@ Both attributes remove a field from generated clients. The key difference:
 
 - **`skip`** removes the field from the schema entirely. The field's type is never reflected, so it does not need to implement `Input` or `Output`. Use this for internal bookkeeping fields whose types are not part of your API.
 
-- **`hidden`** keeps the field in the schema with a `hidden` flag. The type must still implement the relevant trait. At runtime, the axum adapter will still extract and deserialize the field (e.g. for headers). Use this for fields that are functionally required on the server side but should not appear in client interfaces or documentation.
+- **`hidden`** keeps the field in the schema JSON (marked with `"hidden": true`) but excludes it from generated clients, documentation, and OpenAPI specs. The type must still implement the relevant trait. Use this for fields that are functionally required by server-side infrastructure — for example, a middleware or a proxy layer that populates the field / header before deserialization — but should not appear in client interfaces.
+
+**When to use `hidden` over `skip`:** The field stays in the schema JSON so that server-side tooling (the axum adapter, middleware, or custom infrastructure) can inspect the full type structure at runtime. If nothing on the server needs the field's schema metadata, prefer `skip`.
+
+Neither `skip` nor `hidden` affects serde serialization. For output types, serde will still serialize a hidden field onto the wire — `hidden` only controls what generated code and documentation show. If a field must never appear in responses, use `#[serde(skip_serializing)]` instead.
+
+Please not that neither `skip` nor `hidden` prevent a malicious client from sending the fields in a request. A middleware may overwrite it or reject or validate as needed. It is up to the specific implementation of your server.
 
 **Example: hidden header field**
 
@@ -51,7 +57,8 @@ pub struct MyHeaders {
     /// Visible to clients — they must provide this
     pub authorization: String,
 
-    /// Server-internal: extracted by axum but not exposed to clients
+    /// Not visible to the generated clients and documentation
+    /// Expected to be populated by a proxy or server-side middleware.
     #[reflectapi(hidden)]
     #[serde(default)]
     pub x_internal_request_id: String,
