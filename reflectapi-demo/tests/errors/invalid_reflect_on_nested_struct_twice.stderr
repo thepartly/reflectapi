@@ -2,8 +2,13 @@ error[E0277]: the trait bound `TestStructNested: Input` is not satisfied
  --> tests/errors/invalid_reflect_on_nested_struct_twice.rs:3:9
   |
 3 |     _f: TestStructNested,
-  |         ^^^^^^^^^^^^^^^^ the trait `Input` is not implemented for `TestStructNested`
+  |         ^^^^^^^^^^^^^^^^ unsatisfied trait bound
   |
+help: the trait `Input` is not implemented for `TestStructNested`
+ --> tests/errors/invalid_reflect_on_nested_struct_twice.rs:6:1
+  |
+6 | struct TestStructNested {
+  | ^^^^^^^^^^^^^^^^^^^^^^^
   = help: the following other types implement trait `Input`:
             ()
             (A, B)
@@ -19,8 +24,13 @@ error[E0277]: the trait bound `TestStructNested: Input` is not satisfied
  --> tests/errors/invalid_reflect_on_nested_struct_twice.rs:4:10
   |
 4 |     _f2: TestStructNested,
-  |          ^^^^^^^^^^^^^^^^ the trait `Input` is not implemented for `TestStructNested`
+  |          ^^^^^^^^^^^^^^^^ unsatisfied trait bound
   |
+help: the trait `Input` is not implemented for `TestStructNested`
+ --> tests/errors/invalid_reflect_on_nested_struct_twice.rs:6:1
+  |
+6 | struct TestStructNested {
+  | ^^^^^^^^^^^^^^^^^^^^^^^
   = help: the following other types implement trait `Input`:
             ()
             (A, B)

@@ -200,6 +200,27 @@ impl Schema {
         }
     }
 
+    /// Remove fields marked as `hidden` from all struct and enum variant fields
+    /// in both input and output typespaces. Intended to be called at codegen
+    /// entry points so that no backend can accidentally leak hidden fields.
+    pub fn strip_hidden_fields(&mut self) {
+        fn strip(ts: &mut Typespace) {
+            for ty in ts.types.iter_mut() {
+                match ty {
+                    Type::Struct(s) => s.fields.retain(|f| !f.hidden),
+                    Type::Enum(e) => {
+                        for v in e.variants.iter_mut() {
+                            v.fields.retain(|f| !f.hidden);
+                        }
+                    }
+                    Type::Primitive(_) => {}
+                }
+            }
+        }
+        strip(&mut self.input_types);
+        strip(&mut self.output_types);
+    }
+
     pub fn fold_transparent_types(&mut self) {
         // Replace the transparent struct `strukt` with it's single field.
         #[derive(Debug)]
@@ -1105,6 +1126,12 @@ pub struct Field {
     #[serde(skip_serializing_if = "is_false", default)]
     pub flattened: bool,
 
+    /// If true, the field is excluded from generated clients and documentation
+    /// but is still functional at runtime (e.g. for header extraction).
+    /// Default is false
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub hidden: bool,
+
     #[serde(skip, default)]
     pub transform_callback: String,
     #[serde(skip, default)]
@@ -1122,6 +1149,7 @@ impl PartialEq for Field {
             type_ref,
             required,
             flattened,
+            hidden,
             transform_callback,
             transform_callback_fn: _,
         }: &Self,
@@ -1133,6 +1161,7 @@ impl PartialEq for Field {
             && self.type_ref == *type_ref
             && self.required == *required
             && self.flattened == *flattened
+            && self.hidden == *hidden
             && self.transform_callback == *transform_callback
     }
 }
@@ -1146,6 +1175,7 @@ impl std::hash::Hash for Field {
         self.type_ref.hash(state);
         self.required.hash(state);
         self.flattened.hash(state);
+        self.hidden.hash(state);
         self.transform_callback.hash(state);
     }
 }
@@ -1160,6 +1190,7 @@ impl Field {
             deprecation_note: Default::default(),
             required: Default::default(),
             flattened: Default::default(),
+            hidden: Default::default(),
             transform_callback: Default::default(),
             transform_callback_fn: Default::default(),
         }
@@ -1196,6 +1227,10 @@ impl Field {
 
     pub fn deprecated(&self) -> bool {
         self.deprecation_note.is_some()
+    }
+
+    pub fn hidden(&self) -> bool {
+        self.hidden
     }
 
     pub fn type_ref(&self) -> &TypeReference {

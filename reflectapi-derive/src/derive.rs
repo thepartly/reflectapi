@@ -397,11 +397,29 @@ fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema
     let (field_name, serde_name) =
         visit_name(cx, field.attrs.name(), field.original.ident.as_ref());
     let attrs = parse_field_attributes(cx, &field.original.attrs);
+    // If serde itself skips this field, exclude it from the schema entirely
     if match cx.reflectapi_type() {
-        ReflectType::Input => attrs.input_skip || field.attrs.skip_deserializing(),
-        ReflectType::Output => attrs.output_skip || field.attrs.skip_serializing(),
+        ReflectType::Input => field.attrs.skip_deserializing(),
+        ReflectType::Output => field.attrs.skip_serializing(),
     } {
         return None;
+    }
+    // If reflectapi(skip) is set, exclude the field from the schema entirely
+    // (allows fields whose types don't implement reflectapi traits)
+    if match cx.reflectapi_type() {
+        ReflectType::Input => attrs.input_skip,
+        ReflectType::Output => attrs.output_skip,
+    } {
+        return None;
+    }
+    // Guard: hidden on unnamed/tuple fields would shift positional indices in
+    // generated clients, breaking wire compatibility.
+    if attrs.hidden && field.original.ident.is_none() {
+        cx.impl_error(
+            field.original,
+            "`hidden` cannot be used on unnamed (tuple) fields because removing a positional \
+             element shifts indices and breaks wire compatibility in generated clients",
+        );
     }
     let (field_type, field_transform) = match cx.reflectapi_type() {
         ReflectType::Input => (attrs.input_type, attrs.input_transform),
@@ -423,6 +441,7 @@ fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema
         ReflectType::Output => field.attrs.skip_serializing_if().is_none(),
     };
     field_def.flattened = field.attrs.flatten();
+    field_def.hidden = attrs.hidden;
     Some(field_def)
 }
 

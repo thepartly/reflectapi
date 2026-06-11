@@ -47,6 +47,7 @@ pub fn generate(
     mut schema: crate::Schema,
     config: &Config,
 ) -> anyhow::Result<BTreeMap<String, String>> {
+    schema.strip_hidden_fields();
     let implemented_types = build_implemented_types();
 
     let mut rendered_types = HashMap::new();

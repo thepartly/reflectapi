@@ -53,12 +53,14 @@ pub fn generate(schema: &crate::Schema, config: &Config) -> anyhow::Result<Strin
 }
 
 pub fn generate_spec(schema: &crate::Schema, config: &Config) -> Spec {
+    let mut schema = schema.clone();
+    schema.strip_hidden_fields();
     Converter {
         config,
         components: Default::default(),
         in_progress: Default::default(),
     }
-    .convert(schema)
+    .convert(&schema)
 }
 
 impl From<&crate::Schema> for Spec {

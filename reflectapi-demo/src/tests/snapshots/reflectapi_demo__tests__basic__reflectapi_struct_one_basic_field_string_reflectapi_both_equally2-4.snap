@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/basic.rs
-expression: "super :: into_input_python_code :: <\nTestStructOneBasicFieldStringReflectBothEqually > ()"
+expression: "super :: into_input_python_code :: <\nTestStructOneBasicFieldStringReflectBothEqually2 > ()"
 ---
 """
 DO NOT MODIFY THIS FILE MANUALLY
@@ -24,7 +24,7 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
-class ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually(
+class ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually2(
     BaseModel
 ):
     model_config = ConfigDict(
@@ -44,8 +44,8 @@ class reflectapi_demo:
         class basic:
             """Namespace for basic types."""
 
-            TestStructOneBasicFieldStringReflectBothEqually = (
-                ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually
+            TestStructOneBasicFieldStringReflectBothEqually2 = (
+                ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually2
             )
 
 
@@ -58,7 +58,7 @@ class AsyncInputClient:
     async def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually
+            reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually2
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -102,7 +102,7 @@ class InputClient:
     def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually
+            reflectapi_demo.tests.basic.TestStructOneBasicFieldStringReflectBothEqually2
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -146,7 +146,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 _rebuild_errors: list[str] = []
 for _model in [
-    ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually,
+    ReflectapiDemoTestsBasicTestStructOneBasicFieldStringReflectBothEqually2,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

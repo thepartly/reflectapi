@@ -2,8 +2,13 @@ error[E0277]: the trait bound `NotReflectable: Input` is not satisfied
  --> tests/errors/invalid_reflect_field_type_generic.rs:3:12
   |
 3 |     field: Vec<NotReflectable>,
-  |            ^^^^^^^^^^^^^^^^^^^ the trait `Input` is not implemented for `NotReflectable`
+  |            ^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
   |
+help: the trait `Input` is not implemented for `NotReflectable`
+ --> tests/errors/invalid_reflect_field_type_generic.rs:6:1
+  |
+6 | struct NotReflectable;
+  | ^^^^^^^^^^^^^^^^^^^^^
   = help: the following other types implement trait `Input`:
             ()
             (A, B)
@@ -20,8 +25,13 @@ error[E0277]: the trait bound `NotReflectable: reflectapi::Output` is not satisf
  --> tests/errors/invalid_reflect_field_type_generic.rs:3:12
   |
 3 |     field: Vec<NotReflectable>,
-  |            ^^^^^^^^^^^^^^^^^^^ the trait `reflectapi::Output` is not implemented for `NotReflectable`
+  |            ^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
   |
+help: the trait `reflectapi::Output` is not implemented for `NotReflectable`
+ --> tests/errors/invalid_reflect_field_type_generic.rs:6:1
+  |
+6 | struct NotReflectable;
+  | ^^^^^^^^^^^^^^^^^^^^^
   = help: the following other types implement trait `reflectapi::Output`:
             &'static str
             ()

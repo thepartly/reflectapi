@@ -66,7 +66,7 @@ struct TestStructOneBasicFieldStringReflectBothEqually2 {
 }
 #[test]
 fn test_reflectapi_struct_one_basic_field_string_reflectapi_both_equally2() {
-    assert_input_snapshot!(TestStructOneBasicFieldStringReflectBothEqually);
+    assert_input_snapshot!(TestStructOneBasicFieldStringReflectBothEqually2);
 }
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
@@ -510,6 +510,7 @@ fn test_reflectapi_enum_with_skip_variant() {
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSkipField {
     #[reflectapi(skip)]
+    #[serde(default)]
     _f: u8,
 }
 
@@ -521,6 +522,7 @@ fn test_reflectapi_struct_with_skip_field() {
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSkipFieldInput {
     #[reflectapi(input_skip)]
+    #[serde(default)]
     _f: u8,
 }
 #[test]
@@ -585,6 +587,7 @@ fn test_reflectapi_struct_with_additional_derives() {
         Hash,
         Default,
     )]
+    #[allow(clippy::duplicated_attributes)]
     #[reflectapi(derive(
         Clone,
         PartialOrd,
@@ -642,4 +645,24 @@ struct TestStructWithExternalGenericTypeFallback {
 #[test]
 fn test_reflectapi_struct_with_external_generic_type_fallback() {
     assert_snapshot!(TestStructWithExternalGenericTypeFallback);
+}
+
+#[test]
+fn test_reflectapi_struct_with_hidden_header_field() {
+    #[derive(serde::Deserialize, reflectapi::Input)]
+    struct HeadersWithHidden {
+        /// Authorization header
+        _authorization: String,
+        /// Internal tracking header, hidden from clients
+        #[reflectapi(hidden)]
+        #[serde(default)]
+        _x_internal_trace_id: String,
+    }
+
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("hidden_header_test")
+        .route(
+            |_: (), _: reflectapi::Empty, _h: HeadersWithHidden| async { reflectapi::Empty {} },
+            |b| b.name("test.endpoint")
+        ))
 }

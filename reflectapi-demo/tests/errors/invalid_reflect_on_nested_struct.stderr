@@ -2,8 +2,13 @@ error[E0277]: the trait bound `TestStructNested: Input` is not satisfied
  --> tests/errors/invalid_reflect_on_nested_struct.rs:3:9
   |
 3 |     _f: TestStructNested,
-  |         ^^^^^^^^^^^^^^^^ the trait `Input` is not implemented for `TestStructNested`
+  |         ^^^^^^^^^^^^^^^^ unsatisfied trait bound
   |
+help: the trait `Input` is not implemented for `TestStructNested`
+ --> tests/errors/invalid_reflect_on_nested_struct.rs:6:1
+  |
+6 | struct TestStructNested {
+  | ^^^^^^^^^^^^^^^^^^^^^^^
   = help: the following other types implement trait `Input`:
             ()
             (A, B)
@@ -19,8 +24,13 @@ error[E0277]: the trait bound `TestStructNested: reflectapi::Output` is not sati
  --> tests/errors/invalid_reflect_on_nested_struct.rs:3:9
   |
 3 |     _f: TestStructNested,
-  |         ^^^^^^^^^^^^^^^^ the trait `reflectapi::Output` is not implemented for `TestStructNested`
+  |         ^^^^^^^^^^^^^^^^ unsatisfied trait bound
   |
+help: the trait `reflectapi::Output` is not implemented for `TestStructNested`
+ --> tests/errors/invalid_reflect_on_nested_struct.rs:6:1
+  |
+6 | struct TestStructNested {
+  | ^^^^^^^^^^^^^^^^^^^^^^^
   = help: the following other types implement trait `reflectapi::Output`:
             &'static str
             ()

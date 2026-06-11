@@ -1577,6 +1577,7 @@ fn build_python_generation(
     mut schema: Schema,
     config: &Config,
 ) -> anyhow::Result<PythonGeneration> {
+    schema.strip_hidden_fields();
     // `PhantomData<T>` is a Rust-only type-system marker — it carries
     // no wire data. Strip every such field before rendering so the
     // Python model doesn't reference a non-existent

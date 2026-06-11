@@ -7,4 +7,5 @@
 
 - [Quick Start](./getting-started/quick-start.md)
 - [Installation](./getting-started/installation.md)
+- [Attributes Reference](./getting-started/attributes.md)
 - [Client Libraries](./clients/README.md)
