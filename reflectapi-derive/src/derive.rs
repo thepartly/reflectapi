@@ -410,28 +410,15 @@ fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema
         ReflectType::Input => attrs.input_skip,
         ReflectType::Output => attrs.output_skip,
     } {
-        // Guard: a skipped Input field without a serde default is unrepresentable —
-        // clients won't send it, so deserialization will fail at runtime.
-        if matches!(cx.reflectapi_type(), ReflectType::Input) && field.attrs.default().is_none() {
-            cx.impl_error(
-                field.original,
-                "field is excluded from the input schema (via `skip` or `input_skip`) but has no \
-                 default value; add `#[serde(default)]` so deserialization succeeds when clients \
-                 omit it",
-            );
-        }
         return None;
     }
-    // Guard: a hidden Input field without a serde default is unrepresentable —
-    // clients can't see it, so deserialization will fail at runtime.
-    if attrs.hidden
-        && matches!(cx.reflectapi_type(), ReflectType::Input)
-        && field.attrs.default().is_none()
-    {
+    // Guard: hidden on unnamed/tuple fields would shift positional indices in
+    // generated clients, breaking wire compatibility.
+    if attrs.hidden && field.original.ident.is_none() {
         cx.impl_error(
             field.original,
-            "field is hidden from clients but has no default value; \
-             add `#[serde(default)]` so deserialization succeeds when clients omit it",
+            "`hidden` cannot be used on unnamed (tuple) fields because removing a positional \
+             element shifts indices and breaks wire compatibility in generated clients",
         );
     }
     let (field_type, field_transform) = match cx.reflectapi_type() {

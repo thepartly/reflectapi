@@ -65,6 +65,18 @@ pub struct MyHeaders {
 }
 ```
 
+### `#[serde(default)]` on skipped and hidden fields
+
+When a field is excluded from generated clients (via `skip`, `input_skip`, or `hidden`), clients will not send it. Whether you add `#[serde(default)]` is your choice and depends on your deployment:
+
+- **With `#[serde(default)]`:** If the field is absent, serde fills the default value. The request succeeds even if no proxy or middleware populates the field. Use this for optional metadata (trace IDs, correlation IDs) where absence is acceptable.
+
+- **Without `#[serde(default)]`:** If the field is absent, deserialization fails with a protocol error. Use this for fields that a proxy or middleware is expected to inject — a missing value means the infrastructure is misconfigured, and you want to reject the request loudly rather than proceed silently with a zero-value.
+
+### Restrictions
+
+`#[reflectapi(hidden)]` cannot be used on unnamed (tuple) struct or enum variant fields. Hiding a positional element would shift indices in generated clients, breaking wire compatibility. Use `hidden` only on named fields.
+
 ## Enum Variant Level
 
 | Attribute | Description |

@@ -1,5 +1,0 @@
-error: field is hidden from clients but has no default value; add `#[serde(default)]` so deserialization succeeds when clients omit it
- --> tests/errors/hidden_field_without_default.rs:3:5
-  |
-3 |     #[reflectapi(hidden)]
-  |     ^
