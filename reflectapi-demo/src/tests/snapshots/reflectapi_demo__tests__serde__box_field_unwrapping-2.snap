@@ -37,7 +37,7 @@ export namespace reflectapi_demo {
     export namespace serde {
       export interface TreeNode {
         label: string;
-        child: reflectapi_demo.tests.serde.TreeNode | null;
+        child?: reflectapi_demo.tests.serde.TreeNode | null;
       }
     }
   }

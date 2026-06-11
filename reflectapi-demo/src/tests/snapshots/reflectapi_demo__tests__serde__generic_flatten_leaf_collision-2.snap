@@ -51,7 +51,7 @@ export namespace reflectapi_demo {
       }
 
       export type TestUpdateOrElse<T, C> = {
-        if_else: C | null;
+        if_else?: C | null;
       } & NullToEmptyObject<T>;
 
       export namespace module_a {

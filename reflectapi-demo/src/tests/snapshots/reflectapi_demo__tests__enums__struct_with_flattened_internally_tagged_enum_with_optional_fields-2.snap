@@ -38,7 +38,7 @@ export namespace reflectapi_demo {
       export namespace input {
         export type Offer = {
           id: string;
-          note: string | null;
+          note?: string | null;
         } & NullToEmptyObject<reflectapi_demo.tests.enums.input.Thing>;
 
         export type Thing =
@@ -47,12 +47,12 @@ export namespace reflectapi_demo {
             } & reflectapi_demo.tests.enums.input.VariantBody)
           | {
               type: "named";
-              amount: string | null;
+              amount?: string | null;
             };
 
         export interface VariantBody {
-          amount: string | null;
-          always_null_on_wire: string | null;
+          amount?: string | null;
+          always_null_on_wire?: string | null;
         }
       }
 
@@ -73,7 +73,7 @@ export namespace reflectapi_demo {
 
         export interface VariantBody {
           amount?: string | null;
-          always_null_on_wire: string | null;
+          always_null_on_wire?: string | null;
         }
       }
     }

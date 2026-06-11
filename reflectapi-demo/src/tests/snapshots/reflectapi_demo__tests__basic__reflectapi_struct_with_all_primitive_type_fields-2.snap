@@ -57,7 +57,7 @@ export namespace reflectapi_demo {
         _f_char: string;
         _f_str: string;
         _f_unit: null;
-        _f_option: number /* u8 */ | null;
+        _f_option?: number /* u8 */ | null;
         _f_vec: Array<number /* u8 */>;
         _f_hashmap: Record<number /* u8 */, string>;
         _f_hashset: Array<number /* u8 */>;
