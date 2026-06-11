@@ -1143,8 +1143,11 @@ fn __interface_types_from_function_group(
             .next_back()
             .unwrap_or_default()
             .replace('-', "_");
+        // skip_all: request bodies must not be recorded into span fields —
+        // `input` may carry credentials (passwords, tokens) whose `Debug`
+        // output would land in logs in cleartext.
         let attributes = if config.instrument {
-            format!(r#"#[tracing::instrument(name = "{path}", skip(self, headers))]"#)
+            format!(r#"#[tracing::instrument(name = "{path}", skip_all)]"#)
         } else {
             String::new()
         };

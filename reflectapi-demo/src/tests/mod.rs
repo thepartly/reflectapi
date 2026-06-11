@@ -161,6 +161,38 @@ fn write_rust_client() {
 }
 
 #[test]
+fn instrumented_rust_client_does_not_record_request_bodies() {
+    // Request bodies can carry credentials (passwords, tokens); recording
+    // them as span fields would print them to logs in cleartext via their
+    // `Debug` impl. Every generated `#[tracing::instrument]` attribute must
+    // therefore skip all function arguments.
+    let (schema, _) = crate::builder().build().unwrap();
+    let src = reflectapi::codegen::rust::generate(
+        schema,
+        reflectapi::codegen::rust::Config::default()
+            .format(true)
+            .instrument(true),
+    )
+    .unwrap();
+
+    let instrument_attributes: Vec<&str> = src
+        .lines()
+        .filter(|line| line.contains("tracing::instrument"))
+        .collect();
+    assert!(
+        !instrument_attributes.is_empty(),
+        "expected instrumented codegen to emit #[tracing::instrument] attributes"
+    );
+    for attribute in instrument_attributes {
+        assert!(
+            attribute.contains("skip_all"),
+            "instrument attribute records function arguments (request body \
+             may contain credentials): {attribute}"
+        );
+    }
+}
+
+#[test]
 fn write_typescript_client() {
     let (schema, _) = crate::builder().build().unwrap();
     let files = reflectapi::codegen::typescript::generate(

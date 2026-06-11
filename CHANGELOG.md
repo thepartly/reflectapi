@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Security:** instrumented Rust clients (`--instrument`) no longer record request bodies and headers as tracing span fields. The generated `#[tracing::instrument]` attribute now uses `skip_all`, so credentials in request payloads (passwords, tokens) can no longer reach logs in cleartext via their `Debug` output. Spans are still named after the endpoint path. Regenerate clients to pick this up.
+
 ## 0.17.6
 
 - New `#[reflectapi(hidden)]` field attribute: the field stays in the schema (marked `"hidden": true`) and remains functional at runtime (e.g. header extraction by the axum adapter), but is excluded from generated clients, documentation, and OpenAPI specs. Not allowed on unnamed (tuple) fields, since removing a positional element would shift indices and break wire compatibility.
