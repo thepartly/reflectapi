@@ -1178,6 +1178,14 @@ pub struct Field {
     #[serde(skip_serializing_if = "is_false", default)]
     pub hidden: bool,
 
+    /// If true, the field's value passes through a custom serde codec
+    /// (`#[serde(with = ...)]` / `serialize_with` / `deserialize_with`),
+    /// so wire behavior — such as whether a missing key is accepted —
+    /// cannot be inferred from the field's type alone.
+    /// Default is false
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub custom_codec: bool,
+
     #[serde(skip, default)]
     pub transform_callback: String,
     #[serde(skip, default)]
@@ -1199,6 +1207,7 @@ impl PartialEq for Field {
             required,
             flattened,
             hidden,
+            custom_codec,
             transform_callback,
             transform_callback_fn: _,
         }: &Self,
@@ -1214,6 +1223,7 @@ impl PartialEq for Field {
             && self.required == *required
             && self.flattened == *flattened
             && self.hidden == *hidden
+            && self.custom_codec == *custom_codec
             && self.transform_callback == *transform_callback
     }
 }
@@ -1249,6 +1259,7 @@ impl Field {
             required: Default::default(),
             flattened: Default::default(),
             hidden: Default::default(),
+            custom_codec: Default::default(),
             transform_callback: Default::default(),
             transform_callback_fn: Default::default(),
         }

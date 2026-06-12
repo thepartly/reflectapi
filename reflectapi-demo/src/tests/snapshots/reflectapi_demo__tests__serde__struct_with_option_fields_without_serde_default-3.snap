@@ -68,6 +68,7 @@ pub mod types {
                         skip_serializing_if = "std::option::Option::is_none"
                     )]
                     pub annotated_std_option: std::option::Option<std::string::String>,
+                    pub custom_codec_option: std::option::Option<std::string::String>,
                 }
             }
         }

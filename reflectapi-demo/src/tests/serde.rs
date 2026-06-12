@@ -330,7 +330,15 @@ fn test_struct_with_option_fields_without_serde_default() {
     // `#[serde(default)]` / `skip_serializing_if`, because serde accepts a
     // missing key for option-typed fields unconditionally (`missing_field`
     // special-cases `deserialize_option`, and `reflectapi::Option`
-    // deserializes the same way).
+    // deserializes the same way). The exception is a field with a custom
+    // serde codec: `missing_field` cannot route through `deserialize_with`,
+    // so a missing key is rejected and the field must stay required.
+    fn deserialize_option<'de, D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<String>, D::Error> {
+        serde::Deserialize::deserialize(deserializer)
+    }
+
     #[allow(dead_code)]
     #[derive(serde::Deserialize, reflectapi::Input)]
     #[serde(deny_unknown_fields)]
@@ -343,6 +351,9 @@ fn test_struct_with_option_fields_without_serde_default() {
         pub std_option: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub annotated_std_option: Option<String>,
+
+        #[serde(deserialize_with = "deserialize_option")]
+        pub custom_codec_option: Option<String>,
     }
 
     assert_input_snapshot!(ARequest);
