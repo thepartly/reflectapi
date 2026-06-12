@@ -76,18 +76,21 @@ struct PythonMetadataUsage {
 ///
 /// Key presence comes from the shared wire-contract rules; this function only
 /// maps the contract to Python rendering. Option-typed fields already carry
-/// `| None` in their type hint via the type mapping, so `nullable` controls
-/// whether it must be appended for fields that may be absent.
+/// `| None` in their type hint via the type mapping, so `declared_nullable`
+/// controls whether it must be appended for fields that may be absent.
 fn resolve_field_optionality(
-    field: &reflectapi_schema::Field,
+    facts: schema_codegen::FieldWireFacts<'_>,
     field_type: String,
-    effective_required: bool,
 ) -> (bool, Option<String>, String) {
-    let contract = schema_codegen::resolve_field_wire_contract(field, effective_required);
-    match (contract.key, contract.nullable) {
+    let contract = schema_codegen::resolve_field_wire_contract(facts);
+    match (contract.key, contract.declared_nullable) {
         (schema_codegen::KeyPresence::Optional, true) => {
             (true, Some("None".to_string()), field_type)
         }
+        // The wire never carries null for these fields (the key is simply
+        // absent), but pydantic has no idiomatic "may be absent yet never
+        // null" without a sentinel type, so absence is modeled as a None
+        // default — the long-standing rendering choice for this quadrant.
         (schema_codegen::KeyPresence::Optional, false) => (
             true,
             Some("None".to_string()),
@@ -95,6 +98,13 @@ fn resolve_field_optionality(
         ),
         (schema_codegen::KeyPresence::Required, _) => (false, None, field_type),
     }
+}
+
+/// A field rendered on `ReflectapiPartialModel`: absence must stay
+/// distinguishable from an explicit null (`model_fields_set` semantics).
+fn is_partial_field(field: &reflectapi_schema::Field) -> bool {
+    schema_codegen::resolve_field_wire_contract(schema_codegen::FieldWireFacts::of(field))
+        .absent_distinct_from_null
 }
 
 struct PythonTypeMapping {
@@ -851,7 +861,7 @@ fn render_struct_with_flattened_tagged_enum(
             used_type_vars,
         )?;
         let (optional, default_value, final_type) =
-            resolve_field_optionality(field, field_type, field.required);
+            resolve_field_optionality(schema_codegen::FieldWireFacts::of(field), field_type);
         base_fields.push(templates::Field {
             name: python_name,
             type_annotation: final_type,
@@ -861,7 +871,7 @@ fn render_struct_with_flattened_tagged_enum(
             default_value,
             alias,
 
-            is_partial: field.type_ref.name == "reflectapi::Option",
+            is_partial: is_partial_field(field),
         });
     }
 
@@ -902,8 +912,10 @@ fn render_struct_with_flattened_tagged_enum(
                 )?;
                 let (python_name, alias) =
                     sanitize_field_name_with_alias(field.name(), field.serde_name());
-                let (optional, default_value, final_type) =
-                    resolve_field_optionality(field, field_type, field.required);
+                let (optional, default_value, final_type) = resolve_field_optionality(
+                    schema_codegen::FieldWireFacts::of(field),
+                    field_type,
+                );
                 base_fields.push(templates::Field {
                     name: python_name,
                     type_annotation: final_type,
@@ -913,7 +925,7 @@ fn render_struct_with_flattened_tagged_enum(
                     default_value,
                     alias,
 
-                    is_partial: field.type_ref.name == "reflectapi::Option",
+                    is_partial: is_partial_field(field),
                 });
             }
         }
@@ -1095,8 +1107,10 @@ fn render_struct_with_flattened_tagged_enum(
                         active_generics,
                         used_type_vars,
                     )?;
-                    let (optional, default_value, final_type) =
-                        resolve_field_optionality(vf, field_type, vf.required);
+                    let (optional, default_value, final_type) = resolve_field_optionality(
+                        schema_codegen::FieldWireFacts::of(vf),
+                        field_type,
+                    );
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(vf.name(), vf.serde_name());
                     fields.push(templates::Field {
@@ -1108,7 +1122,7 @@ fn render_struct_with_flattened_tagged_enum(
                         default_value,
                         alias,
 
-                        is_partial: vf.type_ref.name == "reflectapi::Option",
+                        is_partial: is_partial_field(vf),
                     });
                 }
             }
@@ -1157,8 +1171,10 @@ fn render_struct_with_flattened_tagged_enum(
                         )?;
                         let (sanitized, alias) =
                             sanitize_field_name_with_alias(sf.name(), sf.serde_name());
-                        let (optional, default_value, final_type) =
-                            resolve_field_optionality(sf, field_type, sf.required);
+                        let (optional, default_value, final_type) = resolve_field_optionality(
+                            schema_codegen::FieldWireFacts::of(sf),
+                            field_type,
+                        );
                         fields.push(templates::Field {
                             name: sanitized,
                             type_annotation: final_type,
@@ -1168,7 +1184,7 @@ fn render_struct_with_flattened_tagged_enum(
                             default_value,
                             alias,
 
-                            is_partial: sf.type_ref.name == "reflectapi::Option",
+                            is_partial: is_partial_field(sf),
                         });
                     }
                 }
@@ -1242,7 +1258,7 @@ fn render_struct_with_flatten_standard(
         )?;
 
         let (optional, default_value, final_type) =
-            resolve_field_optionality(field, field_type, field.required);
+            resolve_field_optionality(schema_codegen::FieldWireFacts::of(field), field_type);
         all_fields.push(templates::Field {
             name: python_name,
             type_annotation: final_type,
@@ -1252,7 +1268,7 @@ fn render_struct_with_flatten_standard(
             default_value,
             alias,
 
-            is_partial: field.type_ref.name == "reflectapi::Option",
+            is_partial: is_partial_field(field),
         });
     }
 
@@ -1337,13 +1353,10 @@ fn strip_phantom_data_fields(schema: &mut Schema) {
 fn schema_has_partial_field(schema: &Schema) -> bool {
     fn iter_typespace_has_partial(typespace: &reflectapi_schema::Typespace) -> bool {
         typespace.types().any(|t| match t {
-            reflectapi_schema::Type::Struct(s) => {
-                s.fields().any(|f| f.type_ref.name == "reflectapi::Option")
+            reflectapi_schema::Type::Struct(s) => s.fields().any(is_partial_field),
+            reflectapi_schema::Type::Enum(e) => {
+                e.variants.iter().any(|v| v.fields().any(is_partial_field))
             }
-            reflectapi_schema::Type::Enum(e) => e
-                .variants
-                .iter()
-                .any(|v| v.fields().any(|f| f.type_ref.name == "reflectapi::Option")),
             _ => false,
         })
     }
@@ -3966,8 +3979,10 @@ fn make_flattened_field(
         used_type_vars,
     )?;
 
-    let (optional, default_value, final_field_type) =
-        resolve_field_optionality(field, field_type, field.required && parent_required);
+    let (optional, default_value, final_field_type) = resolve_field_optionality(
+        schema_codegen::FieldWireFacts::of(field).with_required(field.required && parent_required),
+        field_type,
+    );
 
     let (sanitized, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
     Ok(templates::Field {
@@ -3987,7 +4002,7 @@ fn make_flattened_field(
         default_value,
         alias,
 
-        is_partial: field.type_ref.name == "reflectapi::Option",
+        is_partial: is_partial_field(field),
     })
 }
 
@@ -4032,17 +4047,17 @@ fn collect_flattened_enum_fields(
         });
     let (sanitized, alias) = sanitize_field_name_with_alias(&field_name, &field_name);
 
-    // A flattened enum field has no schema `Field` of its own; synthesize one
-    // for the shared wire-contract resolution. serde rejects `flatten`
-    // combined with `with`-family attributes, so no serializer or
-    // deserializer flag can be lost here.
-    let synthetic_field = {
-        let mut synthetic = reflectapi_schema::Field::new(field_name.clone(), type_ref.clone());
-        synthetic.required = parent_required;
-        synthetic
-    };
-    let (optional, default_value, final_type) =
-        resolve_field_optionality(&synthetic_field, enum_python_type, parent_required);
+    // A flattened enum field has no schema `Field` of its own; assert its
+    // wire facts directly. serde rejects `flatten` combined with
+    // `with`-family attributes, so there is no deserializer flag to carry.
+    let (optional, default_value, final_type) = resolve_field_optionality(
+        schema_codegen::FieldWireFacts {
+            type_name: &type_ref.name,
+            deserialize_with: false,
+            required: parent_required,
+        },
+        enum_python_type,
+    );
 
     collected_fields.push(templates::Field {
         name: sanitized,
@@ -4106,8 +4121,10 @@ fn render_struct(
                     &active_generics,
                     used_type_vars,
                 )?;
-                let (_, _, field_type) =
-                    resolve_field_optionality(field, base_field_type, field.required);
+                let (_, _, field_type) = resolve_field_optionality(
+                    schema_codegen::FieldWireFacts::of(field),
+                    base_field_type,
+                );
                 Ok(field_type)
             })
             .collect::<Result<Vec<_>, anyhow::Error>>()?;
@@ -4141,8 +4158,10 @@ fn render_struct(
                 used_type_vars,
             )?;
 
-            let (optional, default_value, field_type) =
-                resolve_field_optionality(field, base_field_type, field.required);
+            let (optional, default_value, field_type) = resolve_field_optionality(
+                schema_codegen::FieldWireFacts::of(field),
+                base_field_type,
+            );
 
             let (sanitized, alias) =
                 sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -4155,7 +4174,7 @@ fn render_struct(
                 default_value,
                 alias,
 
-                is_partial: field.type_ref.name == "reflectapi::Option",
+                is_partial: is_partial_field(field),
             })
         })
         .collect::<Result<Vec<_>, anyhow::Error>>()?;
@@ -4555,8 +4574,10 @@ fn render_adjacently_tagged_enum(
                         &generic_params,
                         used_type_vars,
                     )?;
-                    let (optional, default_value, final_field_type) =
-                        resolve_field_optionality(field, field_type, field.required);
+                    let (optional, default_value, final_field_type) = resolve_field_optionality(
+                        schema_codegen::FieldWireFacts::of(field),
+                        field_type,
+                    );
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
                     content_fields.push(templates::Field {
@@ -4568,7 +4589,7 @@ fn render_adjacently_tagged_enum(
                         default_value,
                         alias,
 
-                        is_partial: field.type_ref.name == "reflectapi::Option",
+                        is_partial: is_partial_field(field),
                     });
                 }
                 let content_model = templates::DataClass {
@@ -4741,7 +4762,7 @@ fn render_externally_tagged_enum(
                         default_value: None,
                         alias: None,
 
-                        is_partial: field.type_ref.name == "reflectapi::Option",
+                        is_partial: is_partial_field(field),
                     });
                 }
 
@@ -4817,8 +4838,10 @@ fn render_externally_tagged_enum(
                         used_type_vars,
                     )?;
 
-                    let (optional, default_value, final_field_type) =
-                        resolve_field_optionality(field, field_type, field.required);
+                    let (optional, default_value, final_field_type) = resolve_field_optionality(
+                        schema_codegen::FieldWireFacts::of(field),
+                        field_type,
+                    );
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -4831,7 +4854,7 @@ fn render_externally_tagged_enum(
                         default_value,
                         alias,
 
-                        is_partial: field.type_ref.name == "reflectapi::Option",
+                        is_partial: is_partial_field(field),
                     });
                 }
 
@@ -5067,9 +5090,8 @@ fn render_internally_tagged_enum(
 
                             let (optional, default_value, final_field_type) =
                                 resolve_field_optionality(
-                                    struct_field,
+                                    schema_codegen::FieldWireFacts::of(struct_field),
                                     field_type,
-                                    struct_field.required,
                                 );
 
                             let (sanitized, alias) = sanitize_field_name_with_alias(
@@ -5085,7 +5107,7 @@ fn render_internally_tagged_enum(
                                 default_value,
                                 alias,
 
-                                is_partial: struct_field.type_ref.name == "reflectapi::Option",
+                                is_partial: is_partial_field(struct_field),
                             });
                         }
                     }
@@ -5110,7 +5132,7 @@ fn render_internally_tagged_enum(
                             default_value: None,
                             alias: None,
 
-                            is_partial: inner_field.type_ref.name == "reflectapi::Option",
+                            is_partial: is_partial_field(inner_field),
                         });
                     }
                 }
@@ -5127,8 +5149,10 @@ fn render_internally_tagged_enum(
                         used_type_vars,
                     )?;
 
-                    let (optional, default_value, final_field_type) =
-                        resolve_field_optionality(field, field_type, field.required);
+                    let (optional, default_value, final_field_type) = resolve_field_optionality(
+                        schema_codegen::FieldWireFacts::of(field),
+                        field_type,
+                    );
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -5141,7 +5165,7 @@ fn render_internally_tagged_enum(
                         default_value,
                         alias,
 
-                        is_partial: field.type_ref.name == "reflectapi::Option",
+                        is_partial: is_partial_field(field),
                     });
                 }
             }
@@ -5296,8 +5320,10 @@ fn render_untagged_enum(
                         &generic_params,
                         used_type_vars,
                     )?;
-                    let (optional, default_value, final_field_type) =
-                        resolve_field_optionality(field, field_type, field.required);
+                    let (optional, default_value, final_field_type) = resolve_field_optionality(
+                        schema_codegen::FieldWireFacts::of(field),
+                        field_type,
+                    );
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -5310,7 +5336,7 @@ fn render_untagged_enum(
                         default_value,
                         alias,
 
-                        is_partial: field.type_ref.name == "reflectapi::Option",
+                        is_partial: is_partial_field(field),
                     });
                 }
             }
