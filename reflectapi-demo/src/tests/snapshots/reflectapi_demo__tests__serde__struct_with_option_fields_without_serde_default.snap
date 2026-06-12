@@ -99,7 +99,7 @@ expression: "super :: into_input_schema :: < ARequest > ().input_types"
             }
           },
           {
-            "name": "custom_codec_option",
+            "name": "custom_deserializer_option",
             "type": {
               "name": "std::option::Option",
               "arguments": [
@@ -109,7 +109,7 @@ expression: "super :: into_input_schema :: < ARequest > ().input_types"
               ]
             },
             "required": true,
-            "custom_codec": true
+            "deserialize_with": true
           }
         ]
       }
