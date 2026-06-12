@@ -1098,26 +1098,16 @@ fn field_to_ts_field(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> templates::Field {
-    // A nullable option field can always be omitted by the sender: serde
-    // deserializes a missing key as `None` even without `#[serde(default)]`
-    // (`missing_field` special-cases `deserialize_option`), and the same
-    // holds for `reflectapi::Option`. Mark such fields optional so callers
-    // are not forced to pass an explicit null. This mirrors the Python
-    // backend's `resolve_field_optionality`.
-    //
-    // The exception is a field with a custom serde codec: `missing_field`
-    // cannot route through `serialize_with`/`deserialize_with`, so a missing
-    // key is rejected by the server and `required` stays authoritative.
-    let is_option_type = !field.custom_codec
-        && matches!(
-            field.type_ref.name.as_str(),
-            "std::option::Option" | "reflectapi::Option"
-        );
+    // Key presence is resolved by the shared wire-contract rules (a missing
+    // key is accepted for plain option-typed fields, but not when a custom
+    // serde codec is involved); nullability is already carried by the
+    // type mapping (`T | null`, `T | null | undefined`).
+    let contract = crate::codegen::schema::resolve_field_wire_contract(field, field.required);
     templates::Field {
         name: field.serde_name().into(),
         description: doc_to_ts_comments(&field.description, field.deprecation_note.as_deref(), 4),
         type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
-        optional: !field.required || is_option_type,
+        optional: contract.key == crate::codegen::schema::KeyPresence::Optional,
     }
 }
 

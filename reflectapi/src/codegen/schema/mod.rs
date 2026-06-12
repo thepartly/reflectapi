@@ -8,6 +8,7 @@
 
 mod ids;
 mod normalize;
+mod presence;
 mod semantic;
 mod symbol;
 
@@ -16,6 +17,7 @@ mod symbol;
 // `self::ids::*`, `self::normalize::*`, etc. for the module's own tests.
 pub(crate) use self::ids::{build_schema_ids, SchemaIds};
 pub(crate) use self::normalize::{Consolidation, Naming, Normalizer, PipelineBuilder};
+pub(crate) use self::presence::{resolve_field_wire_contract, KeyPresence};
 pub(crate) use self::semantic::{
     FieldStyle, ResolvedTypeReference, SemanticEnum, SemanticField, SemanticFunction,
     SemanticOutputType, SemanticPrimitive, SemanticSchema, SemanticStruct, SemanticType,
