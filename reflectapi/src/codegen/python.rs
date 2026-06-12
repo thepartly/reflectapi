@@ -73,26 +73,27 @@ struct PythonMetadataUsage {
 
 /// Resolve Python field optionality: determines whether a field needs a default
 /// value of `None` and whether `| None` should be appended to its type hint.
+///
+/// Key presence comes from the shared wire-contract rules; this function only
+/// maps the contract to Python rendering. Option-typed fields already carry
+/// `| None` in their type hint via the type mapping, so `nullable` controls
+/// whether it must be appended for fields that may be absent.
 fn resolve_field_optionality(
-    type_name: &str,
+    field: &reflectapi_schema::Field,
     field_type: String,
-    required: bool,
+    effective_required: bool,
 ) -> (bool, Option<String>, String) {
-    let is_option_type = type_name == "std::option::Option" || type_name == "reflectapi::Option";
-    if !required {
-        if is_option_type {
+    let contract = schema_codegen::resolve_field_wire_contract(field, effective_required);
+    match (contract.key, contract.nullable) {
+        (schema_codegen::KeyPresence::Optional, true) => {
             (true, Some("None".to_string()), field_type)
-        } else {
-            (
-                true,
-                Some("None".to_string()),
-                format!("{field_type} | None"),
-            )
         }
-    } else if is_option_type {
-        (true, Some("None".to_string()), field_type)
-    } else {
-        (false, None, field_type)
+        (schema_codegen::KeyPresence::Optional, false) => (
+            true,
+            Some("None".to_string()),
+            format!("{field_type} | None"),
+        ),
+        (schema_codegen::KeyPresence::Required, _) => (false, None, field_type),
     }
 }
 
@@ -850,7 +851,7 @@ fn render_struct_with_flattened_tagged_enum(
             used_type_vars,
         )?;
         let (optional, default_value, final_type) =
-            resolve_field_optionality(&field.type_ref.name, field_type, field.required);
+            resolve_field_optionality(field, field_type, field.required);
         base_fields.push(templates::Field {
             name: python_name,
             type_annotation: final_type,
@@ -902,7 +903,7 @@ fn render_struct_with_flattened_tagged_enum(
                 let (python_name, alias) =
                     sanitize_field_name_with_alias(field.name(), field.serde_name());
                 let (optional, default_value, final_type) =
-                    resolve_field_optionality(&field.type_ref.name, field_type, field.required);
+                    resolve_field_optionality(field, field_type, field.required);
                 base_fields.push(templates::Field {
                     name: python_name,
                     type_annotation: final_type,
@@ -1095,7 +1096,7 @@ fn render_struct_with_flattened_tagged_enum(
                         used_type_vars,
                     )?;
                     let (optional, default_value, final_type) =
-                        resolve_field_optionality(&vf.type_ref.name, field_type, vf.required);
+                        resolve_field_optionality(vf, field_type, vf.required);
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(vf.name(), vf.serde_name());
                     fields.push(templates::Field {
@@ -1157,7 +1158,7 @@ fn render_struct_with_flattened_tagged_enum(
                         let (sanitized, alias) =
                             sanitize_field_name_with_alias(sf.name(), sf.serde_name());
                         let (optional, default_value, final_type) =
-                            resolve_field_optionality(&sf.type_ref.name, field_type, sf.required);
+                            resolve_field_optionality(sf, field_type, sf.required);
                         fields.push(templates::Field {
                             name: sanitized,
                             type_annotation: final_type,
@@ -1241,7 +1242,7 @@ fn render_struct_with_flatten_standard(
         )?;
 
         let (optional, default_value, final_type) =
-            resolve_field_optionality(&field.type_ref.name, field_type, field.required);
+            resolve_field_optionality(field, field_type, field.required);
         all_fields.push(templates::Field {
             name: python_name,
             type_annotation: final_type,
@@ -3965,11 +3966,8 @@ fn make_flattened_field(
         used_type_vars,
     )?;
 
-    let (optional, default_value, final_field_type) = resolve_field_optionality(
-        &field.type_ref.name,
-        field_type,
-        field.required && parent_required,
-    );
+    let (optional, default_value, final_field_type) =
+        resolve_field_optionality(field, field_type, field.required && parent_required);
 
     let (sanitized, alias) = sanitize_field_name_with_alias(field.name(), field.serde_name());
     Ok(templates::Field {
@@ -4034,8 +4032,16 @@ fn collect_flattened_enum_fields(
         });
     let (sanitized, alias) = sanitize_field_name_with_alias(&field_name, &field_name);
 
+    // A flattened enum field has no schema `Field` of its own; synthesize one
+    // for the shared wire-contract resolution. serde rejects `flatten`
+    // combined with `with`-family codecs, so no codec flag can be lost here.
+    let synthetic_field = {
+        let mut synthetic = reflectapi_schema::Field::new(field_name.clone(), type_ref.clone());
+        synthetic.required = parent_required;
+        synthetic
+    };
     let (optional, default_value, final_type) =
-        resolve_field_optionality(&type_ref.name, enum_python_type, parent_required);
+        resolve_field_optionality(&synthetic_field, enum_python_type, parent_required);
 
     collected_fields.push(templates::Field {
         name: sanitized,
@@ -4099,11 +4105,8 @@ fn render_struct(
                     &active_generics,
                     used_type_vars,
                 )?;
-                let (_, _, field_type) = resolve_field_optionality(
-                    &field.type_ref.name,
-                    base_field_type,
-                    field.required,
-                );
+                let (_, _, field_type) =
+                    resolve_field_optionality(field, base_field_type, field.required);
                 Ok(field_type)
             })
             .collect::<Result<Vec<_>, anyhow::Error>>()?;
@@ -4138,7 +4141,7 @@ fn render_struct(
             )?;
 
             let (optional, default_value, field_type) =
-                resolve_field_optionality(&field.type_ref.name, base_field_type, field.required);
+                resolve_field_optionality(field, base_field_type, field.required);
 
             let (sanitized, alias) =
                 sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -4552,7 +4555,7 @@ fn render_adjacently_tagged_enum(
                         used_type_vars,
                     )?;
                     let (optional, default_value, final_field_type) =
-                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
+                        resolve_field_optionality(field, field_type, field.required);
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
                     content_fields.push(templates::Field {
@@ -4814,7 +4817,7 @@ fn render_externally_tagged_enum(
                     )?;
 
                     let (optional, default_value, final_field_type) =
-                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
+                        resolve_field_optionality(field, field_type, field.required);
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -5063,7 +5066,7 @@ fn render_internally_tagged_enum(
 
                             let (optional, default_value, final_field_type) =
                                 resolve_field_optionality(
-                                    &struct_field.type_ref.name,
+                                    struct_field,
                                     field_type,
                                     struct_field.required,
                                 );
@@ -5124,7 +5127,7 @@ fn render_internally_tagged_enum(
                     )?;
 
                     let (optional, default_value, final_field_type) =
-                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
+                        resolve_field_optionality(field, field_type, field.required);
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -5293,7 +5296,7 @@ fn render_untagged_enum(
                         used_type_vars,
                     )?;
                     let (optional, default_value, final_field_type) =
-                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
+                        resolve_field_optionality(field, field_type, field.required);
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
