@@ -97,6 +97,19 @@ expression: "super :: into_input_schema :: < ARequest > ().input_types"
                 }
               ]
             }
+          },
+          {
+            "name": "custom_codec_option",
+            "type": {
+              "name": "std::option::Option",
+              "arguments": [
+                {
+                  "name": "std::string::String"
+                }
+              ]
+            },
+            "required": true,
+            "custom_codec": true
           }
         ]
       }

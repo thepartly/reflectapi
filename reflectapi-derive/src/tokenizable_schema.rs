@@ -105,6 +105,7 @@ impl ToTokens for TokenizableField<'_> {
         let required = self.inner.required;
         let flattened = self.inner.flattened;
         let hidden = self.inner.hidden;
+        let custom_codec = self.inner.custom_codec;
         let transform_callback = self.inner.transform_callback.as_str();
         let mut transform_callback_fn = quote::quote! {
             None
@@ -126,6 +127,7 @@ impl ToTokens for TokenizableField<'_> {
                 required: #required,
                 flattened: #flattened,
                 hidden: #hidden,
+                custom_codec: #custom_codec,
                 transform_callback: String::new(),
                 transform_callback_fn: #transform_callback_fn,
             }

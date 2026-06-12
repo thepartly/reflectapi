@@ -1104,10 +1104,15 @@ fn field_to_ts_field(
     // holds for `reflectapi::Option`. Mark such fields optional so callers
     // are not forced to pass an explicit null. This mirrors the Python
     // backend's `resolve_field_optionality`.
-    let is_option_type = matches!(
-        field.type_ref.name.as_str(),
-        "std::option::Option" | "reflectapi::Option"
-    );
+    //
+    // The exception is a field with a custom serde codec: `missing_field`
+    // cannot route through `serialize_with`/`deserialize_with`, so a missing
+    // key is rejected by the server and `required` stays authoritative.
+    let is_option_type = !field.custom_codec
+        && matches!(
+            field.type_ref.name.as_str(),
+            "std::option::Option" | "reflectapi::Option"
+        );
     templates::Field {
         name: field.serde_name().into(),
         description: doc_to_ts_comments(&field.description, field.deprecation_note.as_deref(), 4),

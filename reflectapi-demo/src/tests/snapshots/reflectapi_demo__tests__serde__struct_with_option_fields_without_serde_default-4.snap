@@ -39,6 +39,7 @@ class ReflectapiDemoTestsSerdeARequest(ReflectapiPartialModel):
     annotated_reflect_option: str | None = None
     std_option: str | None = None
     annotated_std_option: str | None = None
+    custom_codec_option: str | None = None
 
 
 # Namespace classes for dotted access to types
