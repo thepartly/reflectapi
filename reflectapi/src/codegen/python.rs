@@ -3716,7 +3716,8 @@ fn collect_flattened_enum_fields(
 
     // A flattened enum field has no schema `Field` of its own; synthesize one
     // for the shared wire-contract resolution. serde rejects `flatten`
-    // combined with `with`-family codecs, so no codec flag can be lost here.
+    // combined with `with`-family attributes, so no serializer or
+    // deserializer flag can be lost here.
     let synthetic_field = {
         let mut synthetic = reflectapi_schema::Field::new(field_name.clone(), type_ref.clone());
         synthetic.required = parent_required;

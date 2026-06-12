@@ -442,12 +442,11 @@ fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema
     };
     field_def.flattened = field.attrs.flatten();
     field_def.hidden = attrs.hidden;
-    // Direction-agnostic on purpose: the input and output reflections of a
-    // struct must stay identical for type consolidation, and a custom codec
-    // on either side already means wire behavior can't be inferred from the
-    // field's type.
-    field_def.custom_codec =
-        field.attrs.serialize_with().is_some() || field.attrs.deserialize_with().is_some();
+    // Recorded on both the input and output reflections (they must stay
+    // identical for type consolidation); which side matters is decided at
+    // codegen time.
+    field_def.serialize_with = field.attrs.serialize_with().is_some();
+    field_def.deserialize_with = field.attrs.deserialize_with().is_some();
     Some(field_def)
 }
 

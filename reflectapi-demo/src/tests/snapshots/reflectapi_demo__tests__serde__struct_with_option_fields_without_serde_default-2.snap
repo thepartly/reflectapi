@@ -40,7 +40,7 @@ export namespace reflectapi_demo {
         annotated_reflect_option?: string | null | undefined;
         std_option?: string | null;
         annotated_std_option?: string | null;
-        custom_codec_option: string | null;
+        custom_deserializer_option: string | null;
       }
     }
   }

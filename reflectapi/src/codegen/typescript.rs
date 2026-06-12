@@ -1100,8 +1100,8 @@ fn field_to_ts_field(
 ) -> templates::Field {
     // Key presence is resolved by the shared wire-contract rules (a missing
     // key is accepted for plain option-typed fields, but not when a custom
-    // serde codec is involved); nullability is already carried by the
-    // type mapping (`T | null`, `T | null | undefined`).
+    // serde deserializer is involved); nullability is already carried by
+    // the type mapping (`T | null`, `T | null | undefined`).
     let contract = crate::codegen::schema::resolve_field_wire_contract(field, field.required);
     templates::Field {
         name: field.serde_name().into(),

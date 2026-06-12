@@ -17,11 +17,14 @@
 //! | `reflectapi::Option<T>`, no `default` | accepted as `None` (collapses the three-state type; a lint may catch this in future) |
 //! | `reflectapi::Option<T>` + `default` | accepted as `Undefined` |
 //! | any + `serde(default)` | accepted — default value used |
-//! | option + `with`/`deserialize_with`, no `default` | **rejected** — `missing_field` cannot route through a custom codec |
+//! | option + `with`/`deserialize_with`, no `default` | **rejected** — `missing_field` cannot route through a custom deserializer |
 //!
-//! On the serialize side the folded `required` flag (false when
-//! `skip_serializing_if` is present) already captures whether the key can be
-//! absent, and option types capture nullability.
+//! Only the deserialize side affects key presence: a custom *serializer*
+//! never changes whether the key may be absent (`skip_serializing_if`,
+//! folded into `required`, controls that), so `serialize_with` is
+//! irrelevant here. On the serialize side the folded `required` flag
+//! already captures whether the key can be absent, and option types
+//! capture nullability.
 
 use reflectapi_schema::Field;
 
@@ -58,12 +61,13 @@ pub(crate) fn resolve_field_wire_contract(
 
     let key = if !effective_required {
         // serde(default) / skip_serializing_if: absence is always fine,
-        // custom codec or not (a default is applied without invoking it).
+        // custom deserializer or not (a default is applied without
+        // invoking it).
         KeyPresence::Optional
-    } else if is_option && !field.custom_codec {
+    } else if is_option && !field.deserialize_with {
         // serde accepts a missing key for plain option-typed fields even
-        // without serde(default); a custom codec breaks that path, so
-        // `required` stays authoritative there.
+        // without serde(default); a custom deserializer breaks that path,
+        // so `required` stays authoritative there.
         KeyPresence::Optional
     } else {
         KeyPresence::Required
@@ -81,20 +85,19 @@ mod tests {
     use super::*;
     use reflectapi_schema::TypeReference;
 
-    fn field(type_name: &str, required: bool, custom_codec: bool) -> Field {
+    fn field(type_name: &str, required: bool) -> Field {
         let argument = TypeReference::new("u8".to_string(), vec![]);
         let mut f = Field::new(
             "f".to_string(),
             TypeReference::new(type_name.to_string(), vec![argument]),
         );
         f.required = required;
-        f.custom_codec = custom_codec;
         f
     }
 
     #[test]
     fn plain_required_field_is_required() {
-        let c = resolve_field_wire_contract(&field("u8", true, false), true);
+        let c = resolve_field_wire_contract(&field("u8", true), true);
         assert_eq!(c.key, KeyPresence::Required);
         assert!(!c.nullable);
         assert!(!c.absent_distinct_from_null);
@@ -102,7 +105,7 @@ mod tests {
 
     #[test]
     fn std_option_is_optional_even_when_required() {
-        let c = resolve_field_wire_contract(&field("std::option::Option", true, false), true);
+        let c = resolve_field_wire_contract(&field("std::option::Option", true), true);
         assert_eq!(c.key, KeyPresence::Optional);
         assert!(c.nullable);
         assert!(!c.absent_distinct_from_null);
@@ -110,28 +113,40 @@ mod tests {
 
     #[test]
     fn reflectapi_option_is_optional_and_three_state() {
-        let c = resolve_field_wire_contract(&field("reflectapi::Option", true, false), true);
+        let c = resolve_field_wire_contract(&field("reflectapi::Option", true), true);
         assert_eq!(c.key, KeyPresence::Optional);
         assert!(c.nullable);
         assert!(c.absent_distinct_from_null);
     }
 
     #[test]
-    fn custom_codec_keeps_required_authoritative() {
-        let c = resolve_field_wire_contract(&field("std::option::Option", true, true), true);
+    fn custom_deserializer_keeps_required_authoritative() {
+        let mut f = field("std::option::Option", true);
+        f.deserialize_with = true;
+        let c = resolve_field_wire_contract(&f, true);
         assert_eq!(c.key, KeyPresence::Required);
         assert!(c.nullable);
     }
 
     #[test]
-    fn custom_codec_with_serde_default_is_optional() {
-        let c = resolve_field_wire_contract(&field("std::option::Option", false, true), false);
+    fn custom_serializer_alone_does_not_affect_key_presence() {
+        let mut f = field("std::option::Option", true);
+        f.serialize_with = true;
+        let c = resolve_field_wire_contract(&f, true);
+        assert_eq!(c.key, KeyPresence::Optional);
+    }
+
+    #[test]
+    fn custom_deserializer_with_serde_default_is_optional() {
+        let mut f = field("std::option::Option", false);
+        f.deserialize_with = true;
+        let c = resolve_field_wire_contract(&f, false);
         assert_eq!(c.key, KeyPresence::Optional);
     }
 
     #[test]
     fn non_required_non_option_is_optional_not_nullable() {
-        let c = resolve_field_wire_contract(&field("u8", false, false), false);
+        let c = resolve_field_wire_contract(&field("u8", false), false);
         assert_eq!(c.key, KeyPresence::Optional);
         assert!(!c.nullable);
     }

@@ -1132,13 +1132,20 @@ pub struct Field {
     #[serde(skip_serializing_if = "is_false", default)]
     pub hidden: bool,
 
-    /// If true, the field's value passes through a custom serde codec
-    /// (`#[serde(with = ...)]` / `serialize_with` / `deserialize_with`),
-    /// so wire behavior — such as whether a missing key is accepted —
-    /// cannot be inferred from the field's type alone.
+    /// If true, the field has a custom serde serializer:
+    /// `#[serde(serialize_with = ...)]` or `#[serde(with = ...)]`.
+    /// Serialized wire shape cannot be inferred from the field's type alone.
     /// Default is false
     #[serde(skip_serializing_if = "is_false", default)]
-    pub custom_codec: bool,
+    pub serialize_with: bool,
+
+    /// If true, the field has a custom serde deserializer:
+    /// `#[serde(deserialize_with = ...)]` or `#[serde(with = ...)]`.
+    /// Deserialization behavior — such as whether a missing key is
+    /// accepted — cannot be inferred from the field's type alone.
+    /// Default is false
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub deserialize_with: bool,
 
     #[serde(skip, default)]
     pub transform_callback: String,
@@ -1158,7 +1165,8 @@ impl PartialEq for Field {
             required,
             flattened,
             hidden,
-            custom_codec,
+            serialize_with,
+            deserialize_with,
             transform_callback,
             transform_callback_fn: _,
         }: &Self,
@@ -1171,7 +1179,8 @@ impl PartialEq for Field {
             && self.required == *required
             && self.flattened == *flattened
             && self.hidden == *hidden
-            && self.custom_codec == *custom_codec
+            && self.serialize_with == *serialize_with
+            && self.deserialize_with == *deserialize_with
             && self.transform_callback == *transform_callback
     }
 }
@@ -1186,6 +1195,8 @@ impl std::hash::Hash for Field {
         self.required.hash(state);
         self.flattened.hash(state);
         self.hidden.hash(state);
+        self.serialize_with.hash(state);
+        self.deserialize_with.hash(state);
         self.transform_callback.hash(state);
     }
 }
@@ -1201,7 +1212,8 @@ impl Field {
             required: Default::default(),
             flattened: Default::default(),
             hidden: Default::default(),
-            custom_codec: Default::default(),
+            serialize_with: Default::default(),
+            deserialize_with: Default::default(),
             transform_callback: Default::default(),
             transform_callback_fn: Default::default(),
         }
