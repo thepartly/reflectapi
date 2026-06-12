@@ -55,7 +55,7 @@ pub mod interface {
             Self { client }
         }
         /// Check the health of the service
-        #[tracing::instrument(name = "/health.check", skip(self, headers))]
+        #[tracing::instrument(name = "/health.check", skip_all)]
         pub async fn check(
             &self,
             input: reflectapi::Empty,
@@ -78,7 +78,7 @@ pub mod interface {
             Self { client }
         }
         /// List available pets
-        #[tracing::instrument(name = "/pets.list", skip(self, headers))]
+        #[tracing::instrument(name = "/pets.list", skip_all)]
         pub async fn list(
             &self,
             input: super::types::myapi::proto::PetsListRequest,
@@ -90,7 +90,7 @@ pub mod interface {
             reflectapi::rt::__request_impl(&self.client, "/pets.list", input, headers).await
         }
         /// Create a new pet
-        #[tracing::instrument(name = "/pets.create", skip(self, headers))]
+        #[tracing::instrument(name = "/pets.create", skip_all)]
         pub async fn create(
             &self,
             input: super::types::myapi::proto::PetsCreateRequest,
@@ -102,7 +102,7 @@ pub mod interface {
             reflectapi::rt::__request_impl(&self.client, "/pets.create", input, headers).await
         }
         /// Update an existing pet
-        #[tracing::instrument(name = "/pets.update", skip(self, headers))]
+        #[tracing::instrument(name = "/pets.update", skip_all)]
         pub async fn update(
             &self,
             input: super::types::myapi::proto::PetsUpdateRequest,
@@ -114,7 +114,7 @@ pub mod interface {
             reflectapi::rt::__request_impl(&self.client, "/pets.update", input, headers).await
         }
         /// Remove an existing pet
-        #[tracing::instrument(name = "/pets.remove", skip(self, headers))]
+        #[tracing::instrument(name = "/pets.remove", skip_all)]
         pub async fn remove(
             &self,
             input: super::types::myapi::proto::PetsRemoveRequest,
@@ -127,7 +127,7 @@ pub mod interface {
         }
         #[deprecated(note = "Use pets.remove instead")]
         /// Remove an existing pet
-        #[tracing::instrument(name = "/pets.delete", skip(self, headers))]
+        #[tracing::instrument(name = "/pets.delete", skip_all)]
         pub async fn delete(
             &self,
             input: super::types::myapi::proto::PetsRemoveRequest,
@@ -139,7 +139,7 @@ pub mod interface {
             reflectapi::rt::__request_impl(&self.client, "/pets.delete", input, headers).await
         }
         /// Fetch first pet, if any exists
-        #[tracing::instrument(name = "/pets.get-first", skip(self, headers))]
+        #[tracing::instrument(name = "/pets.get-first", skip_all)]
         pub async fn get_first(
             &self,
             input: reflectapi::Empty,
@@ -151,7 +151,7 @@ pub mod interface {
             reflectapi::rt::__request_impl(&self.client, "/pets.get-first", input, headers).await
         }
         /// Stream of change data capture events for pets
-        #[tracing::instrument(name = "/pets.cdc-events", skip(self, headers))]
+        #[tracing::instrument(name = "/pets.cdc-events", skip_all)]
         pub async fn cdc_events(
             &self,
             input: reflectapi::Empty,
