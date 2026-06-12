@@ -324,6 +324,30 @@ fn test_struct_with_flatten_optional_and_required() {
     assert_snapshot!(TestStructWithFlattenOptionalAndRequired);
 }
 
+#[test]
+fn test_struct_with_option_fields_without_serde_default() {
+    // Option fields must be optional keys in generated clients regardless of
+    // `#[serde(default)]` / `skip_serializing_if`, because serde accepts a
+    // missing key for option-typed fields unconditionally (`missing_field`
+    // special-cases `deserialize_option`, and `reflectapi::Option`
+    // deserializes the same way).
+    #[allow(dead_code)]
+    #[derive(serde::Deserialize, reflectapi::Input)]
+    #[serde(deny_unknown_fields)]
+    pub struct ARequest {
+        pub reflect_option: reflectapi::Option<String>,
+
+        #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+        pub annotated_reflect_option: reflectapi::Option<String>,
+
+        pub std_option: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub annotated_std_option: Option<String>,
+    }
+
+    assert_input_snapshot!(ARequest);
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 #[serde(rename = "struct-name&&")]
 struct TestStructWithRenameToInvalidChars {

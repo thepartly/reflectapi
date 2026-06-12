@@ -1098,11 +1098,21 @@ fn field_to_ts_field(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> templates::Field {
+    // A nullable option field can always be omitted by the sender: serde
+    // deserializes a missing key as `None` even without `#[serde(default)]`
+    // (`missing_field` special-cases `deserialize_option`), and the same
+    // holds for `reflectapi::Option`. Mark such fields optional so callers
+    // are not forced to pass an explicit null. This mirrors the Python
+    // backend's `resolve_field_optionality`.
+    let is_option_type = matches!(
+        field.type_ref.name.as_str(),
+        "std::option::Option" | "reflectapi::Option"
+    );
     templates::Field {
         name: field.serde_name().into(),
         description: doc_to_ts_comments(&field.description, field.deprecation_note.as_deref(), 4),
         type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
-        optional: !field.required,
+        optional: !field.required || is_option_type,
     }
 }
 
