@@ -3,6 +3,9 @@
 ## Unreleased
 
 - TypeScript codegen now emits option-typed fields (`std::option::Option<T>` and `reflectapi::Option<T>`) as optional interface properties (`field?: T | null`) regardless of `#[serde(default)]` / `skip_serializing_if` annotations. serde accepts a missing key for option-typed fields unconditionally, so generated clients no longer force callers to pass explicit nulls. This matches the Python backend's behavior.
+- The exception is fields with a custom serde deserializer: `#[serde(deserialize_with = ...)]` / `#[serde(with = ...)]` without `#[serde(default)]` rejects a missing key, so such fields stay required. This also fixes the Python backend, which previously generated those fields as omittable keys the server rejects. A custom serializer alone (`serialize_with`) does not affect key optionality.
+- Schema format: `Field` gains two additive flags, `serialize_with` and `deserialize_with`, recording the presence of the corresponding serde attributes (`with` sets both; omitted from the JSON when false). Code constructing `reflectapi_schema::Field` with exhaustive struct literals needs the new fields.
+- Internals: field key-presence/nullability resolution now lives in one shared codegen schema pass (`resolve_field_wire_contract`) consumed by the TypeScript and Python backends, instead of per-backend heuristics.
 
 ## 0.17.6
 

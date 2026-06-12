@@ -1118,6 +1118,14 @@ pub struct Field {
     /// - Rust: `reflectapi::Option<T>` is enum with Undefined, None and Some variants
     /// - TypeScript: T | null | undefined
     ///
+    /// Note: the quadrants above describe the serialize-side contract.
+    /// On the deserialize side serde is lenient for option-typed fields —
+    /// a missing key is accepted as None even when `required` is true —
+    /// unless the field has a custom deserializer (see `deserialize_with`).
+    /// Generated clients therefore render option-typed fields as optional
+    /// keys regardless of `required`; consumers of this schema should not
+    /// assume `required` alone implies the key is present on the wire.
+    ///
     /// Default is false
     #[serde(skip_serializing_if = "is_false", default)]
     pub required: bool,

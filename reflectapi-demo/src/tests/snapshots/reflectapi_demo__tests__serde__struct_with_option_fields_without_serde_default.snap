@@ -1,155 +1,380 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "super :: into_input_schema :: < ARequest > ().input_types"
+expression: schema
 ---
 {
-  "types": [
+  "name": "",
+  "functions": [
     {
-      "kind": "struct",
-      "name": "reflectapi::Empty",
-      "description": "Struct object with no fields",
-      "fields": "none"
-    },
-    {
-      "kind": "enum",
-      "name": "reflectapi::Option",
-      "description": "Undefinable Option type",
-      "parameters": [
-        {
-          "name": "T"
-        }
-      ],
-      "representation": "none",
-      "variants": [
-        {
-          "name": "Undefined",
-          "description": "The value is missing, i.e. undefined in JavaScript",
-          "fields": "none"
-        },
-        {
-          "name": "None",
-          "description": "The value is provided but set to none, i.e. null in JavaScript",
-          "fields": "none"
-        },
-        {
-          "name": "Some",
-          "description": "The value is provided and set to some value",
-          "fields": {
-            "unnamed": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
-                }
-              }
-            ]
-          }
-        }
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::ARequest"
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::ARequest"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
       ]
-    },
-    {
-      "kind": "struct",
-      "name": "reflectapi_demo::tests::serde::ARequest",
-      "fields": {
-        "named": [
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi::Option",
+        "description": "Undefinable Option type",
+        "parameters": [
           {
-            "name": "reflect_option",
-            "type": {
-              "name": "reflectapi::Option",
-              "arguments": [
-                {
-                  "name": "std::string::String"
-                }
-              ]
-            },
-            "required": true
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "Undefined",
+            "description": "The value is missing, i.e. undefined in JavaScript",
+            "fields": "none"
           },
           {
-            "name": "annotated_reflect_option",
-            "type": {
-              "name": "reflectapi::Option",
-              "arguments": [
+            "name": "None",
+            "description": "The value is provided but set to none, i.e. null in JavaScript",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
                 {
-                  "name": "std::string::String"
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
                 }
               ]
             }
-          },
-          {
-            "name": "std_option",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "std::string::String"
-                }
-              ]
-            },
-            "required": true
-          },
-          {
-            "name": "annotated_std_option",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "std::string::String"
-                }
-              ]
-            }
-          },
-          {
-            "name": "custom_deserializer_option",
-            "type": {
-              "name": "std::option::Option",
-              "arguments": [
-                {
-                  "name": "std::string::String"
-                }
-              ]
-            },
-            "required": true,
-            "deserialize_with": true
           }
         ]
-      }
-    },
-    {
-      "kind": "enum",
-      "name": "std::option::Option",
-      "description": "Optional nullable type",
-      "parameters": [
-        {
-          "name": "T"
-        }
-      ],
-      "representation": "none",
-      "variants": [
-        {
-          "name": "None",
-          "description": "The value is not provided, i.e. null",
-          "fields": "none"
-        },
-        {
-          "name": "Some",
-          "description": "The value is provided and set to some value",
-          "fields": {
-            "unnamed": [
-              {
-                "name": "0",
-                "type": {
-                  "name": "T"
-                }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::ARequest",
+        "fields": {
+          "named": [
+            {
+              "name": "reflect_option",
+              "type": {
+                "name": "reflectapi::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "annotated_reflect_option",
+              "type": {
+                "name": "reflectapi::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
               }
-            ]
-          }
+            },
+            {
+              "name": "std_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "annotated_std_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "custom_deserializer_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true,
+              "deserialize_with": true
+            },
+            {
+              "name": "custom_serializer_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true,
+              "serialize_with": true
+            },
+            {
+              "name": "with_module_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true,
+              "serialize_with": true,
+              "deserialize_with": true
+            }
+          ]
         }
-      ]
-    },
-    {
-      "kind": "primitive",
-      "name": "std::string::String",
-      "description": "UTF-8 encoded string"
-    }
-  ]
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi::Option",
+        "description": "Undefinable Option type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "Undefined",
+            "description": "The value is missing, i.e. undefined in JavaScript",
+            "fields": "none"
+          },
+          {
+            "name": "None",
+            "description": "The value is provided but set to none, i.e. null in JavaScript",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::ARequest",
+        "fields": {
+          "named": [
+            {
+              "name": "reflect_option",
+              "type": {
+                "name": "reflectapi::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "annotated_reflect_option",
+              "type": {
+                "name": "reflectapi::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "std_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "annotated_std_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "custom_deserializer_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true,
+              "deserialize_with": true
+            },
+            {
+              "name": "custom_serializer_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true,
+              "serialize_with": true
+            },
+            {
+              "name": "with_module_option",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true,
+              "serialize_with": true,
+              "deserialize_with": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  }
 }

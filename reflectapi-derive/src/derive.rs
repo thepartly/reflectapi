@@ -442,9 +442,9 @@ fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema
     };
     field_def.flattened = field.attrs.flatten();
     field_def.hidden = attrs.hidden;
-    // Recorded on both the input and output reflections (they must stay
-    // identical for type consolidation); which side matters is decided at
-    // codegen time.
+    // Direction-independent facts, so the input and output reflections
+    // record identical values (keeping type consolidation unaffected);
+    // which side matters is decided at codegen time.
     field_def.serialize_with = field.attrs.serialize_with().is_some();
     field_def.deserialize_with = field.attrs.deserialize_with().is_some();
     Some(field_def)

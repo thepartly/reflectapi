@@ -2,31 +2,63 @@
 //!
 //! A field's wire behavior decomposes into three orthogonal facts, resolved
 //! here once so that every backend renders from the same meaning instead of
-//! re-deriving it from `(required, type name, custom_codec)` heuristics:
+//! re-deriving it from `(required, type name, deserialize_with)` heuristics:
 //!
 //! - **key presence** — may the key be absent on the wire?
-//! - **value nullability** — may the value be `null`?
+//! - **declared nullability** — does the declared type admit `null`?
 //! - **absence semantics** — is "absent" distinct from "null"?
 //!
-//! The resolution rules, with the serde behavior that justifies them:
+//! The key-presence rules, with the serde deserialize behavior that
+//! justifies them:
 //!
 //! | Field shape | Missing key behavior (deserialize) |
 //! |---|---|
 //! | `T` | rejected — key required |
 //! | `Option<T>`, no attrs | accepted as `None` — `missing_field` special-cases `deserialize_option` |
-//! | `reflectapi::Option<T>`, no `default` | accepted as `None` (collapses the three-state type; a lint may catch this in future) |
+//! | `reflectapi::Option<T>`, no `default` | accepted as `None` (collapses the three-state type to two) |
 //! | `reflectapi::Option<T>` + `default` | accepted as `Undefined` |
 //! | any + `serde(default)` | accepted — default value used |
 //! | option + `with`/`deserialize_with`, no `default` | **rejected** — `missing_field` cannot route through a custom deserializer |
 //!
 //! Only the deserialize side affects key presence: a custom *serializer*
-//! never changes whether the key may be absent (`skip_serializing_if`,
-//! folded into `required`, controls that), so `serialize_with` is
-//! irrelevant here. On the serialize side the folded `required` flag
-//! already captures whether the key can be absent, and option types
-//! capture nullability.
+//! never changes whether the key may be absent — `skip_serializing_if`,
+//! already folded into `required`, controls that.
 
 use reflectapi_schema::Field;
+
+/// The minimal facts key-presence resolution depends on.
+///
+/// Constructed from a [`Field`] via [`FieldWireFacts::of`]; callers that
+/// have no schema field (e.g. synthesized flattened-enum fields) construct
+/// it directly, making explicit exactly which facts they assert.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct FieldWireFacts<'a> {
+    /// Fully qualified name of the field's declared type.
+    pub type_name: &'a str,
+    /// The field has a custom serde deserializer
+    /// (`#[serde(deserialize_with)]` or `#[serde(with)]`).
+    pub deserialize_with: bool,
+    /// Folded serde requiredness for the rendering context: absence of
+    /// `#[serde(default)]` on the deserialize side, absence of
+    /// `skip_serializing_if` on the serialize side.
+    pub required: bool,
+}
+
+impl<'a> FieldWireFacts<'a> {
+    pub fn of(field: &'a Field) -> Self {
+        Self {
+            type_name: &field.type_ref.name,
+            deserialize_with: field.deserialize_with,
+            required: field.required,
+        }
+    }
+
+    /// Override requiredness, e.g. when a flattened parent's own
+    /// requiredness folds into its expanded fields.
+    pub fn with_required(self, required: bool) -> Self {
+        Self { required, ..self }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum KeyPresence {
@@ -39,32 +71,26 @@ pub(crate) enum KeyPresence {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct FieldWireContract {
     pub key: KeyPresence,
-    /// The value may be `null` on the wire (option-typed field).
-    pub nullable: bool,
+    /// The declared type admits `null` (option-typed field). Whether `null`
+    /// actually appears on the wire is direction-dependent: an output field
+    /// with `skip_serializing_if` omits the key instead of emitting `null`.
+    pub declared_nullable: bool,
     /// Absence carries distinct meaning from an explicit `null`
     /// (three-state `reflectapi::Option`).
     pub absent_distinct_from_null: bool,
 }
 
-/// Resolve a field's wire contract.
-///
-/// `effective_required` is the folded serde requiredness for the rendering
-/// context — usually `field.required`, but callers expanding flattened
-/// fields combine it with the parent's requiredness.
-pub(crate) fn resolve_field_wire_contract(
-    field: &Field,
-    effective_required: bool,
-) -> FieldWireContract {
-    let is_std_option = field.type_ref.name == "std::option::Option";
-    let is_reflect_option = field.type_ref.name == "reflectapi::Option";
+pub(crate) fn resolve_field_wire_contract(facts: FieldWireFacts<'_>) -> FieldWireContract {
+    let is_std_option = facts.type_name == "std::option::Option";
+    let is_reflect_option = facts.type_name == "reflectapi::Option";
     let is_option = is_std_option || is_reflect_option;
 
-    let key = if !effective_required {
+    let key = if !facts.required {
         // serde(default) / skip_serializing_if: absence is always fine,
         // custom deserializer or not (a default is applied without
         // invoking it).
         KeyPresence::Optional
-    } else if is_option && !field.deserialize_with {
+    } else if is_option && !facts.deserialize_with {
         // serde accepts a missing key for plain option-typed fields even
         // without serde(default); a custom deserializer breaks that path,
         // so `required` stays authoritative there.
@@ -75,7 +101,7 @@ pub(crate) fn resolve_field_wire_contract(
 
     FieldWireContract {
         key,
-        nullable: is_option,
+        declared_nullable: is_option,
         absent_distinct_from_null: is_reflect_option,
     }
 }
@@ -83,71 +109,80 @@ pub(crate) fn resolve_field_wire_contract(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use reflectapi_schema::TypeReference;
 
-    fn field(type_name: &str, required: bool) -> Field {
-        let argument = TypeReference::new("u8".to_string(), vec![]);
-        let mut f = Field::new(
-            "f".to_string(),
-            TypeReference::new(type_name.to_string(), vec![argument]),
-        );
-        f.required = required;
-        f
+    fn facts(type_name: &str, required: bool) -> FieldWireFacts<'_> {
+        FieldWireFacts {
+            type_name,
+            deserialize_with: false,
+            required,
+        }
     }
 
     #[test]
     fn plain_required_field_is_required() {
-        let c = resolve_field_wire_contract(&field("u8", true), true);
+        let c = resolve_field_wire_contract(facts("u8", true));
         assert_eq!(c.key, KeyPresence::Required);
-        assert!(!c.nullable);
+        assert!(!c.declared_nullable);
         assert!(!c.absent_distinct_from_null);
     }
 
     #[test]
     fn std_option_is_optional_even_when_required() {
-        let c = resolve_field_wire_contract(&field("std::option::Option", true), true);
+        let c = resolve_field_wire_contract(facts("std::option::Option", true));
         assert_eq!(c.key, KeyPresence::Optional);
-        assert!(c.nullable);
+        assert!(c.declared_nullable);
         assert!(!c.absent_distinct_from_null);
     }
 
     #[test]
     fn reflectapi_option_is_optional_and_three_state() {
-        let c = resolve_field_wire_contract(&field("reflectapi::Option", true), true);
+        let c = resolve_field_wire_contract(facts("reflectapi::Option", true));
         assert_eq!(c.key, KeyPresence::Optional);
-        assert!(c.nullable);
+        assert!(c.declared_nullable);
         assert!(c.absent_distinct_from_null);
     }
 
     #[test]
     fn custom_deserializer_keeps_required_authoritative() {
-        let mut f = field("std::option::Option", true);
-        f.deserialize_with = true;
-        let c = resolve_field_wire_contract(&f, true);
+        let c = resolve_field_wire_contract(FieldWireFacts {
+            deserialize_with: true,
+            ..facts("std::option::Option", true)
+        });
         assert_eq!(c.key, KeyPresence::Required);
-        assert!(c.nullable);
-    }
-
-    #[test]
-    fn custom_serializer_alone_does_not_affect_key_presence() {
-        let mut f = field("std::option::Option", true);
-        f.serialize_with = true;
-        let c = resolve_field_wire_contract(&f, true);
-        assert_eq!(c.key, KeyPresence::Optional);
+        assert!(c.declared_nullable);
     }
 
     #[test]
     fn custom_deserializer_with_serde_default_is_optional() {
-        let mut f = field("std::option::Option", false);
-        f.deserialize_with = true;
-        let c = resolve_field_wire_contract(&f, false);
+        let c = resolve_field_wire_contract(FieldWireFacts {
+            deserialize_with: true,
+            ..facts("std::option::Option", false)
+        });
         assert_eq!(c.key, KeyPresence::Optional);
     }
 
     #[test]
     fn non_required_non_option_is_optional_not_nullable() {
-        let c = resolve_field_wire_contract(&field("u8", false), false);
+        let c = resolve_field_wire_contract(facts("u8", false));
         assert_eq!(c.key, KeyPresence::Optional);
-        assert!(!c.nullable);
+        assert!(!c.declared_nullable);
+    }
+
+    #[test]
+    fn facts_of_field_carries_deserialize_with_only() {
+        // A custom serializer must not affect key presence; `of` therefore
+        // only reads the deserialize-side flag.
+        let mut field = reflectapi_schema::Field::new(
+            "f".to_string(),
+            reflectapi_schema::TypeReference::new("std::option::Option".to_string(), vec![]),
+        );
+        field.required = true;
+        field.serialize_with = true;
+        let c = resolve_field_wire_contract(FieldWireFacts::of(&field));
+        assert_eq!(c.key, KeyPresence::Optional);
+
+        field.deserialize_with = true;
+        let c = resolve_field_wire_contract(FieldWireFacts::of(&field));
+        assert_eq!(c.key, KeyPresence::Required);
     }
 }
