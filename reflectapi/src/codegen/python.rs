@@ -5788,16 +5788,7 @@ fn build_implemented_types() -> BTreeMap<String, String> {
 // Helper functions for templates
 
 fn format_python_code(code: &str) -> anyhow::Result<String> {
-    let mut ruff = std::process::Command::new("ruff");
-    ruff.args(["format", "--stdin-filename", "generated.py", "-"]);
-    match super::format_with([&mut ruff], code.to_string()) {
-        Ok(formatted) => Ok(ensure_final_newline(formatted)),
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(basic_python_format(code)),
-        Err(err) => Err(anyhow::anyhow!(
-            "failed to format generated Python code with `ruff format`: {err}\n\
-             Fix Ruff or pass `--format=false` to skip external formatting."
-        )),
-    }
+    super::python_formatter::format_python_code(code)
 }
 
 fn basic_python_format(code: &str) -> String {

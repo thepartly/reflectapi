@@ -10,6 +10,7 @@
 - Python codegen now emits nullable `Option<T>` fields as optional keys (`T | None = None`) in the per-variant models generated for structs with a flattened internally-tagged enum, matching the standalone-struct behavior. Previously such fields were required keys, so deserializing a valid payload that omitted the key (serde drops `None` values) raised `pydantic.ValidationError: Field required`. Doubled `str | None | None` annotations in the same paths are also fixed.
 - Python codegen is now snapshot-tested by the same builder test samples as the other language backends.
 - Python package codegen now emits sibling submodule imports in dependency order, so Python 3.14/Pydantic can import generated packages where one sibling model annotation references another sibling namespace.
+- Python codegen now formats with a bundled Ruff wasm formatter, so generated Python output is deterministic even when `ruff` is not installed locally.
 - Rust codegen snapshot typechecking now handles macOS proc-macro library names instead of assuming Linux-style `.so` files.
 
 ## 0.17.5
