@@ -148,6 +148,10 @@ impl ToTokens for TokenizableVariant<'_> {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
+        let deprecation_note = self.inner.deprecation_note.as_ref().map_or_else(
+            || quote::quote! { None },
+            |d| quote::quote! { Some(#d.into()) },
+        );
         let fields = self.inner.fields().map(TokenizableField::new);
 
         let fields = match self.inner.fields {
@@ -173,6 +177,7 @@ impl ToTokens for TokenizableVariant<'_> {
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
+                deprecation_note: #deprecation_note,
                 fields: #fields,
                 discriminant: #discriminant,
                 untagged: #untagged,
@@ -234,6 +239,10 @@ impl ToTokens for TokenizableEnum<'_> {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
+        let deprecation_note = self.inner.deprecation_note.as_ref().map_or_else(
+            || quote::quote! { None },
+            |d| quote::quote! { Some(#d.into()) },
+        );
         let parameters = self.inner.parameters().map(TokenizableTypeParameter::new);
         let representation = TokenizableRepresentation::new(&self.inner.representation);
         let variants = self.inner.variants().map(TokenizableVariant::new);
@@ -244,6 +253,7 @@ impl ToTokens for TokenizableEnum<'_> {
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
+                deprecation_note: #deprecation_note,
                 parameters: vec![#(#parameters),*],
                 representation: #representation,
                 variants: vec![#(#variants),*],
@@ -296,6 +306,10 @@ impl ToTokens for TokenizableStruct<'_> {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
+        let deprecation_note = self.inner.deprecation_note.as_ref().map_or_else(
+            || quote::quote! { None },
+            |d| quote::quote! { Some(#d.into()) },
+        );
         let parameters = self.inner.parameters().map(TokenizableTypeParameter::new);
         let fields = self.inner.fields().map(TokenizableField::new);
         let fields = match self.inner.fields {
@@ -318,6 +332,7 @@ impl ToTokens for TokenizableStruct<'_> {
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
+                deprecation_note: #deprecation_note,
                 parameters: vec![#(#parameters),*],
                 fields: #fields,
                 transparent: #transparent,

@@ -703,6 +703,7 @@ fn reflectapi_duration(schema: &mut crate::Typespace) -> crate::TypeReference {
         let type_def = crate::Struct {
             name: type_name.into(),
             description: "Time duration type".into(),
+            deprecation_note: Default::default(),
             fields: crate::Fields::Named(vec![
                 crate::Field::new("secs".into(), "u64".into()).with_required(true),
                 crate::Field::new("nanos".into(), "u32".into()).with_required(true),

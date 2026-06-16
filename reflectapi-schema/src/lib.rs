@@ -900,6 +900,11 @@ pub struct Struct {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
+    /// Deprecation note. If none, struct is not deprecated.
+    /// If present as empty string, struct is deprecated without a note.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub deprecation_note: Option<String>,
+
     /// Generic type parameters, if any
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub parameters: Vec<TypeParameter>,
@@ -924,6 +929,7 @@ impl Struct {
             name,
             serde_name: Default::default(),
             description: Default::default(),
+            deprecation_note: Default::default(),
             parameters: Default::default(),
             fields: Default::default(),
             transparent: Default::default(),
@@ -947,6 +953,10 @@ impl Struct {
 
     pub fn description(&self) -> &str {
         self.description.as_str()
+    }
+
+    pub fn deprecated(&self) -> bool {
+        self.deprecation_note.is_some()
     }
 
     pub fn parameters(&self) -> std::slice::Iter<'_, TypeParameter> {
@@ -1266,6 +1276,11 @@ pub struct Enum {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
+    /// Deprecation note. If none, enum is not deprecated.
+    /// If present as empty string, enum is deprecated without a note.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub deprecation_note: Option<String>,
+
     /// Generic type parameters, if any
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub parameters: Vec<TypeParameter>,
@@ -1289,6 +1304,7 @@ impl Enum {
             name,
             serde_name: Default::default(),
             description: Default::default(),
+            deprecation_note: Default::default(),
             parameters: Default::default(),
             representation: Default::default(),
             variants: Default::default(),
@@ -1310,6 +1326,10 @@ impl Enum {
 
     pub fn description(&self) -> &str {
         self.description.as_str()
+    }
+
+    pub fn deprecated(&self) -> bool {
+        self.deprecation_note.is_some()
     }
 
     pub fn parameters(&self) -> std::slice::Iter<'_, TypeParameter> {
@@ -1339,6 +1359,11 @@ pub struct Variant {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub description: String,
 
+    /// Deprecation note. If none, variant is not deprecated.
+    /// If present as empty string, variant is deprecated without a note.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub deprecation_note: Option<String>,
+
     pub fields: Fields,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub discriminant: Option<isize>,
@@ -1354,6 +1379,7 @@ impl Variant {
             name,
             serde_name: String::new(),
             description: String::new(),
+            deprecation_note: None,
             fields: Fields::None,
             discriminant: None,
             untagged: false,
@@ -1374,6 +1400,10 @@ impl Variant {
 
     pub fn description(&self) -> &str {
         self.description.as_str()
+    }
+
+    pub fn deprecated(&self) -> bool {
+        self.deprecation_note.is_some()
     }
 
     pub fn fields(&self) -> std::slice::Iter<'_, Field> {
