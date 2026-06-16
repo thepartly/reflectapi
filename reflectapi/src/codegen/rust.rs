@@ -616,7 +616,9 @@ mod templates {
                 if deprecation_note.is_empty() {
                     out.push_str("#[deprecated]\n    ");
                 } else {
-                    out.push_str(&format!("#[deprecated(note = \"{deprecation_note}\")]\n    "));
+                    out.push_str(&format!(
+                        "#[deprecated(note = \"{deprecation_note}\")]\n    "
+                    ));
                 }
             }
             out
