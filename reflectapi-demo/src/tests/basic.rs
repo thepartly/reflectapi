@@ -637,10 +637,10 @@ fn test_reflectapi_deprecated() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_reflectapi_deprecated_type_and_variants() {
     #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
     #[deprecated = "this struct is deprecated"]
-    #[allow(deprecated)]
     struct DeprecatedStruct {
         _f: u8,
     }
@@ -648,7 +648,6 @@ fn test_reflectapi_deprecated_type_and_variants() {
 
     #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
     #[deprecated]
-    #[allow(deprecated)]
     enum DeprecatedEnumWithVariants {
         Plain,
         #[deprecated]
