@@ -22,9 +22,39 @@ ReflectAPI provides `#[reflectapi(...)]` attributes that control how Rust types 
 
 | Attribute | Description |
 |-----------|-------------|
-| `#[reflectapi(transform = "path::to::fn")]` | Apply a type transformation callback for both schemas. |
-| `#[reflectapi(input_transform = "path::to::fn")]` | Apply a type transformation callback for input only. |
-| `#[reflectapi(output_transform = "path::to::fn")]` | Apply a type transformation callback for output only. |
+| `#[reflectapi(transform = "path::to::fn")]` | Apply a field transformation callback for both schemas. Signature: `fn(&mut Field, &Typespace)`. |
+| `#[reflectapi(input_transform = "path::to::fn")]` | Apply a field transformation callback for input only. |
+| `#[reflectapi(output_transform = "path::to::fn")]` | Apply a field transformation callback for output only. |
+
+The transform callback receives `&mut Field` and can modify any field metadata — type, `required`, `hidden`, etc. It runs after type references are resolved.
+
+ReflectAPI ships with built-in transforms in the `reflectapi::transforms` module:
+- `reflectapi::transforms::fallback_recursively` — unwraps transparent wrappers (e.g. `Arc<T>` → `T`)
+- `reflectapi::transforms::make_required` — makes an optional field required: `Option<T>` → required `T`, `reflectapi::Option<T>` → required `Option<T>`
+
+**Example: Making an optional field appear as required in the schema**
+
+A field may use an Option wrapper at the Rust level (e.g., because a middleware populates it before your handler runs) but you want generated clients to see the unwrapped, required type.
+
+```rust,ignore
+#[derive(serde::Deserialize, reflectapi::Input)]
+struct MyRequest {
+    /// In Rust this is `Option<String>` (populated by middleware),
+    /// but clients see it as a required `String` field.
+    #[serde(default)]
+    #[reflectapi(input_transform = "reflectapi::transforms::make_required")]
+    pub tenant_id: Option<String>,
+}
+
+#[derive(serde::Deserialize, reflectapi::Input)]
+struct PatchRequest {
+    /// In Rust this is `reflectapi::Option<String>` (populated by middleware),
+    /// but clients see it as a required `Option<String>` (nullable, not omittable).
+    #[serde(default)]
+    #[reflectapi(input_transform = "reflectapi::transforms::make_required")]
+    pub correlation_id: reflectapi::Option<String>,
+}
+```
 
 ### Visibility
 

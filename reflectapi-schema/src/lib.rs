@@ -2,6 +2,7 @@ mod codegen;
 mod internal;
 mod rename;
 mod subst;
+pub mod transforms;
 mod visit;
 
 pub use self::codegen::*;
@@ -1135,7 +1136,7 @@ pub struct Field {
     #[serde(skip, default)]
     pub transform_callback: String,
     #[serde(skip, default)]
-    pub transform_callback_fn: Option<fn(&mut TypeReference, &Typespace) -> ()>,
+    pub transform_callback_fn: Option<fn(&mut Field, &Typespace) -> ()>,
 }
 
 impl PartialEq for Field {
@@ -1249,7 +1250,7 @@ impl Field {
         self.transform_callback.as_str()
     }
 
-    pub fn transform_callback_fn(&self) -> Option<fn(&mut TypeReference, &Typespace)> {
+    pub fn transform_callback_fn(&self) -> Option<fn(&mut Field, &Typespace)> {
         self.transform_callback_fn
     }
 }
