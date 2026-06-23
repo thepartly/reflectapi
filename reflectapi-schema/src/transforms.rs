@@ -30,11 +30,9 @@ pub fn make_required(field: &mut Field, _schema: &Typespace) {
 ///   (removes the "null" state, keeps optionality)
 /// - Other types → no-op (already non-nullable)
 pub fn make_nonnullable(field: &mut Field, _schema: &Typespace) {
-    if field.type_ref.name() == "std::option::Option" {
-        if let Some(inner) = field.type_ref.arguments().next().cloned() {
-            field.type_ref = inner;
-        }
-    } else if field.type_ref.name() == "reflectapi::Option" {
+    if field.type_ref.name() == "std::option::Option"
+        || field.type_ref.name() == "reflectapi::Option"
+    {
         if let Some(inner) = field.type_ref.arguments().next().cloned() {
             field.type_ref = inner;
         }
