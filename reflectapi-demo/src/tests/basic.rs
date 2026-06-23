@@ -268,8 +268,8 @@ fn test_reflectapi_struct_with_attributes_type_only() {
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformFallback {
     #[reflectapi(
-        input_transform = "reflectapi::TypeReference::fallback_recursively",
-        output_transform = "reflectapi::TypeReference::fallback_recursively"
+        input_transform = "reflectapi::transforms::fallback_recursively",
+        output_transform = "reflectapi::transforms::fallback_recursively"
     )]
     _f: std::sync::Arc<u8>,
 }
@@ -280,7 +280,7 @@ fn test_reflectapi_struct_with_transform_fallback() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformBoth {
-    #[reflectapi(transform = "reflectapi::TypeReference::fallback_recursively")]
+    #[reflectapi(transform = "reflectapi::transforms::fallback_recursively")]
     _f: std::sync::Arc<u8>,
 }
 #[test]
@@ -290,7 +290,7 @@ fn test_reflectapi_struct_with_transform_both() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformInput {
-    #[reflectapi(input_transform = "reflectapi::TypeReference::fallback_recursively")]
+    #[reflectapi(input_transform = "reflectapi::transforms::fallback_recursively")]
     _f: std::sync::Arc<u8>,
 }
 #[test]
@@ -300,7 +300,7 @@ fn test_reflectapi_struct_with_transform_input() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformOutput {
-    #[reflectapi(output_transform = "reflectapi::TypeReference::fallback_recursively")]
+    #[reflectapi(output_transform = "reflectapi::transforms::fallback_recursively")]
     _f: std::sync::Arc<u8>,
 }
 #[test]
@@ -311,8 +311,8 @@ fn test_reflectapi_struct_with_transform_output() {
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformFallbackNested {
     #[reflectapi(
-        input_transform = "reflectapi::TypeReference::fallback_recursively",
-        output_transform = "reflectapi::TypeReference::fallback_recursively"
+        input_transform = "reflectapi::transforms::fallback_recursively",
+        output_transform = "reflectapi::transforms::fallback_recursively"
     )]
     #[allow(clippy::redundant_allocation)]
     _f: std::sync::Arc<std::sync::Arc<u8>>,
@@ -324,7 +324,7 @@ fn test_reflectapi_struct_with_transform_fallback_nested() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithTransformArray {
-    #[reflectapi(transform = "reflectapi::TypeReference::fallback_recursively")]
+    #[reflectapi(transform = "reflectapi::transforms::fallback_recursively")]
     _f: [u8; 8],
 }
 #[test]
@@ -638,7 +638,7 @@ fn test_reflectapi_deprecated() {
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithExternalGenericTypeFallback {
-    #[reflectapi(transform = "reflectapi::TypeReference::fallback_recursively")]
+    #[reflectapi(transform = "reflectapi::transforms::fallback_recursively")]
     data: std::sync::Arc<std::collections::HashMap<String, i32>>,
 }
 

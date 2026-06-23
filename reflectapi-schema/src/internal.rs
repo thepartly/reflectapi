@@ -80,7 +80,7 @@ fn replace_type_references_for_field(
         );
     }
     if let Some(transform_callback_fn) = this.transform_callback_fn {
-        transform_callback_fn(&mut this.type_ref, schema);
+        transform_callback_fn(this, schema);
     }
 }
 
