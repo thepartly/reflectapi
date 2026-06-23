@@ -30,11 +30,21 @@ The transform callback receives `&mut Field` and can modify any field metadata �
 
 ReflectAPI ships with built-in transforms in the `reflectapi::transforms` module:
 - `reflectapi::transforms::fallback_recursively` — unwraps transparent wrappers (e.g. `Arc<T>` → `T`)
-- `reflectapi::transforms::make_required` — makes an optional field required: `Option<T>` → required `T`, `reflectapi::Option<T>` → required `Option<T>`
+- `reflectapi::transforms::make_required` — makes a field required: `Option<T>` → required `T`, `reflectapi::Option<T>` → required `Option<T>` (nullable but not omittable). For non-Option types, marks the field as required without changing the type.
+- `reflectapi::transforms::make_nonnullable` — makes a field non-nullable: `Option<T>` → `T`, `reflectapi::Option<T>` → `T` (keeps optionality, removes nullability). No-op for non-Option types.
+- `reflectapi::transforms::make_required_and_nonnullable` — makes a field both required and non-nullable: `Option<T>` → required `T`, `reflectapi::Option<T>` → required `T`. For non-Option types, marks the field as required without changing the type.
 
-**Example: Making an optional field appear as required in the schema**
+> **Note:** In reflectapi, "required" and "non-nullable" are distinct concepts. A field can be:
+> - Required + non-nullable (`T`, required) — must be present, cannot be null
+> - Required + nullable (`Option<T>`, required) — must be present, can be null
+> - Optional + nullable (`reflectapi::Option<T>`) — can be omitted or null
+> - Optional + non-nullable (`T`, not required) — can be omitted, but if present cannot be null
+>
+> `make_required` removes the "can be omitted" (undefined) state. `make_nonnullable` removes the "can be null" state. `make_required_and_nonnullable` removes both.
 
-A field may use an Option wrapper at the Rust level (e.g., because a middleware populates it before your handler runs) but you want generated clients to see the unwrapped, required type.
+**Example: Controlling requiredness and nullability in the schema**
+
+A field may use an Option wrapper at the Rust level (e.g., because a middleware populates it before your handler runs) but you want generated clients to see a different contract.
 
 ```rust,ignore
 #[derive(serde::Deserialize, reflectapi::Input)]
@@ -53,6 +63,18 @@ struct PatchRequest {
     #[serde(default)]
     #[reflectapi(input_transform = "reflectapi::transforms::make_required")]
     pub correlation_id: reflectapi::Option<String>,
+
+    /// In Rust this is `reflectapi::Option<String>`,
+    /// but clients see it as an optional `String` (can be omitted, but not null).
+    #[serde(default)]
+    #[reflectapi(input_transform = "reflectapi::transforms::make_nonnullable")]
+    pub display_name: reflectapi::Option<String>,
+
+    /// In Rust this is `reflectapi::Option<String>`,
+    /// but clients see it as a required `String` (must be present, cannot be null).
+    #[serde(default)]
+    #[reflectapi(input_transform = "reflectapi::transforms::make_required_and_nonnullable")]
+    pub user_id: reflectapi::Option<String>,
 }
 ```
 
