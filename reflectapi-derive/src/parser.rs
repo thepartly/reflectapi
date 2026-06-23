@@ -116,6 +116,7 @@ mod tests {
 
 #[derive(Default)]
 pub(crate) struct ParsedTypeAttributes {
+    pub deprecation_note: Option<String>,
     pub input_type: Option<syn::Type>,
     pub output_type: Option<syn::Type>,
     pub discriminant: bool,
@@ -136,6 +137,7 @@ pub(crate) struct ParsedFieldAttributes {
 
 #[derive(Debug, Default)]
 pub(crate) struct ParsedVariantAttributes {
+    pub deprecation_note: Option<String>,
     pub input_skip: bool,
     pub output_skip: bool,
 }
@@ -174,6 +176,13 @@ pub(crate) fn parse_type_attributes(
     let mut result = ParsedTypeAttributes::default();
 
     for attr in attributes.iter() {
+        if attr.path() == DEPRECATED {
+            match parse_deprecated_attr(attr) {
+                Ok(note) => result.deprecation_note = Some(note),
+                Err(err) => cx.syn_error(err),
+            }
+        }
+
         if attr.path() != REFLECT {
             continue;
         }
@@ -265,10 +274,18 @@ pub(crate) fn parse_variant_attributes(
     cx: &Context,
     attributes: &[syn::Attribute],
 ) -> ParsedVariantAttributes {
+    let mut deprecation_note = None;
     let mut input_skip = false;
     let mut output_skip = false;
 
     for attr in attributes.iter() {
+        if attr.path() == DEPRECATED {
+            match parse_deprecated_attr(attr) {
+                Ok(note) => deprecation_note = Some(note),
+                Err(err) => cx.syn_error(err),
+            }
+        }
+
         if attr.path() != REFLECT {
             continue;
         }
@@ -301,6 +318,7 @@ pub(crate) fn parse_variant_attributes(
     }
 
     ParsedVariantAttributes {
+        deprecation_note,
         input_skip,
         output_skip,
     }

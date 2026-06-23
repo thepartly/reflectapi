@@ -165,6 +165,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
     fn make_alias_type(
         type_def_name: String,
         type_def_description: String,
+        deprecation_note: Option<String>,
         serde_name: String,
         type_ref: reflectapi_schema::TypeReference,
         codegen_config: reflectapi_schema::LanguageSpecificTypeCodegenConfig,
@@ -173,6 +174,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
             name: type_def_name,
             serde_name,
             description: type_def_description,
+            deprecation_note,
             parameters: Vec::new(),
             fields: Fields::Unnamed(vec![Field::new("0".into(), type_ref)]),
             transparent: true,
@@ -186,6 +188,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                 return make_alias_type(
                     type_def_name,
                     type_def_description,
+                    attrs.deprecation_note.clone(),
                     serde_name,
                     visit_field_type(cx, &input_type_attribute),
                     codegen_config,
@@ -196,6 +199,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                 return make_alias_type(
                     type_def_name,
                     type_def_description,
+                    attrs.deprecation_note.clone(),
                     serde_name,
                     visit_field_type(cx, a),
                     codegen_config,
@@ -206,6 +210,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                 return make_alias_type(
                     type_def_name,
                     type_def_description,
+                    attrs.deprecation_note.clone(),
                     serde_name,
                     visit_field_type(cx, a),
                     codegen_config,
@@ -218,6 +223,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                 return make_alias_type(
                     type_def_name,
                     type_def_description,
+                    attrs.deprecation_note.clone(),
                     serde_name,
                     visit_field_type(cx, &output_type_attribute),
                     codegen_config,
@@ -228,6 +234,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                 return make_alias_type(
                     type_def_name,
                     type_def_description,
+                    attrs.deprecation_note.clone(),
                     serde_name,
                     visit_field_type(cx, a),
                     codegen_config,
@@ -241,6 +248,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
         ast::Data::Enum(variants) => {
             let mut result = Enum::new(type_def_name);
             result.description = type_def_description;
+            result.deprecation_note = attrs.deprecation_note.clone();
             result.serde_name = serde_name;
             result.codegen_config = codegen_config;
             match container.attrs.tag() {
@@ -274,9 +282,12 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                         variant.attrs.skip_serializing() || variant_attrs.output_skip
                     }
                 } {
-                    result
-                        .variants
-                        .push(visit_variant(cx, variant, attrs.discriminant));
+                    result.variants.push(visit_variant(
+                        cx,
+                        variant,
+                        attrs.discriminant,
+                        variant_attrs.deprecation_note,
+                    ));
                 }
             }
             visit_generic_parameters(cx, container.generics, &mut result.parameters);
@@ -288,6 +299,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                 let mut result = make_alias_type(
                     type_def_name,
                     type_def_description,
+                    attrs.deprecation_note.clone(),
                     serde_name,
                     visit_field_type(cx, &unit_type),
                     codegen_config,
@@ -298,6 +310,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                 let mut result = Struct::new(type_def_name);
                 result.codegen_config = codegen_config;
                 result.description = type_def_description;
+                result.deprecation_note = attrs.deprecation_note.clone();
                 let fields = fields
                     .iter()
                     .filter_map(|field| visit_field(cx, field))
@@ -357,6 +370,7 @@ fn visit_variant(
     cx: &Context,
     variant: &ast::Variant<'_>,
     use_discriminant: bool,
+    deprecation_note: Option<String>,
 ) -> reflectapi_schema::Variant {
     let (variant_def_name, serde_name) =
         visit_name(cx, variant.attrs.name(), Some(&variant.original.ident));
@@ -387,6 +401,7 @@ fn visit_variant(
         name: variant_def_name,
         serde_name,
         description: parse_doc_attributes(&variant.original.attrs),
+        deprecation_note,
         fields,
         discriminant,
         untagged: variant.attrs.untagged(),
