@@ -347,6 +347,7 @@ pub struct RouteBuilder {
     path: String,
     description: String,
     readonly: bool,
+    retriable: bool,
     tags: BTreeSet<String>,
     deprecation_note: Option<String>,
 }
@@ -396,6 +397,13 @@ impl RouteBuilder {
     /// an HTTP GET request and does not modify server state.
     pub fn readonly(mut self, readonly: bool) -> Self {
         self.readonly = readonly;
+        self
+    }
+
+    /// Marks this route as retriable.
+    /// This indicates the endpoint is idempotent and safe to retry on transient failures.
+    pub fn retriable(mut self, retriable: bool) -> Self {
+        self.retriable = retriable;
         self
     }
 

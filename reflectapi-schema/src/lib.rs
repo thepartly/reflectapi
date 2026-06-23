@@ -469,6 +469,10 @@ pub struct Function {
     #[serde(skip_serializing_if = "is_false", default)]
     pub readonly: bool,
 
+    /// If a function is retriable, it means it is idempotent and safe to retry on transient failures
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub retriable: bool,
+
     #[serde(skip_serializing_if = "BTreeSet::is_empty", default)]
     pub tags: BTreeSet<String>,
 }
@@ -486,6 +490,7 @@ impl Function {
             output_type: OutputType::Complete { output_type: None },
             serialization: Default::default(),
             readonly: Default::default(),
+            retriable: Default::default(),
             tags: Default::default(),
         }
     }

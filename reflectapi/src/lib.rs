@@ -148,6 +148,9 @@ pub(crate) mod builder;
 #[cfg(feature = "axum")]
 pub mod axum;
 
+#[cfg(feature = "axum")]
+pub mod retry;
+
 #[doc(hidden)]
 #[cfg(feature = "codegen")]
 pub mod codegen;

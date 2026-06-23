@@ -64,7 +64,7 @@ pub mod interface {
             reflectapi::Empty,
             reflectapi::rt::Error<super::types::myapi::HealthCheckFail, C::Error>,
         > {
-            reflectapi::rt::__request_impl(&self.client, "/health.check", input, headers).await
+            reflectapi::rt::__request_impl(&self.client, "/health.check", input, headers, false).await
         }
     }
 
@@ -87,7 +87,7 @@ pub mod interface {
             super::types::myapi::proto::Paginated<super::types::myapi::model::output::Pet>,
             reflectapi::rt::Error<super::types::myapi::proto::PetsListError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(&self.client, "/pets.list", input, headers).await
+            reflectapi::rt::__request_impl(&self.client, "/pets.list", input, headers, false).await
         }
         /// Create a new pet
         #[tracing::instrument(name = "/pets.create", skip_all)]
@@ -99,7 +99,7 @@ pub mod interface {
             reflectapi::Empty,
             reflectapi::rt::Error<super::types::myapi::proto::PetsCreateError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(&self.client, "/pets.create", input, headers).await
+            reflectapi::rt::__request_impl(&self.client, "/pets.create", input, headers, false).await
         }
         /// Update an existing pet
         #[tracing::instrument(name = "/pets.update", skip_all)]
@@ -111,7 +111,7 @@ pub mod interface {
             reflectapi::Empty,
             reflectapi::rt::Error<super::types::myapi::proto::PetsUpdateError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(&self.client, "/pets.update", input, headers).await
+            reflectapi::rt::__request_impl(&self.client, "/pets.update", input, headers, false).await
         }
         /// Remove an existing pet
         #[tracing::instrument(name = "/pets.remove", skip_all)]
@@ -123,7 +123,7 @@ pub mod interface {
             reflectapi::Empty,
             reflectapi::rt::Error<super::types::myapi::proto::PetsRemoveError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(&self.client, "/pets.remove", input, headers).await
+            reflectapi::rt::__request_impl(&self.client, "/pets.remove", input, headers, false).await
         }
         #[deprecated(note = "Use pets.remove instead")]
         /// Remove an existing pet
@@ -136,7 +136,7 @@ pub mod interface {
             reflectapi::Empty,
             reflectapi::rt::Error<super::types::myapi::proto::PetsRemoveError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(&self.client, "/pets.delete", input, headers).await
+            reflectapi::rt::__request_impl(&self.client, "/pets.delete", input, headers, false).await
         }
         /// Fetch first pet, if any exists
         #[tracing::instrument(name = "/pets.get-first", skip_all)]
@@ -148,7 +148,7 @@ pub mod interface {
             std::option::Option<super::types::myapi::model::output::Pet>,
             reflectapi::rt::Error<super::types::myapi::proto::UnauthorizedError, C::Error>,
         > {
-            reflectapi::rt::__request_impl(&self.client, "/pets.get-first", input, headers).await
+            reflectapi::rt::__request_impl(&self.client, "/pets.get-first", input, headers, false).await
         }
         /// Stream of change data capture events for pets
         #[tracing::instrument(name = "/pets.cdc-events", skip_all)]

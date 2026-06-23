@@ -101,6 +101,7 @@ where
     pub name: String,
     pub path: String,
     pub readonly: bool,
+    pub retriable: bool,
     pub input_headers: Vec<HeaderName>,
     pub callback: HandlerCallback<S>,
 }
@@ -114,6 +115,7 @@ where
             .field("name", &self.name)
             .field("path", &self.path)
             .field("readonly", &self.readonly)
+            .field("retriable", &self.retriable)
             .field("input_headers", &self.input_headers)
             .finish_non_exhaustive()
     }
@@ -148,6 +150,7 @@ where
             name: rb.name,
             path: rb.path,
             readonly: rb.readonly,
+            retriable: rb.retriable,
             input_headers,
             callback: HandlerCallback::Future(Arc::new(move |state: S, input: HandlerInput| {
                 Box::pin(Self::handler_wrap(state, input, handler)) as _
@@ -180,6 +183,7 @@ where
             name: rb.name,
             path: rb.path,
             readonly: rb.readonly,
+            retriable: rb.retriable,
             input_headers,
             callback: HandlerCallback::Stream(Arc::new(move |state: S, input: HandlerInput| {
                 Self::stream_handler_wrap(state, input, handler)
@@ -257,6 +261,7 @@ where
                 crate::SerializationMode::Msgpack,
             ],
             readonly: rb.readonly,
+            retriable: rb.retriable,
             tags: rb.tags.clone(),
         };
 

@@ -207,6 +207,7 @@ pub async fn __request_impl<C, I, H, O, E>(
     path: &str,
     body: I,
     headers: H,
+    retriable: bool,
 ) -> Result<O, Error<E, C::Error>>
 where
     C: Client,
@@ -215,6 +216,7 @@ where
     O: serde::de::DeserializeOwned,
     E: serde::de::DeserializeOwned,
 {
+    let _ = retriable; // Available for client-side retry middleware
     let body = serde_json::to_vec(&body).map_err(|e| Error::Protocol {
         info: e.to_string(),
         stage: ProtocolErrorStage::SerializeRequestBody,

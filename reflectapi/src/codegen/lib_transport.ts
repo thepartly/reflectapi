@@ -9,6 +9,8 @@
 
 export interface RequestOptions {
   signal?: AbortSignal;
+  /** Whether this endpoint is idempotent and safe to retry on transient failures. */
+  retriable?: boolean;
 }
 
 export interface Request {

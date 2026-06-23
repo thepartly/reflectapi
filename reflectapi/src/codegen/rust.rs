@@ -812,6 +812,7 @@ mod templates {
         pub input_headers: String,
         pub output_type: String,
         pub error_type: String,
+        pub retriable: bool,
     }
 
     impl __FunctionImplementationTemplate {
@@ -824,11 +825,12 @@ mod templates {
                     write!(out, "        #[deprecated(note = \"{deprecation_note}\")]").unwrap();
                 }
             }
+            let retriable_str = if self.retriable { "true" } else { "false" };
             write!(
                 out,
                 "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
                      -> Result<{}, reflectapi::rt::Error<{}, C::Error>> {{\n\
-                         reflectapi::rt::__request_impl(&self.client, \"{}\", input, headers).await\n\
+                         reflectapi::rt::__request_impl(&self.client, \"{}\", input, headers, {}).await\n\
                      }}",
                 self.description,
                 self.attributes,
@@ -838,6 +840,7 @@ mod templates {
                 self.output_type,
                 self.error_type,
                 self.path,
+                retriable_str,
             )
             .unwrap();
             out
@@ -1166,6 +1169,7 @@ fn __interface_types_from_function_group(
                     input_headers: sig.input_headers,
                     output_type,
                     error_type: sig.error_type,
+                    retriable: function.retriable,
                 })
             }
             __FunctionOutput::Stream { item_type } => templates::__FunctionImpl::Stream(

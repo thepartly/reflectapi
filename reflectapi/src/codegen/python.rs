@@ -4954,6 +4954,7 @@ fn render_function(
         is_input_primitive,
         deprecation_note: function.deprecation_note.clone(),
         stream_item_type,
+        retriable: function.retriable,
     })
 }
 
@@ -6733,6 +6734,9 @@ pub mod templates {
             if let Some(error_type) = &function.error_type {
                 writeln!(s, "            error_model={error_type},").unwrap();
             }
+            if function.retriable {
+                writeln!(s, "            retriable=True,").unwrap();
+            }
             writeln!(s, "        )").unwrap();
             writeln!(s).unwrap();
         }
@@ -6824,6 +6828,8 @@ pub mod templates {
         pub deprecation_note: Option<String>,
         /// SSE stream item type name; `None` for non-streaming endpoints.
         pub stream_item_type: Option<String>,
+        /// Whether this endpoint is idempotent and safe to retry.
+        pub retriable: bool,
     }
 
     #[derive(Clone)]

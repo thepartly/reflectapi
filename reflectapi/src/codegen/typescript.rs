@@ -646,15 +646,17 @@ mod templates {
         pub input_headers: String,
         pub output_type: String,
         pub error_type: String,
+        pub retriable: bool,
     }
 
     impl FunctionImplementationTemplate {
         pub fn render(&self) -> String {
+            let retriable_str = if self.retriable { "true" } else { "false" };
             format!(
                 "function {name}(client: Client) {{\n\
                      return (input: {input_type}, headers: {input_headers}, options?: RequestOptions) => __request<\n\
                          {input_type}, {input_headers}, {output_type}, {error_type}\n\
-                     >(client, '{path}', input, headers, options);\n\
+                     >(client, '{path}', input, headers, {{ ...options, retriable: {retriable} }});\n\
                  }}",
                 name = self.name,
                 input_type = self.input_type,
@@ -662,6 +664,7 @@ mod templates {
                 output_type = self.output_type,
                 error_type = self.error_type,
                 path = self.path,
+                retriable = retriable_str,
             )
         }
     }
@@ -961,6 +964,7 @@ fn render_function(
                 input_headers: sig.input_headers,
                 output_type,
                 error_type: sig.error_type,
+                retriable: function.retriable,
             };
             Ok(function_template.render())
         }

@@ -479,6 +479,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T] | type[Any] | str | _NoValidation | None = None,
         error_model: type | None = None,
+        retriable: bool = False,
     ) -> ApiResponse[T] | ApiResponse[dict[str, Any]]:
         """Make an HTTP request and return an ApiResponse."""
         # Validate request parameters
@@ -1025,6 +1026,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T] | type[Any] | str | _NoValidation | None = None,
         error_model: type | None = None,
+        retriable: bool = False,
     ) -> ApiResponse[T] | ApiResponse[dict[str, Any]]:
         """Make an HTTP request and return an ApiResponse."""
         # Validate request parameters
