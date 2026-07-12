@@ -973,3 +973,175 @@ class TestCompressedResponseNotDoubleDecoded:
         client = ClientBase("http://example.com", client=_DecodedButLabelled())
         result = client._make_request("/test", response_model=SampleModel)
         assert result.value.name == "raw"
+
+
+class TestParsingBypassesSyntheticHttpxResponse:
+    """Response parsing operates on the structural body directly — it never
+    round-trips through a rebuilt ``httpx.Response``, so stale wire headers
+    (compression, content-length) can't corrupt parsing on any path.
+    """
+
+    @staticmethod
+    def _gzip_error_handler(request: httpx.Request) -> httpx.Response:
+        import gzip
+
+        return httpx.Response(
+            404,
+            headers={
+                "content-type": "application/json",
+                "content-encoding": "gzip",
+            },
+            content=gzip.compress(b'{"reason":"missing"}'),
+        )
+
+    def test_sync_compressed_error_response_parses_error_body(self):
+        with httpx.Client(
+            transport=httpx.MockTransport(self._gzip_error_handler)
+        ) as raw:
+            client = ClientBase("http://example.com", client=raw)
+            with pytest.raises(ApplicationError) as exc_info:
+                client._make_request("/test", response_model=SampleModel)
+
+        assert exc_info.value.status_code == 404
+        assert exc_info.value.error_data == {"reason": "missing"}
+        assert "API error 404: Not Found" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_async_compressed_error_response_parses_error_body(self):
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(self._gzip_error_handler)
+        ) as raw:
+            client = AsyncClientBase("http://example.com", client=raw)
+            with pytest.raises(ApplicationError) as exc_info:
+                await client._make_request("/test", response_model=SampleModel)
+
+        assert exc_info.value.status_code == 404
+        assert exc_info.value.error_data == {"reason": "missing"}
+
+    def test_sync_typed_error_from_compressed_response(self):
+        class ErrorModel(BaseModel):
+            reason: str
+
+        with httpx.Client(
+            transport=httpx.MockTransport(self._gzip_error_handler)
+        ) as raw:
+            client = ClientBase("http://example.com", client=raw)
+            with pytest.raises(ApplicationError) as exc_info:
+                client._make_request(
+                    "/test", response_model=SampleModel, error_model=ErrorModel
+                )
+
+        assert exc_info.value.typed_error == ErrorModel(reason="missing")
+
+    def test_middleware_rewritten_body_ignores_stale_wire_headers(self):
+        """Middleware can replace the body entirely; the original wire
+        headers (content-length, content-encoding) must not be applied to
+        the new body during parsing."""
+        import gzip
+        from dataclasses import replace
+
+        from reflectapi_runtime.middleware import SyncMiddleware
+
+        class _Rewrite(SyncMiddleware):
+            def handle(self, request, next_call):
+                resp = next_call(request)
+                return replace(resp, body=b'{"name":"rewritten","age":7}')
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                headers={
+                    "content-type": "application/json",
+                    "content-encoding": "gzip",
+                },
+                content=gzip.compress(b'{"name":"wire","age":1}'),
+            )
+
+        with httpx.Client(transport=httpx.MockTransport(handler)) as raw:
+            client = ClientBase(
+                "http://example.com", client=raw, middleware=[_Rewrite()]
+            )
+            result = client._make_request("/test", response_model=SampleModel)
+
+        assert result.value.name == "rewritten"
+
+    def test_no_response_model_parses_json_directly(self):
+        import gzip
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                headers={
+                    "content-type": "application/json",
+                    "content-encoding": "gzip",
+                },
+                content=gzip.compress(b'{"free": "form"}'),
+            )
+
+        with httpx.Client(transport=httpx.MockTransport(handler)) as raw:
+            client = ClientBase("http://example.com", client=raw)
+            result = client._make_request("/test")
+
+        assert result.value == {"free": "form"}
+
+    def test_invalid_json_error_body_still_raises_application_error(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(500, content=b"not json at all")
+
+        with httpx.Client(transport=httpx.MockTransport(handler)) as raw:
+            client = ClientBase("http://example.com", client=raw)
+            with pytest.raises(ApplicationError) as exc_info:
+                client._make_request("/test", response_model=SampleModel)
+
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.error_data is None
+        assert "API error 500: Internal Server Error" in str(exc_info.value)
+
+    def test_invalid_json_success_body_raises_validation_error(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, content=b"not json")
+
+        with httpx.Client(transport=httpx.MockTransport(handler)) as raw:
+            client = ClientBase("http://example.com", client=raw)
+            with pytest.raises(ValidationError):
+                client._make_request("/test")
+
+    def test_synthetic_raw_response_fallback_is_sanitized(self):
+        """Custom transports without a wire-level `raw` get a synthetic
+        raw_response whose compression headers are stripped so it is
+        readable, while metadata.headers keeps the original wire view."""
+
+        class _DecodedButLabelled:
+            def request(self, request: Request) -> Response:
+                return Response(
+                    status=200,
+                    headers=httpx.Headers(
+                        {
+                            "content-type": "application/json",
+                            "content-encoding": "gzip",
+                            "content-length": "17",
+                        }
+                    ),
+                    body=b'{"name":"raw","age":9}',
+                )
+
+        client = ClientBase("http://example.com", client=_DecodedButLabelled())
+        result = client._make_request("/test", response_model=SampleModel)
+
+        assert result.value.name == "raw"
+        assert result.metadata.headers.get("content-encoding") == "gzip"
+        raw = result.metadata.raw_response
+        assert isinstance(raw, httpx.Response)
+        assert "content-encoding" not in raw.headers
+        assert raw.json() == {"name": "raw", "age": 9}
+
+    def test_wire_raw_response_still_preferred_over_synthetic(self):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, content=b'{"name":"x","age":1}')
+
+        with httpx.Client(transport=httpx.MockTransport(handler)) as raw:
+            client = ClientBase("http://example.com", client=raw)
+            result = client._make_request("/test", response_model=SampleModel)
+
+        # The real wire response carries .request; a synthetic would not.
+        assert result.metadata.raw_response.request is not None
