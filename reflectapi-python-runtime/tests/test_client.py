@@ -1145,3 +1145,31 @@ class TestParsingBypassesSyntheticHttpxResponse:
 
         # The real wire response carries .request; a synthetic would not.
         assert result.metadata.raw_response.request is not None
+
+    def test_synthetic_raw_response_recomputes_stale_content_length(self):
+        """Even without Content-Encoding, the wire Content-Length may not
+        describe the structural body (e.g. after middleware rewrites it).
+        The stale value is dropped and httpx re-derives it from the actual
+        body when constructing the synthetic."""
+
+        class _StaleLength:
+            def request(self, request: Request) -> Response:
+                return Response(
+                    status=200,
+                    headers=httpx.Headers(
+                        {
+                            "content-type": "application/json",
+                            "content-length": "9999",
+                        }
+                    ),
+                    body=b'{"name":"raw","age":9}',
+                )
+
+        client = ClientBase("http://example.com", client=_StaleLength())
+        result = client._make_request("/test", response_model=SampleModel)
+
+        body = b'{"name":"raw","age":9}'
+        assert result.metadata.raw_response.headers.get("content-length") == str(
+            len(body)
+        )
+        assert result.metadata.headers.get("content-length") == "9999"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 import json
 import time
@@ -51,7 +52,7 @@ def _json_serializer(obj: Any) -> Any:
 
 
 def _synthesize_raw_response(
-    status: int, headers: Any, body: bytes | None
+    status: int, headers: Any, body: bytes | str | None
 ) -> httpx.Response:
     """Build a stand-in ``httpx.Response`` for ``TransportMetadata.raw_response``.
 
@@ -65,14 +66,15 @@ def _synthesize_raw_response(
     ``Content-Encoding``. Passing both back into
     ``httpx.Response(content=...)`` would make httpx decompress the decoded
     bytes a second time and raise ``DecodingError``, so the compression
-    headers are stripped. ``Content-Length`` describes the compressed wire
-    body, so it is dropped alongside.
+    headers are stripped. ``Content-Length`` describes the wire body, which
+    the structural body (decoded, possibly middleware-rewritten) need not
+    match, so it is always dropped.
     """
     sanitized_headers = httpx.Headers(headers)
     if "content-encoding" in sanitized_headers:
         del sanitized_headers["content-encoding"]
-        if "content-length" in sanitized_headers:
-            del sanitized_headers["content-length"]
+    if "content-length" in sanitized_headers:
+        del sanitized_headers["content-length"]
     return httpx.Response(
         status_code=status,
         headers=sanitized_headers,
@@ -107,18 +109,13 @@ def _raise_for_error_status(
 
     error_data = None
     typed_error = None
-    try:
-        error_data = json.loads(body if body is not None else b"")
-    except Exception:
-        pass
+    with contextlib.suppress(Exception):
+        error_data = json.loads(body)
 
-    # Try typed error deserialization
+    # Try typed error deserialization; fall back to raw error_data
     if error_model is not None and error_data is not None:
-        try:
-            ta = TypeAdapter(error_model)
-            typed_error = ta.validate_python(error_data)
-        except Exception:
-            pass  # Fall back to raw error_data
+        with contextlib.suppress(Exception):
+            typed_error = TypeAdapter(error_model).validate_python(error_data)
 
     message = f"API error {status}: {httpx.codes.get_reason_phrase(status)}"
     if error_data:
