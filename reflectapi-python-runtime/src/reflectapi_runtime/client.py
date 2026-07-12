@@ -50,6 +50,31 @@ def _json_serializer(obj: Any) -> Any:
 # Note: AsyncAuthWrapper removed - AuthHandler now inherits from httpx.Auth directly
 
 
+def _build_parsed_response(
+    status: int, headers: Any, body: bytes | None
+) -> httpx.Response:
+    """Lift a structural response body into an ``httpx.Response`` for parsing.
+
+    The structural :class:`Response` carries an already-decoded body
+    (``httpx.Response.content`` decompresses on read), but its headers may
+    still advertise ``Content-Encoding``. Passing both back into
+    ``httpx.Response(content=...)`` would make httpx decompress the decoded
+    bytes a second time and raise ``DecodingError``, so the compression
+    headers are stripped here. ``Content-Length`` describes the compressed
+    wire body, so it is dropped alongside.
+    """
+    sanitized_headers = httpx.Headers(headers)
+    if "content-encoding" in sanitized_headers:
+        del sanitized_headers["content-encoding"]
+        if "content-length" in sanitized_headers:
+            del sanitized_headers["content-length"]
+    return httpx.Response(
+        status_code=status,
+        headers=sanitized_headers,
+        content=body,
+    )
+
+
 class ClientBase(ABC):
     """Base class for synchronous ReflectAPI clients."""
 
@@ -502,10 +527,10 @@ class ClientBase(ABC):
             # only as the metadata sidecar (preserves `.request` /
             # `.extensions` / `.history` from the real wire response when
             # available, fallback to the synthetic for custom transports).
-            parsed_response = httpx.Response(
-                status_code=client_response.status,
-                headers=client_response.headers,
-                content=client_response.body,
+            parsed_response = _build_parsed_response(
+                client_response.status,
+                client_response.headers,
+                client_response.body,
             )
             metadata = TransportMetadata(
                 status_code=client_response.status,
@@ -1048,10 +1073,10 @@ class AsyncClientBase(ABC):
             # only as the metadata sidecar (preserves `.request` /
             # `.extensions` / `.history` from the real wire response when
             # available, fallback to the synthetic for custom transports).
-            parsed_response = httpx.Response(
-                status_code=client_response.status,
-                headers=client_response.headers,
-                content=client_response.body,
+            parsed_response = _build_parsed_response(
+                client_response.status,
+                client_response.headers,
+                client_response.body,
             )
             metadata = TransportMetadata(
                 status_code=client_response.status,

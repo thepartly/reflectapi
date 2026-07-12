@@ -907,3 +907,69 @@ class TestMiddlewareTransformsAreParsed:
 
         assert result.value.name == "healed"
         assert result.metadata.status_code == 200
+
+
+class TestCompressedResponseNotDoubleDecoded:
+    """A transport that has already decompressed the body (httpx does this
+    when reading ``.content``) may still surface ``Content-Encoding: gzip``
+    in the headers. Rebuilding an ``httpx.Response`` from that pair must not
+    attempt a second decompression of the already-decoded bytes.
+
+    Regression test: previously this raised
+    ``NetworkError: Error -3 while decompressing data: incorrect header check``.
+    """
+
+    @staticmethod
+    def _gzip_handler(request: httpx.Request) -> httpx.Response:
+        import gzip
+
+        return httpx.Response(
+            200,
+            headers={
+                "content-type": "application/json",
+                "content-encoding": "gzip",
+            },
+            content=gzip.compress(b'{"name":"zipped","age":3}'),
+        )
+
+    def test_sync_gzip_response(self):
+        with httpx.Client(transport=httpx.MockTransport(self._gzip_handler)) as raw:
+            client = ClientBase("http://example.com", client=raw)
+            result = client._make_request("/test", response_model=SampleModel)
+
+        assert result.value.name == "zipped"
+        # Metadata still reflects the original wire headers.
+        assert result.metadata.headers.get("content-encoding") == "gzip"
+
+    @pytest.mark.asyncio
+    async def test_async_gzip_response(self):
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(self._gzip_handler)
+        ) as raw:
+            client = AsyncClientBase("http://example.com", client=raw)
+            result = await client._make_request("/test", response_model=SampleModel)
+
+        assert result.value.name == "zipped"
+        assert result.metadata.headers.get("content-encoding") == "gzip"
+
+    def test_sync_custom_transport_decoded_body_with_encoding_header(self):
+        """A custom structural transport returning a decoded body while
+        keeping the compression header must also parse cleanly."""
+
+        class _DecodedButLabelled:
+            def request(self, request: Request) -> Response:
+                return Response(
+                    status=200,
+                    headers=httpx.Headers(
+                        {
+                            "content-type": "application/json",
+                            "content-encoding": "gzip",
+                            "content-length": "17",
+                        }
+                    ),
+                    body=b'{"name":"raw","age":9}',
+                )
+
+        client = ClientBase("http://example.com", client=_DecodedButLabelled())
+        result = client._make_request("/test", response_model=SampleModel)
+        assert result.value.name == "raw"
