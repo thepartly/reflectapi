@@ -31,7 +31,6 @@ from tests.package_imports import (
     MyapiProtoPetsUpdateError as PetsUpdateError,
     MyapiProtoPetsRemoveError as PetsRemoveError,
 )
-from reflectapi_runtime import ReflectapiOption, ReflectapiOption as Option, Undefined
 from tests.model_helpers import (
     aggressive_behavior,
     calm_behavior,
@@ -204,45 +203,44 @@ class TestDateTimeEdgeCases:
                 pass
 
 
-class TestReflectapiOptionAdvancedCases:
-    """Test advanced ReflectapiOption scenarios with generated models."""
+class TestPartialFieldAdvancedCases:
+    """Test advanced partial-field (three-state) scenarios with generated models.
+
+    Generated models with ``reflectapi::Option<T>`` fields inherit from
+    ``ReflectapiPartialModel``: a field left unset is absent from the wire,
+    an explicit ``None`` serializes as ``null``, and ``model_fields_set``
+    records which fields were provided.
+    """
 
     def test_nested_optional_fields(self):
         """Test models with multiple levels of optional fields."""
-        # Create update request with mix of defined and undefined fields
+        # Create update request with mix of set and unset fields
         request = PetsUpdateRequest(
             name="Complex Pet",
             kind=PetKindDog(type="dog", breed="Complex Breed"),
-            age=ReflectapiOption(5),
-            # behaviors is omitted (undefined)
+            age=5,
+            # behaviors is left unset
         )
 
-        # Test serialization includes provided fields
+        # Serialization includes provided fields and omits unset ones
         json_data = json.loads(request.model_dump_json())
         assert "name" in json_data
         assert "kind" in json_data
-        assert "age" in json_data
-        assert json_data["behaviors"] is None  # Should be null when not provided
+        assert json_data["age"] == 5
+        assert "behaviors" not in json_data
 
-    def test_reflectapi_option_type_coercion(self):
-        """Test ReflectapiOption with type coercion edge cases."""
-        # Test with different numeric types
-        numeric_values = [
-            42,  # int
-            42.0,  # float
-            42.5,  # float with decimal
-            True,  # bool (should be treated as 1)
-            False,  # bool (should be treated as 0)
-        ]
+    def test_partial_field_validates_like_a_plain_field(self):
+        """Partial fields get full Pydantic validation, not raw passthrough."""
+        # Lax coercion accepts an integral float for an int field
+        assert PetsUpdateRequest(name="Type Test", age=42).age == 42
+        assert PetsUpdateRequest(name="Type Test", age=42.0).age == 42
 
-        for value in numeric_values:
-            request = PetsUpdateRequest(name="Type Test", age=ReflectapiOption(value))
+        # Non-integral floats are rejected like any other int field
+        with pytest.raises(ValidationError):
+            PetsUpdateRequest(name="Type Test", age=42.5)
 
-            # ReflectapiOption preserves the original value
-            assert request.age.unwrap() == value
-
-    def test_reflectapi_option_with_complex_nested_data(self):
-        """Test ReflectapiOption containing complex nested structures."""
+    def test_partial_field_with_complex_nested_data(self):
+        """Test a partial field containing complex nested structures."""
         complex_behaviors = [
             calm_behavior(),
             aggressive_behavior(8.5, "Very aggressive"),
@@ -251,34 +249,40 @@ class TestReflectapiOptionAdvancedCases:
         ]
 
         request = PetsUpdateRequest(
-            name="Complex Behavior Pet", behaviors=ReflectapiOption(complex_behaviors)
+            name="Complex Behavior Pet", behaviors=complex_behaviors
         )
 
-        assert request.behaviors.is_some
-        assert len(request.behaviors.unwrap()) == 4
+        assert "behaviors" in request.model_fields_set
+        assert len(request.behaviors) == 4
         # Count BehaviorCalm instances - check the actual Behavior objects
-        behaviors = request.behaviors.unwrap()
         calm_count = sum(
             1
-            for b in behaviors
+            for b in request.behaviors
             if (hasattr(b, "root") and b.root == "Calm") or b == "Calm"
         )
         assert calm_count == 2
 
-    def test_multiple_undefined_fields_serialization(self):
-        """Test serialization with multiple undefined fields."""
+    def test_multiple_unset_fields_serialization(self):
+        """Unset partial fields are omitted from the wire entirely."""
         request = PetsUpdateRequest(
             name="Minimal Pet"
-            # All other fields left undefined
+            # All other fields left unset
         )
 
         json_data = json.loads(request.model_dump_json())
 
-        # All fields should be present due to the default values
-        assert json_data["name"] == "Minimal Pet"
-        assert json_data["kind"] is None  # Default None
-        assert json_data["age"] is None  # Default None
-        assert json_data["behaviors"] is None  # Default None
+        assert json_data == {"name": "Minimal Pet"}
+
+    def test_explicit_null_round_trips(self):
+        """An explicit None serializes as null, distinct from absent."""
+        request = PetsUpdateRequest(name="Nullable Pet", age=None)
+
+        json_data = json.loads(request.model_dump_json())
+        assert json_data == {"name": "Nullable Pet", "age": None}
+
+        parsed = PetsUpdateRequest.model_validate(json_data)
+        assert "age" in parsed.model_fields_set
+        assert "behaviors" not in parsed.model_fields_set
 
 
 class TestEnumEdgeCases:

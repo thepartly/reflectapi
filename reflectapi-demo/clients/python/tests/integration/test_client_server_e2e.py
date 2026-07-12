@@ -30,7 +30,7 @@ from tests.package_imports import (
     MyapiProtoPetsListRequest as PetsListRequest,
     MyapiProtoHeaders as Headers,
 )
-from reflectapi_runtime import ReflectapiOption, ApiError
+from reflectapi_runtime import ApiError
 from tests.model_helpers import calm_behavior, other_behavior, root_value
 
 
@@ -138,7 +138,7 @@ class TestClientServerIntegration:
         request = PetsUpdateRequest(
             name="existing_pet",  # Assume this exists or will fail gracefully
             kind=new_kind,
-            age=ReflectapiOption(4),
+            age=4,
         )
 
         try:
