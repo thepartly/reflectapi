@@ -155,6 +155,7 @@ pub mod codegen;
 #[cfg(feature = "builder")]
 pub use self::builder::{
     BuildError, BuildErrors, Builder, ContentType, IntoResult, RouteBuilder, Router, StatusCode,
+    WithHeaders,
 };
 #[cfg(feature = "builder")]
 use self::builder::{Handler, HandlerCallback};

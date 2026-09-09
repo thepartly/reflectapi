@@ -111,6 +111,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+## Setting Response Headers
+
+A handler that needs to set a response header — a `Set-Cookie` on sign-in, most
+often — returns `WithHeaders<T>` and registers with `route_with_headers`:
+
+```rust,ignore
+async fn sign_in(
+    state: AppState,
+    request: SignInRequest,
+    _headers: reflectapi::Empty,
+) -> Result<reflectapi::WithHeaders<SignedIn>, SignInError> {
+    let session = state.sign_in(request).await?;
+
+    Ok(reflectapi::WithHeaders::new(SignedIn { user_id: session.user_id })
+        .append_header(http::header::SET_COOKIE, session.cookie.parse().unwrap()))
+}
+
+let builder = reflectapi::Builder::new()
+    .route_with_headers(sign_in, |route| route.name("auth.sign-in"));
+```
+
+The route still declares `SignedIn`, so the schema and every generated client
+are identical to the same route registered with `route`. This is deliberate: a
+browser will not let a client read `Set-Cookie` back, so describing it would
+generate a field that is always empty.
+
+Use `append_header` rather than `header` for cookies — several `Set-Cookie`
+values under one name is normal, and `header` replaces.
+
+Only the success arm carries headers. An error is the route's declared error
+type, and giving it a header channel too would mean every error enum in every
+API grew one.
+
 ## Run Your API Server
 
 ```bash

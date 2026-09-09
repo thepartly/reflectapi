@@ -7,7 +7,7 @@ use std::{borrow::Borrow, collections::BTreeSet, error::Error};
 use futures_util::Stream;
 pub use handler::*;
 use reflectapi_schema::Pattern;
-pub use result::{IntoResult, StatusCode};
+pub use result::{IntoResult, StatusCode, WithHeaders};
 use serde::{de::DeserializeOwned, ser::Serialize};
 
 use crate::{Input, Output};
@@ -155,6 +155,37 @@ where
                 .path(self.path.clone()),
         );
         let route = crate::Handler::new(rb, handler, &mut self.schema);
+        self.handlers.push(route);
+        self
+    }
+
+    /// Adds a route whose handler also sets response headers.
+    ///
+    /// The handler returns [`WithHeaders<O>`] instead of `O`. The route still
+    /// declares `O`, so the schema and every generated client are identical to
+    /// the same route registered with [`Builder::route`] — which is what makes
+    /// this the right shape for a `Set-Cookie`, a header the browser never
+    /// lets a client read anyway.
+    pub fn route_with_headers<F, Fut, R, I, O, E, H>(
+        mut self,
+        handler: F,
+        builder: fn(RouteBuilder) -> RouteBuilder,
+    ) -> Self
+    where
+        F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
+        Fut: std::future::Future<Output = R> + Send + 'static,
+        R: IntoResult<WithHeaders<O>, E> + 'static,
+        I: Input + DeserializeOwned + Send + 'static,
+        H: Input + DeserializeOwned + Send + 'static,
+        O: Output + Serialize + Send + 'static,
+        E: Output + Serialize + StatusCode + Send + 'static,
+    {
+        let rb = builder(
+            RouteBuilder::new()
+                .tags(&self.default_tags)
+                .path(self.path.clone()),
+        );
+        let route = crate::Handler::new_with_headers(rb, handler, &mut self.schema);
         self.handlers.push(route);
         self
     }

@@ -155,6 +155,41 @@ where
         }
     }
 
+    /// The same as [`Handler::new`], for a handler that also sets response
+    /// headers. The schema entry is identical — the route declares `O`, and
+    /// the headers are invisible to it.
+    pub(crate) fn new_with_headers<F, Fut, R, I, O, E, H>(
+        rb: RouteBuilder,
+        handler: F,
+        schema: &mut Schema,
+    ) -> Handler<S>
+    where
+        F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
+        Fut: Future<Output = R> + Send + 'static,
+        R: crate::IntoResult<crate::WithHeaders<O>, E> + 'static,
+        I: Input + serde::de::DeserializeOwned + Send + 'static,
+        H: Input + serde::de::DeserializeOwned + Send + 'static,
+        O: Output + serde::ser::Serialize + Send + 'static,
+        E: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+    {
+        let (function_def, mut input_headers) = Self::mk_function::<I, H, O, E>(&rb, schema, false);
+        schema.functions.push(function_def);
+
+        // inject system header requirements used by the handler wrapper
+        input_headers.push(http::header::CONTENT_TYPE);
+        input_headers.push(HeaderName::from_static("traceparent"));
+
+        Handler {
+            name: rb.name,
+            path: rb.path,
+            readonly: rb.readonly,
+            input_headers,
+            callback: HandlerCallback::Future(Arc::new(move |state: S, input: HandlerInput| {
+                Box::pin(Self::handler_wrap_with_headers(state, input, handler)) as _
+            })),
+        }
+    }
+
     pub(crate) fn new_stream<F, St, I, O, E1, H>(
         rb: RouteBuilder,
         handler: F,
@@ -368,13 +403,65 @@ where
         Fut: Future<Output = R> + Send + 'static,
         R: crate::IntoResult<O, E>,
     {
+        let (input, input_headers, content_type, response_headers) =
+            match Self::parse_input::<I, H>(input) {
+                Ok(r) => r,
+                Err(err) => return err,
+            };
+        let output = handler(state, input, input_headers).await;
+
+        Self::encode(output.into_result(), content_type, response_headers)
+    }
+
+    /// The same, for a handler whose success value carries response headers.
+    ///
+    /// Only the success arm can set them: an error is the route's declared
+    /// error type, and giving it a header channel too would mean every error
+    /// enum in every API grew one.
+    async fn handler_wrap_with_headers<F, Fut, R, I, H, O, E>(
+        state: S,
+        input: HandlerInput,
+        handler: F,
+    ) -> HandlerOutput
+    where
+        I: Input + serde::de::DeserializeOwned,
+        H: Input + serde::de::DeserializeOwned,
+        O: Output + serde::ser::Serialize,
+        E: Output + serde::ser::Serialize + crate::StatusCode,
+        F: Fn(S, I, H) -> Fut,
+        Fut: Future<Output = R> + Send + 'static,
+        R: crate::IntoResult<crate::WithHeaders<O>, E>,
+    {
         let (input, input_headers, content_type, mut response_headers) =
             match Self::parse_input::<I, H>(input) {
                 Ok(r) => r,
                 Err(err) => return err,
             };
         let output = handler(state, input, input_headers).await;
-        let output = UntaggedResult::from(output.into_result());
+
+        let output = match output.into_result() {
+            Ok(with_headers) => {
+                response_headers.extend(with_headers.headers);
+                Ok(with_headers.value)
+            }
+            Err(err) => Err(err),
+        };
+
+        Self::encode(output, content_type, response_headers)
+    }
+
+    /// Serializes a handler's result into the response every route answers
+    /// with, so the two wrappers above cannot drift apart on the wire.
+    fn encode<O, E>(
+        output: Result<O, E>,
+        content_type: ContentType,
+        mut response_headers: http::HeaderMap,
+    ) -> HandlerOutput
+    where
+        O: Output + serde::ser::Serialize,
+        E: Output + serde::ser::Serialize + crate::StatusCode,
+    {
+        let output = UntaggedResult::from(output);
 
         let output_serialized = match content_type {
             ContentType::Json => serde_json::to_vec(&output).map_err(|err| err.to_string()),
