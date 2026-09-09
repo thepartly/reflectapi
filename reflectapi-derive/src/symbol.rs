@@ -20,6 +20,7 @@ pub const SKIP: Symbol = Symbol("skip");
 pub const INPUT_SKIP: Symbol = Symbol("input_skip");
 pub const OUTPUT_SKIP: Symbol = Symbol("output_skip");
 
+pub const HEADER: Symbol = Symbol("header");
 pub const HIDDEN: Symbol = Symbol("hidden");
 
 pub const DERIVE: Symbol = Symbol("derive");
