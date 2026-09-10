@@ -111,6 +111,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+## Setting Response Headers
+
+A response field marked `#[reflectapi(header)]` is sent as a header instead of
+in the body — a `Set-Cookie` on sign-in, most often:
+
+```rust,ignore
+#[derive(serde::Serialize, reflectapi::Output)]
+struct SignedIn {
+    user_id: String,
+
+    #[reflectapi(header)]
+    #[serde(skip_serializing)]
+    set_cookie: Vec<String>,
+}
+```
+
+Registered with `route` like any other handler; the return type is unchanged.
+
+- **The header name is the field name in kebab-case**, so `set_cookie` becomes
+  `set-cookie`. A `#[serde(rename = "...")]` is used verbatim instead.
+- **`#[serde(skip_serializing)]` is required.** The derive cannot make serde
+  skip a field, and without it the value would be sent in the body as well as
+  the header. Leaving it off is a compile error.
+- **The field type must implement `HeaderValue`** — `String`, `Option<String>`
+  (`None` sends nothing) and `Vec<String>` (sends the header once per element)
+  are provided, and you can implement it for your own types.
+- **Error types can carry header fields too**, which is what lets a refusal
+  clear a cookie.
+
+Header fields are **not** in the schema, so generated clients are identical
+whether or not a route sets one. That is deliberate: a browser filters
+`Set-Cookie` out of what a client can read, so describing it would generate a
+field that is always empty.
+
 ## Run Your API Server
 
 ```bash

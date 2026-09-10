@@ -131,6 +131,7 @@ pub(crate) struct ParsedFieldAttributes {
     pub output_transform: String,
     pub input_skip: bool,
     pub output_skip: bool,
+    pub header: bool,
     pub hidden: bool,
 }
 
@@ -391,6 +392,9 @@ pub(crate) fn parse_field_attributes(
                 // #[reflectapi(skip)]
                 result.input_skip = true;
                 result.output_skip = true;
+            } else if meta.path == HEADER {
+                // #[reflectapi(header)]
+                result.header = true;
             } else if meta.path == HIDDEN {
                 // #[reflectapi(hidden)]
                 result.hidden = true;

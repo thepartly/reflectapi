@@ -107,10 +107,17 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
         });
     }
 
+    let response_headers_code = match reflectapi_type {
+        ReflectType::Output => response_headers_impl(&serde_input),
+        ReflectType::Input => quote::quote!(),
+    };
+
     let reflected_type_def = crate::tokenizable_schema::TokenizableType::new(&reflected_type_def);
     TokenStream::from(quote::quote! {
         #[allow(unused_doc_comments)]
         impl #type_generics #trait_ident for #type_ident #type_generics_idents_code #type_generics_where {
+            #response_headers_code
+
             fn #fn_reflectapi_type_ident(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
                 let resolved_type_name = format!("{}::{}", std::module_path!(), #reflected_type_name);
                 let mut arguments = Vec::new();
@@ -483,4 +490,110 @@ fn visit_name<'a>(
         return (normalized_result, result.into());
     }
     (result.into(), String::new())
+}
+
+/// The `reflectapi_response_headers` override for a struct with
+/// `#[reflectapi(header)]` fields, or nothing when it has none.
+///
+/// The field is left out of the schema by the same rule that leaves out any
+/// `skip_serializing` field, so a header never reaches a generated client as a
+/// body field it will never receive.
+fn response_headers_impl(input: &ast::Container<'_>) -> proc_macro2::TokenStream {
+    let ast::Data::Struct(_, fields) = &input.data else {
+        return quote::quote!();
+    };
+
+    let mut extractions = Vec::new();
+    for field in fields {
+        if !is_header_field(&field.original.attrs) {
+            continue;
+        }
+
+        let Some(ident) = field.original.ident.as_ref() else {
+            proc_macro_error::abort!(
+                field.original,
+                "`header` cannot be used on unnamed (tuple) fields: a header needs a name"
+            );
+        };
+
+        // The derive cannot make serde skip a field, so without this the value
+        // would be sent in the body as well as the header — which for a sealed
+        // session would defeat the point of setting it as a header at all.
+        if !field.attrs.skip_serializing() {
+            proc_macro_error::abort!(
+                field.original,
+                "a `header` field must also be `#[serde(skip_serializing)]`, \
+                 otherwise its value is sent in the response body as well"
+            );
+        }
+
+        let name = header_name(input, field, ident);
+        extractions.push(quote::quote! {
+            for value in reflectapi::HeaderValue::reflectapi_header_values(&self.#ident) {
+                headers.push((#name, value));
+            }
+        });
+    }
+
+    if extractions.is_empty() {
+        return quote::quote!();
+    }
+
+    quote::quote! {
+        fn reflectapi_response_headers(&self) -> Vec<(&'static str, String)> {
+            let mut headers = Vec::new();
+            #(#extractions)*
+            headers
+        }
+    }
+}
+
+/// Whether the field carries `#[reflectapi(header)]`.
+///
+/// Read directly rather than through the attribute parser, which needs an
+/// error `Context` this pass has no way to check.
+fn is_header_field(attrs: &[syn::Attribute]) -> bool {
+    let mut found = false;
+    for attr in attrs {
+        if attr.path() != crate::symbol::REFLECT {
+            continue;
+        }
+        // Errors here are reported by the parser proper, which sees the same
+        // attributes; this pass only asks one question of them.
+        let _ = attr.parse_nested_meta(|meta| {
+            if meta.path == crate::symbol::HEADER {
+                found = true;
+            } else if meta.input.peek(syn::Token![=]) {
+                let _: syn::Expr = meta.value()?.parse()?;
+            }
+            Ok(())
+        });
+    }
+
+    found
+}
+
+/// A rename written on the field, verbatim; otherwise the field name in
+/// kebab-case. Both halves are serde's own rules. A container's `rename_all`
+/// shapes the body, and a header is not in the body, so it is not applied.
+fn header_name(input: &ast::Container<'_>, field: &ast::Field<'_>, ident: &syn::Ident) -> String {
+    use serde_derive_internals::attr::RenameRule;
+
+    // serde's `unraw`, which it does not export: `r#type` is the field `type`.
+    let base = ident.to_string().trim_start_matches("r#").to_owned();
+    let serialized = field.attrs.name().serialize_name();
+
+    // serde applies `rename_all` only to fields without a rename of their own,
+    // so a name that differs from the rule's output was renamed on the field.
+    let rule_applied = input
+        .attrs
+        .rename_all_rules()
+        .serialize
+        .apply_to_field(&base);
+
+    if serialized != rule_applied {
+        serialized.to_owned()
+    } else {
+        RenameRule::KebabCase.apply_to_field(&base)
+    }
 }

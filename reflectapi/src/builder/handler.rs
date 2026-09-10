@@ -376,6 +376,37 @@ where
         let output = handler(state, input, input_headers).await;
         let output = UntaggedResult::from(output.into_result());
 
+        // `#[reflectapi(header)]` fields, lifted out of the value and onto the
+        // response. They are absent from the body by the same rule that keeps
+        // any `skip_serializing` field out of it.
+        let declared_headers = match &output {
+            UntaggedResult::Ok(value) => value.reflectapi_response_headers(),
+            UntaggedResult::Err(error) => error.reflectapi_response_headers(),
+        };
+        for (name, value) in declared_headers {
+            match (
+                http::HeaderName::from_bytes(name.as_bytes()),
+                http::HeaderValue::from_str(&value),
+            ) {
+                (Ok(name), Ok(value)) => {
+                    response_headers.append(name, value);
+                }
+                _ => {
+                    response_headers.insert(
+                        http::header::CONTENT_TYPE,
+                        http::HeaderValue::from_static("text/plain"),
+                    );
+                    return HandlerOutput {
+                        code: http::StatusCode::INTERNAL_SERVER_ERROR,
+                        body: bytes::Bytes::from(
+                            format!("Response header `{name}` is not a valid header").into_bytes(),
+                        ),
+                        headers: response_headers,
+                    };
+                }
+            }
+        }
+
         let output_serialized = match content_type {
             ContentType::Json => serde_json::to_vec(&output).map_err(|err| err.to_string()),
             #[cfg(feature = "msgpack")]
