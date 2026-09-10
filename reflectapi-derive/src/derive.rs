@@ -527,7 +527,7 @@ fn response_headers_impl(input: &ast::Container<'_>) -> proc_macro2::TokenStream
             );
         }
 
-        let name = header_name(field, ident);
+        let name = header_name(input, field, ident);
         extractions.push(quote::quote! {
             for value in reflectapi::HeaderValue::reflectapi_header_values(&self.#ident) {
                 headers.push((#name, value));
@@ -573,17 +573,27 @@ fn is_header_field(attrs: &[syn::Attribute]) -> bool {
     found
 }
 
-/// A serde rename verbatim, or the field name in kebab-case.
-///
-/// Rust identifiers cannot contain `-`, so `set_cookie` means `set-cookie`
-/// without anybody having to say so twice.
-fn header_name(field: &ast::Field<'_>, ident: &syn::Ident) -> String {
-    let serialized = field.attrs.name().serialize_name().to_string();
-    let declared = ident.to_string();
+/// A rename written on the field, verbatim; otherwise the field name in
+/// kebab-case. Both halves are serde's own rules. A container's `rename_all`
+/// shapes the body, and a header is not in the body, so it is not applied.
+fn header_name(input: &ast::Container<'_>, field: &ast::Field<'_>, ident: &syn::Ident) -> String {
+    use serde_derive_internals::attr::RenameRule;
 
-    if serialized == declared {
-        declared.replace('_', "-")
+    // serde's `unraw`, which it does not export: `r#type` is the field `type`.
+    let base = ident.to_string().trim_start_matches("r#").to_owned();
+    let serialized = field.attrs.name().serialize_name();
+
+    // serde applies `rename_all` only to fields without a rename of their own,
+    // so a name that differs from the rule's output was renamed on the field.
+    let rule_applied = input
+        .attrs
+        .rename_all_rules()
+        .serialize
+        .apply_to_field(&base);
+
+    if serialized != rule_applied {
+        serialized.to_owned()
     } else {
-        serialized
+        RenameRule::KebabCase.apply_to_field(&base)
     }
 }

@@ -167,3 +167,35 @@ async fn a_none_field_sends_no_header_at_all() {
 
     assert!(!response.headers().contains_key("x-request-id"));
 }
+
+/// A container rule shapes the body, and header fields are not in the body —
+/// so `rename_all` must not reach a header name.
+#[derive(reflectapi::Output, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CamelCased {
+    user_id: String,
+    #[reflectapi(header)]
+    #[serde(skip_serializing)]
+    set_cookie: Option<String>,
+    #[reflectapi(header)]
+    #[serde(skip_serializing)]
+    r#type: Option<String>,
+}
+
+#[test]
+fn a_container_rename_rule_does_not_reach_the_header_name() {
+    use reflectapi::Output;
+
+    let value = CamelCased {
+        user_id: "user_1".to_owned(),
+        set_cookie: Some("a=1".to_owned()),
+        r#type: Some("x".to_owned()),
+    };
+    let names: Vec<&str> = value
+        .reflectapi_response_headers()
+        .into_iter()
+        .map(|(name, _)| name)
+        .collect();
+
+    assert_eq!(names, ["set-cookie", "type"]);
+}
