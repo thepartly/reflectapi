@@ -13,10 +13,12 @@ from reflectapi_runtime.middleware import (
     AsyncLoggingMiddleware,
     AsyncMiddleware,
     AsyncMiddlewareChain,
+    AsyncRequiredHeadersMiddleware,
     RetryMiddleware,
     SyncLoggingMiddleware,
     SyncMiddleware,
     SyncMiddlewareChain,
+    SyncRequiredHeadersMiddleware,
 )
 
 
@@ -485,3 +487,55 @@ class TestSyncMiddlewareChain:
             "inner:after",
             "outer:after",
         ]
+
+
+class TestRequiredHeadersMiddleware:
+    """Headers a generated client must send on every request."""
+
+    def test_adds_missing_headers(self):
+        seen: list[Request] = []
+        middleware = SyncRequiredHeadersMiddleware({"x-api-key": "from-client"})
+
+        def terminal(req):
+            seen.append(req)
+            return make_response()
+
+        middleware.handle(make_request(), terminal)
+
+        assert seen[0].headers["x-api-key"] == "from-client"
+        assert seen[0].headers["Authorization"] == "Bearer token"
+
+    def test_per_request_header_wins(self):
+        seen: list[Request] = []
+        middleware = SyncRequiredHeadersMiddleware(
+            {"Authorization": "Bearer required"}
+        )
+
+        def terminal(req):
+            seen.append(req)
+            return make_response()
+
+        middleware.handle(make_request(), terminal)
+
+        assert seen[0].headers["Authorization"] == "Bearer token"
+
+    def test_does_not_mutate_the_incoming_request(self):
+        request = make_request()
+        middleware = SyncRequiredHeadersMiddleware({"x-api-key": "from-client"})
+
+        middleware.handle(request, lambda req: make_response())
+
+        assert "x-api-key" not in request.headers
+
+    @pytest.mark.asyncio
+    async def test_async_adds_missing_headers(self):
+        seen: list[Request] = []
+        middleware = AsyncRequiredHeadersMiddleware({"x-api-key": "from-client"})
+
+        async def terminal(req):
+            seen.append(req)
+            return make_response()
+
+        await middleware.handle(make_request(), terminal)
+
+        assert seen[0].headers["x-api-key"] == "from-client"

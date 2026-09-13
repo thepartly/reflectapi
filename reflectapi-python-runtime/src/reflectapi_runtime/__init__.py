@@ -36,7 +36,11 @@ from .hypothesis_strategies import (
     strategy_for_pydantic_model,
     strategy_for_type,
 )
-from .middleware import AsyncMiddleware
+from .middleware import (
+    AsyncMiddleware,
+    AsyncRequiredHeadersMiddleware,
+    SyncRequiredHeadersMiddleware,
+)
 from .partial import ReflectapiPartialModel
 from .response import ApiResponse, TransportMetadata
 from .serde import parse_externally_tagged, serialize_externally_tagged
@@ -85,6 +89,8 @@ __all__ = [
     "Response",
     "HAS_HYPOTHESIS",
     "AsyncMiddleware",
+    "AsyncRequiredHeadersMiddleware",
+    "SyncRequiredHeadersMiddleware",
     "MockClient",
     "NetworkError",
     "ReflectapiDuration",

@@ -9,6 +9,7 @@ use indexmap::IndexMap;
 use reflectapi_schema::{Function, OutputType, TypeReference, Visitor};
 
 use super::format_with;
+use crate::codegen::required_headers::RequiredHeader;
 
 #[derive(Debug)]
 pub struct Config {
@@ -25,6 +26,7 @@ pub struct Config {
     exclude_tags: BTreeSet<String>,
     /// Derives to add to all types.
     base_derives: BTreeSet<String>,
+    required_headers: BTreeSet<String>,
 }
 
 impl Default for Config {
@@ -37,6 +39,7 @@ impl Default for Config {
             include_tags: Default::default(),
             exclude_tags: Default::default(),
             base_derives: BTreeSet::from_iter(["Debug".into()]),
+            required_headers: Default::default(),
         }
     }
 }
@@ -74,6 +77,11 @@ impl Config {
 
     pub fn base_derives(&mut self, base_derives: BTreeSet<String>) -> &mut Self {
         self.base_derives = base_derives;
+        self
+    }
+
+    pub fn required_headers(&mut self, required_headers: BTreeSet<String>) -> &mut Self {
+        self.required_headers = required_headers;
         self
     }
 }
@@ -139,6 +147,8 @@ fn types_referenced_by(
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     schema.strip_hidden_fields();
+    let required_headers =
+        crate::codegen::required_headers::resolve_for("rust", &config.required_headers)?;
     let mut implemented_types = __build_implemented_types();
     for type_def in schema
         .input_types()
@@ -219,6 +229,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
     let file_template = templates::__FileHeader {
         name: schema.name.clone(),
         description: schema.description.clone(),
+        has_required_headers: !required_headers.is_empty(),
     };
     generated_code.push(file_template.render());
 
@@ -229,6 +240,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
         &implemented_types,
         &functions_by_name,
         config,
+        &required_headers,
     );
     let module = templates::__Module {
         name: "interface".into(),
@@ -328,9 +340,12 @@ mod templates {
 
     use indexmap::IndexMap;
 
+    use crate::codegen::required_headers::RequiredHeader;
+
     pub(super) struct __FileHeader {
         pub name: String,
         pub description: String,
+        pub has_required_headers: bool,
     }
 
     impl __FileHeader {
@@ -351,8 +366,14 @@ mod templates {
                  #![allow(dead_code)]\n\
                  \n\
                  pub use reflectapi::rt::*;\n\
-                 pub use interface::Interface;",
-                self.name, description_line
+                 pub use interface::Interface;{}",
+                self.name,
+                description_line,
+                if self.has_required_headers {
+                    "\npub use interface::RequiredHeaders;"
+                } else {
+                    ""
+                }
             )
         }
     }
@@ -901,20 +922,90 @@ mod templates {
         }
     }
 
+    pub(super) fn __render_required_headers(headers: &[RequiredHeader]) -> String {
+        let mut out = String::from(
+            "\n/// Headers this client sends on every request.\n\
+             ///\n\
+             /// The service does not declare them: they are consumed by\n\
+             /// middleware in front of it, so they are required here instead.\n\
+             #[derive(Debug, Clone)]\n\
+             pub struct RequiredHeaders {",
+        );
+        for header in headers {
+            write!(
+                out,
+                "\n    pub {}: reflectapi::rt::HeaderValue,",
+                header.rust_ident()
+            )
+            .unwrap();
+        }
+        out.push_str("\n}\n\nimpl RequiredHeaders {\n    pub fn new(");
+        for header in headers {
+            write!(
+                out,
+                "\n        {}: reflectapi::rt::HeaderValue,",
+                header.rust_ident()
+            )
+            .unwrap();
+        }
+        out.push_str("\n    ) -> Self {\n        Self {");
+        for header in headers {
+            write!(out, "\n            {},", header.rust_ident()).unwrap();
+        }
+        out.push_str(
+            "\n        }\n\
+                 }\n\
+             \n    fn into_header_map(self) -> reflectapi::rt::HeaderMap {\n\
+                     let mut headers = reflectapi::rt::HeaderMap::new();",
+        );
+        for header in headers {
+            write!(
+                out,
+                "\n        headers.insert(\n\
+                     reflectapi::rt::HeaderName::from_static(\"{}\"),\n\
+                     self.{},\n\
+                 );",
+                header.name,
+                header.rust_ident(),
+            )
+            .unwrap();
+        }
+        out.push_str(
+            "\n        headers\n\
+                 }\n\
+             }\n",
+        );
+        out
+    }
+
     pub(super) struct __InterfaceImplementationTemplate {
         pub name: String,
         pub fields: Vec<__Field>,
         pub functions: Vec<__FunctionImpl>,
+        pub required_headers: Vec<RequiredHeader>,
     }
 
     impl __InterfaceImplementationTemplate {
         pub fn render(&self) -> String {
-            let mut out = format!(
-                "\nimpl<C: reflectapi::rt::Client + Clone> {} {{\n\
-                     pub fn new(client: C) -> Self {{\n\
-                         Self {{",
-                self.name,
-            );
+            let mut out = if self.required_headers.is_empty() {
+                format!(
+                    "\nimpl<C: reflectapi::rt::Client + Clone> {}<C> {{\n\
+                         pub fn new(client: C) -> Self {{\n\
+                             Self {{",
+                    self.name,
+                )
+            } else {
+                format!(
+                    "\nimpl<C: reflectapi::rt::Client + Clone> {}<reflectapi::rt::WithRequiredHeaders<C>> {{\n\
+                         pub fn new(client: C, required_headers: RequiredHeaders) -> Self {{\n\
+                             let client = reflectapi::rt::WithRequiredHeaders::new(\n\
+                                 client,\n\
+                                 required_headers.into_header_map(),\n\
+                             );\n\
+                             Self {{",
+                    self.name,
+                )
+            };
             for field in &self.fields {
                 write!(
                     out,
@@ -1063,6 +1154,7 @@ fn __interface_types_from_function_group(
     implemented_types: &HashMap<String, String>,
     functions_by_name: &IndexMap<String, &Function>,
     config: &Config,
+    required_headers: &[RequiredHeader],
 ) -> Vec<String> {
     fn __struct_name_from_parent_name_and_name(parent: &[String], name: &str) -> String {
         if parent.is_empty() {
@@ -1085,13 +1177,19 @@ fn __interface_types_from_function_group(
         codegen_config: Default::default(),
         base_derives: BTreeSet::from_iter(["Debug".into()]),
     };
+    let is_top_level = group.parent.is_empty() && name.is_empty();
     let mut interface_implementation = templates::__InterfaceImplementationTemplate {
         name: format!(
-            "{}Interface<C>",
+            "{}Interface",
             __struct_name_from_parent_name_and_name(&group.parent, &name)
         ),
         fields: vec![],
         functions: vec![],
+        required_headers: if is_top_level {
+            required_headers.to_vec()
+        } else {
+            vec![]
+        },
     };
 
     for (subgroup_name, subgroup) in group.subgroups.iter() {
@@ -1185,15 +1283,20 @@ fn __interface_types_from_function_group(
         interface_implementation.functions.push(func_impl);
     }
 
-    let mut result = vec![type_template.render(), interface_implementation.render()];
+    let mut result = vec![];
+    if is_top_level && !required_headers.is_empty() {
+        result.push(templates::__render_required_headers(required_headers));
+    }
+    result.push(type_template.render());
+    result.push(interface_implementation.render());
 
     // For the top-level interface only, emit convenience constructors
     // that hide the runtime adapter for built-in transports. With these,
     // callers get the pre-refactor ergonomics back —
     // `Interface::try_new(reqwest::Client::new(), base_url)` — without
     // ever naming `ReqwestClient`.
-    if group.parent.is_empty() && name.is_empty() {
-        result.push(__top_level_convenience_constructors());
+    if is_top_level {
+        result.push(__top_level_convenience_constructors(required_headers));
     }
 
     for (subgroup_name, subgroup) in group.subgroups.iter() {
@@ -1204,12 +1307,13 @@ fn __interface_types_from_function_group(
             implemented_types,
             functions_by_name,
             config,
+            required_headers,
         ));
     }
     result
 }
 
-fn __top_level_convenience_constructors() -> String {
+fn __top_level_convenience_constructors(required_headers: &[RequiredHeader]) -> String {
     // Static — same shape for every generated client. We only emit the
     // bare-reqwest specialisation: a second `try_new` targeting
     // `reqwest_middleware::ClientWithMiddleware` would create a method-
@@ -1219,7 +1323,8 @@ fn __top_level_convenience_constructors() -> String {
     //
     // Gated on the generated crate's own `reqwest` feature; it should
     // re-export `reflectapi/reqwest` so the type names resolve.
-    r#"
+    if required_headers.is_empty() {
+        return r#"
 #[cfg(feature = "reqwest")]
 impl Interface<reflectapi::rt::ReqwestClient<reqwest::Client>> {
     /// Convenience: build the client backed by a bare `reqwest::Client`
@@ -1231,6 +1336,30 @@ impl Interface<reflectapi::rt::ReqwestClient<reqwest::Client>> {
         base_url: reflectapi::rt::Url,
     ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
         Ok(Self::new(reflectapi::rt::ReqwestClient::try_new(client, base_url)?))
+    }
+}
+"#
+        .to_owned();
+    }
+
+    r#"
+#[cfg(feature = "reqwest")]
+impl Interface<
+    reflectapi::rt::WithRequiredHeaders<reflectapi::rt::ReqwestClient<reqwest::Client>>,
+> {
+    /// Convenience: build the client backed by a bare `reqwest::Client`
+    /// and the given base URL. Hides the
+    /// [`reflectapi::rt::ReqwestClient`] adapter so callers don't need
+    /// to name it.
+    pub fn try_new(
+        client: reqwest::Client,
+        base_url: reflectapi::rt::Url,
+        required_headers: RequiredHeaders,
+    ) -> std::result::Result<Self, reflectapi::rt::UrlParseError> {
+        Ok(Self::new(
+            reflectapi::rt::ReqwestClient::try_new(client, base_url)?,
+            required_headers,
+        ))
     }
 }
 "#

@@ -63,6 +63,40 @@ The generators do not all emit the same file layout:
 
 The demo repository includes extra project scaffolding around some generated clients, but that scaffolding is not produced by `reflectapi codegen` itself.
 
+## Required Headers
+
+Some deployments need every request to carry a header the service itself
+never declares — an API key checked by a gateway, a tenant id read by a
+routing layer. Because no handler takes them, they are absent from the
+schema, and nothing stops a caller from forgetting them.
+
+`--required-headers` names those headers at generation time. The
+generated client then cannot be constructed without them and sends them
+on every request, as middleware around the transport:
+
+```bash
+cargo run --bin reflectapi -- codegen \
+    --language typescript \
+    --schema reflectapi.json \
+    --output clients/typescript \
+    --required-headers x-api-key,x-tenant-id
+```
+
+Header names are matched case-insensitively and lowercased in the
+generated code; a name that is not a valid HTTP field name is rejected.
+A header supplied for an individual call always wins over the
+client-level value.
+
+| Output | Surface |
+|--------|---------|
+| TypeScript | `client(base, required_headers)` takes a `RequiredHeaders` object; the transport is wrapped in `__with_required_headers`. |
+| Rust | `Interface::new(client, RequiredHeaders::new(..))` returns `Interface<WithRequiredHeaders<C>>`. `RequiredHeaders::new` takes one `reflectapi::rt::HeaderValue` per header, in declaration order; the fields are public too. |
+| Python | `Client(base_url, *, x_api_key=...)` — one keyword-only argument per header, installed as a `SyncRequiredHeadersMiddleware` / `AsyncRequiredHeadersMiddleware` so they survive a caller-supplied transport. |
+| OpenAPI | Each operation gains a required `in: header` parameter. A header a handler already declares is left as the handler declared it. |
+
+The equivalent library-level option is `required_headers` on each
+language's codegen `Config`.
+
 ## Language Behavior
 
 ### TypeScript
@@ -107,6 +141,8 @@ The demo repository includes extra project scaffolding around some generated cli
   `ReqwestMiddlewareClient` for `reqwest_middleware::ClientWithMiddleware`.
 - Generated `Interface<C>` exposes:
     - `Interface::new(client: C)` — generic, takes any `Client` impl.
+      Takes a second `RequiredHeaders` argument when the client was
+      generated with `--required-headers`.
     - `Interface::try_new(reqwest::Client, base_url) -> Result<Self, UrlParseError>` —
       convenience constructor that hides the `ReqwestClient` adapter for
       the most common case. Available when the generated crate enables

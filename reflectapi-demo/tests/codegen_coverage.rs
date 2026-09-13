@@ -88,6 +88,7 @@ fn write_python_client() {
             generate_testing: false,
             format: true,
             base_url: None,
+            required_headers: Default::default(),
         },
     )
     .unwrap();

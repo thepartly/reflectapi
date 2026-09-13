@@ -48,6 +48,13 @@ enum Commands {
         #[arg(short, long, value_delimiter = ',')]
         exclude_tags: Vec<String>,
 
+        /// Headers the generated client must be given at construction and
+        /// sends on every request. The service does not declare these —
+        /// they are the ones middleware in front of it requires.
+        /// Multiple headers can be specified.
+        #[arg(long, value_delimiter = ',')]
+        required_headers: Vec<String>,
+
         /// Typecheck the generated code
         #[arg(short, long, default_value = "false")]
         typecheck: bool,
@@ -146,6 +153,7 @@ fn main() -> anyhow::Result<()> {
             shared_modules,
             include_tags,
             exclude_tags,
+            required_headers,
             typecheck,
             format,
             instrument,
@@ -156,6 +164,7 @@ fn main() -> anyhow::Result<()> {
         } => {
             let include_tags = BTreeSet::from_iter(include_tags);
             let exclude_tags = BTreeSet::from_iter(exclude_tags);
+            let required_headers = BTreeSet::from_iter(required_headers);
 
             let schema_path = schema.unwrap_or(std::path::PathBuf::from("reflectapi.json"));
             let schema_as_json = std::fs::read_to_string(schema_path.clone())
@@ -170,7 +179,8 @@ fn main() -> anyhow::Result<()> {
                         .format(format)
                         .typecheck(typecheck)
                         .include_tags(include_tags)
-                        .exclude_tags(exclude_tags),
+                        .exclude_tags(exclude_tags)
+                        .required_headers(required_headers),
                 )?,
                 Language::Rust => {
                     let content = reflectapi::codegen::rust::generate(
@@ -181,6 +191,7 @@ fn main() -> anyhow::Result<()> {
                             .instrument(instrument)
                             .include_tags(include_tags)
                             .exclude_tags(exclude_tags)
+                            .required_headers(required_headers)
                             .shared_modules(
                                 shared_modules.unwrap_or_default().into_iter().collect(),
                             ),
@@ -197,6 +208,7 @@ fn main() -> anyhow::Result<()> {
                         generate_testing: python_testing,
                         format,
                         base_url: None,
+                        required_headers,
                     };
                     reflectapi::codegen::python::generate_files(schema, &config)?
                 }
@@ -205,7 +217,8 @@ fn main() -> anyhow::Result<()> {
                         &schema,
                         reflectapi::codegen::openapi::Config::default()
                             .include_tags(include_tags)
-                            .exclude_tags(exclude_tags),
+                            .exclude_tags(exclude_tags)
+                            .required_headers(required_headers),
                     )?;
                     let mut files = std::collections::BTreeMap::new();
                     files.insert("openapi.json".to_string(), content);

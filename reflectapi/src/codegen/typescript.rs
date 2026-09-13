@@ -19,6 +19,7 @@ pub struct Config {
     include_tags: BTreeSet<String>,
     /// Exclude handlers with these tags (empty means exclude none).
     exclude_tags: BTreeSet<String>,
+    required_headers: BTreeSet<String>,
 }
 
 impl Config {
@@ -41,6 +42,11 @@ impl Config {
         self.exclude_tags = exclude_tags;
         self
     }
+
+    pub fn required_headers(&mut self, required_headers: BTreeSet<String>) -> &mut Self {
+        self.required_headers = required_headers;
+        self
+    }
 }
 
 pub fn generate(
@@ -48,6 +54,8 @@ pub fn generate(
     config: &Config,
 ) -> anyhow::Result<BTreeMap<String, String>> {
     schema.strip_hidden_fields();
+    let required_headers =
+        crate::codegen::required_headers::resolve_for("typescript", &config.required_headers)?;
     let implemented_types = build_implemented_types();
 
     let mut rendered_types = HashMap::new();
@@ -83,6 +91,7 @@ pub fn generate(
     let file_template = templates::FileHeader {
         name: schema.name.clone(),
         description: schema.description.clone(),
+        required_headers: required_headers.clone(),
     };
     generated_code.push(file_template.render());
 
@@ -122,6 +131,7 @@ pub fn generate(
         end_boilerplate: END_BOILERPLATE,
         client_impl: generated_impl_client,
         implemented_functions: rendered_functions.join("\n"),
+        required_headers,
     };
     generated_code.push(file_template.render());
 
@@ -224,12 +234,14 @@ fn typecheck(main: &str, transport: &str) -> anyhow::Result<()> {
 }
 
 mod templates {
+    use crate::codegen::required_headers::RequiredHeader;
     use indexmap::IndexMap;
     use std::fmt::Write;
 
     pub(super) struct FileHeader {
         pub name: String,
         pub description: String,
+        pub required_headers: Vec<RequiredHeader>,
     }
 
     /// Render just the `// ...` header comment block that marks a file as
@@ -253,12 +265,47 @@ mod templates {
     impl FileHeader {
         pub fn render(&self) -> String {
             format!(
-                "{}\n\
-                 export function client(base: string | Client): __definition.Interface {{\n\
-                     return __implementation.__client(base)\n\
+                "{}{}\n\
+                 export function client(base: string | Client{}): __definition.Interface {{\n\
+                     return __implementation.__client(base{})\n\
                  }}",
-                header_comment(&self.name, &self.description)
+                header_comment(&self.name, &self.description),
+                render_required_headers_interface(&self.required_headers),
+                required_headers_parameter(&self.required_headers),
+                required_headers_argument(&self.required_headers),
             )
+        }
+    }
+
+    fn render_required_headers_interface(headers: &[RequiredHeader]) -> String {
+        if headers.is_empty() {
+            return String::new();
+        }
+
+        // A type alias, not an interface: only aliases of object literal
+        // types get an implicit index signature, which is what lets the
+        // value through `__with_required_headers`.
+        let mut out = String::from("\nexport type RequiredHeaders = {");
+        for header in headers {
+            write!(out, "\n  \"{}\": string;", header.name).unwrap();
+        }
+        out.push_str("\n};\n");
+        out
+    }
+
+    pub(super) fn required_headers_parameter(headers: &[RequiredHeader]) -> &'static str {
+        if headers.is_empty() {
+            ""
+        } else {
+            ", required_headers: RequiredHeaders"
+        }
+    }
+
+    pub(super) fn required_headers_argument(headers: &[RequiredHeader]) -> &'static str {
+        if headers.is_empty() {
+            ""
+        } else {
+            ", required_headers"
         }
     }
 
@@ -267,17 +314,24 @@ mod templates {
         pub end_boilerplate: &'static str,
         pub client_impl: String,
         pub implemented_functions: String,
+        pub required_headers: Vec<RequiredHeader>,
     }
 
     impl FileFooter {
         pub fn render(&self) -> String {
+            let transport = if self.required_headers.is_empty() {
+                "typeof base === 'string' ? new ClientInstance(base) : base".to_owned()
+            } else {
+                "__with_required_headers(typeof base === 'string' ? new ClientInstance(base) : base, required_headers)".to_owned()
+            };
+
             format!(
                 "\nnamespace __implementation {{\n\
                  \n\
                  {}\n\
                  \n\
-                 export function __client(base: string | Client): __definition.Interface {{\n\
-                     const client_instance = typeof base === 'string' ? new ClientInstance(base) : base;\n\
+                 export function __client(base: string | Client{}): __definition.Interface {{\n\
+                     const client_instance = {};\n\
                      return {{ impl: {} }}.impl\n\
                  }}\n\
                  \n\
@@ -287,6 +341,8 @@ mod templates {
                  \n\
                  }}\n",
                 self.start_boilerplate,
+                required_headers_parameter(&self.required_headers),
+                transport,
                 self.client_impl,
                 self.end_boilerplate,
                 self.implemented_functions,
