@@ -4,6 +4,7 @@ mod basic;
 mod enums;
 mod generics;
 mod namespace;
+mod required_headers;
 mod serde;
 
 mod test_lib;

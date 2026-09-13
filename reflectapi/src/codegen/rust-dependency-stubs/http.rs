@@ -32,7 +32,7 @@ impl StatusCode {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HeaderMap<T = HeaderValue> {
     _phantom: core::marker::PhantomData<T>,
 }
@@ -45,13 +45,30 @@ impl<T> HeaderMap<T> {
     pub fn insert(&mut self, _name: HeaderName, _value: T) {
         unimplemented!()
     }
+
+    pub fn contains_key(&self, _name: &HeaderName) -> bool {
+        unimplemented!()
+    }
 }
 
-#[derive(Clone, Copy)]
+impl<'a, T> IntoIterator for &'a HeaderMap<T> {
+    type Item = (&'a HeaderName, &'a T);
+    type IntoIter = std::vec::IntoIter<(&'a HeaderName, &'a T)>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        unimplemented!()
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct HeaderName(());
 
 impl HeaderName {
     pub fn from_bytes(_bytes: &[u8]) -> Result<Self, InvalidHeaderName> {
+        unimplemented!()
+    }
+
+    pub fn from_static(_s: &'static str) -> Self {
         unimplemented!()
     }
 }
@@ -71,6 +88,7 @@ pub mod header {
     pub static ACCEPT: super::HeaderName = super::HeaderName(());
 }
 
+#[derive(Clone, Debug)]
 pub struct HeaderValue(());
 
 impl HeaderValue {

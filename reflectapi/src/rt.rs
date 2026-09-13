@@ -1,6 +1,7 @@
 use std::{future::Future, pin::Pin};
 
 use futures_util::Stream;
+pub use http::{HeaderMap, HeaderName, HeaderValue};
 pub use url::{ParseError as UrlParseError, Url};
 
 pub fn error_to_string<T: serde::Serialize>(error: &T) -> String {
@@ -391,6 +392,46 @@ async fn __collect_byte_stream<E>(
     Ok(buf.freeze())
 }
 
+#[derive(Clone, Debug)]
+pub struct WithRequiredHeaders<C> {
+    inner: C,
+    headers: HeaderMap,
+}
+
+impl<C> WithRequiredHeaders<C> {
+    pub fn new(inner: C, headers: HeaderMap) -> Self {
+        Self { inner, headers }
+    }
+
+    pub fn inner(&self) -> &C {
+        &self.inner
+    }
+
+    pub fn into_inner(self) -> C {
+        self.inner
+    }
+}
+
+impl<C: Client> Client for WithRequiredHeaders<C> {
+    type Error = C::Error;
+
+    fn base_url(&self) -> &Url {
+        self.inner.base_url()
+    }
+
+    fn request(
+        &self,
+        mut request: Request,
+    ) -> impl Future<Output = Result<Response<Self::Error>, Self::Error>> {
+        for (name, value) in &self.headers {
+            if !request.headers.contains_key(name) {
+                request.headers.insert(name.clone(), value.clone());
+            }
+        }
+        self.inner.request(request)
+    }
+}
+
 /// Built-in [`Client`] adapter pairing a reqwest-style HTTP client with
 /// a base URL. The default `T` is [`reqwest::Client`]; the type alias
 /// [`ReqwestMiddlewareClient`] specialises it for
@@ -530,6 +571,72 @@ mod tests {
 
     #[derive(Debug, serde::Deserialize, serde::Serialize)]
     struct ShapeError {}
+
+    #[derive(Clone)]
+    struct HeaderEchoClient {
+        base_url: Url,
+        seen: std::sync::Arc<std::sync::Mutex<Option<HeaderMap>>>,
+    }
+
+    impl Client for HeaderEchoClient {
+        type Error = std::convert::Infallible;
+
+        fn base_url(&self) -> &Url {
+            &self.base_url
+        }
+
+        async fn request(&self, request: Request) -> Result<Response<Self::Error>, Self::Error> {
+            *self.seen.lock().unwrap() = Some(request.headers.clone());
+            Ok(Response {
+                status: http::StatusCode::OK,
+                headers: HeaderMap::new(),
+                body: Box::pin(stream::once(async { Ok(bytes::Bytes::from_static(b"{}")) })),
+            })
+        }
+    }
+
+    fn required_headers_request(call_headers: HeaderMap) -> HeaderMap {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(None));
+        let inner = HeaderEchoClient {
+            base_url: Url::parse("https://example.com").unwrap(),
+            seen: seen.clone(),
+        };
+
+        let mut required = HeaderMap::new();
+        required.insert(
+            HeaderName::from_static("x-api-key"),
+            HeaderValue::from_static("from-client"),
+        );
+        let client = WithRequiredHeaders::new(inner, required);
+
+        futures::executor::block_on(client.request(Request {
+            path: "/shape.test".to_owned(),
+            headers: call_headers,
+            body: bytes::Bytes::new(),
+        }))
+        .unwrap();
+
+        let sent = seen.lock().unwrap().take();
+        sent.unwrap()
+    }
+
+    #[test]
+    fn required_headers_are_added_to_every_request() {
+        let sent = required_headers_request(HeaderMap::new());
+        assert_eq!(sent.get("x-api-key").unwrap(), "from-client");
+    }
+
+    #[test]
+    fn per_call_header_wins_over_required_header() {
+        let mut call_headers = HeaderMap::new();
+        call_headers.insert(
+            HeaderName::from_static("x-api-key"),
+            HeaderValue::from_static("from-call"),
+        );
+
+        let sent = required_headers_request(call_headers);
+        assert_eq!(sent.get("x-api-key").unwrap(), "from-call");
+    }
 
     #[test]
     fn client_request_shape_is_used() {

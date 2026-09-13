@@ -28,6 +28,7 @@ pub struct Config {
     include_tags: BTreeSet<String>,
     /// Exclude handlers with these tags (empty means exclude none).
     exclude_tags: BTreeSet<String>,
+    required_headers: BTreeSet<String>,
 }
 
 impl Config {
@@ -45,22 +46,30 @@ impl Config {
         self.exclude_tags = tags;
         self
     }
+
+    pub fn required_headers(&mut self, required_headers: BTreeSet<String>) -> &mut Self {
+        self.required_headers = required_headers;
+        self
+    }
 }
 
 pub fn generate(schema: &crate::Schema, config: &Config) -> anyhow::Result<String> {
-    let spec = generate_spec(schema, config);
+    let spec = generate_spec(schema, config)?;
     Ok(serde_json::to_string_pretty(&spec)?)
 }
 
-pub fn generate_spec(schema: &crate::Schema, config: &Config) -> Spec {
+pub fn generate_spec(schema: &crate::Schema, config: &Config) -> anyhow::Result<Spec> {
+    let required_headers =
+        crate::codegen::required_headers::resolve_for("openapi", &config.required_headers)?;
     let mut schema = schema.clone();
     schema.strip_hidden_fields();
-    Converter {
+    Ok(Converter {
         config,
         components: Default::default(),
         in_progress: Default::default(),
+        required_headers,
     }
-    .convert(&schema)
+    .convert(&schema))
 }
 
 impl From<&crate::Schema> for Spec {
@@ -69,6 +78,7 @@ impl From<&crate::Schema> for Spec {
             config: &Config::default(),
             components: Default::default(),
             in_progress: Default::default(),
+            required_headers: Vec::new(),
         }
         .convert(schema)
     }
@@ -434,6 +444,7 @@ struct Converter<'a> {
     /// promoted to `components.schemas` and so don't benefit from
     /// the stub-on-insert guard elsewhere in this module.
     in_progress: std::collections::HashSet<String>,
+    required_headers: Vec<crate::codegen::required_headers::RequiredHeader>,
 }
 
 impl Converter<'_> {
@@ -520,9 +531,7 @@ impl Converter<'_> {
             tags: f.tags.clone(),
             description: sanitize_description(&f.description),
             deprecated: f.deprecated(),
-            parameters: f
-                .input_headers()
-                .map_or_else(Vec::new, |headers| self.convert_headers(schema, headers)),
+            parameters: self.convert_parameters(schema, f),
             request_body: f.input_type().map(|ty| RequestBody {
                 content: BTreeMap::from([(
                     // TODO msgpack
@@ -554,6 +563,38 @@ impl Converter<'_> {
                 .get(r.ref_path.strip_prefix("#/components/schemas/").unwrap())
                 .unwrap(),
         }
+    }
+
+    fn convert_parameters(
+        &mut self,
+        schema: &crate::Schema,
+        f: &crate::Function,
+    ) -> Vec<Parameter> {
+        let mut parameters = f
+            .input_headers()
+            .map_or_else(Vec::new, |headers| self.convert_headers(schema, headers));
+
+        for header in &self.required_headers {
+            if parameters
+                .iter()
+                .any(|p| p.name.eq_ignore_ascii_case(&header.name))
+            {
+                continue;
+            }
+
+            parameters.push(Parameter {
+                name: header.name.clone(),
+                location: In::Header,
+                required: true,
+                schema: Inline(Schema::Flat(FlatSchema {
+                    description: String::new(),
+                    ty: Type::String { format: None },
+                })),
+                description: String::new(),
+            });
+        }
+
+        parameters
     }
 
     fn convert_headers(

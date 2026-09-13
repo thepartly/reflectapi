@@ -49,6 +49,7 @@ pub struct Config {
     pub format: bool,
     /// Base URL for the API (optional)
     pub base_url: Option<String>,
+    pub required_headers: BTreeSet<String>,
 }
 
 impl Default for Config {
@@ -60,6 +61,7 @@ impl Default for Config {
             generate_testing: false,
             format: true,
             base_url: None,
+            required_headers: Default::default(),
         }
     }
 }
@@ -1554,6 +1556,8 @@ fn build_python_generation(
     config: &Config,
 ) -> anyhow::Result<PythonGeneration> {
     schema.strip_hidden_fields();
+    let required_headers =
+        crate::codegen::required_headers::resolve_for("python", &config.required_headers)?;
     // `PhantomData<T>` is a Rust-only type-system marker — it carries
     // no wire data. Strip every such field before rendering so the
     // Python model doesn't reference a non-existent
@@ -1659,6 +1663,16 @@ fn build_python_generation(
         .any(|f| matches!(f.output_type, OutputType::Stream { .. }));
     let has_partial_models = schema_has_partial_field(&schema);
     let python_metadata = collect_python_metadata_usage(&all_type_names);
+    let mut extra_runtime_imports: Vec<String> =
+        python_metadata.runtime_imports.iter().cloned().collect();
+    if !required_headers.is_empty() {
+        if config.generate_async {
+            extra_runtime_imports.push("AsyncRequiredHeadersMiddleware".to_string());
+        }
+        if config.generate_sync {
+            extra_runtime_imports.push("SyncRequiredHeadersMiddleware".to_string());
+        }
+    }
 
     // Generate imports
     let imports = templates::Imports {
@@ -1668,7 +1682,7 @@ fn build_python_generation(
         has_enums,
         has_warnings,
         extra_stdlib_imports: python_metadata.stdlib_imports.iter().cloned().collect(),
-        extra_runtime_imports: python_metadata.runtime_imports.iter().cloned().collect(),
+        extra_runtime_imports,
         has_generics: true,
         has_annotated: true, // Always include for external type fallbacks
         has_literal,
@@ -1878,6 +1892,10 @@ fn build_python_generation(
         generate_async: config.generate_async,
         generate_sync: config.generate_sync,
         base_url: config.base_url.clone(),
+        required_headers: required_headers
+            .iter()
+            .map(|header| (header.name.clone(), header.python_ident()))
+            .collect(),
     };
     let client_code = client_template.render();
 
@@ -6412,6 +6430,7 @@ pub mod templates {
         pub generate_async: bool,
         pub generate_sync: bool,
         pub base_url: Option<String>,
+        pub required_headers: Vec<(String, String)>,
     }
 
     impl ClientClass {
@@ -6455,10 +6474,7 @@ pub mod templates {
                 } else {
                     writeln!(s, "        base_url: str,").unwrap();
                 }
-                writeln!(s, "        **kwargs: Any,").unwrap();
-                writeln!(s, "    ) -> None:").unwrap();
-                writeln!(s, "        super().__init__(base_url, **kwargs)").unwrap();
-                writeln!(s).unwrap();
+                self.write_init_tail(&mut s, "AsyncRequiredHeadersMiddleware");
                 for group in &self.function_groups {
                     writeln!(s).unwrap();
                     writeln!(
@@ -6511,10 +6527,7 @@ pub mod templates {
                 } else {
                     writeln!(s, "        base_url: str,").unwrap();
                 }
-                writeln!(s, "        **kwargs: Any,").unwrap();
-                writeln!(s, "    ) -> None:").unwrap();
-                writeln!(s, "        super().__init__(base_url, **kwargs)").unwrap();
-                writeln!(s).unwrap();
+                self.write_init_tail(&mut s, "SyncRequiredHeadersMiddleware");
                 for group in &self.function_groups {
                     writeln!(s).unwrap();
                     writeln!(
@@ -6534,6 +6547,33 @@ pub mod templates {
 
             writeln!(s).unwrap();
             s
+        }
+
+        fn write_init_tail(&self, s: &mut String, middleware: &str) {
+            if !self.required_headers.is_empty() {
+                writeln!(s, "        *,").unwrap();
+                for (_, argument) in &self.required_headers {
+                    writeln!(s, "        {argument}: str,").unwrap();
+                }
+            }
+            writeln!(s, "        **kwargs: Any,").unwrap();
+            writeln!(s, "    ) -> None:").unwrap();
+
+            if self.required_headers.is_empty() {
+                writeln!(s, "        super().__init__(base_url, **kwargs)").unwrap();
+            } else {
+                writeln!(s, "        required_headers = {{").unwrap();
+                for (name, argument) in &self.required_headers {
+                    writeln!(s, "            \"{name}\": {argument},").unwrap();
+                }
+                writeln!(s, "        }}").unwrap();
+                writeln!(s, "        kwargs[\"middleware\"] = [").unwrap();
+                writeln!(s, "            {middleware}(required_headers),").unwrap();
+                writeln!(s, "            *(kwargs.pop(\"middleware\", None) or []),").unwrap();
+                writeln!(s, "        ]").unwrap();
+                writeln!(s, "        super().__init__(base_url, **kwargs)").unwrap();
+            }
+            writeln!(s).unwrap();
         }
 
         fn write_function(

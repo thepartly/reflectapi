@@ -120,6 +120,46 @@ class SyncLoggingMiddleware(SyncMiddleware):
         return response
 
 
+def _with_required_headers(
+    request: Request, required: dict[str, str]
+) -> Request:
+    present = {name.lower() for name in request.headers}
+    missing = {
+        name: value
+        for name, value in required.items()
+        if name.lower() not in present
+    }
+    if not missing:
+        return request
+    return Request(
+        path=request.path,
+        headers={**request.headers, **missing},
+        body=request.body,
+    )
+
+
+class AsyncRequiredHeadersMiddleware(AsyncMiddleware):
+    """Add a fixed set of headers to every request."""
+
+    def __init__(self, headers: dict[str, str]) -> None:
+        self.headers = headers
+
+    async def handle(
+        self, request: Request, next_call: AsyncNextHandler
+    ) -> Response:
+        return await next_call(_with_required_headers(request, self.headers))
+
+
+class SyncRequiredHeadersMiddleware(SyncMiddleware):
+    """Sync counterpart of :class:`AsyncRequiredHeadersMiddleware`."""
+
+    def __init__(self, headers: dict[str, str]) -> None:
+        self.headers = headers
+
+    def handle(self, request: Request, next_call: SyncNextHandler) -> Response:
+        return next_call(_with_required_headers(request, self.headers))
+
+
 class RetryMiddleware(AsyncMiddleware):
     """Retry transient failures with exponential backoff and jitter.
 

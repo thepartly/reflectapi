@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- New `--required-headers` codegen option (`required_headers` on each language's `Config`): names headers the service does not declare — because middleware in front of it consumes them — that generated clients must nonetheless send. Clients cannot be constructed without them and add them to every request; a header set for an individual call still wins. TypeScript takes a `RequiredHeaders` object in `client(base, ...)`, Rust takes a `RequiredHeaders` struct in `Interface::new` / `try_new` (wrapping the transport in the new `reflectapi::rt::WithRequiredHeaders`), constructible either as a struct literal or via the generated `RequiredHeaders::new`, which takes one `HeaderValue` per header in declaration order, Python takes one keyword-only argument per header and installs the new `SyncRequiredHeadersMiddleware` / `AsyncRequiredHeadersMiddleware`, and OpenAPI emits a required `in: header` parameter per operation.
+- **Breaking (library API):** `reflectapi::codegen::openapi::generate_spec` now returns `anyhow::Result<Spec>` so an invalid `required_headers` name is reported rather than silently dropped. `Spec::from(&schema)` is unchanged.
+
 - **Security:** instrumented Rust clients (`--instrument`) no longer record request bodies and headers as tracing span fields. The generated `#[tracing::instrument]` attribute now uses `skip_all`, so credentials in request payloads (passwords, tokens) can no longer reach logs in cleartext via their `Debug` output. Spans are still named after the endpoint path. Regenerate clients to pick this up.
 
 ## 0.17.6

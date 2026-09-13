@@ -4,6 +4,7 @@
 // them in under aliases so lib.ts itself can keep using DOM types.
 import type {
   Client,
+  Request as ClientRequest,
   RequestOptions,
   Response as ClientResponse,
 } from "./generated.transport";
@@ -168,6 +169,26 @@ export class Err<E> {
       return `Other Error: ${JSON.stringify(this.value.other_err)}`;
     }
   }
+}
+
+export function __with_required_headers(
+  client: Client,
+  required: Record<string, string>,
+): Client {
+  return {
+    request(request: ClientRequest) {
+      const present = new Set(
+        Object.keys(request.headers).map((name) => name.toLowerCase()),
+      );
+      const headers = { ...request.headers };
+      for (const [name, value] of Object.entries(required)) {
+        if (!present.has(name.toLowerCase())) {
+          headers[name] = value;
+        }
+      }
+      return client.request({ ...request, headers });
+    },
+  };
 }
 
 export function __request<I, H, O, E>(
