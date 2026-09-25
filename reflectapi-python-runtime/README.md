@@ -15,8 +15,9 @@ directly.
 - `ApplicationError`, `NetworkError`, `TimeoutError`, `ValidationError` —
   exceptions raised by the generated methods on non-2xx, transport, and
   validation failures respectively.
-- `ReflectapiOption` — three-state Option used by the generated models
-  (`some` / `none` / `undefined`) so absent and explicit-null can round-trip.
+- `ReflectapiPartialModel` — base class for generated models with three-state
+  fields (value / explicit-null / absent) so absent and explicit-null can
+  round-trip, tracked via Pydantic's `model_fields_set`.
 - Authentication helpers (`BearerTokenAuth`, `APIKeyAuth`, `BasicAuth`,
   `OAuth2ClientCredentialsAuth`, `OAuth2AuthorizationCodeAuth`).
 - Middleware, batching, and testing utilities (`MockClient`,

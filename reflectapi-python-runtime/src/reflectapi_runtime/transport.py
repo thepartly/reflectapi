@@ -26,7 +26,16 @@ class Request:
 
 @dataclass(frozen=True)
 class Response:
-    """Transport response returned by custom ReflectAPI Python clients."""
+    """Transport response returned by custom ReflectAPI Python clients.
+
+    ``body`` must be the *decoded* entity bytes — i.e. after any
+    ``Content-Encoding`` (gzip, br, ...) has been reversed. Adapters that
+    read ``httpx.Response.content`` get this for free; adapters over rawer
+    transports must decompress before constructing the DTO. ``headers`` may
+    still carry the original wire headers (including ``Content-Encoding``);
+    the runtime treats them as informational and never re-applies them to
+    ``body``.
+    """
 
     status: int
     # Permissive headers type so adapters wrapping httpx.Headers (which is

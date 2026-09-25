@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 import json
 import time
@@ -48,6 +49,119 @@ def _json_serializer(obj: Any) -> Any:
 
 
 # Note: AsyncAuthWrapper removed - AuthHandler now inherits from httpx.Auth directly
+
+
+def _synthesize_raw_response(
+    status: int, headers: Any, body: bytes | str | None
+) -> httpx.Response:
+    """Build a stand-in ``httpx.Response`` for ``TransportMetadata.raw_response``.
+
+    Used only when a custom transport returns a structural :class:`Response`
+    without a wire-level ``raw`` object to surface. Response parsing never
+    goes through this synthetic object — it exists purely so
+    ``raw_response`` keeps its ``httpx.Response`` shape for callers.
+
+    The structural body is already decoded (``httpx.Response.content``
+    decompresses on read), but the headers may still advertise
+    ``Content-Encoding``. Passing both back into
+    ``httpx.Response(content=...)`` would make httpx decompress the decoded
+    bytes a second time and raise ``DecodingError``, so the compression
+    headers are stripped. ``Content-Length`` describes the wire body, which
+    the structural body (decoded, possibly middleware-rewritten) need not
+    match, so it is always dropped.
+    """
+    sanitized_headers = httpx.Headers(headers)
+    if "content-encoding" in sanitized_headers:
+        del sanitized_headers["content-encoding"]
+    if "content-length" in sanitized_headers:
+        del sanitized_headers["content-length"]
+    return httpx.Response(
+        status_code=status,
+        headers=sanitized_headers,
+        content=body,
+    )
+
+
+def _parse_json_body(body: bytes | str | None) -> Any:
+    """Parse a response body as JSON, raising ``ValidationError`` on failure."""
+    try:
+        return json.loads(body if body is not None else b"")
+    except Exception as e:
+        raise ValidationError(
+            f"Failed to parse JSON response: {e}",
+            cause=e,
+        )
+
+
+def _raise_for_error_status(
+    status: int,
+    body: bytes | str | None,
+    metadata: TransportMetadata,
+    error_model: type | None = None,
+) -> None:
+    """Raise ``ApplicationError`` for HTTP error responses (4xx, 5xx).
+
+    If ``error_model`` is provided, attempts to deserialize the error body
+    into a typed Pydantic model before raising.
+    """
+    if status < 400:
+        return
+
+    error_data = None
+    typed_error = None
+    with contextlib.suppress(Exception):
+        error_data = json.loads(body)
+
+    # Try typed error deserialization; fall back to raw error_data
+    if error_model is not None and error_data is not None:
+        with contextlib.suppress(Exception):
+            typed_error = TypeAdapter(error_model).validate_python(error_data)
+
+    message = f"API error {status}: {httpx.codes.get_reason_phrase(status)}"
+    if error_data:
+        message += f" - {error_data}"
+
+    raise ApplicationError(
+        message,
+        metadata=metadata,
+        error_data=error_data,
+        typed_error=typed_error,
+    )
+
+
+def _validate_body(
+    body: bytes | str | None,
+    response_model: type[T] | type[Any] | str | _NoValidation,
+    metadata: TransportMetadata,
+) -> ApiResponse[T] | ApiResponse[dict[str, Any]]:
+    """Validate a response body using Pydantic via TypeAdapter.
+
+    TypeAdapter handles all types: plain BaseModel, Generic types
+    (list[Model], dict[str, Model]), Union types, and primitives.
+    Uses validate_json for Pydantic's fast Rust-based JSON parsing when raw
+    bytes are available.
+    """
+    # Handle special cases where no validation is needed
+    if (
+        response_model == "Any"
+        or response_model is NO_VALIDATION
+        or response_model is Any
+    ):
+        return ApiResponse(_parse_json_body(body), metadata)
+
+    try:
+        ta = TypeAdapter(response_model)
+        if isinstance(body, (bytes, bytearray, str)):
+            validated_data = ta.validate_json(body)
+        else:
+            validated_data = ta.validate_python(_parse_json_body(body))
+        return ApiResponse(validated_data, metadata)
+    except PydanticValidationError as e:
+        raise ValidationError(
+            f"Response validation failed: {e}",
+            validation_errors=e.errors(),
+            cause=e,
+        )
 
 
 class ClientBase(ABC):
@@ -389,85 +503,6 @@ class ClientBase(ABC):
 
         return terminal
 
-    def _handle_error_response(
-        self,
-        response: httpx.Response,
-        metadata: TransportMetadata,
-        error_model: type | None = None,
-    ) -> None:
-        """Handle HTTP error responses (4xx, 5xx).
-
-        If error_model is provided, attempts to deserialize the error body
-        into a typed Pydantic model before raising ApplicationError.
-        """
-        if response.status_code >= 400:
-            error_data = None
-            typed_error = None
-            try:
-                error_data = response.json()
-            except Exception:
-                pass
-
-            # Try typed error deserialization
-            if error_model is not None and error_data is not None:
-                try:
-                    ta = TypeAdapter(error_model)
-                    typed_error = ta.validate_python(error_data)
-                except Exception:
-                    pass  # Fall back to raw error_data
-
-            raise ApplicationError.from_response(
-                response, metadata, error_data, typed_error=typed_error
-            )
-
-    def _parse_json_response(self, response: httpx.Response) -> dict[str, Any]:
-        """Parse JSON response with error handling."""
-        try:
-            return response.json()
-        except Exception as e:
-            raise ValidationError(
-                f"Failed to parse JSON response: {e}",
-                cause=e,
-            )
-
-    def _validate_response_model(
-        self,
-        response: httpx.Response,
-        response_model: type[T] | type[Any] | str | _NoValidation,
-        metadata: TransportMetadata,
-    ) -> ApiResponse[T] | ApiResponse[dict[str, Any]]:
-        """Validate response using Pydantic model via TypeAdapter.
-
-        TypeAdapter handles all types: plain BaseModel, Generic types
-        (list[Model], dict[str, Model]), Union types, and primitives.
-        Uses validate_json for performance when raw bytes are available.
-        """
-        # Handle special cases where no validation is needed
-        if response_model == "Any" or response_model is NO_VALIDATION:
-            json_response = self._parse_json_response(response)
-            return ApiResponse(json_response, metadata)
-
-        if response_model is Any:
-            json_response = self._parse_json_response(response)
-            return ApiResponse(json_response, metadata)
-
-        try:
-            ta = TypeAdapter(response_model)
-            # Prefer validate_json for Pydantic's fast Rust-based JSON parsing
-            content = response.content
-            if isinstance(content, (bytes, bytearray)):
-                validated_data = ta.validate_json(content)
-            else:
-                json_response = self._parse_json_response(response)
-                validated_data = ta.validate_python(json_response)
-            return ApiResponse(validated_data, metadata)
-        except PydanticValidationError as e:
-            raise ValidationError(
-                f"Response validation failed: {e}",
-                validation_errors=e.errors(),
-                cause=e,
-            )
-
     def _make_request(
         self,
 
@@ -501,33 +536,33 @@ class ClientBase(ABC):
             # response so any middleware transforms apply; `raw` is used
             # only as the metadata sidecar (preserves `.request` /
             # `.extensions` / `.history` from the real wire response when
-            # available, fallback to the synthetic for custom transports).
-            parsed_response = httpx.Response(
-                status_code=client_response.status,
-                headers=client_response.headers,
-                content=client_response.body,
-            )
+            # available, fallback to a synthetic for custom transports).
             metadata = TransportMetadata(
                 status_code=client_response.status,
                 headers=client_response.headers,
                 timing=time.time() - start_time,
-                raw_response=client_response.raw or parsed_response,
+                raw_response=client_response.raw
+                or _synthesize_raw_response(
+                    client_response.status,
+                    client_response.headers,
+                    client_response.body,
+                ),
             )
 
             # Handle error responses
-            self._handle_error_response(
-                parsed_response, metadata, error_model=error_model
+            _raise_for_error_status(
+                client_response.status,
+                client_response.body,
+                metadata,
+                error_model=error_model,
             )
 
             # Validate and return response
             if response_model is not None:
-                return self._validate_response_model(
-                    parsed_response, response_model, metadata
-                )
+                return _validate_body(client_response.body, response_model, metadata)
             else:
-                # No response_model provided - parse JSON into dict
-                json_response = self._parse_json_response(parsed_response)
-                return ApiResponse(json_response, metadata)
+                # No response_model provided - parse JSON as-is
+                return ApiResponse(_parse_json_body(client_response.body), metadata)
 
         except httpx.TimeoutException as e:
             raise TimeoutError.from_httpx_timeout(e)
@@ -581,7 +616,12 @@ class ClientBase(ABC):
             if response.status_code >= 400:
                 # read_full body so error parsing can see it
                 response.read()
-                self._handle_error_response(response, metadata, error_model=error_model)
+                _raise_for_error_status(
+                    response.status_code,
+                    response.content,
+                    metadata,
+                    error_model=error_model,
+                )
 
             adapter: TypeAdapter[Any] | None = None
             if (
@@ -947,73 +987,6 @@ class AsyncClientBase(ABC):
 
         return terminal
 
-    def _handle_error_response(
-        self,
-        response: httpx.Response,
-        metadata: TransportMetadata,
-        error_model: type | None = None,
-    ) -> None:
-        """Handle HTTP error responses (4xx, 5xx)."""
-        if response.status_code >= 400:
-            error_data = None
-            typed_error = None
-            try:
-                error_data = response.json()
-            except Exception:
-                pass
-
-            if error_model is not None and error_data is not None:
-                try:
-                    ta = TypeAdapter(error_model)
-                    typed_error = ta.validate_python(error_data)
-                except Exception:
-                    pass
-
-            raise ApplicationError.from_response(
-                response, metadata, error_data, typed_error=typed_error
-            )
-
-    def _parse_json_response(self, response: httpx.Response) -> dict[str, Any]:
-        """Parse JSON response with error handling."""
-        try:
-            return response.json()
-        except Exception as e:
-            raise ValidationError(
-                f"Failed to parse JSON response: {e}",
-                cause=e,
-            )
-
-    def _validate_response_model(
-        self,
-        response: httpx.Response,
-        response_model: type[T] | type[Any] | str | _NoValidation,
-        metadata: TransportMetadata,
-    ) -> ApiResponse[T] | ApiResponse[dict[str, Any]]:
-        """Validate response using Pydantic model via TypeAdapter."""
-        if response_model == "Any" or response_model is NO_VALIDATION:
-            json_response = self._parse_json_response(response)
-            return ApiResponse(json_response, metadata)
-
-        if response_model is Any:
-            json_response = self._parse_json_response(response)
-            return ApiResponse(json_response, metadata)
-
-        try:
-            ta = TypeAdapter(response_model)
-            content = response.content
-            if isinstance(content, (bytes, bytearray)):
-                validated_data = ta.validate_json(content)
-            else:
-                json_response = self._parse_json_response(response)
-                validated_data = ta.validate_python(json_response)
-            return ApiResponse(validated_data, metadata)
-        except PydanticValidationError as e:
-            raise ValidationError(
-                f"Response validation failed: {e}",
-                validation_errors=e.errors(),
-                cause=e,
-            )
-
     async def _make_request(
         self,
 
@@ -1047,32 +1020,32 @@ class AsyncClientBase(ABC):
             # response so any middleware transforms apply; `raw` is used
             # only as the metadata sidecar (preserves `.request` /
             # `.extensions` / `.history` from the real wire response when
-            # available, fallback to the synthetic for custom transports).
-            parsed_response = httpx.Response(
-                status_code=client_response.status,
-                headers=client_response.headers,
-                content=client_response.body,
-            )
+            # available, fallback to a synthetic for custom transports).
             metadata = TransportMetadata(
                 status_code=client_response.status,
                 headers=client_response.headers,
                 timing=time.time() - start_time,
-                raw_response=client_response.raw or parsed_response,
+                raw_response=client_response.raw
+                or _synthesize_raw_response(
+                    client_response.status,
+                    client_response.headers,
+                    client_response.body,
+                ),
             )
 
             # Handle error responses
-            self._handle_error_response(
-                parsed_response, metadata, error_model=error_model
+            _raise_for_error_status(
+                client_response.status,
+                client_response.body,
+                metadata,
+                error_model=error_model,
             )
 
             # Validate and return response
             if response_model is not None:
-                return self._validate_response_model(
-                    parsed_response, response_model, metadata
-                )
+                return _validate_body(client_response.body, response_model, metadata)
             else:
-                json_response = self._parse_json_response(parsed_response)
-                return ApiResponse(json_response, metadata)
+                return ApiResponse(_parse_json_body(client_response.body), metadata)
 
         except httpx.TimeoutException as e:
             raise TimeoutError.from_httpx_timeout(e)
@@ -1125,7 +1098,12 @@ class AsyncClientBase(ABC):
             metadata = TransportMetadata.from_response(response, start_time)
             if response.status_code >= 400:
                 await response.aread()
-                self._handle_error_response(response, metadata, error_model=error_model)
+                _raise_for_error_status(
+                    response.status_code,
+                    response.content,
+                    metadata,
+                    error_model=error_model,
+                )
 
             adapter: TypeAdapter[Any] | None = None
             if (
