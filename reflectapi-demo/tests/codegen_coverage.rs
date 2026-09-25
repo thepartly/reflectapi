@@ -11,7 +11,8 @@
 //! `target/codegen-coverage-client/`. CI imports the generated
 //! package; `_rebuild_models()` raises if any annotation points at
 //! a symbol the codegen never defined, so the import step is the
-//! actual assertion.
+//! actual assertion. It also writes `wire_samples.json`, which
+//! `tests/python/test_wire.py` replays through the generated client.
 
 use std::sync::Arc;
 
@@ -48,6 +49,14 @@ async fn codegen_coverage(
     Ok(coverage::CoverageResponse { ok: true })
 }
 
+async fn wire_echo(
+    _: Arc<State>,
+    request: wire::WireRequest,
+    _headers: reflectapi::Empty,
+) -> Result<wire::WireRequest, reflectapi::Infallible> {
+    Ok(request)
+}
+
 async fn commerce_group(
     _: Arc<State>,
     _request: reflectapi::Empty,
@@ -69,6 +78,10 @@ fn builder() -> reflectapi::Builder<Arc<State>> {
         .route(codegen_coverage, |b| {
             b.name("coverage.edges")
                 .description("Coverage fixtures for codegen edge cases")
+        })
+        .route(wire_echo, |b| {
+            b.name("coverage.wire")
+                .description("Echoes its request, for wire-format round trips")
         })
         .route(commerce_group, |b| {
             b.name("coverage.commerce_group")
@@ -98,18 +111,19 @@ fn write_python_client() {
         .join("codegen_coverage_client");
     // Wipe between runs so removed files don't linger as stale orphans.
     let _ = std::fs::remove_dir_all(&out_dir);
-    for (filename, mut src) in files {
-        // The existing CI smoke job imports this generated fixture package.
-        // Run wire assertions there, using the actual generated models.
-        if filename == "__init__.py" {
-            src.push_str(include_str!("untagged_newtype_wire.py"));
-        }
+    for (filename, src) in files {
         let path = out_dir.join(filename);
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).unwrap();
         }
         std::fs::write(path, src).unwrap();
     }
+
+    std::fs::write(
+        out_dir.parent().unwrap().join("wire_samples.json"),
+        serde_json::to_string_pretty(&wire::samples()).unwrap(),
+    )
+    .unwrap();
 }
 
 mod order {
@@ -359,16 +373,7 @@ mod coverage {
     }
 
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
-    #[serde(untagged)]
-    pub enum UntaggedNewtype {
-        Text(String),
-        Number(i64),
-        Object { label: String },
-    }
-
-    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct CoverageRequest {
-        pub untagged_newtype: UntaggedNewtype,
         pub keywords: PyKeywordFields,
         pub reserved: PydanticReservedFields,
         pub tree: TreeNode,
@@ -390,5 +395,85 @@ mod coverage {
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct CoverageResponse {
         pub ok: bool,
+    }
+}
+
+/// Untagged enums whose serde wire shapes the generated Python client must
+/// reproduce exactly. `samples()` is serialized by serde and replayed through
+/// the generated client by `tests/python/test_wire.py`.
+mod wire {
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct Label {
+        pub name: String,
+    }
+
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(untagged)]
+    pub enum Identifier {
+        Text(String),
+        Number(i64),
+        Pair(u8, String),
+        Wrapped(Label),
+        Named { label: String, count: u32 },
+        Nothing,
+    }
+
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(untagged)]
+    pub enum OneOrMany<T> {
+        One(T),
+        Many(Vec<T>),
+    }
+
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct WireRequest {
+        pub value: Identifier,
+        pub values: Vec<Identifier>,
+        pub one_or_many: OneOrMany<u32>,
+    }
+
+    pub fn samples() -> Vec<serde_json::Value> {
+        let variants = [
+            Identifier::Text("1HGCM82633A004352".into()),
+            Identifier::Number(-7),
+            Identifier::Pair(3, "three".into()),
+            Identifier::Wrapped(Label {
+                name: "wrapped".into(),
+            }),
+            Identifier::Named {
+                label: "named".into(),
+                count: 2,
+            },
+            Identifier::Nothing,
+        ];
+        variants
+            .into_iter()
+            .enumerate()
+            .map(|(i, value)| {
+                let request = WireRequest {
+                    values: vec![value.clone()],
+                    value,
+                    one_or_many: if i % 2 == 0 {
+                        OneOrMany::One(i as u32)
+                    } else {
+                        OneOrMany::Many(vec![i as u32, 0])
+                    },
+                };
+                let json = serde_json::to_value(&request).unwrap();
+                // Each sample must also deserialize back to the variant it came from,
+                // otherwise it would be testing serde's first-match ambiguity.
+                let back: WireRequest = serde_json::from_value(json.clone()).unwrap();
+                assert_eq!(serde_json::to_value(back).unwrap(), json);
+                json
+            })
+            .collect()
     }
 }

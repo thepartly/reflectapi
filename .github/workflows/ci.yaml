@@ -104,6 +104,9 @@ jobs:
           import codegen_coverage_client
           print('coverage client import OK')
           "
+      - name: Replay serde wire samples through the coverage client
+        working-directory: reflectapi-demo/clients/python
+        run: uv run pytest ../../tests/python/test_wire.py -q -p no:cacheprovider
       - name: Type-check generated clients
         working-directory: reflectapi-demo/clients/python
         run: uv run pyright
