@@ -98,7 +98,12 @@ fn write_python_client() {
         .join("codegen_coverage_client");
     // Wipe between runs so removed files don't linger as stale orphans.
     let _ = std::fs::remove_dir_all(&out_dir);
-    for (filename, src) in files {
+    for (filename, mut src) in files {
+        // The existing CI smoke job imports this generated fixture package.
+        // Run wire assertions there, using the actual generated models.
+        if filename == "__init__.py" {
+            src.push_str(include_str!("untagged_newtype_wire.py"));
+        }
         let path = out_dir.join(filename);
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).unwrap();
@@ -354,7 +359,16 @@ mod coverage {
     }
 
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    #[serde(untagged)]
+    pub enum UntaggedNewtype {
+        Text(String),
+        Number(i64),
+        Object { label: String },
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct CoverageRequest {
+        pub untagged_newtype: UntaggedNewtype,
         pub keywords: PyKeywordFields,
         pub reserved: PydanticReservedFields,
         pub tree: TreeNode,

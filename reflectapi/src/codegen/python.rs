@@ -1633,7 +1633,14 @@ fn build_python_generation(
                                 has_externally_tagged_enums = true;
                             }
                         }
-                        _ => {}
+                        reflectapi_schema::Representation::None => {
+                            if sem_enum.variants.values().any(|variant| {
+                                matches!(variant.field_style, schema_codegen::FieldStyle::Unnamed)
+                                    && variant.fields.len() == 1
+                            }) {
+                                has_tuple_structs = true;
+                            }
+                        }
                     }
                 }
                 schema_codegen::SemanticType::Struct(sem_struct) => {
@@ -4776,6 +4783,32 @@ fn render_untagged_enum(
                 }
             }
             Fields::Unnamed(unnamed_fields) => {
+                if let [field] = unnamed_fields.as_slice() {
+                    let field_type = type_ref_to_python_type(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        class_names,
+                        &generic_params,
+                        used_type_vars,
+                    )?;
+                    let generic_base = if generic_params.is_empty() {
+                        String::new()
+                    } else {
+                        format!(", Generic[{}]", generic_params.join(", "))
+                    };
+                    variant_classes.push(format!(
+                        "class {variant_class_name}(RootModel{generic_base}):\n    model_config = ConfigDict(defer_build=True)\n    root: {field_type}\n"
+                    ));
+                    union_variants.push(templates::UnionVariant {
+                        name: variant.name().to_string(),
+                        type_annotation: variant_class_name.clone(),
+                        base_name: variant_class_name,
+                        description: Some(variant.description().to_string()),
+                    });
+                    continue;
+                }
+
                 // Handle tuple-like variants for untagged enums
                 for (i, field) in unnamed_fields.iter().enumerate() {
                     let field_type = type_ref_to_python_type(
