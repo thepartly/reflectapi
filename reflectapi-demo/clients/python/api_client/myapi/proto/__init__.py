@@ -54,11 +54,8 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
-from typing import NoReturn as _NoReturn
-
-
 class _ReflectapiDeferredNamespace:
-    def __getattr__(self, name: str) -> _NoReturn:
+    def __getattr__(self, name: str) -> Any:
         raise NameError(name)
 
 
