@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Python runtime: responses with a `Content-Encoding` (gzip, br, zstd) no longer fail with `NetworkError: ... incorrect header check`. The runtime rebuilt an `httpx.Response` from the already-decoded body while keeping the compression header, so httpx decompressed it a second time; response parsing now reads the transport body directly. Custom `transport.Client` implementations must return the decoded body, as `httpx.Response.content` provides. When a custom transport supplies no wire-level `raw` response, `TransportMetadata.raw_response` is a synthetic `httpx.Response` without `Content-Encoding`/`Content-Length`; `metadata.headers` still has the original wire headers.
+- Generated Python clients now type-check under pyright. `ApiResponse`'s error type parameter defaults to `Any`, both type parameters are covariant, and the internal `_make_request` overloads accept the arguments generated clients pass. `reflectapi-runtime` declares `typing-extensions` as a direct dependency. These are typing-only changes; runtime behaviour is unchanged.
 - **Security:** instrumented Rust clients (`--instrument`) no longer record request bodies and headers as tracing span fields. The generated `#[tracing::instrument]` attribute now uses `skip_all`, so credentials in request payloads (passwords, tokens) can no longer reach logs in cleartext via their `Debug` output. Spans are still named after the endpoint path. Regenerate clients to pick this up.
 
 ## 0.17.6
