@@ -16,7 +16,7 @@ packages = ["api_client"]
 allow-direct-references = true
 
 [dependency-groups]
-dev = ["pytest>=8.0.0", "pytest-asyncio>=0.21.0", "ruff>=0.12.5"]
+dev = ["pyright==1.1.414", "pytest>=8.0.0", "pytest-asyncio>=0.21.0", "ruff>=0.12.5"]
 
 [tool.uv.sources]
 reflectapi-runtime = { path = "../../../reflectapi-python-runtime", editable = true }
@@ -27,3 +27,16 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+
+[tool.pyright]
+include = ["api_client", "../../target/codegen-coverage-client/codegen_coverage_client"]
+typeCheckingMode = "basic"
+# Namespace packages alias each other via `sys.modules` and `_rebuild.py`
+# assignments that static checkers cannot follow.
+reportAttributeAccessIssue = false
+executionEnvironments = [
+  # Root-level `_ReflectapiDeferredNamespace()` placeholders appear in
+  # annotations; only the coverage fixtures exercise that layout.
+  { root = "../../target/codegen-coverage-client", reportInvalidTypeForm = false },
+  { root = "." },
+]

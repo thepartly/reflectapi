@@ -31,8 +31,14 @@ jobs:
       - run: cargo test --workspace
 
   python-runtime:
-    name: Python runtime tests
+    name: Python runtime tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.14"]
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v3
@@ -46,8 +52,14 @@ jobs:
   # this job catches the class of bug where the codegen emits a
   # Python annotation pointing at a symbol it never defined.
   python-codegen-smoke:
-    name: Python codegen smoke test
+    name: Python codegen smoke test (${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.14"]
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
@@ -92,3 +104,9 @@ jobs:
           import codegen_coverage_client
           print('coverage client import OK')
           "
+      - name: Type-check generated clients
+        working-directory: reflectapi-demo/clients/python
+        run: uv run pyright
+      - name: Run demo client tests
+        working-directory: reflectapi-demo/clients/python
+        run: uv run pytest -q

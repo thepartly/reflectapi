@@ -2750,7 +2750,7 @@ fn render_deferred_namespace_placeholders(
 
     let mut lines = vec![
         "class _ReflectapiDeferredNamespace:".to_string(),
-        "    def __getattr__(self, name: str) -> None:".to_string(),
+        "    def __getattr__(self, name: str) -> Any:".to_string(),
         "        raise NameError(name)".to_string(),
     ];
     lines.extend(

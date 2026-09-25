@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic
 
 import httpx  # noqa: TC002
+from typing_extensions import TypeVar
 
-T = TypeVar("T")
-E = TypeVar("E")
+T = TypeVar("T", covariant=True)
+E = TypeVar("E", covariant=True, default=Any)
 
 
 @dataclass(frozen=True)

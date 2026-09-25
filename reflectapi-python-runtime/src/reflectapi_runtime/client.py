@@ -287,6 +287,7 @@ class ClientBase(ABC):
         json_model: None = None,
         headers_model: BaseModel | None = None,
         response_model: type[T],
+        error_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -300,6 +301,7 @@ class ClientBase(ABC):
         json_model: None = None,
         headers_model: BaseModel | None = None,
         response_model: None = None,
+        error_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -313,7 +315,8 @@ class ClientBase(ABC):
         json_model: None = None,
         headers_model: BaseModel | None = None,
         response_model: type[Any],
-    ) -> ApiResponse[dict[str, Any]]: ...
+        error_model: type[Any] | None = None,
+    ) -> ApiResponse[Any]: ...
 
     @overload
     def _make_request(
@@ -324,7 +327,9 @@ class ClientBase(ABC):
         params: dict[str, Any] | None = None,
         json_data: dict[str, Any] | None = None,
         json_model: None = None,
+        headers_model: BaseModel | None = None,
         response_model: str,
+        error_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -338,6 +343,7 @@ class ClientBase(ABC):
         json_model: BaseModel,
         headers_model: BaseModel | None = None,
         response_model: type[T],
+        error_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -351,6 +357,7 @@ class ClientBase(ABC):
         json_model: BaseModel,
         headers_model: BaseModel | None = None,
         response_model: None = None,
+        error_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     def _validate_request_params(
@@ -774,7 +781,9 @@ class AsyncClientBase(ABC):
         params: dict[str, Any] | None = None,
         json_data: dict[str, Any] | None = None,
         json_model: None = None,
+        headers_model: BaseModel | None = None,
         response_model: type[T],
+        error_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -788,6 +797,7 @@ class AsyncClientBase(ABC):
         json_model: None = None,
         headers_model: BaseModel | None = None,
         response_model: None = None,
+        error_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -801,7 +811,8 @@ class AsyncClientBase(ABC):
         json_model: None = None,
         headers_model: BaseModel | None = None,
         response_model: type[Any],
-    ) -> ApiResponse[dict[str, Any]]: ...
+        error_model: type[Any] | None = None,
+    ) -> ApiResponse[Any]: ...
 
     @overload
     async def _make_request(
@@ -812,7 +823,9 @@ class AsyncClientBase(ABC):
         params: dict[str, Any] | None = None,
         json_data: dict[str, Any] | None = None,
         json_model: None = None,
+        headers_model: BaseModel | None = None,
         response_model: str,
+        error_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -826,6 +839,7 @@ class AsyncClientBase(ABC):
         json_model: BaseModel,
         headers_model: BaseModel | None = None,
         response_model: type[T],
+        error_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -839,6 +853,7 @@ class AsyncClientBase(ABC):
         json_model: BaseModel,
         headers_model: BaseModel | None = None,
         response_model: None = None,
+        error_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     def _validate_request_params(
@@ -1063,7 +1078,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         item_model: type[T] | type[Any] | str | _NoValidation | None = None,
         error_model: type | None = None,
-    ) -> AsyncIterator[T] | AsyncIterator[Any]:
+    ) -> AsyncIterator[Any]:
         """Open an SSE stream and yield items validated against ``item_model``.
 
         Errors raised when the server returns a non-2xx response are

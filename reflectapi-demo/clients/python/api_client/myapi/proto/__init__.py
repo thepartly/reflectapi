@@ -55,7 +55,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
 class _ReflectapiDeferredNamespace:
-    def __getattr__(self, name: str) -> None:
+    def __getattr__(self, name: str) -> Any:
         raise NameError(name)
 
 
