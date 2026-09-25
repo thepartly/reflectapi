@@ -290,7 +290,7 @@ dev = [
 
 [[package]]
 name = "reflectapi-runtime"
-version = "0.17.6"
+version = "0.18.0"
 source = { editable = "../../../reflectapi-python-runtime" }
 dependencies = [
     { name = "httpx" },
