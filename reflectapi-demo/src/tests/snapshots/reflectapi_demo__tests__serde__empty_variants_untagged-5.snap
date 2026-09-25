@@ -17,7 +17,7 @@ from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -25,16 +25,14 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
-class ReflectapiDemoTestsSerdeTestEmptyVariantsUntaggedEmpty(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
-    )
+class ReflectapiDemoTestsSerdeTestEmptyVariantsUntaggedEmpty(RootModel):
+    model_config = ConfigDict(defer_build=True)
+    root: None
 
 
-class ReflectapiDemoTestsSerdeTestEmptyVariantsUntaggedEmptyUnit(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
-    )
+class ReflectapiDemoTestsSerdeTestEmptyVariantsUntaggedEmptyUnit(RootModel):
+    model_config = ConfigDict(defer_build=True)
+    root: tuple[()]
 
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsUntaggedEmptyStruct(BaseModel):

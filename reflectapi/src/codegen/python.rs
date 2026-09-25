@@ -1602,11 +1602,29 @@ fn build_python_generation(
         schema_description: schema.description.clone(),
     };
     generated_code.push(file_header.render());
+    let python_metadata = collect_python_metadata_usage(&all_type_names);
+
+    // Types that are mapped directly to Python primitives / built-ins
+    // and so don't need a generated class.
+    let mut non_rendered_types = python_metadata.runtime_provided_types.clone();
+    non_rendered_types.insert("std::option::Option".to_string());
+    // `reflectapi::Option<T>` renders as `T | None` at every use site
+    // (its three states are carried by `model_fields_set` on the
+    // containing `ReflectapiPartialModel`). The schema still declares
+    // it as a tagged enum, so without this exclusion the codegen would
+    // emit a parallel ADT (`ReflectapiOption`, `ReflectapiOptionSome`,
+    // …) that nothing references.
+    non_rendered_types.insert("reflectapi::Option".to_string());
+
     // Use the semantic IR for import detection — iterate types once,
     // matching on SemanticType which provides the fully resolved view.
-    let has_enums = semantic
-        .types()
-        .any(|t| matches!(t, schema_codegen::SemanticType::Enum(_)));
+    // Types that are never rendered must not pull in imports.
+    let rendered_types = || {
+        semantic
+            .types()
+            .filter(|t| !non_rendered_types.contains(t.name()))
+    };
+    let has_enums = rendered_types().any(|t| matches!(t, schema_codegen::SemanticType::Enum(_)));
 
     let (has_literal, has_discriminated_unions, has_externally_tagged_enums, has_tuple_structs) = {
         let mut has_literal = false;
@@ -1614,7 +1632,7 @@ fn build_python_generation(
         let mut has_externally_tagged_enums = false;
         let mut has_tuple_structs = false;
 
-        for sem_type in semantic.types() {
+        for sem_type in rendered_types() {
             match sem_type {
                 schema_codegen::SemanticType::Enum(sem_enum) => {
                     match &sem_enum.representation {
@@ -1634,9 +1652,9 @@ fn build_python_generation(
                             }
                         }
                         reflectapi_schema::Representation::None => {
+                            // Unit and tuple-like untagged variants render as RootModels.
                             if sem_enum.variants.values().any(|variant| {
-                                matches!(variant.field_style, schema_codegen::FieldStyle::Unnamed)
-                                    && variant.fields.len() == 1
+                                !matches!(variant.field_style, schema_codegen::FieldStyle::Named)
                             }) {
                                 has_tuple_structs = true;
                             }
@@ -1665,7 +1683,6 @@ fn build_python_generation(
         .functions()
         .any(|f| matches!(f.output_type, OutputType::Stream { .. }));
     let has_partial_models = schema_has_partial_field(&schema);
-    let python_metadata = collect_python_metadata_usage(&all_type_names);
 
     // Generate imports
     let imports = templates::Imports {
@@ -1688,18 +1705,6 @@ fn build_python_generation(
     };
     // Use optimized import generation instead of template
     generated_code.push(generate_optimized_imports(&imports));
-
-    // Types that are mapped directly to Python primitives / built-ins
-    // and so don't need a generated class.
-    let mut non_rendered_types = python_metadata.runtime_provided_types.clone();
-    non_rendered_types.insert("std::option::Option".to_string());
-    // `reflectapi::Option<T>` renders as `T | None` at every use site
-    // (its three states are carried by `model_fields_set` on the
-    // containing `ReflectapiPartialModel`). The schema still declares
-    // it as a tagged enum, so without this exclusion the codegen would
-    // emit a parallel ADT (`ReflectapiOption`, `ReflectapiOptionSome`,
-    // …) that nothing references.
-    non_rendered_types.insert("reflectapi::Option".to_string());
 
     let class_names = build_python_class_name_map(
         semantic
@@ -2030,6 +2035,14 @@ fn safe_python_module_segment(segment: &str) -> String {
     result
 }
 
+/// Name bound by a `type Name[T] = ...` statement, as emitted for generic
+/// untagged unions.
+fn pep695_alias_name(line: &str) -> Option<&str> {
+    let rest = line.strip_prefix("type ")?;
+    let end = rest.find(['[', ' '])?;
+    Some(&rest[..end])
+}
+
 fn extract_defined_python_names(type_code: &str) -> Vec<String> {
     let mut names = Vec::new();
     for line in type_code.lines() {
@@ -2037,7 +2050,9 @@ fn extract_defined_python_names(type_code: &str) -> Vec<String> {
             continue;
         }
         let trimmed = line.trim();
-        if let Some(rest) = trimmed.strip_prefix("class ") {
+        if let Some(name) = pep695_alias_name(trimmed) {
+            names.push(name.to_string());
+        } else if let Some(rest) = trimmed.strip_prefix("class ") {
             if let Some(paren) = rest.find('(') {
                 let name = &rest[..paren];
                 if !name.is_empty() {
@@ -4747,6 +4762,14 @@ fn render_untagged_enum(
         used_type_vars.insert(generic.clone());
     }
 
+    let parametrize = |class_name: &str| {
+        if generic_params.is_empty() {
+            class_name.to_string()
+        } else {
+            format!("{class_name}[{}]", generic_params.join(", "))
+        }
+    };
+
     // Process each variant to create separate classes (without discriminator fields)
     for variant in &enum_def.variants {
         let variant_class_name = format!("{}{}", enum_name, variant.name());
@@ -4782,66 +4805,50 @@ fn render_untagged_enum(
                     });
                 }
             }
-            Fields::Unnamed(unnamed_fields) => {
-                if let [field] = unnamed_fields.as_slice() {
-                    let field_type = type_ref_to_python_type(
-                        &field.type_ref,
-                        schema,
-                        implemented_types,
-                        class_names,
-                        &generic_params,
-                        used_type_vars,
-                    )?;
-                    let generic_base = if generic_params.is_empty() {
-                        String::new()
-                    } else {
-                        format!(", Generic[{}]", generic_params.join(", "))
-                    };
-                    variant_classes.push(format!(
-                        "class {variant_class_name}(RootModel{generic_base}):\n    model_config = ConfigDict(defer_build=True)\n    root: {field_type}\n"
-                    ));
-                    union_variants.push(templates::UnionVariant {
-                        name: variant.name().to_string(),
-                        type_annotation: variant_class_name.clone(),
-                        base_name: variant_class_name,
-                        description: Some(variant.description().to_string()),
-                    });
-                    continue;
-                }
-
-                // Handle tuple-like variants for untagged enums
-                for (i, field) in unnamed_fields.iter().enumerate() {
-                    let field_type = type_ref_to_python_type(
-                        &field.type_ref,
-                        schema,
-                        implemented_types,
-                        class_names,
-                        &generic_params,
-                        used_type_vars,
-                    )?;
-                    let (optional, default_value, final_field_type) =
-                        resolve_field_optionality(&field.type_ref.name, field_type, field.required);
-
-                    fields.push(templates::Field {
-                        name: if unnamed_fields.len() == 1 {
-                            "value".to_string()
-                        } else {
-                            format!("field_{i}")
-                        },
-                        type_annotation: final_field_type,
-                        description: Some(field.description().to_string()),
-                        deprecation_note: field.deprecation_note.clone(),
-                        optional,
-                        default_value,
-                        alias: None,
-
-                        is_partial: field.type_ref.name == "reflectapi::Option",
-                    });
-                }
-            }
-            Fields::None => {
-                // Unit variant - create an empty class
-                // No fields needed
+            Fields::Unnamed(_) | Fields::None => {
+                // serde writes these variants without a wrapper object: a
+                // newtype as its inner value, a tuple as an array, a unit as null.
+                let root_type = match &variant.fields {
+                    Fields::Unnamed(unnamed_fields) => {
+                        let mut field_types = unnamed_fields
+                            .iter()
+                            .map(|field| {
+                                type_ref_to_python_type(
+                                    &field.type_ref,
+                                    schema,
+                                    implemented_types,
+                                    class_names,
+                                    &generic_params,
+                                    used_type_vars,
+                                )
+                            })
+                            .collect::<anyhow::Result<Vec<_>>>()?;
+                        match field_types.len() {
+                            1 => field_types.remove(0),
+                            0 => "tuple[()]".to_string(),
+                            _ => format!("tuple[{}]", field_types.join(", ")),
+                        }
+                    }
+                    _ => "None".to_string(),
+                };
+                // Pydantic only accepts a generic RootModel when its type
+                // parameters are declared; `root` stays a lazy annotation so
+                // forward references resolve at model_rebuild().
+                let bases = if generic_params.is_empty() {
+                    "RootModel".to_string()
+                } else {
+                    format!("RootModel[Any], Generic[{}]", generic_params.join(", "))
+                };
+                variant_classes.push(format!(
+                    "class {variant_class_name}({bases}):\n    model_config = ConfigDict(defer_build=True)\n    root: {root_type}\n"
+                ));
+                union_variants.push(templates::UnionVariant {
+                    name: variant.name().to_string(),
+                    type_annotation: parametrize(&variant_class_name),
+                    base_name: variant_class_name,
+                    description: Some(variant.description().to_string()),
+                });
+                continue;
             }
         }
 
@@ -4851,14 +4858,14 @@ fn render_untagged_enum(
             description: Some(variant.description().to_string()),
             fields,
             is_tuple: false,
-            is_generic: false,
-            generic_params: vec![],
+            is_generic: !generic_params.is_empty(),
+            generic_params: generic_params.clone(),
         };
 
         variant_classes.push(variant_template.render());
         union_variants.push(templates::UnionVariant {
             name: variant.name().to_string(),
-            type_annotation: variant_class_name.clone(),
+            type_annotation: parametrize(&variant_class_name),
             base_name: variant_class_name.clone(),
             description: Some(variant.description().to_string()),
         });
@@ -4869,6 +4876,7 @@ fn render_untagged_enum(
         name: enum_name.clone(),
         description: Some(enum_def.description().to_string()),
         variants: union_variants,
+        generic_params: generic_params.clone(),
     };
     let union_definition = union_template.render();
 
@@ -5976,7 +5984,9 @@ pub mod templates {
                     continue;
                 }
                 let trimmed = line.trim();
-                if let Some(rest) = trimmed.strip_prefix("class ") {
+                if let Some(name) = super::pep695_alias_name(trimmed) {
+                    names.push(name.to_string());
+                } else if let Some(rest) = trimmed.strip_prefix("class ") {
                     if let Some(paren) = rest.find('(') {
                         let name = &rest[..paren];
                         if !name.is_empty() {
@@ -6415,6 +6425,7 @@ pub mod templates {
         pub name: String,
         pub description: Option<String>,
         pub variants: Vec<UnionVariant>,
+        pub generic_params: Vec<String>,
     }
 
     impl UntaggedUnionClass {
@@ -6425,7 +6436,20 @@ pub mod templates {
                 .iter()
                 .map(|v| v.type_annotation.as_str())
                 .collect();
-            writeln!(s, "{} = Union[{}]", self.name, type_annotations.join(", ")).unwrap();
+            if self.generic_params.is_empty() {
+                writeln!(s, "{} = Union[{}]", self.name, type_annotations.join(", ")).unwrap();
+            } else {
+                // A plain `Union[...]` alias cannot be subscripted (`Alias[int]`)
+                // because Pydantic returns `Model[T]` as `Model` itself.
+                writeln!(
+                    s,
+                    "type {}[{}] = Union[{}]",
+                    self.name,
+                    self.generic_params.join(", "),
+                    type_annotations.join(", ")
+                )
+                .unwrap();
+            }
             if let Some(desc) = &self.description {
                 let desc = super::sanitize_for_docstring(desc);
                 if !desc.is_empty() {
