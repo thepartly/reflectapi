@@ -1,11 +1,21 @@
 # Changelog
 
-## Unreleased
+## 0.18.0
 
+### Breaking
+
+- **Field transform callbacks now receive the whole field.** `#[reflectapi(transform = ...)]`, `input_transform` and `output_transform` now take a callback `fn(&mut reflectapi::Field, &reflectapi::Typespace)` instead of `fn(&mut reflectapi::TypeReference, &reflectapi::Typespace)`, so a transform can change `required`, `hidden` and other field metadata as well as the type. Existing callbacks no longer compile. In transform attributes, replace `reflectapi::TypeReference::fallback_recursively` with `reflectapi::transforms::fallback_recursively`; the `TypeReference::fallback_recursively` method itself is unchanged for direct calls. Change custom callbacks to take `&mut Field` (the type is `field.type_ref`).
+- **Python codegen: untagged enum variants now match serde's wire format.** Newtype variants serialize as the bare inner value, tuple variants as arrays, and unit variants as `null`. Previously each was wrapped in an object with `value`/`field_N` keys, so the server rejected those requests and valid responses failed validation. These variants are now `RootModel`s: pass the plain value or construct one positionally (`ReadinessIdentifierOem("1HG…")`), and read `.root` instead of `.value`/`.field_0`. Generic untagged enums, which previously failed at import, are now emitted as a PEP 695 `type` alias. Regenerate clients to pick this up.
+
+### Added
+
+- New `reflectapi::transforms` module with built-in field transforms: `fallback_recursively`, `make_required`, `make_nonnullable` and `make_required_and_nonnullable`. These change how a field is presented in the schema and generated clients (e.g. a Rust `Option<T>` populated by middleware can be exposed as a required `T`). See the attributes reference for the difference between required and nullable.
+
+### Fixed
+
+- **Security:** instrumented Rust clients (`--instrument`) no longer record request bodies and headers as tracing span fields. The generated `#[tracing::instrument]` attribute now uses `skip_all`, so credentials in request payloads (passwords, tokens) can no longer reach logs in cleartext via their `Debug` output. Spans are still named after the endpoint path. Regenerate clients to pick this up.
 - Python runtime: responses with a `Content-Encoding` (gzip, br, zstd) no longer fail with `NetworkError: ... incorrect header check`. The runtime rebuilt an `httpx.Response` from the already-decoded body while keeping the compression header, so httpx decompressed it a second time; response parsing now reads the transport body directly. Custom `transport.Client` implementations must return the decoded body, as `httpx.Response.content` provides. When a custom transport supplies no wire-level `raw` response, `TransportMetadata.raw_response` is a synthetic `httpx.Response` without `Content-Encoding`/`Content-Length`; `metadata.headers` still has the original wire headers.
 - Generated Python clients now type-check under pyright. `ApiResponse`'s error type parameter defaults to `Any`, both type parameters are covariant, and the internal `_make_request` overloads accept the arguments generated clients pass. `reflectapi-runtime` declares `typing-extensions` as a direct dependency. These are typing-only changes; runtime behaviour is unchanged.
-- Python codegen: untagged enum variants now match serde's wire format. Newtype variants serialize as the bare inner value, tuple variants as arrays, and unit variants as `null`. Previously each was wrapped in an object with `value`/`field_N` keys, so the server rejected those requests and valid responses failed validation. These variants are now `RootModel`s: pass the plain value or construct one positionally (`ReadinessIdentifierOem("1HG…")`), and read `.root` instead of `.value`/`.field_0`. Generic untagged enums, which previously failed at import, are now emitted as a PEP 695 `type` alias. Regenerate clients to pick this up.
-- **Security:** instrumented Rust clients (`--instrument`) no longer record request bodies and headers as tracing span fields. The generated `#[tracing::instrument]` attribute now uses `skip_all`, so credentials in request payloads (passwords, tokens) can no longer reach logs in cleartext via their `Debug` output. Spans are still named after the endpoint path. Regenerate clients to pick this up.
 
 ## 0.17.6
 
