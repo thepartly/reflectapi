@@ -92,6 +92,8 @@ test("unwrap_ok exposes the Err as cause without changing its message", async ()
       const cause = (thrown as Error & { cause: unknown }).cause;
       assert.ok(cause instanceof Err);
       assert.equal(cause.status_code(), 503);
+      assert.equal(Object.getOwnPropertyDescriptor(thrown, "cause")?.enumerable, false);
+      assert.equal(JSON.stringify(thrown), "{}");
       return true;
     },
   );

@@ -82,12 +82,17 @@ export class Result<T, E> {
     if ("ok" in this.value) {
       return this.value.ok;
     }
-    throw Object.assign(
-      new Error(
-        `called \`unwrap_ok\` on an \`err\` value: ${JSON.stringify(this.value.err)}`,
-      ),
-      { cause: this.value.err },
+    const error = new Error(
+      `called \`unwrap_ok\` on an \`err\` value: ${JSON.stringify(this.value.err)}`,
     );
+    // Same attributes as a native `Error` cause (non-enumerable), without
+    // relying on the ES2022 `ErrorOptions` typing.
+    Object.defineProperty(error, "cause", {
+      value: this.value.err,
+      writable: true,
+      configurable: true,
+    });
+    throw error;
   }
   public unwrap_err(): E {
     if ("err" in this.value) {
