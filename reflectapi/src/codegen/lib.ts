@@ -4,6 +4,7 @@
 // them in under aliases so lib.ts itself can keep using DOM types.
 import type {
   Client,
+  Headers as ClientHeaders,
   RequestOptions,
   Response as ClientResponse,
 } from "./generated.transport";
@@ -11,6 +12,17 @@ import { ClientInstance } from "./generated.transport";
 
 export { ClientInstance };
 export type { Client, RequestOptions };
+
+/**
+ * HTTP response details for a failed call, present whenever a response
+ * was received: from the server or from anything in front of it, such
+ * as a proxy, load balancer or rate limiter. Absent when no response
+ * arrived (network failure, abort).
+ */
+export interface TransportMetadata {
+  status_code: number;
+  headers: ClientHeaders;
+}
 
 type IsAny<T> = 0 extends (1 & T) ? true : false;
 export type NullToEmptyObject<T> = IsAny<T> extends true
@@ -61,12 +73,20 @@ export class Result<T, E> {
     }
   }
 
+  /**
+   * Returns the success value or throws an `Error` whose `cause` is the
+   * error value, so callers further up (e.g. a query library's retry
+   * policy) can inspect it, for example with `cause.status_code()`.
+   */
   public unwrap_ok(): T {
     if ("ok" in this.value) {
       return this.value.ok;
     }
-    throw new Error(
-      `called \`unwrap_ok\` on an \`err\` value: ${JSON.stringify(this.value.err)}`,
+    throw Object.assign(
+      new Error(
+        `called \`unwrap_ok\` on an \`err\` value: ${JSON.stringify(this.value.err)}`,
+      ),
+      { cause: this.value.err },
     );
   }
   public unwrap_err(): E {
@@ -112,7 +132,28 @@ export class Result<T, E> {
 }
 
 export class Err<E> {
-  constructor(private value: { application_err: E } | { other_err: any }) { }
+  declare private readonly transport_metadata: TransportMetadata | undefined;
+
+  constructor(
+    private value: { application_err: E } | { other_err: any },
+    transport_metadata?: TransportMetadata,
+  ) {
+    // Non-enumerable, so JSON.stringify output (and the `unwrap_ok`
+    // messages built from it) is the same as before metadata existed.
+    Object.defineProperty(this, "transport_metadata", { value: transport_metadata });
+  }
+
+  /**
+   * HTTP status of the failed response, or `undefined` if no response
+   * was received (network failure, abort).
+   */
+  public status_code(): number | undefined {
+    return this.transport_metadata?.status_code;
+  }
+  /** Status and headers of the failed response; see `status_code`. */
+  public metadata(): TransportMetadata | undefined {
+    return this.transport_metadata;
+  }
 
   public err(): E | undefined {
     if ("application_err" in this.value) {
@@ -136,9 +177,12 @@ export class Err<E> {
 
   public map<U>(f: (r: E) => U): Err<U> {
     if ("application_err" in this.value) {
-      return new Err({ application_err: f(this.value.application_err) });
+      return new Err(
+        { application_err: f(this.value.application_err) },
+        this.transport_metadata,
+      );
     } else {
-      return new Err({ other_err: this.value.other_err });
+      return new Err({ other_err: this.value.other_err }, this.transport_metadata);
     }
   }
   public unwrap(): E {
@@ -164,19 +208,21 @@ export class Err<E> {
   public toString(): string {
     if ("application_err" in this.value) {
       return `Application Error: ${JSON.stringify(this.value.application_err)}`;
+    } else if (this.value.other_err instanceof Error) {
+      return `Other Error: ${this.value.other_err}`;
     } else {
       return `Other Error: ${JSON.stringify(this.value.other_err)}`;
     }
   }
 }
 
-export function __request<I, H, O, E>(
+export async function __request<I, H, O, E>(
   client: Client,
   path: string,
   input: I | undefined,
   headers: H | undefined,
   options?: RequestOptions,
-): AsyncResult<O, E> {
+): Promise<Result<O, Err<E>>> {
   let hdrs: Record<string, string> = {
     "content-type": "application/json",
   };
@@ -185,46 +231,38 @@ export function __request<I, H, O, E>(
       hdrs[k?.toString()] = v?.toString() || "";
     }
   }
-  return client
-    .request({
+  let metadata: TransportMetadata | undefined;
+  try {
+    const response = await client.request({
       path,
       headers: hdrs,
       body: new TextEncoder().encode(JSON.stringify(input) ?? "{}"),
       signal: options?.signal,
-    })
-    .then(async (response) => {
-      const response_body = await __read_response_body(response);
-      if (response.status >= 200 && response.status < 300) {
-        try {
-          return new Result<O, Err<E>>({ ok: JSON.parse(response_body) as O });
-        } catch (e) {
-          return new Result<O, Err<E>>({
-            err: new Err({
+    });
+    metadata = { status_code: response.status, headers: response.headers };
+    const response_body = await __read_response_body(response);
+    if (response.status >= 200 && response.status < 300) {
+      try {
+        return new Result<O, Err<E>>({ ok: JSON.parse(response_body) as O });
+      } catch (e) {
+        return new Result<O, Err<E>>({
+          err: new Err(
+            {
               other_err:
                 "internal error: failure to parse response body as json on successful status code: " +
                 response_body,
-            }),
-          });
-        }
-      } else if (response.status >= 500) {
-        return new Result<O, Err<E>>({
-          err: new Err({ other_err: `[${response.status}] ${response_body}` }),
-        })
-      } else {
-        try {
-          return new Result<O, Err<E>>({
-            err: new Err({ application_err: JSON.parse(response_body) as E }),
-          });
-        } catch (e) {
-          return new Result<O, Err<E>>({
-            err: new Err({ other_err: `[${response.status}] ${response_body}` }),
-          });
-        }
+            },
+            metadata,
+          ),
+        });
       }
-    })
-    .catch((e) => {
-      return new Result<O, Err<E>>({ err: new Err({ other_err: e }) });
+    }
+    return new Result<O, Err<E>>({
+      err: __error_from_response<E>(response_body, metadata),
     });
+  } catch (e) {
+    return new Result<O, Err<E>>({ err: new Err({ other_err: e }, metadata) });
+  }
 }
 
 export async function __stream_request<I, H, O, E>(
@@ -243,6 +281,7 @@ export async function __stream_request<I, H, O, E>(
       hdrs[k?.toString()] = v?.toString() || "";
     }
   }
+  let metadata: TransportMetadata | undefined;
   try {
     const response = await client.request({
       path,
@@ -250,44 +289,52 @@ export async function __stream_request<I, H, O, E>(
       body: new TextEncoder().encode(JSON.stringify(input) ?? "{}"),
       signal: options?.signal,
     });
+    metadata = { status_code: response.status, headers: response.headers };
     if (response.status >= 200 && response.status < 300) {
       const contentType = response.headers.get("content-type") || "";
       if (!contentType.toLowerCase().includes("text/event-stream")) {
         return new Result<AsyncIterable<O>, Err<E>>({
-          err: new Err({
-            other_err: `expected text/event-stream response, got ${contentType || "missing content-type"}`,
-          }),
+          err: new Err(
+            {
+              other_err: `expected text/event-stream response, got ${contentType || "missing content-type"}`,
+            },
+            metadata,
+          ),
         });
       }
       if (!response.body || typeof response.body.pipeThrough !== "function") {
         return new Result<AsyncIterable<O>, Err<E>>({
-          err: new Err({ other_err: "expected response body to be a WHATWG ReadableStream" }),
+          err: new Err(
+            { other_err: "expected response body to be a WHATWG ReadableStream" },
+            metadata,
+          ),
         });
       }
       const stream = __sse_to_async_iterable<O>(response, options);
       return new Result<AsyncIterable<O>, Err<E>>({ ok: stream });
-    } else if (response.status >= 500) {
-      const body = await __read_response_body(response);
-      return new Result<AsyncIterable<O>, Err<E>>({
-        err: new Err({ other_err: `[${response.status}] ${body}` }),
-      });
-    } else {
-      const body = await __read_response_body(response);
-      try {
-        return new Result<AsyncIterable<O>, Err<E>>({
-          err: new Err({ application_err: JSON.parse(body) as E }),
-        });
-      } catch (e) {
-        return new Result<AsyncIterable<O>, Err<E>>({
-          err: new Err({ other_err: `[${response.status}] ${body}` }),
-        });
-      }
     }
+    const body = await __read_response_body(response);
+    return new Result<AsyncIterable<O>, Err<E>>({
+      err: __error_from_response<E>(body, metadata),
+    });
   } catch (e) {
     return new Result<AsyncIterable<O>, Err<E>>({
-      err: new Err({ other_err: e }),
+      err: new Err({ other_err: e }, metadata),
     });
   }
+}
+
+// Non-2xx responses: below 500, a JSON body is the endpoint's typed
+// error; 5xx and non-JSON bodies are surfaced as `other_err`.
+function __error_from_response<E>(body: string, metadata: TransportMetadata): Err<E> {
+  if (metadata.status_code < 500) {
+    try {
+      return new Err({ application_err: JSON.parse(body) as E }, metadata);
+    } catch (e) {
+      // not JSON: fall through to other_err
+    }
+  }
+  return new Err({ other_err: `[${metadata.status_code}] ${body}` }, metadata);
 }
 
 async function* __sse_to_async_iterable<O>(

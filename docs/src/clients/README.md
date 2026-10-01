@@ -78,6 +78,24 @@ The demo repository includes extra project scaffolding around some generated cli
 - Uses a `fetch`-based default client implementation.
 - Parses JSON responses, but does not generate runtime schema validators today.
 - Supports custom client implementations via the generated client interface.
+- Failed calls return an `Err`. `err.err()` holds the endpoint's typed error
+  (non-5xx responses with a JSON body); anything else, such as a 5xx, a
+  non-JSON body or a network failure, is in `err.other_err()`. Whenever a
+  response was received, including one from a proxy or rate limiter in front
+  of the server, `err.status_code()` returns its HTTP status and
+  `err.metadata()` its status and headers (e.g. `Retry-After`). Both are
+  `undefined` for network failures and aborts. `Result.unwrap_ok()` throws an
+  `Error` whose `cause` is the `Err`, so code that only sees the thrown error,
+  such as a query library's retry callback, can still classify it:
+
+  ```ts
+  retry: (failureCount, error) => {
+    if (failureCount >= 2 || !(error.cause instanceof Err)) return false;
+    const status = error.cause.status_code();
+    // no response at all, rate limited, or upstream unavailable
+    return status === undefined || status === 429 || status >= 502;
+  }
+  ```
 
 ### Python
 
