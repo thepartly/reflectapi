@@ -292,6 +292,7 @@ impl NormalizationStage for TypeConsolidationStage {
                 update_type_reference_in_option(&mut function.input_headers, &rename_map);
                 update_type_references_in_output_type(&mut function.output_type, &rename_map);
                 update_type_reference_in_option(&mut function.error_type, &rename_map);
+                update_type_reference_in_option(&mut function.response_headers, &rename_map);
             }
 
             let types_to_update: Vec<_> = schema.input_types.types().cloned().collect();
@@ -434,6 +435,7 @@ fn update_type_references_in_schema(
         update_type_reference_in_option(&mut function.input_headers, &name_mapping);
         update_type_references_in_output_type(&mut function.output_type, &name_mapping);
         update_type_reference_in_option(&mut function.error_type, &name_mapping);
+        update_type_reference_in_option(&mut function.response_headers, &name_mapping);
     }
 
     let types_to_update: Vec<_> = schema.input_types.types().cloned().collect();
@@ -1215,6 +1217,9 @@ impl Normalizer {
         if let Some(error_type) = &function.error_type {
             self.resolve_single_reference(function_id, error_type);
         }
+        if let Some(response_headers) = &function.response_headers {
+            self.resolve_single_reference(function_id, response_headers);
+        }
     }
 
     fn resolve_type_references(&mut self, type_id: &SymbolId, ty: &Type) {
@@ -1596,6 +1601,10 @@ impl Normalizer {
             .error_type
             .as_ref()
             .and_then(|tr| self.resolve_global_type_reference(&tr.name));
+        let response_headers = function
+            .response_headers
+            .as_ref()
+            .and_then(|tr| self.resolve_global_type_reference(&tr.name));
 
         let ids = self
             .context
@@ -1618,6 +1627,7 @@ impl Normalizer {
             input_headers,
             output_type,
             error_type,
+            response_headers,
             serialization: function.serialization.clone(),
             readonly: function.readonly,
             tags: function.tags.clone(),

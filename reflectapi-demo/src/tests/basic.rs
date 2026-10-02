@@ -666,3 +666,182 @@ fn test_reflectapi_struct_with_hidden_header_field() {
             |b| b.name("test.endpoint")
         ))
 }
+
+#[derive(serde::Serialize, reflectapi::Output)]
+struct ResponseHeaders {
+    /// Seconds, or an HTTP date, after which to retry
+    #[serde(rename = "retry-after")]
+    _retry_after: Option<String>,
+    #[serde(rename = "x-request-id")]
+    _request_id: Option<String>,
+    #[serde(rename = "x-expires-at")]
+    _expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(rename = "x-cache")]
+    _cache: Option<CacheStatus>,
+}
+
+#[derive(serde::Serialize, reflectapi::Output)]
+#[allow(dead_code)]
+enum CacheStatus {
+    Hit,
+    Miss,
+}
+
+#[derive(serde::Serialize, reflectapi::Output)]
+enum ResponseHeadersTestError {
+    Conflict,
+}
+
+impl reflectapi::StatusCode for ResponseHeadersTestError {
+    fn status_code(&self) -> http::StatusCode {
+        http::StatusCode::CONFLICT
+    }
+}
+
+async fn response_headers_test_handler(
+    _: (),
+    _: reflectapi::Empty,
+    _: reflectapi::Empty,
+) -> Result<reflectapi::Empty, ResponseHeadersTestError> {
+    Err(ResponseHeadersTestError::Conflict)
+}
+
+#[test]
+fn test_reflectapi_response_headers() {
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct RouteResponseHeaders {
+        #[serde(rename = "cf-ray")]
+        _cf_ray: Option<String>,
+    }
+
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("response_headers_test")
+        .route(response_headers_test_handler, |b| b.name("before.default"))
+        .response_headers::<ResponseHeaders>()
+        .route(response_headers_test_handler, |b| b.name("with.default"))
+        .route(
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("infallible")
+        )
+        .route(response_headers_test_handler, |b| b
+            .name("with.route_headers")
+            .response_headers::<RouteResponseHeaders>()))
+}
+
+#[test]
+fn test_reflectapi_response_headers_accept_string_types() {
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct RequestId(String);
+
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct StringTypedHeaders {
+        #[serde(rename = "x-trace-id")]
+        _trace_id: Option<uuid::Uuid>,
+        #[serde(rename = "x-request-id")]
+        _request_id: Option<RequestId>,
+        #[serde(rename = "x-cache")]
+        _cache: Option<CacheStatus>,
+        #[serde(rename = "location")]
+        _location: Option<url::Url>,
+        #[serde(rename = "x-expires-at")]
+        _expires_at: Option<chrono::DateTime<chrono::Utc>>,
+        #[serde(rename = "x-boxed")]
+        _boxed: Option<Box<uuid::Uuid>>,
+        #[serde(rename = "x-shared")]
+        _shared: Option<std::sync::Arc<String>>,
+    }
+
+    let built = reflectapi::Builder::<()>::new()
+        .response_headers::<StringTypedHeaders>()
+        .route(response_headers_test_handler, |b| b.name("first"))
+        .build();
+    assert!(built.is_ok(), "{}", built.err().unwrap());
+}
+
+#[test]
+fn test_reflectapi_response_headers_defaults_cover_all_routes() {
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct OtherHeaders {
+        #[serde(rename = "x-other")]
+        _other: Option<String>,
+    }
+
+    let nested_without_default = reflectapi::Builder::<()>::new()
+        .name("nested")
+        .route(response_headers_test_handler, |b| b.name("nested.route"));
+    let extended_with_default = reflectapi::Builder::<()>::new()
+        .name("extended")
+        .response_headers::<OtherHeaders>()
+        .route(response_headers_test_handler, |b| b.name("extended.route"));
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(response_headers_test_handler, |b| b.name("added.before"))
+        .response_headers::<ResponseHeaders>()
+        .nest(nested_without_default)
+        .extend(extended_with_default)
+        .route(response_headers_test_handler, |b| {
+            b.name("route.level").response_headers::<OtherHeaders>()
+        })
+        .build()
+        .unwrap();
+
+    let headers_type = |function_name: &str| {
+        let function = schema
+            .functions()
+            .find(|f| f.name == function_name)
+            .unwrap();
+        let type_name = &function.response_headers().unwrap().name;
+        type_name.rsplit("::").next().unwrap().to_owned()
+    };
+    assert_eq!(headers_type("added.before"), "ResponseHeaders");
+    assert_eq!(headers_type("nested.route"), "ResponseHeaders");
+    assert_eq!(headers_type("extended.route"), "OtherHeaders");
+    assert_eq!(headers_type("route.level"), "OtherHeaders");
+}
+
+#[test]
+fn test_reflectapi_response_headers_validation() {
+    #[derive(serde::Serialize, reflectapi::Output)]
+    #[allow(dead_code)]
+    enum CacheWithUntagged {
+        Hit,
+        #[serde(untagged)]
+        Other,
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct InvalidResponseHeaders {
+        #[serde(rename = "Retry-After")]
+        _retry_after: Option<String>,
+        _attempts: Option<u32>,
+        _region: String,
+        #[serde(rename = "x-dup")]
+        _first: Option<String>,
+        #[serde(rename = "x-dup")]
+        _second: Option<String>,
+        #[serde(rename = "x-cache")]
+        _cache: Option<CacheWithUntagged>,
+    }
+
+    let errors = reflectapi::Builder::<()>::new()
+        .response_headers::<InvalidResponseHeaders>()
+        .route(response_headers_test_handler, |b| b.name("first"))
+        .route(response_headers_test_handler, |b| b.name("second"))
+        .build()
+        .err()
+        .expect("invalid response headers are rejected")
+        .0
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    let type_name = "reflectapi_demo::tests::basic::InvalidResponseHeaders";
+    assert_eq!(
+        errors,
+        [
+            format!("response headers type `{type_name}`: `Retry-After` is not a valid lowercase header name"),
+            format!("response headers type `{type_name}`: header `_attempts` must be `Option<T>` where `T` is a string on the wire, e.g. `String`, a unit-variant enum, a newtype over one, `uuid::Uuid` or `chrono::DateTime`"),
+            format!("response headers type `{type_name}`: header `_region` must be an `Option`: any response header may be absent"),
+            format!("response headers type `{type_name}`: `x-dup` is declared by more than one field"),
+            format!("response headers type `{type_name}`: header `x-cache` must be `Option<T>` where `T` is a string on the wire, e.g. `String`, a unit-variant enum, a newtype over one, `uuid::Uuid` or `chrono::DateTime`"),
+        ]
+    );
+}

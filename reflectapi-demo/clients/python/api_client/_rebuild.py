@@ -51,6 +51,7 @@ from .myapi.proto import (
     MyapiProtoPetsUpdateError,
     MyapiProtoPetsUpdateErrorValidationVariant,
     MyapiProtoPetsUpdateRequest,
+    MyapiProtoResponseHeaders,
     MyapiProtoValidationA,
     MyapiProtoValidationError,
     MyapiProtoValidationErrorValidationAVariant,
@@ -80,6 +81,7 @@ def rebuild_models() -> None:
         MyapiProtoPetsRemoveRequest,
         MyapiProtoPetsUpdateError,
         MyapiProtoPetsUpdateRequest,
+        MyapiProtoResponseHeaders,
         MyapiProtoValidationA,
         MyapiProtoValidationError,
     ]:

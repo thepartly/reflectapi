@@ -1,10 +1,11 @@
 """Tests for the client base classes."""
 
+import datetime
 from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from reflectapi_runtime import (
     ApiResponse,
@@ -1173,3 +1174,137 @@ class TestParsingBypassesSyntheticHttpxResponse:
             len(body)
         )
         assert result.metadata.headers.get("content-length") == "9999"
+
+
+class SampleResponseHeaders(BaseModel):
+    """Shaped like a generated response headers model."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    retry_after: str | None = Field(default=None, validation_alias="retry-after")
+    request_id: str | None = Field(default=None, validation_alias="x-request-id")
+
+
+class FixedResponseClient:
+    def __init__(self, status: int, headers: dict[str, str], body: bytes) -> None:
+        self.response = Response(
+            status=status, headers=httpx.Headers(headers), body=body
+        )
+
+    def request(self, request: Request) -> Response:
+        return self.response
+
+
+class AsyncFixedResponseClient(FixedResponseClient):
+    async def request(self, request: Request) -> Response:  # type: ignore[override]
+        return self.response
+
+
+class TestResponseHeaders:
+    def test_declared_headers_on_success(self):
+        transport = FixedResponseClient(
+            200,
+            {"X-Request-ID": "req-1", "cf-ray": "abc"},
+            b'{"name":"test","age":25}',
+        )
+        client = ClientBase("http://example.com", client=transport)
+
+        result = client._make_request(
+            "/test",
+            response_model=SampleModel,
+            response_headers_model=SampleResponseHeaders,
+        )
+
+        assert result.headers == SampleResponseHeaders(request_id="req-1")
+        assert result.metadata.headers["cf-ray"] == "abc"
+
+    def test_declared_headers_on_application_error(self):
+        transport = FixedResponseClient(429, {"retry-after": "7"}, b"slow down")
+        client = ClientBase("http://example.com", client=transport)
+
+        with pytest.raises(ApplicationError) as exc_info:
+            client._make_request(
+                "/test",
+                response_model=SampleModel,
+                response_headers_model=SampleResponseHeaders,
+            )
+
+        assert exc_info.value.headers == SampleResponseHeaders(retry_after="7")
+
+    def test_declared_headers_on_invalid_success_body(self):
+        transport = FixedResponseClient(200, {"x-request-id": "req-2"}, b'{"name":1}')
+        client = ClientBase("http://example.com", client=transport)
+
+        with pytest.raises(ValidationError) as exc_info:
+            client._make_request(
+                "/test",
+                response_model=SampleModel,
+                response_headers_model=SampleResponseHeaders,
+            )
+
+        assert exc_info.value.status_code == 200
+        assert exc_info.value.headers == SampleResponseHeaders(request_id="req-2")
+
+    def test_malformed_typed_header_reads_as_absent(self):
+        class TypedHeaders(BaseModel):
+            model_config = ConfigDict(populate_by_name=True)
+
+            expires_at: datetime.datetime | None = Field(
+                default=None, validation_alias="x-expires-at"
+            )
+            request_id: str | None = Field(
+                default=None, validation_alias="x-request-id"
+            )
+
+        transport = FixedResponseClient(
+            503, {"x-expires-at": "garbage", "x-request-id": "req-3"}, b"unavailable"
+        )
+        client = ClientBase("http://example.com", client=transport)
+
+        with pytest.raises(ApplicationError) as exc_info:
+            client._make_request(
+                "/test",
+                response_model=SampleModel,
+                response_headers_model=TypedHeaders,
+            )
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.headers == TypedHeaders(request_id="req-3")
+        assert exc_info.value.metadata.headers["x-expires-at"] == "garbage"
+
+    def test_no_declared_headers(self):
+        client = ClientBase("http://example.com", client=ShapeClient())
+
+        result = client._make_request("/test", response_model=SampleModel)
+
+        assert result.headers is None
+
+    @pytest.mark.asyncio
+    async def test_declared_headers_on_async_success(self):
+        transport = AsyncFixedResponseClient(
+            200, {"retry-after": "3"}, b'{"name":"test","age":25}'
+        )
+        client = AsyncClientBase("http://example.com", client=transport)
+
+        result = await client._make_request(
+            "/test",
+            response_model=SampleModel,
+            response_headers_model=SampleResponseHeaders,
+        )
+
+        assert result.headers == SampleResponseHeaders(retry_after="3")
+
+    @pytest.mark.asyncio
+    async def test_declared_headers_on_async_application_error(self):
+        transport = AsyncFixedResponseClient(503, {"retry-after": "30"}, b"unavailable")
+        client = AsyncClientBase("http://example.com", client=transport)
+
+        with pytest.raises(ApplicationError) as exc_info:
+            await client._make_request(
+                "/test",
+                response_model=SampleModel,
+                response_headers_model=SampleResponseHeaders,
+            )
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.headers == SampleResponseHeaders(retry_after="30")

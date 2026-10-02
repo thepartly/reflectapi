@@ -2,16 +2,83 @@
 
 ## Unreleased
 
-### Added
+Clients can now see HTTP status codes and response headers, so retry, back-off and sign-out logic no longer has to parse error strings. Regenerate clients to pick this up.
 
-- TypeScript clients: `err.status_code()` returns the HTTP status of the response behind a failed call, or `undefined` when no response was received (network failure, abort). It works for typed application errors and for `other_err` responses that didn't come from the reflectapi server, such as a 502 from a proxy or a 429 from a rate limiter, so retry policies no longer need to parse the `"[503] …"` string. The name matches the Python runtime's `ApiError.status_code`. Success results are unchanged. Regenerate clients to pick this up.
-- TypeScript clients: `Result.unwrap_ok()` now sets the thrown `Error`'s `cause` to the `Err`. Code above the client, such as a query library's retry callback, can inspect `error.cause.status_code()` without parsing the message. The message text is unchanged.
+### Status codes and response headers
+
+#### Status codes on failed calls (TypeScript)
+
+`err.status_code()` returns the HTTP status of the response behind a failed call, including responses that didn't come from the reflectapi server, such as a 502 from a proxy or a 429 from a rate limiter. It is `undefined` when no response arrived (network failure, abort). `Result.unwrap_ok()` now attaches the `Err` as the thrown error's `cause`, so code that only sees the thrown error, such as a query library's retry callback, can classify it:
+
+```ts
+retry: (failureCount, error) => {
+  if (failureCount >= 2 || !(error.cause instanceof Err)) return false;
+  const status = error.cause.status_code();
+  // no response at all, rate limited, or upstream unavailable
+  return status === undefined || status === 429 || status >= 502;
+}
+```
+
+Python already exposes this as `ApiError.status_code`.
+
+#### Typed response headers
+
+Declare the response headers clients may read, such as a request ID or `retry-after`, as a struct on the builder. A declaration applies to every route without its own, including routes of nested or extended builders; use `RouteBuilder::response_headers` to declare a different set for one route:
+
+```rust
+#[derive(serde::Serialize, reflectapi::Output)]
+struct ResponseHeaders {
+    #[serde(rename = "x-request-id")]
+    request_id: Option<String>,
+    #[serde(rename = "retry-after")]
+    retry_after: Option<String>,
+}
+
+let builder = reflectapi::Builder::new().response_headers::<ResponseHeaders>();
+```
+
+- **Successful and failed calls.** The headers apply to both. Declaring a header doesn't mean the server sends it: it may come from infrastructure in front of the server. Handlers can't set response headers yet.
+- **Field types.** Fields are `Option<T>`, where `T` is a string on the wire: `String`, a unit-variant enum, a newtype over one, `uuid::Uuid`, `chrono::DateTime`, and similar. `build()` rejects other field types, names that aren't valid lowercase headers, and duplicate names.
+- **Schema.** The declaration is stored as `Function::response_headers`.
+
+**TypeScript.** Calls return a `CallResult`, a `Result` with the response attached. Its `Err` has the same accessors:
+
+```ts
+const result = await client.pets.list({}, headers);
+result.status_code();                 // 200, or undefined if no response arrived
+result.headers()?.["x-request-id"];   // typed; null when the header is absent
+result.raw_headers()?.get("cf-ray");  // any header, untyped
+```
+
+**Python.** `ApiResponse.headers` and `ApiError.headers` hold the declared headers as the generated model. A field is `None` when its header is absent, or when its value doesn't validate. All headers stay available untyped in `.metadata.headers`:
+
+```python
+response = await client.pets.list(data, headers=auth)
+response.headers.x_request_id
+try:
+    await client.pets.list(data, headers=auth)
+except ApplicationError as e:
+    e.status_code, e.headers.retry_after
+```
+
+**OpenAPI** documents the headers as optional headers on the `200` and `default` responses. **Rust** generates the headers type but doesn't populate it yet, and generated signatures for routes with declared headers will change when it does.
+
+See [Response Headers](https://reflectapi-docs.partly.workers.dev/clients/#response-headers) in the client docs, which include a `retryDelay` example that honours `retry-after`.
+
+### Upgrade notes
+
+- **TypeScript:** generated methods now resolve to `CallResult<T, E, H>`. It's a `Result` subclass, so existing `Result<T, Err<E>>` annotations and code keep working. `AsyncResult` gains an optional third type parameter for the declared headers, and `Err` an optional second. `result.map(...)` keeps the response; `map_err` returns a plain `Result`.
+- **Python:**
+  - Streaming methods now return `ApiStream` / `AsyncApiStream` instead of a bare generator. They're `Iterator` / `AsyncIterator`s with `close()` / `aclose()`, so `for` / `async for` code is unaffected, but generator-only methods such as `send()` are gone. Their `metadata` and `headers` are set once iteration starts.
+  - `ApiResponse` gains an optional third type parameter.
+- **`reflectapi-schema`:** `Function` has a new public field, `response_headers`. Code that constructs `Function` with a struct literal must add it, or use `Function::new`.
 
 ### Fixed
 
 - TypeScript clients: `Err.toString()` now shows the message for network failures (`Other Error: TypeError: fetch failed`) instead of `Other Error: {}`.
 - TypeScript clients: if reading a response body fails partway through, the resulting `other_err` keeps the response's status.
 - TypeScript clients: a request body that can't be serialized (e.g. one containing a `BigInt`) now returns an `other_err` instead of throwing synchronously, as streaming endpoints already did.
+- Python runtime: a `ValidationError` for a received response whose body doesn't parse or validate now carries the response's `metadata` and declared headers, so `status_code` is available.
 
 ## 0.18.0
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import AsyncGenerator, AsyncIterator, Callable, Generator, Iterator
 from dataclasses import dataclass
 from typing import Any, Generic
 
@@ -11,6 +12,11 @@ from typing_extensions import TypeVar
 
 T = TypeVar("T", covariant=True)
 E = TypeVar("E", covariant=True, default=Any)
+H = TypeVar("H", covariant=True, default=Any)
+# Streams record the response after construction, so their parameters
+# appear in setter arguments and can't be covariant.
+Item = TypeVar("Item")
+StreamH = TypeVar("StreamH", default=Any)
 
 
 @dataclass(frozen=True)
@@ -38,21 +44,25 @@ class TransportMetadata:
         )
 
 
-class ApiResponse(Generic[T, E]):
+class ApiResponse(Generic[T, E, H]):
     """Wrapper for API responses with typed success and error values.
 
     Type parameters:
         T: The success response type.
         E: The error response type (defaults to Any when not specified).
+        H: The API's declared response headers model (defaults to Any).
 
     Provides ergonomic access to both the deserialized value and transport metadata.
     Supports `ApiResponse[OutputType]` (backward compatible) and
     `ApiResponse[OutputType, ErrorType]` (with typed errors).
     """
 
-    def __init__(self, value: T, metadata: TransportMetadata) -> None:
+    def __init__(
+        self, value: T, metadata: TransportMetadata, headers: H | None = None
+    ) -> None:
         self._value = value
         self._metadata = metadata
+        self._headers = headers
 
     @property
     def value(self) -> T:
@@ -63,6 +73,15 @@ class ApiResponse(Generic[T, E]):
     def metadata(self) -> TransportMetadata:
         """Transport metadata including timing, headers, and status."""
         return self._metadata
+
+    @property
+    def headers(self) -> H | None:
+        """The API's declared response headers, validated into its headers model.
+
+        ``None`` if the API declares no response headers. All headers,
+        untyped, are in ``metadata.headers``.
+        """
+        return self._headers
 
     @property
     def data(self) -> T:
@@ -79,7 +98,7 @@ class ApiResponse(Generic[T, E]):
             List of available attributes from both wrapper and value.
         """
         # Get ApiResponse's own attributes
-        wrapper_attrs = ["value", "metadata", "data"]
+        wrapper_attrs = ["value", "metadata", "headers", "data"]
 
         # Get attributes from the wrapped value
         value_attrs = []
@@ -134,3 +153,77 @@ class ApiResponse(Generic[T, E]):
         return (
             f"ApiResponse(value={self._value!r}, status={self._metadata.status_code})"
         )
+
+
+class ApiStream(Iterator[Item], Generic[Item, StreamH]):
+    """Items of a streaming endpoint, with the HTTP response they came from.
+
+    The request is sent when iteration starts, so ``metadata`` and
+    ``headers`` are ``None`` until the first item is requested. ``headers``
+    holds the API's declared response headers, validated into its headers
+    model; all headers, untyped, are in ``metadata.headers``.
+    """
+
+    def __init__(
+        self,
+        open_items: Callable[[ApiStream[Item, StreamH]], Generator[Item, None, None]],
+    ) -> None:
+        self._metadata: TransportMetadata | None = None
+        self._headers: StreamH | None = None
+        self._items = open_items(self)
+
+    @property
+    def metadata(self) -> TransportMetadata | None:
+        return self._metadata
+
+    @property
+    def headers(self) -> StreamH | None:
+        return self._headers
+
+    def _set_response(
+        self, metadata: TransportMetadata, headers: StreamH | None
+    ) -> None:
+        self._metadata = metadata
+        self._headers = headers
+
+    def __next__(self) -> Item:
+        return next(self._items)
+
+    def close(self) -> None:
+        """Release the connection without reading the rest of the stream."""
+        self._items.close()
+
+
+class AsyncApiStream(AsyncIterator[Item], Generic[Item, StreamH]):
+    """Async counterpart of :class:`ApiStream`."""
+
+    def __init__(
+        self,
+        open_items: Callable[
+            [AsyncApiStream[Item, StreamH]], AsyncGenerator[Item, None]
+        ],
+    ) -> None:
+        self._metadata: TransportMetadata | None = None
+        self._headers: StreamH | None = None
+        self._items = open_items(self)
+
+    @property
+    def metadata(self) -> TransportMetadata | None:
+        return self._metadata
+
+    @property
+    def headers(self) -> StreamH | None:
+        return self._headers
+
+    def _set_response(
+        self, metadata: TransportMetadata, headers: StreamH | None
+    ) -> None:
+        self._metadata = metadata
+        self._headers = headers
+
+    async def __anext__(self) -> Item:
+        return await self._items.__anext__()
+
+    async def aclose(self) -> None:
+        """Release the connection without reading the rest of the stream."""
+        await self._items.aclose()

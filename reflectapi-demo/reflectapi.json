@@ -9,6 +9,9 @@
       "error_type": {
         "name": "myapi::HealthCheckFail"
       },
+      "response_headers": {
+        "name": "myapi::proto::ResponseHeaders"
+      },
       "output_kind": "complete",
       "serialization": [
         "json",
@@ -31,6 +34,9 @@
       },
       "error_type": {
         "name": "myapi::proto::PetsListError"
+      },
+      "response_headers": {
+        "name": "myapi::proto::ResponseHeaders"
       },
       "output_kind": "complete",
       "output_type": {
@@ -60,6 +66,9 @@
       "error_type": {
         "name": "myapi::proto::PetsCreateError"
       },
+      "response_headers": {
+        "name": "myapi::proto::ResponseHeaders"
+      },
       "output_kind": "complete",
       "serialization": [
         "json",
@@ -79,6 +88,9 @@
       "error_type": {
         "name": "myapi::proto::PetsUpdateError"
       },
+      "response_headers": {
+        "name": "myapi::proto::ResponseHeaders"
+      },
       "output_kind": "complete",
       "serialization": [
         "json",
@@ -97,6 +109,9 @@
       },
       "error_type": {
         "name": "myapi::proto::PetsRemoveError"
+      },
+      "response_headers": {
+        "name": "myapi::proto::ResponseHeaders"
       },
       "output_kind": "complete",
       "serialization": [
@@ -118,6 +133,9 @@
       "error_type": {
         "name": "myapi::proto::PetsRemoveError"
       },
+      "response_headers": {
+        "name": "myapi::proto::ResponseHeaders"
+      },
       "output_kind": "complete",
       "serialization": [
         "json",
@@ -133,6 +151,9 @@
       },
       "error_type": {
         "name": "myapi::proto::UnauthorizedError"
+      },
+      "response_headers": {
+        "name": "myapi::proto::ResponseHeaders"
       },
       "output_kind": "complete",
       "output_type": {
@@ -157,6 +178,9 @@
       },
       "error_type": {
         "name": "myapi::proto::UnauthorizedError"
+      },
+      "response_headers": {
+        "name": "myapi::proto::ResponseHeaders"
       },
       "output_kind": "stream",
       "item_type": {
@@ -934,6 +958,43 @@
             }
           }
         ]
+      },
+      {
+        "kind": "struct",
+        "name": "myapi::proto::ResponseHeaders",
+        "description": "Response headers clients can read. The demo server sends neither\nitself; a proxy or rate limiter in front of it might.",
+        "fields": {
+          "named": [
+            {
+              "name": "x_request_id",
+              "serde_name": "x-request-id",
+              "description": "Request ID to quote when reporting a problem",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "retry_after",
+              "serde_name": "retry-after",
+              "description": "Seconds, or an HTTP date, after which to retry",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
       },
       {
         "kind": "struct",

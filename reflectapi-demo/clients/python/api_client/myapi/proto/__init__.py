@@ -11,7 +11,6 @@ from __future__ import annotations
 
 # Standard library imports
 import warnings
-from collections.abc import AsyncIterator, Iterator
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
@@ -27,6 +26,8 @@ from pydantic import (
 )
 
 # Runtime imports
+from reflectapi_runtime import ApiStream
+from reflectapi_runtime import AsyncApiStream
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiPartialModel
@@ -123,6 +124,28 @@ class MyapiProtoPetsUpdateRequest(ReflectapiPartialModel):
     )
     behaviors: list[myapi.model.Behavior] | None = Field(
         default=None, description="behaviors of the pet, nullable in the model"
+    )
+
+
+class MyapiProtoResponseHeaders(BaseModel):
+    """Response headers clients can read. The demo server sends neither
+    itself; a proxy or rate limiter in front of it might."""
+
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+    )
+
+    x_request_id: str | None = Field(
+        default=None,
+        serialization_alias="x-request-id",
+        validation_alias="x-request-id",
+        description="Request ID to quote when reporting a problem",
+    )
+    retry_after: str | None = Field(
+        default=None,
+        serialization_alias="retry-after",
+        validation_alias="retry-after",
+        description="Seconds, or an HTTP date, after which to retry",
     )
 
 
@@ -358,6 +381,7 @@ PetsRemoveRequest = MyapiProtoPetsRemoveRequest
 PetsUpdateError = MyapiProtoPetsUpdateError
 PetsUpdateErrorValidationVariant = MyapiProtoPetsUpdateErrorValidationVariant
 PetsUpdateRequest = MyapiProtoPetsUpdateRequest
+ResponseHeaders = MyapiProtoResponseHeaders
 ValidationA = MyapiProtoValidationA
 ValidationError = MyapiProtoValidationError
 ValidationErrorValidationAVariant = MyapiProtoValidationErrorValidationAVariant
@@ -380,6 +404,7 @@ __all__ = [
     "MyapiProtoPetsUpdateError",
     "MyapiProtoPetsUpdateErrorValidationVariant",
     "MyapiProtoPetsUpdateRequest",
+    "MyapiProtoResponseHeaders",
     "MyapiProtoValidationA",
     "MyapiProtoValidationError",
     "MyapiProtoValidationErrorValidationAVariant",
@@ -396,6 +421,7 @@ __all__ = [
     "PetsUpdateError",
     "PetsUpdateErrorValidationVariant",
     "PetsUpdateRequest",
+    "ResponseHeaders",
     "ValidationA",
     "ValidationError",
     "ValidationErrorValidationAVariant",

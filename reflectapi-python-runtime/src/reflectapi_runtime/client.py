@@ -5,9 +5,10 @@ from __future__ import annotations
 import contextlib
 import datetime
 import json
+import logging
 import time
 from abc import ABC
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 from typing import Any, TypeVar, overload
 
 import httpx
@@ -22,7 +23,7 @@ from .middleware import (
     SyncMiddleware,
     SyncMiddlewareChain,
 )
-from .response import ApiResponse, TransportMetadata
+from .response import ApiResponse, ApiStream, AsyncApiStream, TransportMetadata
 from .sse import aparse_sse, parse_sse
 from .transport import AsyncClient, Client, Request, Response
 
@@ -33,6 +34,8 @@ class _NoValidation:
 
 
 NO_VALIDATION = _NoValidation()
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -82,7 +85,11 @@ def _synthesize_raw_response(
     )
 
 
-def _parse_json_body(body: bytes | str | None) -> Any:
+def _parse_json_body(
+    body: bytes | str | None,
+    metadata: TransportMetadata | None = None,
+    response_headers: Any | None = None,
+) -> Any:
     """Parse a response body as JSON, raising ``ValidationError`` on failure."""
     try:
         return json.loads(body if body is not None else b"")
@@ -90,6 +97,8 @@ def _parse_json_body(body: bytes | str | None) -> Any:
         raise ValidationError(
             f"Failed to parse JSON response: {e}",
             cause=e,
+            metadata=metadata,
+            headers=response_headers,
         )
 
 
@@ -98,6 +107,7 @@ def _raise_for_error_status(
     body: bytes | str | None,
     metadata: TransportMetadata,
     error_model: type | None = None,
+    response_headers: Any | None = None,
 ) -> None:
     """Raise ``ApplicationError`` for HTTP error responses (4xx, 5xx).
 
@@ -126,13 +136,37 @@ def _raise_for_error_status(
         metadata=metadata,
         error_data=error_data,
         typed_error=typed_error,
+        headers=response_headers,
     )
+
+
+def _parse_response_headers(headers: Any, model: type[Any] | None) -> Any | None:
+    """Validate the API's declared response headers into ``model``.
+
+    Header names are case-insensitive, so they're lowercased to match the
+    model's (lowercase) aliases; undeclared headers are ignored. A value that
+    doesn't validate reads as absent rather than failing the call, which
+    would hide the response's real outcome (e.g. a 503 from a proxy); the raw
+    value stays in ``metadata.headers``.
+    """
+    if model is None:
+        return None
+    items = headers.items() if headers is not None else ()
+    lowered = {str(name).lower(): str(value) for name, value in items}
+    try:
+        return model.model_validate(lowered)
+    except PydanticValidationError as e:
+        invalid = {error["loc"][0] for error in e.errors() if error["loc"]}
+        logger.debug("ignoring malformed response headers: %s", sorted(invalid))
+        valid = {name: value for name, value in lowered.items() if name not in invalid}
+        return model.model_validate(valid)
 
 
 def _validate_body(
     body: bytes | str | None,
     response_model: type[T] | type[Any] | str | _NoValidation,
     metadata: TransportMetadata,
+    response_headers: Any | None = None,
 ) -> ApiResponse[T] | ApiResponse[dict[str, Any]]:
     """Validate a response body using Pydantic via TypeAdapter.
 
@@ -147,20 +181,28 @@ def _validate_body(
         or response_model is NO_VALIDATION
         or response_model is Any
     ):
-        return ApiResponse(_parse_json_body(body), metadata)
+        return ApiResponse(
+            _parse_json_body(body, metadata, response_headers),
+            metadata,
+            response_headers,
+        )
 
     try:
         ta = TypeAdapter(response_model)
         if isinstance(body, (bytes, bytearray, str)):
             validated_data = ta.validate_json(body)
         else:
-            validated_data = ta.validate_python(_parse_json_body(body))
-        return ApiResponse(validated_data, metadata)
+            validated_data = ta.validate_python(
+                _parse_json_body(body, metadata, response_headers)
+            )
+        return ApiResponse(validated_data, metadata, response_headers)
     except PydanticValidationError as e:
         raise ValidationError(
             f"Response validation failed: {e}",
             validation_errors=e.errors(),
             cause=e,
+            metadata=metadata,
+            headers=response_headers,
         )
 
 
@@ -288,6 +330,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -302,6 +345,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: None = None,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -316,6 +360,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[Any],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[Any]: ...
 
     @overload
@@ -330,6 +375,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: str,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -344,6 +390,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -358,6 +405,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: None = None,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     def _validate_request_params(
@@ -521,6 +569,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T] | type[Any] | str | _NoValidation | None = None,
         error_model: type | None = None,
+        response_headers_model: type | None = None,
     ) -> ApiResponse[T] | ApiResponse[dict[str, Any]]:
         """Make an HTTP request and return an ApiResponse."""
         # Validate request parameters
@@ -556,20 +605,31 @@ class ClientBase(ABC):
                 ),
             )
 
+            response_headers = _parse_response_headers(
+                client_response.headers, response_headers_model
+            )
+
             # Handle error responses
             _raise_for_error_status(
                 client_response.status,
                 client_response.body,
                 metadata,
                 error_model=error_model,
+                response_headers=response_headers,
             )
 
             # Validate and return response
             if response_model is not None:
-                return _validate_body(client_response.body, response_model, metadata)
+                return _validate_body(
+                    client_response.body, response_model, metadata, response_headers
+                )
             else:
                 # No response_model provided - parse JSON as-is
-                return ApiResponse(_parse_json_body(client_response.body), metadata)
+                return ApiResponse(
+                    _parse_json_body(client_response.body, metadata, response_headers),
+                    metadata,
+                    response_headers,
+                )
 
         except httpx.TimeoutException as e:
             raise TimeoutError.from_httpx_timeout(e)
@@ -587,7 +647,8 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         item_model: type[T] | type[Any] | str | _NoValidation | None = None,
         error_model: type | None = None,
-    ) -> Iterator[T] | Iterator[Any]:
+        response_headers_model: type | None = None,
+    ) -> ApiStream[Any]:
         """Open an SSE stream and yield items validated against ``item_model``.
 
         Errors raised when the server returns a non-2xx response are
@@ -595,69 +656,79 @@ class ClientBase(ABC):
         problems raise ``NetworkError`` / ``TimeoutError``. Per-event
         validation failures raise ``ValidationError``.
 
-        The HTTP connection is released when the generator is exhausted,
+        The request is sent when iteration starts; the returned stream's
+        ``metadata`` and ``headers`` are set once the response arrives. The
+        HTTP connection is released when the stream is exhausted,
         ``close()``-d, or garbage-collected, so consumers can ``break`` out
         of the loop without leaking sockets. Middleware is intentionally
         bypassed because typical middleware buffers the response body.
         """
 
-        self._validate_request_params(json_data, json_model)
+        def open_items(stream: ApiStream[Any]) -> Generator[Any, None, None]:
+            self._validate_request_params(json_data, json_model)
 
-        url = f"{self.base_url}/{path.lstrip('/')}"
-        client_request = self._build_client_request(
-            path, json_data, json_model, headers_model
-        )
-        request = self._build_httpx_request(client_request, url, params)
-        request.headers["accept"] = "text/event-stream"
+            url = f"{self.base_url}/{path.lstrip('/')}"
+            client_request = self._build_client_request(
+                path, json_data, json_model, headers_model
+            )
+            request = self._build_httpx_request(client_request, url, params)
+            request.headers["accept"] = "text/event-stream"
 
-        start_time = time.time()
-        try:
-            response = self._client.send(request, stream=True)
-        except httpx.TimeoutException as e:
-            raise TimeoutError.from_httpx_timeout(e)
-        except httpx.RequestError as e:
-            raise NetworkError.from_httpx_error(e)
-
-        try:
-            metadata = TransportMetadata.from_response(response, start_time)
-            if response.status_code >= 400:
-                # read_full body so error parsing can see it
-                response.read()
-                _raise_for_error_status(
-                    response.status_code,
-                    response.content,
-                    metadata,
-                    error_model=error_model,
-                )
-
-            adapter: TypeAdapter[Any] | None = None
-            if (
-                item_model is not None
-                and item_model is not NO_VALIDATION
-                and item_model != "Any"
-                and item_model is not Any
-            ):
-                adapter = TypeAdapter(item_model)
-
+            start_time = time.time()
             try:
-                for event in parse_sse(response.iter_lines()):
-                    if adapter is None:
-                        yield json.loads(event.data)
-                    else:
-                        try:
-                            yield adapter.validate_json(event.data)
-                        except PydanticValidationError as e:
-                            raise ValidationError(
-                                f"SSE event validation failed: {e}",
-                                validation_errors=e.errors(),
-                                cause=e,
-                            )
+                response = self._client.send(request, stream=True)
             except httpx.TimeoutException as e:
                 raise TimeoutError.from_httpx_timeout(e)
             except httpx.RequestError as e:
                 raise NetworkError.from_httpx_error(e)
-        finally:
-            response.close()
+
+            try:
+                metadata = TransportMetadata.from_response(response, start_time)
+                response_headers = _parse_response_headers(
+                    response.headers, response_headers_model
+                )
+                stream._set_response(metadata, response_headers)
+                if response.status_code >= 400:
+                    # read_full body so error parsing can see it
+                    response.read()
+                    _raise_for_error_status(
+                        response.status_code,
+                        response.content,
+                        metadata,
+                        error_model=error_model,
+                        response_headers=response_headers,
+                    )
+
+                adapter: TypeAdapter[Any] | None = None
+                if (
+                    item_model is not None
+                    and item_model is not NO_VALIDATION
+                    and item_model != "Any"
+                    and item_model is not Any
+                ):
+                    adapter = TypeAdapter(item_model)
+
+                try:
+                    for event in parse_sse(response.iter_lines()):
+                        if adapter is None:
+                            yield json.loads(event.data)
+                        else:
+                            try:
+                                yield adapter.validate_json(event.data)
+                            except PydanticValidationError as e:
+                                raise ValidationError(
+                                    f"SSE event validation failed: {e}",
+                                    validation_errors=e.errors(),
+                                    cause=e,
+                                )
+                except httpx.TimeoutException as e:
+                    raise TimeoutError.from_httpx_timeout(e)
+                except httpx.RequestError as e:
+                    raise NetworkError.from_httpx_error(e)
+            finally:
+                response.close()
+
+        return ApiStream(open_items)
 
 
 class AsyncClientBase(ABC):
@@ -784,6 +855,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -798,6 +870,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: None = None,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -812,6 +885,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[Any],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[Any]: ...
 
     @overload
@@ -826,6 +900,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: str,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -840,6 +915,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -854,6 +930,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: None = None,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     def _validate_request_params(
@@ -1013,6 +1090,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T] | type[Any] | str | _NoValidation | None = None,
         error_model: type | None = None,
+        response_headers_model: type | None = None,
     ) -> ApiResponse[T] | ApiResponse[dict[str, Any]]:
         """Make an HTTP request and return an ApiResponse."""
         # Validate request parameters
@@ -1048,26 +1126,37 @@ class AsyncClientBase(ABC):
                 ),
             )
 
+            response_headers = _parse_response_headers(
+                client_response.headers, response_headers_model
+            )
+
             # Handle error responses
             _raise_for_error_status(
                 client_response.status,
                 client_response.body,
                 metadata,
                 error_model=error_model,
+                response_headers=response_headers,
             )
 
             # Validate and return response
             if response_model is not None:
-                return _validate_body(client_response.body, response_model, metadata)
+                return _validate_body(
+                    client_response.body, response_model, metadata, response_headers
+                )
             else:
-                return ApiResponse(_parse_json_body(client_response.body), metadata)
+                return ApiResponse(
+                    _parse_json_body(client_response.body, metadata, response_headers),
+                    metadata,
+                    response_headers,
+                )
 
         except httpx.TimeoutException as e:
             raise TimeoutError.from_httpx_timeout(e)
         except httpx.RequestError as e:
             raise NetworkError.from_httpx_error(e)
 
-    async def _make_sse_request(
+    def _make_sse_request(
         self,
 
         path: str,
@@ -1078,7 +1167,8 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         item_model: type[T] | type[Any] | str | _NoValidation | None = None,
         error_model: type | None = None,
-    ) -> AsyncIterator[Any]:
+        response_headers_model: type | None = None,
+    ) -> AsyncApiStream[Any]:
         """Open an SSE stream and yield items validated against ``item_model``.
 
         Errors raised when the server returns a non-2xx response are
@@ -1086,65 +1176,78 @@ class AsyncClientBase(ABC):
         problems raise ``NetworkError`` / ``TimeoutError``. Per-event
         validation failures raise ``ValidationError``.
 
-        The HTTP connection is released when the async generator is
-        exhausted or ``aclose()``-d, so consumers can ``break`` out of the
-        loop without leaking sockets. Middleware is intentionally
-        bypassed because typical middleware buffers the response body.
+        The request is sent when iteration starts; the returned stream's
+        ``metadata`` and ``headers`` are set once the response arrives. The
+        HTTP connection is released when the stream is exhausted or
+        ``aclose()``-d, so consumers can ``break`` out of the loop without
+        leaking sockets. Middleware is intentionally bypassed because
+        typical middleware buffers the response body.
         """
 
-        self._validate_request_params(json_data, json_model)
+        async def open_items(
+            stream: AsyncApiStream[Any],
+        ) -> AsyncGenerator[Any, None]:
+            self._validate_request_params(json_data, json_model)
 
-        url = f"{self.base_url}/{path.lstrip('/')}"
-        client_request = self._build_client_request(
-            path, json_data, json_model, headers_model
-        )
-        request = self._build_httpx_request(client_request, url, params)
-        request.headers["accept"] = "text/event-stream"
+            url = f"{self.base_url}/{path.lstrip('/')}"
+            client_request = self._build_client_request(
+                path, json_data, json_model, headers_model
+            )
+            request = self._build_httpx_request(client_request, url, params)
+            request.headers["accept"] = "text/event-stream"
 
-        start_time = time.time()
-        try:
-            response = await self._client.send(request, stream=True)
-        except httpx.TimeoutException as e:
-            raise TimeoutError.from_httpx_timeout(e)
-        except httpx.RequestError as e:
-            raise NetworkError.from_httpx_error(e)
-
-        try:
-            metadata = TransportMetadata.from_response(response, start_time)
-            if response.status_code >= 400:
-                await response.aread()
-                _raise_for_error_status(
-                    response.status_code,
-                    response.content,
-                    metadata,
-                    error_model=error_model,
-                )
-
-            adapter: TypeAdapter[Any] | None = None
-            if (
-                item_model is not None
-                and item_model is not NO_VALIDATION
-                and item_model != "Any"
-                and item_model is not Any
-            ):
-                adapter = TypeAdapter(item_model)
-
+            start_time = time.time()
             try:
-                async for event in aparse_sse(response.aiter_lines()):
-                    if adapter is None:
-                        yield json.loads(event.data)
-                    else:
-                        try:
-                            yield adapter.validate_json(event.data)
-                        except PydanticValidationError as e:
-                            raise ValidationError(
-                                f"SSE event validation failed: {e}",
-                                validation_errors=e.errors(),
-                                cause=e,
-                            )
+                response = await self._client.send(request, stream=True)
             except httpx.TimeoutException as e:
                 raise TimeoutError.from_httpx_timeout(e)
             except httpx.RequestError as e:
                 raise NetworkError.from_httpx_error(e)
-        finally:
-            await response.aclose()
+
+            try:
+                metadata = TransportMetadata.from_response(response, start_time)
+                response_headers = _parse_response_headers(
+                    response.headers, response_headers_model
+                )
+                stream._set_response(metadata, response_headers)
+                if response.status_code >= 400:
+                    await response.aread()
+                    _raise_for_error_status(
+                        response.status_code,
+                        response.content,
+                        metadata,
+                        error_model=error_model,
+                        response_headers=response_headers,
+                    )
+
+                adapter: TypeAdapter[Any] | None = None
+                if (
+                    item_model is not None
+                    and item_model is not NO_VALIDATION
+                    and item_model != "Any"
+                    and item_model is not Any
+                ):
+                    adapter = TypeAdapter(item_model)
+
+                try:
+                    async for event in aparse_sse(response.aiter_lines()):
+                        if adapter is None:
+                            yield json.loads(event.data)
+                        else:
+                            try:
+                                yield adapter.validate_json(event.data)
+                            except PydanticValidationError as e:
+                                raise ValidationError(
+                                    f"SSE event validation failed: {e}",
+                                    validation_errors=e.errors(),
+                                    cause=e,
+                                )
+                except httpx.TimeoutException as e:
+                    raise TimeoutError.from_httpx_timeout(e)
+                except httpx.RequestError as e:
+                    raise NetworkError.from_httpx_error(e)
+            finally:
+                await response.aclose()
+
+        return AsyncApiStream(open_items)
+

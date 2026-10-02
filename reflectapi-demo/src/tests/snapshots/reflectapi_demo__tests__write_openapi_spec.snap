@@ -18,6 +18,20 @@ expression: s
         "responses": {
           "200": {
             "description": "200 OK",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "text/event-stream": {
                 "schema": {
@@ -28,6 +42,20 @@ expression: s
           },
           "default": {
             "description": "Error cases",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -68,6 +96,20 @@ expression: s
         "responses": {
           "200": {
             "description": "200 OK",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -80,6 +122,20 @@ expression: s
           },
           "default": {
             "description": "Error cases",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -120,6 +176,20 @@ expression: s
         "responses": {
           "200": {
             "description": "200 OK",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -132,6 +202,20 @@ expression: s
           },
           "default": {
             "description": "Error cases",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -163,6 +247,20 @@ expression: s
         "responses": {
           "200": {
             "description": "200 OK",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -181,6 +279,20 @@ expression: s
           },
           "default": {
             "description": "Error cases",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -221,6 +333,20 @@ expression: s
         "responses": {
           "200": {
             "description": "200 OK",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -256,6 +382,20 @@ expression: s
           },
           "default": {
             "description": "Error cases",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -296,6 +436,20 @@ expression: s
         "responses": {
           "200": {
             "description": "200 OK",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -308,6 +462,20 @@ expression: s
           },
           "default": {
             "description": "Error cases",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -348,6 +516,20 @@ expression: s
         "responses": {
           "200": {
             "description": "200 OK",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -360,6 +542,20 @@ expression: s
           },
           "default": {
             "description": "Error cases",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Request ID to quote when reporting a problem"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

@@ -1,0 +1,316 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "response_headers_test",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/before.default": {
+      "description": "",
+      "post": {
+        "operationId": "before.default",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error cases",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.ResponseHeadersTestError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/infallible": {
+      "description": "",
+      "post": {
+        "operationId": "infallible",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error cases",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/with.default": {
+      "description": "",
+      "post": {
+        "operationId": "with.default",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error cases",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.ResponseHeadersTestError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/with.route_headers": {
+      "description": "",
+      "post": {
+        "operationId": "with.route_headers",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "headers": {
+              "cf-ray": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error cases",
+            "headers": {
+              "cf-ray": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.ResponseHeadersTestError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.basic.CacheStatus": {
+        "oneOf": [
+          {
+            "const": "Hit"
+          },
+          {
+            "const": "Miss"
+          }
+        ]
+      },
+      "reflectapi_demo.tests.basic.ResponseHeadersTestError": {
+        "oneOf": [
+          {
+            "const": "Conflict"
+          }
+        ]
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      }
+    }
+  }
+}

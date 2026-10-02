@@ -11,7 +11,6 @@ from __future__ import annotations
 
 # Standard library imports
 import warnings
-from collections.abc import AsyncIterator, Iterator
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
@@ -27,6 +26,8 @@ from pydantic import (
 )
 
 # Runtime imports
+from reflectapi_runtime import ApiStream
+from reflectapi_runtime import AsyncApiStream
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiPartialModel

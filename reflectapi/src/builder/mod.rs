@@ -12,6 +12,10 @@ use serde::{de::DeserializeOwned, ser::Serialize};
 
 use crate::{Input, Output};
 
+/// `Output::reflectapi_output_type` of some type: registers it in the output
+/// typespace and returns a reference to it.
+type OutputTypeFn = fn(&mut crate::Typespace) -> crate::TypeReference;
+
 /// [`Builder`] provides a chained API for defining the overall API specification,
 /// adding individual routes (handlers), and composing multiple builders together.
 pub struct Builder<S>
@@ -26,6 +30,7 @@ where
     allow_redundant_renames: bool,
     errors: Vec<BuildError>,
     default_tags: BTreeSet<String>,
+    default_response_headers: Option<OutputTypeFn>,
 }
 
 impl<S> fmt::Debug for Builder<S>
@@ -39,6 +44,10 @@ where
             .field("handlers", &self.handlers)
             .field("merged_handlers", &self.merged_handlers)
             .field("default_tags", &self.default_tags)
+            .field(
+                "default_response_headers",
+                &self.default_response_headers.is_some(),
+            )
             .finish()
     }
 }
@@ -68,6 +77,7 @@ where
             errors: Default::default(),
             allow_redundant_renames: Default::default(),
             default_tags: Default::default(),
+            default_response_headers: Default::default(),
         }
     }
 
@@ -131,6 +141,28 @@ where
         self
     }
 
+    /// Declares the response headers that clients can read, for every route
+    /// of this builder that doesn't declare its own: routes added before or
+    /// after this call, and routes of builders merged in with
+    /// [`Builder::extend`] or [`Builder::nest`] that have no default of
+    /// their own.
+    ///
+    /// `H` is a struct with one `Option<T>` field per header, where `T` is a
+    /// string on the wire (`String`, a unit-variant enum, a newtype over one,
+    /// `uuid::Uuid`, `chrono::DateTime`, ...): the header's value is
+    /// deserialized into it, as for request headers. The field's serde name is
+    /// the header name and must be lowercase. See
+    /// [`crate::Function::response_headers`]. Override per route with
+    /// [`RouteBuilder::response_headers`]; routes that already declare
+    /// response headers, including from an earlier call to this method, keep
+    /// them. As with routes, call [`Builder::rename_types`] afterwards so the
+    /// rename applies to the headers type.
+    pub fn response_headers<H: Output>(mut self) -> Self {
+        self.default_response_headers = Some(H::reflectapi_output_type);
+        self.apply_default_response_headers();
+        self
+    }
+
     /// Adds a route to the API.
     ///
     /// This method takes a handler function and a closure that configures the
@@ -149,11 +181,7 @@ where
         O: Output + Serialize + Send + 'static,
         E: Output + Serialize + StatusCode + Send + 'static,
     {
-        let rb = builder(
-            RouteBuilder::new()
-                .tags(&self.default_tags)
-                .path(self.path.clone()),
-        );
+        let rb = builder(self.route_defaults());
         let route = crate::Handler::new(rb, handler, &mut self.schema);
         self.handlers.push(route);
         self
@@ -176,14 +204,40 @@ where
         O: Output + Serialize + Send + 'static,
         E1: Output + Serialize + StatusCode + Send + 'static,
     {
-        let rb = builder(
-            RouteBuilder::new()
-                .tags(&self.default_tags)
-                .path(self.path.clone()),
-        );
+        let rb = builder(self.route_defaults());
         let route = crate::Handler::new_stream(rb, handler, &mut self.schema);
         self.handlers.push(route);
         self
+    }
+
+    fn route_defaults(&self) -> RouteBuilder {
+        RouteBuilder {
+            response_headers: self.default_response_headers,
+            ..RouteBuilder::new()
+        }
+        .tags(&self.default_tags)
+        .path(self.path.clone())
+    }
+
+    /// Gives every function already in the schema without its own response
+    /// headers this builder's default, if it has one. Routes added later get
+    /// it in `route_defaults`.
+    fn apply_default_response_headers(&mut self) {
+        let Some(reflect_output_type) = self.default_response_headers else {
+            return;
+        };
+        let schema = &mut self.schema;
+        let mut default = None;
+        for function in schema
+            .functions
+            .iter_mut()
+            .filter(|f| f.response_headers.is_none())
+        {
+            let type_ref = default
+                .get_or_insert_with(|| reflect_output_type(&mut schema.output_types))
+                .clone();
+            function.response_headers = Some(type_ref);
+        }
     }
 
     /// Merges another [`Builder`] into this one.
@@ -196,11 +250,14 @@ where
         let other_name = other.schema.name.clone();
         self.merged_handlers.push((other_name, other.handlers));
         self.schema.extend(other.schema);
+        self.apply_default_response_headers();
         self.errors.extend(other.errors);
         self.validators.extend(other.validators);
 
-        // Don't merge `allow_redundant_renames` or `default_tags`,
-        // as these are configuration options that should be set per-builder.
+        // Don't merge `allow_redundant_renames`, `default_tags` or
+        // `default_response_headers`, as these are configuration options that
+        // should be set per-builder. `other`'s default response headers are
+        // already on its routes.
 
         // Explicitly reconstruct Self to ensure new fields are handled appropriately.
         Self {
@@ -212,6 +269,7 @@ where
             allow_redundant_renames: self.allow_redundant_renames,
             errors: self.errors,
             default_tags: self.default_tags,
+            default_response_headers: self.default_response_headers,
         }
     }
 
@@ -303,6 +361,7 @@ where
                 self.errors.push(BuildError::Validation(err));
             }
         }
+        self.errors.extend(validate_response_headers(&self.schema));
 
         if !self.errors.is_empty() {
             return Err(crate::BuildErrors(self.errors));
@@ -349,6 +408,7 @@ pub struct RouteBuilder {
     readonly: bool,
     tags: BTreeSet<String>,
     deprecation_note: Option<String>,
+    response_headers: Option<OutputTypeFn>,
 }
 
 impl RouteBuilder {
@@ -420,6 +480,118 @@ impl RouteBuilder {
         self.tags
             .extend(tags.into_iter().map(|s| s.as_ref().to_string()));
         self
+    }
+
+    /// Declares the response headers that clients can read for this route,
+    /// replacing the builder default. See [`Builder::response_headers`].
+    pub fn response_headers<H: Output>(mut self) -> Self {
+        self.response_headers = Some(H::reflectapi_output_type);
+        self
+    }
+}
+
+/// Checks each distinct `response_headers` type: a non-generic struct of
+/// named `Option<T>` fields, where `T` is a string on the wire (as request
+/// headers are parsed: the header's string value is deserialized into the
+/// field), with lowercase header names.
+fn validate_response_headers(schema: &crate::Schema) -> Vec<BuildError> {
+    let mut checked = BTreeSet::new();
+    let mut errors = Vec::new();
+    for type_ref in schema.functions.iter().filter_map(|f| f.response_headers()) {
+        if !checked.insert(type_ref.name.clone()) {
+            continue;
+        }
+        let invalid = |reason: String| {
+            BuildError::Other(format!("response headers type `{}`: {reason}", type_ref.name).into())
+        };
+        let fields = match schema.get_type(&type_ref.name) {
+            Some(crate::Type::Struct(s)) if type_ref.arguments.is_empty() && !s.is_tuple() => {
+                s.fields()
+            }
+            _ => {
+                errors.push(invalid(
+                    "must be a non-generic struct with named fields".into(),
+                ));
+                continue;
+            }
+        };
+        let mut seen_names = BTreeSet::new();
+        for field in fields {
+            let header_name = field.serde_name();
+            if !seen_names.insert(header_name) {
+                errors.push(invalid(format!(
+                    "`{header_name}` is declared by more than one field"
+                )));
+            }
+            let type_problem = if field.flattened {
+                Some("is flattened; declare each header as its own field")
+            } else if field.type_ref.name == "reflectapi::Option" {
+                Some("must be `Option<T>`, not `reflectapi::Option`: a header is absent or present, never null")
+            } else if field.type_ref.name != "std::option::Option" {
+                Some("must be an `Option`: any response header may be absent")
+            } else if !matches!(
+                field.type_ref.arguments.as_slice(),
+                [value_type] if is_string_on_the_wire(schema, value_type, 0)
+            ) {
+                Some("must be `Option<T>` where `T` is a string on the wire, e.g. `String`, a unit-variant enum, a newtype over one, `uuid::Uuid` or `chrono::DateTime`")
+            } else {
+                None
+            };
+            if let Some(problem) = type_problem {
+                errors.push(invalid(format!("header `{header_name}` {problem}")));
+            }
+            if http::HeaderName::from_bytes(header_name.as_bytes()).is_err()
+                || header_name != header_name.to_ascii_lowercase()
+            {
+                errors.push(invalid(format!(
+                    "`{header_name}` is not a valid lowercase header name"
+                )));
+            }
+        }
+    }
+    errors
+}
+
+/// Whether values of `type_ref` serialize as a JSON string, so a header's
+/// string value deserializes into it.
+fn is_string_on_the_wire(
+    schema: &crate::Schema,
+    type_ref: &crate::TypeReference,
+    depth: usize,
+) -> bool {
+    // String primitives that have no `fallback` to `String` in their schema.
+    const STRING_PRIMITIVES: [&str; 3] = ["std::string::String", "char", "uuid::Uuid"];
+    if STRING_PRIMITIVES.contains(&type_ref.name.as_str()) {
+        return true;
+    }
+    if depth > 8 {
+        return false;
+    }
+    match schema.get_type(&type_ref.name) {
+        Some(crate::Type::Primitive(p)) => p.fallback.as_ref().is_some_and(|fallback| {
+            // A fallback can be one of the primitive's type parameters, as
+            // `Box<T>` falls back to `T`: resolve it to the argument given.
+            let fallback = p
+                .parameters()
+                .filter(|parameter| !parameter.name.starts_with('\''))
+                .position(|parameter| parameter.name == fallback.name)
+                .and_then(|index| type_ref.arguments.get(index))
+                .unwrap_or(fallback);
+            is_string_on_the_wire(schema, fallback, depth + 1)
+        }),
+        Some(crate::Type::Enum(e)) => {
+            e.representation.is_external()
+                && e.variants()
+                    .all(|v| matches!(v.fields, crate::Fields::None) && !v.untagged())
+        }
+        Some(crate::Type::Struct(s))
+            if s.fields.len() == 1 && (s.transparent() || s.is_tuple()) =>
+        {
+            s.fields()
+                .next()
+                .is_some_and(|field| is_string_on_the_wire(schema, &field.type_ref, depth + 1))
+        }
+        _ => false,
     }
 }
 

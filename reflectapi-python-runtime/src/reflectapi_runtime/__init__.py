@@ -38,7 +38,7 @@ from .hypothesis_strategies import (
 )
 from .middleware import AsyncMiddleware
 from .partial import ReflectapiPartialModel
-from .response import ApiResponse, TransportMetadata
+from .response import ApiResponse, ApiStream, AsyncApiStream, TransportMetadata
 from .serde import parse_externally_tagged, serialize_externally_tagged
 from .streaming import AsyncStreamingClient, StreamingResponse
 from .testing import (
@@ -94,6 +94,8 @@ __all__ = [
     "parse_externally_tagged",
     "serialize_externally_tagged",
     "StreamingResponse",
+    "ApiStream",
+    "AsyncApiStream",
     "TestClientMixin",
     "TimeoutError",
     "TransportMetadata",

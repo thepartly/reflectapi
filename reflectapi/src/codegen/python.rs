@@ -385,17 +385,13 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
 
     stdlib_imports.extend(imports.extra_stdlib_imports.iter().cloned());
 
-    // Streaming methods need Iterator / AsyncIterator from collections.abc.
+    // Streaming methods return the runtime's stream wrappers.
     if imports.has_streaming {
-        let mut names = Vec::new();
         if imports.has_sync {
-            names.push("Iterator");
+            runtime_imports.insert("ApiStream".to_string());
         }
         if imports.has_async {
-            names.push("AsyncIterator");
-        }
-        if !names.is_empty() {
-            stdlib_imports.insert(format!("from collections.abc import {}", names.join(", ")));
+            runtime_imports.insert("AsyncApiStream".to_string());
         }
     }
 
@@ -1397,6 +1393,9 @@ fn collect_concrete_type_refs(schema: &Schema) -> Vec<TypeReference> {
         }
         if let Some(error_type) = &function.error_type {
             collect_type_refs(error_type, &mut type_refs);
+        }
+        if let Some(response_headers) = &function.response_headers {
+            collect_type_refs(response_headers, &mut type_refs);
         }
     }
 
@@ -4957,6 +4956,18 @@ fn render_function(
         None
     };
 
+    let response_headers_type = if let Some(response_headers) = function.response_headers.as_ref() {
+        Some(type_ref_to_python_type_simple(
+            response_headers,
+            schema,
+            implemented_types,
+            class_names,
+            &[],
+        )?)
+    } else {
+        None
+    };
+
     // Extract path parameters from input type
     let path_params = extract_path_parameters(&function.path)?;
 
@@ -4990,6 +5001,7 @@ fn render_function(
         headers_type,
         output_type,
         error_type,
+        response_headers_type,
         path_params,
         has_body,
         is_input_primitive,
@@ -6620,22 +6632,10 @@ pub mod templates {
             if let Some(headers_type) = &function.headers_type {
                 writeln!(s, "        headers: Optional[{headers_type}] = None,").unwrap();
             }
-            if let Some(item_type) = &function.stream_item_type {
-                let iter_kind = if is_async {
-                    "AsyncIterator"
-                } else {
-                    "Iterator"
-                };
-                writeln!(s, "    ) -> {iter_kind}[{item_type}]:").unwrap();
-            } else if let Some(error_type) = &function.error_type {
-                writeln!(
-                    s,
-                    "    ) -> ApiResponse[{}, {}]:",
-                    function.output_type, error_type
-                )
-                .unwrap();
+            if let Some(stream_type) = function.api_stream_type(is_async) {
+                writeln!(s, "    ) -> {stream_type}:").unwrap();
             } else {
-                writeln!(s, "    ) -> ApiResponse[{}]:", function.output_type).unwrap();
+                writeln!(s, "    ) -> {}:", function.api_response_type()).unwrap();
             }
 
             // Docstring
@@ -6665,22 +6665,30 @@ pub mod templates {
                 writeln!(s).unwrap();
             }
             writeln!(s, "        Returns:").unwrap();
-            if let Some(item_type) = &function.stream_item_type {
-                let iter_kind = if is_async {
-                    "AsyncIterator"
-                } else {
-                    "Iterator"
-                };
+            if let (Some(stream_type), Some(item_type)) = (
+                function.api_stream_type(is_async),
+                &function.stream_item_type,
+            ) {
                 writeln!(
                     s,
-                    "            {iter_kind}[{item_type}]: SSE stream of {item_type} items"
+                    "            {stream_type}: SSE stream of {item_type} items"
                 )
                 .unwrap();
             } else if let Some(error_type) = &function.error_type {
                 writeln!(
                     s,
-                    "            ApiResponse[{}, {}]: Success={}, Error={}",
-                    function.output_type, error_type, function.output_type, error_type
+                    "            {}: Success={}, Error={}",
+                    function.api_response_type(),
+                    function.output_type,
+                    error_type
+                )
+                .unwrap();
+            } else if function.response_headers_type.is_some() {
+                writeln!(
+                    s,
+                    "            {}: Response containing {} data",
+                    function.api_response_type(),
+                    function.output_type
                 )
                 .unwrap();
             } else {
@@ -6790,6 +6798,13 @@ pub mod templates {
             if let Some(error_type) = &function.error_type {
                 writeln!(s, "            error_model={error_type},").unwrap();
             }
+            if let Some(response_headers_type) = &function.response_headers_type {
+                writeln!(
+                    s,
+                    "            response_headers_model={response_headers_type},"
+                )
+                .unwrap();
+            }
             writeln!(s, "        )").unwrap();
             writeln!(s).unwrap();
         }
@@ -6875,12 +6890,45 @@ pub mod templates {
         pub headers_type: Option<String>,
         pub output_type: String,
         pub error_type: Option<String>,
+        /// The API's declared response headers model, if any.
+        pub response_headers_type: Option<String>,
         pub path_params: Vec<Parameter>,
         pub has_body: bool,
         pub is_input_primitive: bool,
         pub deprecation_note: Option<String>,
         /// SSE stream item type name; `None` for non-streaming endpoints.
         pub stream_item_type: Option<String>,
+    }
+
+    impl Function {
+        /// `ApiResponse[...]` annotation, with only as many type arguments
+        /// as needed (the error and headers parameters default to `Any`).
+        pub fn api_response_type(&self) -> String {
+            match (&self.error_type, &self.response_headers_type) {
+                (_, Some(headers)) => format!(
+                    "ApiResponse[{}, {}, {headers}]",
+                    self.output_type,
+                    self.error_type.as_deref().unwrap_or("Any")
+                ),
+                (Some(error), None) => format!("ApiResponse[{}, {error}]", self.output_type),
+                (None, None) => format!("ApiResponse[{}]", self.output_type),
+            }
+        }
+
+        /// `ApiStream[...]` / `AsyncApiStream[...]` annotation for a streaming
+        /// endpoint; `None` if the endpoint doesn't stream.
+        pub fn api_stream_type(&self, is_async: bool) -> Option<String> {
+            let item_type = self.stream_item_type.as_ref()?;
+            let stream = if is_async {
+                "AsyncApiStream"
+            } else {
+                "ApiStream"
+            };
+            Some(match &self.response_headers_type {
+                Some(headers) => format!("{stream}[{item_type}, {headers}]"),
+                None => format!("{stream}[{item_type}]"),
+            })
+        }
     }
 
     #[derive(Clone)]
@@ -7666,6 +7714,9 @@ fn monomorphize_flatten_generics(schema: &mut Schema) -> anyhow::Result<()> {
         if let Some(t) = &f.error_type {
             seeds.push(t.clone());
         }
+        if let Some(t) = &f.response_headers {
+            seeds.push(t.clone());
+        }
     }
     for ts in [&schema.input_types, &schema.output_types] {
         for typ in ts.types() {
@@ -7835,6 +7886,7 @@ fn debug_assert_monomorphization_invariants(
                 OutputType::Stream { item_type } => Some(item_type),
             },
             fn_def.error_type.as_ref(),
+            fn_def.response_headers.as_ref(),
         ]
         .into_iter()
         .flatten()

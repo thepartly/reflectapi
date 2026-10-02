@@ -409,6 +409,18 @@ pub mod types {
                     reflectapi::Option<std::vec::Vec<super::super::myapi::model::Behavior>>,
             }
 
+            /// Response headers clients can read. The demo server sends neither
+            /// itself; a proxy or rate limiter in front of it might.
+            #[derive(Debug, serde::Deserialize)]
+            pub struct ResponseHeaders {
+                /// Request ID to quote when reporting a problem
+                #[serde(rename = "x-request-id")]
+                pub x_request_id: std::option::Option<std::string::String>,
+                /// Seconds, or an HTTP date, after which to retry
+                #[serde(rename = "retry-after")]
+                pub retry_after: std::option::Option<std::string::String>,
+            }
+
             #[derive(Debug, serde::Deserialize, serde::Serialize)]
             pub struct UnauthorizedError;
 

@@ -451,6 +451,14 @@ pub struct Function {
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub error_type: Option<TypeReference>,
+    /// Struct of response headers that clients can read, on success and on
+    /// failure. Each field is one header, named by its serde name. Declaring
+    /// a header doesn't mean the server sends it: it may be added by
+    /// infrastructure in front of the server (e.g. `retry-after` from a
+    /// rate limiter). A header that appears more than once is read as its
+    /// values joined with `, `.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub response_headers: Option<TypeReference>,
 
     #[serde(flatten)]
     pub output_type: OutputType,
@@ -484,6 +492,7 @@ impl Function {
             input_type: None,
             input_headers: None,
             error_type: None,
+            response_headers: None,
             output_type: OutputType::Complete { output_type: None },
             serialization: Default::default(),
             readonly: Default::default(),
@@ -513,6 +522,10 @@ impl Function {
 
     pub fn input_headers(&self) -> Option<&TypeReference> {
         self.input_headers.as_ref()
+    }
+
+    pub fn response_headers(&self) -> Option<&TypeReference> {
+        self.response_headers.as_ref()
     }
 
     pub fn output_type(&self) -> &OutputType {
