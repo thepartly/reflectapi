@@ -54,6 +54,18 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                 },
                 "description": "Seconds, or an HTTP date, after which to retry"
               },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
               "x-request-id": {
                 "schema": {
                   "$ref": "#/components/schemas/std.string.String"
@@ -78,6 +90,18 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                   "$ref": "#/components/schemas/std.string.String"
                 },
                 "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
               },
               "x-request-id": {
                 "schema": {
@@ -103,6 +127,18 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                 },
                 "description": "Seconds, or an HTTP date, after which to retry"
               },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
               "x-request-id": {
                 "schema": {
                   "$ref": "#/components/schemas/std.string.String"
@@ -127,6 +163,18 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                   "$ref": "#/components/schemas/std.string.String"
                 },
                 "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
               },
               "x-request-id": {
                 "schema": {
@@ -192,6 +240,16 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
   },
   "components": {
     "schemas": {
+      "reflectapi_demo.tests.basic.CacheStatus": {
+        "oneOf": [
+          {
+            "const": "Hit"
+          },
+          {
+            "const": "Miss"
+          }
+        ]
+      },
       "reflectapi_demo.tests.basic.ResponseHeadersTestError": {
         "oneOf": [
           {

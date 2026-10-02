@@ -13,6 +13,7 @@ from __future__ import annotations
 
 
 # Standard library imports
+from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
@@ -41,6 +42,14 @@ class ReflectapiDemoTestsBasicResponseHeaders(BaseModel):
         serialization_alias="x-request-id",
         validation_alias="x-request-id",
     )
+    x_expires_at: datetime | None = Field(
+        default=None,
+        serialization_alias="x-expires-at",
+        validation_alias="x-expires-at",
+    )
+    x_cache: reflectapi_demo.tests.basic.CacheStatus | None = Field(
+        default=None, serialization_alias="x-cache", validation_alias="x-cache"
+    )
 
 
 class ReflectapiDemoTestsBasicRouteResponseHeaders(BaseModel):
@@ -51,6 +60,11 @@ class ReflectapiDemoTestsBasicRouteResponseHeaders(BaseModel):
     cf_ray: str | None = Field(
         default=None, serialization_alias="cf-ray", validation_alias="cf-ray"
     )
+
+
+class ReflectapiDemoTestsBasicCacheStatus(str, Enum):
+    HIT = "Hit"
+    MISS = "Miss"
 
 
 class ReflectapiDemoTestsBasicResponseHeadersTestError(str, Enum):
@@ -69,6 +83,7 @@ class reflectapi_demo:
 
             ResponseHeaders = ReflectapiDemoTestsBasicResponseHeaders
             RouteResponseHeaders = ReflectapiDemoTestsBasicRouteResponseHeaders
+            CacheStatus = ReflectapiDemoTestsBasicCacheStatus
             ResponseHeadersTestError = ReflectapiDemoTestsBasicResponseHeadersTestError
 
 
@@ -321,6 +336,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 _rebuild_errors: list[str] = []
 for _model in [
+    ReflectapiDemoTestsBasicCacheStatus,
     ReflectapiDemoTestsBasicResponseHeaders,
     ReflectapiDemoTestsBasicResponseHeadersTestError,
     ReflectapiDemoTestsBasicRouteResponseHeaders,

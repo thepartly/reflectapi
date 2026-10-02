@@ -574,9 +574,9 @@ impl Converter<'_> {
         }
     }
 
-    /// Header objects for a response headers struct. Its fields are
-    /// `Option<String>` (checked when the schema is built): headers that may
-    /// be absent, documented as optional headers of the inner type.
+    /// Header objects for a response headers struct. Its fields are `Option`s
+    /// (checked when the schema is built): headers that may be absent,
+    /// documented as optional headers of the inner type.
     fn convert_response_headers(
         &mut self,
         schema: &crate::Schema,

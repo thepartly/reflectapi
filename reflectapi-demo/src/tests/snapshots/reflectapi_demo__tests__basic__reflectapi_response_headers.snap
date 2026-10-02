@@ -73,6 +73,19 @@ expression: schema
   "output_types": {
     "types": [
       {
+        "kind": "primitive",
+        "name": "chrono::DateTime",
+        "description": "DateTime at a given timezone (RFC3339 format)",
+        "parameters": [
+          {
+            "name": "Tz"
+          }
+        ],
+        "fallback": {
+          "name": "std::string::String"
+        }
+      },
+      {
         "kind": "struct",
         "name": "reflectapi::Empty",
         "description": "Struct object with no fields",
@@ -83,6 +96,20 @@ expression: schema
         "name": "reflectapi::Infallible",
         "description": "Error object which is expected to be never returned",
         "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::CacheStatus",
+        "variants": [
+          {
+            "name": "Hit",
+            "fields": "none"
+          },
+          {
+            "name": "Miss",
+            "fields": "none"
+          }
+        ]
       },
       {
         "kind": "struct",
@@ -111,6 +138,37 @@ expression: schema
                 "arguments": [
                   {
                     "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "x_expires_at",
+              "serde_name": "x-expires-at",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "chrono::DateTime",
+                    "arguments": [
+                      {
+                        "name": "chrono::Utc"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "x_cache",
+              "serde_name": "x-cache",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::basic::CacheStatus"
                   }
                 ]
               },

@@ -674,6 +674,17 @@ struct ResponseHeaders {
     _retry_after: Option<String>,
     #[serde(rename = "x-request-id")]
     _request_id: Option<String>,
+    #[serde(rename = "x-expires-at")]
+    _expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(rename = "x-cache")]
+    _cache: Option<CacheStatus>,
+}
+
+#[derive(serde::Serialize, reflectapi::Output)]
+#[allow(dead_code)]
+enum CacheStatus {
+    Hit,
+    Miss,
 }
 
 #[derive(serde::Serialize, reflectapi::Output)]
@@ -718,12 +729,35 @@ fn test_reflectapi_response_headers() {
 }
 
 #[test]
+fn test_reflectapi_response_headers_accept_string_types() {
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct RequestId(String);
+
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct StringTypedHeaders {
+        #[serde(rename = "x-trace-id")]
+        _trace_id: Option<uuid::Uuid>,
+        #[serde(rename = "x-request-id")]
+        _request_id: Option<RequestId>,
+        #[serde(rename = "x-cache")]
+        _cache: Option<CacheStatus>,
+    }
+
+    let built = reflectapi::Builder::<()>::new()
+        .response_headers::<StringTypedHeaders>()
+        .route(response_headers_test_handler, |b| b.name("first"))
+        .build();
+    assert!(built.is_ok(), "{}", built.err().unwrap());
+}
+
+#[test]
 fn test_reflectapi_response_headers_validation() {
     #[derive(serde::Serialize, reflectapi::Output)]
     struct InvalidResponseHeaders {
         #[serde(rename = "Retry-After")]
         _retry_after: Option<String>,
         _attempts: Option<u32>,
+        _region: String,
     }
 
     let errors = reflectapi::Builder::<()>::new()
@@ -732,7 +766,7 @@ fn test_reflectapi_response_headers_validation() {
         .route(response_headers_test_handler, |b| b.name("second"))
         .build()
         .err()
-        .expect("invalid error headers are rejected")
+        .expect("invalid response headers are rejected")
         .0
         .iter()
         .map(ToString::to_string)
@@ -742,7 +776,8 @@ fn test_reflectapi_response_headers_validation() {
         errors,
         [
             format!("response headers type `{type_name}`: `Retry-After` is not a valid lowercase header name"),
-            format!("response headers type `{type_name}`: field `_attempts` must be `Option<String>`"),
+            format!("response headers type `{type_name}`: field `_attempts` must be `Option<T>` where `T` is a string on the wire, e.g. `String`, a unit-variant enum, a newtype over one, `uuid::Uuid` or `chrono::DateTime`"),
+            format!("response headers type `{type_name}`: field `_region` must be an `Option`: any response header may be absent"),
         ]
     );
 }

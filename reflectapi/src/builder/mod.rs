@@ -140,8 +140,11 @@ where
     /// Declares the response headers that clients can read, for all routes
     /// added to this builder after this call (like [`Builder::tag`]).
     ///
-    /// `H` is a struct with one `Option<String>` field per header; the field's
-    /// serde name is the header name and must be lowercase. See
+    /// `H` is a struct with one `Option<T>` field per header, where `T` is a
+    /// string on the wire (`String`, a unit-variant enum, a newtype over one,
+    /// `uuid::Uuid`, `chrono::DateTime`, ...): the header's value is
+    /// deserialized into it, as for request headers. The field's serde name is
+    /// the header name and must be lowercase. See
     /// [`crate::Function::response_headers`]. Override per route with
     /// [`RouteBuilder::response_headers`].
     pub fn response_headers<H: Output>(mut self) -> Self {
@@ -453,8 +456,10 @@ impl RouteBuilder {
     }
 }
 
-/// Checks each distinct `response_headers` type: a non-generic struct whose
-/// named fields are all `Option<String>` with lowercase header names.
+/// Checks each distinct `response_headers` type: a non-generic struct of
+/// named `Option<T>` fields, where `T` is a string on the wire (as request
+/// headers are parsed: the header's string value is deserialized into the
+/// field), with lowercase header names.
 fn validate_response_headers(schema: &crate::Schema) -> Vec<BuildError> {
     let mut checked = BTreeSet::new();
     let mut errors = Vec::new();
@@ -465,7 +470,7 @@ fn validate_response_headers(schema: &crate::Schema) -> Vec<BuildError> {
         let invalid = |reason: String| {
             BuildError::Other(format!("response headers type `{}`: {reason}", type_ref.name).into())
         };
-        let fields = match schema.output_types.get_type(&type_ref.name) {
+        let fields = match schema.get_type(&type_ref.name) {
             Some(crate::Type::Struct(s)) if type_ref.arguments.is_empty() && !s.is_tuple() => {
                 s.fields()
             }
@@ -478,17 +483,17 @@ fn validate_response_headers(schema: &crate::Schema) -> Vec<BuildError> {
         };
         for field in fields {
             let header_name = field.serde_name();
-            let is_optional_string = field.type_ref.name == "std::option::Option"
-                && matches!(
-                    field.type_ref.arguments.as_slice(),
-                    [argument] if argument.name == "std::string::String"
-                );
             let type_problem = if field.flattened {
                 Some("is flattened; declare each header as its own field")
             } else if field.type_ref.name == "reflectapi::Option" {
-                Some("must be `Option<String>`, not `reflectapi::Option`: a header is absent or present, never null")
-            } else if !is_optional_string {
-                Some("must be `Option<String>`")
+                Some("must be `Option<T>`, not `reflectapi::Option`: a header is absent or present, never null")
+            } else if field.type_ref.name != "std::option::Option" {
+                Some("must be an `Option`: any response header may be absent")
+            } else if !matches!(
+                field.type_ref.arguments.as_slice(),
+                [value_type] if is_string_on_the_wire(schema, value_type, 0)
+            ) {
+                Some("must be `Option<T>` where `T` is a string on the wire, e.g. `String`, a unit-variant enum, a newtype over one, `uuid::Uuid` or `chrono::DateTime`")
             } else {
                 None
             };
@@ -505,6 +510,42 @@ fn validate_response_headers(schema: &crate::Schema) -> Vec<BuildError> {
         }
     }
     errors
+}
+
+/// Whether values of `type_ref` serialize as a JSON string, so a header's
+/// string value deserializes into it.
+fn is_string_on_the_wire(
+    schema: &crate::Schema,
+    type_ref: &crate::TypeReference,
+    depth: usize,
+) -> bool {
+    // String primitives that have no `fallback` to `String` in their schema.
+    const STRING_PRIMITIVES: [&str; 3] = ["std::string::String", "char", "uuid::Uuid"];
+    if STRING_PRIMITIVES.contains(&type_ref.name.as_str()) {
+        return true;
+    }
+    if depth > 8 {
+        return false;
+    }
+    match schema.get_type(&type_ref.name) {
+        Some(crate::Type::Primitive(p)) => p
+            .fallback
+            .as_ref()
+            .is_some_and(|fallback| is_string_on_the_wire(schema, fallback, depth + 1)),
+        Some(crate::Type::Enum(e)) => {
+            e.representation.is_external()
+                && e.variants()
+                    .all(|v| matches!(v.fields, crate::Fields::None))
+        }
+        Some(crate::Type::Struct(s))
+            if s.fields.len() == 1 && (s.transparent() || s.is_tuple()) =>
+        {
+            s.fields()
+                .next()
+                .is_some_and(|field| is_string_on_the_wire(schema, &field.type_ref, depth + 1))
+        }
+        _ => false,
+    }
 }
 
 /// An error that can occur during the [`Builder::build`] process.

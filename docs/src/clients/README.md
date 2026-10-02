@@ -78,6 +78,9 @@ The demo repository includes extra project scaffolding around some generated cli
 - Uses a `fetch`-based default client implementation.
 - Parses JSON responses, but does not generate runtime schema validators today.
 - Supports custom client implementations via the generated client interface.
+  A custom transport's `Headers.get(name)` must match names case-insensitively,
+  as `fetch`'s does: declared response headers are looked up by their
+  lowercase names.
 - Calls return a `CallResult`, a `Result` that also carries the HTTP response:
   `status_code()`, the API's declared [response headers](#response-headers)
   via `headers()`, and all of them via `raw_headers()`. The response may come
@@ -155,8 +158,12 @@ when the connection closes.
 
 Some response headers matter to callers: a request ID to quote in a support
 ticket, or `retry-after` from a rate limiter. Declare them on the builder as a
-struct with one `Option<String>` field per header; the field's serde name is
-the header name and must be lowercase:
+struct with one `Option<T>` field per header. `T` must be a string on the wire,
+because the header's value is deserialized into it the same way request headers
+are: `String`, a unit-variant enum, a newtype over one, or a type such as
+`uuid::Uuid`, `chrono::DateTime` or `url::Url`. Numbers, booleans and
+collections aren't supported. The field's serde name is the header name and must
+be lowercase:
 
 ```rust,ignore
 #[derive(serde::Serialize, reflectapi::Output)]
@@ -179,10 +186,32 @@ doesn't mean the server sends it: it may be added by infrastructure in front of
 the server, and clients read it from whatever response arrived. Use
 `RouteBuilder::response_headers` to declare a different set for one route.
 
+Handlers can't set response headers yet, so today these come from
+infrastructure in front of the server.
+
+In TypeScript, the declared headers are typed on the `CallResult` and `Err`
+returned by a call. Code that only sees a thrown error, such as a query
+library's retry callback, gets the `Err` as `cause` with its headers type
+erased, so cast it to the generated headers type:
+
+```ts
+retryDelay: (failureCount, error) => {
+  const headers =
+    error.cause instanceof Err
+      ? (error.cause as Err<unknown, ResponseHeaders>).headers()
+      : undefined;
+  const seconds = headers?.["retry-after"] ? Number(headers["retry-after"]) : NaN;
+  // Retry-After may also be an HTTP date; fall back to exponential backoff
+  return Number.isFinite(seconds)
+    ? seconds * 1000
+    : Math.min(1000 * 2 ** failureCount, 30_000);
+}
+```
+
 | Output | Response headers |
 |--------|------------------|
 | TypeScript | `headers()` on the `CallResult` and on its `Err` returns the declared headers, typed: each is `string \| null`, `null` when that header is absent; `headers()` itself is `undefined` when no response arrived. `raw_headers()` returns all response headers, untyped, for ones the API doesn't declare, such as `cf-ray` from a CDN. |
-| Python | `ApiResponse.headers` and `ApiError.headers` hold the declared headers as the generated model (each field `None` when absent); `None` when the API declares none or no response arrived. All headers, untyped, are in `.metadata.headers`. Streaming methods expose them on errors only. |
+| Python | `ApiResponse.headers` and `ApiError.headers` (including `ValidationError` when the response body is invalid) hold the declared headers as the generated model (each field `None` when absent); `None` when the API declares none or no response arrived. All headers, untyped, are in `.metadata.headers`. Streaming methods expose them on errors only. |
 | Rust | The headers struct is generated as a type, but the client doesn't populate it yet. |
 | OpenAPI | Documented as optional headers on the operation's `200` and `default` responses. |
 

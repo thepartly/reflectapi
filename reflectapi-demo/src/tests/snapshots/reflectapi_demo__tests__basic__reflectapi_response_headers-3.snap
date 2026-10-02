@@ -123,12 +123,24 @@ pub mod types {
             pub mod basic {
 
                 #[derive(Debug, serde::Deserialize)]
+                pub enum CacheStatus {
+                    Hit,
+                    Miss,
+                }
+
+                #[derive(Debug, serde::Deserialize)]
                 pub struct ResponseHeaders {
                     /// Seconds, or an HTTP date, after which to retry
                     #[serde(rename = "retry-after")]
                     pub retry_after: std::option::Option<std::string::String>,
                     #[serde(rename = "x-request-id")]
                     pub x_request_id: std::option::Option<std::string::String>,
+                    #[serde(rename = "x-expires-at")]
+                    pub x_expires_at: std::option::Option<chrono::DateTime<chrono::Utc>>,
+                    #[serde(rename = "x-cache")]
+                    pub x_cache: std::option::Option<
+                        super::super::super::reflectapi_demo::tests::basic::CacheStatus,
+                    >,
                 }
 
                 #[derive(Debug, serde::Deserialize, serde::Serialize)]

@@ -1265,3 +1265,18 @@ class TestResponseHeaders:
         )
 
         assert result.headers == SampleResponseHeaders(retry_after="3")
+
+    @pytest.mark.asyncio
+    async def test_declared_headers_on_async_application_error(self):
+        transport = AsyncFixedResponseClient(503, {"retry-after": "30"}, b"unavailable")
+        client = AsyncClientBase("http://example.com", client=transport)
+
+        with pytest.raises(ApplicationError) as exc_info:
+            await client._make_request(
+                "/test",
+                response_model=SampleModel,
+                response_headers_model=SampleResponseHeaders,
+            )
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.headers == SampleResponseHeaders(retry_after="30")

@@ -66,12 +66,16 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace basic {
+      export type CacheStatus = "Hit" | "Miss";
+
       export interface ResponseHeaders {
         /**
          * Seconds, or an HTTP date, after which to retry
          */
         "retry-after": string | null;
         "x-request-id": string | null;
+        "x-expires-at": string | null;
+        "x-cache": reflectapi_demo.tests.basic.CacheStatus | null;
       }
 
       export type ResponseHeadersTestError = "Conflict";
@@ -105,6 +109,8 @@ namespace __implementation {
       >(client, "/with.default", input, headers, options, [
         "retry-after",
         "x-request-id",
+        "x-expires-at",
+        "x-cache",
       ]);
   }
   function infallible(client: Client) {
@@ -115,7 +121,7 @@ namespace __implementation {
         input,
         headers,
         options,
-        ["retry-after", "x-request-id"],
+        ["retry-after", "x-request-id", "x-expires-at", "x-cache"],
       );
   }
   function with__route_headers(client: Client) {

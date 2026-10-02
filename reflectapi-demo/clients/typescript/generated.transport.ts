@@ -25,6 +25,8 @@ export interface Request {
 }
 
 export interface Headers {
+  // Must match `name` case-insensitively, like the DOM `Headers.get`:
+  // declared response headers are looked up by their lowercase names.
   get(name: string): string | null;
 }
 
