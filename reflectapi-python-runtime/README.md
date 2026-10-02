@@ -13,6 +13,9 @@ directly.
 - `ApiResponse[T, E, H]` — typed wrapper around the response value, transport
   metadata, the optional typed error, and the API's declared response headers
   (`.headers`).
+- `ApiStream[T, H]` / `AsyncApiStream[T, H]` — iterators returned by streaming
+  methods, exposing the response's `metadata` and declared `headers` once
+  iteration starts.
 - `ApplicationError`, `NetworkError`, `TimeoutError`, `ValidationError` —
   exceptions raised by the generated methods on non-2xx, transport, and
   validation failures respectively.

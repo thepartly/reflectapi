@@ -385,17 +385,13 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
 
     stdlib_imports.extend(imports.extra_stdlib_imports.iter().cloned());
 
-    // Streaming methods need Iterator / AsyncIterator from collections.abc.
+    // Streaming methods return the runtime's stream wrappers.
     if imports.has_streaming {
-        let mut names = Vec::new();
         if imports.has_sync {
-            names.push("Iterator");
+            runtime_imports.insert("ApiStream".to_string());
         }
         if imports.has_async {
-            names.push("AsyncIterator");
-        }
-        if !names.is_empty() {
-            stdlib_imports.insert(format!("from collections.abc import {}", names.join(", ")));
+            runtime_imports.insert("AsyncApiStream".to_string());
         }
     }
 
@@ -6636,13 +6632,8 @@ pub mod templates {
             if let Some(headers_type) = &function.headers_type {
                 writeln!(s, "        headers: Optional[{headers_type}] = None,").unwrap();
             }
-            if let Some(item_type) = &function.stream_item_type {
-                let iter_kind = if is_async {
-                    "AsyncIterator"
-                } else {
-                    "Iterator"
-                };
-                writeln!(s, "    ) -> {iter_kind}[{item_type}]:").unwrap();
+            if let Some(stream_type) = function.api_stream_type(is_async) {
+                writeln!(s, "    ) -> {stream_type}:").unwrap();
             } else {
                 writeln!(s, "    ) -> {}:", function.api_response_type()).unwrap();
             }
@@ -6674,15 +6665,13 @@ pub mod templates {
                 writeln!(s).unwrap();
             }
             writeln!(s, "        Returns:").unwrap();
-            if let Some(item_type) = &function.stream_item_type {
-                let iter_kind = if is_async {
-                    "AsyncIterator"
-                } else {
-                    "Iterator"
-                };
+            if let (Some(stream_type), Some(item_type)) = (
+                function.api_stream_type(is_async),
+                &function.stream_item_type,
+            ) {
                 writeln!(
                     s,
-                    "            {iter_kind}[{item_type}]: SSE stream of {item_type} items"
+                    "            {stream_type}: SSE stream of {item_type} items"
                 )
                 .unwrap();
             } else if let Some(error_type) = &function.error_type {
@@ -6924,6 +6913,21 @@ pub mod templates {
                 (Some(error), None) => format!("ApiResponse[{}, {error}]", self.output_type),
                 (None, None) => format!("ApiResponse[{}]", self.output_type),
             }
+        }
+
+        /// `ApiStream[...]` / `AsyncApiStream[...]` annotation for a streaming
+        /// endpoint; `None` if the endpoint doesn't stream.
+        pub fn api_stream_type(&self, is_async: bool) -> Option<String> {
+            let item_type = self.stream_item_type.as_ref()?;
+            let stream = if is_async {
+                "AsyncApiStream"
+            } else {
+                "ApiStream"
+            };
+            Some(match &self.response_headers_type {
+                Some(headers) => format!("{stream}[{item_type}, {headers}]"),
+                None => format!("{stream}[{item_type}]"),
+            })
         }
     }
 

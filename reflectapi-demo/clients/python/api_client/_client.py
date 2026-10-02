@@ -11,7 +11,6 @@ from __future__ import annotations
 
 # Standard library imports
 import warnings
-from collections.abc import AsyncIterator, Iterator
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
@@ -27,6 +26,8 @@ from pydantic import (
 )
 
 # Runtime imports
+from reflectapi_runtime import ApiStream
+from reflectapi_runtime import AsyncApiStream
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiPartialModel
@@ -84,11 +85,11 @@ class AsyncPetsClient:
     def cdc_events(
         self,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> AsyncIterator[myapi.model.output.Pet]:
+    ) -> AsyncApiStream[myapi.model.output.Pet, myapi.proto.ResponseHeaders]:
         """Stream of change data capture events for pets
 
         Returns:
-            AsyncIterator[myapi.model.output.Pet]: SSE stream of myapi.model.output.Pet items
+            AsyncApiStream[myapi.model.output.Pet, myapi.proto.ResponseHeaders]: SSE stream of myapi.model.output.Pet items
         """
         path = "/pets.cdc-events"
 
@@ -318,11 +319,11 @@ class PetsClient:
     def cdc_events(
         self,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> Iterator[myapi.model.output.Pet]:
+    ) -> ApiStream[myapi.model.output.Pet, myapi.proto.ResponseHeaders]:
         """Stream of change data capture events for pets
 
         Returns:
-            Iterator[myapi.model.output.Pet]: SSE stream of myapi.model.output.Pet items
+            ApiStream[myapi.model.output.Pet, myapi.proto.ResponseHeaders]: SSE stream of myapi.model.output.Pet items
         """
         path = "/pets.cdc-events"
 

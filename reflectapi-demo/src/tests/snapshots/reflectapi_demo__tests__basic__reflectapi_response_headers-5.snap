@@ -95,11 +95,15 @@ class AsyncBeforeClient:
 
     async def default(
         self,
-    ) -> ApiResponse[Any, reflectapi_demo.tests.basic.ResponseHeadersTestError]:
+    ) -> ApiResponse[
+        Any,
+        reflectapi_demo.tests.basic.ResponseHeadersTestError,
+        reflectapi_demo.tests.basic.ResponseHeaders,
+    ]:
         """
 
         Returns:
-            ApiResponse[Any, reflectapi_demo.tests.basic.ResponseHeadersTestError]: Success=Any, Error=reflectapi_demo.tests.basic.ResponseHeadersTestError
+            ApiResponse[Any, reflectapi_demo.tests.basic.ResponseHeadersTestError, reflectapi_demo.tests.basic.ResponseHeaders]: Success=Any, Error=reflectapi_demo.tests.basic.ResponseHeadersTestError
         """
         path = "/before.default"
 
@@ -109,6 +113,7 @@ class AsyncBeforeClient:
             params=params if params else None,
             response_model=None,
             error_model=reflectapi_demo.tests.basic.ResponseHeadersTestError,
+            response_headers_model=reflectapi_demo.tests.basic.ResponseHeaders,
         )
 
 
@@ -215,11 +220,15 @@ class BeforeClient:
 
     def default(
         self,
-    ) -> ApiResponse[Any, reflectapi_demo.tests.basic.ResponseHeadersTestError]:
+    ) -> ApiResponse[
+        Any,
+        reflectapi_demo.tests.basic.ResponseHeadersTestError,
+        reflectapi_demo.tests.basic.ResponseHeaders,
+    ]:
         """
 
         Returns:
-            ApiResponse[Any, reflectapi_demo.tests.basic.ResponseHeadersTestError]: Success=Any, Error=reflectapi_demo.tests.basic.ResponseHeadersTestError
+            ApiResponse[Any, reflectapi_demo.tests.basic.ResponseHeadersTestError, reflectapi_demo.tests.basic.ResponseHeaders]: Success=Any, Error=reflectapi_demo.tests.basic.ResponseHeadersTestError
         """
         path = "/before.default"
 
@@ -229,6 +238,7 @@ class BeforeClient:
             params=params if params else None,
             response_model=None,
             error_model=reflectapi_demo.tests.basic.ResponseHeadersTestError,
+            response_headers_model=reflectapi_demo.tests.basic.ResponseHeaders,
         )
 
 

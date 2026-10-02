@@ -10,7 +10,7 @@ from typing import Any
 
 import httpx
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -130,6 +130,12 @@ class _Pet(BaseModel):
     weight: float
 
 
+class _StreamHeaders(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    request_id: str | None = Field(default=None, validation_alias="x-request-id")
+
+
 class _SyncDemo(ClientBase):
     """Minimal concrete subclass — exposes _make_sse_request as a public method."""
 
@@ -138,11 +144,21 @@ class _SyncDemo(ClientBase):
             "pets", item_model=_Pet, error_model=None
         )
 
+    def stream_pets_with_headers(self) -> Any:
+        return self._make_sse_request(
+            "pets", item_model=_Pet, response_headers_model=_StreamHeaders
+        )
+
 
 class _AsyncDemo(AsyncClientBase):
     def stream_pets(self) -> Any:
         return self._make_sse_request(
             "pets", item_model=_Pet, error_model=None
+        )
+
+    def stream_pets_with_headers(self) -> Any:
+        return self._make_sse_request(
+            "pets", item_model=_Pet, response_headers_model=_StreamHeaders
         )
 
 
@@ -349,3 +365,36 @@ def event_loop():  # pragma: no cover - pytest-asyncio compatibility shim
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
+
+
+def test_sync_stream_exposes_response_once_iteration_starts() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = _sse_body([{"name": "fido", "weight": 1.5}])
+        return httpx.Response(
+            200, content=body, headers={"X-Request-ID": "req-1"}
+        )
+
+    client = _make_sync_client(httpx.MockTransport(handler))
+    stream = client.stream_pets_with_headers()
+    assert stream.headers is None and stream.metadata is None
+    assert next(stream) == _Pet(name="fido", weight=1.5)
+    assert stream.metadata.status_code == 200
+    assert stream.headers == _StreamHeaders(request_id="req-1")
+    stream.close()
+    client.close()
+
+
+@pytest.mark.asyncio
+async def test_async_stream_init_error_carries_headers() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            429, text="slow down", headers={"x-request-id": "req-2"}
+        )
+
+    client = _make_async_client(httpx.MockTransport(handler))
+    stream = client.stream_pets_with_headers()
+    with pytest.raises(ApplicationError) as ei:
+        await stream.__anext__()
+    assert ei.value.headers == _StreamHeaders(request_id="req-2")
+    assert stream.headers == _StreamHeaders(request_id="req-2")
+    await client.aclose()

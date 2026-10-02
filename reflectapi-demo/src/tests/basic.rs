@@ -751,6 +751,46 @@ fn test_reflectapi_response_headers_accept_string_types() {
 }
 
 #[test]
+fn test_reflectapi_response_headers_defaults_cover_all_routes() {
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct OtherHeaders {
+        #[serde(rename = "x-other")]
+        _other: Option<String>,
+    }
+
+    let nested_without_default = reflectapi::Builder::<()>::new()
+        .name("nested")
+        .route(response_headers_test_handler, |b| b.name("nested.route"));
+    let extended_with_default = reflectapi::Builder::<()>::new()
+        .name("extended")
+        .response_headers::<OtherHeaders>()
+        .route(response_headers_test_handler, |b| b.name("extended.route"));
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(response_headers_test_handler, |b| b.name("added.before"))
+        .response_headers::<ResponseHeaders>()
+        .nest(nested_without_default)
+        .extend(extended_with_default)
+        .route(response_headers_test_handler, |b| {
+            b.name("route.level").response_headers::<OtherHeaders>()
+        })
+        .build()
+        .unwrap();
+
+    let headers_type = |function_name: &str| {
+        let function = schema
+            .functions()
+            .find(|f| f.name == function_name)
+            .unwrap();
+        let type_name = &function.response_headers().unwrap().name;
+        type_name.rsplit("::").next().unwrap().to_owned()
+    };
+    assert_eq!(headers_type("added.before"), "ResponseHeaders");
+    assert_eq!(headers_type("nested.route"), "ResponseHeaders");
+    assert_eq!(headers_type("extended.route"), "OtherHeaders");
+    assert_eq!(headers_type("route.level"), "OtherHeaders");
+}
+
+#[test]
 fn test_reflectapi_response_headers_validation() {
     #[derive(serde::Serialize, reflectapi::Output)]
     struct InvalidResponseHeaders {
@@ -758,6 +798,10 @@ fn test_reflectapi_response_headers_validation() {
         _retry_after: Option<String>,
         _attempts: Option<u32>,
         _region: String,
+        #[serde(rename = "x-dup")]
+        _first: Option<String>,
+        #[serde(rename = "x-dup")]
+        _second: Option<String>,
     }
 
     let errors = reflectapi::Builder::<()>::new()
@@ -778,6 +822,7 @@ fn test_reflectapi_response_headers_validation() {
             format!("response headers type `{type_name}`: `Retry-After` is not a valid lowercase header name"),
             format!("response headers type `{type_name}`: field `_attempts` must be `Option<T>` where `T` is a string on the wire, e.g. `String`, a unit-variant enum, a newtype over one, `uuid::Uuid` or `chrono::DateTime`"),
             format!("response headers type `{type_name}`: field `_region` must be an `Option`: any response header may be absent"),
+            format!("response headers type `{type_name}`: `x-dup` is declared by more than one field"),
         ]
     );
 }

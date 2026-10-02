@@ -455,7 +455,8 @@ pub struct Function {
     /// failure. Each field is one header, named by its serde name. Declaring
     /// a header doesn't mean the server sends it: it may be added by
     /// infrastructure in front of the server (e.g. `retry-after` from a
-    /// rate limiter).
+    /// rate limiter). A header that appears more than once is read as its
+    /// values joined with `, `.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub response_headers: Option<TypeReference>,
 

@@ -1,5 +1,6 @@
 """Tests for the client base classes."""
 
+import datetime
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -1243,6 +1244,33 @@ class TestResponseHeaders:
 
         assert exc_info.value.status_code == 200
         assert exc_info.value.headers == SampleResponseHeaders(request_id="req-2")
+
+    def test_malformed_typed_header_reads_as_absent(self):
+        class TypedHeaders(BaseModel):
+            model_config = ConfigDict(populate_by_name=True)
+
+            expires_at: datetime.datetime | None = Field(
+                default=None, validation_alias="x-expires-at"
+            )
+            request_id: str | None = Field(
+                default=None, validation_alias="x-request-id"
+            )
+
+        transport = FixedResponseClient(
+            503, {"x-expires-at": "garbage", "x-request-id": "req-3"}, b"unavailable"
+        )
+        client = ClientBase("http://example.com", client=transport)
+
+        with pytest.raises(ApplicationError) as exc_info:
+            client._make_request(
+                "/test",
+                response_model=SampleModel,
+                response_headers_model=TypedHeaders,
+            )
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.headers == TypedHeaders(request_id="req-3")
+        assert exc_info.value.metadata.headers["x-expires-at"] == "garbage"
 
     def test_no_declared_headers(self):
         client = ClientBase("http://example.com", client=ShapeClient())

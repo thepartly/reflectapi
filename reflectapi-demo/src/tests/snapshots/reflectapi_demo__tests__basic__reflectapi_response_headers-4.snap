@@ -17,6 +17,31 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         "responses": {
           "200": {
             "description": "200 OK",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -29,6 +54,31 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           },
           "default": {
             "description": "Error cases",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "Seconds, or an HTTP date, after which to retry"
+              },
+              "x-cache": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.CacheStatus"
+                }
+              },
+              "x-expires-at": {
+                "schema": {
+                  "description": "DateTime at a given timezone (RFC3339 format)",
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

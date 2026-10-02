@@ -151,7 +151,7 @@ when the connection closes.
 |--------|--------------------------|
 | TypeScript | Method returns `Promise<Result<AsyncIterable<Item>, Err<Error>>>`; consume with `for await`. |
 | Rust | Method returns `reflectapi::rt::StreamResponse<Item, AppError, NetError>`. The outer `Result` reports init failures (application or network); inner items report per-item transport/decode failures only — application errors cannot occur after the stream is open. Requires the `rt-sse` Cargo feature on the `reflectapi` dependency. |
-| Python | Method returns `AsyncIterator[Item]` on the async client and `Iterator[Item]` on the sync client. Init 4xx/5xx raise `ApplicationError` (with the typed `error_model` if declared); per-event problems raise `NetworkError` / `TimeoutError` / `ValidationError` and terminate the iterator without a leaked socket. |
+| Python | Method returns `AsyncApiStream[Item]` on the async client and `ApiStream[Item]` on the sync client: iterators that also expose the response's `metadata` and declared `headers` once iteration starts. Init 4xx/5xx raise `ApplicationError` (with the typed `error_model` if declared); per-event problems raise `NetworkError` / `TimeoutError` / `ValidationError` and terminate the iterator without a leaked socket. |
 | OpenAPI | Operation is described with `text/event-stream` response content. |
 
 ## Response Headers
@@ -177,17 +177,24 @@ struct ResponseHeaders {
 }
 
 let builder = reflectapi::Builder::new()
-    .response_headers::<ResponseHeaders>() // applies to routes added after this
+    .response_headers::<ResponseHeaders>()
     .route(handler, |b| b.name("pets.list"));
 ```
 
 The headers apply to successful and failed responses alike. Declaring a header
 doesn't mean the server sends it: it may be added by infrastructure in front of
-the server, and clients read it from whatever response arrived. Use
-`RouteBuilder::response_headers` to declare a different set for one route.
+the server, and clients read it from whatever response arrived. Handlers can't
+set response headers yet, so today these come from that infrastructure.
 
-Handlers can't set response headers yet, so today these come from
-infrastructure in front of the server.
+A builder's declaration applies to every route of the builder that doesn't
+declare its own, whether added before or after the call, including the routes
+of builders merged in with `nest` or `extend` that have no declaration of their
+own. Use `RouteBuilder::response_headers` to declare a different set for one
+route.
+
+A header that appears more than once is read as its values joined with `, `.
+`set-cookie` can't be read that way (cookie dates contain commas, and browsers
+don't expose it to scripts), so don't declare it.
 
 In TypeScript, the declared headers are typed on the `CallResult` and `Err`
 returned by a call. Code that only sees a thrown error, such as a query
@@ -210,9 +217,9 @@ retryDelay: (failureCount, error) => {
 
 | Output | Response headers |
 |--------|------------------|
-| TypeScript | `headers()` on the `CallResult` and on its `Err` returns the declared headers, typed: each is `string \| null`, `null` when that header is absent; `headers()` itself is `undefined` when no response arrived. `raw_headers()` returns all response headers, untyped, for ones the API doesn't declare, such as `cf-ray` from a CDN. |
-| Python | `ApiResponse.headers` and `ApiError.headers` (including `ValidationError` when the response body is invalid) hold the declared headers as the generated model (each field `None` when absent); `None` when the API declares none or no response arrived. All headers, untyped, are in `.metadata.headers`. Streaming methods expose them on errors only. |
-| Rust | The headers struct is generated as a type, but the client doesn't populate it yet. |
+| TypeScript | `headers()` on the `CallResult` and on its `Err` returns the declared headers: each has the field's generated type or is `null` when that header is absent; `headers()` itself is `undefined` when no response arrived. Values aren't validated at runtime, as with response bodies: an enum-typed header holds whatever string arrived. `raw_headers()` returns all response headers, untyped, for ones the API doesn't declare, such as `cf-ray` from a CDN. `result.map(...)` keeps the response; `map_err` returns a plain `Result`. |
+| Python | `ApiResponse.headers` and `ApiError.headers` (including `ValidationError` when the response body is invalid) hold the declared headers validated into the generated model; a field is `None` when its header is absent or its value doesn't validate. `headers` is `None` when the API declares none or no response arrived. All headers, untyped, are in `.metadata.headers`. Streaming methods return an `ApiStream` / `AsyncApiStream` whose `headers` and `metadata` are set once iteration starts. |
+| Rust | The headers struct is generated as a type, but the client doesn't populate it yet. The generated method signatures of routes with declared headers will change when it does. |
 | OpenAPI | Documented as optional headers on the operation's `200` and `default` responses. |
 
 ## Shared Characteristics

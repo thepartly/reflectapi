@@ -27,7 +27,11 @@ export namespace __definition {
       input: {},
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<{}, reflectapi_demo.tests.basic.ResponseHeadersTestError>;
+    ) => AsyncResult<
+      {},
+      reflectapi_demo.tests.basic.ResponseHeadersTestError,
+      reflectapi_demo.tests.basic.ResponseHeaders
+    >;
   }
 
   export interface WithInterface {
@@ -95,8 +99,14 @@ namespace __implementation {
         {},
         {},
         {},
-        reflectapi_demo.tests.basic.ResponseHeadersTestError
-      >(client, "/before.default", input, headers, options);
+        reflectapi_demo.tests.basic.ResponseHeadersTestError,
+        reflectapi_demo.tests.basic.ResponseHeaders
+      >(client, "/before.default", input, headers, options, [
+        "retry-after",
+        "x-request-id",
+        "x-expires-at",
+        "x-cache",
+      ]);
   }
   function with__default(client: Client) {
     return (input: {}, headers: {}, options?: RequestOptions) =>

@@ -141,8 +141,11 @@ where
         self
     }
 
-    /// Declares the response headers that clients can read, for all routes
-    /// added to this builder after this call (like [`Builder::tag`]).
+    /// Declares the response headers that clients can read, for every route
+    /// of this builder that doesn't declare its own: routes added before or
+    /// after this call, and routes of builders merged in with
+    /// [`Builder::extend`] or [`Builder::nest`] that have no default of
+    /// their own.
     ///
     /// `H` is a struct with one `Option<T>` field per header, where `T` is a
     /// string on the wire (`String`, a unit-variant enum, a newtype over one,
@@ -153,6 +156,7 @@ where
     /// [`RouteBuilder::response_headers`].
     pub fn response_headers<H: Output>(mut self) -> Self {
         self.default_response_headers = Some(H::reflectapi_output_type);
+        self.apply_default_response_headers();
         self
     }
 
@@ -212,6 +216,27 @@ where
         .path(self.path.clone())
     }
 
+    /// Gives every function already in the schema without its own response
+    /// headers this builder's default, if it has one. Routes added later get
+    /// it in `route_defaults`.
+    fn apply_default_response_headers(&mut self) {
+        let Some(reflect_output_type) = self.default_response_headers else {
+            return;
+        };
+        let schema = &mut self.schema;
+        let mut default = None;
+        for function in schema
+            .functions
+            .iter_mut()
+            .filter(|f| f.response_headers.is_none())
+        {
+            let type_ref = default
+                .get_or_insert_with(|| reflect_output_type(&mut schema.output_types))
+                .clone();
+            function.response_headers = Some(type_ref);
+        }
+    }
+
     /// Merges another [`Builder`] into this one.
     ///
     /// The schema definitions and handlers from `other` are merged.
@@ -222,12 +247,14 @@ where
         let other_name = other.schema.name.clone();
         self.merged_handlers.push((other_name, other.handlers));
         self.schema.extend(other.schema);
+        self.apply_default_response_headers();
         self.errors.extend(other.errors);
         self.validators.extend(other.validators);
 
         // Don't merge `allow_redundant_renames`, `default_tags` or
         // `default_response_headers`, as these are configuration options that
-        // should be set per-builder.
+        // should be set per-builder. `other`'s default response headers are
+        // already on its routes.
 
         // Explicitly reconstruct Self to ensure new fields are handled appropriately.
         Self {
@@ -485,8 +512,14 @@ fn validate_response_headers(schema: &crate::Schema) -> Vec<BuildError> {
                 continue;
             }
         };
+        let mut seen_names = BTreeSet::new();
         for field in fields {
             let header_name = field.serde_name();
+            if !seen_names.insert(header_name) {
+                errors.push(invalid(format!(
+                    "`{header_name}` is declared by more than one field"
+                )));
+            }
             let type_problem = if field.flattened {
                 Some("is flattened; declare each header as its own field")
             } else if field.type_ref.name == "reflectapi::Option" {

@@ -11,6 +11,9 @@ expression: schema
       "error_type": {
         "name": "reflectapi_demo::tests::basic::ResponseHeadersTestError"
       },
+      "response_headers": {
+        "name": "reflectapi_demo::tests::basic::ResponseHeaders"
+      },
       "output_kind": "complete",
       "serialization": [
         "json",
