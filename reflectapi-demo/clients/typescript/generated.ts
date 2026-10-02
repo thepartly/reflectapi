@@ -14,7 +14,6 @@ export function client(base: string | Client): __definition.Interface {
 // them in under aliases so lib.ts itself can keep using DOM types.
 import type {
   Client,
-  Headers as ClientHeaders,
   RequestOptions,
   Response as ClientResponse,
 } from "./generated.transport";
@@ -22,17 +21,6 @@ import { ClientInstance } from "./generated.transport";
 
 export { ClientInstance };
 export type { Client, RequestOptions };
-
-/**
- * HTTP response details for a failed call, present whenever a response
- * was received: from the server or from anything in front of it, such
- * as a proxy, load balancer or rate limiter. Absent when no response
- * arrived (network failure, abort).
- */
-export interface TransportMetadata {
-  status_code: number;
-  headers: ClientHeaders;
-}
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
 export type NullToEmptyObject<T> =
@@ -144,29 +132,25 @@ export class Result<T, E> {
 }
 
 export class Err<E> {
-  private declare readonly transport_metadata: TransportMetadata | undefined;
+  private declare readonly http_status: number | undefined;
 
   constructor(
     private value: { application_err: E } | { other_err: any },
-    transport_metadata?: TransportMetadata,
+    http_status?: number,
   ) {
     // Non-enumerable, so JSON.stringify output (and the `unwrap_ok`
-    // messages built from it) is the same as before metadata existed.
-    Object.defineProperty(this, "transport_metadata", {
-      value: transport_metadata,
-    });
+    // messages built from it) is the same as before the status existed.
+    Object.defineProperty(this, "http_status", { value: http_status });
   }
 
   /**
-   * HTTP status of the failed response, or `undefined` if no response
-   * was received (network failure, abort).
+   * HTTP status of the failed response, whether it came from the server
+   * or from something in front of it (proxy, load balancer, rate
+   * limiter). `undefined` if no response was received (network failure,
+   * abort).
    */
   public status_code(): number | undefined {
-    return this.transport_metadata?.status_code;
-  }
-  /** Status and headers of the failed response; see `status_code`. */
-  public metadata(): TransportMetadata | undefined {
-    return this.transport_metadata;
+    return this.http_status;
   }
 
   public err(): E | undefined {
@@ -193,13 +177,10 @@ export class Err<E> {
     if ("application_err" in this.value) {
       return new Err(
         { application_err: f(this.value.application_err) },
-        this.transport_metadata,
+        this.http_status,
       );
     } else {
-      return new Err(
-        { other_err: this.value.other_err },
-        this.transport_metadata,
-      );
+      return new Err({ other_err: this.value.other_err }, this.http_status);
     }
   }
   public unwrap(): E {
@@ -306,7 +287,7 @@ export function __stream_request<I, H, O, E>(
 type __Outcome<T, E> = { ok: T } | { application_err: E } | { other_err: any };
 
 // Sends the request and turns `handle`'s outcome into a Result. Every
-// Err is built here, so all of them carry the response's metadata
+// Err is built here, so all of them carry the response's status
 // (undefined when the request failed before a response arrived).
 async function __call<T, E>(
   client: Client,
@@ -326,7 +307,7 @@ async function __call<T, E>(
       hdrs[k?.toString()] = v?.toString() || "";
     }
   }
-  let metadata: TransportMetadata | undefined;
+  let status: number | undefined;
   let outcome: __Outcome<T, E>;
   try {
     const response = await client.request({
@@ -335,7 +316,7 @@ async function __call<T, E>(
       body: new TextEncoder().encode(JSON.stringify(input) ?? "{}"),
       signal: options?.signal,
     });
-    metadata = { status_code: response.status, headers: response.headers };
+    status = response.status;
     outcome = await handle(response);
   } catch (e) {
     outcome = { other_err: e };
@@ -343,7 +324,7 @@ async function __call<T, E>(
   if ("ok" in outcome) {
     return new Result<T, Err<E>>({ ok: outcome.ok });
   }
-  return new Result<T, Err<E>>({ err: new Err(outcome, metadata) });
+  return new Result<T, Err<E>>({ err: new Err(outcome, status) });
 }
 
 // Non-2xx responses: below 500, a JSON body is the endpoint's typed

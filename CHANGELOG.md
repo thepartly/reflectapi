@@ -4,13 +4,14 @@
 
 ### Added
 
-- TypeScript clients: `Err` now exposes the HTTP response that produced it. `err.status_code()` returns the status, and `err.metadata()` returns `{ status_code, headers }`, so callers can read headers such as `Retry-After`. Both are `undefined` when no response was received (network failure, abort). This works for typed application errors and for `other_err` responses that didn't come from the reflectapi server, such as a 502 from a proxy or a 429 from a rate limiter, so retry policies no longer need to parse the `"[503] …"` string. The names match the Python runtime's `ApiError.status_code` and `TransportMetadata`. Success results are unchanged. Regenerate clients to pick this up.
+- TypeScript clients: `err.status_code()` returns the HTTP status of the response behind a failed call, or `undefined` when no response was received (network failure, abort). It works for typed application errors and for `other_err` responses that didn't come from the reflectapi server, such as a 502 from a proxy or a 429 from a rate limiter, so retry policies no longer need to parse the `"[503] …"` string. The name matches the Python runtime's `ApiError.status_code`. Success results are unchanged. Regenerate clients to pick this up.
 - TypeScript clients: `Result.unwrap_ok()` now sets the thrown `Error`'s `cause` to the `Err`. Code above the client, such as a query library's retry callback, can inspect `error.cause.status_code()` without parsing the message. The message text is unchanged.
 
 ### Fixed
 
 - TypeScript clients: `Err.toString()` now shows the message for network failures (`Other Error: TypeError: fetch failed`) instead of `Other Error: {}`.
 - TypeScript clients: if reading a response body fails partway through, the resulting `other_err` keeps the response's status.
+- TypeScript clients: a request body that can't be serialized (e.g. one containing a `BigInt`) now returns an `other_err` instead of throwing synchronously, as streaming endpoints already did.
 
 ## 0.18.0
 

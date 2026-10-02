@@ -82,8 +82,7 @@ The demo repository includes extra project scaffolding around some generated cli
   (non-5xx responses with a JSON body); anything else, such as a 5xx, a
   non-JSON body or a network failure, is in `err.other_err()`. Whenever a
   response was received, including one from a proxy or rate limiter in front
-  of the server, `err.status_code()` returns its HTTP status and
-  `err.metadata()` its status and headers (e.g. `Retry-After`). Both are
+  of the server, `err.status_code()` returns its HTTP status; it is
   `undefined` for network failures and aborts. `Result.unwrap_ok()` throws an
   `Error` whose `cause` is the `Err`, so code that only sees the thrown error,
   such as a query library's retry callback, can still classify it:
