@@ -44,6 +44,10 @@ where
             .field("handlers", &self.handlers)
             .field("merged_handlers", &self.merged_handlers)
             .field("default_tags", &self.default_tags)
+            .field(
+                "default_response_headers",
+                &self.default_response_headers.is_some(),
+            )
             .finish()
     }
 }
