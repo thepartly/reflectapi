@@ -119,6 +119,9 @@ test("declared response headers are on successful results, null when absent", as
   assert.deepEqual(result.headers(), { "x-request-id": "req-1", "retry-after": null });
   assert.equal(result.raw_headers()?.get("cf-ray"), "abc");
   assert.equal(JSON.stringify(result), '{"value":{"ok":{}}}');
+  const mapped = result.map(() => "mapped");
+  assert.equal(mapped.unwrap_ok(), "mapped");
+  assert.deepEqual(mapped.headers(), result.headers());
   // Existing annotations without the headers type still accept the result.
   const plain: Result<unknown, Err<unknown>> = result;
   assert.ok(plain.is_ok());
@@ -137,4 +140,5 @@ test("failed results share the response with their Err", async () => {
   assert.deepEqual(err.headers(), { "x-request-id": null, "retry-after": "7" });
   assert.deepEqual(result.headers(), err.headers());
   assert.deepEqual(err.map(String).headers(), err.headers());
+  assert.deepEqual(result.map(String).headers(), err.headers());
 });

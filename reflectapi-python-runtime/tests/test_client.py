@@ -1230,6 +1230,20 @@ class TestResponseHeaders:
 
         assert exc_info.value.headers == SampleResponseHeaders(retry_after="7")
 
+    def test_declared_headers_on_invalid_success_body(self):
+        transport = FixedResponseClient(200, {"x-request-id": "req-2"}, b'{"name":1}')
+        client = ClientBase("http://example.com", client=transport)
+
+        with pytest.raises(ValidationError) as exc_info:
+            client._make_request(
+                "/test",
+                response_model=SampleModel,
+                response_headers_model=SampleResponseHeaders,
+            )
+
+        assert exc_info.value.status_code == 200
+        assert exc_info.value.headers == SampleResponseHeaders(request_id="req-2")
+
     def test_no_declared_headers(self):
         client = ClientBase("http://example.com", client=ShapeClient())
 

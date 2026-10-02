@@ -130,6 +130,8 @@ class ValidationError(ApiError):
         *,
         validation_errors: list[Any] | None = None,
         cause: Exception | None = None,
+        metadata: TransportMetadata | None = None,
+        headers: Any | None = None,
     ) -> None:
-        super().__init__(message, cause=cause)
+        super().__init__(message, metadata=metadata, cause=cause, headers=headers)
         self.validation_errors = validation_errors or []

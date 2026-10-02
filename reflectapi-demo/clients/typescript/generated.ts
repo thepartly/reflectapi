@@ -175,6 +175,14 @@ export class CallResult<T, E, H = {}> extends Result<T, Err<E, H>> {
   public raw_headers(): ClientHeaders | undefined {
     return this.response?.raw_headers;
   }
+
+  /** Like `Result.map`, keeping the response. */
+  public override map<U>(f: (r: T) => U): CallResult<U, E, H> {
+    const value = this.is_ok()
+      ? { ok: f(this.unwrap_ok()) }
+      : { err: this.unwrap_err() };
+    return new CallResult<U, E, H>(value, this.response);
+  }
 }
 
 export class Err<E, H = {}> {

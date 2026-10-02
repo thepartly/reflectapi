@@ -82,7 +82,11 @@ def _synthesize_raw_response(
     )
 
 
-def _parse_json_body(body: bytes | str | None) -> Any:
+def _parse_json_body(
+    body: bytes | str | None,
+    metadata: TransportMetadata | None = None,
+    response_headers: Any | None = None,
+) -> Any:
     """Parse a response body as JSON, raising ``ValidationError`` on failure."""
     try:
         return json.loads(body if body is not None else b"")
@@ -90,6 +94,8 @@ def _parse_json_body(body: bytes | str | None) -> Any:
         raise ValidationError(
             f"Failed to parse JSON response: {e}",
             cause=e,
+            metadata=metadata,
+            headers=response_headers,
         )
 
 
@@ -163,20 +169,28 @@ def _validate_body(
         or response_model is NO_VALIDATION
         or response_model is Any
     ):
-        return ApiResponse(_parse_json_body(body), metadata, response_headers)
+        return ApiResponse(
+            _parse_json_body(body, metadata, response_headers),
+            metadata,
+            response_headers,
+        )
 
     try:
         ta = TypeAdapter(response_model)
         if isinstance(body, (bytes, bytearray, str)):
             validated_data = ta.validate_json(body)
         else:
-            validated_data = ta.validate_python(_parse_json_body(body))
+            validated_data = ta.validate_python(
+                _parse_json_body(body, metadata, response_headers)
+            )
         return ApiResponse(validated_data, metadata, response_headers)
     except PydanticValidationError as e:
         raise ValidationError(
             f"Response validation failed: {e}",
             validation_errors=e.errors(),
             cause=e,
+            metadata=metadata,
+            headers=response_headers,
         )
 
 
@@ -600,7 +614,9 @@ class ClientBase(ABC):
             else:
                 # No response_model provided - parse JSON as-is
                 return ApiResponse(
-                    _parse_json_body(client_response.body), metadata, response_headers
+                    _parse_json_body(client_response.body, metadata, response_headers),
+                    metadata,
+                    response_headers,
                 )
 
         except httpx.TimeoutException as e:
@@ -1111,7 +1127,9 @@ class AsyncClientBase(ABC):
                 )
             else:
                 return ApiResponse(
-                    _parse_json_body(client_response.body), metadata, response_headers
+                    _parse_json_body(client_response.body, metadata, response_headers),
+                    metadata,
+                    response_headers,
                 )
 
         except httpx.TimeoutException as e:
