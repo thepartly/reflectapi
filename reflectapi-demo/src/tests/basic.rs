@@ -636,6 +636,28 @@ fn test_reflectapi_deprecated() {
     assert_snapshot!(StructWithDeprecatedField);
 }
 
+#[test]
+#[allow(deprecated)]
+fn test_reflectapi_deprecated_type_and_variants() {
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    #[deprecated = "this struct is deprecated"]
+    struct DeprecatedStruct {
+        _f: u8,
+    }
+    assert_snapshot!(DeprecatedStruct);
+
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    #[deprecated]
+    enum DeprecatedEnumWithVariants {
+        Plain,
+        #[deprecated]
+        DeprecatedVariant,
+        #[deprecated = "use Plain instead"]
+        DeprecatedVariantWithNote,
+    }
+    assert_snapshot!(DeprecatedEnumWithVariants);
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithExternalGenericTypeFallback {
     #[reflectapi(transform = "reflectapi::transforms::fallback_recursively")]

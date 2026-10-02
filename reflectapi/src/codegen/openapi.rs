@@ -878,6 +878,7 @@ impl Converter<'_> {
             name: variant.name().to_owned(),
             serde_name: variant.serde_name.to_owned(),
             description: sanitize_description(variant.description()),
+            deprecation_note: variant.deprecation_note.clone(),
             parameters: vec![],
             fields: variant.fields.clone(),
             transparent: false,

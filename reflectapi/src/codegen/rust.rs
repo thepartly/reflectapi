@@ -392,9 +392,21 @@ mod templates {
         }
     }
 
+    /// Render a type-level `#[deprecated]` attribute (with a trailing
+    /// newline) from a deprecation note, or an empty string if the item is
+    /// not deprecated. An empty note means "deprecated without a note".
+    fn __render_type_deprecated(deprecation_note: &Option<String>) -> String {
+        match deprecation_note {
+            None => String::new(),
+            Some(note) if note.is_empty() => "#[deprecated]\n".into(),
+            Some(note) => format!("#[deprecated(note = \"{note}\")]\n"),
+        }
+    }
+
     pub(super) struct __Struct {
         pub name: String,
         pub description: String,
+        pub deprecation_note: Option<String>,
         pub fields: Vec<__Field>,
         pub is_tuple: bool,
         pub is_input_type: bool,
@@ -435,9 +447,10 @@ mod templates {
         pub fn render(&self) -> String {
             let brackets = self.render_brackets();
             let mut out = format!(
-                "\n{}{}\npub struct {} {}",
+                "\n{}{}\n{}pub struct {} {}",
                 self.description,
                 self.render_attributes_derive(),
+                __render_type_deprecated(&self.deprecation_note),
                 self.name,
                 brackets.0,
             );
@@ -467,6 +480,7 @@ mod templates {
     pub(super) struct __Enum {
         pub name: String,
         pub description: String,
+        pub deprecation_note: Option<String>,
         pub variants: Vec<__Variant>,
         pub representation: crate::Representation,
         pub is_input_type: bool,
@@ -520,9 +534,10 @@ mod templates {
 
         pub fn render(&self) -> anyhow::Result<String> {
             let mut out = format!(
-                "\n{}{}\n{}pub enum {} {{",
+                "\n{}{}\n{}{}pub enum {} {{",
                 self.description,
                 self.render_attributes_derive(),
+                __render_type_deprecated(&self.deprecation_note),
                 self.render_attributes(),
                 self.name,
             );
@@ -553,6 +568,7 @@ mod templates {
         pub name: String,
         pub serde_name: String,
         pub description: String,
+        pub deprecation_note: Option<String>,
         pub fields: Vec<__Field>,
         pub discriminant: Option<isize>,
         pub untagged: bool,
@@ -591,11 +607,21 @@ mod templates {
             if self.untagged {
                 attrs.push("untagged".into());
             }
-            if attrs.is_empty() {
-                "".into()
-            } else {
-                format!("#[serde({})]\n    ", attrs.join(", "))
+
+            let mut out = String::new();
+            if !attrs.is_empty() {
+                out.push_str(&format!("#[serde({})]\n    ", attrs.join(", ")));
             }
+            if let Some(deprecation_note) = &self.deprecation_note {
+                if deprecation_note.is_empty() {
+                    out.push_str("#[deprecated]\n    ");
+                } else {
+                    out.push_str(&format!(
+                        "#[deprecated(note = \"{deprecation_note}\")]\n    "
+                    ));
+                }
+            }
+            out
         }
 
         fn render_fields(&self) -> anyhow::Result<String> {
@@ -750,6 +776,7 @@ mod templates {
     pub(super) struct __Unit {
         pub name: String,
         pub description: String,
+        pub deprecation_note: Option<String>,
         pub is_input_type: bool,
         pub is_output_type: bool,
         pub is_error_type: bool,
@@ -779,9 +806,10 @@ mod templates {
 
         pub fn render(&self) -> String {
             let mut out = format!(
-                "\n{}{}\npub struct {};\n",
+                "\n{}{}\n{}pub struct {};\n",
                 self.description,
                 self.render_attributes_derive(),
+                __render_type_deprecated(&self.deprecation_note),
                 self.name,
             );
 
@@ -1077,6 +1105,7 @@ fn __interface_types_from_function_group(
             __struct_name_from_parent_name_and_name(&group.parent, &name)
         ),
         description: "".into(),
+        deprecation_note: None,
         fields: Default::default(),
         is_tuple: false,
         is_input_type: false,
@@ -1287,6 +1316,7 @@ fn __render_type(
                 let unit_struct_template = templates::__Unit {
                     name: type_name,
                     description: __doc_to_ts_comments(&struct_def.description, 0),
+                    deprecation_note: struct_def.deprecation_note.clone(),
                     is_input_type,
                     is_output_type,
                     is_error_type,
@@ -1312,6 +1342,7 @@ fn __render_type(
                 let interface_template = templates::__Struct {
                     name: type_name,
                     description: __doc_to_ts_comments(&struct_def.description, 0),
+                    deprecation_note: struct_def.deprecation_note.clone(),
                     is_tuple: struct_def.is_tuple(),
                     is_input_type,
                     is_output_type,
@@ -1346,6 +1377,7 @@ fn __render_type(
             let enum_template = templates::__Enum {
                 name: type_name,
                 description: __doc_to_ts_comments(&enum_def.description, 0),
+                deprecation_note: enum_def.deprecation_note.clone(),
                 representation: enum_def.representation.clone(),
                 is_input_type,
                 is_output_type,
@@ -1359,6 +1391,7 @@ fn __render_type(
                         name: __name_to_pascal_case(variant.name()),
                         serde_name: variant.serde_name().into(),
                         description: __doc_to_ts_comments(&variant.description, 4),
+                        deprecation_note: variant.deprecation_note.clone(),
                         fields: variant
                             .fields
                             .iter()
