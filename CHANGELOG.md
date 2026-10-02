@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.19.0
 
 Clients can now see HTTP status codes and response headers, so retry, back-off and sign-out logic no longer has to parse error strings. Regenerate clients to pick this up.
 
