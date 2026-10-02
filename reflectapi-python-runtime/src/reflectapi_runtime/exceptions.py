@@ -22,10 +22,15 @@ class ApiError(Exception):
         *,
         metadata: TransportMetadata | None = None,
         cause: Exception | None = None,
+        headers: Any | None = None,
     ) -> None:
         super().__init__(message)
         self.metadata = metadata
         self.cause = cause
+        # The API's declared response headers, validated into the generated
+        # headers model; None if the API declares none or no response arrived.
+        # All headers, untyped, are in ``metadata.headers``.
+        self.headers = headers
 
     @property
     def status_code(self) -> int | None:
@@ -79,8 +84,9 @@ class ApplicationError(ApiError):
         metadata: TransportMetadata,
         error_data: Any | None = None,
         typed_error: Any | None = None,
+        headers: Any | None = None,
     ) -> None:
-        super().__init__(message, metadata=metadata)
+        super().__init__(message, metadata=metadata, headers=headers)
         self.error_data = error_data
         self.typed_error = typed_error
 

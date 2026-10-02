@@ -126,6 +126,28 @@ class MyapiProtoPetsUpdateRequest(ReflectapiPartialModel):
     )
 
 
+class MyapiProtoResponseHeaders(BaseModel):
+    """Response headers clients can read. The demo server sends neither
+    itself; a proxy or rate limiter in front of it might."""
+
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+    )
+
+    x_request_id: str | None = Field(
+        default=None,
+        serialization_alias="x-request-id",
+        validation_alias="x-request-id",
+        description="Request ID to quote when reporting a problem",
+    )
+    retry_after: str | None = Field(
+        default=None,
+        serialization_alias="retry-after",
+        validation_alias="retry-after",
+        description="Seconds, or an HTTP date, after which to retry",
+    )
+
+
 class MyapiProtoValidationA(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
@@ -358,6 +380,7 @@ PetsRemoveRequest = MyapiProtoPetsRemoveRequest
 PetsUpdateError = MyapiProtoPetsUpdateError
 PetsUpdateErrorValidationVariant = MyapiProtoPetsUpdateErrorValidationVariant
 PetsUpdateRequest = MyapiProtoPetsUpdateRequest
+ResponseHeaders = MyapiProtoResponseHeaders
 ValidationA = MyapiProtoValidationA
 ValidationError = MyapiProtoValidationError
 ValidationErrorValidationAVariant = MyapiProtoValidationErrorValidationAVariant
@@ -380,6 +403,7 @@ __all__ = [
     "MyapiProtoPetsUpdateError",
     "MyapiProtoPetsUpdateErrorValidationVariant",
     "MyapiProtoPetsUpdateRequest",
+    "MyapiProtoResponseHeaders",
     "MyapiProtoValidationA",
     "MyapiProtoValidationError",
     "MyapiProtoValidationErrorValidationAVariant",
@@ -396,6 +420,7 @@ __all__ = [
     "PetsUpdateError",
     "PetsUpdateErrorValidationVariant",
     "PetsUpdateRequest",
+    "ResponseHeaders",
     "ValidationA",
     "ValidationError",
     "ValidationErrorValidationAVariant",

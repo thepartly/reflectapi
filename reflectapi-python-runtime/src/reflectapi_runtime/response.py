@@ -11,6 +11,7 @@ from typing_extensions import TypeVar
 
 T = TypeVar("T", covariant=True)
 E = TypeVar("E", covariant=True, default=Any)
+H = TypeVar("H", covariant=True, default=Any)
 
 
 @dataclass(frozen=True)
@@ -38,21 +39,25 @@ class TransportMetadata:
         )
 
 
-class ApiResponse(Generic[T, E]):
+class ApiResponse(Generic[T, E, H]):
     """Wrapper for API responses with typed success and error values.
 
     Type parameters:
         T: The success response type.
         E: The error response type (defaults to Any when not specified).
+        H: The API's declared response headers model (defaults to Any).
 
     Provides ergonomic access to both the deserialized value and transport metadata.
     Supports `ApiResponse[OutputType]` (backward compatible) and
     `ApiResponse[OutputType, ErrorType]` (with typed errors).
     """
 
-    def __init__(self, value: T, metadata: TransportMetadata) -> None:
+    def __init__(
+        self, value: T, metadata: TransportMetadata, headers: H | None = None
+    ) -> None:
         self._value = value
         self._metadata = metadata
+        self._headers = headers
 
     @property
     def value(self) -> T:
@@ -63,6 +68,15 @@ class ApiResponse(Generic[T, E]):
     def metadata(self) -> TransportMetadata:
         """Transport metadata including timing, headers, and status."""
         return self._metadata
+
+    @property
+    def headers(self) -> H | None:
+        """The API's declared response headers, validated into its headers model.
+
+        ``None`` if the API declares no response headers. All headers,
+        untyped, are in ``metadata.headers``.
+        """
+        return self._headers
 
     @property
     def data(self) -> T:
@@ -79,7 +93,7 @@ class ApiResponse(Generic[T, E]):
             List of available attributes from both wrapper and value.
         """
         # Get ApiResponse's own attributes
-        wrapper_attrs = ["value", "metadata", "data"]
+        wrapper_attrs = ["value", "metadata", "headers", "data"]
 
         # Get attributes from the wrapped value
         value_attrs = []

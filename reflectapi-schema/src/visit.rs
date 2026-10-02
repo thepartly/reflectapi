@@ -93,8 +93,12 @@ pub trait Visitor: Sized {
             }
         }
 
-        if let Some(output_headers) = &mut f.error_type {
-            acc = acc.combine(self.visit_type_ref(output_headers)?);
+        if let Some(error_type) = &mut f.error_type {
+            acc = acc.combine(self.visit_type_ref(error_type)?);
+        }
+
+        if let Some(response_headers) = &mut f.response_headers {
+            acc = acc.combine(self.visit_type_ref(response_headers)?);
         }
 
         ControlFlow::Continue(acc)

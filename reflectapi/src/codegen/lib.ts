@@ -4,6 +4,7 @@
 // them in under aliases so lib.ts itself can keep using DOM types.
 import type {
   Client,
+  Headers as ClientHeaders,
   RequestOptions,
   Response as ClientResponse,
 } from "./generated.transport";
@@ -19,7 +20,7 @@ export type NullToEmptyObject<T> = IsAny<T> extends true
     ? {}
     : T;
 
-export type AsyncResult<T, E> = Promise<Result<T, Err<E>>>;
+export type AsyncResult<T, E, H = {}> = Promise<CallResult<T, E, H>>;
 
 export type FixedSizeArray<T, N extends number> = Array<T> & { length: N };
 
@@ -124,16 +125,54 @@ export class Result<T, E> {
   }
 }
 
-export class Err<E> {
-  declare private readonly http_status: number | undefined;
+/**
+ * The HTTP response a call received. `headers` holds the response headers
+ * the API declares, each `null` when absent; `raw_headers` holds all of them.
+ */
+export type __ResponseInfo<H> = { status: number; headers: H; raw_headers: ClientHeaders };
+
+/**
+ * A call's `Result` together with the HTTP response it came from. The
+ * response may come from the server or from something in front of it
+ * (proxy, load balancer, rate limiter). Accessors return `undefined` when
+ * no response was received (network failure, abort).
+ */
+export class CallResult<T, E, H = {}> extends Result<T, Err<E, H>> {
+  declare private readonly response: __ResponseInfo<H> | undefined;
+
+  constructor(value: { ok: T } | { err: Err<E, H> }, response?: __ResponseInfo<H>) {
+    super(value);
+    // Non-enumerable, so JSON.stringify output is unchanged.
+    Object.defineProperty(this, "response", { value: response });
+  }
+
+  /** HTTP status of the response. */
+  public status_code(): number | undefined {
+    return this.response?.status;
+  }
+  /** The response headers the API declares, each `null` when absent. */
+  public headers(): H | undefined {
+    return this.response?.headers;
+  }
+  /**
+   * All response headers, untyped, for ones the API doesn't declare
+   * (e.g. diagnostics added by a CDN). Prefer `headers()`.
+   */
+  public raw_headers(): ClientHeaders | undefined {
+    return this.response?.raw_headers;
+  }
+}
+
+export class Err<E, H = {}> {
+  declare private readonly response: __ResponseInfo<H> | undefined;
 
   constructor(
     private value: { application_err: E } | { other_err: any },
-    http_status?: number,
+    response?: __ResponseInfo<H>,
   ) {
     // Non-enumerable, so JSON.stringify output (and the `unwrap_ok`
-    // messages built from it) is the same as before the status existed.
-    Object.defineProperty(this, "http_status", { value: http_status });
+    // messages built from it) is the same as before it existed.
+    Object.defineProperty(this, "response", { value: response });
   }
 
   /**
@@ -143,7 +182,22 @@ export class Err<E> {
    * abort).
    */
   public status_code(): number | undefined {
-    return this.http_status;
+    return this.response?.status;
+  }
+  /**
+   * The response headers the API declares, each `null` when absent.
+   * `undefined` if no response was received.
+   */
+  public headers(): H | undefined {
+    return this.response?.headers;
+  }
+  /**
+   * All headers of the failed response, untyped, for ones the API doesn't
+   * declare (e.g. diagnostics added by a CDN). Prefer `headers()`.
+   * `undefined` if no response was received.
+   */
+  public raw_headers(): ClientHeaders | undefined {
+    return this.response?.raw_headers;
   }
 
   public err(): E | undefined {
@@ -166,11 +220,11 @@ export class Err<E> {
     return "other_err" in this.value;
   }
 
-  public map<U>(f: (r: E) => U): Err<U> {
+  public map<U>(f: (r: E) => U): Err<U, H> {
     if ("application_err" in this.value) {
-      return new Err({ application_err: f(this.value.application_err) }, this.http_status);
+      return new Err({ application_err: f(this.value.application_err) }, this.response);
     } else {
-      return new Err({ other_err: this.value.other_err }, this.http_status);
+      return new Err({ other_err: this.value.other_err }, this.response);
     }
   }
   public unwrap(): E {
@@ -204,40 +258,44 @@ export class Err<E> {
   }
 }
 
-export function __request<I, H, O, E>(
+export function __request<I, H, O, E, RH = {}>(
   client: Client,
   path: string,
   input: I | undefined,
   headers: H | undefined,
   options?: RequestOptions,
-): Promise<Result<O, Err<E>>> {
-  return __call<O, E>(client, path, input, headers, options, {}, async (response) => {
-    const body = await __read_response_body(response);
-    if (response.status < 200 || response.status >= 300) {
-      return __error_outcome<E>(response.status, body);
-    }
-    try {
-      return { ok: JSON.parse(body) as O };
-    } catch {
-      return {
-        other_err:
-          "internal error: failure to parse response body as json on successful status code: " +
-          body,
-      };
-    }
-  });
+  response_headers: string[] = [],
+): AsyncResult<O, E, RH> {
+  return __call<O, E, RH>(
+    client, path, input, headers, options, {}, response_headers, async (response) => {
+      const body = await __read_response_body(response);
+      if (response.status < 200 || response.status >= 300) {
+        return __error_outcome<E>(response.status, body);
+      }
+      try {
+        return { ok: JSON.parse(body) as O };
+      } catch {
+        return {
+          other_err:
+            "internal error: failure to parse response body as json on successful status code: " +
+            body,
+        };
+      }
+    },
+  );
 }
 
-export function __stream_request<I, H, O, E>(
+export function __stream_request<I, H, O, E, RH = {}>(
   client: Client,
   path: string,
   input: I | undefined,
   headers: H | undefined,
   options?: RequestOptions,
-): Promise<Result<AsyncIterable<O>, Err<E>>> {
+  response_headers: string[] = [],
+): AsyncResult<AsyncIterable<O>, E, RH> {
   const extra_headers = { accept: "text/event-stream" };
-  return __call<AsyncIterable<O>, E>(
-    client, path, input, headers, options, extra_headers, async (response) => {
+  return __call<AsyncIterable<O>, E, RH>(
+    client, path, input, headers, options, extra_headers, response_headers, async (response) => {
       if (response.status < 200 || response.status >= 300) {
         return __error_outcome<E>(response.status, await __read_response_body(response));
       }
@@ -257,18 +315,19 @@ export function __stream_request<I, H, O, E>(
 
 type __Outcome<T, E> = { ok: T } | { application_err: E } | { other_err: any };
 
-// Sends the request and turns `handle`'s outcome into a Result. Every
-// Err is built here, so all of them carry the response's status
-// (undefined when the request failed before a response arrived).
-async function __call<T, E>(
+// Sends the request and turns `handle`'s outcome into a CallResult. The
+// response info is attached here, to the result and to any Err, so every
+// outcome carries it (undefined when no response arrived).
+async function __call<T, E, RH>(
   client: Client,
   path: string,
   input: unknown,
   headers: unknown,
   options: RequestOptions | undefined,
   extra_headers: Record<string, string>,
+  response_headers: string[],
   handle: (response: ClientResponse) => Promise<__Outcome<T, E>>,
-): Promise<Result<T, Err<E>>> {
+): Promise<CallResult<T, E, RH>> {
   const hdrs: Record<string, string> = {
     "content-type": "application/json",
     ...extra_headers,
@@ -278,7 +337,7 @@ async function __call<T, E>(
       hdrs[k?.toString()] = v?.toString() || "";
     }
   }
-  let status: number | undefined;
+  let response_info: __ResponseInfo<RH> | undefined;
   let outcome: __Outcome<T, E>;
   try {
     const response = await client.request({
@@ -287,15 +346,27 @@ async function __call<T, E>(
       body: new TextEncoder().encode(JSON.stringify(input) ?? "{}"),
       signal: options?.signal,
     });
-    status = response.status;
+    response_info = {
+      status: response.status,
+      headers: __pick_headers<RH>(response.headers, response_headers),
+      raw_headers: response.headers,
+    };
     outcome = await handle(response);
   } catch (e) {
     outcome = { other_err: e };
   }
-  if ("ok" in outcome) {
-    return new Result<T, Err<E>>({ ok: outcome.ok });
+  const result = "ok" in outcome ? { ok: outcome.ok } : { err: new Err<E, RH>(outcome, response_info) };
+  return new CallResult<T, E, RH>(result, response_info);
+}
+
+// Every declared name is set, to `null` when absent, matching the
+// generated `string | null` fields.
+function __pick_headers<RH>(headers: ClientHeaders, names: string[]): RH {
+  const picked: Record<string, string | null> = {};
+  for (const name of names) {
+    picked[name] = headers.get(name);
   }
-  return new Result<T, Err<E>>({ err: new Err(outcome, status) });
+  return picked as RH;
 }
 
 // Non-2xx responses: below 500, a JSON body is the endpoint's typed

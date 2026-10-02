@@ -57,11 +57,11 @@ class AsyncHealthClient:
 
     async def check(
         self,
-    ) -> ApiResponse[Any, myapi.HealthCheckFail]:
+    ) -> ApiResponse[Any, myapi.HealthCheckFail, myapi.proto.ResponseHeaders]:
         """Check the health of the service
 
         Returns:
-            ApiResponse[Any, myapi.HealthCheckFail]: Success=Any, Error=myapi.HealthCheckFail
+            ApiResponse[Any, myapi.HealthCheckFail, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.HealthCheckFail
         """
         path = "/health.check"
 
@@ -71,6 +71,7 @@ class AsyncHealthClient:
             params=params if params else None,
             response_model=None,
             error_model=myapi.HealthCheckFail,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
 
@@ -98,20 +99,21 @@ class AsyncPetsClient:
             headers_model=headers,
             item_model=myapi.model.output.Pet,
             error_model=None,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     async def create(
         self,
         data: Optional[myapi.model.input.Pet] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any, myapi.proto.PetsCreateError]:
+    ) -> ApiResponse[Any, myapi.proto.PetsCreateError, myapi.proto.ResponseHeaders]:
         """Create a new pet
 
         Args:
             data: Request data for the create operation.
 
         Returns:
-            ApiResponse[Any, myapi.proto.PetsCreateError]: Success=Any, Error=myapi.proto.PetsCreateError
+            ApiResponse[Any, myapi.proto.PetsCreateError, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.proto.PetsCreateError
         """
         path = "/pets.create"
 
@@ -123,20 +125,21 @@ class AsyncPetsClient:
             headers_model=headers,
             response_model=None,
             error_model=myapi.proto.PetsCreateError,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     async def delete(
         self,
         data: Optional[myapi.proto.PetsRemoveRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError, myapi.proto.ResponseHeaders]:
         """Remove an existing pet
 
         Args:
             data: Request data for the delete operation.
 
         Returns:
-            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
+            ApiResponse[Any, myapi.proto.PetsRemoveError, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.proto.PetsRemoveError
 
         .. deprecated::
            Use pets.remove instead
@@ -158,16 +161,17 @@ class AsyncPetsClient:
             headers_model=headers,
             response_model=None,
             error_model=myapi.proto.PetsRemoveError,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     async def get_first(
         self,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[myapi.model.output.Pet | None, None]:
+    ) -> ApiResponse[myapi.model.output.Pet | None, None, myapi.proto.ResponseHeaders]:
         """Fetch first pet, if any exists
 
         Returns:
-            ApiResponse[myapi.model.output.Pet | None, None]: Success=myapi.model.output.Pet | None, Error=None
+            ApiResponse[myapi.model.output.Pet | None, None, myapi.proto.ResponseHeaders]: Success=myapi.model.output.Pet | None, Error=None
         """
         path = "/pets.get-first"
 
@@ -178,6 +182,7 @@ class AsyncPetsClient:
             headers_model=headers,
             response_model=myapi.model.output.Pet | None,
             error_model=None,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     async def list(
@@ -185,7 +190,9 @@ class AsyncPetsClient:
         data: Optional[myapi.proto.PetsListRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
     ) -> ApiResponse[
-        myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError
+        myapi.proto.Paginated[myapi.model.output.Pet],
+        myapi.proto.PetsListError,
+        myapi.proto.ResponseHeaders,
     ]:
         """List available pets
 
@@ -193,7 +200,7 @@ class AsyncPetsClient:
             data: Request data for the list operation.
 
         Returns:
-            ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError]: Success=myapi.proto.Paginated[myapi.model.output.Pet], Error=myapi.proto.PetsListError
+            ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError, myapi.proto.ResponseHeaders]: Success=myapi.proto.Paginated[myapi.model.output.Pet], Error=myapi.proto.PetsListError
         """
         path = "/pets.list"
 
@@ -205,20 +212,21 @@ class AsyncPetsClient:
             headers_model=headers,
             response_model=myapi.proto.Paginated[myapi.model.output.Pet],
             error_model=myapi.proto.PetsListError,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     async def remove(
         self,
         data: Optional[myapi.proto.PetsRemoveRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError, myapi.proto.ResponseHeaders]:
         """Remove an existing pet
 
         Args:
             data: Request data for the remove operation.
 
         Returns:
-            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
+            ApiResponse[Any, myapi.proto.PetsRemoveError, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.proto.PetsRemoveError
         """
         path = "/pets.remove"
 
@@ -230,20 +238,21 @@ class AsyncPetsClient:
             headers_model=headers,
             response_model=None,
             error_model=myapi.proto.PetsRemoveError,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     async def update(
         self,
         data: Optional[myapi.proto.PetsUpdateRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any, myapi.proto.PetsUpdateError]:
+    ) -> ApiResponse[Any, myapi.proto.PetsUpdateError, myapi.proto.ResponseHeaders]:
         """Update an existing pet
 
         Args:
             data: Request data for the update operation.
 
         Returns:
-            ApiResponse[Any, myapi.proto.PetsUpdateError]: Success=Any, Error=myapi.proto.PetsUpdateError
+            ApiResponse[Any, myapi.proto.PetsUpdateError, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.proto.PetsUpdateError
         """
         path = "/pets.update"
 
@@ -255,6 +264,7 @@ class AsyncPetsClient:
             headers_model=headers,
             response_model=None,
             error_model=myapi.proto.PetsUpdateError,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
 
@@ -281,11 +291,11 @@ class HealthClient:
 
     def check(
         self,
-    ) -> ApiResponse[Any, myapi.HealthCheckFail]:
+    ) -> ApiResponse[Any, myapi.HealthCheckFail, myapi.proto.ResponseHeaders]:
         """Check the health of the service
 
         Returns:
-            ApiResponse[Any, myapi.HealthCheckFail]: Success=Any, Error=myapi.HealthCheckFail
+            ApiResponse[Any, myapi.HealthCheckFail, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.HealthCheckFail
         """
         path = "/health.check"
 
@@ -295,6 +305,7 @@ class HealthClient:
             params=params if params else None,
             response_model=None,
             error_model=myapi.HealthCheckFail,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
 
@@ -322,20 +333,21 @@ class PetsClient:
             headers_model=headers,
             item_model=myapi.model.output.Pet,
             error_model=None,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     def create(
         self,
         data: Optional[myapi.model.input.Pet] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any, myapi.proto.PetsCreateError]:
+    ) -> ApiResponse[Any, myapi.proto.PetsCreateError, myapi.proto.ResponseHeaders]:
         """Create a new pet
 
         Args:
             data: Request data for the create operation.
 
         Returns:
-            ApiResponse[Any, myapi.proto.PetsCreateError]: Success=Any, Error=myapi.proto.PetsCreateError
+            ApiResponse[Any, myapi.proto.PetsCreateError, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.proto.PetsCreateError
         """
         path = "/pets.create"
 
@@ -347,20 +359,21 @@ class PetsClient:
             headers_model=headers,
             response_model=None,
             error_model=myapi.proto.PetsCreateError,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     def delete(
         self,
         data: Optional[myapi.proto.PetsRemoveRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError, myapi.proto.ResponseHeaders]:
         """Remove an existing pet
 
         Args:
             data: Request data for the delete operation.
 
         Returns:
-            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
+            ApiResponse[Any, myapi.proto.PetsRemoveError, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.proto.PetsRemoveError
 
         .. deprecated::
            Use pets.remove instead
@@ -382,16 +395,17 @@ class PetsClient:
             headers_model=headers,
             response_model=None,
             error_model=myapi.proto.PetsRemoveError,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     def get_first(
         self,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[myapi.model.output.Pet | None, None]:
+    ) -> ApiResponse[myapi.model.output.Pet | None, None, myapi.proto.ResponseHeaders]:
         """Fetch first pet, if any exists
 
         Returns:
-            ApiResponse[myapi.model.output.Pet | None, None]: Success=myapi.model.output.Pet | None, Error=None
+            ApiResponse[myapi.model.output.Pet | None, None, myapi.proto.ResponseHeaders]: Success=myapi.model.output.Pet | None, Error=None
         """
         path = "/pets.get-first"
 
@@ -402,6 +416,7 @@ class PetsClient:
             headers_model=headers,
             response_model=myapi.model.output.Pet | None,
             error_model=None,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     def list(
@@ -409,7 +424,9 @@ class PetsClient:
         data: Optional[myapi.proto.PetsListRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
     ) -> ApiResponse[
-        myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError
+        myapi.proto.Paginated[myapi.model.output.Pet],
+        myapi.proto.PetsListError,
+        myapi.proto.ResponseHeaders,
     ]:
         """List available pets
 
@@ -417,7 +434,7 @@ class PetsClient:
             data: Request data for the list operation.
 
         Returns:
-            ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError]: Success=myapi.proto.Paginated[myapi.model.output.Pet], Error=myapi.proto.PetsListError
+            ApiResponse[myapi.proto.Paginated[myapi.model.output.Pet], myapi.proto.PetsListError, myapi.proto.ResponseHeaders]: Success=myapi.proto.Paginated[myapi.model.output.Pet], Error=myapi.proto.PetsListError
         """
         path = "/pets.list"
 
@@ -429,20 +446,21 @@ class PetsClient:
             headers_model=headers,
             response_model=myapi.proto.Paginated[myapi.model.output.Pet],
             error_model=myapi.proto.PetsListError,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     def remove(
         self,
         data: Optional[myapi.proto.PetsRemoveRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError]:
+    ) -> ApiResponse[Any, myapi.proto.PetsRemoveError, myapi.proto.ResponseHeaders]:
         """Remove an existing pet
 
         Args:
             data: Request data for the remove operation.
 
         Returns:
-            ApiResponse[Any, myapi.proto.PetsRemoveError]: Success=Any, Error=myapi.proto.PetsRemoveError
+            ApiResponse[Any, myapi.proto.PetsRemoveError, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.proto.PetsRemoveError
         """
         path = "/pets.remove"
 
@@ -454,20 +472,21 @@ class PetsClient:
             headers_model=headers,
             response_model=None,
             error_model=myapi.proto.PetsRemoveError,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
     def update(
         self,
         data: Optional[myapi.proto.PetsUpdateRequest] = None,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[Any, myapi.proto.PetsUpdateError]:
+    ) -> ApiResponse[Any, myapi.proto.PetsUpdateError, myapi.proto.ResponseHeaders]:
         """Update an existing pet
 
         Args:
             data: Request data for the update operation.
 
         Returns:
-            ApiResponse[Any, myapi.proto.PetsUpdateError]: Success=Any, Error=myapi.proto.PetsUpdateError
+            ApiResponse[Any, myapi.proto.PetsUpdateError, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.proto.PetsUpdateError
         """
         path = "/pets.update"
 
@@ -479,6 +498,7 @@ class PetsClient:
             headers_model=headers,
             response_model=None,
             error_model=myapi.proto.PetsUpdateError,
+            response_headers_model=myapi.proto.ResponseHeaders,
         )
 
 

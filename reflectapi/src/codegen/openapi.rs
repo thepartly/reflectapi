@@ -176,8 +176,17 @@ pub struct RequestBody {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Response {
     description: String,
-    // headers: BTreeMap<String, InlineOrRef<Schema>>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    headers: BTreeMap<String, Header>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     content: BTreeMap<String, MediaType>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Header {
+    schema: InlineOrRef<Schema>,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    description: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -490,8 +499,13 @@ impl Converter<'_> {
             ),
         };
 
+        let response_headers = f.response_headers().map_or_else(BTreeMap::new, |headers| {
+            self.convert_response_headers(schema, headers)
+        });
+
         let ok_response = Response {
             description: "200 OK".to_owned(),
+            headers: response_headers.clone(),
             content: BTreeMap::from([(
                 content_type.to_owned(),
                 MediaType {
@@ -502,15 +516,19 @@ impl Converter<'_> {
 
         let mut responses = BTreeMap::new();
         responses.insert("200".to_owned(), ok_response);
-        if let Some(err) = f.error_type.as_ref() {
+        let error_content = f.error_type.as_ref().map(|err| {
+            (
+                "application/json".to_owned(),
+                MediaType {
+                    schema: self.convert_type_ref(schema, Kind::Output, err),
+                },
+            )
+        });
+        if error_content.is_some() || !response_headers.is_empty() {
             let err_response = Response {
                 description: "Error cases".to_owned(),
-                content: BTreeMap::from([(
-                    "application/json".to_owned(),
-                    MediaType {
-                        schema: self.convert_type_ref(schema, Kind::Output, err),
-                    },
-                )]),
+                headers: response_headers,
+                content: error_content.into_iter().collect(),
             };
             responses.insert("default".to_owned(), err_response);
         }
@@ -554,6 +572,33 @@ impl Converter<'_> {
                 .get(r.ref_path.strip_prefix("#/components/schemas/").unwrap())
                 .unwrap(),
         }
+    }
+
+    /// Header objects for a response headers struct. Its fields are
+    /// `Option<String>` (checked when the schema is built): headers that may
+    /// be absent, documented as optional headers of the inner type.
+    fn convert_response_headers(
+        &mut self,
+        schema: &crate::Schema,
+        type_ref: &crate::TypeReference,
+    ) -> BTreeMap<String, Header> {
+        let Some(crate::Type::Struct(headers)) = schema.get_type(&type_ref.name) else {
+            return BTreeMap::new();
+        };
+        headers
+            .fields()
+            .map(|field| {
+                let value_type = match field.type_ref.arguments.as_slice() {
+                    [inner] if field.type_ref.name == "std::option::Option" => inner,
+                    _ => &field.type_ref,
+                };
+                let header = Header {
+                    schema: self.convert_type_ref(schema, Kind::Output, value_type),
+                    description: sanitize_description(&field.description),
+                };
+                (field.serde_name().to_owned(), header)
+            })
+            .collect()
     }
 
     fn convert_headers(

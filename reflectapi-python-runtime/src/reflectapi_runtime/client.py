@@ -98,6 +98,7 @@ def _raise_for_error_status(
     body: bytes | str | None,
     metadata: TransportMetadata,
     error_model: type | None = None,
+    response_headers: Any | None = None,
 ) -> None:
     """Raise ``ApplicationError`` for HTTP error responses (4xx, 5xx).
 
@@ -126,13 +127,28 @@ def _raise_for_error_status(
         metadata=metadata,
         error_data=error_data,
         typed_error=typed_error,
+        headers=response_headers,
     )
+
+
+def _parse_response_headers(headers: Any, model: type | None) -> Any | None:
+    """Validate the API's declared response headers into ``model``.
+
+    Header names are case-insensitive, so they're lowercased to match the
+    model's (lowercase) aliases; undeclared headers are ignored.
+    """
+    if model is None:
+        return None
+    items = headers.items() if headers is not None else ()
+    lowered = {str(name).lower(): str(value) for name, value in items}
+    return TypeAdapter(model).validate_python(lowered)
 
 
 def _validate_body(
     body: bytes | str | None,
     response_model: type[T] | type[Any] | str | _NoValidation,
     metadata: TransportMetadata,
+    response_headers: Any | None = None,
 ) -> ApiResponse[T] | ApiResponse[dict[str, Any]]:
     """Validate a response body using Pydantic via TypeAdapter.
 
@@ -147,7 +163,7 @@ def _validate_body(
         or response_model is NO_VALIDATION
         or response_model is Any
     ):
-        return ApiResponse(_parse_json_body(body), metadata)
+        return ApiResponse(_parse_json_body(body), metadata, response_headers)
 
     try:
         ta = TypeAdapter(response_model)
@@ -155,7 +171,7 @@ def _validate_body(
             validated_data = ta.validate_json(body)
         else:
             validated_data = ta.validate_python(_parse_json_body(body))
-        return ApiResponse(validated_data, metadata)
+        return ApiResponse(validated_data, metadata, response_headers)
     except PydanticValidationError as e:
         raise ValidationError(
             f"Response validation failed: {e}",
@@ -288,6 +304,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -302,6 +319,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: None = None,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -316,6 +334,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[Any],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[Any]: ...
 
     @overload
@@ -330,6 +349,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: str,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -344,6 +364,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -358,6 +379,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: None = None,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     def _validate_request_params(
@@ -521,6 +543,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T] | type[Any] | str | _NoValidation | None = None,
         error_model: type | None = None,
+        response_headers_model: type | None = None,
     ) -> ApiResponse[T] | ApiResponse[dict[str, Any]]:
         """Make an HTTP request and return an ApiResponse."""
         # Validate request parameters
@@ -556,20 +579,29 @@ class ClientBase(ABC):
                 ),
             )
 
+            response_headers = _parse_response_headers(
+                client_response.headers, response_headers_model
+            )
+
             # Handle error responses
             _raise_for_error_status(
                 client_response.status,
                 client_response.body,
                 metadata,
                 error_model=error_model,
+                response_headers=response_headers,
             )
 
             # Validate and return response
             if response_model is not None:
-                return _validate_body(client_response.body, response_model, metadata)
+                return _validate_body(
+                    client_response.body, response_model, metadata, response_headers
+                )
             else:
                 # No response_model provided - parse JSON as-is
-                return ApiResponse(_parse_json_body(client_response.body), metadata)
+                return ApiResponse(
+                    _parse_json_body(client_response.body), metadata, response_headers
+                )
 
         except httpx.TimeoutException as e:
             raise TimeoutError.from_httpx_timeout(e)
@@ -587,6 +619,7 @@ class ClientBase(ABC):
         headers_model: BaseModel | None = None,
         item_model: type[T] | type[Any] | str | _NoValidation | None = None,
         error_model: type | None = None,
+        response_headers_model: type | None = None,
     ) -> Iterator[T] | Iterator[Any]:
         """Open an SSE stream and yield items validated against ``item_model``.
 
@@ -628,6 +661,9 @@ class ClientBase(ABC):
                     response.content,
                     metadata,
                     error_model=error_model,
+                    response_headers=_parse_response_headers(
+                        response.headers, response_headers_model
+                    ),
                 )
 
             adapter: TypeAdapter[Any] | None = None
@@ -784,6 +820,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -798,6 +835,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: None = None,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -812,6 +850,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[Any],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[Any]: ...
 
     @overload
@@ -826,6 +865,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: str,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     @overload
@@ -840,6 +880,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T],
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[T]: ...
 
     @overload
@@ -854,6 +895,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: None = None,
         error_model: type[Any] | None = None,
+        response_headers_model: type[Any] | None = None,
     ) -> ApiResponse[dict[str, Any]]: ...
 
     def _validate_request_params(
@@ -1013,6 +1055,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         response_model: type[T] | type[Any] | str | _NoValidation | None = None,
         error_model: type | None = None,
+        response_headers_model: type | None = None,
     ) -> ApiResponse[T] | ApiResponse[dict[str, Any]]:
         """Make an HTTP request and return an ApiResponse."""
         # Validate request parameters
@@ -1048,19 +1091,28 @@ class AsyncClientBase(ABC):
                 ),
             )
 
+            response_headers = _parse_response_headers(
+                client_response.headers, response_headers_model
+            )
+
             # Handle error responses
             _raise_for_error_status(
                 client_response.status,
                 client_response.body,
                 metadata,
                 error_model=error_model,
+                response_headers=response_headers,
             )
 
             # Validate and return response
             if response_model is not None:
-                return _validate_body(client_response.body, response_model, metadata)
+                return _validate_body(
+                    client_response.body, response_model, metadata, response_headers
+                )
             else:
-                return ApiResponse(_parse_json_body(client_response.body), metadata)
+                return ApiResponse(
+                    _parse_json_body(client_response.body), metadata, response_headers
+                )
 
         except httpx.TimeoutException as e:
             raise TimeoutError.from_httpx_timeout(e)
@@ -1078,6 +1130,7 @@ class AsyncClientBase(ABC):
         headers_model: BaseModel | None = None,
         item_model: type[T] | type[Any] | str | _NoValidation | None = None,
         error_model: type | None = None,
+        response_headers_model: type | None = None,
     ) -> AsyncIterator[Any]:
         """Open an SSE stream and yield items validated against ``item_model``.
 
@@ -1118,6 +1171,9 @@ class AsyncClientBase(ABC):
                     response.content,
                     metadata,
                     error_model=error_model,
+                    response_headers=_parse_response_headers(
+                        response.headers, response_headers_model
+                    ),
                 )
 
             adapter: TypeAdapter[Any] | None = None

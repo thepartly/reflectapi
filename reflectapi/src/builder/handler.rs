@@ -246,6 +246,9 @@ where
             } else {
                 Some(error_type)
             },
+            response_headers: rb
+                .response_headers
+                .map(|reflect_output_type| reflect_output_type(&mut schema.output_types)),
             input_headers: if input_headers_names.is_empty() {
                 None
             } else {

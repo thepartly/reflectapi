@@ -1,0 +1,192 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: schema
+---
+{
+  "name": "response_headers_test",
+  "functions": [
+    {
+      "name": "before.default",
+      "path": "",
+      "error_type": {
+        "name": "reflectapi_demo::tests::basic::ResponseHeadersTestError"
+      },
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    },
+    {
+      "name": "with.default",
+      "path": "",
+      "error_type": {
+        "name": "reflectapi_demo::tests::basic::ResponseHeadersTestError"
+      },
+      "response_headers": {
+        "name": "reflectapi_demo::tests::basic::ResponseHeaders"
+      },
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    },
+    {
+      "name": "infallible",
+      "path": "",
+      "response_headers": {
+        "name": "reflectapi_demo::tests::basic::ResponseHeaders"
+      },
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    },
+    {
+      "name": "with.route_headers",
+      "path": "",
+      "error_type": {
+        "name": "reflectapi_demo::tests::basic::ResponseHeadersTestError"
+      },
+      "response_headers": {
+        "name": "reflectapi_demo::tests::basic::RouteResponseHeaders"
+      },
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::ResponseHeaders",
+        "fields": {
+          "named": [
+            {
+              "name": "retry_after",
+              "serde_name": "retry-after",
+              "description": "Seconds, or an HTTP date, after which to retry",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "x_request_id",
+              "serde_name": "x-request-id",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::ResponseHeadersTestError",
+        "variants": [
+          {
+            "name": "Conflict",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::RouteResponseHeaders",
+        "fields": {
+          "named": [
+            {
+              "name": "cf_ray",
+              "serde_name": "cf-ray",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  }
+}

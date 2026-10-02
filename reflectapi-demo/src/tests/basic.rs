@@ -666,3 +666,83 @@ fn test_reflectapi_struct_with_hidden_header_field() {
             |b| b.name("test.endpoint")
         ))
 }
+
+#[derive(serde::Serialize, reflectapi::Output)]
+struct ResponseHeaders {
+    /// Seconds, or an HTTP date, after which to retry
+    #[serde(rename = "retry-after")]
+    _retry_after: Option<String>,
+    #[serde(rename = "x-request-id")]
+    _request_id: Option<String>,
+}
+
+#[derive(serde::Serialize, reflectapi::Output)]
+enum ResponseHeadersTestError {
+    Conflict,
+}
+
+impl reflectapi::StatusCode for ResponseHeadersTestError {
+    fn status_code(&self) -> http::StatusCode {
+        http::StatusCode::CONFLICT
+    }
+}
+
+async fn response_headers_test_handler(
+    _: (),
+    _: reflectapi::Empty,
+    _: reflectapi::Empty,
+) -> Result<reflectapi::Empty, ResponseHeadersTestError> {
+    Err(ResponseHeadersTestError::Conflict)
+}
+
+#[test]
+fn test_reflectapi_response_headers() {
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct RouteResponseHeaders {
+        #[serde(rename = "cf-ray")]
+        _cf_ray: Option<String>,
+    }
+
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("response_headers_test")
+        .route(response_headers_test_handler, |b| b.name("before.default"))
+        .response_headers::<ResponseHeaders>()
+        .route(response_headers_test_handler, |b| b.name("with.default"))
+        .route(
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("infallible")
+        )
+        .route(response_headers_test_handler, |b| b
+            .name("with.route_headers")
+            .response_headers::<RouteResponseHeaders>()))
+}
+
+#[test]
+fn test_reflectapi_response_headers_validation() {
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct InvalidResponseHeaders {
+        #[serde(rename = "Retry-After")]
+        _retry_after: Option<String>,
+        _attempts: Option<u32>,
+    }
+
+    let errors = reflectapi::Builder::<()>::new()
+        .response_headers::<InvalidResponseHeaders>()
+        .route(response_headers_test_handler, |b| b.name("first"))
+        .route(response_headers_test_handler, |b| b.name("second"))
+        .build()
+        .err()
+        .expect("invalid error headers are rejected")
+        .0
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    let type_name = "reflectapi_demo::tests::basic::InvalidResponseHeaders";
+    assert_eq!(
+        errors,
+        [
+            format!("response headers type `{type_name}`: `Retry-After` is not a valid lowercase header name"),
+            format!("response headers type `{type_name}`: field `_attempts` must be `Option<String>`"),
+        ]
+    );
+}

@@ -12,6 +12,10 @@ use serde::{de::DeserializeOwned, ser::Serialize};
 
 use crate::{Input, Output};
 
+/// `Output::reflectapi_output_type` of some type: registers it in the output
+/// typespace and returns a reference to it.
+type OutputTypeFn = fn(&mut crate::Typespace) -> crate::TypeReference;
+
 /// [`Builder`] provides a chained API for defining the overall API specification,
 /// adding individual routes (handlers), and composing multiple builders together.
 pub struct Builder<S>
@@ -26,6 +30,7 @@ where
     allow_redundant_renames: bool,
     errors: Vec<BuildError>,
     default_tags: BTreeSet<String>,
+    default_response_headers: Option<OutputTypeFn>,
 }
 
 impl<S> fmt::Debug for Builder<S>
@@ -68,6 +73,7 @@ where
             errors: Default::default(),
             allow_redundant_renames: Default::default(),
             default_tags: Default::default(),
+            default_response_headers: Default::default(),
         }
     }
 
@@ -131,6 +137,18 @@ where
         self
     }
 
+    /// Declares the response headers that clients can read, for all routes
+    /// added to this builder after this call (like [`Builder::tag`]).
+    ///
+    /// `H` is a struct with one `Option<String>` field per header; the field's
+    /// serde name is the header name and must be lowercase. See
+    /// [`crate::Function::response_headers`]. Override per route with
+    /// [`RouteBuilder::response_headers`].
+    pub fn response_headers<H: Output>(mut self) -> Self {
+        self.default_response_headers = Some(H::reflectapi_output_type);
+        self
+    }
+
     /// Adds a route to the API.
     ///
     /// This method takes a handler function and a closure that configures the
@@ -149,11 +167,7 @@ where
         O: Output + Serialize + Send + 'static,
         E: Output + Serialize + StatusCode + Send + 'static,
     {
-        let rb = builder(
-            RouteBuilder::new()
-                .tags(&self.default_tags)
-                .path(self.path.clone()),
-        );
+        let rb = builder(self.route_defaults());
         let route = crate::Handler::new(rb, handler, &mut self.schema);
         self.handlers.push(route);
         self
@@ -176,14 +190,19 @@ where
         O: Output + Serialize + Send + 'static,
         E1: Output + Serialize + StatusCode + Send + 'static,
     {
-        let rb = builder(
-            RouteBuilder::new()
-                .tags(&self.default_tags)
-                .path(self.path.clone()),
-        );
+        let rb = builder(self.route_defaults());
         let route = crate::Handler::new_stream(rb, handler, &mut self.schema);
         self.handlers.push(route);
         self
+    }
+
+    fn route_defaults(&self) -> RouteBuilder {
+        RouteBuilder {
+            response_headers: self.default_response_headers,
+            ..RouteBuilder::new()
+        }
+        .tags(&self.default_tags)
+        .path(self.path.clone())
     }
 
     /// Merges another [`Builder`] into this one.
@@ -199,8 +218,9 @@ where
         self.errors.extend(other.errors);
         self.validators.extend(other.validators);
 
-        // Don't merge `allow_redundant_renames` or `default_tags`,
-        // as these are configuration options that should be set per-builder.
+        // Don't merge `allow_redundant_renames`, `default_tags` or
+        // `default_response_headers`, as these are configuration options that
+        // should be set per-builder.
 
         // Explicitly reconstruct Self to ensure new fields are handled appropriately.
         Self {
@@ -212,6 +232,7 @@ where
             allow_redundant_renames: self.allow_redundant_renames,
             errors: self.errors,
             default_tags: self.default_tags,
+            default_response_headers: self.default_response_headers,
         }
     }
 
@@ -303,6 +324,7 @@ where
                 self.errors.push(BuildError::Validation(err));
             }
         }
+        self.errors.extend(validate_response_headers(&self.schema));
 
         if !self.errors.is_empty() {
             return Err(crate::BuildErrors(self.errors));
@@ -349,6 +371,7 @@ pub struct RouteBuilder {
     readonly: bool,
     tags: BTreeSet<String>,
     deprecation_note: Option<String>,
+    response_headers: Option<OutputTypeFn>,
 }
 
 impl RouteBuilder {
@@ -421,6 +444,67 @@ impl RouteBuilder {
             .extend(tags.into_iter().map(|s| s.as_ref().to_string()));
         self
     }
+
+    /// Declares the response headers that clients can read for this route,
+    /// replacing the builder default. See [`Builder::response_headers`].
+    pub fn response_headers<H: Output>(mut self) -> Self {
+        self.response_headers = Some(H::reflectapi_output_type);
+        self
+    }
+}
+
+/// Checks each distinct `response_headers` type: a non-generic struct whose
+/// named fields are all `Option<String>` with lowercase header names.
+fn validate_response_headers(schema: &crate::Schema) -> Vec<BuildError> {
+    let mut checked = BTreeSet::new();
+    let mut errors = Vec::new();
+    for type_ref in schema.functions.iter().filter_map(|f| f.response_headers()) {
+        if !checked.insert(type_ref.name.clone()) {
+            continue;
+        }
+        let invalid = |reason: String| {
+            BuildError::Other(format!("response headers type `{}`: {reason}", type_ref.name).into())
+        };
+        let fields = match schema.output_types.get_type(&type_ref.name) {
+            Some(crate::Type::Struct(s)) if type_ref.arguments.is_empty() && !s.is_tuple() => {
+                s.fields()
+            }
+            _ => {
+                errors.push(invalid(
+                    "must be a non-generic struct with named fields".into(),
+                ));
+                continue;
+            }
+        };
+        for field in fields {
+            let header_name = field.serde_name();
+            let is_optional_string = field.type_ref.name == "std::option::Option"
+                && matches!(
+                    field.type_ref.arguments.as_slice(),
+                    [argument] if argument.name == "std::string::String"
+                );
+            let type_problem = if field.flattened {
+                Some("is flattened; declare each header as its own field")
+            } else if field.type_ref.name == "reflectapi::Option" {
+                Some("must be `Option<String>`, not `reflectapi::Option`: a header is absent or present, never null")
+            } else if !is_optional_string {
+                Some("must be `Option<String>`")
+            } else {
+                None
+            };
+            if let Some(problem) = type_problem {
+                errors.push(invalid(format!("field `{}` {problem}", field.name())));
+            }
+            if http::HeaderName::from_bytes(header_name.as_bytes()).is_err()
+                || header_name != header_name.to_ascii_lowercase()
+            {
+                errors.push(invalid(format!(
+                    "`{header_name}` is not a valid lowercase header name"
+                )));
+            }
+        }
+    }
+    errors
 }
 
 /// An error that can occur during the [`Builder::build`] process.

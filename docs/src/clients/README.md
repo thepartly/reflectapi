@@ -78,12 +78,15 @@ The demo repository includes extra project scaffolding around some generated cli
 - Uses a `fetch`-based default client implementation.
 - Parses JSON responses, but does not generate runtime schema validators today.
 - Supports custom client implementations via the generated client interface.
-- Failed calls return an `Err`. `err.err()` holds the endpoint's typed error
+- Calls return a `CallResult`, a `Result` that also carries the HTTP response:
+  `status_code()`, the API's declared [response headers](#response-headers)
+  via `headers()`, and all of them via `raw_headers()`. The response may come
+  from the server or from a proxy or rate limiter in front of it; all three
+  are `undefined` for network failures and aborts.
+- Failed calls hold an `Err`. `err.err()` holds the endpoint's typed error
   (non-5xx responses with a JSON body); anything else, such as a 5xx, a
-  non-JSON body or a network failure, is in `err.other_err()`. Whenever a
-  response was received, including one from a proxy or rate limiter in front
-  of the server, `err.status_code()` returns its HTTP status; it is
-  `undefined` for network failures and aborts. `Result.unwrap_ok()` throws an
+  non-JSON body or a network failure, is in `err.other_err()`. `Err` has the
+  same `status_code()`, `headers()` and `raw_headers()`. `Result.unwrap_ok()` throws an
   `Error` whose `cause` is the `Err`, so code that only sees the thrown error,
   such as a query library's retry callback, can still classify it:
 
@@ -147,6 +150,41 @@ when the connection closes.
 | Rust | Method returns `reflectapi::rt::StreamResponse<Item, AppError, NetError>`. The outer `Result` reports init failures (application or network); inner items report per-item transport/decode failures only — application errors cannot occur after the stream is open. Requires the `rt-sse` Cargo feature on the `reflectapi` dependency. |
 | Python | Method returns `AsyncIterator[Item]` on the async client and `Iterator[Item]` on the sync client. Init 4xx/5xx raise `ApplicationError` (with the typed `error_model` if declared); per-event problems raise `NetworkError` / `TimeoutError` / `ValidationError` and terminate the iterator without a leaked socket. |
 | OpenAPI | Operation is described with `text/event-stream` response content. |
+
+## Response Headers
+
+Some response headers matter to callers: a request ID to quote in a support
+ticket, or `retry-after` from a rate limiter. Declare them on the builder as a
+struct with one `Option<String>` field per header; the field's serde name is
+the header name and must be lowercase:
+
+```rust,ignore
+#[derive(serde::Serialize, reflectapi::Output)]
+struct ResponseHeaders {
+    /// Request ID to quote when reporting a problem
+    #[serde(rename = "x-request-id")]
+    request_id: Option<String>,
+    /// Seconds, or an HTTP date, after which to retry
+    #[serde(rename = "retry-after")]
+    retry_after: Option<String>,
+}
+
+let builder = reflectapi::Builder::new()
+    .response_headers::<ResponseHeaders>() // applies to routes added after this
+    .route(handler, |b| b.name("pets.list"));
+```
+
+The headers apply to successful and failed responses alike. Declaring a header
+doesn't mean the server sends it: it may be added by infrastructure in front of
+the server, and clients read it from whatever response arrived. Use
+`RouteBuilder::response_headers` to declare a different set for one route.
+
+| Output | Response headers |
+|--------|------------------|
+| TypeScript | `headers()` on the `CallResult` and on its `Err` returns the declared headers, typed: each is `string \| null`, `null` when that header is absent; `headers()` itself is `undefined` when no response arrived. `raw_headers()` returns all response headers, untyped, for ones the API doesn't declare, such as `cf-ray` from a CDN. |
+| Python | `ApiResponse.headers` and `ApiError.headers` hold the declared headers as the generated model (each field `None` when absent); `None` when the API declares none or no response arrived. All headers, untyped, are in `.metadata.headers`. Streaming methods expose them on errors only. |
+| Rust | The headers struct is generated as a type, but the client doesn't populate it yet. |
+| OpenAPI | Documented as optional headers on the operation's `200` and `default` responses. |
 
 ## Shared Characteristics
 

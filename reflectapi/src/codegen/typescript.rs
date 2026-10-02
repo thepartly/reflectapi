@@ -67,6 +67,21 @@ pub fn generate(
         );
     }
 
+    for function in schema.functions() {
+        if let Some(type_ref) = function.response_headers() {
+            if !matches!(
+                schema.get_type(&type_ref.name),
+                Some(crate::Type::Struct(_))
+            ) {
+                anyhow::bail!(
+                    "response headers type `{}` of function `{}` must be a struct",
+                    type_ref.name,
+                    function.name
+                );
+            }
+        }
+    }
+
     let functions_by_name = schema
         .functions()
         .map(|f| (f.name.clone(), f))
@@ -646,15 +661,26 @@ mod templates {
         pub input_headers: String,
         pub output_type: String,
         pub error_type: String,
+        pub response_headers: Option<super::ResponseHeaders>,
     }
 
     impl FunctionImplementationTemplate {
         pub fn render(&self) -> String {
+            let response_headers_type = self
+                .response_headers
+                .as_ref()
+                .map(super::ResponseHeaders::type_arg)
+                .unwrap_or_default();
+            let response_headers_arg = self
+                .response_headers
+                .as_ref()
+                .map(super::ResponseHeaders::call_arg)
+                .unwrap_or_default();
             format!(
                 "function {name}(client: Client) {{\n\
                      return (input: {input_type}, headers: {input_headers}, options?: RequestOptions) => __request<\n\
-                         {input_type}, {input_headers}, {output_type}, {error_type}\n\
-                     >(client, '{path}', input, headers, options);\n\
+                         {input_type}, {input_headers}, {output_type}, {error_type}{response_headers_type}\n\
+                     >(client, '{path}', input, headers, options{response_headers_arg});\n\
                  }}",
                 name = self.name,
                 input_type = self.input_type,
@@ -673,15 +699,26 @@ mod templates {
         pub input_headers: String,
         pub item_type: String,
         pub error_type: String,
+        pub response_headers: Option<super::ResponseHeaders>,
     }
 
     impl StreamFunctionImplementationTemplate {
         pub fn render(&self) -> String {
+            let response_headers_type = self
+                .response_headers
+                .as_ref()
+                .map(super::ResponseHeaders::type_arg)
+                .unwrap_or_default();
+            let response_headers_arg = self
+                .response_headers
+                .as_ref()
+                .map(super::ResponseHeaders::call_arg)
+                .unwrap_or_default();
             format!(
                 "function {name}(client: Client) {{\n\
                      return (input: {input_type}, headers: {input_headers}, options?: RequestOptions) => __stream_request<\n\
-                         {input_type}, {input_headers}, {item_type}, {error_type}\n\
-                     >(client, '{path}', input, headers, options);\n\
+                         {input_type}, {input_headers}, {item_type}, {error_type}{response_headers_type}\n\
+                     >(client, '{path}', input, headers, options{response_headers_arg});\n\
                  }}",
                 name = self.name,
                 input_type = self.input_type,
@@ -793,24 +830,44 @@ struct FunctionSignature {
     input_headers: String,
     output: FunctionOutput,
     error_type: String,
+    response_headers: Option<ResponseHeaders>,
+}
+
+/// A function's declared response headers: the TypeScript type of the
+/// headers struct, and the header names the runtime reads.
+struct ResponseHeaders {
+    type_: String,
+    names: Vec<String>,
+}
+
+impl ResponseHeaders {
+    /// Trailing type argument for `AsyncResult` / `__request`.
+    fn type_arg(&self) -> String {
+        format!(", {}", self.type_)
+    }
+
+    /// Trailing call argument for `__request` / `__stream_request`.
+    fn call_arg(&self) -> String {
+        let names = serde_json::to_string(&self.names).expect("header names serialize");
+        format!(", {names}")
+    }
 }
 
 impl FunctionSignature {
     fn interface_return_type(&self) -> String {
-        match &self.output {
-            FunctionOutput::Single { output_type } => {
-                format!(
-                    "AsyncResult<{output_type}, {error_type}>",
-                    error_type = self.error_type
-                )
-            }
-            FunctionOutput::Stream { item_type } => {
-                format!(
-                    "AsyncResult<AsyncIterable<{item_type}>, {error_type}>",
-                    error_type = self.error_type
-                )
-            }
-        }
+        let output_type = match &self.output {
+            FunctionOutput::Single { output_type } => output_type.clone(),
+            FunctionOutput::Stream { item_type } => format!("AsyncIterable<{item_type}>"),
+        };
+        let response_headers_type = self
+            .response_headers
+            .as_ref()
+            .map(ResponseHeaders::type_arg)
+            .unwrap_or_default();
+        format!(
+            "AsyncResult<{output_type}, {error_type}{response_headers_type}>",
+            error_type = self.error_type
+        )
     }
 }
 
@@ -845,11 +902,25 @@ fn function_signature(
     } else {
         "{}".into()
     };
+    let response_headers = function.response_headers.as_ref().map(|response_headers| {
+        let Some(crate::Type::Struct(s)) = schema.get_type(&response_headers.name) else {
+            unreachable!("response headers types are checked in `generate`")
+        };
+        let names = s
+            .fields()
+            .map(|field| field.serde_name().to_owned())
+            .collect();
+        ResponseHeaders {
+            type_: type_ref_to_ts_ref(response_headers, schema, implemented_types),
+            names,
+        }
+    });
     FunctionSignature {
         input_type,
         input_headers,
         output,
         error_type,
+        response_headers,
     }
 }
 
@@ -961,6 +1032,7 @@ fn render_function(
                 input_headers: sig.input_headers,
                 output_type,
                 error_type: sig.error_type,
+                response_headers: sig.response_headers,
             };
             Ok(function_template.render())
         }
@@ -972,6 +1044,7 @@ fn render_function(
                 input_headers: sig.input_headers,
                 item_type,
                 error_type: sig.error_type,
+                response_headers: sig.response_headers,
             };
             Ok(function_template.render())
         }

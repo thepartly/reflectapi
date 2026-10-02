@@ -12,6 +12,7 @@ pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
     reflectapi::Builder::new()
         .name("Demo application")
         .description("This is a demo application")
+        .response_headers::<proto::ResponseHeaders>()
         .route(health_check, |b| {
             b.name("health.check")
                 .readonly(true)
@@ -331,6 +332,18 @@ mod proto {
     pub struct Headers {
         /// Authorization header
         pub authorization: String,
+    }
+
+    /// Response headers clients can read. The demo server sends neither
+    /// itself; a proxy or rate limiter in front of it might.
+    #[derive(serde::Serialize, reflectapi::Output)]
+    pub struct ResponseHeaders {
+        /// Request ID to quote when reporting a problem
+        #[serde(rename = "x-request-id")]
+        pub request_id: Option<String>,
+        /// Seconds, or an HTTP date, after which to retry
+        #[serde(rename = "retry-after")]
+        pub retry_after: Option<String>,
     }
 
     #[derive(serde::Serialize, reflectapi::Output)]

@@ -41,6 +41,7 @@ pub struct SemanticFunction {
     pub input_headers: Option<SymbolId>,
     pub output_type: SemanticOutputType,
     pub error_type: Option<SymbolId>,
+    pub response_headers: Option<SymbolId>,
 
     pub serialization: Vec<SerializationMode>,
     pub readonly: bool,
