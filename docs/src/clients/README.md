@@ -189,8 +189,10 @@ set response headers yet, so today these come from that infrastructure.
 A builder's declaration applies to every route of the builder that doesn't
 declare its own, whether added before or after the call, including the routes
 of builders merged in with `nest` or `extend` that have no declaration of their
-own. Use `RouteBuilder::response_headers` to declare a different set for one
-route.
+own. Routes that already declare response headers keep them. Use
+`RouteBuilder::response_headers` to declare a different set for one route. As
+with routes, call `rename_types` after declaring response headers so the rename
+applies to the headers type.
 
 A header that appears more than once is read as its values joined with `, `.
 `set-cookie` can't be read that way (cookie dates contain commas, and browsers

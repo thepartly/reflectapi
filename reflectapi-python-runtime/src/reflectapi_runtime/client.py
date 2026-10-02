@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import datetime
 import json
+import logging
 import time
 from abc import ABC
 from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
@@ -33,6 +34,8 @@ class _NoValidation:
 
 
 NO_VALIDATION = _NoValidation()
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -154,6 +157,7 @@ def _parse_response_headers(headers: Any, model: type[Any] | None) -> Any | None
         return model.model_validate(lowered)
     except PydanticValidationError as e:
         invalid = {error["loc"][0] for error in e.errors() if error["loc"]}
+        logger.debug("ignoring malformed response headers: %s", sorted(invalid))
         valid = {name: value for name, value in lowered.items() if name not in invalid}
         return model.model_validate(valid)
 

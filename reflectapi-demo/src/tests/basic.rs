@@ -741,6 +741,14 @@ fn test_reflectapi_response_headers_accept_string_types() {
         _request_id: Option<RequestId>,
         #[serde(rename = "x-cache")]
         _cache: Option<CacheStatus>,
+        #[serde(rename = "location")]
+        _location: Option<url::Url>,
+        #[serde(rename = "x-expires-at")]
+        _expires_at: Option<chrono::DateTime<chrono::Utc>>,
+        #[serde(rename = "x-boxed")]
+        _boxed: Option<Box<uuid::Uuid>>,
+        #[serde(rename = "x-shared")]
+        _shared: Option<std::sync::Arc<String>>,
     }
 
     let built = reflectapi::Builder::<()>::new()
@@ -793,6 +801,14 @@ fn test_reflectapi_response_headers_defaults_cover_all_routes() {
 #[test]
 fn test_reflectapi_response_headers_validation() {
     #[derive(serde::Serialize, reflectapi::Output)]
+    #[allow(dead_code)]
+    enum CacheWithUntagged {
+        Hit,
+        #[serde(untagged)]
+        Other,
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
     struct InvalidResponseHeaders {
         #[serde(rename = "Retry-After")]
         _retry_after: Option<String>,
@@ -802,6 +818,8 @@ fn test_reflectapi_response_headers_validation() {
         _first: Option<String>,
         #[serde(rename = "x-dup")]
         _second: Option<String>,
+        #[serde(rename = "x-cache")]
+        _cache: Option<CacheWithUntagged>,
     }
 
     let errors = reflectapi::Builder::<()>::new()
@@ -820,9 +838,10 @@ fn test_reflectapi_response_headers_validation() {
         errors,
         [
             format!("response headers type `{type_name}`: `Retry-After` is not a valid lowercase header name"),
-            format!("response headers type `{type_name}`: field `_attempts` must be `Option<T>` where `T` is a string on the wire, e.g. `String`, a unit-variant enum, a newtype over one, `uuid::Uuid` or `chrono::DateTime`"),
-            format!("response headers type `{type_name}`: field `_region` must be an `Option`: any response header may be absent"),
+            format!("response headers type `{type_name}`: header `_attempts` must be `Option<T>` where `T` is a string on the wire, e.g. `String`, a unit-variant enum, a newtype over one, `uuid::Uuid` or `chrono::DateTime`"),
+            format!("response headers type `{type_name}`: header `_region` must be an `Option`: any response header may be absent"),
             format!("response headers type `{type_name}`: `x-dup` is declared by more than one field"),
+            format!("response headers type `{type_name}`: header `x-cache` must be `Option<T>` where `T` is a string on the wire, e.g. `String`, a unit-variant enum, a newtype over one, `uuid::Uuid` or `chrono::DateTime`"),
         ]
     );
 }

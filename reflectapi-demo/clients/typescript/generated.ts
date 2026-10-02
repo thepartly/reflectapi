@@ -411,7 +411,7 @@ async function __call<T, E, RH>(
 function __pick_headers<RH>(headers: ClientHeaders, names: string[]): RH {
   const picked: Record<string, string | null> = {};
   for (const name of names) {
-    picked[name] = headers.get(name);
+    picked[name] = headers.get(name) ?? null;
   }
   return picked as RH;
 }

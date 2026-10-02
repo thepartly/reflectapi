@@ -153,7 +153,10 @@ where
     /// deserialized into it, as for request headers. The field's serde name is
     /// the header name and must be lowercase. See
     /// [`crate::Function::response_headers`]. Override per route with
-    /// [`RouteBuilder::response_headers`].
+    /// [`RouteBuilder::response_headers`]; routes that already declare
+    /// response headers, including from an earlier call to this method, keep
+    /// them. As with routes, call [`Builder::rename_types`] afterwards so the
+    /// rename applies to the headers type.
     pub fn response_headers<H: Output>(mut self) -> Self {
         self.default_response_headers = Some(H::reflectapi_output_type);
         self.apply_default_response_headers();
@@ -535,7 +538,7 @@ fn validate_response_headers(schema: &crate::Schema) -> Vec<BuildError> {
                 None
             };
             if let Some(problem) = type_problem {
-                errors.push(invalid(format!("field `{}` {problem}", field.name())));
+                errors.push(invalid(format!("header `{header_name}` {problem}")));
             }
             if http::HeaderName::from_bytes(header_name.as_bytes()).is_err()
                 || header_name != header_name.to_ascii_lowercase()
@@ -565,14 +568,21 @@ fn is_string_on_the_wire(
         return false;
     }
     match schema.get_type(&type_ref.name) {
-        Some(crate::Type::Primitive(p)) => p
-            .fallback
-            .as_ref()
-            .is_some_and(|fallback| is_string_on_the_wire(schema, fallback, depth + 1)),
+        Some(crate::Type::Primitive(p)) => p.fallback.as_ref().is_some_and(|fallback| {
+            // A fallback can be one of the primitive's type parameters, as
+            // `Box<T>` falls back to `T`: resolve it to the argument given.
+            let fallback = p
+                .parameters()
+                .filter(|parameter| !parameter.name.starts_with('\''))
+                .position(|parameter| parameter.name == fallback.name)
+                .and_then(|index| type_ref.arguments.get(index))
+                .unwrap_or(fallback);
+            is_string_on_the_wire(schema, fallback, depth + 1)
+        }),
         Some(crate::Type::Enum(e)) => {
             e.representation.is_external()
                 && e.variants()
-                    .all(|v| matches!(v.fields, crate::Fields::None))
+                    .all(|v| matches!(v.fields, crate::Fields::None) && !v.untagged())
         }
         Some(crate::Type::Struct(s))
             if s.fields.len() == 1 && (s.transparent() || s.is_tuple()) =>
