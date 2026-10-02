@@ -1137,12 +1137,9 @@ fn __interface_types_from_function_group(
         let function = functions_by_name.get(function_name).unwrap();
         let sig = __function_signature(function, schema, implemented_types);
         let path = format!("{}/{}", function.path, function.name);
-        let name = function
-            .name
-            .split('.')
-            .next_back()
-            .unwrap_or_default()
-            .replace('-', "_");
+        let name = __function_name_for_field_name(
+            function.name.split('.').next_back().unwrap_or_default(),
+        );
         // skip_all: request bodies must not be recorded into span fields —
         // `input` may carry credentials (passwords, tokens) whose `Debug`
         // output would land in logs in cleartext.
@@ -1612,8 +1609,17 @@ fn __function_name_for_type_name(name: &str) -> String {
     result
 }
 
+/// Turns an endpoint name segment into a valid Rust identifier for a method or
+/// interface field. Keywords become raw identifiers (`r#type`), except the path
+/// keywords that cannot be raw identifiers, which get an underscore suffix.
 fn __function_name_for_field_name(name: &str) -> String {
-    name.replace('-', "_")
+    let name = name.replace('-', "_");
+    match name.as_str() {
+        "self" | "Self" | "crate" | "super" => format!("{name}_"),
+        // Reserved since edition 2024, which `check_keyword` does not know about.
+        "gen" => format!("r#{name}"),
+        _ => check_keyword::CheckKeyword::into_safe(name),
+    }
 }
 
 fn __name_to_pascal_case(name: &str) -> String {
