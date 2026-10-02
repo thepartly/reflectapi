@@ -666,3 +666,29 @@ fn test_reflectapi_struct_with_hidden_header_field() {
             |b| b.name("test.endpoint")
         ))
 }
+
+#[test]
+fn test_function_names_with_keywords() {
+    async fn empty<S>(_s: S, _: reflectapi::Empty, _: reflectapi::Empty) -> reflectapi::Empty {
+        reflectapi::Empty {}
+    }
+
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("keyword_test")
+        .route(empty, |b| b.name("with.type"))
+        .route(empty, |b| b.name("with.override"))
+        .route(empty, |b| b.name("with.async"))
+        .route(empty, |b| b.name("with.gen"))
+        .route(empty, |b| b.name("with.self"))
+        .route(empty, |b| b.name("with.Self"))
+        .route(empty, |b| b.name("with.crate"))
+        .route(empty, |b| b.name("with.super"))
+        .route(empty, |b| b.name("with.class"))
+        .route(empty, |b| b.name("with.None"))
+        .route(empty, |b| b.name("with.delete"))
+        .route(empty, |b| b.name("type.get"))
+        .route(empty, |b| b.name("self.get"))
+        .route(empty, |b| b.name("crate.super.get"))
+        .route(empty, |b| b.name("enum"))
+        .route(empty, |b| b.name("delete")))
+}
