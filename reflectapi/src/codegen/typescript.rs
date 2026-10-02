@@ -831,7 +831,7 @@ fn client_impl_from_function_group(
             .map(|f| {
                 (
                     f.split('.').next_back().unwrap().replace('-', "_"),
-                    f.replace('.', "__").replace('-', "_"),
+                    implementation_function_name(f),
                 )
             })
             .collect(),
@@ -1400,7 +1400,7 @@ fn render_function(
     implemented_types: &HashMap<String, String>,
 ) -> Result<String, anyhow::Error> {
     let sig = function_signature(function, schema, implemented_types);
-    let name = function.name.replace('-', "_").replace('.', "__");
+    let name = implementation_function_name(&function.name);
     let path = format!("{}/{}", function.path, function.name);
     let output_ref = match &function.output_type {
         reflectapi_schema::OutputType::Complete { output_type } => output_type.as_ref(),
@@ -1784,6 +1784,69 @@ fn doc_to_ts_comments(doc: &str, deprecation_note: Option<&str>, offset: u8) -> 
         .chain(std::iter::once(format!("{padding} */\n")))
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// Name of the module-level function implementing an endpoint. Dotted names
+/// can never be reserved words once joined with `__`, so only top-level
+/// endpoint names need escaping.
+fn implementation_function_name(function_name: &str) -> String {
+    const RESERVED_WORDS: &[&str] = &[
+        "arguments",
+        "await",
+        "break",
+        "case",
+        "catch",
+        "class",
+        "const",
+        "continue",
+        "debugger",
+        "default",
+        "delete",
+        "do",
+        "else",
+        "enum",
+        "eval",
+        "export",
+        "extends",
+        "false",
+        "finally",
+        "for",
+        "function",
+        "if",
+        "implements",
+        "import",
+        "in",
+        "instanceof",
+        "interface",
+        "let",
+        "new",
+        "null",
+        "package",
+        "private",
+        "protected",
+        "public",
+        "return",
+        "static",
+        "super",
+        "switch",
+        "this",
+        "throw",
+        "true",
+        "try",
+        "typeof",
+        "var",
+        "void",
+        "while",
+        "with",
+        "yield",
+    ];
+
+    let name = function_name.replace('-', "_").replace('.', "__");
+    if RESERVED_WORDS.contains(&name.as_str()) {
+        format!("{name}_")
+    } else {
+        name
+    }
 }
 
 fn camelcase(name: &str) -> String {
