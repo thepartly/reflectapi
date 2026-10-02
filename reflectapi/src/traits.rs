@@ -53,6 +53,54 @@ pub trait Input {
 pub trait Output {
     /// Recursively adds the type definition to the schema and returns a reference to it.
     fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference;
+
+    /// The response headers this value carries, as `(name, value)` pairs.
+    ///
+    /// Overridden by the derive for types with `#[reflectapi(header)]` fields;
+    /// every other type answers with none. A name repeated across pairs is a
+    /// header sent more than once, which `set-cookie` routinely is.
+    fn reflectapi_response_headers(&self) -> Vec<(&'static str, String)> {
+        Vec::new()
+    }
+}
+
+/// A field that can be sent as a response header.
+///
+/// Implemented for the string types and for `Option`/`Vec` of them: `None`
+/// sends nothing, and a `Vec` sends the header once per element. Implement it
+/// for your own type to make it usable as a `#[reflectapi(header)]` field —
+/// the trait bound is what stops a header field holding something that has no
+/// sensible header representation.
+pub trait HeaderValue {
+    fn reflectapi_header_values(&self) -> Vec<String>;
+}
+
+impl HeaderValue for String {
+    fn reflectapi_header_values(&self) -> Vec<String> {
+        vec![self.clone()]
+    }
+}
+
+impl HeaderValue for &str {
+    fn reflectapi_header_values(&self) -> Vec<String> {
+        vec![(*self).to_owned()]
+    }
+}
+
+impl<T: HeaderValue> HeaderValue for Option<T> {
+    fn reflectapi_header_values(&self) -> Vec<String> {
+        self.as_ref()
+            .map(HeaderValue::reflectapi_header_values)
+            .unwrap_or_default()
+    }
+}
+
+impl<T: HeaderValue> HeaderValue for Vec<T> {
+    fn reflectapi_header_values(&self) -> Vec<String> {
+        self.iter()
+            .flat_map(HeaderValue::reflectapi_header_values)
+            .collect()
+    }
 }
 
 pub(crate) fn reflectapi_type_empty(
