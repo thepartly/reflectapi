@@ -61,13 +61,26 @@ export class Result<T, E> {
     }
   }
 
+  /**
+   * Returns the success value or throws an `Error` whose `cause` is the
+   * error value, so callers further up (e.g. a query library's retry
+   * policy) can inspect it, for example with `cause.status_code()`.
+   */
   public unwrap_ok(): T {
     if ("ok" in this.value) {
       return this.value.ok;
     }
-    throw new Error(
+    const error = new Error(
       `called \`unwrap_ok\` on an \`err\` value: ${JSON.stringify(this.value.err)}`,
     );
+    // Same attributes as a native `Error` cause (non-enumerable), without
+    // relying on the ES2022 `ErrorOptions` typing.
+    Object.defineProperty(error, "cause", {
+      value: this.value.err,
+      writable: true,
+      configurable: true,
+    });
+    throw error;
   }
   public unwrap_err(): E {
     if ("err" in this.value) {
@@ -112,7 +125,26 @@ export class Result<T, E> {
 }
 
 export class Err<E> {
-  constructor(private value: { application_err: E } | { other_err: any }) { }
+  declare private readonly http_status: number | undefined;
+
+  constructor(
+    private value: { application_err: E } | { other_err: any },
+    http_status?: number,
+  ) {
+    // Non-enumerable, so JSON.stringify output (and the `unwrap_ok`
+    // messages built from it) is the same as before the status existed.
+    Object.defineProperty(this, "http_status", { value: http_status });
+  }
+
+  /**
+   * HTTP status of the failed response, whether it came from the server
+   * or from something in front of it (proxy, load balancer, rate
+   * limiter). `undefined` if no response was received (network failure,
+   * abort).
+   */
+  public status_code(): number | undefined {
+    return this.http_status;
+  }
 
   public err(): E | undefined {
     if ("application_err" in this.value) {
@@ -136,9 +168,9 @@ export class Err<E> {
 
   public map<U>(f: (r: E) => U): Err<U> {
     if ("application_err" in this.value) {
-      return new Err({ application_err: f(this.value.application_err) });
+      return new Err({ application_err: f(this.value.application_err) }, this.http_status);
     } else {
-      return new Err({ other_err: this.value.other_err });
+      return new Err({ other_err: this.value.other_err }, this.http_status);
     }
   }
   public unwrap(): E {
@@ -164,6 +196,8 @@ export class Err<E> {
   public toString(): string {
     if ("application_err" in this.value) {
       return `Application Error: ${JSON.stringify(this.value.application_err)}`;
+    } else if (this.value.other_err instanceof Error) {
+      return `Other Error: ${this.value.other_err}`;
     } else {
       return `Other Error: ${JSON.stringify(this.value.other_err)}`;
     }
@@ -176,73 +210,76 @@ export function __request<I, H, O, E>(
   input: I | undefined,
   headers: H | undefined,
   options?: RequestOptions,
-): AsyncResult<O, E> {
-  let hdrs: Record<string, string> = {
-    "content-type": "application/json",
-  };
-  if (headers) {
-    for (const [k, v] of Object.entries(headers)) {
-      hdrs[k?.toString()] = v?.toString() || "";
+): Promise<Result<O, Err<E>>> {
+  return __call<O, E>(client, path, input, headers, options, {}, async (response) => {
+    const body = await __read_response_body(response);
+    if (response.status < 200 || response.status >= 300) {
+      return __error_outcome<E>(response.status, body);
     }
-  }
-  return client
-    .request({
-      path,
-      headers: hdrs,
-      body: new TextEncoder().encode(JSON.stringify(input) ?? "{}"),
-      signal: options?.signal,
-    })
-    .then(async (response) => {
-      const response_body = await __read_response_body(response);
-      if (response.status >= 200 && response.status < 300) {
-        try {
-          return new Result<O, Err<E>>({ ok: JSON.parse(response_body) as O });
-        } catch (e) {
-          return new Result<O, Err<E>>({
-            err: new Err({
-              other_err:
-                "internal error: failure to parse response body as json on successful status code: " +
-                response_body,
-            }),
-          });
-        }
-      } else if (response.status >= 500) {
-        return new Result<O, Err<E>>({
-          err: new Err({ other_err: `[${response.status}] ${response_body}` }),
-        })
-      } else {
-        try {
-          return new Result<O, Err<E>>({
-            err: new Err({ application_err: JSON.parse(response_body) as E }),
-          });
-        } catch (e) {
-          return new Result<O, Err<E>>({
-            err: new Err({ other_err: `[${response.status}] ${response_body}` }),
-          });
-        }
-      }
-    })
-    .catch((e) => {
-      return new Result<O, Err<E>>({ err: new Err({ other_err: e }) });
-    });
+    try {
+      return { ok: JSON.parse(body) as O };
+    } catch {
+      return {
+        other_err:
+          "internal error: failure to parse response body as json on successful status code: " +
+          body,
+      };
+    }
+  });
 }
 
-export async function __stream_request<I, H, O, E>(
+export function __stream_request<I, H, O, E>(
   client: Client,
   path: string,
   input: I | undefined,
   headers: H | undefined,
   options?: RequestOptions,
 ): Promise<Result<AsyncIterable<O>, Err<E>>> {
-  let hdrs: Record<string, string> = {
+  const extra_headers = { accept: "text/event-stream" };
+  return __call<AsyncIterable<O>, E>(
+    client, path, input, headers, options, extra_headers, async (response) => {
+      if (response.status < 200 || response.status >= 300) {
+        return __error_outcome<E>(response.status, await __read_response_body(response));
+      }
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.toLowerCase().includes("text/event-stream")) {
+        return {
+          other_err: `expected text/event-stream response, got ${contentType || "missing content-type"}`,
+        };
+      }
+      if (!response.body || typeof response.body.pipeThrough !== "function") {
+        return { other_err: "expected response body to be a WHATWG ReadableStream" };
+      }
+      return { ok: __sse_to_async_iterable<O>(response, options) };
+    },
+  );
+}
+
+type __Outcome<T, E> = { ok: T } | { application_err: E } | { other_err: any };
+
+// Sends the request and turns `handle`'s outcome into a Result. Every
+// Err is built here, so all of them carry the response's status
+// (undefined when the request failed before a response arrived).
+async function __call<T, E>(
+  client: Client,
+  path: string,
+  input: unknown,
+  headers: unknown,
+  options: RequestOptions | undefined,
+  extra_headers: Record<string, string>,
+  handle: (response: ClientResponse) => Promise<__Outcome<T, E>>,
+): Promise<Result<T, Err<E>>> {
+  const hdrs: Record<string, string> = {
     "content-type": "application/json",
-    "accept": "text/event-stream",
+    ...extra_headers,
   };
   if (headers) {
     for (const [k, v] of Object.entries(headers)) {
       hdrs[k?.toString()] = v?.toString() || "";
     }
   }
+  let status: number | undefined;
+  let outcome: __Outcome<T, E>;
   try {
     const response = await client.request({
       path,
@@ -250,44 +287,28 @@ export async function __stream_request<I, H, O, E>(
       body: new TextEncoder().encode(JSON.stringify(input) ?? "{}"),
       signal: options?.signal,
     });
-    if (response.status >= 200 && response.status < 300) {
-      const contentType = response.headers.get("content-type") || "";
-      if (!contentType.toLowerCase().includes("text/event-stream")) {
-        return new Result<AsyncIterable<O>, Err<E>>({
-          err: new Err({
-            other_err: `expected text/event-stream response, got ${contentType || "missing content-type"}`,
-          }),
-        });
-      }
-      if (!response.body || typeof response.body.pipeThrough !== "function") {
-        return new Result<AsyncIterable<O>, Err<E>>({
-          err: new Err({ other_err: "expected response body to be a WHATWG ReadableStream" }),
-        });
-      }
-      const stream = __sse_to_async_iterable<O>(response, options);
-      return new Result<AsyncIterable<O>, Err<E>>({ ok: stream });
-    } else if (response.status >= 500) {
-      const body = await __read_response_body(response);
-      return new Result<AsyncIterable<O>, Err<E>>({
-        err: new Err({ other_err: `[${response.status}] ${body}` }),
-      });
-    } else {
-      const body = await __read_response_body(response);
-      try {
-        return new Result<AsyncIterable<O>, Err<E>>({
-          err: new Err({ application_err: JSON.parse(body) as E }),
-        });
-      } catch (e) {
-        return new Result<AsyncIterable<O>, Err<E>>({
-          err: new Err({ other_err: `[${response.status}] ${body}` }),
-        });
-      }
-    }
+    status = response.status;
+    outcome = await handle(response);
   } catch (e) {
-    return new Result<AsyncIterable<O>, Err<E>>({
-      err: new Err({ other_err: e }),
-    });
+    outcome = { other_err: e };
   }
+  if ("ok" in outcome) {
+    return new Result<T, Err<E>>({ ok: outcome.ok });
+  }
+  return new Result<T, Err<E>>({ err: new Err(outcome, status) });
+}
+
+// Non-2xx responses: below 500, a JSON body is the endpoint's typed
+// error; 5xx and non-JSON bodies are surfaced as `other_err`.
+function __error_outcome<E>(status: number, body: string): __Outcome<never, E> {
+  if (status < 500) {
+    try {
+      return { application_err: JSON.parse(body) as E };
+    } catch {
+      // not JSON: fall through to other_err
+    }
+  }
+  return { other_err: `[${status}] ${body}` };
 }
 
 async function* __sse_to_async_iterable<O>(
