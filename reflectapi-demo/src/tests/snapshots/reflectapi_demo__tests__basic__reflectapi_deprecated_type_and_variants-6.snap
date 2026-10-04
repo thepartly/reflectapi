@@ -1,0 +1,86 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::DeprecatedEnumWithVariants"
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::DeprecatedEnumWithVariants"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::DeprecatedEnumWithVariants",
+        "deprecation_note": "",
+        "variants": [
+          {
+            "name": "Plain",
+            "fields": "none"
+          },
+          {
+            "name": "DeprecatedVariant",
+            "deprecation_note": "",
+            "fields": "none"
+          },
+          {
+            "name": "DeprecatedVariantWithNote",
+            "deprecation_note": "use Plain instead",
+            "fields": "none"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::DeprecatedEnumWithVariants",
+        "deprecation_note": "",
+        "variants": [
+          {
+            "name": "Plain",
+            "fields": "none"
+          },
+          {
+            "name": "DeprecatedVariant",
+            "deprecation_note": "",
+            "fields": "none"
+          },
+          {
+            "name": "DeprecatedVariantWithNote",
+            "deprecation_note": "use Plain instead",
+            "fields": "none"
+          }
+        ]
+      }
+    ]
+  }
+}
