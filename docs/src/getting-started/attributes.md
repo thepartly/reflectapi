@@ -15,7 +15,7 @@ An enum marked `#[reflectapi(open)]` tells generated clients to accept future
 response variants while preserving their content:
 
 ```rust,ignore
-#[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+#[derive(serde::Serialize, reflectapi::Output)]
 #[serde(tag = "kind")]
 #[reflectapi(open)]
 enum PetKind {
@@ -24,12 +24,22 @@ enum PetKind {
 }
 ```
 
+This response-only type needs `Serialize` to send values and `Output` to
+describe them in the schema. Request-only types use `Deserialize` and `Input`.
+Add all four derives only when the same type is used in both directions; an
+`open` enum's generated request type still stays closed.
+
+Serde controls the wire representation (`kind` in this example). ReflectAPI's
+`open` attribute controls how generated clients handle future response tags.
+
 A response such as `{"kind":"Fox","nocturnal":true}` becomes an explicit
 unknown value. A known `Dog` missing `breed` still fails decoding. Rust clients
 get an `Unknown { tag, raw }` variant (with a suffix if that variant name is
 already taken). Python clients get an unknown model with `.tag` and `.raw`.
 TypeScript clients get a branded `UnknownEnum`, detected with `isUnknownEnum`.
 The same policy applies to nested models, application errors, and SSE items.
+See [handling unfamiliar enum variants](../clients/README.md#handling-unfamiliar-enum-variants)
+for client-side examples.
 Rust retains Serde's surrounding container rules: an optional flattened enum
 can become `None` when its contents fail validation. Use a required flattened
 field when invalid content must produce a decoding error.

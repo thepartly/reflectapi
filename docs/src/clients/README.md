@@ -153,6 +153,60 @@ The demo repository includes extra project scaffolding around some generated cli
   that attribute. Unknown open error variants serialize to their original
   JSON for diagnostics.
 
+## Handling Unfamiliar Enum Variants
+
+An enum declared with `#[reflectapi(open)]` keeps known cases typed and adds an
+explicit unknown case to generated responses. Handle it before reading known
+variant fields. The following snippets assume the generated `PetKind` and
+related types are imported from their generated namespace.
+
+Rust uses a normal enum match:
+
+```rust,ignore
+match pet_kind {
+    PetKind::Dog { breed } => println!("Dog: {breed}"),
+    PetKind::Bird => println!("Bird"),
+    PetKind::Unknown { tag, raw } => println!("New kind {tag}: {raw}"),
+}
+```
+
+Python exposes the variant through the generated model's `.root`:
+
+```python
+variant = pet_kind.root
+if isinstance(variant, PetKindUnknown):
+    print(variant.tag, variant.raw)
+elif isinstance(variant, PetKindDog):
+    print(variant.breed)
+else:
+    print("Bird")
+```
+
+TypeScript narrows the union with the helper exported from `generated.ts`:
+
+```typescript
+import { isUnknownEnum } from "./generated";
+
+if (isUnknownEnum(petKind)) {
+  console.log(petKind.tag, petKind.raw);
+} else if (petKind.kind === "Dog") {
+  console.log(petKind.breed);
+} else {
+  console.log("Bird");
+}
+```
+
+Generated unknown names get a suffix when they would conflict with a declared
+variant or another generated type. For externally tagged and unit enum unions
+in TypeScript, `match` accepts an unknown handler under the exported
+`[unknownEnum]` symbol; it is separate from a real wire variant named `Unknown`.
+
+A declared `#[serde(other)]` uses its unit fallback instead and discards the
+unfamiliar tag and payload. It cannot be combined with `open`. Neither policy
+adds an unknown case to generated requests. See the
+[attribute reference](../getting-started/attributes.md#enum-evolution) for
+representation restrictions and migration requirements.
+
 ## Streaming Endpoints
 
 Endpoints registered with `Builder::stream_route` produce a stream of items

@@ -36,14 +36,14 @@ Replace the contents of `src/main.rs`:
 use reflectapi::{Builder, Input, Output};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Input, Output)]
+#[derive(Serialize, Output)]
 struct User {
     id: u32,
     name: String,
     email: String,
 }
 
-#[derive(Serialize, Deserialize, Input)]
+#[derive(Deserialize, Input)]
 struct CreateUserRequest {
     name: String,
     email: String,
@@ -112,6 +112,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 ## Run Your API Server
+
+`User` is returned by the server, so it derives `Serialize` and `Output`.
+`CreateUserRequest` is accepted by the server, so it derives `Deserialize` and
+`Input`. A type used in both directions needs both pairs.
+
+For response enums that may gain variants over time, see
+[enum evolution](./attributes.md#enum-evolution).
 
 ```bash
 cargo run

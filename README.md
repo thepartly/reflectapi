@@ -37,6 +37,7 @@
 - [API Documentation](https://docs.rs/reflectapi) - Complete API reference
 - [User Guide](docs/src/SUMMARY.md) - Tutorials and examples (build locally with `mdbook serve` in `docs/`)
 - [Architecture](docs/src/architecture.md) - System design and internals
+- [Enum evolution](docs/src/getting-started/attributes.md#enum-evolution) - Declared fallbacks and open response enums
 
 ## Development notes
 
