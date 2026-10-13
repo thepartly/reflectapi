@@ -185,6 +185,15 @@ pub mod fixtures {
     }
 
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct FlattenProtoFallbackEnvelope {
+        pub id: u32,
+        #[serde(rename = "__proto__")]
+        pub properties: BTreeMap<String, u32>,
+        #[serde(flatten)]
+        pub value: FallbackInternal,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct FlattenAdjacentFallbackEnvelope {
         pub id: u32,
         #[serde(flatten)]
@@ -307,6 +316,12 @@ fn schema() -> reflectapi::Schema {
             |b| b.name("enums.flatten_fallback"),
         )
         .route(
+            |_: (), input: fixtures::FlattenProtoFallbackEnvelope, _: reflectapi::Empty| async {
+                input
+            },
+            |b| b.name("enums.flatten_proto_fallback"),
+        )
+        .route(
             |_: (), input: fixtures::FlattenAdjacentFallbackEnvelope, _: reflectapi::Empty| async {
                 input
             },
@@ -397,7 +412,7 @@ fn old_enum_schemas_keep_closed_defaults() {
 }
 
 #[test]
-fn open_rust_enum_keeps_public_field_deprecation() {
+fn open_rust_enum_keeps_public_variant_and_field_deprecation() {
     let mut schema = schema();
     let name = schema
         .output_types
@@ -409,15 +424,24 @@ fn open_rust_enum_keeps_public_field_deprecation() {
     let reflectapi::Type::Enum(enm) = schema.output_types.get_type_mut(&name).unwrap() else {
         panic!("expected OpenInternal enum");
     };
-    enm.variants
+    let dog = enm
+        .variants
         .iter_mut()
         .find(|variant| variant.name == "Dog")
-        .unwrap()
+        .unwrap();
+    dog.deprecation_note = Some("Use Bird instead".into());
+    dog.deprecated_in = Some("2.3.0".into());
+    dog.deprecated_since = Some("2026-10-01".into());
+    dog.sunset = Some("2026-11-01".into());
+    let breed = dog
         .fields
         .iter_mut()
         .find(|field| field.name == "breed")
-        .unwrap()
-        .deprecation_note = Some("Use breed_code".into());
+        .unwrap();
+    breed.deprecation_note = Some("Use \"breed_code\" instead".into());
+    breed.deprecated_in = Some("2.4.0".into());
+    breed.deprecated_since = Some("2026-10-05".into());
+    breed.sunset = Some("2026-11-05".into());
 
     let generated = reflectapi::codegen::rust::generate(schema, &Default::default()).unwrap();
     let public_enum = &generated[generated.rfind("pub enum OpenInternal {").unwrap()..];
@@ -425,7 +449,83 @@ fn open_rust_enum_keeps_public_field_deprecation() {
         .split("// reflectapi-open-impl-start")
         .next()
         .unwrap();
-    assert!(public_enum.contains("#[deprecated(note = \"Use breed_code\")]\n    breed:"));
+    assert!(public_enum.contains(concat!(
+        "#[deprecated(note = \"Deprecated in 2.3.0, since 2026-10-01; ",
+        "removal after 2026-11-01. Use Bird instead\")]\n    Dog"
+    )));
+    assert!(public_enum.contains(concat!(
+        "#[deprecated(note = \"Deprecated in 2.4.0, since 2026-10-05; ",
+        "removal after 2026-11-05. Use \\\"breed_code\\\" instead\")]\n    breed:"
+    )));
+}
+
+#[test]
+fn python_flattened_enum_keeps_release_and_date_deprecation() {
+    let mut schema = schema();
+    let envelope_name = schema
+        .output_types
+        .types()
+        .find(|ty| ty.name().ends_with("FlattenEnumEnvelope"))
+        .unwrap()
+        .name()
+        .to_owned();
+    let reflectapi::Type::Struct(envelope) =
+        schema.output_types.get_type_mut(&envelope_name).unwrap()
+    else {
+        panic!("expected FlattenEnumEnvelope struct");
+    };
+    let value = envelope
+        .fields
+        .iter_mut()
+        .find(|field| field.name == "value")
+        .unwrap();
+    value.deprecation_note = Some("Use replacement instead".into());
+    value.deprecated_in = Some("2.3.0".into());
+    value.deprecated_since = Some("2026-10-01".into());
+    value.sunset = Some("2026-11-01".into());
+
+    let enum_name = schema
+        .output_types
+        .types()
+        .find(|ty| ty.name().ends_with("OpenInternal"))
+        .unwrap()
+        .name()
+        .to_owned();
+    let reflectapi::Type::Enum(enm) = schema.output_types.get_type_mut(&enum_name).unwrap() else {
+        panic!("expected OpenInternal enum");
+    };
+    let breed = enm
+        .variants
+        .iter_mut()
+        .find(|variant| variant.name == "Dog")
+        .unwrap()
+        .fields
+        .iter_mut()
+        .find(|field| field.name == "breed")
+        .unwrap();
+    breed.deprecation_note = Some("Use breed_code instead".into());
+    breed.deprecated_in = Some("2.4.0".into());
+    breed.deprecated_since = Some("2026-10-05".into());
+    breed.sunset = Some("2026-11-05".into());
+
+    let files = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config {
+            package_name: "enum_client".into(),
+            format: false,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let output = &files["enum_compatibility/fixtures/output/__init__.py"];
+    assert!(output.lines().any(|line| {
+        line.trim_start().starts_with("value: ")
+            && line.contains("Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use replacement instead")
+    }));
+    assert!(output.lines().any(|line| {
+        line.trim_start().starts_with("breed: str")
+            && line.contains("Deprecated in 2.4.0, since 2026-10-05; removal after 2026-11-05. Use breed_code instead")
+    }));
 }
 
 #[test]

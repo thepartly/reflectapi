@@ -853,6 +853,10 @@ mod templates {
     impl __Variant {
         fn render_plain(&self) -> anyhow::Result<String> {
             let brackets = self.render_brackets();
+            let deprecated = self
+                .deprecated
+                .as_ref()
+                .map_or_else(String::new, |attribute| format!("{attribute}\n    "));
             let fields = self
                 .fields
                 .iter()
@@ -864,8 +868,9 @@ mod templates {
                 format!("\n        {},\n    ", fields.join(",\n        "))
             };
             Ok(format!(
-                "{}{}{}{}{}{},",
+                "{}{}{}{}{}{}{},",
                 self.description,
+                deprecated,
                 self.name,
                 brackets.0,
                 body,
@@ -1097,9 +1102,9 @@ mod templates {
         }
 
         fn render_deprecation(&self) -> String {
-            self.deprecated.as_ref().map_or_else(String::new, |attribute| {
-                format!("{attribute}\n    ")
-            })
+            self.deprecated
+                .as_ref()
+                .map_or_else(String::new, |attribute| format!("{attribute}\n    "))
         }
 
         pub fn render(&self) -> String {

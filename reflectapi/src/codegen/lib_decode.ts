@@ -127,7 +127,11 @@ function __decode(value: unknown, spec: __DecodeSpec, specs: __DecodeSpecs): any
               (flattenedEnum.r === "adjacent" || flattenedEnum.f !== null)) {
             const parent: Record<string, unknown> = {};
             for (const key of parentKeys) {
-              if (Object.prototype.hasOwnProperty.call(result, key)) parent[key] = result[key];
+              if (Object.prototype.hasOwnProperty.call(result, key)) {
+                Object.defineProperty(parent, key, {
+                  value: result[key], enumerable: true, writable: true, configurable: true,
+                });
+              }
             }
             __copy_unknown_enum(parent, result);
             result = { ...parent, ...(decoded as Record<string, unknown>) };

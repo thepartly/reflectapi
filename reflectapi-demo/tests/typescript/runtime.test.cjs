@@ -18,6 +18,15 @@ async function call(method, wire, status = 200, responseHeaders = {}) {
   return sdk.client(transport(wire, status, "application/json", responseHeaders)).enums[method]({}, {});
 }
 
+test("flattened fallback preserves a declared __proto__ field", async () => {
+  const wire = JSON.parse('{"id":7,"__proto__":{"safe":1},"kind":"Future"}');
+  const value = (await call("flatten_proto_fallback", wire)).unwrap_ok();
+  assert.equal(Object.getPrototypeOf(value), Object.prototype);
+  assert.equal(Object.prototype.hasOwnProperty.call(value, "__proto__"), true);
+  assert.deepEqual(value.__proto__, { safe: 1 });
+  assert.deepEqual(value, JSON.parse('{"id":7,"__proto__":{"safe":1},"kind":"other"}'));
+});
+
 test("declared response headers decode open enums", async () => {
   const future = await call("internal", { kind: "Bird" }, 200, { "x-kind": "Future" });
   assert.equal(future.is_ok(), true);

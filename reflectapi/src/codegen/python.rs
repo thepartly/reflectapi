@@ -972,7 +972,7 @@ fn render_struct_with_flattened_tagged_enum(
             name: enum_field_name.clone(),
             type_annotation: enum_type,
             description: Some(enum_field.description().to_string()),
-            deprecation_note: enum_field.deprecation_note.clone(),
+            deprecation_note: enum_field.deprecation().map(|d| d.message()),
             optional: enum_optional,
             default_value: enum_default,
             alias: None,

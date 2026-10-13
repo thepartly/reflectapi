@@ -54,9 +54,9 @@ Directly flattened open enums must use internal or adjacent tags. Codegen
 rejects flattened external open enums because a future variant key cannot be
 distinguished from a newly added parent field. An external open enum used as a
 regular field inside a flattened struct remains supported.
-Each object can flatten at most one enum with an open or declared-fallback
-response policy. Use named fields for multiple such enums so each unknown case
-has its own discriminator, payload, and client representation.
+An object with a flattened open or declared-fallback enum cannot flatten
+another enum. Use named fields for additional enums so each unknown case has
+its own discriminator, payload, and client representation.
 
 This attribute changes client decoding, not server Serde behavior. Requests
 use separate closed generated types, and the current wire variants in OpenAPI

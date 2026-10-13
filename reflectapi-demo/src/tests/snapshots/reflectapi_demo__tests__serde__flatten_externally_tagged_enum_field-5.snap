@@ -42,7 +42,41 @@ class ReflectapiDemoTestsSerdeDrawing(BaseModel):
     )
 
     name: str
-    shape: reflectapi_demo.tests.serde.Shape
+    shape: ReflectapiDemoTestsSerdeShape
+
+    @model_validator(mode="before")
+    @classmethod
+    def _unflatten_enum(cls, data):
+        if not isinstance(data, dict):
+            return data
+        parent_keys = frozenset(("name",))
+        variant_keys = frozenset(
+            (
+                "Circle",
+                "Rect",
+            )
+        )
+        present = variant_keys.intersection(data)
+        if len(present) != 1:
+            if not present and "shape" in data:
+                if isinstance(data["shape"], ReflectapiDemoTestsSerdeShape):
+                    return data
+                raise ValueError("Flattened enum requires a variant key")
+            if present:
+                raise ValueError("Flattened enum requires exactly one variant key")
+            raise ValueError("Flattened enum requires a variant key")
+        parent = {key: value for key, value in data.items() if key in parent_keys}
+        key = next(iter(present))
+        parent["shape"] = {key: data[key]}
+        return parent
+
+    @model_serializer(mode="wrap")
+    def _flatten_enum(self, handler):
+        value = handler(self)
+        enum_value = value.pop("shape", None)
+        if enum_value is None:
+            return value
+        return {**value, **enum_value}
 
 
 class ReflectapiDemoTestsSerdeShapeCircleVariant(BaseModel):

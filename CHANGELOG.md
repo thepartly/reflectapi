@@ -44,15 +44,11 @@ Messages read like `Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11
 - Python clients: field deprecation notes, previously dropped, are now rendered.
 - TypeScript clients: a `*/` in a doc comment or deprecation note no longer ends the JSDoc comment early and breaks the generated file.
 
-### Added
+### Enum evolution
 
-- Opt-in `#[reflectapi(open)]` response enums in Rust, Python, and TypeScript SDKs retain unfamiliar tags and parsed JSON. Generated request enums remain closed; malformed known response variants are never classified as unknown. Tagged representations are supported; untagged and numeric-discriminant enums are rejected with diagnostics. Direct flattening requires internal or adjacent tags, because a flattened external variant cannot be distinguished from a future parent field. Each object can flatten at most one enum with an open or fallback response policy.
-
-### Fixed
+- Opt-in `#[reflectapi(open)]` response enums in Rust, Python, and TypeScript SDKs retain unfamiliar tags and parsed JSON. Generated request enums remain closed; malformed known response variants are never classified as unknown. Tagged representations are supported; untagged and numeric-discriminant enums are rejected with diagnostics. Direct flattening requires internal or adjacent tags, because a flattened external variant cannot be distinguished from a future parent field. An object with a flattened open or fallback enum cannot flatten another enum.
 
 - Generated response SDKs preserve declared `#[serde(other)]` unit fallbacks, including Serde's adjacent unit-content rules. Combining a declared fallback with `open` is rejected so existing fallback behavior is never overridden.
-
-### Upgrade notes
 
 - **`reflectapi-schema`:** `Enum` gains `open` and `Variant` gains `other`. Downstream struct literals must supply these fields, or use `Enum::new` and `Variant::new`. Older serialized schemas remain compatible: omitted flags default to `false` and are omitted again when serialized.
 - **Generated clients:** regenerate SDKs to acquire fallback or open-response decoding; already distributed SDKs keep their existing behavior. Regenerated Python clients using either policy need the updated `reflectapi-runtime`. Open response types gain an explicit unknown case, which callers must handle when matching exhaustively. Generated request types remain closed; a type previously shared between requests and responses may now produce separate input and output types.

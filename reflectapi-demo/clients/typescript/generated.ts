@@ -291,7 +291,7 @@ export class Err<E, H = {}> {
 
 // A decoded future enum variant is separate from every possible wire tag.
 const __unknownEnumBrand: unique symbol = Symbol("reflectapi.unknownEnumBrand");
-/** Use this symbol as the `match` case for an unknown enum variant. */
+/** Read unknown value metadata with `value[unknownEnum]`, or use this symbol as a `match` case. */
 export const unknownEnum: unique symbol = Symbol("reflectapi.unknownEnumCase");
 export type UnknownEnumValue = { readonly tag: string; readonly raw: unknown };
 export type UnknownEnum = {
