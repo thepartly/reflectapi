@@ -45,11 +45,20 @@ Each target renders one message built from the dates and the note, for example `
 
 | Target | Routes | Fields | Variants |
 |--------|--------|--------|----------|
-| OpenAPI | `deprecated: true`, `x-deprecated-since`, `x-sunset` on the operation | the same on the property | the same on the variant's schema |
+| OpenAPI | `deprecated: true`, `x-deprecated-since`, `x-sunset` on the operation | the same on the property, header parameter or response header | the same on the variant's schema |
 | Rust | `#[deprecated(note = "...")]` on the method | on the field | on the variant |
 | TypeScript | `@deprecated ...` on the method | on the property | on the union member, and on the tag key of an externally tagged variant with fields |
 | Python | `@typing_extensions.deprecated(...)` on the method, plus a `DeprecationWarning` when called | `Field(deprecated=...)`, so Pydantic warns when the field is read | not marked |
 
+A marker doesn't always produce an editor or type-checker warning:
+
+- **TypeScript:** editors flag a deprecated method or property. A variant is flagged only when it is externally tagged and has fields, through its tag key: `value.Ellipse` is struck through. On unit, numeric and internally tagged variants, and on adjacently tagged and untagged ones, the `@deprecated` comment sits before a union member, which TypeScript doesn't treat as a deprecated symbol, so it's documentation only.
+- **Fields:** only named fields are marked outside Rust. In OpenAPI, TypeScript and Python, a deprecated field of a tuple struct or newtype, or a deprecated `#[serde(flatten)]` field, is not marked (TypeScript's comment on a tuple element is documentation only). Deprecate the inner named fields instead.
+
 The Python decorator uses `category=None`, so it only informs type checkers: pyright (with `reportDeprecated`) and mypy (with `--enable-error-code deprecated`) report call sites, and the method body emits the runtime warning.
 
 `x-sunset` follows the convention oasdiff uses for a deprecated item's earliest removal date.
+
+## What a sunset means
+
+A sunset is the date you announce, not a check that removal is safe. reflectapi doesn't know which clients are deployed or whether they still use the item, and clients generated before the deprecation carry no warning at all. Before removing an item, confirm from your own traffic or client inventory that nothing still depends on it.
