@@ -1,0 +1,5 @@
+error: #[reflectapi(open)] is only supported on enums
+ --> tests/errors/open_on_struct.rs:3:8
+  |
+3 | struct Value {
+  |        ^^^^^

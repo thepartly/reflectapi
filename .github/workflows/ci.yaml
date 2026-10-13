@@ -29,9 +29,18 @@ jobs:
       - run: cargo fmt -- --check
       - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo test --workspace
+      - name: Test generated Rust enum compatibility
+        run: cargo test --manifest-path reflectapi-demo/tests/rust/enum_compatibility/Cargo.toml
+      - uses: actions/upload-artifact@v7
+        with:
+          name: enum-compatibility-typescript
+          path: |
+            reflectapi-demo/target/enum-compatibility/typescript/*.ts
+            reflectapi-demo/target/enum-compatibility/fallback_samples.json
 
   typescript-runtime:
     name: TypeScript runtime tests
+    needs: rust
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -43,6 +52,12 @@ jobs:
           node-version: 24
       - run: npx --yes pnpm@10 install --frozen-lockfile
       - run: npx --yes pnpm@10 test
+      - uses: actions/download-artifact@v8
+        with:
+          name: enum-compatibility-typescript
+          path: reflectapi-demo/target/enum-compatibility
+      - name: Test generated TypeScript enum compatibility
+        run: REFLECTAPI_ENUM_SKIP_GENERATION=1 sh ../../tests/typescript/run.sh
 
   python-runtime:
     name: Python runtime tests (${{ matrix.python-version }})
@@ -127,3 +142,8 @@ jobs:
       - name: Run demo client tests
         working-directory: reflectapi-demo/clients/python
         run: uv run pytest -q
+      - name: Generate enum compatibility clients
+        run: cargo test -p reflectapi-demo --test enum_compatibility
+      - name: Test generated Python enum compatibility
+        working-directory: reflectapi-demo/clients/python
+        run: uv run pytest ../../tests/python/test_enum_compatibility.py -q -p no:cacheprovider

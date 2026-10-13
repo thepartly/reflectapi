@@ -1,0 +1,5 @@
+error: #[reflectapi(open)] cannot be combined with #[reflectapi(discriminant)]
+ --> tests/errors/open_with_discriminant.rs:3:6
+  |
+3 | enum Value {
+  |      ^^^^^

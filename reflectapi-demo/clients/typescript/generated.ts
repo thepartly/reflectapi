@@ -24,8 +24,11 @@ export { ClientInstance };
 export type { Client, RequestOptions };
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
-export type NullToEmptyObject<T> =
-  IsAny<T> extends true ? unknown : T extends null ? {} : T;
+export type NullToEmptyObject<T> = IsAny<T> extends true
+  ? unknown
+  : T extends null
+    ? {}
+    : T;
 
 export type AsyncResult<T, E, H = {}> = Promise<CallResult<T, E, H>>;
 
@@ -283,6 +286,28 @@ export class Err<E, H = {}> {
   }
 }
 
+// A decoded future enum variant is separate from every possible wire tag.
+const __unknownEnumBrand: unique symbol = Symbol("reflectapi.unknownEnumBrand");
+/** Use this symbol as the `match` case for an unknown enum variant. */
+export const unknownEnum: unique symbol = Symbol("reflectapi.unknownEnumCase");
+export type UnknownEnum = {
+  readonly [__unknownEnumBrand]: true;
+  readonly tag: string;
+  readonly raw: unknown;
+};
+export function isUnknownEnum<T>(value: T): value is T & UnknownEnum {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as any)[__unknownEnumBrand] === true
+  );
+}
+function __make_unknown_enum(tag: string, raw: unknown): UnknownEnum {
+  return { [__unknownEnumBrand]: true, tag, raw };
+}
+
+type __Decoder<T> = (value: unknown) => T;
+
 export function __request<I, H, O, E, RH = {}>(
   client: Client,
   path: string,
@@ -290,6 +315,9 @@ export function __request<I, H, O, E, RH = {}>(
   headers: H | undefined,
   options?: RequestOptions,
   response_headers: string[] = [],
+  decode_output?: __Decoder<O>,
+  decode_error?: __Decoder<E>,
+  decode_response_headers?: __Decoder<RH>,
 ): AsyncResult<O, E, RH> {
   return __call<O, E, RH>(
     client,
@@ -302,18 +330,21 @@ export function __request<I, H, O, E, RH = {}>(
     async (response) => {
       const body = await __read_response_body(response);
       if (response.status < 200 || response.status >= 300) {
-        return __error_outcome<E>(response.status, body);
+        return __error_outcome<E>(response.status, body, decode_error);
       }
       try {
-        return { ok: JSON.parse(body) as O };
-      } catch {
+        const parsed = JSON.parse(body);
+        return { ok: decode_output ? decode_output(parsed) : (parsed as O) };
+      } catch (error) {
         return {
-          other_err:
-            "internal error: failure to parse response body as json on successful status code: " +
-            body,
+          other_err: decode_output
+            ? error
+            : "internal error: failure to parse response body as json on successful status code: " +
+              body,
         };
       }
     },
+    decode_response_headers,
   );
 }
 
@@ -324,6 +355,9 @@ export function __stream_request<I, H, O, E, RH = {}>(
   headers: H | undefined,
   options?: RequestOptions,
   response_headers: string[] = [],
+  decode_item?: __Decoder<O>,
+  decode_error?: __Decoder<E>,
+  decode_response_headers?: __Decoder<RH>,
 ): AsyncResult<AsyncIterable<O>, E, RH> {
   const extra_headers = { accept: "text/event-stream" };
   return __call<AsyncIterable<O>, E, RH>(
@@ -339,6 +373,7 @@ export function __stream_request<I, H, O, E, RH = {}>(
         return __error_outcome<E>(
           response.status,
           await __read_response_body(response),
+          decode_error,
         );
       }
       const contentType = response.headers.get("content-type") || "";
@@ -352,8 +387,9 @@ export function __stream_request<I, H, O, E, RH = {}>(
           other_err: "expected response body to be a WHATWG ReadableStream",
         };
       }
-      return { ok: __sse_to_async_iterable<O>(response, options) };
+      return { ok: __sse_to_async_iterable<O>(response, options, decode_item) };
     },
+    decode_response_headers,
   );
 }
 
@@ -371,6 +407,7 @@ async function __call<T, E, RH>(
   extra_headers: Record<string, string>,
   response_headers: string[],
   handle: (response: ClientResponse) => Promise<__Outcome<T, E>>,
+  decode_response_headers?: __Decoder<RH>,
 ): Promise<CallResult<T, E, RH>> {
   const hdrs: Record<string, string> = {
     "content-type": "application/json",
@@ -395,6 +432,9 @@ async function __call<T, E, RH>(
       headers: __pick_headers<RH>(response.headers, response_headers),
       raw_headers: response.headers,
     };
+    if (decode_response_headers) {
+      response_info.headers = decode_response_headers(response_info.headers);
+    }
     outcome = await handle(response);
   } catch (e) {
     outcome = { other_err: e };
@@ -418,10 +458,19 @@ function __pick_headers<RH>(headers: ClientHeaders, names: string[]): RH {
 
 // Non-2xx responses: below 500, a JSON body is the endpoint's typed
 // error; 5xx and non-JSON bodies are surfaced as `other_err`.
-function __error_outcome<E>(status: number, body: string): __Outcome<never, E> {
+function __error_outcome<E>(
+  status: number,
+  body: string,
+  decode?: __Decoder<E>,
+): __Outcome<never, E> {
   if (status < 500) {
     try {
-      return { application_err: JSON.parse(body) as E };
+      const parsed = JSON.parse(body);
+      try {
+        return { application_err: decode ? decode(parsed) : (parsed as E) };
+      } catch (error) {
+        return { other_err: error };
+      }
     } catch {
       // not JSON: fall through to other_err
     }
@@ -432,6 +481,7 @@ function __error_outcome<E>(status: number, body: string): __Outcome<never, E> {
 async function* __sse_to_async_iterable<O>(
   response: ClientResponse,
   options?: RequestOptions,
+  decode?: __Decoder<O>,
 ): AsyncIterable<O> {
   const body = response.body;
   if (!body) return;
@@ -454,7 +504,8 @@ async function* __sse_to_async_iterable<O>(
       const { done, value } = await reader.read();
       if (done) break;
       try {
-        yield JSON.parse(value.data) as O;
+        const parsed = JSON.parse(value.data);
+        yield decode ? decode(parsed) : (parsed as O);
       } catch (e) {
         throw new Error(
           `SSE parse error: ${e instanceof Error ? e.message : String(e)} (raw: ${value.data})`,
@@ -496,11 +547,13 @@ type UnionToIntersection<U> = (
 // 	| { b: number }
 // 	| { c: {} }
 
-type Step1<T> = T extends object
-  ? T
-  : T extends string
-    ? { [K in T]: unknown }
-    : never;
+type Step1<T> = T extends UnknownEnum
+  ? { [unknownEnum]: UnknownEnum }
+  : T extends object
+    ? T
+    : T extends string
+      ? { [K in T]: unknown }
+      : never;
 
 // Second transformation:
 // We want to merge the unions into a single object type.
@@ -560,24 +613,32 @@ export function match<T extends object | string, R>(
 export function match<T extends object | string, R>(
   value: T,
   cases: CasesNonExhaustive<T, R>,
-  otherwise: () => R,
+  otherwise: (value: T) => R,
 ): R;
 export function match<T extends object | string, R>(
   value: T,
   cases: Cases<T, R> | CasesNonExhaustive<T, R>,
-  otherwise?: () => R,
+  otherwise?: (value: T) => R,
 ): R {
   const branches = cases as Record<string, (arg: any) => R>;
+  if (isUnknownEnum(value)) {
+    const handler = (cases as any)[unknownEnum] as
+      | ((arg: UnknownEnum) => R)
+      | undefined;
+    if (handler) return handler(value);
+    if (otherwise) return otherwise(value);
+    throw new Error("unknown enum variant requires a handler");
+  }
   switch (typeof value) {
     case "string":
-      if (value in branches) {
+      if (Object.prototype.hasOwnProperty.call(branches, value)) {
         return branches[value]({});
       }
 
       if (!otherwise) {
         throw new Error("otherwise must exist for non-exhaustive match");
       }
-      return otherwise();
+      return otherwise(value);
 
     case "object": {
       if (Object.keys(value).length !== 1) {
@@ -587,13 +648,13 @@ export function match<T extends object | string, R>(
       }
 
       const [k, v] = Object.entries(value)[0];
-      if (k in branches) {
+      if (Object.prototype.hasOwnProperty.call(branches, k)) {
         return branches[k](v);
       }
       if (!otherwise) {
         throw new Error("otherwise must exist for non-exhaustive match");
       }
-      return otherwise();
+      return otherwise(value);
     }
 
     default:

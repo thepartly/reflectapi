@@ -39,7 +39,7 @@ export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
       export type TestEmptyVariantsAdjacentlyTagged =
-        | { t: "Empty"; c: {} }
+        | { t: "Empty" }
         | { t: "EmptyUnit"; c: [] }
         | { t: "EmptyStruct"; c: {} };
     }

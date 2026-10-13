@@ -1,0 +1,5 @@
+error: #[reflectapi(open)] requires a tagged enum without untagged variants
+ --> tests/errors/open_with_untagged_variant.rs:3:6
+  |
+3 | enum Value {
+  |      ^^^^^

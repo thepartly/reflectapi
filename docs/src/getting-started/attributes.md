@@ -7,6 +7,56 @@ ReflectAPI provides `#[reflectapi(...)]` attributes that control how Rust types 
 | Attribute | Description |
 |-----------|-------------|
 | `#[reflectapi(derive(...))]` | Forward additional derive traits to the generated Rust client type. |
+| `#[reflectapi(open)]` | Make a tagged enum open in generated responses: retain unfamiliar tags and raw JSON in an explicit unknown case. Request types stay closed. |
+
+### Enum evolution
+
+An enum marked `#[reflectapi(open)]` tells generated clients to accept future
+response variants while preserving their content:
+
+```rust,ignore
+#[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+#[serde(tag = "kind")]
+#[reflectapi(open)]
+enum PetKind {
+    Dog { breed: String },
+    Bird,
+}
+```
+
+A response such as `{"kind":"Fox","nocturnal":true}` becomes an explicit
+unknown value. A known `Dog` missing `breed` still fails decoding. Rust clients
+get an `Unknown { tag, raw }` variant (with a suffix if that variant name is
+already taken). Python clients get an unknown model with `.tag` and `.raw`.
+TypeScript clients get a branded `UnknownEnum`, detected with `isUnknownEnum`.
+The same policy applies to nested models, application errors, and SSE items.
+Rust retains Serde's surrounding container rules: an optional flattened enum
+can become `None` when its contents fail validation. Use a required flattened
+field when invalid content must produce a decoding error.
+
+Open enums support external string/single-key-object tags, internal tags, and
+adjacent tags. Untagged enums and untagged variants are rejected because an
+overlapping future shape cannot be reliably distinguished from a known shape.
+Numeric `#[reflectapi(discriminant)]` enums and output type overrides cannot be
+combined with `open`.
+
+This attribute changes client decoding, not server Serde behavior. Requests
+use separate closed generated types, and the current wire variants in OpenAPI
+are unchanged. Existing SDKs need regeneration to acquire the new policy;
+enabling it does not change already distributed SDKs.
+
+Without `open`, a declared `#[serde(other)]` unit variant is preserved in the
+generated response clients. An unfamiliar valid tag maps to that unit variant,
+discarding its original tag and content. This is supported for internally and
+adjacently tagged enums; adjacent unit variants accept only absent or null
+content, matching Serde. Missing/non-string tags and malformed known variants
+remain errors.
+
+When an enum declares both `open` and `#[serde(other)]`, `open` takes precedence
+in generated responses: unfamiliar tags retain their raw JSON rather than
+mapping to the unit fallback. The declared fallback is still a normal known
+variant when its own wire tag arrives. Neither policy widens generated request
+types.
 
 ## Field Level
 

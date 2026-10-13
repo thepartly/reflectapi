@@ -148,6 +148,38 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
         visit_name(cx, container.attrs.name(), Some(&container.original.ident));
     let type_def_description = parse_doc_attributes(&container.original.attrs);
     let attrs = parse_type_attributes(cx, &container.original.attrs);
+    if attrs.open {
+        match &container.data {
+            ast::Data::Enum(variants) => {
+                if attrs.discriminant {
+                    cx.impl_error(
+                        &container.original.ident,
+                        "#[reflectapi(open)] cannot be combined with #[reflectapi(discriminant)]",
+                    );
+                }
+                if matches!(
+                    container.attrs.tag(),
+                    serde_derive_internals::attr::TagType::None
+                ) || variants.iter().any(|v| v.attrs.untagged())
+                {
+                    cx.impl_error(
+                        &container.original.ident,
+                        "#[reflectapi(open)] requires a tagged enum without untagged variants",
+                    );
+                }
+                if attrs.output_type.is_some() || container.attrs.type_into().is_some() {
+                    cx.impl_error(
+                        &container.original.ident,
+                        "#[reflectapi(open)] cannot be combined with an output type override",
+                    );
+                }
+            }
+            ast::Data::Struct(_, _) => cx.impl_error(
+                &container.original.ident,
+                "#[reflectapi(open)] is only supported on enums",
+            ),
+        }
+    }
     let codegen_config = reflectapi_schema::LanguageSpecificTypeCodegenConfig {
         rust: reflectapi_schema::RustTypeCodegenConfig {
             additional_derives: attrs
@@ -243,6 +275,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
             result.description = type_def_description;
             result.serde_name = serde_name;
             result.codegen_config = codegen_config;
+            result.open = attrs.open && cx.reflectapi_type() == ReflectType::Output;
             match container.attrs.tag() {
                 serde_derive_internals::attr::TagType::External => {
                     result.representation = reflectapi_schema::Representation::External;
@@ -400,6 +433,7 @@ fn visit_variant(
         fields,
         discriminant,
         untagged: variant.attrs.untagged(),
+        other: variant.attrs.other() && cx.reflectapi_type() == ReflectType::Output,
     }
 }
 

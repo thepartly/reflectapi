@@ -39,7 +39,12 @@ from .hypothesis_strategies import (
 from .middleware import AsyncMiddleware
 from .partial import ReflectapiPartialModel
 from .response import ApiResponse, ApiStream, AsyncApiStream, TransportMetadata
-from .serde import parse_externally_tagged, serialize_externally_tagged
+from .serde import (
+    UnknownEnumValue,
+    classify_tagged_enum,
+    parse_externally_tagged,
+    serialize_externally_tagged,
+)
 from .streaming import AsyncStreamingClient, StreamingResponse
 from .testing import (
     AsyncCassetteMiddleware,
@@ -93,6 +98,8 @@ __all__ = [
     "ReflectapiPartialModel",
     "parse_externally_tagged",
     "serialize_externally_tagged",
+    "UnknownEnumValue",
+    "classify_tagged_enum",
     "StreamingResponse",
     "ApiStream",
     "AsyncApiStream",

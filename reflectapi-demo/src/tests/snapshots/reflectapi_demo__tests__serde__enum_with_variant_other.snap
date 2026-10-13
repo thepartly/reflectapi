@@ -69,7 +69,8 @@ expression: schema
           },
           {
             "name": "Variant1",
-            "fields": "none"
+            "fields": "none",
+            "other": true
           }
         ]
       }

@@ -121,6 +121,7 @@ pub struct SemanticEnum {
 
     /// Serde representation strategy
     pub representation: Representation,
+    pub open: bool,
 
     /// Language-specific configuration
     pub codegen_config: LanguageSpecificTypeCodegenConfig,
@@ -165,6 +166,7 @@ pub struct SemanticVariant {
     /// Variant properties
     pub discriminant: Option<isize>,
     pub untagged: bool,
+    pub other: bool,
     pub field_style: FieldStyle,
 }
 

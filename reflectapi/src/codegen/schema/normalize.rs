@@ -1496,6 +1496,7 @@ impl Normalizer {
                 .collect(),
             variants,
             representation: enm.representation.clone(),
+            open: enm.open,
             codegen_config: enm.codegen_config.clone(),
         })
     }
@@ -1566,6 +1567,7 @@ impl Normalizer {
             fields,
             discriminant: variant.discriminant,
             untagged: variant.untagged,
+            other: variant.other,
             field_style,
         })
     }

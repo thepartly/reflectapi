@@ -75,8 +75,15 @@ The demo repository includes extra project scaffolding around some generated cli
   the same name when imported from `generated.ts`. Custom transports
   import from `./generated.transport`.
 - Uses generated TypeScript types and function wrappers.
+- Response enums with `#[reflectapi(open)]` include a branded `UnknownEnum`
+  holding `tag` and `raw`. `isUnknownEnum(value)` narrows it; generated `match`
+  calls handle it with the exported `[unknownEnum]` handler key or an `otherwise`
+  fallback. Known values keep their wire shape. Runtime decoding is enabled
+  for responses/errors that reach an open enum or `#[serde(other)]`, including
+  nested values and SSE items.
 - Uses a `fetch`-based default client implementation.
-- Parses JSON responses, but does not generate runtime schema validators today.
+- Ordinary response paths parse JSON without runtime schema validation. Paths
+  that reach an open enum or declared fallback use generated decoders.
 - Supports custom client implementations via the generated client interface.
   A custom transport's `Headers.get(name)` must match names case-insensitively,
   as `fetch`'s does: declared response headers are looked up by their
@@ -117,6 +124,10 @@ The demo repository includes extra project scaffolding around some generated cli
   namespace-prefixed name (`nomatches.NomatchesIfConflictOnUpdate`). This keeps
   one Python class per logical type so `model.<X>` resolves consistently.
 - Uses `reflectapi_runtime` for client base classes and runtime helpers.
+- Open response enum wrappers include a generated unknown model with `.tag`
+  and `.raw`. Unknown values serialize to their original wire JSON. Known
+  values still validate normally; `#[serde(other)]` without `open` maps to the
+  declared unit fallback instead.
 
 ### Rust
 
@@ -137,6 +148,10 @@ The demo repository includes extra project scaffolding around some generated cli
       `reflectapi/reqwest`).
 - Supports optional tracing instrumentation through `--instrument`.
 - Generates serde-compatible types and request helpers for JSON-based transport.
+- Open response enums have a generated `Unknown { tag, raw }` variant and
+  tag-first deserialization. Ordinary `#[serde(other)]` output variants keep
+  that attribute. Unknown open error variants serialize to their original
+  JSON for diagnostics.
 
 ## Streaming Endpoints
 
@@ -219,7 +234,7 @@ retryDelay: (failureCount, error) => {
 
 | Output | Response headers |
 |--------|------------------|
-| TypeScript | `headers()` on the `CallResult` and on its `Err` returns the declared headers: each has the field's generated type or is `null` when that header is absent; `headers()` itself is `undefined` when no response arrived. Values aren't validated at runtime, as with response bodies: an enum-typed header holds whatever string arrived. `raw_headers()` returns all response headers, untyped, for ones the API doesn't declare, such as `cf-ray` from a CDN. `result.map(...)` keeps the response; `map_err` returns a plain `Result`. |
+| TypeScript | `headers()` on the `CallResult` and on its `Err` returns the declared headers: each has the field's generated type or is `null` when that header is absent; `headers()` itself is `undefined` when no response arrived. Open enum headers decode unfamiliar strings into `UnknownEnum`; ordinary enum headers retain the existing unvalidated string behavior. `raw_headers()` returns all response headers, untyped, for ones the API doesn't declare, such as `cf-ray` from a CDN. `result.map(...)` keeps the response; `map_err` returns a plain `Result`. |
 | Python | `ApiResponse.headers` and `ApiError.headers` (including `ValidationError` when the response body is invalid) hold the declared headers validated into the generated model; a field is `None` when its header is absent or its value doesn't validate. `headers` is `None` when the API declares none or no response arrived. All headers, untyped, are in `.metadata.headers`. Streaming methods return an `ApiStream` / `AsyncApiStream` whose `headers` and `metadata` are set once iteration starts. |
 | Rust | The headers struct is generated as a type, but the client doesn't populate it yet. The generated method signatures of routes with declared headers will change when it does. |
 | OpenAPI | Documented as optional headers on the operation's `200` and `default` responses. |

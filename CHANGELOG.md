@@ -44,6 +44,14 @@ Messages read like `Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11
 - Python clients: field deprecation notes, previously dropped, are now rendered.
 - TypeScript clients: a `*/` in a doc comment or deprecation note no longer ends the JSDoc comment early and breaks the generated file.
 
+### Added
+
+- Opt-in `#[reflectapi(open)]` response enums in Rust, Python, and TypeScript SDKs retain unfamiliar tags and raw JSON. Generated request enums remain closed; malformed known response variants still fail decoding. Tagged representations are supported; untagged and numeric-discriminant enums are rejected with diagnostics.
+
+### Fixed
+
+- Generated response SDKs preserve declared `#[serde(other)]` unit fallbacks, including Serde's adjacent unit-content rules. Explicit `open` mode retains unknown data instead of mapping it to a unit fallback.
+
 ## 0.19.0
 
 Clients can now see HTTP status codes and response headers, so retry, back-off and sign-out logic no longer has to parse error strings. Regenerate clients to pick this up.
