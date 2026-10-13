@@ -785,6 +785,37 @@ fn test_reflectapi_deprecation_notes_with_comment_terminators() {
         ))
 }
 
+#[test]
+fn test_reflectapi_deprecated_headers() {
+    #[derive(serde::Deserialize, reflectapi::Input)]
+    struct RequestHeaders {
+        #[deprecated(note = "Send `x-current` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        #[serde(rename = "x-legacy")]
+        _legacy: Option<String>,
+        #[serde(rename = "x-current")]
+        _current: Option<String>,
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct ResponseHeaders {
+        /// The old request id
+        #[deprecated(note = "Read `x-request-id` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        #[serde(rename = "x-legacy-request-id")]
+        _legacy_request_id: Option<String>,
+        #[serde(rename = "x-request-id")]
+        _request_id: Option<String>,
+    }
+
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("deprecated_headers_test")
+        .route(
+            |_: (), _: reflectapi::Empty, _: RequestHeaders| async { reflectapi::Empty {} },
+            |b| b.name("items.get").response_headers::<ResponseHeaders>()
+        ))
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithExternalGenericTypeFallback {
     #[reflectapi(transform = "reflectapi::transforms::fallback_recursively")]

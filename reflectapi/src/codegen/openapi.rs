@@ -211,6 +211,8 @@ pub struct Header {
     schema: InlineOrRef<Schema>,
     #[serde(skip_serializing_if = "String::is_empty")]
     description: String,
+    #[serde(flatten)]
+    deprecation: Deprecation,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -647,6 +649,7 @@ impl Converter<'_> {
                 let header = Header {
                     schema: self.convert_type_ref(schema, Kind::Output, value_type),
                     description: sanitize_description(&field.description),
+                    deprecation: field.deprecation().into(),
                 };
                 (field.serde_name().to_owned(), header)
             })
