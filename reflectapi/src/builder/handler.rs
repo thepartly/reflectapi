@@ -222,6 +222,8 @@ where
             name: rb.name.clone(),
             path: rb.path.clone(),
             deprecation_note: rb.deprecation_note.clone(),
+            deprecated_since: rb.deprecated_since.clone(),
+            sunset: rb.sunset.clone(),
             description: rb.description.clone(),
             input_type: if input_type.name == "reflectapi::Empty" {
                 None

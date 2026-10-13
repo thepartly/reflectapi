@@ -417,6 +417,7 @@ mod templates {
     pub(super) struct Variant {
         pub name: String,
         pub description: String,
+        pub deprecation_message: Option<String>,
         pub representation: crate::Representation,
         pub fields: Fields,
         pub discriminant: Option<isize>,
@@ -494,8 +495,15 @@ mod templates {
                         });
                     }
 
+                    // Also on the tag key, so accessing `value.Variant` is
+                    // flagged, not just hovering the union member.
+                    let key_doc = self
+                        .deprecation_message
+                        .as_deref()
+                        .map(|message| super::doc_to_ts_comments("", Some(message), 8))
+                        .unwrap_or_default();
                     format!(
-                        "{{\n        {}: {}\n    }}",
+                        "{{\n{key_doc}        {}: {}\n    }}",
                         self.normalized_name(),
                         self.render_fields(None)?
                     )
@@ -948,7 +956,7 @@ fn interfaces_from_function_group(
             name: function_name.split('.').next_back().unwrap().replace('-', "_"),
             description: doc_to_ts_comments(
                 &function.description,
-                function.deprecation_note.as_deref(),
+                function.deprecation().map(|d| d.message()).as_deref(),
                 4,
             ),
             type_: format!(
@@ -1116,7 +1124,12 @@ fn render_type(
                     .iter()
                     .map(|variant| templates::Variant {
                         name: variant.serde_name().into(),
-                        description: doc_to_ts_comments(&variant.description, None, 4),
+                        description: doc_to_ts_comments(
+                            &variant.description,
+                            variant.deprecation().map(|d| d.message()).as_deref(),
+                            4,
+                        ),
+                        deprecation_message: variant.deprecation().map(|d| d.message()),
                         representation: enum_def.representation.clone(),
                         fields: fields_to_ts_fields(&variant.fields, schema, implemented_types),
                         discriminant: variant.discriminant,
@@ -1173,7 +1186,11 @@ fn field_to_ts_field(
 ) -> templates::Field {
     templates::Field {
         name: field.serde_name().into(),
-        description: doc_to_ts_comments(&field.description, field.deprecation_note.as_deref(), 4),
+        description: doc_to_ts_comments(
+            &field.description,
+            field.deprecation().map(|d| d.message()).as_deref(),
+            4,
+        ),
         type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
         optional: !field.required,
     }

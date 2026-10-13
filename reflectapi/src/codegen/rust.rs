@@ -553,6 +553,7 @@ mod templates {
         pub name: String,
         pub serde_name: String,
         pub description: String,
+        pub deprecated: Option<String>,
         pub fields: Vec<__Field>,
         pub discriminant: Option<isize>,
         pub untagged: bool,
@@ -591,11 +592,16 @@ mod templates {
             if self.untagged {
                 attrs.push("untagged".into());
             }
-            if attrs.is_empty() {
-                "".into()
+            let mut out = if attrs.is_empty() {
+                String::new()
             } else {
                 format!("#[serde({})]\n    ", attrs.join(", "))
+            };
+            if let Some(deprecated) = &self.deprecated {
+                out.push_str(deprecated);
+                out.push_str("\n    ");
             }
+            out
         }
 
         fn render_fields(&self) -> anyhow::Result<String> {
@@ -632,7 +638,8 @@ mod templates {
     pub(super) struct __Field {
         pub name: String,
         pub serde_name: String,
-        pub deprecation_note: Option<String>,
+        /// Rendered `#[deprecated(..)]` attribute
+        pub deprecated: Option<String>,
         pub description: String,
         pub type_: String,
         pub optional: bool,
@@ -698,14 +705,9 @@ mod templates {
                 out.push_str(")]\n    ");
             }
 
-            if let Some(deprecation_note) = &self.deprecation_note {
-                if deprecation_note.is_empty() {
-                    out.push_str("#[deprecated]\n    ");
-                } else {
-                    out.push_str(&format!(
-                        "#[deprecated(note = \"{deprecation_note}\")]\n    "
-                    ));
-                }
+            if let Some(deprecated) = &self.deprecated {
+                out.push_str(deprecated);
+                out.push_str("\n    ");
             }
 
             out
@@ -805,7 +807,7 @@ mod templates {
     pub(super) struct __FunctionImplementationTemplate {
         pub name: String,
         pub description: String,
-        pub deprecation_note: Option<String>,
+        pub deprecated: Option<String>,
         pub attributes: String,
         pub path: String,
         pub input_type: String,
@@ -817,12 +819,8 @@ mod templates {
     impl __FunctionImplementationTemplate {
         pub fn render(&self) -> String {
             let mut out = String::new();
-            if let Some(deprecation_note) = &self.deprecation_note {
-                if deprecation_note.is_empty() {
-                    out.push_str("        #[deprecated]");
-                } else {
-                    write!(out, "        #[deprecated(note = \"{deprecation_note}\")]").unwrap();
-                }
+            if let Some(deprecated) = &self.deprecated {
+                write!(out, "        {deprecated}").unwrap();
             }
             write!(
                 out,
@@ -847,7 +845,7 @@ mod templates {
     pub(super) struct __StreamFunctionImplementationTemplate {
         pub name: String,
         pub description: String,
-        pub deprecation_note: Option<String>,
+        pub deprecated: Option<String>,
         pub attributes: String,
         pub path: String,
         pub input_type: String,
@@ -859,12 +857,8 @@ mod templates {
     impl __StreamFunctionImplementationTemplate {
         pub fn render(&self) -> String {
             let mut out = String::new();
-            if let Some(deprecation_note) = &self.deprecation_note {
-                if deprecation_note.is_empty() {
-                    out.push_str("        #[deprecated]");
-                } else {
-                    write!(out, "        #[deprecated(note = \"{deprecation_note}\")]").unwrap();
-                }
+            if let Some(deprecated) = &self.deprecated {
+                write!(out, "        {deprecated}").unwrap();
             }
             write!(
                 out,
@@ -1098,7 +1092,7 @@ fn __interface_types_from_function_group(
         type_template.fields.push(templates::__Field {
             name: __function_name_for_field_name(subgroup_name),
             serde_name: __function_name_for_field_name(subgroup_name),
-            deprecation_note: None,
+            deprecated: None,
             description: "".into(),
             type_: format!(
                 "{}Interface<C>",
@@ -1111,7 +1105,7 @@ fn __interface_types_from_function_group(
         interface_implementation.fields.push(templates::__Field {
             name: __function_name_for_field_name(subgroup_name),
             serde_name: __function_name_for_field_name(subgroup_name),
-            deprecation_note: None,
+            deprecated: None,
             description: "".into(),
             type_: format!(
                 "{}Interface",
@@ -1124,7 +1118,7 @@ fn __interface_types_from_function_group(
     }
     type_template.fields.push(templates::__Field {
         name: "client".into(),
-        deprecation_note: None,
+        deprecated: None,
         serde_name: "client".into(),
         description: "".into(),
         type_: "C".into(),
@@ -1152,13 +1146,13 @@ fn __interface_types_from_function_group(
             String::new()
         };
         let description = __doc_to_ts_comments(function.description.as_str(), 4);
-        let deprecation_note = function.deprecation_note.to_owned();
+        let deprecated = __deprecated_attribute(function.deprecation());
 
         let func_impl = match sig.output {
             __FunctionOutput::Complete { output_type } => {
                 templates::__FunctionImpl::Complete(templates::__FunctionImplementationTemplate {
                     name,
-                    deprecation_note,
+                    deprecated,
                     attributes,
                     description,
                     path,
@@ -1171,7 +1165,7 @@ fn __interface_types_from_function_group(
             __FunctionOutput::Stream { item_type } => templates::__FunctionImpl::Stream(
                 templates::__StreamFunctionImplementationTemplate {
                     name,
-                    deprecation_note,
+                    deprecated,
                     attributes,
                     description,
                     path,
@@ -1325,7 +1319,7 @@ fn __render_type(
                             name: __field_name_to_snake_case(field.name()),
                             serde_name: field.serde_name().into(),
                             description: __doc_to_ts_comments(&field.description, 4),
-                            deprecation_note: field.deprecation_note.clone(),
+                            deprecated: __deprecated_attribute(field.deprecation()),
                             type_: __type_ref_to_ts_ref(
                                 &field.type_ref,
                                 schema,
@@ -1359,6 +1353,7 @@ fn __render_type(
                         name: __name_to_pascal_case(variant.name()),
                         serde_name: variant.serde_name().into(),
                         description: __doc_to_ts_comments(&variant.description, 4),
+                        deprecated: __deprecated_attribute(variant.deprecation()),
                         fields: variant
                             .fields
                             .iter()
@@ -1366,7 +1361,7 @@ fn __render_type(
                                 name: __field_name_to_snake_case(field.name()),
                                 serde_name: field.serde_name().into(),
                                 description: __doc_to_ts_comments(&field.description, 12),
-                                deprecation_note: field.deprecation_note.clone(),
+                                deprecated: __deprecated_attribute(field.deprecation()),
                                 type_: __type_ref_to_ts_ref(
                                     &field.type_ref,
                                     schema,
@@ -1650,4 +1645,16 @@ fn __field_name_to_snake_case(name: &str) -> String {
     } else {
         result
     }
+}
+
+/// `#[deprecated(note = "..")]` with the dates in the note: a date as
+/// `since` trips clippy's deny-by-default `deprecated_semver` lint in the
+/// crate that compiles the generated client.
+fn __deprecated_attribute(deprecation: Option<crate::Deprecation<'_>>) -> Option<String> {
+    let message = deprecation?.message();
+    Some(if message.is_empty() {
+        "#[deprecated]".into()
+    } else {
+        format!("#[deprecated(note = {message:?})]")
+    })
 }

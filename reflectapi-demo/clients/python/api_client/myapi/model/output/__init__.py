@@ -24,6 +24,7 @@ from pydantic import (
     model_serializer,
     model_validator,
 )
+import typing_extensions
 
 # Runtime imports
 from reflectapi_runtime import ApiStream
@@ -63,7 +64,9 @@ class MyapiModelOutputPet(BaseModel):
 
     name: str = Field(description="identity")
     kind: myapi.model.Kind = Field(description="kind of pet")
-    age: int | None = Field(default=None, description="age of the pet")
+    age: int | None = Field(
+        default=None, description="age of the pet", deprecated="test deprecation"
+    )
     updated_at: datetime
     behaviors: list[myapi.model.Behavior] | None = Field(
         default=None, description="behaviors of the pet"

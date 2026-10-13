@@ -1,5 +1,47 @@
 # Changelog
 
+## Unreleased
+
+### Deprecation dates
+
+Deprecated routes, fields and enum variants can now say when they were deprecated and when they may be removed, and generated clients and OpenAPI specs show both. See [Deprecations](docs/src/getting-started/deprecations.md).
+
+```rust
+#[derive(serde::Deserialize, reflectapi::Input)]
+struct Request {
+    #[deprecated(note = "Use `shape` instead.")]
+    #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+    radius: Option<f64>,
+}
+
+builder.route(handler, |b| {
+    b.name("items.old")
+        .deprecation_note("Use items.current instead.")
+        .deprecated_since("2026-10-01")
+        .sunset("2026-11-01")
+})
+```
+
+- **Schema:** `Function`, `Field` and `Variant` have `deprecated_since` and `sunset` (`YYYY-MM-DD`), and `Variant` has `deprecation_note`. All are omitted from the JSON when unset, so existing schemas serialize unchanged. `deprecation()` returns them together, and dates without a note still mark the item deprecated.
+- **Derive:** `#[deprecated]` is now read on enum variants as well as fields. `#[reflectapi(deprecated_since = "..")]` and `#[reflectapi(sunset = "..")]` set the dates; a date-shaped `since` in `#[deprecated(since = "..")]` is read too. A malformed date, a sunset before the deprecation date, or dates on an item without `#[deprecated]` are compile errors, and so is a non-string deprecation note, which used to panic the macro.
+- **Builder:** `RouteBuilder::deprecated_since` and `RouteBuilder::sunset`. `Builder::build` fails on malformed route dates.
+- **OpenAPI:** `x-deprecated-since` and `x-sunset` next to `deprecated: true` on operations and properties. Schemas of deprecated enum variants are marked `deprecated: true` with the same extensions.
+- **Rust clients:** `#[deprecated(note = "..")]` with the dates in the note, on functions, fields and now variants.
+- **TypeScript clients:** the dates are in the `@deprecated` text, and deprecated variants get `@deprecated` on their union member and, for externally tagged variants with fields, on the tag key.
+- **Python clients:** deprecated methods are decorated with `typing_extensions.deprecated(..., category=None)` (PEP 702), so pyright and mypy report call sites; the runtime `DeprecationWarning` is unchanged. Deprecated fields now render as `Field(deprecated=...)`, so Pydantic warns when they are read. `reflectapi-runtime` now requires `pydantic>=2.7` and `typing-extensions>=4.5`.
+
+Messages read like `Deprecated since 2026-10-01; removal after 2026-11-01. Use items.current instead.`
+
+### Upgrade notes
+
+- **`reflectapi-schema`:** `Function`, `Field` and `Variant` have new public fields. Code that constructs them with a struct literal must add them, or use `::new` with `..`.
+- **`reflectapi::codegen::openapi`:** `Schema` has a new `Deprecated` variant.
+
+### Fixed
+
+- Rust clients: a deprecation note containing `"` or `\` no longer produces code that doesn't compile.
+- Python clients: field deprecation notes, previously dropped, are now rendered.
+
 ## 0.19.0
 
 Clients can now see HTTP status codes and response headers, so retry, back-off and sign-out logic no longer has to parse error strings. Regenerate clients to pick this up.

@@ -1,0 +1,330 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::StructWithDeprecationDates"
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::StructWithDeprecationDates"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::EnumWithDeprecatedVariants",
+        "variants": [
+          {
+            "name": "Current",
+            "fields": "none"
+          },
+          {
+            "name": "Unit",
+            "deprecation_note": "Use `Current` instead.",
+            "deprecated_since": "2026-10-01",
+            "sunset": "2026-11-01",
+            "fields": "none"
+          },
+          {
+            "name": "Tuple",
+            "deprecation_note": "",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Struct",
+            "deprecation_note": "",
+            "deprecated_since": "2026-10-01",
+            "fields": {
+              "named": [
+                {
+                  "name": "_a",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::StructWithDeprecationDates",
+        "fields": {
+          "named": [
+            {
+              "name": "_since_and_sunset",
+              "deprecation_note": "Use `current` instead.",
+              "deprecated_since": "2026-10-01",
+              "sunset": "2026-11-01",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "_since_only",
+              "description": "A date as rustc's own `since` is read too.",
+              "deprecation_note": "",
+              "deprecated_since": "2026-10-01",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "_sunset_only",
+              "deprecation_note": "",
+              "sunset": "2026-11-01",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "_since_version",
+              "description": "A crate version as `since` is accepted by rustc and left out of\nthe schema.",
+              "deprecation_note": "Versioned.",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "_current",
+              "type": {
+                "name": "reflectapi_demo::tests::basic::EnumWithDeprecatedVariants"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::EnumWithDeprecatedVariants",
+        "variants": [
+          {
+            "name": "Current",
+            "fields": "none"
+          },
+          {
+            "name": "Unit",
+            "deprecation_note": "Use `Current` instead.",
+            "deprecated_since": "2026-10-01",
+            "sunset": "2026-11-01",
+            "fields": "none"
+          },
+          {
+            "name": "Tuple",
+            "deprecation_note": "",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Struct",
+            "deprecation_note": "",
+            "deprecated_since": "2026-10-01",
+            "fields": {
+              "named": [
+                {
+                  "name": "_a",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::StructWithDeprecationDates",
+        "fields": {
+          "named": [
+            {
+              "name": "_since_and_sunset",
+              "deprecation_note": "Use `current` instead.",
+              "deprecated_since": "2026-10-01",
+              "sunset": "2026-11-01",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "_since_only",
+              "description": "A date as rustc's own `since` is read too.",
+              "deprecation_note": "",
+              "deprecated_since": "2026-10-01",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "_sunset_only",
+              "deprecation_note": "",
+              "sunset": "2026-11-01",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "_since_version",
+              "description": "A crate version as `since` is accepted by rustc and left out of\nthe schema.",
+              "deprecation_note": "Versioned.",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "_current",
+              "type": {
+                "name": "reflectapi_demo::tests::basic::EnumWithDeprecatedVariants"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

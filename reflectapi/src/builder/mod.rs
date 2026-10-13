@@ -362,6 +362,7 @@ where
             }
         }
         self.errors.extend(validate_response_headers(&self.schema));
+        self.errors.extend(validate_deprecation_dates(&self.schema));
 
         if !self.errors.is_empty() {
             return Err(crate::BuildErrors(self.errors));
@@ -408,6 +409,8 @@ pub struct RouteBuilder {
     readonly: bool,
     tags: BTreeSet<String>,
     deprecation_note: Option<String>,
+    deprecated_since: Option<String>,
+    sunset: Option<String>,
     response_headers: Option<OutputTypeFn>,
 }
 
@@ -451,6 +454,22 @@ impl RouteBuilder {
         self
     }
 
+    /// Marks this route as deprecated since `date`, a `YYYY-MM-DD` string.
+    /// [`Builder::build`] fails if the date is malformed.
+    pub fn deprecated_since(mut self, date: impl Into<String>) -> Self {
+        self.deprecated_since = Some(date.into());
+        self
+    }
+
+    /// Marks this route as deprecated and sets the date after which it may be
+    /// removed, a `YYYY-MM-DD` string. Rendered as `x-sunset` in OpenAPI.
+    /// [`Builder::build`] fails if the date is malformed or before
+    /// [`Self::deprecated_since`].
+    pub fn sunset(mut self, date: impl Into<String>) -> Self {
+        self.sunset = Some(date.into());
+        self
+    }
+
     /// Marks this route as "read-only".
     /// This is a hint to code generators that the route likely corresponds to
     /// an HTTP GET request and does not modify server state.
@@ -488,6 +507,22 @@ impl RouteBuilder {
         self.response_headers = Some(H::reflectapi_output_type);
         self
     }
+}
+
+/// Field and variant dates are checked when their type is derived; route
+/// dates come from the builder and are only checked here.
+fn validate_deprecation_dates(schema: &crate::Schema) -> Vec<BuildError> {
+    schema
+        .functions
+        .iter()
+        .filter_map(|f| {
+            crate::validate_deprecation_dates(f.deprecated_since.as_deref(), f.sunset.as_deref())
+                .err()
+                .map(|err| {
+                    BuildError::Other(format!("route `{}` deprecation: {err}", f.name).into())
+                })
+        })
+        .collect()
 }
 
 /// Checks each distinct `response_headers` type: a non-generic struct of

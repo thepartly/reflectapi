@@ -1,0 +1,5 @@
+error: `since`: invalid date `2026-13-01`, expected a calendar date as YYYY-MM-DD
+ --> tests/errors/invalid_deprecation_since_format_in_deprecated.rs:3:26
+  |
+3 |     #[deprecated(since = "2026-13-01")]
+  |                          ^^^^^^^^^^^^

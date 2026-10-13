@@ -636,6 +636,96 @@ fn test_reflectapi_deprecated() {
     assert_snapshot!(StructWithDeprecatedField);
 }
 
+#[test]
+fn test_reflectapi_deprecation_dates() {
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    #[allow(dead_code)]
+    enum EnumWithDeprecatedVariants {
+        Current,
+        #[deprecated(note = "Use `Current` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        Unit,
+        #[deprecated]
+        Tuple(u8),
+        #[deprecated]
+        #[reflectapi(deprecated_since = "2026-10-01")]
+        Struct {
+            _a: u8,
+        },
+    }
+
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    struct StructWithDeprecationDates {
+        #[deprecated(note = "Use `current` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        _since_and_sunset: u8,
+        /// A date as rustc's own `since` is read too.
+        #[allow(clippy::deprecated_semver)]
+        #[deprecated(since = "2026-10-01")]
+        _since_only: u8,
+        #[deprecated]
+        #[reflectapi(sunset = "2026-11-01")]
+        _sunset_only: Option<u8>,
+        /// A crate version as `since` is accepted by rustc and left out of
+        /// the schema.
+        #[deprecated(since = "1.2.0", note = "Versioned.")]
+        _since_version: u8,
+        _current: EnumWithDeprecatedVariants,
+    }
+    assert_snapshot!(StructWithDeprecationDates);
+}
+
+#[test]
+fn test_reflectapi_route_deprecation_dates() {
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("route_deprecation_test")
+        .route(
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b
+                .name("items.old")
+                .deprecation_note("Use items.current instead.")
+                .deprecated_since("2026-10-01")
+                .sunset("2026-11-01")
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("items.sunsetting").sunset("2026-11-01")
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("items.current")
+        ))
+}
+
+#[test]
+fn test_reflectapi_route_deprecation_dates_are_validated() {
+    fn build(route: fn(reflectapi::RouteBuilder) -> reflectapi::RouteBuilder) -> Option<String> {
+        reflectapi::Builder::<()>::new()
+            .route(
+                |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+                route,
+            )
+            .build()
+            .err()
+            .map(|errors| errors.to_string().trim_end().to_owned())
+    }
+    assert_eq!(
+        build(|b| b
+            .name("items.old")
+            .deprecated_since("2026-10-01")
+            .sunset("2026-11-01")),
+        None
+    );
+    assert_eq!(
+        build(|b| b.name("items.old").deprecated_since("2026-10-1")).as_deref(),
+        Some("route `items.old` deprecation: invalid date `2026-10-1`, expected a calendar date as YYYY-MM-DD")
+    );
+    assert_eq!(
+        build(|b| b.name("items.old").deprecated_since("2026-10-01").sunset("2026-09-30")).as_deref(),
+        Some("route `items.old` deprecation: sunset date 2026-09-30 is before the deprecation date 2026-10-01")
+    );
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithExternalGenericTypeFallback {
     #[reflectapi(transform = "reflectapi::transforms::fallback_recursively")]

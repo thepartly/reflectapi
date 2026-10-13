@@ -1,0 +1,5 @@
+error: conflicting deprecation dates `2026-10-01` and `2026-10-02`
+ --> tests/errors/invalid_deprecation_since_conflict.rs:4:37
+  |
+4 |     #[reflectapi(deprecated_since = "2026-10-02")]
+  |                                     ^^^^^^^^^^^^

@@ -1,0 +1,145 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.StructWithDeprecationDates"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.StructWithDeprecationDates"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.basic.EnumWithDeprecatedVariants": {
+        "oneOf": [
+          {
+            "const": "Current"
+          },
+          {
+            "const": "Unit",
+            "deprecated": true,
+            "x-deprecated-since": "2026-10-01",
+            "x-sunset": "2026-11-01"
+          },
+          {
+            "deprecated": true,
+            "properties": {
+              "Tuple": {
+                "$ref": "#/components/schemas/u8"
+              }
+            },
+            "required": [
+              "Tuple"
+            ],
+            "title": "Tuple",
+            "type": "object"
+          },
+          {
+            "deprecated": true,
+            "properties": {
+              "Struct": {
+                "properties": {
+                  "_a": {
+                    "$ref": "#/components/schemas/u8"
+                  }
+                },
+                "required": [
+                  "_a"
+                ],
+                "title": "Struct",
+                "type": "object"
+              }
+            },
+            "required": [
+              "Struct"
+            ],
+            "title": "Struct",
+            "type": "object",
+            "x-deprecated-since": "2026-10-01"
+          }
+        ]
+      },
+      "reflectapi_demo.tests.basic.StructWithDeprecationDates": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.basic.StructWithDeprecationDates",
+        "required": [
+          "_current",
+          "_since_and_sunset",
+          "_since_only",
+          "_since_version",
+          "_sunset_only"
+        ],
+        "properties": {
+          "_current": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.basic.EnumWithDeprecatedVariants"
+          },
+          "_since_and_sunset": {
+            "deprecated": true,
+            "x-deprecated-since": "2026-10-01",
+            "x-sunset": "2026-11-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_since_only": {
+            "description": "A date as rustc's own `since` is read too.",
+            "deprecated": true,
+            "x-deprecated-since": "2026-10-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_since_version": {
+            "description": "A crate version as `since` is accepted by rustc and left out of\nthe schema.",
+            "deprecated": true,
+            "$ref": "#/components/schemas/u8"
+          },
+          "_sunset_only": {
+            "deprecated": true,
+            "x-sunset": "2026-11-01",
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/u8"
+              }
+            ]
+          }
+        }
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

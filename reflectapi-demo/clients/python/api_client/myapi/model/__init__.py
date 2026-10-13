@@ -24,6 +24,7 @@ from pydantic import (
     model_serializer,
     model_validator,
 )
+import typing_extensions
 
 # Runtime imports
 from reflectapi_runtime import ApiStream
