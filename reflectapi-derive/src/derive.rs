@@ -151,6 +151,12 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
     if attrs.open {
         match &container.data {
             ast::Data::Enum(variants) => {
+                if variants.iter().any(|variant| variant.attrs.other()) {
+                    cx.impl_error(
+                        &container.original.ident,
+                        "#[reflectapi(open)] cannot be combined with #[serde(other)]; choose either a declared fallback or a rich unknown response",
+                    );
+                }
                 if attrs.discriminant {
                     cx.impl_error(
                         &container.original.ident,

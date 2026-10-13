@@ -497,6 +497,10 @@ mod templates {
     }
 
     impl __Enum {
+        fn derive_name(derive: &str) -> &str {
+            derive.rsplit("::").next().unwrap_or(derive)
+        }
+
         fn private_type_name(&self, preferred: &str) -> String {
             let mut name = preferred.to_owned();
             while self.parameters.iter().any(|parameter| parameter == &name) {
@@ -510,12 +514,7 @@ mod templates {
                 .additional_derives
                 .iter()
                 .chain(&self.base_derives)
-                .any(|derive| {
-                    matches!(
-                        derive.as_str(),
-                        "serde::Serialize" | "::serde::Serialize" | "Serialize"
-                    )
-                })
+                .any(|derive| Self::derive_name(derive) == "Serialize")
         }
 
         fn render_attributes_derive(&self) -> String {
@@ -525,15 +524,7 @@ mod templates {
                 // Open enums implement serde themselves so unknown variants retain
                 // their original tags and complete JSON values.
                 attrs.retain(|derive| {
-                    !matches!(
-                        derive.as_str(),
-                        "serde::Serialize"
-                            | "::serde::Serialize"
-                            | "Serialize"
-                            | "serde::Deserialize"
-                            | "::serde::Deserialize"
-                            | "Deserialize"
-                    )
+                    !matches!(Self::derive_name(derive), "Serialize" | "Deserialize")
                 });
             } else {
                 if self.is_input_type || self.is_error_type {

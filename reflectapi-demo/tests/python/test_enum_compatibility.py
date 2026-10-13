@@ -47,7 +47,6 @@ def test_serde_other_matches_rust_oracle(representation: str) -> None:
         (output.OpenExternal, "Future", output.OpenExternalUnknown),
         (output.OpenUnit, "Future", output.OpenUnitUnknown2),
         (output.OpenUnit, {"Future": None}, output.OpenUnitUnknown2),
-        (output.OpenWithFallback, {"kind": "Future", "new": True}, output.OpenWithFallbackUnknown),
     ],
 )
 def test_open_cases_keep_tag_and_raw_wire(model, wire, unknown_class) -> None:
@@ -67,7 +66,6 @@ def test_known_cases_remain_typed_and_nested_unknowns_round_trip() -> None:
         "generic": {"kind": "Future", "value": [1]},
         "fallback": {"kind": "Later", "ignored": True},
         "adjacent_fallback": {"kind": "Later", "data": None},
-        "open_with_fallback": {"kind": "Later", "kept": True},
         "optional": {"kind": "Future", "optional": True},
         "list": [{"kind": "Future", "index": 1}],
         "map": {"x": {"kind": "Future", "index": 2}},
@@ -263,8 +261,6 @@ def test_request_enums_stay_closed() -> None:
         input.OpenInternal.model_validate({"kind": "Future"})
     with pytest.raises(ValidationError):
         input.OpenExternal.model_validate({"Future": {"x": 1}})
-    with pytest.raises(ValidationError):
-        input.OpenWithFallback.model_validate({"kind": "Future"})
 
 
 def test_sync_and_async_response_paths() -> None:

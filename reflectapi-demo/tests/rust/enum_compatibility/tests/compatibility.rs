@@ -1,8 +1,9 @@
 use reflectapi_enum_compatibility_rust::types::enum_compatibility::fixtures::output::{
     FallbackAdjacent, FallbackInternal, FlattenEnumEnvelope, FlattenEnvelope, OpenAdjacent,
-    OpenExternal, OpenGeneric, OpenGenericDS, OpenInternal, OpenNested, OpenUnit, OpenWithFallback,
+    OpenExternal, OpenGeneric, OpenGenericDS, OpenInternal, OpenNested, OpenUnit,
     OptionalFlattenEnumEnvelope, UntaggedWrapper,
 };
+use reflectapi_enum_compatibility_rust::types::enum_compatibility::fixtures::OpenAlternateDerives;
 use serde_json::{json, Value};
 
 fn decode<T: serde::de::DeserializeOwned>(raw: Value) -> T {
@@ -207,7 +208,7 @@ fn optional_flattened_open_enum_preserves_absence_and_unknown() {
 }
 
 #[test]
-fn ordinary_other_and_explicit_open_have_distinct_behavior() {
+fn ordinary_other_fallbacks_preserve_serde_behavior() {
     assert!(matches!(
         decode::<FallbackInternal>(json!({"kind": "Future", "v": 1})),
         FallbackInternal::Other
@@ -224,14 +225,22 @@ fn ordinary_other_and_explicit_open_have_distinct_behavior() {
         json!({"kind": "Future", "data": {"v": 1}})
     )
     .is_err());
-    let raw = json!({"kind": "Future", "v": 1});
+}
+
+#[test]
+fn alternate_serde_derive_paths_preserve_wire_representation() {
+    let known = json!({"kind": "Value", "value": "hello"});
+    let decoded: OpenAlternateDerives = decode(known.clone());
+    assert!(matches!(&decoded, OpenAlternateDerives::Value { value } if value == "hello"));
+    assert_eq!(serde_json::to_value(&decoded).unwrap(), known);
+
+    let raw = json!({"kind": "Future", "value": [1, 2], "extra": true});
+    let decoded: OpenAlternateDerives = decode(raw.clone());
     assert!(
-        matches!(decode::<OpenWithFallback>(raw.clone()), OpenWithFallback::Unknown { tag, raw: retained } if tag == "Future" && retained == raw)
+        matches!(&decoded, OpenAlternateDerives::Unknown { tag, raw: retained }
+        if tag == "Future" && retained == &raw)
     );
-    assert!(matches!(
-        decode::<OpenWithFallback>(json!({"kind": "Other"})),
-        OpenWithFallback::Other
-    ));
+    assert_eq!(serde_json::to_value(&decoded).unwrap(), raw);
 }
 
 #[test]

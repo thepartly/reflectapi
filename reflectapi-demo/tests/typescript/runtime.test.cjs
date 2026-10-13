@@ -125,7 +125,6 @@ test("nested containers, generic values and aliases decode recursively", async (
     generic: { kind: "Value", value: "ok" },
     fallback: { kind: "Soon", message: "discard" },
     adjacent_fallback: { kind: "Soon", data: null },
-    open_with_fallback: { kind: "Soon", value: true },
     optional: future,
     list: [future, { kind: "Bird" }],
     map: JSON.parse('{"first":{"kind":"Future","extra":{"x":1}},"__proto__":{"kind":"Future"}}'),
@@ -135,7 +134,7 @@ test("nested containers, generic values and aliases decode recursively", async (
   const result = await call("echo", envelope);
   assert.equal(result.is_ok(), true);
   const value = result.unwrap_ok();
-  for (const item of [value.internal, value.adjacent, value.external, value.open_with_fallback,
+  for (const item of [value.internal, value.adjacent, value.external,
     value.optional, value.list[0], value.map.first, value.alias]) {
     assert.equal(sdk.isUnknownEnum(item), true);
   }

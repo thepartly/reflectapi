@@ -87,15 +87,12 @@ pub mod fixtures {
         Other,
     }
 
-    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Output)]
     #[serde(tag = "kind")]
-    #[reflectapi(open)]
-    pub enum OpenWithFallback {
-        Value {
-            message: String,
-        },
-        #[serde(other)]
-        Other,
+    #[reflectapi(open, derive(serde_derive::Serialize, serde_alias::Deserialize))]
+    pub enum OpenAlternateDerives {
+        Value { value: String },
+        Unit,
     }
 
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
@@ -158,7 +155,6 @@ pub mod fixtures {
         pub generic: OpenGeneric<String>,
         pub fallback: FallbackInternal,
         pub adjacent_fallback: FallbackAdjacent,
-        pub open_with_fallback: OpenWithFallback,
         pub optional: Option<OpenInternal>,
         pub list: Vec<OpenInternal>,
         pub map: BTreeMap<String, OpenInternal>,
@@ -189,6 +185,12 @@ fn schema() -> reflectapi::Schema {
         .route(
             |_: (), input: fixtures::OpenUnit, _: reflectapi::Empty| async { input },
             |b| b.name("enums.units"),
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async {
+                fixtures::OpenAlternateDerives::Unit
+            },
+            |b| b.name("enums.alternate_derives"),
         )
         .route(
             |_: (), input: fixtures::OpenGenericDS<String, u32>, _: reflectapi::Empty| async {

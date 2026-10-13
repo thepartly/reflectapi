@@ -144,6 +144,9 @@ jobs:
         run: uv run pytest -q
       - name: Generate enum compatibility clients
         run: cargo test -p reflectapi-demo --test enum_compatibility
+      - name: Type-check enum compatibility consumer
+        working-directory: reflectapi-demo/clients/python
+        run: uv run pyright --project ../../tests/python/pyrightconfig.json
       - name: Test generated Python enum compatibility
         working-directory: reflectapi-demo/clients/python
         run: uv run pytest ../../tests/python/test_enum_compatibility.py -q -p no:cacheprovider

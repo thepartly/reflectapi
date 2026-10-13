@@ -50,7 +50,7 @@ Messages read like `Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11
 
 ### Fixed
 
-- Generated response SDKs preserve declared `#[serde(other)]` unit fallbacks, including Serde's adjacent unit-content rules. Explicit `open` mode retains unknown data instead of mapping it to a unit fallback.
+- Generated response SDKs preserve declared `#[serde(other)]` unit fallbacks, including Serde's adjacent unit-content rules. Combining a declared fallback with `open` is rejected so existing fallback behavior is never overridden.
 
 ## 0.19.0
 

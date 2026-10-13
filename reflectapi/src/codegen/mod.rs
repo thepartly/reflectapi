@@ -25,11 +25,21 @@ pub(super) fn validate_response_enums(schema: &crate::Schema) -> anyhow::Result<
                 "{}: open enums are only supported in response types",
                 enm.name
             );
+            anyhow::ensure!(
+                enm.variants.iter().all(|variant| !variant.other),
+                "{}: serde(other) fallback policies are only supported in response types",
+                enm.name
+            );
         }
     }
     for ty in schema.output_types.types() {
         let crate::Type::Enum(enm) = ty else { continue };
         if enm.open {
+            anyhow::ensure!(
+                enm.variants.iter().all(|variant| !variant.other),
+                "{}: open response enums cannot contain serde(other); choose either a declared fallback or a rich unknown response",
+                enm.name
+            );
             anyhow::ensure!(
                 enm.variants
                     .iter()
@@ -119,6 +129,45 @@ pub fn strip_boilerplate(src: &str) -> String {
 
 #[cfg(test)]
 mod enum_policy_tests {
+    #[test]
+    fn all_sdk_generators_reject_request_fallback_policies_from_json() {
+        let mut enm = crate::Enum::new("RequestFallback".into());
+        enm.representation = crate::Representation::Internal { tag: "kind".into() };
+        let mut variant = crate::Variant::new("Other".into());
+        variant.other = true;
+        enm.variants.push(variant);
+        let mut schema = crate::Schema::default();
+        schema.input_types.insert_type(enm.into());
+        for error in [
+            super::rust::generate(schema.clone(), &Default::default()).unwrap_err(),
+            super::typescript::generate(schema.clone(), &Default::default()).unwrap_err(),
+            super::python::generate(schema, &Default::default()).unwrap_err(),
+        ] {
+            assert!(error
+                .to_string()
+                .contains("only supported in response types"));
+        }
+    }
+
+    #[test]
+    fn all_sdk_generators_reject_mixed_open_and_other_from_json() {
+        let mut enm = crate::Enum::new("MixedPolicy".into());
+        enm.open = true;
+        enm.representation = crate::Representation::Internal { tag: "kind".into() };
+        let mut variant = crate::Variant::new("Other".into());
+        variant.other = true;
+        enm.variants.push(variant);
+        let mut schema = crate::Schema::default();
+        schema.output_types.insert_type(enm.into());
+        for error in [
+            super::rust::generate(schema.clone(), &Default::default()).unwrap_err(),
+            super::typescript::generate(schema.clone(), &Default::default()).unwrap_err(),
+            super::python::generate(schema, &Default::default()).unwrap_err(),
+        ] {
+            assert!(error.to_string().contains("cannot contain serde(other)"));
+        }
+    }
+
     #[test]
     fn all_sdk_generators_reject_unsupported_policies_from_json() {
         let mut enm = crate::Enum::new("Unsupported".into());

@@ -2901,7 +2901,16 @@ fn render_deferred_namespace_placeholders(
             )
         }),
     );
-    lines.join("\n")
+    // These placeholders are needed while Python imports partially initialized
+    // namespace packages. Static checkers should see the real imports emitted
+    // later in the module, so the placeholders must be runtime-only.
+    let body = lines
+        .join("\n")
+        .lines()
+        .map(|line| format!("    {line}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("from typing import TYPE_CHECKING\n\nif not TYPE_CHECKING:\n{body}")
 }
 
 fn render_root_type_namespace_bindings(

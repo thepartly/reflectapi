@@ -1,0 +1,16 @@
+{
+  "include": ["test_enum_types.py"],
+  "typeCheckingMode": "strict",
+  "reportUnnecessaryTypeIgnoreComment": "error",
+  "venvPath": "../../clients/python",
+  "venv": ".venv",
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "../../target/enum-compatibility/python",
+        "../../../reflectapi-python-runtime/src"
+      ]
+    }
+  ]
+}

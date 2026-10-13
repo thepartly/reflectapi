@@ -52,11 +52,10 @@ adjacently tagged enums; adjacent unit variants accept only absent or null
 content, matching Serde. Missing/non-string tags and malformed known variants
 remain errors.
 
-When an enum declares both `open` and `#[serde(other)]`, `open` takes precedence
-in generated responses: unfamiliar tags retain their raw JSON rather than
-mapping to the unit fallback. The declared fallback is still a normal known
-variant when its own wire tag arrives. Neither policy widens generated request
-types.
+Declaring both `open` and `#[serde(other)]` is rejected. Choose the existing
+unit fallback when unfamiliar tags should map to that declared variant, or
+`open` when clients should retain the unfamiliar tag and raw JSON. Neither
+policy widens generated request types.
 
 ## Field Level
 
