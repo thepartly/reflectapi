@@ -67,6 +67,8 @@ pub trait Input {
 /// The policy supports tagged response enums and cannot be combined with
 /// `#[serde(other)]`. A shared request/response type can also derive
 /// `serde::Deserialize` and `Input`; its generated request enum stays closed.
+/// Directly flattened open enums require internal or adjacent tags. Use named
+/// fields when an object needs multiple response-policy enums.
 // TODO: We need examples for manual derive and supported flags for the derive macro.
 pub trait Output {
     /// Recursively adds the type definition to the schema and returns a reference to it.

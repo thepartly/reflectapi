@@ -36,7 +36,8 @@ A response such as `{"kind":"Fox","nocturnal":true}` becomes an explicit
 unknown value. A known `Dog` missing `breed` still fails decoding. Rust clients
 get an `Unknown { tag, raw }` variant (with a suffix if that variant name is
 already taken). Python clients get an unknown model with `.tag` and `.raw`.
-TypeScript clients get a branded `UnknownEnum`, detected with `isUnknownEnum`.
+TypeScript clients get a branded `UnknownEnum`, detected with `isUnknownEnum`;
+its tag and raw value are available under the exported `unknownEnum` symbol.
 The same policy applies to nested models, application errors, and SSE items.
 See [handling unfamiliar enum variants](../clients/README.md#handling-unfamiliar-enum-variants)
 for client-side examples.
@@ -49,6 +50,13 @@ adjacent tags. Untagged enums and untagged variants are rejected because an
 overlapping future shape cannot be reliably distinguished from a known shape.
 Numeric `#[reflectapi(discriminant)]` enums and output type overrides cannot be
 combined with `open`.
+Directly flattened open enums must use internal or adjacent tags. Codegen
+rejects flattened external open enums because a future variant key cannot be
+distinguished from a newly added parent field. An external open enum used as a
+regular field inside a flattened struct remains supported.
+Each object can flatten at most one enum with an open or declared-fallback
+response policy. Use named fields for multiple such enums so each unknown case
+has its own discriminator, payload, and client representation.
 
 This attribute changes client decoding, not server Serde behavior. Requests
 use separate closed generated types, and the current wire variants in OpenAPI
@@ -60,7 +68,10 @@ generated response clients. An unfamiliar valid tag maps to that unit variant,
 discarding its original tag and content. This is supported for internally and
 adjacently tagged enums; adjacent unit variants accept only absent or null
 content, matching Serde. Missing/non-string tags and malformed known variants
-remain errors.
+remain errors for ordinary enum fields. A directly flattened internal fallback
+also preserves Serde's integer variant identifiers: an index selects the
+declared variant, or the fallback when it is out of range. Open enums always
+require string tags.
 
 Declaring both `open` and `#[serde(other)]` is rejected. Choose the existing
 unit fallback when unfamiliar tags should map to that declared variant, or

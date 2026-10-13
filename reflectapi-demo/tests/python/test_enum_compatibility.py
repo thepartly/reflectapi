@@ -10,25 +10,37 @@ import sys
 import httpx
 import pytest
 from pydantic import TypeAdapter, ValidationError
-from reflectapi_runtime import ApplicationError
+from reflectapi_runtime import (
+    ApplicationError,
+    ValidationError as ResponseValidationError,
+)
 
 FIXTURE_ROOT = pathlib.Path(__file__).resolve().parents[2] / "target/enum-compatibility"
 sys.path.insert(0, str(FIXTURE_ROOT / "python"))
 
 from enum_client import AsyncClient, Client  # noqa: E402
-from enum_client.enum_compatibility.fixtures import input, output  # noqa: E402
+from enum_client.enum_compatibility.fixtures import (  # noqa: E402
+    ClosedExternal,
+    ClosedExternalValueVariant,
+    input,
+    output,
+)
 
 
 def dumped(value: object) -> object:
     return json.loads(value.model_dump_json(by_alias=True))
 
 
-@pytest.mark.parametrize("representation", ["internal", "adjacent"])
+@pytest.mark.parametrize(
+    "representation", ["internal", "adjacent", "flatten_internal", "flatten_adjacent"]
+)
 def test_serde_other_matches_rust_oracle(representation: str) -> None:
     oracle = json.loads((FIXTURE_ROOT / "fallback_samples.json").read_text())
     model = {
         "internal": output.FallbackInternal,
         "adjacent": output.FallbackAdjacent,
+        "flatten_internal": output.FlattenFallbackEnvelope,
+        "flatten_adjacent": output.FlattenAdjacentFallbackEnvelope,
     }[representation]
     for sample in oracle[representation]:
         if sample["ok"]:
@@ -41,8 +53,16 @@ def test_serde_other_matches_rust_oracle(representation: str) -> None:
 @pytest.mark.parametrize(
     ("model", "wire", "unknown_class"),
     [
-        (output.OpenInternal, {"kind": "Fox", "tail": {"length": 3}}, output.OpenInternalUnknown),
-        (output.OpenAdjacent, {"kind": "Future", "data": [1, 2]}, output.OpenAdjacentUnknown),
+        (
+            output.OpenInternal,
+            {"kind": "Fox", "tail": {"length": 3}},
+            output.OpenInternalUnknown,
+        ),
+        (
+            output.OpenAdjacent,
+            {"kind": "Future", "data": [1, 2]},
+            output.OpenAdjacentUnknown,
+        ),
         (output.OpenExternal, {"Future": {"nested": [1]}}, output.OpenExternalUnknown),
         (output.OpenExternal, "Future", output.OpenExternalUnknown),
         (output.OpenUnit, "Future", output.OpenUnitUnknown2),
@@ -52,7 +72,9 @@ def test_serde_other_matches_rust_oracle(representation: str) -> None:
 def test_open_cases_keep_tag_and_raw_wire(model, wire, unknown_class) -> None:
     result = model.model_validate(wire)
     assert isinstance(result.root, unknown_class)
-    assert result.root.tag == (wire if isinstance(wire, str) else wire.get("kind", next(iter(wire))))
+    assert result.root.tag == (
+        wire if isinstance(wire, str) else wire.get("kind", next(iter(wire)))
+    )
     assert result.root.raw == wire
     assert dumped(result) == wire
 
@@ -136,7 +158,9 @@ def test_generated_routes_parse_flattened_and_nested_unknowns() -> None:
         body = flattened if request.url.path == "/enums.flatten" else nested
         return httpx.Response(200, json=body)
 
-    client = Client("http://test", client=httpx.Client(transport=httpx.MockTransport(handle)))
+    client = Client(
+        "http://test", client=httpx.Client(transport=httpx.MockTransport(handle))
+    )
     assert dumped(client.enums.flatten().data) == flattened
     assert dumped(client.enums.nested().data) == nested
     client.close()
@@ -148,13 +172,18 @@ def test_direct_flattened_open_enum_retains_parent_and_unknown_value() -> None:
     assert envelope.id == 7
     assert isinstance(envelope.value.root, output.OpenInternalUnknown)
     assert envelope.value.root.tag == "FutureFlattened"
-    assert envelope.value.root.raw == {"kind": "FutureFlattened", "new": {"nested": True}}
+    assert envelope.value.root.raw == {
+        "kind": "FutureFlattened",
+        "new": {"nested": True},
+    }
     assert dumped(envelope) == wire
 
     def handle(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=wire)
 
-    client = Client("http://test", client=httpx.Client(transport=httpx.MockTransport(handle)))
+    client = Client(
+        "http://test", client=httpx.Client(transport=httpx.MockTransport(handle))
+    )
     assert dumped(client.enums_flatten.enum().data) == wire
     client.close()
 
@@ -173,7 +202,9 @@ def test_direct_flattened_open_enum_rejects_malformed_known_and_closed_input() -
     with pytest.raises(ValidationError):
         output.FlattenEnumEnvelope.model_validate({"id": 9, "kind": "Dog", "breed": 8})
     with pytest.raises(ValidationError):
-        output.FlattenEnumEnvelope.model_validate({"id": 9, "value": {"kind": "Future"}})
+        output.FlattenEnumEnvelope.model_validate(
+            {"id": 9, "value": {"kind": "Future"}}
+        )
     with pytest.raises(ValidationError):
         output.FlattenEnumEnvelope.model_validate({"id": 9})
     with pytest.raises(ValidationError):
@@ -185,7 +216,9 @@ def test_optional_direct_flattened_enum_missing_and_unknown_values() -> None:
     assert absent.value is None
     assert dumped(absent) == {"id": 7}
 
-    ignored = output.OptionalFlattenEnumEnvelope.model_validate({"id": 7, "unrelated": 8})
+    ignored = output.OptionalFlattenEnumEnvelope.model_validate(
+        {"id": 7, "unrelated": 8}
+    )
     assert ignored.value is None
     assert dumped(ignored) == {"id": 7}
 
@@ -205,7 +238,9 @@ def test_optional_direct_flattened_enum_missing_and_unknown_values() -> None:
             {"id": 7, "value": {"kind": "Future"}}
         )
     with pytest.raises(ValidationError):
-        output.OptionalFlattenEnumEnvelope.model_validate({"id": 7, "kind": "Dog", "breed": 8})
+        output.OptionalFlattenEnumEnvelope.model_validate(
+            {"id": 7, "kind": "Dog", "breed": 8}
+        )
 
 
 def test_direct_flattened_enum_accepts_typed_sdk_construction() -> None:
@@ -222,11 +257,124 @@ def test_optional_direct_flattened_enum_response_path() -> None:
     def handle(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=wire)
 
-    client = Client("http://test", client=httpx.Client(transport=httpx.MockTransport(handle)))
+    client = Client(
+        "http://test", client=httpx.Client(transport=httpx.MockTransport(handle))
+    )
     response = client.enums_optional.flatten_enum()
     assert isinstance(response.data.value.root, output.OpenInternalUnknown)
     assert dumped(response.data) == wire
     client.close()
+
+
+def test_flattened_open_enum_keeps_parent_tag_and_raw_fields_separate() -> None:
+    wire = {
+        "id": 7,
+        "tag": "parent tag",
+        "raw": "parent raw",
+        "kind": "Future",
+        "payload": {"new": True},
+    }
+    envelope = output.FlattenNamedEnvelope.model_validate(wire)
+    assert envelope.tag == "parent tag"
+    assert envelope.raw == "parent raw"
+    assert isinstance(envelope.value.root, output.OpenInternalUnknown)
+    assert envelope.value.root.tag == "Future"
+    assert envelope.value.root.raw == {"kind": "Future", "payload": {"new": True}}
+    assert dumped(envelope) == wire
+
+
+def test_open_enum_nested_through_flattened_struct_round_trips() -> None:
+    wire = {"ordinary": "parent", "id": 7, "kind": "Future", "new": {"x": 1}}
+    envelope = output.NestedFlattenEnvelope.model_validate(wire)
+    assert envelope.ordinary == "parent"
+    assert envelope.id == 7
+    assert isinstance(envelope.value.root, output.OpenInternalUnknown)
+    assert envelope.value.root.raw == {"kind": "Future", "new": {"x": 1}}
+    assert dumped(envelope) == wire
+
+    known_wire = {"ordinary": "parent", "id": 7, "kind": "Dog", "breed": "collie"}
+    known = output.NestedFlattenEnvelope.model_validate(known_wire)
+    assert isinstance(known.value.root, output.OpenInternalDog)
+    assert dumped(known) == known_wire
+
+
+def test_flattened_closed_external_enum_selects_known_variant_key() -> None:
+    ordinary = {"kind": "Future", "new": 1}
+    wire = {"id": 7, "ordinary": ordinary, "Value": {"message": "known"}}
+    parsed = output.FlattenClosedExternalEnvelope.model_validate(wire)
+    assert isinstance(parsed.ordinary.root, output.OpenInternalUnknown)
+    assert isinstance(parsed.value.root, ClosedExternalValueVariant)
+    assert dumped(parsed) == wire
+
+    built = output.FlattenClosedExternalEnvelope.model_validate(
+        {
+            "id": 7,
+            "ordinary": parsed.ordinary,
+            "value": ClosedExternal.model_validate({"Value": {"message": "known"}}),
+        }
+    )
+    assert dumped(built) == wire
+
+    absent = output.OptionalFlattenClosedExternalEnvelope.model_validate(
+        {"id": 7, "ordinary": ordinary}
+    )
+    assert absent.value is None
+    assert dumped(absent) == {"id": 7, "ordinary": ordinary}
+
+    with pytest.raises(ValidationError):
+        output.FlattenClosedExternalEnvelope.model_validate(
+            {"id": 7, "ordinary": ordinary, "Future": {"message": "new"}}
+        )
+
+
+def test_direct_flattened_adjacent_open_enum_and_optional_field() -> None:
+    known_wire = {"id": 7, "kind": "Value", "data": {"message": "known"}}
+    known = output.FlattenAdjacentEnvelope.model_validate(known_wire)
+    assert isinstance(known.value.root, output.OpenAdjacentValue)
+    assert dumped(known) == known_wire
+
+    wire = {"id": 7, "kind": "Future", "data": {"new": [1, 2]}}
+    unknown = output.FlattenAdjacentEnvelope.model_validate(wire)
+    assert isinstance(unknown.value.root, output.OpenAdjacentUnknown)
+    assert unknown.value.root.tag == "Future"
+    assert unknown.value.root.raw == {"kind": "Future", "data": {"new": [1, 2]}}
+    assert dumped(unknown) == wire
+
+    absent = output.OptionalFlattenAdjacentEnvelope.model_validate({"id": 7})
+    assert absent.value is None
+    assert dumped(absent) == {"id": 7}
+    optional = output.OptionalFlattenAdjacentEnvelope.model_validate(wire)
+    assert isinstance(optional.value.root, output.OpenAdjacentUnknown)
+    assert dumped(optional) == wire
+
+    with pytest.raises(ValidationError):
+        output.FlattenAdjacentEnvelope.model_validate(
+            {"id": 7, "kind": "Value", "data": {}}
+        )
+
+    def handle(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=wire)
+
+    client = Client(
+        "http://test", client=httpx.Client(transport=httpx.MockTransport(handle))
+    )
+    assert dumped(client.enums_flatten.adjacent().data) == wire
+    assert dumped(client.enums_optional.flatten_adjacent().data) == wire
+    client.close()
+
+
+def test_direct_flattened_declared_fallbacks_normalize_unknown_tags() -> None:
+    internal = output.FlattenFallbackEnvelope.model_validate(
+        {"id": 7, "kind": "Future", "new": True}
+    )
+    assert isinstance(internal.value.root, output.FallbackInternalOther)
+    assert dumped(internal) == {"id": 7, "kind": "other"}
+
+    adjacent = output.FlattenAdjacentFallbackEnvelope.model_validate(
+        {"id": 7, "kind": "Future", "data": None}
+    )
+    assert isinstance(adjacent.value.root, output.FallbackAdjacentOther)
+    assert dumped(adjacent) == {"id": 7, "kind": "Other"}
 
 
 @pytest.mark.parametrize(
@@ -240,6 +388,8 @@ def test_optional_direct_flattened_enum_response_path() -> None:
         (output.OpenAdjacent, {"kind": "Value", "data": {}}),
         (output.OpenExternal, {"Unit": {"bad": True}}),
         (output.OpenExternal, {"Unit": 1}),
+        (output.OpenExternal, {"Value": [1]}),
+        (output.OpenExternal, {"Value": None}),
         (output.OpenUnit, {"Ready": {"bad": True}}),
         (output.OpenUnit, {"Ready": 1}),
         (output.OpenExternal, {"Tuple": [1]}),
@@ -252,8 +402,23 @@ def test_malformed_known_cases_do_not_use_unknown(model, wire) -> None:
 
 
 def test_external_unit_object_with_null_payload_is_valid() -> None:
-    assert output.OpenUnit.model_validate({"Ready": None}).root == output.OpenUnitKnown.READY
+    assert (
+        output.OpenUnit.model_validate({"Ready": None}).root
+        == output.OpenUnitKnown.READY
+    )
     assert output.OpenExternal.model_validate({"Unit": None}).root == "Unit"
+
+
+def test_malformed_known_external_response_raises_sdk_validation_error() -> None:
+    def handle(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"Value": [1]})
+
+    client = Client(
+        "http://test", client=httpx.Client(transport=httpx.MockTransport(handle))
+    )
+    with pytest.raises(ResponseValidationError):
+        client.enums.external()
+    client.close()
 
 
 def test_request_enums_stay_closed() -> None:
@@ -269,14 +434,17 @@ def test_sync_and_async_response_paths() -> None:
     def handle(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=wire)
 
-    sync = Client("http://test", client=httpx.Client(transport=httpx.MockTransport(handle)))
+    sync = Client(
+        "http://test", client=httpx.Client(transport=httpx.MockTransport(handle))
+    )
     assert isinstance(sync.enums.internal().data.root, output.OpenInternalUnknown)
     assert dumped(sync.enums.internal().data) == wire
     sync.close()
 
     async def check_async() -> None:
         client = AsyncClient(
-            "http://test", client=httpx.AsyncClient(transport=httpx.MockTransport(handle))
+            "http://test",
+            client=httpx.AsyncClient(transport=httpx.MockTransport(handle)),
         )
         response = await client.enums.internal()
         assert isinstance(response.data.root, output.OpenInternalUnknown)
@@ -292,7 +460,9 @@ def test_declared_response_header_uses_open_unit_enum(header: str | None) -> Non
         headers = {"x-kind": header} if header is not None else {}
         return httpx.Response(200, json={"kind": "Bird"}, headers=headers)
 
-    client = Client("http://test", client=httpx.Client(transport=httpx.MockTransport(handle)))
+    client = Client(
+        "http://test", client=httpx.Client(transport=httpx.MockTransport(handle))
+    )
     parsed = client.enums.internal().headers.x_kind
     if header is None:
         assert parsed is None
@@ -314,7 +484,9 @@ def test_typed_error_and_sse_items_use_open_model() -> None:
         body = f"data: {json.dumps(wire)}\n\n".encode()
         return httpx.Response(200, content=body)
 
-    client = Client("http://test", client=httpx.Client(transport=httpx.MockTransport(handle)))
+    client = Client(
+        "http://test", client=httpx.Client(transport=httpx.MockTransport(handle))
+    )
     with pytest.raises(ApplicationError) as error:
         client.enums.error()
     assert isinstance(error.value.typed_error.root, output.OpenInternalUnknown)

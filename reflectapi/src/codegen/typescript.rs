@@ -1501,12 +1501,26 @@ fn render_type(
                         .map(|field| {
                             let type_ref =
                                 type_ref_to_ts_ref(&field.type_ref, schema, implemented_types);
+                            let external = flattened_external_enum_ref(
+                                &field.type_ref,
+                                schema,
+                                &mut BTreeSet::new(),
+                            );
                             if field.required {
                                 // Rust `()` maps to `null` in typescript. This has bad interactions when used with `&`.
                                 // Avoid this by turning `null -> {}`.
-                                format!("NullToEmptyObject<{type_ref}>")
+                                if external {
+                                    format!("NullToEmptyObject<__FlattenExternalEnum<{type_ref}>>")
+                                } else {
+                                    format!("NullToEmptyObject<{type_ref}>")
+                                }
                             } else {
-                                format!("Partial<{}>", type_ref.replace(" | null", ""))
+                                let nonnullable = type_ref.replace(" | null", "");
+                                if external {
+                                    format!("Partial<__FlattenExternalEnum<{nonnullable}>>")
+                                } else {
+                                    format!("Partial<{nonnullable}>")
+                                }
                             }
                         })
                         .collect::<Vec<_>>(),
@@ -1563,6 +1577,46 @@ fn render_type(
             alias_template.render()
         }
     })
+}
+
+fn flattened_external_enum_ref(
+    reference: &crate::TypeReference,
+    schema: &crate::Schema,
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    if matches!(
+        reference.name.as_str(),
+        "std::option::Option" | "reflectapi::Option" | "std::boxed::Box"
+    ) {
+        return reference
+            .arguments
+            .first()
+            .is_some_and(|inner| flattened_external_enum_ref(inner, schema, visiting));
+    }
+    if !visiting.insert(reference.name.clone()) {
+        return false;
+    }
+    let result = match output_type(schema, &reference.name) {
+        Some(crate::Type::Enum(enm)) => {
+            matches!(enm.representation, crate::Representation::External)
+                && enm
+                    .variants
+                    .iter()
+                    .any(|variant| matches!(&variant.fields, crate::Fields::None))
+        }
+        Some(ty @ crate::Type::Struct(strukt)) if strukt.is_alias() => strukt
+            .fields
+            .iter()
+            .next()
+            .map(|field| super::bind_type_parameters(&field.type_ref, ty, reference))
+            .is_some_and(|inner| flattened_external_enum_ref(&inner, schema, visiting)),
+        Some(crate::Type::Primitive(_)) => reference
+            .fallback_once(schema.output_types())
+            .is_some_and(|inner| flattened_external_enum_ref(&inner, schema, visiting)),
+        _ => false,
+    };
+    visiting.remove(&reference.name);
+    result
 }
 
 fn fields_to_ts_fields(

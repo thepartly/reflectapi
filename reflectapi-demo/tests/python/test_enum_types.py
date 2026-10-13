@@ -9,7 +9,12 @@ from __future__ import annotations
 from typing import Any, assert_type
 
 from enum_client import AsyncClient, Client
-from enum_client.enum_compatibility.fixtures import ResponseHeaders, input, output
+from enum_client.enum_compatibility.fixtures import (
+    ClosedExternal,
+    ResponseHeaders,
+    input,
+    output,
+)
 from reflectapi_runtime import ApiResponse
 
 
@@ -44,6 +49,29 @@ def check_optional_flatten(value: output.OptionalFlattenEnumEnvelope) -> None:
         assert_type(value.value, None)
     else:
         assert_type(value.value, output.OpenInternal)
+
+
+def check_optional_adjacent_flatten(
+    value: output.OptionalFlattenAdjacentEnvelope,
+) -> None:
+    assert_type(value.value, output.OpenAdjacent | None)
+    if value.value is not None:
+        assert_type(
+            value.value.root,
+            output.OpenAdjacentValue
+            | output.OpenAdjacentUnit
+            | output.OpenAdjacentUnknown,
+        )
+
+
+def check_nested_flatten(value: output.NestedFlattenEnvelope) -> None:
+    assert_type(value.value, output.OpenInternal)
+
+
+def check_closed_external_flatten(
+    value: output.OptionalFlattenClosedExternalEnvelope,
+) -> None:
+    assert_type(value.value, ClosedExternal | None)
 
 
 def check_sync_responses(client: Client) -> None:

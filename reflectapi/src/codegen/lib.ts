@@ -20,6 +20,9 @@ export type NullToEmptyObject<T> = IsAny<T> extends true
     ? {}
     : T;
 
+// A flattened external unit variant occupies a parent object key on the wire.
+type __FlattenExternalEnum<T> = T extends string ? { [K in T]: null } : T;
+
 export type AsyncResult<T, E, H = {}> = Promise<CallResult<T, E, H>>;
 
 export type FixedSizeArray<T, N extends number> = Array<T> & { length: N };
@@ -266,19 +269,34 @@ export class Err<E, H = {}> {
 
 // A decoded future enum variant is separate from every possible wire tag.
 const __unknownEnumBrand: unique symbol = Symbol("reflectapi.unknownEnumBrand");
-/** Use this symbol as the `match` case for an unknown enum variant. */
+/** Read unknown value metadata with `value[unknownEnum]`, or use this symbol as a `match` case. */
 export const unknownEnum: unique symbol = Symbol("reflectapi.unknownEnumCase");
+export type UnknownEnumValue = { readonly tag: string; readonly raw: unknown };
 export type UnknownEnum = {
   readonly [__unknownEnumBrand]: true;
-  readonly tag: string;
-  readonly raw: unknown;
+  readonly [unknownEnum]: UnknownEnumValue;
 };
 export function isUnknownEnum<T>(value: T): value is T & UnknownEnum {
   return typeof value === "object" && value !== null &&
     (value as any)[__unknownEnumBrand] === true;
 }
-function __make_unknown_enum(tag: string, raw: unknown): UnknownEnum {
-  return { [__unknownEnumBrand]: true, tag, raw };
+function __copy_unknown_enum(target: object, source: unknown): void {
+  if (!isUnknownEnum(source)) return;
+  Object.defineProperty(target, __unknownEnumBrand, { value: true });
+  Object.defineProperty(target, unknownEnum, { value: source[unknownEnum] });
+}
+function __make_unknown_enum(tag: string, raw: unknown, fields?: Record<string, unknown>): UnknownEnum {
+  // Keep every wire field under its original name. The symbols carry client
+  // metadata without occupying business fields such as `tag` or `raw`.
+  const value: Record<string, unknown> = fields ? { ...fields } :
+    typeof raw === "object" && raw !== null && !Array.isArray(raw) ? { ...raw } : {};
+  if (typeof raw === "string") {
+    // An unknown external unit variant has no object fields to copy.
+    Object.defineProperty(value, "toJSON", { value: () => raw });
+  }
+  Object.defineProperty(value, __unknownEnumBrand, { value: true });
+  Object.defineProperty(value, unknownEnum, { value: { tag, raw } });
+  return value as UnknownEnum;
 }
 
 type __Decoder<T> = (value: unknown) => T;
@@ -490,7 +508,7 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => unknown : never) extend
 // 	| { b: number }
 // 	| { c: {} }
 
-type Step1<T> = T extends UnknownEnum ? { [unknownEnum]: UnknownEnum } : T extends object ? T : T extends string ? { [K in T]: unknown } : never;
+type Step1<T> = T extends UnknownEnum ? { [unknownEnum]: UnknownEnumValue } : T extends object ? T : T extends string ? { [K in T]: unknown } : never;
 
 // Second transformation:
 // We want to merge the unions into a single object type.
@@ -556,8 +574,8 @@ export function match<T extends object | string, R>(
 ): R {
   const branches = cases as Record<string, (arg: any) => R>;
   if (isUnknownEnum(value)) {
-    const handler = (cases as any)[unknownEnum] as ((arg: UnknownEnum) => R) | undefined;
-    if (handler) return handler(value);
+    const handler = (cases as any)[unknownEnum] as ((arg: UnknownEnumValue) => R) | undefined;
+    if (handler) return handler(value[unknownEnum]);
     if (otherwise) return otherwise(value);
     throw new Error('unknown enum variant requires a handler');
   }

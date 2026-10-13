@@ -1,9 +1,13 @@
 use reflectapi_enum_compatibility_rust::types::enum_compatibility::fixtures::output::{
-    FallbackAdjacent, FallbackInternal, FlattenEnumEnvelope, FlattenEnvelope, OpenAdjacent,
-    OpenExternal, OpenGeneric, OpenGenericDS, OpenInternal, OpenNested, OpenUnit,
-    OptionalFlattenEnumEnvelope, UntaggedWrapper,
+    FallbackAdjacent, FallbackInternal, FlattenAdjacentEnvelope, FlattenAdjacentFallbackEnvelope,
+    FlattenClosedExternalEnvelope, FlattenEnumEnvelope, FlattenEnvelope, FlattenFallbackEnvelope,
+    FlattenNamedEnvelope, NestedFlattenEnvelope, OpenAdjacent, OpenExternal, OpenGeneric,
+    OpenGenericDS, OpenInternal, OpenNested, OpenUnit, OptionalFlattenAdjacentEnvelope,
+    OptionalFlattenClosedExternalEnvelope, OptionalFlattenEnumEnvelope, UntaggedWrapper,
 };
-use reflectapi_enum_compatibility_rust::types::enum_compatibility::fixtures::OpenAlternateDerives;
+use reflectapi_enum_compatibility_rust::types::enum_compatibility::fixtures::{
+    ClosedExternal, OpenAlternateDerives,
+};
 use serde_json::{json, Value};
 
 fn decode<T: serde::de::DeserializeOwned>(raw: Value) -> T {
@@ -205,6 +209,102 @@ fn optional_flattened_open_enum_preserves_absence_and_unknown() {
     let malformed: OptionalFlattenEnumEnvelope =
         decode(json!({"id": 10, "kind": "Dog", "breed": 3}));
     assert!(malformed.value.is_none());
+}
+
+#[test]
+fn flattened_unknown_metadata_keeps_business_fields() {
+    let value: FlattenNamedEnvelope = decode(json!({
+        "id": 7, "tag": "business-tag", "raw": "business-raw",
+        "kind": "Future", "extra": true,
+    }));
+    assert_eq!(value.id, 7);
+    assert_eq!(value.tag, "business-tag");
+    assert_eq!(value.raw, "business-raw");
+    assert!(matches!(value.value, OpenInternal::Unknown { tag, raw }
+        if tag == "Future" && raw == json!({"kind": "Future", "extra": true})));
+}
+
+#[test]
+fn flattened_adjacent_enum_keeps_parent_and_unknown_payload() {
+    let value: FlattenAdjacentEnvelope = decode(json!({
+        "id": 7, "kind": "Future", "data": {"new": true},
+    }));
+    assert_eq!(value.id, 7);
+    assert!(matches!(value.value, OpenAdjacent::Unknown { tag, raw }
+        if tag == "Future" && raw == json!({"kind": "Future", "data": {"new": true}})));
+
+    let value: FlattenAdjacentEnvelope = decode(json!({
+        "id": 8, "kind": "Value", "data": {"message": "known"},
+    }));
+    assert_eq!(value.id, 8);
+    assert!(matches!(value.value, OpenAdjacent::Value { message } if message == "known"));
+    assert!(serde_json::from_value::<FlattenAdjacentEnvelope>(
+        json!({"id": 9, "kind": "Value", "data": {}})
+    )
+    .is_err());
+
+    let absent: OptionalFlattenAdjacentEnvelope = decode(json!({"id": 10}));
+    assert!(absent.value.is_none());
+    let future: OptionalFlattenAdjacentEnvelope = decode(json!({
+        "id": 11, "kind": "Future", "data": [1, 2],
+    }));
+    assert!(matches!(future.value, Some(OpenAdjacent::Unknown { tag, .. }) if tag == "Future"));
+}
+
+#[test]
+fn flattened_declared_fallbacks_match_source_serde() {
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../target/enum-compatibility/fallback_samples.json"
+    );
+    let oracle: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    for sample in oracle["flatten_internal"].as_array().unwrap() {
+        let decoded = serde_json::from_value::<FlattenFallbackEnvelope>(sample["wire"].clone());
+        assert_eq!(decoded.is_ok(), sample["ok"].as_bool().unwrap(), "{sample}");
+        if let Ok(value) = decoded {
+            assert_eq!(value.id, 7);
+        }
+    }
+    for sample in oracle["flatten_adjacent"].as_array().unwrap() {
+        let decoded =
+            serde_json::from_value::<FlattenAdjacentFallbackEnvelope>(sample["wire"].clone());
+        assert_eq!(decoded.is_ok(), sample["ok"].as_bool().unwrap(), "{sample}");
+        if let Ok(value) = decoded {
+            assert_eq!(value.id, 7);
+        }
+    }
+}
+
+#[test]
+fn nested_flattened_struct_keeps_its_open_enum() {
+    let value: NestedFlattenEnvelope = decode(json!({
+        "ordinary": "parent", "id": 7, "kind": "Future", "extra": true,
+    }));
+    assert_eq!(value.ordinary, "parent");
+    assert_eq!(value.inner.id, 7);
+    assert!(
+        matches!(value.inner.value, OpenInternal::Unknown { tag, raw }
+        if tag == "Future" && raw == json!({"kind": "Future", "extra": true}))
+    );
+}
+
+#[test]
+fn flattened_closed_enum_keeps_an_ordinary_open_field() {
+    let value: FlattenClosedExternalEnvelope = decode(json!({
+        "id": 7, "ordinary": {"kind": "Future"},
+        "Value": {"message": "known"},
+    }));
+    assert_eq!(value.id, 7);
+    assert!(matches!(value.ordinary, OpenInternal::Unknown { tag, .. } if tag == "Future"));
+    assert!(matches!(value.value, ClosedExternal::Value { message } if message == "known"));
+    let unit: FlattenClosedExternalEnvelope = decode(json!({
+        "id": 8, "ordinary": {"kind": "Bird"}, "Unit": null,
+    }));
+    assert!(matches!(unit.value, ClosedExternal::Unit));
+    let absent: OptionalFlattenClosedExternalEnvelope = decode(json!({
+        "id": 9, "ordinary": {"kind": "Bird"},
+    }));
+    assert!(absent.value.is_none());
 }
 
 #[test]

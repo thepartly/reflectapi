@@ -677,7 +677,7 @@ mod templates {
                 format!("<{params}>")
             };
             let mut out = format!(
-                "\nimpl<{impl_params}> serde::Deserialize<'__reflectapi_de> for {}{type_params}{where_clause} {{\n\
+                "\n#[allow(deprecated)]\nimpl<{impl_params}> serde::Deserialize<'__reflectapi_de> for {}{type_params}{where_clause} {{\n\
                      fn deserialize<{deserializer_type}>(deserializer: {deserializer_type}) -> std::result::Result<Self, {deserializer_type}::Error>\n\
                      where {deserializer_type}: serde::Deserializer<'__reflectapi_de> {{\n\
                          let raw = <reflectapi::rt::serde_json::Value as serde::Deserialize>::deserialize(deserializer)?;\n",
@@ -773,7 +773,7 @@ mod templates {
                 format!(" where {}", bounds.join(", "))
             };
             let mut out = format!(
-                "\nimpl{type_params} serde::Serialize for {}{type_params}{where_clause} {{\n\
+                "\n#[allow(deprecated)]\nimpl{type_params} serde::Serialize for {}{type_params}{where_clause} {{\n\
                  fn serialize<{serializer_type}>(&self, serializer: {serializer_type}) -> std::result::Result<{serializer_type}::Ok, {serializer_type}::Error>\n\
                  where {serializer_type}: serde::Serializer {{\n",
                 self.base_name,
@@ -1016,11 +1016,17 @@ mod templates {
     impl __Field {
         fn render_plain(&self) -> String {
             if self.is_unnamed() {
-                format!("{}{}", self.description, self.type_)
+                format!(
+                    "{}{}{}",
+                    self.description,
+                    self.render_deprecation(),
+                    self.type_
+                )
             } else {
                 format!(
-                    "{}{}{}: {}",
+                    "{}{}{}{}: {}",
                     self.description,
+                    self.render_deprecation(),
                     self.render_visibility_modifier(),
                     self.name,
                     self.type_,
@@ -1085,12 +1091,15 @@ mod templates {
                 out.push_str(")]\n    ");
             }
 
-            if let Some(deprecated) = &self.deprecated {
-                out.push_str(deprecated);
-                out.push_str("\n    ");
-            }
+            out.push_str(&self.render_deprecation());
 
             out
+        }
+
+        fn render_deprecation(&self) -> String {
+            self.deprecated.as_ref().map_or_else(String::new, |attribute| {
+                format!("{attribute}\n    ")
+            })
         }
 
         pub fn render(&self) -> String {

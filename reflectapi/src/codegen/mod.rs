@@ -10,6 +10,7 @@ pub(crate) mod schema;
 pub mod typescript;
 
 use std::{
+    collections::HashSet,
     hash::{DefaultHasher, Hasher},
     path::PathBuf,
 };
@@ -71,7 +72,235 @@ pub(super) fn validate_response_enums(schema: &crate::Schema) -> anyhow::Result<
             enm.name
         );
     }
+    for ty in schema.output_types.types() {
+        let fields: Box<dyn Iterator<Item = &crate::Field> + '_> = match ty {
+            crate::Type::Struct(strukt) => Box::new(strukt.fields.iter()),
+            crate::Type::Enum(enm) => Box::new(
+                enm.variants
+                    .iter()
+                    .flat_map(|variant| variant.fields.iter()),
+            ),
+            crate::Type::Primitive(_) => continue,
+        };
+        for field in fields.filter(|field| field.flattened && !field.hidden) {
+            if let Some(name) =
+                flattened_external_open_enum(schema, &field.type_ref, &mut HashSet::new())
+            {
+                anyhow::bail!(
+                    "{}::{}: flattening open externally tagged response enum {name} is unsupported; use an internally or adjacently tagged enum",
+                    ty.name(), field.name
+                );
+            }
+        }
+    }
+    for ty in schema.output_types.types() {
+        match ty {
+            crate::Type::Struct(strukt) => {
+                let fragments = flattened_enum_fragments_for_fields(
+                    schema,
+                    strukt.fields.iter(),
+                    &mut HashSet::new(),
+                );
+                anyhow::ensure!(
+                    !fragments.has_policy || fragments.count < 2,
+                    "{}: a flattened response-policy enum cannot share an object with another flattened enum; use named fields instead of flattening them",
+                    strukt.name
+                );
+            }
+            crate::Type::Enum(enm) => {
+                for variant in &enm.variants {
+                    let fragments = flattened_enum_fragments_for_fields(
+                        schema,
+                        variant.fields.iter(),
+                        &mut HashSet::new(),
+                    );
+                    anyhow::ensure!(
+                        !fragments.has_policy || fragments.count < 2,
+                        "{}::{}: a flattened response-policy enum cannot share an object with another flattened enum; use named fields instead of flattening them",
+                        enm.name,
+                        variant.name
+                    );
+                }
+            }
+            crate::Type::Primitive(_) => {}
+        }
+    }
     Ok(())
+}
+
+fn bind_type_parameters(
+    child: &crate::TypeReference,
+    parent: &crate::Type,
+    parent_reference: &crate::TypeReference,
+) -> crate::TypeReference {
+    if let Some(index) = parent
+        .parameters()
+        .position(|parameter| parameter.name == child.name)
+    {
+        if let Some(argument) = parent_reference.arguments.get(index) {
+            return argument.clone();
+        }
+    }
+    crate::TypeReference::new(
+        child.name.clone(),
+        child
+            .arguments
+            .iter()
+            .map(|argument| bind_type_parameters(argument, parent, parent_reference))
+            .collect(),
+    )
+}
+
+/// Follow only fields whose wire value is flattened into the containing map.
+fn flattened_external_open_enum(
+    schema: &crate::Schema,
+    reference: &crate::TypeReference,
+    seen: &mut HashSet<String>,
+) -> Option<String> {
+    if matches!(
+        reference.name.as_str(),
+        "std::option::Option" | "reflectapi::Option" | "std::boxed::Box"
+    ) {
+        return reference
+            .arguments
+            .first()
+            .and_then(|argument| flattened_external_open_enum(schema, argument, seen));
+    }
+    let ty = schema.output_types.get_type(&reference.name)?;
+    if let crate::Type::Enum(enm) = ty {
+        if enm.open && matches!(enm.representation, crate::Representation::External) {
+            return Some(enm.name.clone());
+        }
+    }
+    if !seen.insert(reference.name.clone()) {
+        return None;
+    }
+    let fields: Box<dyn Iterator<Item = &crate::Field> + '_> = match ty {
+        crate::Type::Struct(strukt) if strukt.is_alias() => Box::new(strukt.fields.iter()),
+        crate::Type::Struct(strukt) => {
+            Box::new(strukt.fields.iter().filter(|field| field.flattened))
+        }
+        crate::Type::Enum(enm) => Box::new(
+            enm.variants
+                .iter()
+                .flat_map(|variant| variant.fields.iter().filter(|field| field.flattened)),
+        ),
+        crate::Type::Primitive(_) => Box::new(std::iter::empty()),
+    };
+    let found = fields.filter(|field| !field.hidden).find_map(|field| {
+        let child = bind_type_parameters(&field.type_ref, ty, reference);
+        flattened_external_open_enum(schema, &child, seen)
+    });
+    seen.remove(&reference.name);
+    found
+}
+
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+struct FlattenedEnumFragments {
+    count: usize,
+    has_policy: bool,
+}
+
+impl FlattenedEnumFragments {
+    fn merge(self, other: Self) -> Self {
+        Self {
+            count: self.count + other.count,
+            has_policy: self.has_policy || other.has_policy,
+        }
+    }
+}
+
+fn flattened_enum_fragments_for_fields<'a>(
+    schema: &crate::Schema,
+    fields: impl Iterator<Item = &'a crate::Field>,
+    seen: &mut HashSet<String>,
+) -> FlattenedEnumFragments {
+    fields
+        .filter(|field| field.flattened && !field.hidden)
+        .map(|field| flattened_enum_fragments(schema, &field.type_ref, seen))
+        .fold(
+            FlattenedEnumFragments::default(),
+            FlattenedEnumFragments::merge,
+        )
+}
+
+fn flattened_enum_fragments(
+    schema: &crate::Schema,
+    reference: &crate::TypeReference,
+    seen: &mut HashSet<String>,
+) -> FlattenedEnumFragments {
+    if matches!(
+        reference.name.as_str(),
+        "std::option::Option" | "reflectapi::Option" | "std::boxed::Box"
+    ) {
+        return reference
+            .arguments
+            .first()
+            .map_or(FlattenedEnumFragments::default(), |argument| {
+                flattened_enum_fragments(schema, argument, seen)
+            });
+    }
+    let Some(ty) = schema.output_types.get_type(&reference.name) else {
+        return FlattenedEnumFragments::default();
+    };
+    if !seen.insert(reference.name.clone()) {
+        return FlattenedEnumFragments::default();
+    }
+    let fragments = match ty {
+        crate::Type::Struct(strukt) if strukt.is_alias() => strukt
+            .fields
+            .iter()
+            .filter(|field| !field.hidden)
+            .map(|field| {
+                let child = bind_type_parameters(&field.type_ref, ty, reference);
+                flattened_enum_fragments(schema, &child, seen)
+            })
+            .fold(
+                FlattenedEnumFragments::default(),
+                FlattenedEnumFragments::merge,
+            ),
+        crate::Type::Struct(strukt) => strukt
+            .fields
+            .iter()
+            .filter(|field| field.flattened && !field.hidden)
+            .map(|field| {
+                let child = bind_type_parameters(&field.type_ref, ty, reference);
+                flattened_enum_fragments(schema, &child, seen)
+            })
+            .fold(
+                FlattenedEnumFragments::default(),
+                FlattenedEnumFragments::merge,
+            ),
+        crate::Type::Enum(enm) => {
+            let own = FlattenedEnumFragments {
+                count: 1,
+                has_policy: enm.open || enm.variants.iter().any(|variant| variant.other),
+            };
+            let nested = enm
+                .variants
+                .iter()
+                .map(|variant| {
+                    variant
+                        .fields
+                        .iter()
+                        .filter(|field| field.flattened && !field.hidden)
+                        .map(|field| {
+                            let child = bind_type_parameters(&field.type_ref, ty, reference);
+                            flattened_enum_fragments(schema, &child, seen)
+                        })
+                        .fold(
+                            FlattenedEnumFragments::default(),
+                            FlattenedEnumFragments::merge,
+                        )
+                })
+                .max_by_key(|fragment| (fragment.count, fragment.has_policy))
+                .unwrap_or_default();
+            own.merge(nested)
+        }
+        crate::Type::Primitive(_) => FlattenedEnumFragments::default(),
+    };
+    seen.remove(&reference.name);
+    fragments
 }
 
 #[derive(Debug, Default)]
@@ -129,6 +358,266 @@ pub fn strip_boilerplate(src: &str) -> String {
 
 #[cfg(test)]
 mod enum_policy_tests {
+    fn two_policy_enums_schema() -> crate::Schema {
+        let mut schema = crate::Schema::default();
+        for (name, tag) in [("OpenA", "kind_a"), ("OpenB", "kind_b")] {
+            let mut enm = crate::Enum::new(name.into());
+            enm.open = true;
+            enm.representation = crate::Representation::Internal { tag: tag.into() };
+            enm.variants.push(crate::Variant::new("Ready".into()));
+            schema.output_types.insert_type(enm.into());
+        }
+        schema
+    }
+
+    fn external_open_schema() -> crate::Schema {
+        let mut enm = crate::Enum::new("OpenExternal".into());
+        enm.open = true;
+        enm.variants.push(crate::Variant::new("Ready".into()));
+        let mut schema = crate::Schema::default();
+        schema.output_types.insert_type(enm.into());
+        schema
+    }
+
+    fn flattened_field(name: &str, type_ref: crate::TypeReference) -> crate::Field {
+        let mut field = crate::Field::new(name.into(), type_ref);
+        field.flattened = true;
+        field
+    }
+
+    fn assert_all_sdk_reject_flattened_external(schema: crate::Schema) {
+        let schema: crate::Schema =
+            serde_json::from_value(serde_json::to_value(schema).unwrap()).unwrap();
+        for error in [
+            super::rust::generate(schema.clone(), &Default::default()).unwrap_err(),
+            super::typescript::generate(schema.clone(), &Default::default()).unwrap_err(),
+            super::python::generate(schema, &Default::default()).unwrap_err(),
+        ] {
+            let message = error.to_string();
+            assert!(
+                message.contains("flattening open externally tagged response enum OpenExternal"),
+                "{message}"
+            );
+            assert!(
+                message.contains("internally or adjacently tagged"),
+                "{message}"
+            );
+        }
+    }
+
+    #[test]
+    fn all_sdk_generators_reject_flattened_external_open_from_json() {
+        for optional in [false, true] {
+            let mut schema = external_open_schema();
+            let type_ref = crate::TypeReference::new("OpenExternal", vec![]);
+            let type_ref = if optional {
+                crate::TypeReference::new("std::option::Option", vec![type_ref])
+            } else {
+                type_ref
+            };
+            let mut envelope = crate::Struct::new("Envelope");
+            envelope.fields = crate::Fields::Named(vec![flattened_field("value", type_ref)]);
+            schema.output_types.insert_type(envelope.into());
+            assert_all_sdk_reject_flattened_external(schema);
+        }
+
+        let mut schema = external_open_schema();
+        let mut wrapper = crate::Struct::new("ExternalAlias");
+        wrapper.transparent = true;
+        wrapper.fields = crate::Fields::Named(vec![crate::Field::new(
+            "inner".into(),
+            crate::TypeReference::new("OpenExternal", vec![]),
+        )]);
+        schema.output_types.insert_type(wrapper.into());
+        let mut envelope = crate::Struct::new("Envelope");
+        envelope.fields = crate::Fields::Named(vec![flattened_field(
+            "value",
+            crate::TypeReference::new("ExternalAlias", vec![]),
+        )]);
+        schema.output_types.insert_type(envelope.into());
+        assert_all_sdk_reject_flattened_external(schema);
+
+        let mut schema = external_open_schema();
+        let mut wrapper = crate::Struct::new("GenericAlias");
+        wrapper.transparent = true;
+        wrapper.parameters.push(crate::TypeParameter {
+            name: "T".into(),
+            description: String::new(),
+        });
+        wrapper.fields = crate::Fields::Named(vec![crate::Field::new(
+            "inner".into(),
+            crate::TypeReference::new("T", vec![]),
+        )]);
+        schema.output_types.insert_type(wrapper.into());
+        let mut envelope = crate::Struct::new("Envelope");
+        envelope.fields = crate::Fields::Named(vec![flattened_field(
+            "value",
+            crate::TypeReference::new(
+                "GenericAlias",
+                vec![crate::TypeReference::new("OpenExternal", vec![])],
+            ),
+        )]);
+        schema.output_types.insert_type(envelope.into());
+        assert_all_sdk_reject_flattened_external(schema);
+
+        let mut schema = external_open_schema();
+        let mut variant = crate::Variant::new("Wrapped".into());
+        variant.fields = crate::Fields::Named(vec![flattened_field(
+            "value",
+            crate::TypeReference::new("OpenExternal", vec![]),
+        )]);
+        let mut outer = crate::Enum::new("Outer".into());
+        outer.variants.push(variant);
+        schema.output_types.insert_type(outer.into());
+        assert_all_sdk_reject_flattened_external(schema);
+    }
+
+    #[test]
+    fn flattened_struct_with_ordinary_open_external_child_is_allowed() {
+        let mut schema = external_open_schema();
+        let mut nested = crate::Struct::new("Nested");
+        nested.fields = crate::Fields::Named(vec![crate::Field::new(
+            "value".into(),
+            crate::TypeReference::new("OpenExternal", vec![]),
+        )]);
+        schema.output_types.insert_type(nested.into());
+        let mut envelope = crate::Struct::new("Envelope");
+        envelope.fields = crate::Fields::Named(vec![flattened_field(
+            "nested",
+            crate::TypeReference::new("Nested", vec![]),
+        )]);
+        schema.output_types.insert_type(envelope.into());
+        let schema: crate::Schema =
+            serde_json::from_value(serde_json::to_value(schema).unwrap()).unwrap();
+        super::validate_response_enums(&schema).unwrap();
+    }
+
+    #[test]
+    fn all_sdk_generators_reject_two_flattened_response_policies_from_json() {
+        let mut schema = two_policy_enums_schema();
+        let mut parent = crate::Struct::new("Parent");
+        parent.fields = crate::Fields::Named(vec![
+            flattened_field("first", crate::TypeReference::new("OpenA", vec![])),
+            flattened_field("second", crate::TypeReference::new("OpenB", vec![])),
+        ]);
+        schema.output_types.insert_type(parent.into());
+        let schema: crate::Schema =
+            serde_json::from_value(serde_json::to_value(schema).unwrap()).unwrap();
+        for error in [
+            super::rust::generate(schema.clone(), &Default::default()).unwrap_err(),
+            super::typescript::generate(schema.clone(), &Default::default()).unwrap_err(),
+            super::python::generate(schema, &Default::default()).unwrap_err(),
+        ] {
+            let message = error.to_string();
+            assert!(
+                message.contains("a flattened response-policy enum cannot share an object"),
+                "{message}"
+            );
+            assert!(message.contains("use named fields"), "{message}");
+        }
+    }
+
+    #[test]
+    fn multiple_flattened_policies_are_counted_through_structs_and_per_variant() {
+        let mut schema = two_policy_enums_schema();
+        for (name, enum_name) in [("PartA", "OpenA"), ("PartB", "OpenB")] {
+            let mut part = crate::Struct::new(name);
+            part.fields = crate::Fields::Named(vec![flattened_field(
+                "value",
+                crate::TypeReference::new(enum_name, vec![]),
+            )]);
+            schema.output_types.insert_type(part.into());
+        }
+        let mut parent = crate::Struct::new("Parent");
+        parent.fields = crate::Fields::Named(vec![
+            flattened_field("first", crate::TypeReference::new("PartA", vec![])),
+            flattened_field("second", crate::TypeReference::new("PartB", vec![])),
+        ]);
+        schema.output_types.insert_type(parent.into());
+        assert!(super::validate_response_enums(&schema)
+            .unwrap_err()
+            .to_string()
+            .contains("Parent: a flattened response-policy enum cannot share an object"));
+
+        let mut schema = two_policy_enums_schema();
+        let mut outer = crate::Enum::new("Outer".into());
+        for (name, enum_name) in [("First", "OpenA"), ("Second", "OpenB")] {
+            let mut variant = crate::Variant::new(name.into());
+            variant.fields = crate::Fields::Named(vec![flattened_field(
+                "value",
+                crate::TypeReference::new(enum_name, vec![]),
+            )]);
+            outer.variants.push(variant);
+        }
+        schema.output_types.insert_type(outer.into());
+        super::validate_response_enums(&schema).unwrap();
+
+        let mut schema = two_policy_enums_schema();
+        let crate::Type::Enum(second) = schema.output_types.get_type_mut("OpenB").unwrap() else {
+            panic!("expected OpenB enum");
+        };
+        second.open = false;
+        let mut other = crate::Variant::new("Other".into());
+        other.other = true;
+        second.variants.push(other);
+        let mut parent = crate::Struct::new("Parent");
+        parent.fields = crate::Fields::Named(vec![
+            flattened_field("first", crate::TypeReference::new("OpenA", vec![])),
+            flattened_field("second", crate::TypeReference::new("OpenB", vec![])),
+        ]);
+        schema.output_types.insert_type(parent.into());
+        assert!(super::validate_response_enums(&schema)
+            .unwrap_err()
+            .to_string()
+            .contains("a flattened response-policy enum cannot share an object"));
+    }
+
+    #[test]
+    fn all_sdk_generators_reject_closed_and_open_flattened_enums_in_either_order() {
+        for (first, second) in [("OpenA", "OpenB"), ("OpenB", "OpenA")] {
+            let mut schema = two_policy_enums_schema();
+            let crate::Type::Enum(closed) = schema.output_types.get_type_mut("OpenA").unwrap()
+            else {
+                panic!("expected OpenA enum");
+            };
+            closed.open = false;
+            let mut parent = crate::Struct::new("Parent");
+            parent.fields = crate::Fields::Named(vec![
+                flattened_field("first", crate::TypeReference::new(first, vec![])),
+                flattened_field("second", crate::TypeReference::new(second, vec![])),
+            ]);
+            schema.output_types.insert_type(parent.into());
+            let schema: crate::Schema =
+                serde_json::from_value(serde_json::to_value(schema).unwrap()).unwrap();
+            for error in [
+                super::rust::generate(schema.clone(), &Default::default()).unwrap_err(),
+                super::typescript::generate(schema.clone(), &Default::default()).unwrap_err(),
+                super::python::generate(schema, &Default::default()).unwrap_err(),
+            ] {
+                let message = error.to_string();
+                assert!(
+                    message.contains("a flattened response-policy enum cannot share an object"),
+                    "{message}"
+                );
+            }
+        }
+
+        let mut schema = two_policy_enums_schema();
+        for name in ["OpenA", "OpenB"] {
+            let crate::Type::Enum(closed) = schema.output_types.get_type_mut(name).unwrap() else {
+                panic!("expected enum");
+            };
+            closed.open = false;
+        }
+        let mut parent = crate::Struct::new("Parent");
+        parent.fields = crate::Fields::Named(vec![
+            flattened_field("first", crate::TypeReference::new("OpenA", vec![])),
+            flattened_field("second", crate::TypeReference::new("OpenB", vec![])),
+        ]);
+        schema.output_types.insert_type(parent.into());
+        super::validate_response_enums(&schema).unwrap();
+    }
+
     #[test]
     fn all_sdk_generators_reject_request_fallback_policies_from_json() {
         let mut enm = crate::Enum::new("RequestFallback".into());

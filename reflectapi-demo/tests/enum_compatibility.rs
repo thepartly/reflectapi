@@ -126,6 +126,72 @@ pub mod fixtures {
     }
 
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct FlattenNamedEnvelope {
+        pub id: u32,
+        pub tag: String,
+        pub raw: String,
+        #[serde(flatten)]
+        pub value: OpenInternal,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct NestedFlattenEnvelope {
+        pub ordinary: String,
+        #[serde(flatten)]
+        pub inner: FlattenEnumEnvelope,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub enum ClosedExternal {
+        Unit,
+        Value { message: String },
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct FlattenClosedExternalEnvelope {
+        pub id: u32,
+        pub ordinary: OpenInternal,
+        #[serde(flatten)]
+        pub value: ClosedExternal,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct OptionalFlattenClosedExternalEnvelope {
+        pub id: u32,
+        pub ordinary: OpenInternal,
+        #[serde(flatten, skip_serializing_if = "Option::is_none")]
+        pub value: Option<ClosedExternal>,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct FlattenAdjacentEnvelope {
+        pub id: u32,
+        #[serde(flatten)]
+        pub value: OpenAdjacent,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct OptionalFlattenAdjacentEnvelope {
+        pub id: u32,
+        #[serde(flatten, skip_serializing_if = "Option::is_none")]
+        pub value: Option<OpenAdjacent>,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct FlattenFallbackEnvelope {
+        pub id: u32,
+        #[serde(flatten)]
+        pub value: FallbackInternal,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct FlattenAdjacentFallbackEnvelope {
+        pub id: u32,
+        #[serde(flatten)]
+        pub value: FallbackAdjacent,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct OptionalFlattenEnumEnvelope {
         pub id: u32,
         #[serde(flatten, skip_serializing_if = "Option::is_none")]
@@ -205,6 +271,46 @@ fn schema() -> reflectapi::Schema {
         .route(
             |_: (), input: fixtures::FlattenEnumEnvelope, _: reflectapi::Empty| async { input },
             |b| b.name("enums.flatten_enum"),
+        )
+        .route(
+            |_: (), input: fixtures::FlattenNamedEnvelope, _: reflectapi::Empty| async { input },
+            |b| b.name("enums.flatten_named"),
+        )
+        .route(
+            |_: (), input: fixtures::NestedFlattenEnvelope, _: reflectapi::Empty| async { input },
+            |b| b.name("enums.nested_flatten"),
+        )
+        .route(
+            |_: (), input: fixtures::FlattenClosedExternalEnvelope, _: reflectapi::Empty| async {
+                input
+            },
+            |b| b.name("enums.flatten_closed_external"),
+        )
+        .route(
+            |_: (),
+             input: fixtures::OptionalFlattenClosedExternalEnvelope,
+             _: reflectapi::Empty| async { input },
+            |b| b.name("enums.optional_flatten_closed_external"),
+        )
+        .route(
+            |_: (), input: fixtures::FlattenAdjacentEnvelope, _: reflectapi::Empty| async { input },
+            |b| b.name("enums.flatten_adjacent"),
+        )
+        .route(
+            |_: (), input: fixtures::OptionalFlattenAdjacentEnvelope, _: reflectapi::Empty| async {
+                input
+            },
+            |b| b.name("enums.optional_flatten_adjacent"),
+        )
+        .route(
+            |_: (), input: fixtures::FlattenFallbackEnvelope, _: reflectapi::Empty| async { input },
+            |b| b.name("enums.flatten_fallback"),
+        )
+        .route(
+            |_: (), input: fixtures::FlattenAdjacentFallbackEnvelope, _: reflectapi::Empty| async {
+                input
+            },
+            |b| b.name("enums.flatten_adjacent_fallback"),
         )
         .route(
             |_: (), input: fixtures::OptionalFlattenEnumEnvelope, _: reflectapi::Empty| async {
@@ -291,6 +397,38 @@ fn old_enum_schemas_keep_closed_defaults() {
 }
 
 #[test]
+fn open_rust_enum_keeps_public_field_deprecation() {
+    let mut schema = schema();
+    let name = schema
+        .output_types
+        .types()
+        .find(|ty| ty.name().ends_with("OpenInternal"))
+        .unwrap()
+        .name()
+        .to_owned();
+    let reflectapi::Type::Enum(enm) = schema.output_types.get_type_mut(&name).unwrap() else {
+        panic!("expected OpenInternal enum");
+    };
+    enm.variants
+        .iter_mut()
+        .find(|variant| variant.name == "Dog")
+        .unwrap()
+        .fields
+        .iter_mut()
+        .find(|field| field.name == "breed")
+        .unwrap()
+        .deprecation_note = Some("Use breed_code".into());
+
+    let generated = reflectapi::codegen::rust::generate(schema, &Default::default()).unwrap();
+    let public_enum = &generated[generated.rfind("pub enum OpenInternal {").unwrap()..];
+    let public_enum = public_enum
+        .split("// reflectapi-open-impl-start")
+        .next()
+        .unwrap();
+    assert!(public_enum.contains("#[deprecated(note = \"Use breed_code\")]\n    breed:"));
+}
+
+#[test]
 fn write_generated_clients() {
     let schema = schema();
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("target/enum-compatibility");
@@ -326,13 +464,31 @@ fn write_generated_clients() {
         serde_json::json!({"kind": "Value", "data": {"message": "known"}, "message": "known"}),
         serde_json::json!({"kind": "Value", "data": {}}),
         serde_json::json!({"kind": 1}),
+        serde_json::json!({"kind": 0, "message": "indexed"}),
+        serde_json::json!({"kind": 2}),
+        serde_json::json!({"kind": true}),
+        serde_json::json!({"kind": null}),
+        serde_json::json!({"kind": -1}),
+        serde_json::json!({"kind": 1.5}),
         serde_json::json!({"data": {}}),
     ];
+    let flattened_samples = samples
+        .iter()
+        .map(|sample| {
+            let mut wire = sample.clone();
+            wire.as_object_mut()
+                .unwrap()
+                .insert("id".into(), serde_json::json!(7));
+            wire
+        })
+        .collect::<Vec<_>>();
     std::fs::write(
         root.join("fallback_samples.json"),
         serde_json::to_string_pretty(&serde_json::json!({
             "internal": fallback_samples::<fixtures::FallbackInternal>(&samples),
             "adjacent": fallback_samples::<fixtures::FallbackAdjacent>(&samples),
+            "flatten_internal": fallback_samples::<fixtures::FlattenFallbackEnvelope>(&flattened_samples),
+            "flatten_adjacent": fallback_samples::<fixtures::FlattenAdjacentFallbackEnvelope>(&flattened_samples),
         }))
         .unwrap(),
     )

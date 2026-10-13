@@ -75,8 +75,9 @@ The demo repository includes extra project scaffolding around some generated cli
   the same name when imported from `generated.ts`. Custom transports
   import from `./generated.transport`.
 - Uses generated TypeScript types and function wrappers.
-- Response enums with `#[reflectapi(open)]` include a branded `UnknownEnum`
-  holding `tag` and `raw`. `isUnknownEnum(value)` narrows it; generated `match`
+- Response enums with `#[reflectapi(open)]` include a branded `UnknownEnum`.
+  `isUnknownEnum(value)` narrows it; `value[unknownEnum]` holds `tag` and `raw`
+  without occupying any wire field names. Generated `match`
   calls handle it with the exported `[unknownEnum]` handler key or an `otherwise`
   fallback. Known values keep their wire shape. Runtime decoding is enabled
   for responses/errors that reach an open enum or `#[serde(other)]`, including
@@ -84,6 +85,10 @@ The demo repository includes extra project scaffolding around some generated cli
 - Uses a `fetch`-based default client implementation.
 - Ordinary response paths parse JSON without runtime schema validation. Paths
   that reach an open enum or declared fallback use generated decoders.
+  These check known payload shapes against the generated TypeScript types;
+  they do not validate every Rust-specific constraint, such as UUID syntax
+  for a field represented as a TypeScript string. A known tag is never
+  reclassified as an unknown case when its payload fails those checks.
 - Supports custom client implementations via the generated client interface.
   A custom transport's `Headers.get(name)` must match names case-insensitively,
   as `fetch`'s does: declared response headers are looked up by their
@@ -185,10 +190,10 @@ else:
 TypeScript narrows the union with the helper exported from `generated.ts`:
 
 ```typescript
-import { isUnknownEnum } from "./generated";
+import { isUnknownEnum, unknownEnum } from "./generated";
 
 if (isUnknownEnum(petKind)) {
-  console.log(petKind.tag, petKind.raw);
+  console.log(petKind[unknownEnum].tag, petKind[unknownEnum].raw);
 } else if (petKind.kind === "Dog") {
   console.log(petKind.breed);
 } else {
@@ -200,6 +205,18 @@ Generated unknown names get a suffix when they would conflict with a declared
 variant or another generated type. For externally tagged and unit enum unions
 in TypeScript, `match` accepts an unknown handler under the exported
 `[unknownEnum]` symbol; it is separate from a real wire variant named `Unknown`.
+That handler receives `{ tag, raw }` directly. An `otherwise` handler receives
+the original value and can use `isUnknownEnum` to narrow it.
+
+`raw` is the parsed JSON value, rather than the original response bytes.
+Python and TypeScript unknown cases serialize back to their retained wire
+value. Rust does the same when `serde::Serialize` is requested through
+`#[reflectapi(derive(serde::Serialize))]`; responses otherwise derive only
+`Deserialize` by default. TypeScript stores its metadata under non-enumerable
+symbols so `JSON.stringify` keeps wire fields intact. For a directly flattened enum,
+Rust and Python expose a typed enum field and retain the remaining enum JSON;
+TypeScript keeps the flat object and retains the whole original object in
+`value[unknownEnum].raw`.
 
 A declared `#[serde(other)]` uses its unit fallback instead and discards the
 unfamiliar tag and payload. It cannot be combined with `open`. Neither policy
