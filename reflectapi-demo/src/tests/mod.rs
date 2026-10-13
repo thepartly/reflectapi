@@ -129,6 +129,48 @@ fn openapi_refs_resolve_for_header_type_also_used_as_body() {
     assert_openapi_refs_resolve(&schema);
 }
 
+/// Generic header structs: one shared with a request body (plain and
+/// self-referential), and a self-referential one used only as headers, whose
+/// parameters refer back to its component.
+#[test]
+fn openapi_refs_resolve_for_generic_header_types() {
+    #[derive(::serde::Deserialize, reflectapi::Input)]
+    struct GenericHeaders<T> {
+        _authorization: T,
+    }
+
+    #[derive(::serde::Deserialize, reflectapi::Input)]
+    struct TreeHeaders<T> {
+        _authorization: T,
+        _children: Vec<TreeHeaders<T>>,
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(
+            |_: (), _: GenericHeaders<String>, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("generic.body"),
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: GenericHeaders<String>| async { reflectapi::Empty {} },
+            |b| b.name("generic.headers"),
+        )
+        .route(
+            |_: (), _: TreeHeaders<String>, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("tree.body"),
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: TreeHeaders<String>| async { reflectapi::Empty {} },
+            |b| b.name("tree.headers"),
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: TreeHeaders<u8>| async { reflectapi::Empty {} },
+            |b| b.name("tree.headers_only"),
+        )
+        .build()
+        .unwrap();
+    assert_openapi_refs_resolve(&schema);
+}
+
 pub(crate) fn assert_local_openapi_refs_resolve(spec: &serde_json::Value) {
     let schemas = spec
         .pointer("/components/schemas")
