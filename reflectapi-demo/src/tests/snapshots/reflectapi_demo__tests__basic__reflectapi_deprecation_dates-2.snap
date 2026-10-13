@@ -63,7 +63,11 @@ export namespace reflectapi_demo {
             Struct: {
               _a: number /* u8 */;
             };
-          };
+          }
+        /**
+         * @deprecated Deprecated in 2.3.0.
+         */
+        | "Released";
 
       export interface StructWithDeprecationDates {
         /**
@@ -72,7 +76,6 @@ export namespace reflectapi_demo {
         _since_and_sunset: number /* u8 */;
         /**
          * @deprecated Deprecated since 2026-10-01.
-         * A date as rustc's own `since` is read too.
          */
         _since_only: number /* u8 */;
         /**
@@ -80,11 +83,19 @@ export namespace reflectapi_demo {
          */
         _sunset_only: number /* u8 */ | null;
         /**
-         * @deprecated Versioned.
-         * A crate version as `since` is accepted by rustc and left out of
-         * the schema.
+         * @deprecated Deprecated in 1.2.0. Versioned.
+         * rustc's `since` is the release, kept verbatim.
          */
-        _since_version: number /* u8 */;
+        _release_only: number /* u8 */;
+        /**
+         * @deprecated Deprecated in 2026-10-01.
+         * It is never read as a date, even when it looks like one.
+         */
+        _release_like_a_date: number /* u8 */;
+        /**
+         * @deprecated Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use `current` instead.
+         */
+        _release_and_dates: number /* u8 */;
         _current: reflectapi_demo.tests.basic.EnumWithDeprecatedVariants;
       }
     }

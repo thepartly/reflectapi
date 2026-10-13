@@ -50,7 +50,7 @@ class AsyncItemsClient:
         )
 
     @typing_extensions.deprecated(
-        "items_old is deprecated: Deprecated since 2026-10-01; removal after 2026-11-01. Use items.current instead.",
+        "items_old is deprecated: Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use items.current instead.",
         category=None,
     )
     async def old(
@@ -62,16 +62,46 @@ class AsyncItemsClient:
             ApiResponse[Any]: Response containing Any data
 
         .. deprecated::
-           Deprecated since 2026-10-01; removal after 2026-11-01. Use items.current instead.
+           Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use items.current instead.
         """
 
         warnings.warn(
-            "items_old is deprecated: Deprecated since 2026-10-01; removal after 2026-11-01. Use items.current instead.",
+            "items_old is deprecated: Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use items.current instead.",
             DeprecationWarning,
             stacklevel=2,
         )
 
         path = "/items.old"
+
+        params: dict[str, Any] = {}
+        return await self._client._make_request(
+            path,
+            params=params if params else None,
+            response_model=None,
+        )
+
+    @typing_extensions.deprecated(
+        "items_released is deprecated: Deprecated in 2.3.0.", category=None
+    )
+    async def released(
+        self,
+    ) -> ApiResponse[Any]:
+        """
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+
+        .. deprecated::
+           Deprecated in 2.3.0.
+        """
+
+        warnings.warn(
+            "items_released is deprecated: Deprecated in 2.3.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        path = "/items.released"
 
         params: dict[str, Any] = {}
         return await self._client._make_request(
@@ -148,7 +178,7 @@ class ItemsClient:
         )
 
     @typing_extensions.deprecated(
-        "items_old is deprecated: Deprecated since 2026-10-01; removal after 2026-11-01. Use items.current instead.",
+        "items_old is deprecated: Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use items.current instead.",
         category=None,
     )
     def old(
@@ -160,16 +190,46 @@ class ItemsClient:
             ApiResponse[Any]: Response containing Any data
 
         .. deprecated::
-           Deprecated since 2026-10-01; removal after 2026-11-01. Use items.current instead.
+           Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use items.current instead.
         """
 
         warnings.warn(
-            "items_old is deprecated: Deprecated since 2026-10-01; removal after 2026-11-01. Use items.current instead.",
+            "items_old is deprecated: Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use items.current instead.",
             DeprecationWarning,
             stacklevel=2,
         )
 
         path = "/items.old"
+
+        params: dict[str, Any] = {}
+        return self._client._make_request(
+            path,
+            params=params if params else None,
+            response_model=None,
+        )
+
+    @typing_extensions.deprecated(
+        "items_released is deprecated: Deprecated in 2.3.0.", category=None
+    )
+    def released(
+        self,
+    ) -> ApiResponse[Any]:
+        """
+
+        Returns:
+            ApiResponse[Any]: Response containing Any data
+
+        .. deprecated::
+           Deprecated in 2.3.0.
+        """
+
+        warnings.warn(
+            "items_released is deprecated: Deprecated in 2.3.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        path = "/items.released"
 
         params: dict[str, Any] = {}
         return self._client._make_request(

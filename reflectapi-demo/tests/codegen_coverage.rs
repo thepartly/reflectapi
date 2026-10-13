@@ -99,6 +99,7 @@ fn builder() -> reflectapi::Builder<Arc<State>> {
             b.name("coverage.deprecated_shapes")
                 .description("Coverage fixtures for deprecations and generic instantiations")
                 .deprecation_note("Use coverage.wire instead.")
+                .deprecated_in("2.3.0")
                 .deprecated_since("2026-10-01")
                 .sunset("2026-11-01")
         })
@@ -455,7 +456,7 @@ mod deprecation {
 
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct ShapesRequest {
-        #[deprecated(note = "Use `shape` instead.")]
+        #[deprecated(since = "2.3.0", note = "Use `shape` instead.")]
         #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
         pub radius: Option<f64>,
         pub shape: Shape,

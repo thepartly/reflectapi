@@ -70,21 +70,26 @@ pub mod types {
                     Struct {
                         _a: u8,
                     },
+                    #[deprecated(note = "Deprecated in 2.3.0.")]
+                    Released,
                 }
 
                 #[derive(Debug, serde::Deserialize, serde::Serialize)]
                 pub struct StructWithDeprecationDates {
     #[deprecated(note = "Deprecated since 2026-10-01; removal after 2026-11-01. Use `current` instead.")]
     pub _since_and_sunset: u8,
-    /// A date as rustc's own `since` is read too.
     #[deprecated(note = "Deprecated since 2026-10-01.")]
     pub _since_only: u8,
     #[deprecated(note = "Removal after 2026-11-01.")]
     pub _sunset_only: std::option::Option<u8>,
-    /// A crate version as `since` is accepted by rustc and left out of
-    /// the schema.
-    #[deprecated(note = "Versioned.")]
-    pub _since_version: u8,
+    /// rustc's `since` is the release, kept verbatim.
+    #[deprecated(note = "Deprecated in 1.2.0. Versioned.")]
+    pub _release_only: u8,
+    /// It is never read as a date, even when it looks like one.
+    #[deprecated(note = "Deprecated in 2026-10-01.")]
+    pub _release_like_a_date: u8,
+    #[deprecated(note = "Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use `current` instead.")]
+    pub _release_and_dates: u8,
     pub _current: super::super::super::reflectapi_demo::tests::basic::EnumWithDeprecatedVariants,
 }
             }

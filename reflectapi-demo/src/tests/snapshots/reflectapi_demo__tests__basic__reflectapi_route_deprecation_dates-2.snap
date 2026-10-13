@@ -18,7 +18,7 @@ export namespace __definition {
 
   export interface ItemsInterface {
     /**
-     * @deprecated Deprecated since 2026-10-01; removal after 2026-11-01. Use items.current instead.
+     * @deprecated Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use items.current instead.
      */
     old: (
       input: {},
@@ -29,6 +29,14 @@ export namespace __definition {
      * @deprecated Removal after 2026-11-01.
      */
     sunsetting: (
+      input: {},
+      headers: {},
+      options?: RequestOptions,
+    ) => AsyncResult<{}, {}>;
+    /**
+     * @deprecated Deprecated in 2.3.0.
+     */
+    released: (
       input: {},
       headers: {},
       options?: RequestOptions,
@@ -63,6 +71,16 @@ namespace __implementation {
       __request<{}, {}, {}, {}>(
         client,
         "/items.sunsetting",
+        input,
+        headers,
+        options,
+      );
+  }
+  function items__released(client: Client) {
+    return (input: {}, headers: {}, options?: RequestOptions) =>
+      __request<{}, {}, {}, {}>(
+        client,
+        "/items.released",
         input,
         headers,
         options,

@@ -128,6 +128,8 @@ pub(crate) struct ParsedTypeAttributes {
 #[derive(Debug, Default)]
 pub(crate) struct ParsedDeprecation {
     pub note: Option<String>,
+    /// `since` of `#[deprecated]`, a release such as a crate version.
+    pub release: Option<String>,
     pub since: Option<syn::LitStr>,
     pub sunset: Option<syn::LitStr>,
 }
@@ -286,24 +288,15 @@ fn parse_deprecated_attr(attr: &syn::Attribute) -> syn::Result<(String, Option<s
 
 /// Reads the `#[deprecated]` attribute into `deprecation`.
 ///
-/// rustc accepts any string as `since`, commonly a crate version, so only a
-/// value written as a date (starting `YYYY-`) is carried into the schema.
-/// Clippy denies a date there by default (`deprecated_semver`), so
-/// `#[reflectapi(deprecated_since = "..")]` is the usual way to set it.
+/// rustc accepts any string as `since`, so it is kept verbatim as the
+/// release the item was deprecated in, never as a date.
 fn parse_deprecation(cx: &Context, attr: &syn::Attribute, deprecation: &mut ParsedDeprecation) {
     let (note, since) = match parse_deprecated_attr(attr) {
         Ok(parsed) => parsed,
         Err(err) => return cx.syn_error(err),
     };
     deprecation.note = Some(note);
-    let Some(since) = since else { return };
-    let value = since.value();
-    let looks_like_date = value.len() > 4
-        && value.as_bytes()[..4].iter().all(u8::is_ascii_digit)
-        && value.as_bytes()[4] == b'-';
-    if looks_like_date {
-        set_date(cx, "since", &mut deprecation.since, since);
-    }
+    deprecation.release = since.map(|lit| lit.value());
 }
 
 /// Parses `name = "YYYY-MM-DD"` inside `#[reflectapi(..)]` into `slot`.
@@ -359,9 +352,18 @@ fn check_deprecation(cx: &Context, deprecation: &ParsedDeprecation) {
 }
 
 impl ParsedDeprecation {
-    pub fn into_parts(self) -> (Option<String>, Option<String>, Option<String>) {
+    /// The note, release, deprecation date and sunset, in that order.
+    pub fn into_parts(
+        self,
+    ) -> (
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    ) {
         (
             self.note,
+            self.release,
             self.since.map(|lit| lit.value()),
             self.sunset.map(|lit| lit.value()),
         )

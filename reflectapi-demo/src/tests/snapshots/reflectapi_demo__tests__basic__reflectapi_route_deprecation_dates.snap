@@ -9,6 +9,7 @@ expression: schema
       "name": "items.old",
       "path": "",
       "deprecation_note": "Use items.current instead.",
+      "deprecated_in": "2.3.0",
       "deprecated_since": "2026-10-01",
       "sunset": "2026-11-01",
       "output_kind": "complete",
@@ -21,6 +22,16 @@ expression: schema
       "name": "items.sunsetting",
       "path": "",
       "sunset": "2026-11-01",
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    },
+    {
+      "name": "items.released",
+      "path": "",
+      "deprecated_in": "2.3.0",
       "output_kind": "complete",
       "serialization": [
         "json",

@@ -387,12 +387,14 @@ fn visit_variant(
         ast::Style::Unit => Fields::None,
     };
 
-    let (deprecation_note, deprecated_since, sunset) = variant_attrs.deprecation.into_parts();
+    let (deprecation_note, deprecated_in, deprecated_since, sunset) =
+        variant_attrs.deprecation.into_parts();
     Variant {
         name: variant_def_name,
         serde_name,
         description: parse_doc_attributes(&variant.original.attrs),
         deprecation_note,
+        deprecated_in,
         deprecated_since,
         sunset,
         fields,
@@ -442,6 +444,7 @@ fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema
     let mut field_def = Field::new(field_name, field_type);
     (
         field_def.deprecation_note,
+        field_def.deprecated_in,
         field_def.deprecated_since,
         field_def.sunset,
     ) = attrs.deprecation.into_parts();

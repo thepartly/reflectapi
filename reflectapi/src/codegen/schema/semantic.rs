@@ -35,6 +35,7 @@ pub struct SemanticFunction {
     pub path: String,
     pub description: String,
     pub deprecation_note: Option<String>,
+    pub deprecated_in: Option<String>,
     pub deprecated_since: Option<String>,
     pub sunset: Option<String>,
 
@@ -132,6 +133,7 @@ pub struct SemanticField {
     pub serde_name: String,
     pub description: String,
     pub deprecation_note: Option<String>,
+    pub deprecated_in: Option<String>,
     pub deprecated_since: Option<String>,
     pub sunset: Option<String>,
 
@@ -153,6 +155,7 @@ pub struct SemanticVariant {
     pub serde_name: String,
     pub description: String,
     pub deprecation_note: Option<String>,
+    pub deprecated_in: Option<String>,
     pub deprecated_since: Option<String>,
     pub sunset: Option<String>,
 

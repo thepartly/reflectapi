@@ -49,8 +49,31 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           }
         },
         "deprecated": true,
+        "x-deprecated-in": "2.3.0",
         "x-deprecated-since": "2026-10-01",
         "x-sunset": "2026-11-01"
+      }
+    },
+    "/items.released": {
+      "description": "",
+      "post": {
+        "operationId": "items.released",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true,
+        "x-deprecated-in": "2.3.0"
       }
     },
     "/items.sunsetting": {

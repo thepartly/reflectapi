@@ -652,6 +652,8 @@ fn test_reflectapi_deprecation_dates() {
         Struct {
             _a: u8,
         },
+        #[deprecated(since = "2.3.0")]
+        Released,
     }
 
     #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
@@ -659,17 +661,22 @@ fn test_reflectapi_deprecation_dates() {
         #[deprecated(note = "Use `current` instead.")]
         #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
         _since_and_sunset: u8,
-        /// A date as rustc's own `since` is read too.
-        #[allow(clippy::deprecated_semver)]
-        #[deprecated(since = "2026-10-01")]
+        #[deprecated]
+        #[reflectapi(deprecated_since = "2026-10-01")]
         _since_only: u8,
         #[deprecated]
         #[reflectapi(sunset = "2026-11-01")]
         _sunset_only: Option<u8>,
-        /// A crate version as `since` is accepted by rustc and left out of
-        /// the schema.
+        /// rustc's `since` is the release, kept verbatim.
         #[deprecated(since = "1.2.0", note = "Versioned.")]
-        _since_version: u8,
+        _release_only: u8,
+        /// It is never read as a date, even when it looks like one.
+        #[allow(clippy::deprecated_semver)]
+        #[deprecated(since = "2026-10-01")]
+        _release_like_a_date: u8,
+        #[deprecated(since = "2.3.0", note = "Use `current` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        _release_and_dates: u8,
         _current: EnumWithDeprecatedVariants,
     }
     assert_snapshot!(StructWithDeprecationDates);
@@ -684,12 +691,17 @@ fn test_reflectapi_route_deprecation_dates() {
             |b| b
                 .name("items.old")
                 .deprecation_note("Use items.current instead.")
+                .deprecated_in("2.3.0")
                 .deprecated_since("2026-10-01")
                 .sunset("2026-11-01")
         )
         .route(
             |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
             |b| b.name("items.sunsetting").sunset("2026-11-01")
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("items.released").deprecated_in("2.3.0")
         )
         .route(
             |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },

@@ -56,7 +56,7 @@ pub mod interface {
             Self { client }
         }
         #[deprecated(
-            note = "Deprecated since 2026-10-01; removal after 2026-11-01. Use items.current instead."
+            note = "Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use items.current instead."
         )]
         pub async fn old(
             &self,
@@ -72,6 +72,14 @@ pub mod interface {
             headers: reflectapi::Empty,
         ) -> Result<reflectapi::Empty, reflectapi::rt::Error<reflectapi::Empty, C::Error>> {
             reflectapi::rt::__request_impl(&self.client, "/items.sunsetting", input, headers).await
+        }
+        #[deprecated(note = "Deprecated in 2.3.0.")]
+        pub async fn released(
+            &self,
+            input: reflectapi::Empty,
+            headers: reflectapi::Empty,
+        ) -> Result<reflectapi::Empty, reflectapi::rt::Error<reflectapi::Empty, C::Error>> {
+            reflectapi::rt::__request_impl(&self.client, "/items.released", input, headers).await
         }
         pub async fn current(
             &self,

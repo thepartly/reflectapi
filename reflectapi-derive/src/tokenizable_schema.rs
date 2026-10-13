@@ -98,6 +98,7 @@ impl ToTokens for TokenizableField<'_> {
         let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
         let deprecation_note = tokenize_option_string(&self.inner.deprecation_note);
+        let deprecated_in = tokenize_option_string(&self.inner.deprecated_in);
         let deprecated_since = tokenize_option_string(&self.inner.deprecated_since);
         let sunset = tokenize_option_string(&self.inner.sunset);
         let type_ref = TokenizableTypeReference::new(&self.inner.type_ref);
@@ -121,6 +122,7 @@ impl ToTokens for TokenizableField<'_> {
                 serde_name: #serde_name.into(),
                 description: #description.into(),
                 deprecation_note: #deprecation_note,
+                deprecated_in: #deprecated_in,
                 deprecated_since: #deprecated_since,
                 sunset: #sunset,
                 type_ref: #type_ref,
@@ -150,6 +152,7 @@ impl ToTokens for TokenizableVariant<'_> {
         let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
         let deprecation_note = tokenize_option_string(&self.inner.deprecation_note);
+        let deprecated_in = tokenize_option_string(&self.inner.deprecated_in);
         let deprecated_since = tokenize_option_string(&self.inner.deprecated_since);
         let sunset = tokenize_option_string(&self.inner.sunset);
         let fields = self.inner.fields().map(TokenizableField::new);
@@ -178,6 +181,7 @@ impl ToTokens for TokenizableVariant<'_> {
                 serde_name: #serde_name.into(),
                 description: #description.into(),
                 deprecation_note: #deprecation_note,
+                deprecated_in: #deprecated_in,
                 deprecated_since: #deprecated_since,
                 sunset: #sunset,
                 fields: #fields,

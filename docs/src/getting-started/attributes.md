@@ -132,7 +132,7 @@ When a field is excluded from generated clients (via `skip`, `input_skip`, or `h
 | `#[reflectapi(deprecated_since = "YYYY-MM-DD")]` | Date the field was deprecated. Requires `#[deprecated]`. |
 | `#[reflectapi(sunset = "YYYY-MM-DD")]` | Date after which the field may be removed. Requires `#[deprecated]`. |
 
-See [Deprecations](./deprecations.md).
+The release in Rust's `#[deprecated(since = "..")]` is kept as well. See [Deprecations](./deprecations.md).
 
 ### Restrictions
 

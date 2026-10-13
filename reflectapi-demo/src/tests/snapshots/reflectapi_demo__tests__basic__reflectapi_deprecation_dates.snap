@@ -74,6 +74,12 @@ expression: schema
                 }
               ]
             }
+          },
+          {
+            "name": "Released",
+            "deprecation_note": "",
+            "deprecated_in": "2.3.0",
+            "fields": "none"
           }
         ]
       },
@@ -94,7 +100,6 @@ expression: schema
             },
             {
               "name": "_since_only",
-              "description": "A date as rustc's own `since` is read too.",
               "deprecation_note": "",
               "deprecated_since": "2026-10-01",
               "type": {
@@ -117,9 +122,31 @@ expression: schema
               "required": true
             },
             {
-              "name": "_since_version",
-              "description": "A crate version as `since` is accepted by rustc and left out of\nthe schema.",
+              "name": "_release_only",
+              "description": "rustc's `since` is the release, kept verbatim.",
               "deprecation_note": "Versioned.",
+              "deprecated_in": "1.2.0",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "_release_like_a_date",
+              "description": "It is never read as a date, even when it looks like one.",
+              "deprecation_note": "",
+              "deprecated_in": "2026-10-01",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "_release_and_dates",
+              "deprecation_note": "Use `current` instead.",
+              "deprecated_in": "2.3.0",
+              "deprecated_since": "2026-10-01",
+              "sunset": "2026-11-01",
               "type": {
                 "name": "u8"
               },
@@ -227,6 +254,12 @@ expression: schema
                 }
               ]
             }
+          },
+          {
+            "name": "Released",
+            "deprecation_note": "",
+            "deprecated_in": "2.3.0",
+            "fields": "none"
           }
         ]
       },
@@ -247,7 +280,6 @@ expression: schema
             },
             {
               "name": "_since_only",
-              "description": "A date as rustc's own `since` is read too.",
               "deprecation_note": "",
               "deprecated_since": "2026-10-01",
               "type": {
@@ -270,9 +302,31 @@ expression: schema
               "required": true
             },
             {
-              "name": "_since_version",
-              "description": "A crate version as `since` is accepted by rustc and left out of\nthe schema.",
+              "name": "_release_only",
+              "description": "rustc's `since` is the release, kept verbatim.",
               "deprecation_note": "Versioned.",
+              "deprecated_in": "1.2.0",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "_release_like_a_date",
+              "description": "It is never read as a date, even when it looks like one.",
+              "deprecation_note": "",
+              "deprecated_in": "2026-10-01",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "_release_and_dates",
+              "deprecation_note": "Use `current` instead.",
+              "deprecated_in": "2.3.0",
+              "deprecated_since": "2026-10-01",
+              "sunset": "2026-11-01",
               "type": {
                 "name": "u8"
               },

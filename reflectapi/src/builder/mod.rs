@@ -409,6 +409,7 @@ pub struct RouteBuilder {
     readonly: bool,
     tags: BTreeSet<String>,
     deprecation_note: Option<String>,
+    deprecated_in: Option<String>,
     deprecated_since: Option<String>,
     sunset: Option<String>,
     response_headers: Option<OutputTypeFn>,
@@ -451,6 +452,13 @@ impl RouteBuilder {
     /// If the provided string is empty, the route is marked as deprecated without a note.
     pub fn deprecation_note(mut self, deprecated: impl Into<String>) -> Self {
         self.deprecation_note = Some(deprecated.into());
+        self
+    }
+
+    /// Marks this route as deprecated in `release`, a free-form string such
+    /// as a version (`2.3.0`). Rendered as `x-deprecated-in` in OpenAPI.
+    pub fn deprecated_in(mut self, release: impl Into<String>) -> Self {
+        self.deprecated_in = Some(release.into());
         self
     }
 

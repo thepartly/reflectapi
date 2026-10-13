@@ -8,6 +8,8 @@ use core::fmt;
 pub struct Deprecation<'a> {
     /// Free-form note, often naming the replacement. May be empty.
     pub note: &'a str,
+    /// Release the item was deprecated in, free-form (e.g. `2.3.0`).
+    pub deprecated_in: Option<&'a str>,
     /// Date the item was deprecated, `YYYY-MM-DD`.
     pub since: Option<&'a str>,
     /// Date after which the item may be removed, `YYYY-MM-DD`.
@@ -17,34 +19,42 @@ pub struct Deprecation<'a> {
 impl<'a> Deprecation<'a> {
     pub(crate) fn of(
         note: &'a Option<String>,
+        deprecated_in: &'a Option<String>,
         since: &'a Option<String>,
         sunset: &'a Option<String>,
     ) -> Option<Self> {
-        // Dates without a note still mark the item deprecated, so a schema
-        // built by hand can't end up with dates on an item that isn't.
-        if note.is_none() && since.is_none() && sunset.is_none() {
+        // A release or dates without a note still mark the item deprecated,
+        // so a schema built by hand can't end up with them on an item that
+        // isn't.
+        if note.is_none() && deprecated_in.is_none() && since.is_none() && sunset.is_none() {
             return None;
         }
         Some(Deprecation {
             note: note.as_deref().unwrap_or_default(),
+            deprecated_in: deprecated_in.as_deref(),
             since: since.as_deref(),
             sunset: sunset.as_deref(),
         })
     }
 
-    /// Human-readable message combining the dates and the note, for example
-    /// `Deprecated since 2026-10-01; removal after 2026-11-01. Use X instead.`
+    /// Human-readable message combining the release, the dates and the note,
+    /// for example `Deprecated in 2.3.0, since 2026-10-01; removal after
+    /// 2026-11-01. Use X instead.`
     ///
-    /// It is the note unchanged when there are no dates, and empty when there
-    /// is neither a note nor a date.
+    /// It is the note unchanged when there is no release or date, and empty
+    /// when there is nothing at all.
     pub fn message(&self) -> String {
-        let dates = match (self.since, self.sunset) {
-            (Some(since), Some(sunset)) => {
-                format!("Deprecated since {since}; removal after {sunset}.")
-            }
-            (Some(since), None) => format!("Deprecated since {since}."),
-            (None, Some(sunset)) => format!("Removal after {sunset}."),
+        let deprecated = match (self.deprecated_in, self.since) {
+            (Some(release), Some(since)) => format!("Deprecated in {release}, since {since}"),
+            (Some(release), None) => format!("Deprecated in {release}"),
+            (None, Some(since)) => format!("Deprecated since {since}"),
             (None, None) => String::new(),
+        };
+        let dates = match (deprecated.is_empty(), self.sunset) {
+            (false, Some(sunset)) => format!("{deprecated}; removal after {sunset}."),
+            (true, Some(sunset)) => format!("Removal after {sunset}."),
+            (false, None) => format!("{deprecated}."),
+            (true, None) => String::new(),
         };
         match (dates.is_empty(), self.note.is_empty()) {
             (true, _) => self.note.to_owned(),
@@ -179,6 +189,7 @@ mod tests {
         let message = |note: &str, since, sunset| {
             Deprecation {
                 note,
+                deprecated_in: None,
                 since,
                 sunset,
             }
@@ -197,6 +208,27 @@ mod tests {
         assert_eq!(
             message("Use X instead.", None, Some("2026-11-01")),
             "Removal after 2026-11-01. Use X instead."
+        );
+        let release = |deprecated_in, since, sunset| {
+            Deprecation {
+                note: "Use X instead.",
+                deprecated_in,
+                since,
+                sunset,
+            }
+            .message()
+        };
+        assert_eq!(
+            release(Some("2.3.0"), None, None),
+            "Deprecated in 2.3.0. Use X instead."
+        );
+        assert_eq!(
+            release(Some("2.3.0"), Some("2026-10-01"), Some("2026-11-01")),
+            "Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use X instead."
+        );
+        assert_eq!(
+            release(Some("2.3.0"), None, Some("2026-11-01")),
+            "Deprecated in 2.3.0; removal after 2026-11-01. Use X instead."
         );
     }
 }

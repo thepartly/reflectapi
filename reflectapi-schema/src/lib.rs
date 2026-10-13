@@ -445,6 +445,9 @@ pub struct Function {
     /// If present as empty string, function is deprecated without a note.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub deprecation_note: Option<String>,
+    /// Release the function was deprecated in, free-form (e.g. `2.3.0`).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub deprecated_in: Option<String>,
     /// Date the function was deprecated, `YYYY-MM-DD`.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub deprecated_since: Option<String>,
@@ -495,6 +498,7 @@ impl Function {
         Function {
             name,
             deprecation_note: Default::default(),
+            deprecated_in: Default::default(),
             deprecated_since: Default::default(),
             sunset: Default::default(),
             path: Default::default(),
@@ -527,7 +531,12 @@ impl Function {
     }
 
     pub fn deprecation(&self) -> Option<Deprecation<'_>> {
-        Deprecation::of(&self.deprecation_note, &self.deprecated_since, &self.sunset)
+        Deprecation::of(
+            &self.deprecation_note,
+            &self.deprecated_in,
+            &self.deprecated_since,
+            &self.sunset,
+        )
     }
 
     pub fn input_type(&self) -> Option<&TypeReference> {
@@ -1125,6 +1134,9 @@ pub struct Field {
     /// If present as empty string, field is deprecated without a note.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub deprecation_note: Option<String>,
+    /// Release the field was deprecated in, free-form (e.g. `2.3.0`).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub deprecated_in: Option<String>,
     /// Date the field was deprecated, `YYYY-MM-DD`.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub deprecated_since: Option<String>,
@@ -1180,6 +1192,7 @@ impl PartialEq for Field {
             serde_name,
             description,
             deprecation_note,
+            deprecated_in,
             deprecated_since,
             sunset,
             type_ref,
@@ -1194,6 +1207,7 @@ impl PartialEq for Field {
             && self.serde_name == *serde_name
             && self.description == *description
             && self.deprecation_note == *deprecation_note
+            && self.deprecated_in == *deprecated_in
             && self.deprecated_since == *deprecated_since
             && self.sunset == *sunset
             && self.type_ref == *type_ref
@@ -1210,6 +1224,7 @@ impl std::hash::Hash for Field {
         self.serde_name.hash(state);
         self.description.hash(state);
         self.deprecation_note.hash(state);
+        self.deprecated_in.hash(state);
         self.deprecated_since.hash(state);
         self.sunset.hash(state);
         self.type_ref.hash(state);
@@ -1228,6 +1243,7 @@ impl Field {
             serde_name: Default::default(),
             description: Default::default(),
             deprecation_note: Default::default(),
+            deprecated_in: Default::default(),
             deprecated_since: Default::default(),
             sunset: Default::default(),
             required: Default::default(),
@@ -1272,7 +1288,12 @@ impl Field {
     }
 
     pub fn deprecation(&self) -> Option<Deprecation<'_>> {
-        Deprecation::of(&self.deprecation_note, &self.deprecated_since, &self.sunset)
+        Deprecation::of(
+            &self.deprecation_note,
+            &self.deprecated_in,
+            &self.deprecated_since,
+            &self.sunset,
+        )
     }
 
     pub fn hidden(&self) -> bool {
@@ -1388,6 +1409,9 @@ pub struct Variant {
     /// If present as empty string, variant is deprecated without a note.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub deprecation_note: Option<String>,
+    /// Release the variant was deprecated in, free-form (e.g. `2.3.0`).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub deprecated_in: Option<String>,
     /// Date the variant was deprecated, `YYYY-MM-DD`.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub deprecated_since: Option<String>,
@@ -1411,6 +1435,7 @@ impl Variant {
             serde_name: String::new(),
             description: String::new(),
             deprecation_note: None,
+            deprecated_in: None,
             deprecated_since: None,
             sunset: None,
             fields: Fields::None,
@@ -1440,7 +1465,12 @@ impl Variant {
     }
 
     pub fn deprecation(&self) -> Option<Deprecation<'_>> {
-        Deprecation::of(&self.deprecation_note, &self.deprecated_since, &self.sunset)
+        Deprecation::of(
+            &self.deprecation_note,
+            &self.deprecated_in,
+            &self.deprecated_since,
+            &self.sunset,
+        )
     }
 
     pub fn fields(&self) -> std::slice::Iter<'_, Field> {

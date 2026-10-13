@@ -87,6 +87,11 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "title": "Struct",
             "type": "object",
             "x-deprecated-since": "2026-10-01"
+          },
+          {
+            "const": "Released",
+            "deprecated": true,
+            "x-deprecated-in": "2.3.0"
           }
         ]
       },
@@ -95,14 +100,35 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         "title": "reflectapi_demo.tests.basic.StructWithDeprecationDates",
         "required": [
           "_current",
+          "_release_and_dates",
+          "_release_like_a_date",
+          "_release_only",
           "_since_and_sunset",
           "_since_only",
-          "_since_version",
           "_sunset_only"
         ],
         "properties": {
           "_current": {
             "$ref": "#/components/schemas/reflectapi_demo.tests.basic.EnumWithDeprecatedVariants"
+          },
+          "_release_and_dates": {
+            "deprecated": true,
+            "x-deprecated-in": "2.3.0",
+            "x-deprecated-since": "2026-10-01",
+            "x-sunset": "2026-11-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_release_like_a_date": {
+            "description": "It is never read as a date, even when it looks like one.",
+            "deprecated": true,
+            "x-deprecated-in": "2026-10-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_release_only": {
+            "description": "rustc's `since` is the release, kept verbatim.",
+            "deprecated": true,
+            "x-deprecated-in": "1.2.0",
+            "$ref": "#/components/schemas/u8"
           },
           "_since_and_sunset": {
             "deprecated": true,
@@ -111,14 +137,8 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "$ref": "#/components/schemas/u8"
           },
           "_since_only": {
-            "description": "A date as rustc's own `since` is read too.",
             "deprecated": true,
             "x-deprecated-since": "2026-10-01",
-            "$ref": "#/components/schemas/u8"
-          },
-          "_since_version": {
-            "description": "A crate version as `since` is accepted by rustc and left out of\nthe schema.",
-            "deprecated": true,
             "$ref": "#/components/schemas/u8"
           },
           "_sunset_only": {

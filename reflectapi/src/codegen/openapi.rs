@@ -150,12 +150,15 @@ fn is_false(b: &bool) -> bool {
     !*b
 }
 
-/// `deprecated: true` and, beside it, the dates as `x-deprecated-since` and
-/// `x-sunset` (the extension oasdiff reads as the earliest removal date).
+/// `deprecated: true` and, beside it, the release as `x-deprecated-in` and the
+/// dates as `x-deprecated-since` and `x-sunset` (the extension oasdiff reads
+/// as the earliest removal date).
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 pub struct Deprecation {
     #[serde(skip_serializing_if = "is_false")]
     pub deprecated: bool,
+    #[serde(rename = "x-deprecated-in", skip_serializing_if = "Option::is_none")]
+    pub deprecated_in: Option<String>,
     #[serde(rename = "x-deprecated-since", skip_serializing_if = "Option::is_none")]
     pub deprecated_since: Option<String>,
     #[serde(rename = "x-sunset", skip_serializing_if = "Option::is_none")]
@@ -166,6 +169,7 @@ impl From<Option<crate::Deprecation<'_>>> for Deprecation {
     fn from(deprecation: Option<crate::Deprecation<'_>>) -> Self {
         deprecation.map_or_else(Default::default, |d| Deprecation {
             deprecated: true,
+            deprecated_in: d.deprecated_in.map(Into::into),
             deprecated_since: d.since.map(Into::into),
             sunset: d.sunset.map(Into::into),
         })
