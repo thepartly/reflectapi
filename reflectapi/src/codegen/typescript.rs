@@ -1313,8 +1313,12 @@ fn doc_to_ts_comments(doc: &str, deprecation_note: Option<&str>, offset: u8) -> 
 
     let padding = " ".repeat(offset as usize);
 
+    // A `*/` in doc or note text would close the comment early.
     std::iter::once(format!("{padding}/**"))
-        .chain(doc.split('\n').map(|s| format!("{padding} * {s}")))
+        .chain(
+            doc.split('\n')
+                .map(|s| format!("{padding} * {}", s.replace("*/", "*\\/"))),
+        )
         .chain(std::iter::once(format!("{padding} */\n")))
         .collect::<Vec<_>>()
         .join("\n")

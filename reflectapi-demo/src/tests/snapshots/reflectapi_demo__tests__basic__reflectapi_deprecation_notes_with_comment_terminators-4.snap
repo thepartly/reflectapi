@@ -1,0 +1,172 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "deprecation_notes_test",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/items.old": {
+      "description": "Route docs with */.",
+      "post": {
+        "operationId": "items.old",
+        "description": "Route docs with */.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.Notes"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.basic.External": {
+        "oneOf": [
+          {
+            "const": "Unit",
+            "deprecated": true,
+            "description": "Unit docs with */."
+          },
+          {
+            "deprecated": true,
+            "properties": {
+              "Tuple": {
+                "$ref": "#/components/schemas/u8"
+              }
+            },
+            "required": [
+              "Tuple"
+            ],
+            "title": "Tuple",
+            "type": "object"
+          },
+          {
+            "deprecated": true,
+            "description": "Struct docs with */.",
+            "properties": {
+              "Struct": {
+                "description": "Struct docs with */.",
+                "properties": {
+                  "a": {
+                    "$ref": "#/components/schemas/u8"
+                  }
+                },
+                "required": [
+                  "a"
+                ],
+                "title": "Struct",
+                "type": "object"
+              }
+            },
+            "required": [
+              "Struct"
+            ],
+            "title": "Struct",
+            "type": "object"
+          }
+        ]
+      },
+      "reflectapi_demo.tests.basic.Internal": {
+        "oneOf": [
+          {
+            "deprecated": true,
+            "properties": {
+              "type": {
+                "const": "Unit"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "title": "Unit",
+            "type": "object"
+          },
+          {
+            "deprecated": true,
+            "properties": {
+              "a": {
+                "$ref": "#/components/schemas/u8"
+              },
+              "type": {
+                "const": "Struct"
+              }
+            },
+            "required": [
+              "a",
+              "type"
+            ],
+            "title": "Struct",
+            "type": "object"
+          }
+        ]
+      },
+      "reflectapi_demo.tests.basic.Notes": {
+        "description": "Struct docs with */.",
+        "type": "object",
+        "title": "reflectapi_demo.tests.basic.Notes",
+        "required": [
+          "_external",
+          "_internal",
+          "_numeric",
+          "_old"
+        ],
+        "properties": {
+          "_external": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.basic.External"
+          },
+          "_internal": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.basic.Internal"
+          },
+          "_numeric": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.basic.Numeric"
+          },
+          "_old": {
+            "description": "Field docs with */.",
+            "deprecated": true,
+            "$ref": "#/components/schemas/u8"
+          }
+        }
+      },
+      "reflectapi_demo.tests.basic.Numeric": {
+        "oneOf": [
+          {
+            "const": "Current"
+          },
+          {
+            "const": "Old",
+            "deprecated": true
+          }
+        ]
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

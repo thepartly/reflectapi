@@ -726,6 +726,65 @@ fn test_reflectapi_route_deprecation_dates_are_validated() {
     );
 }
 
+// Comment terminators and quotes in notes and docs must not break the
+// generated clients; `assert_builder_snapshot` type-checks them.
+#[test]
+fn test_reflectapi_deprecation_notes_with_comment_terminators() {
+    /// Docs may contain */ too.
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    #[allow(dead_code)]
+    enum External {
+        /// Unit docs with */.
+        #[deprecated(note = "Use */ instead, \"quoted\" \\ /* nested")]
+        Unit,
+        #[deprecated(note = "Use */ instead")]
+        Tuple(u8),
+        /// Struct docs with */.
+        #[deprecated(note = "Use */ instead")]
+        Struct { a: u8 },
+    }
+
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    #[serde(tag = "type")]
+    #[allow(dead_code)]
+    enum Internal {
+        #[deprecated(note = "Use */ instead")]
+        Unit,
+        #[deprecated(note = "Use */ instead")]
+        Struct { a: u8 },
+    }
+
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    #[allow(dead_code)]
+    #[repr(u8)]
+    enum Numeric {
+        Current = 1,
+        #[deprecated(note = "Use */ instead")]
+        Old = 2,
+    }
+
+    /// Struct docs with */.
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    struct Notes {
+        /// Field docs with */.
+        #[deprecated(note = "Use */ instead, \"quoted\" \\ /* nested")]
+        _old: u8,
+        _external: External,
+        _internal: Internal,
+        _numeric: Numeric,
+    }
+
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("deprecation_notes_test")
+        .route(
+            |_: (), _: Notes, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b
+                .name("items.old")
+                .description("Route docs with */.")
+                .deprecation_note("Use */ instead, \"quoted\" \\ /* nested")
+        ))
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithExternalGenericTypeFallback {
     #[reflectapi(transform = "reflectapi::transforms::fallback_recursively")]

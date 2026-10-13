@@ -41,6 +41,7 @@ Messages read like `Deprecated since 2026-10-01; removal after 2026-11-01. Use i
 
 - Rust clients: a deprecation note containing `"` or `\` no longer produces code that doesn't compile.
 - Python clients: field deprecation notes, previously dropped, are now rendered.
+- TypeScript clients: a `*/` in a doc comment or deprecation note no longer ends the JSDoc comment early and breaks the generated file.
 
 ## 0.19.0
 

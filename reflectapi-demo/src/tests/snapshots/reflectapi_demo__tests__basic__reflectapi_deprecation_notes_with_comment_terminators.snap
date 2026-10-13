@@ -1,0 +1,183 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: schema
+---
+{
+  "name": "deprecation_notes_test",
+  "functions": [
+    {
+      "name": "items.old",
+      "path": "",
+      "description": "Route docs with */.",
+      "deprecation_note": "Use */ instead, \"quoted\" \\ /* nested",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::Notes"
+      },
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::External",
+        "description": "Docs may contain */ too.",
+        "variants": [
+          {
+            "name": "Unit",
+            "description": "Unit docs with */.",
+            "deprecation_note": "Use */ instead, \"quoted\" \\ /* nested",
+            "fields": "none"
+          },
+          {
+            "name": "Tuple",
+            "deprecation_note": "Use */ instead",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "Struct",
+            "description": "Struct docs with */.",
+            "deprecation_note": "Use */ instead",
+            "fields": {
+              "named": [
+                {
+                  "name": "a",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::Internal",
+        "representation": {
+          "internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "Unit",
+            "deprecation_note": "Use */ instead",
+            "fields": "none"
+          },
+          {
+            "name": "Struct",
+            "deprecation_note": "Use */ instead",
+            "fields": {
+              "named": [
+                {
+                  "name": "a",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::Notes",
+        "description": "Struct docs with */.",
+        "fields": {
+          "named": [
+            {
+              "name": "_old",
+              "description": "Field docs with */.",
+              "deprecation_note": "Use */ instead, \"quoted\" \\ /* nested",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            },
+            {
+              "name": "_external",
+              "type": {
+                "name": "reflectapi_demo::tests::basic::External"
+              },
+              "required": true
+            },
+            {
+              "name": "_internal",
+              "type": {
+                "name": "reflectapi_demo::tests::basic::Internal"
+              },
+              "required": true
+            },
+            {
+              "name": "_numeric",
+              "type": {
+                "name": "reflectapi_demo::tests::basic::Numeric"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::basic::Numeric",
+        "variants": [
+          {
+            "name": "Current",
+            "fields": "none"
+          },
+          {
+            "name": "Old",
+            "deprecation_note": "Use */ instead",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      }
+    ]
+  }
+}
