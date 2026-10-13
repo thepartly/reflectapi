@@ -24,6 +24,7 @@ from pydantic import (
     model_serializer,
     model_validator,
 )
+import typing_extensions
 
 # Runtime imports
 from reflectapi_runtime import ApiStream
@@ -129,6 +130,9 @@ class AsyncPetsClient:
             response_headers_model=myapi.proto.ResponseHeaders,
         )
 
+    @typing_extensions.deprecated(
+        "pets_delete is deprecated: Use pets.remove instead", category=None
+    )
     async def delete(
         self,
         data: Optional[myapi.proto.PetsRemoveRequest] = None,
@@ -363,6 +367,9 @@ class PetsClient:
             response_headers_model=myapi.proto.ResponseHeaders,
         )
 
+    @typing_extensions.deprecated(
+        "pets_delete is deprecated: Use pets.remove instead", category=None
+    )
     def delete(
         self,
         data: Optional[myapi.proto.PetsRemoveRequest] = None,

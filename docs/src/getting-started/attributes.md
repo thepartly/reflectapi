@@ -125,6 +125,15 @@ When a field is excluded from generated clients (via `skip`, `input_skip`, or `h
 
 - **Without `#[serde(default)]`:** If the field is absent, deserialization fails with a protocol error. Use this for fields that a proxy or middleware is expected to inject — a missing value means the infrastructure is misconfigured, and you want to reject the request loudly rather than proceed silently with a zero-value.
 
+### Deprecation
+
+| Attribute | Description |
+|-----------|-------------|
+| `#[reflectapi(deprecated_since = "YYYY-MM-DD")]` | Date the field was deprecated. Requires `#[deprecated]`. |
+| `#[reflectapi(sunset = "YYYY-MM-DD")]` | Date after which the field may be removed. Requires `#[deprecated]`. |
+
+The release in Rust's `#[deprecated(since = "..")]` is kept as well. See [Deprecations](./deprecations.md).
+
 ### Restrictions
 
 `#[reflectapi(hidden)]` cannot be used on unnamed (tuple) struct or enum variant fields. Hiding a positional element would shift indices in generated clients, breaking wire compatibility. Use `hidden` only on named fields.
@@ -136,3 +145,5 @@ When a field is excluded from generated clients (via `skip`, `input_skip`, or `h
 | `#[reflectapi(skip)]` | Exclude the variant from the schema entirely. |
 | `#[reflectapi(input_skip)]` | Exclude the variant from the input schema only. |
 | `#[reflectapi(output_skip)]` | Exclude the variant from the output schema only. |
+| `#[reflectapi(deprecated_since = "YYYY-MM-DD")]` | Date the variant was deprecated. Requires `#[deprecated]`. |
+| `#[reflectapi(sunset = "YYYY-MM-DD")]` | Date after which the variant may be removed. Requires `#[deprecated]`. |

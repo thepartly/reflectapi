@@ -29,7 +29,11 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 
 [tool.pyright]
-include = ["api_client", "../../target/codegen-coverage-client/codegen_coverage_client"]
+include = [
+  "api_client",
+  "typecheck_deprecations.py",
+  "../../target/codegen-coverage-client/codegen_coverage_client",
+]
 typeCheckingMode = "basic"
 # Namespace packages alias each other via `sys.modules` and `_rebuild.py`
 # assignments that static checkers cannot follow.

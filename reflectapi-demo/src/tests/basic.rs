@@ -636,6 +636,198 @@ fn test_reflectapi_deprecated() {
     assert_snapshot!(StructWithDeprecatedField);
 }
 
+#[test]
+fn test_reflectapi_deprecation_dates() {
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    #[allow(dead_code)]
+    enum EnumWithDeprecatedVariants {
+        Current,
+        #[deprecated(note = "Use `Current` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        Unit,
+        #[deprecated]
+        Tuple(u8),
+        #[deprecated]
+        #[reflectapi(deprecated_since = "2026-10-01")]
+        Struct {
+            _a: u8,
+        },
+        #[deprecated(since = "2.3.0")]
+        Released,
+    }
+
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    struct StructWithDeprecationDates {
+        #[deprecated(note = "Use `current` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        _since_and_sunset: u8,
+        #[deprecated]
+        #[reflectapi(deprecated_since = "2026-10-01")]
+        _since_only: u8,
+        #[deprecated]
+        #[reflectapi(sunset = "2026-11-01")]
+        _sunset_only: Option<u8>,
+        /// rustc's `since` is the release, kept verbatim.
+        #[deprecated(since = "1.2.0", note = "Versioned.")]
+        _release_only: u8,
+        /// It is never read as a date, even when it looks like one.
+        #[allow(clippy::deprecated_semver)]
+        #[deprecated(since = "2026-10-01")]
+        _release_like_a_date: u8,
+        #[deprecated(since = "2.3.0", note = "Use `current` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        _release_and_dates: u8,
+        _current: EnumWithDeprecatedVariants,
+    }
+    assert_snapshot!(StructWithDeprecationDates);
+}
+
+#[test]
+fn test_reflectapi_route_deprecation_dates() {
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("route_deprecation_test")
+        .route(
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b
+                .name("items.old")
+                .deprecation_note("Use items.current instead.")
+                .deprecated_in("2.3.0")
+                .deprecated_since("2026-10-01")
+                .sunset("2026-11-01")
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("items.sunsetting").sunset("2026-11-01")
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("items.released").deprecated_in("2.3.0")
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("items.current")
+        ))
+}
+
+#[test]
+fn test_reflectapi_route_deprecation_dates_are_validated() {
+    fn build(route: fn(reflectapi::RouteBuilder) -> reflectapi::RouteBuilder) -> Option<String> {
+        reflectapi::Builder::<()>::new()
+            .route(
+                |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async { reflectapi::Empty {} },
+                route,
+            )
+            .build()
+            .err()
+            .map(|errors| errors.to_string().trim_end().to_owned())
+    }
+    assert_eq!(
+        build(|b| b
+            .name("items.old")
+            .deprecated_since("2026-10-01")
+            .sunset("2026-11-01")),
+        None
+    );
+    assert_eq!(
+        build(|b| b.name("items.old").deprecated_since("2026-10-1")).as_deref(),
+        Some("route `items.old` deprecation: invalid date `2026-10-1`, expected a calendar date as YYYY-MM-DD")
+    );
+    assert_eq!(
+        build(|b| b.name("items.old").deprecated_since("2026-10-01").sunset("2026-09-30")).as_deref(),
+        Some("route `items.old` deprecation: sunset date 2026-09-30 is before the deprecation date 2026-10-01")
+    );
+}
+
+// Comment terminators and quotes in notes and docs must not break the
+// generated clients; `assert_builder_snapshot` type-checks them.
+#[test]
+fn test_reflectapi_deprecation_notes_with_comment_terminators() {
+    /// Docs may contain */ too.
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    #[allow(dead_code)]
+    enum External {
+        /// Unit docs with */.
+        #[deprecated(note = "Use */ instead, \"quoted\" \\ /* nested")]
+        Unit,
+        #[deprecated(note = "Use */ instead")]
+        Tuple(u8),
+        /// Struct docs with */.
+        #[deprecated(note = "Use */ instead")]
+        Struct { a: u8 },
+    }
+
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    #[serde(tag = "type")]
+    #[allow(dead_code)]
+    enum Internal {
+        #[deprecated(note = "Use */ instead")]
+        Unit,
+        #[deprecated(note = "Use */ instead")]
+        Struct { a: u8 },
+    }
+
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    #[allow(dead_code)]
+    #[repr(u8)]
+    enum Numeric {
+        Current = 1,
+        #[deprecated(note = "Use */ instead")]
+        Old = 2,
+    }
+
+    /// Struct docs with */.
+    #[derive(serde::Serialize, reflectapi::Input, serde::Deserialize, reflectapi::Output)]
+    struct Notes {
+        /// Field docs with */.
+        #[deprecated(note = "Use */ instead, \"quoted\" \\ /* nested")]
+        _old: u8,
+        _external: External,
+        _internal: Internal,
+        _numeric: Numeric,
+    }
+
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("deprecation_notes_test")
+        .route(
+            |_: (), _: Notes, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b
+                .name("items.old")
+                .description("Route docs with */.")
+                .deprecation_note("Use */ instead, \"quoted\" \\ /* nested")
+        ))
+}
+
+#[test]
+fn test_reflectapi_deprecated_headers() {
+    #[derive(serde::Deserialize, reflectapi::Input)]
+    struct RequestHeaders {
+        #[deprecated(note = "Send `x-current` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        #[serde(rename = "x-legacy")]
+        _legacy: Option<String>,
+        #[serde(rename = "x-current")]
+        _current: Option<String>,
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
+    struct ResponseHeaders {
+        /// The old request id
+        #[deprecated(note = "Read `x-request-id` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        #[serde(rename = "x-legacy-request-id")]
+        _legacy_request_id: Option<String>,
+        #[serde(rename = "x-request-id")]
+        _request_id: Option<String>,
+    }
+
+    assert_builder_snapshot!(reflectapi::Builder::<()>::new()
+        .name("deprecated_headers_test")
+        .route(
+            |_: (), _: reflectapi::Empty, _: RequestHeaders| async { reflectapi::Empty {} },
+            |b| b.name("items.get").response_headers::<ResponseHeaders>()
+        ))
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithExternalGenericTypeFallback {
     #[reflectapi(transform = "reflectapi::transforms::fallback_recursively")]

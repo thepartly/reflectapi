@@ -1,0 +1,114 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "deprecated_headers_test",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/items.get": {
+      "description": "",
+      "post": {
+        "operationId": "items.get",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "headers": {
+              "x-legacy-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "The old request id",
+                "deprecated": true,
+                "x-deprecated-since": "2026-10-01",
+                "x-sunset": "2026-11-01"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error cases",
+            "headers": {
+              "x-legacy-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                },
+                "description": "The old request id",
+                "deprecated": true,
+                "x-deprecated-since": "2026-10-01",
+                "x-sunset": "2026-11-01"
+              },
+              "x-request-id": {
+                "schema": {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "x-current",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Null",
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              ]
+            }
+          },
+          {
+            "name": "x-legacy",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Null",
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/std.string.String"
+                }
+              ]
+            },
+            "deprecated": true,
+            "x-deprecated-since": "2026-10-01",
+            "x-sunset": "2026-11-01"
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      }
+    }
+  }
+}

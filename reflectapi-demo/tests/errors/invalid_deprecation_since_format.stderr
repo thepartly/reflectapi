@@ -1,0 +1,5 @@
+error: `deprecated_since`: invalid date `2026-1-01`, expected a calendar date as YYYY-MM-DD
+ --> tests/errors/invalid_deprecation_since_format.rs:4:37
+  |
+4 |     #[reflectapi(deprecated_since = "2026-1-01")]
+  |                                     ^^^^^^^^^^^

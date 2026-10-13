@@ -1,0 +1,5 @@
+error: deprecation dates require `#[deprecated]` on the same item
+ --> tests/errors/invalid_deprecation_sunset_without_deprecated.rs:3:37
+  |
+3 |     #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+  |                                     ^^^^^^^^^^^^

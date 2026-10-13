@@ -67,6 +67,14 @@ async fn commerce_group(
     })
 }
 
+async fn deprecated_shapes(
+    _: Arc<State>,
+    request: deprecation::ShapesRequest,
+    _headers: reflectapi::Empty,
+) -> Result<deprecation::ShapesRequest, deprecation::TreesError> {
+    Ok(request)
+}
+
 fn builder() -> reflectapi::Builder<Arc<State>> {
     reflectapi::Builder::new()
         .name("Codegen coverage")
@@ -86,6 +94,14 @@ fn builder() -> reflectapi::Builder<Arc<State>> {
         .route(commerce_group, |b| {
             b.name("coverage.commerce_group")
                 .description("Coverage fixture for sibling package import ordering")
+        })
+        .route(deprecated_shapes, |b| {
+            b.name("coverage.deprecated_shapes")
+                .description("Coverage fixtures for deprecations and generic instantiations")
+                .deprecation_note("Use coverage.wire instead.")
+                .deprecated_in("2.3.0")
+                .deprecated_since("2026-10-01")
+                .sunset("2026-11-01")
         })
 }
 
@@ -401,6 +417,67 @@ mod coverage {
 /// Untagged enums whose serde wire shapes the generated Python client must
 /// reproduce exactly. `samples()` is serialized by serde and replayed through
 /// the generated client by `tests/python/test_wire.py`.
+#[allow(deprecated)]
+mod deprecation {
+    use super::coverage::GenericTree;
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    #[serde(tag = "type")]
+    pub enum Shape {
+        Circle {
+            radius: f64,
+        },
+        #[deprecated(note = "Use `Circle` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        Ellipse {
+            a: f64,
+            b: f64,
+        },
+        #[deprecated]
+        Legacy(LegacyShape),
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    #[serde(tag = "kind")]
+    pub enum LegacyShape {
+        Dot,
+        #[deprecated(note = "Blobs are no longer drawn.")]
+        Blob {
+            size: u32,
+        },
+    }
+
+    /// A generic instantiation reached only through an enum variant.
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub enum TreeHolder {
+        Tree(GenericTree<u8>),
+        Empty,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct ShapesRequest {
+        #[deprecated(since = "2.3.0", note = "Use `shape` instead.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        pub radius: Option<f64>,
+        pub shape: Shape,
+        /// A generic instantiation reached only inside `Option<Vec<_>>`.
+        pub trees: Option<Vec<GenericTree<String>>>,
+        pub holder: TreeHolder,
+    }
+
+    /// A generic instantiation reached only from an error type.
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct TreesError {
+        pub trees: Vec<GenericTree<bool>>,
+    }
+
+    impl reflectapi::StatusCode for TreesError {
+        fn status_code(&self) -> http::StatusCode {
+            http::StatusCode::BAD_REQUEST
+        }
+    }
+}
+
 mod wire {
     #[derive(
         Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,

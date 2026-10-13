@@ -1,0 +1,165 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.StructWithDeprecationDates"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.StructWithDeprecationDates"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.basic.EnumWithDeprecatedVariants": {
+        "oneOf": [
+          {
+            "const": "Current"
+          },
+          {
+            "const": "Unit",
+            "deprecated": true,
+            "x-deprecated-since": "2026-10-01",
+            "x-sunset": "2026-11-01"
+          },
+          {
+            "deprecated": true,
+            "properties": {
+              "Tuple": {
+                "$ref": "#/components/schemas/u8"
+              }
+            },
+            "required": [
+              "Tuple"
+            ],
+            "title": "Tuple",
+            "type": "object"
+          },
+          {
+            "deprecated": true,
+            "properties": {
+              "Struct": {
+                "properties": {
+                  "_a": {
+                    "$ref": "#/components/schemas/u8"
+                  }
+                },
+                "required": [
+                  "_a"
+                ],
+                "title": "Struct",
+                "type": "object"
+              }
+            },
+            "required": [
+              "Struct"
+            ],
+            "title": "Struct",
+            "type": "object",
+            "x-deprecated-since": "2026-10-01"
+          },
+          {
+            "const": "Released",
+            "deprecated": true,
+            "x-deprecated-in": "2.3.0"
+          }
+        ]
+      },
+      "reflectapi_demo.tests.basic.StructWithDeprecationDates": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.basic.StructWithDeprecationDates",
+        "required": [
+          "_current",
+          "_release_and_dates",
+          "_release_like_a_date",
+          "_release_only",
+          "_since_and_sunset",
+          "_since_only",
+          "_sunset_only"
+        ],
+        "properties": {
+          "_current": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.basic.EnumWithDeprecatedVariants"
+          },
+          "_release_and_dates": {
+            "deprecated": true,
+            "x-deprecated-in": "2.3.0",
+            "x-deprecated-since": "2026-10-01",
+            "x-sunset": "2026-11-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_release_like_a_date": {
+            "description": "It is never read as a date, even when it looks like one.",
+            "deprecated": true,
+            "x-deprecated-in": "2026-10-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_release_only": {
+            "description": "rustc's `since` is the release, kept verbatim.",
+            "deprecated": true,
+            "x-deprecated-in": "1.2.0",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_since_and_sunset": {
+            "deprecated": true,
+            "x-deprecated-since": "2026-10-01",
+            "x-sunset": "2026-11-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_since_only": {
+            "deprecated": true,
+            "x-deprecated-since": "2026-10-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_sunset_only": {
+            "deprecated": true,
+            "x-sunset": "2026-11-01",
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/u8"
+              }
+            ]
+          }
+        }
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

@@ -22,6 +22,9 @@ pub const OUTPUT_SKIP: Symbol = Symbol("output_skip");
 
 pub const HIDDEN: Symbol = Symbol("hidden");
 
+pub const DEPRECATED_SINCE: Symbol = Symbol("deprecated_since");
+pub const SUNSET: Symbol = Symbol("sunset");
+
 pub const DERIVE: Symbol = Symbol("derive");
 
 pub const DISCRIMINANT: Symbol = Symbol("discriminant");

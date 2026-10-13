@@ -10,7 +10,6 @@ from __future__ import annotations
 
 
 # Standard library imports
-import warnings
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
@@ -63,7 +62,9 @@ class MyapiModelOutputPet(BaseModel):
 
     name: str = Field(description="identity")
     kind: myapi.model.Kind = Field(description="kind of pet")
-    age: int | None = Field(default=None, description="age of the pet")
+    age: int | None = Field(
+        default=None, description="age of the pet", deprecated="test deprecation"
+    )
     updated_at: datetime
     behaviors: list[myapi.model.Behavior] | None = Field(
         default=None, description="behaviors of the pet"

@@ -97,10 +97,10 @@ impl ToTokens for TokenizableField<'_> {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
-        let deprecation_note = self.inner.deprecation_note.as_ref().map_or_else(
-            || quote::quote! { None },
-            |d| quote::quote! { Some(#d.into()) },
-        );
+        let deprecation_note = tokenize_option_string(&self.inner.deprecation_note);
+        let deprecated_in = tokenize_option_string(&self.inner.deprecated_in);
+        let deprecated_since = tokenize_option_string(&self.inner.deprecated_since);
+        let sunset = tokenize_option_string(&self.inner.sunset);
         let type_ref = TokenizableTypeReference::new(&self.inner.type_ref);
         let required = self.inner.required;
         let flattened = self.inner.flattened;
@@ -121,7 +121,10 @@ impl ToTokens for TokenizableField<'_> {
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
-                deprecation_note: #deprecation_note.into(),
+                deprecation_note: #deprecation_note,
+                deprecated_in: #deprecated_in,
+                deprecated_since: #deprecated_since,
+                sunset: #sunset,
                 type_ref: #type_ref,
                 required: #required,
                 flattened: #flattened,
@@ -148,6 +151,10 @@ impl ToTokens for TokenizableVariant<'_> {
         let name = self.inner.name.as_str();
         let serde_name = self.inner.serde_name.as_str();
         let description = self.inner.description.as_str();
+        let deprecation_note = tokenize_option_string(&self.inner.deprecation_note);
+        let deprecated_in = tokenize_option_string(&self.inner.deprecated_in);
+        let deprecated_since = tokenize_option_string(&self.inner.deprecated_since);
+        let sunset = tokenize_option_string(&self.inner.sunset);
         let fields = self.inner.fields().map(TokenizableField::new);
 
         let fields = match self.inner.fields {
@@ -173,6 +180,10 @@ impl ToTokens for TokenizableVariant<'_> {
                 name: #name.into(),
                 serde_name: #serde_name.into(),
                 description: #description.into(),
+                deprecation_note: #deprecation_note,
+                deprecated_in: #deprecated_in,
+                deprecated_since: #deprecated_since,
+                sunset: #sunset,
                 fields: #fields,
                 discriminant: #discriminant,
                 untagged: #untagged,
@@ -358,5 +369,12 @@ impl ToTokens for TokenizablePrimitive<'_> {
                 codegen_config: #codegen_config,
             }
         });
+    }
+}
+
+fn tokenize_option_string(value: &Option<String>) -> proc_macro2::TokenStream {
+    match value {
+        Some(value) => quote::quote! { Some(#value.into()) },
+        None => quote::quote! { None },
     }
 }

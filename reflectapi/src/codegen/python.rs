@@ -494,6 +494,12 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
         result.push(format!("from pydantic import {}", pydantic_list.join(", ")));
     }
 
+    // `typing_extensions.deprecated` (PEP 702) on deprecated methods; imported
+    // as a module so a generated method named `deprecated` can't shadow it.
+    if imports.has_warnings {
+        result.push("import typing_extensions".to_string());
+    }
+
     result.push("".to_string());
     result.push("# Runtime imports".to_string());
 
@@ -755,7 +761,7 @@ fn render_struct_with_flattened_internal_enum(
             name: python_name,
             type_annotation: final_type,
             description: Some(field.description().to_string()),
-            deprecation_note: field.deprecation_note.clone(),
+            deprecation_note: field.deprecation().map(|d| d.message()),
             optional,
             default_value,
             alias,
@@ -805,7 +811,7 @@ fn render_struct_with_flattened_internal_enum(
                     name: python_name,
                     type_annotation: final_type,
                     description: Some(field.description().to_string()),
-                    deprecation_note: field.deprecation_note.clone(),
+                    deprecation_note: field.deprecation().map(|d| d.message()),
                     optional,
                     default_value,
                     alias,
@@ -858,7 +864,7 @@ fn render_struct_with_flattened_internal_enum(
                         name: sanitized,
                         type_annotation: final_type,
                         description: Some(vf.description().to_string()),
-                        deprecation_note: vf.deprecation_note.clone(),
+                        deprecation_note: vf.deprecation().map(|d| d.message()),
                         optional,
                         default_value,
                         alias,
@@ -918,7 +924,7 @@ fn render_struct_with_flattened_internal_enum(
                             name: sanitized,
                             type_annotation: final_type,
                             description: Some(sf.description().to_string()),
-                            deprecation_note: sf.deprecation_note.clone(),
+                            deprecation_note: sf.deprecation().map(|d| d.message()),
                             optional,
                             default_value,
                             alias,
@@ -1002,7 +1008,7 @@ fn render_struct_with_flatten_standard(
             name: python_name,
             type_annotation: final_type,
             description: Some(field.description().to_string()),
-            deprecation_note: field.deprecation_note.clone(),
+            deprecation_note: field.deprecation().map(|d| d.message()),
             optional,
             default_value,
             alias,
@@ -1359,6 +1365,8 @@ fn generate_init_py(config: &Config) -> String {
 
 struct PythonGeneration {
     preamble: String,
+    /// `preamble` plus the imports the client code's deprecation warnings need.
+    client_preamble: String,
     schema_name: String,
     schema_description: String,
     module_tree: templates::Module,
@@ -1676,8 +1684,7 @@ fn build_python_generation(
         )
     };
 
-    // Use semantic IR for function introspection
-    let has_warnings = semantic.functions().any(|f| f.deprecation_note.is_some());
+    let has_warnings = schema.functions().any(|f| f.deprecated());
     let has_streaming = schema
         .functions()
         .any(|f| matches!(f.output_type, OutputType::Stream { .. }));
@@ -1702,8 +1709,13 @@ fn build_python_generation(
         has_streaming,
         has_partial_models,
     };
-    // Use optimized import generation instead of template
-    generated_code.push(generate_optimized_imports(&imports));
+    // Only the client code warns about deprecated methods, so model modules
+    // get the imports without `warnings` and `typing_extensions`.
+    let imports_index = generated_code.len();
+    generated_code.push(generate_optimized_imports(&templates::Imports {
+        has_warnings: false,
+        ..imports.clone()
+    }));
 
     let class_names = build_python_class_name_map(
         semantic
@@ -1918,8 +1930,11 @@ fn build_python_generation(
         None
     };
 
+    let preamble = generated_code.join("\n\n");
+    generated_code[imports_index] = generate_optimized_imports(&imports);
     Ok(PythonGeneration {
-        preamble: generated_code.join("\n\n"),
+        preamble,
+        client_preamble: generated_code.join("\n\n"),
         schema_name: schema.name.clone(),
         schema_description: schema.description.clone(),
         module_tree,
@@ -1932,7 +1947,7 @@ fn build_python_generation(
 pub fn generate(schema: Schema, config: &Config) -> anyhow::Result<String> {
     let generation = build_python_generation(schema, config)?;
     let mut generated_code = Vec::new();
-    generated_code.push(generation.preamble);
+    generated_code.push(generation.client_preamble);
 
     let module_tree_code = generation.module_tree.render();
     if !module_tree_code.trim().is_empty() {
@@ -3103,7 +3118,7 @@ fn render_client_file(
     registry: &CollisionRegistry,
     config: &Config,
 ) -> anyhow::Result<String> {
-    let mut parts = vec![generation.preamble.clone()];
+    let mut parts = vec![generation.client_preamble.clone()];
 
     for root in ordered_child_modules(&generation.module_tree, &[])? {
         parts.push(format!("from . import {root}"));
@@ -3687,7 +3702,7 @@ fn make_flattened_field(
             },
             field.description()
         )),
-        deprecation_note: field.deprecation_note.clone(),
+        deprecation_note: field.deprecation().map(|d| d.message()),
         optional,
         default_value,
         alias,
@@ -3849,7 +3864,7 @@ fn render_struct(
                 name: sanitized,
                 type_annotation: field_type,
                 description: Some(field.description().to_string()),
-                deprecation_note: field.deprecation_note.clone(),
+                deprecation_note: field.deprecation().map(|d| d.message()),
                 optional,
                 default_value,
                 alias,
@@ -4047,7 +4062,7 @@ fn render_adjacently_tagged_enum(
                         name: content.to_string(),
                         type_annotation: field_type,
                         description: Some(unnamed_fields[0].description().to_string()),
-                        deprecation_note: unnamed_fields[0].deprecation_note.clone(),
+                        deprecation_note: unnamed_fields[0].deprecation().map(|d| d.message()),
                         optional: false,
                         default_value: None,
                         alias: None,
@@ -4102,7 +4117,7 @@ fn render_adjacently_tagged_enum(
                         name: sanitized,
                         type_annotation: final_field_type,
                         description: Some(field.description().to_string()),
-                        deprecation_note: field.deprecation_note.clone(),
+                        deprecation_note: field.deprecation().map(|d| d.message()),
                         optional,
                         default_value,
                         alias,
@@ -4264,7 +4279,7 @@ fn render_externally_tagged_enum(
                         name: field_name,
                         type_annotation: field_type,
                         description: Some(field.description().to_string()),
-                        deprecation_note: field.deprecation_note.clone(),
+                        deprecation_note: field.deprecation().map(|d| d.message()),
                         optional: false,
                         default_value: None,
                         alias: None,
@@ -4344,7 +4359,7 @@ fn render_externally_tagged_enum(
                         name: sanitized,
                         type_annotation: final_field_type,
                         description: Some(field.description().to_string()),
-                        deprecation_note: field.deprecation_note.clone(),
+                        deprecation_note: field.deprecation().map(|d| d.message()),
                         optional,
                         default_value,
                         alias,
@@ -4586,7 +4601,7 @@ fn render_internally_tagged_enum(
                                 name: sanitized,
                                 type_annotation: final_field_type,
                                 description: Some(struct_field.description().to_string()),
-                                deprecation_note: struct_field.deprecation_note.clone(),
+                                deprecation_note: struct_field.deprecation().map(|d| d.message()),
                                 optional,
                                 default_value,
                                 alias,
@@ -4642,7 +4657,7 @@ fn render_internally_tagged_enum(
                         name: sanitized,
                         type_annotation: final_field_type,
                         description: Some(field.description().to_string()),
-                        deprecation_note: field.deprecation_note.clone(),
+                        deprecation_note: field.deprecation().map(|d| d.message()),
                         optional,
                         default_value,
                         alias,
@@ -4795,7 +4810,7 @@ fn render_untagged_enum(
                         name: sanitized,
                         type_annotation: final_field_type,
                         description: Some(field.description().to_string()),
-                        deprecation_note: field.deprecation_note.clone(),
+                        deprecation_note: field.deprecation().map(|d| d.message()),
                         optional,
                         default_value,
                         alias,
@@ -5005,7 +5020,7 @@ fn render_function(
         path_params,
         has_body,
         is_input_primitive,
-        deprecation_note: function.deprecation_note.clone(),
+        deprecation_note: function.deprecation().map(|d| d.message()),
         stream_item_type,
     })
 }
@@ -6145,6 +6160,7 @@ pub mod templates {
         )
     }
 
+    #[derive(Clone)]
     pub struct Imports {
         pub has_async: bool,
         pub has_sync: bool,
@@ -6235,11 +6251,17 @@ pub mod templates {
                     .as_ref()
                     .filter(|d| !d.is_empty() && !d.starts_with("(flattened"))
                     .map(|d| super::python_string_literal(d));
-                let has_field_args = desc.is_some()
-                    || field.alias.is_some()
-                    || (field.optional && field.alias.is_none());
+                // Pydantic >= 2.7 warns when a deprecated field is read and
+                // marks it deprecated in the JSON schema.
+                let deprecated = field.deprecation_note.as_ref().map(|message| {
+                    if message.is_empty() {
+                        "True".to_string()
+                    } else {
+                        super::python_string_literal(message)
+                    }
+                });
 
-                if has_field_args && (desc.is_some() || field.alias.is_some()) {
+                if desc.is_some() || field.alias.is_some() || deprecated.is_some() {
                     // Need Field() with named arguments
                     write!(s, " = Field(").unwrap();
                     let mut args = Vec::new();
@@ -6257,6 +6279,9 @@ pub mod templates {
                         // literal (quotes included) from
                         // `python_string_literal`.
                         args.push(format!("description={d}"));
+                    }
+                    if let Some(deprecated) = &deprecated {
+                        args.push(format!("deprecated={deprecated}"));
                     }
                     write!(s, "{}", args.join(", ")).unwrap();
                     write!(s, ")").unwrap();
@@ -6614,6 +6639,28 @@ pub mod templates {
         ) {
             let is_stream = function.stream_item_type.is_some();
             writeln!(s).unwrap();
+            let deprecation_warning = function.deprecation_note.as_ref().map(|message| {
+                let warn_name = if is_group {
+                    function.original_name.as_deref().unwrap_or(&function.name)
+                } else {
+                    &function.name
+                };
+                let warning = if message.is_empty() {
+                    format!("{warn_name} is deprecated")
+                } else {
+                    format!("{warn_name} is deprecated: {message}")
+                };
+                super::python_string_literal(&warning)
+            });
+            // `category=None`: the decorator is for type checkers (pyright and
+            // mypy report call sites); the body below emits the runtime warning.
+            if let Some(warning) = &deprecation_warning {
+                writeln!(
+                    s,
+                    "    @typing_extensions.deprecated({warning}, category=None)"
+                )
+                .unwrap();
+            }
             // Method signature. Streaming methods are plain `def` regardless
             // of client kind: the runtime helper *is* the (async) generator,
             // so we just return it.
@@ -6708,20 +6755,10 @@ pub mod templates {
             writeln!(s, "        \"\"\"").unwrap();
 
             // Deprecation warning
-            if let Some(dep_note) = &function.deprecation_note {
+            if let Some(warning) = &deprecation_warning {
                 writeln!(s).unwrap();
-                let warn_name = if is_group {
-                    function.original_name.as_deref().unwrap_or(&function.name)
-                } else {
-                    &function.name
-                };
-                let warn_msg = if dep_note.is_empty() {
-                    format!("{warn_name} is deprecated")
-                } else {
-                    format!("{warn_name} is deprecated: {dep_note}")
-                };
                 writeln!(s, "        warnings.warn(").unwrap();
-                writeln!(s, "            \"{warn_msg}\",").unwrap();
+                writeln!(s, "            {warning},").unwrap();
                 writeln!(s, "            DeprecationWarning,").unwrap();
                 writeln!(s, "            stacklevel=2,").unwrap();
                 writeln!(s, "        )").unwrap();
@@ -6849,6 +6886,7 @@ pub mod templates {
         pub name: String,
         pub type_annotation: String,
         pub description: Option<String>,
+        /// `Deprecation::message()`, `Some("")` if deprecated without a note or dates
         pub deprecation_note: Option<String>,
         pub optional: bool,
         pub default_value: Option<String>,
@@ -6895,6 +6933,7 @@ pub mod templates {
         pub path_params: Vec<Parameter>,
         pub has_body: bool,
         pub is_input_primitive: bool,
+        /// `Deprecation::message()`, `Some("")` if deprecated without a note or dates
         pub deprecation_note: Option<String>,
         /// SSE stream item type name; `None` for non-streaming endpoints.
         pub stream_item_type: Option<String>,

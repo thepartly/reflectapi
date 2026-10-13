@@ -35,6 +35,9 @@ pub struct SemanticFunction {
     pub path: String,
     pub description: String,
     pub deprecation_note: Option<String>,
+    pub deprecated_in: Option<String>,
+    pub deprecated_since: Option<String>,
+    pub sunset: Option<String>,
 
     /// Resolved type references (no dangling pointers)
     pub input_type: Option<SymbolId>,
@@ -130,6 +133,9 @@ pub struct SemanticField {
     pub serde_name: String,
     pub description: String,
     pub deprecation_note: Option<String>,
+    pub deprecated_in: Option<String>,
+    pub deprecated_since: Option<String>,
+    pub sunset: Option<String>,
 
     /// Resolved type reference
     pub type_ref: ResolvedTypeReference,
@@ -148,6 +154,10 @@ pub struct SemanticVariant {
     pub name: String,
     pub serde_name: String,
     pub description: String,
+    pub deprecation_note: Option<String>,
+    pub deprecated_in: Option<String>,
+    pub deprecated_since: Option<String>,
+    pub sunset: Option<String>,
 
     /// Fields ordered deterministically
     pub fields: BTreeMap<SymbolId, SemanticField>,

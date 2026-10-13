@@ -10,7 +10,6 @@ from __future__ import annotations
 
 
 # Standard library imports
-import warnings
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union

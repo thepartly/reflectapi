@@ -142,12 +142,38 @@ pub struct Operation {
     responses: BTreeMap<String, Response>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     parameters: Vec<Parameter>,
-    #[serde(skip_serializing_if = "is_false")]
-    deprecated: bool,
+    #[serde(flatten)]
+    deprecation: Deprecation,
 }
 
 fn is_false(b: &bool) -> bool {
     !*b
+}
+
+/// `deprecated: true` and, beside it, the release as `x-deprecated-in` and the
+/// dates as `x-deprecated-since` and `x-sunset` (the extension oasdiff reads
+/// as the earliest removal date).
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+pub struct Deprecation {
+    #[serde(skip_serializing_if = "is_false")]
+    pub deprecated: bool,
+    #[serde(rename = "x-deprecated-in", skip_serializing_if = "Option::is_none")]
+    pub deprecated_in: Option<String>,
+    #[serde(rename = "x-deprecated-since", skip_serializing_if = "Option::is_none")]
+    pub deprecated_since: Option<String>,
+    #[serde(rename = "x-sunset", skip_serializing_if = "Option::is_none")]
+    pub sunset: Option<String>,
+}
+
+impl From<Option<crate::Deprecation<'_>>> for Deprecation {
+    fn from(deprecation: Option<crate::Deprecation<'_>>) -> Self {
+        deprecation.map_or_else(Default::default, |d| Deprecation {
+            deprecated: true,
+            deprecated_in: d.deprecated_in.map(Into::into),
+            deprecated_since: d.since.map(Into::into),
+            sunset: d.sunset.map(Into::into),
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -159,6 +185,8 @@ pub struct Parameter {
     schema: InlineOrRef<Schema>,
     #[serde(skip_serializing_if = "String::is_empty")]
     description: String,
+    #[serde(flatten)]
+    deprecation: Deprecation,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -187,6 +215,8 @@ pub struct Header {
     schema: InlineOrRef<Schema>,
     #[serde(skip_serializing_if = "String::is_empty")]
     description: String,
+    #[serde(flatten)]
+    deprecation: Deprecation,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -247,7 +277,7 @@ pub enum Type {
 pub struct Property {
     // This `description` overrides the description of the type.
     description: String,
-    deprecated: bool,
+    deprecation: Deprecation,
     schema: InlineOrRef<Schema>,
 }
 
@@ -260,8 +290,8 @@ impl serde::Serialize for Property {
         pub struct P<'a> {
             #[serde(skip_serializing_if = "str::is_empty")]
             description: &'a str,
-            #[serde(skip_serializing_if = "is_false")]
-            deprecated: bool,
+            #[serde(flatten)]
+            deprecation: &'a Deprecation,
             #[serde(flatten)]
             schema: &'a InlineOrRef<Schema>,
         }
@@ -289,7 +319,7 @@ impl serde::Serialize for Property {
 
         P {
             description: &self.description,
-            deprecated: self.deprecated,
+            deprecation: &self.deprecation,
             schema: &schema,
         }
         .serialize(serializer)
@@ -315,6 +345,33 @@ pub enum Schema {
         description: String,
     },
     Flat(FlatSchema),
+    /// A schema marked deprecated, such as that of a deprecated enum variant.
+    Deprecated(DeprecatedSchema),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DeprecatedSchema {
+    pub schema: Box<InlineOrRef<Schema>>,
+    pub deprecation: Deprecation,
+}
+
+impl Serialize for DeprecatedSchema {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Merged through a `Value`: `#[serde(flatten)]` of a `Schema` inside a
+        // `Schema` makes the serializer type infinitely recursive.
+        let mut value = serde_json::to_value(&self.schema).map_err(serde::ser::Error::custom)?;
+        let deprecation =
+            serde_json::to_value(&self.deprecation).map_err(serde::ser::Error::custom)?;
+        if let (Some(schema), serde_json::Value::Object(deprecation)) =
+            (value.as_object_mut(), deprecation)
+        {
+            schema.extend(deprecation);
+        }
+        value.serialize(serializer)
+    }
 }
 
 impl fmt::Debug for Schema {
@@ -334,6 +391,7 @@ impl fmt::Debug for Schema {
                 .field("description", description)
                 .finish(),
             Schema::Flat(schema) => schema.fmt(f),
+            Schema::Deprecated(schema) => schema.fmt(f),
         }
     }
 }
@@ -537,7 +595,7 @@ impl Converter<'_> {
             operation_id: f.name.clone(),
             tags: f.tags.clone(),
             description: sanitize_description(&f.description),
-            deprecated: f.deprecated(),
+            deprecation: f.deprecation().into(),
             parameters: f
                 .input_headers()
                 .map_or_else(Vec::new, |headers| self.convert_headers(schema, headers)),
@@ -595,6 +653,7 @@ impl Converter<'_> {
                 let header = Header {
                     schema: self.convert_type_ref(schema, Kind::Output, value_type),
                     description: sanitize_description(&field.description),
+                    deprecation: field.deprecation().into(),
                 };
                 (field.serde_name().to_owned(), header)
             })
@@ -631,6 +690,7 @@ impl Converter<'_> {
                     name,
                     schema: property.schema,
                     description: property.description,
+                    deprecation: property.deprecation,
                 })
                 .collect(),
             _ => unreachable!("header type is a struct"),
@@ -645,7 +705,7 @@ impl Converter<'_> {
     ) -> Property {
         Property {
             description: sanitize_description(field.description()),
-            deprecated: field.deprecated(),
+            deprecation: field.deprecation().into(),
             schema: self.convert_type_ref(schema, kind, field.type_ref()),
         }
     }
@@ -886,7 +946,16 @@ impl Converter<'_> {
 
         let subschemas = adt
             .variants()
-            .map(|variant| self.variant_to_schema(schema, kind, type_ref, adt, variant))
+            .map(|variant| {
+                let variant_schema = self.variant_to_schema(schema, kind, type_ref, adt, variant);
+                match variant.deprecation() {
+                    None => variant_schema,
+                    deprecation => Inline(Schema::Deprecated(DeprecatedSchema {
+                        schema: Box::new(variant_schema),
+                        deprecation: deprecation.into(),
+                    })),
+                }
+            })
             .collect::<Vec<_>>();
 
         let schema = match adt.representation() {
@@ -954,7 +1023,7 @@ impl Converter<'_> {
                                 variant.serde_name().to_owned(),
                                 Property {
                                     description: sanitize_description(variant.description()),
-                                    deprecated: false,
+                                    deprecation: Default::default(),
                                     schema: Inline(Schema::empty_object()),
                                 },
                             )]),
@@ -966,7 +1035,7 @@ impl Converter<'_> {
                                 variant.serde_name().to_owned(),
                                 Property {
                                     description: sanitize_description(variant.description()),
-                                    deprecated: false,
+                                    deprecation: Default::default(),
                                     schema: Inline(Schema::empty_tuple()),
                                 },
                             )]),
@@ -1004,7 +1073,7 @@ impl Converter<'_> {
                             properties: BTreeMap::from([(
                                 variant.serde_name().to_owned(),
                                 Property {
-                                    deprecated: false,
+                                    deprecation: Default::default(),
                                     description: String::new(),
                                     schema: property_schema,
                                 },
@@ -1031,7 +1100,7 @@ impl Converter<'_> {
                                     tag.to_owned(),
                                     Property {
                                         description: String::new(),
-                                        deprecated: false,
+                                        deprecation: Default::default(),
                                         schema: mk_tag(&variant.name),
                                     },
                                 ),
@@ -1039,7 +1108,7 @@ impl Converter<'_> {
                                     content.to_owned(),
                                     Property {
                                         description: String::new(),
-                                        deprecated: false,
+                                        deprecation: Default::default(),
                                         schema: data,
                                     },
                                 ),
@@ -1063,7 +1132,7 @@ impl Converter<'_> {
                                 tag.to_owned(),
                                 Property {
                                     description: String::new(),
-                                    deprecated: false,
+                                    deprecation: Default::default(),
                                     schema: mk_tag(variant.serde_name()),
                                 },
                             )]
@@ -1147,7 +1216,7 @@ impl Converter<'_> {
                                 tag_name.to_owned(),
                                 Property {
                                     description: String::new(),
-                                    deprecated: false,
+                                    deprecation: Default::default(),
                                     schema: tag_schema,
                                 },
                             )]),
@@ -1173,7 +1242,7 @@ impl Converter<'_> {
                     tag_name.to_owned(),
                     Property {
                         description: String::new(),
-                        deprecated: false,
+                        deprecation: Default::default(),
                         schema: tag_schema.clone(),
                     },
                 );
@@ -1184,7 +1253,7 @@ impl Converter<'_> {
                     value.clone(),
                     Property {
                         description: String::new(),
-                        deprecated: false,
+                        deprecation: Default::default(),
                         schema: Inline(Schema::Flat(FlatSchema {
                             description: String::new(),
                             ty: Type::Null,
@@ -1202,6 +1271,13 @@ impl Converter<'_> {
                     },
                 })))
             }
+            Schema::Deprecated(DeprecatedSchema {
+                schema,
+                deprecation,
+            }) => Ok(Inline(Schema::Deprecated(DeprecatedSchema {
+                schema: Box::new(self.internally_tag(tag_name, tag_schema, schema)?),
+                deprecation: deprecation.clone(),
+            }))),
             Schema::Flat(schema) => match &schema.ty {
                 Type::Boolean
                 | Type::Integer
@@ -1219,7 +1295,7 @@ impl Converter<'_> {
                             tag_name.to_owned(),
                             Property {
                                 description: String::new(),
-                                deprecated: false,
+                                deprecation: Default::default(),
                                 schema: tag_schema,
                             },
                         )]),
@@ -1245,7 +1321,7 @@ impl Converter<'_> {
                                 tag_name.to_owned(),
                                 Property {
                                     description: String::new(),
-                                    deprecated: false,
+                                    deprecation: Default::default(),
                                     schema: tag_schema,
                                 },
                             )))

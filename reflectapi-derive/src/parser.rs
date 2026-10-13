@@ -122,9 +122,21 @@ pub(crate) struct ParsedTypeAttributes {
     pub derives: Vec<syn::Meta>,
 }
 
+/// `#[deprecated]` plus `#[reflectapi(deprecated_since = "..", sunset = "..")]`
+/// on a field or variant. Dates are kept as literals so later checks can
+/// point at them.
+#[derive(Debug, Default)]
+pub(crate) struct ParsedDeprecation {
+    pub note: Option<String>,
+    /// `since` of `#[deprecated]`, a release such as a crate version.
+    pub release: Option<String>,
+    pub since: Option<syn::LitStr>,
+    pub sunset: Option<syn::LitStr>,
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct ParsedFieldAttributes {
-    pub deprecation_note: Option<String>,
+    pub deprecation: ParsedDeprecation,
     pub input_type: Option<syn::Type>,
     pub output_type: Option<syn::Type>,
     pub input_transform: String,
@@ -136,6 +148,7 @@ pub(crate) struct ParsedFieldAttributes {
 
 #[derive(Debug, Default)]
 pub(crate) struct ParsedVariantAttributes {
+    pub deprecation: ParsedDeprecation,
     pub input_skip: bool,
     pub output_skip: bool,
 }
@@ -237,27 +250,123 @@ pub(crate) fn parse_type_attributes(
     result
 }
 
-fn parse_deprecated_attr(attr: &syn::Attribute) -> syn::Result<String> {
-    assert!(attr.path().is_ident("deprecated"));
+/// Parses `#[deprecated]`, `#[deprecated = ".."]` and
+/// `#[deprecated(since = "..", note = "..")]` into the note and the `since`
+/// literal.
+fn parse_deprecated_attr(attr: &syn::Attribute) -> syn::Result<(String, Option<syn::LitStr>)> {
+    let expect_str = |expr: &syn::Expr| match expr {
+        syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(s),
+            ..
+        }) => Ok(s.value()),
+        _ => Err(syn::Error::new_spanned(
+            expr,
+            "expected a string literal for the deprecation note",
+        )),
+    };
     match &attr.meta {
-        syn::Meta::Path(_) => Ok("".to_string()),
-        syn::Meta::NameValue(nv) => match &nv.value {
-            syn::Expr::Lit(lit) => match &lit.lit {
-                syn::Lit::Str(s) => Ok(s.value()),
-                _ => panic!("expected string literal for deprecation note"),
-            },
-            _ => panic!("expected string literal for deprecation note"),
-        },
+        syn::Meta::Path(_) => Ok((String::new(), None)),
+        syn::Meta::NameValue(nv) => Ok((expect_str(&nv.value)?, None)),
         syn::Meta::List(list) => {
-            let mut s = String::new();
+            let mut note = String::new();
+            let mut since = None;
             list.parse_nested_meta(|meta| {
                 if meta.path.is_ident("note") {
-                    s = meta.value()?.parse::<syn::LitStr>()?.value();
+                    note = meta.value()?.parse::<syn::LitStr>()?.value();
+                } else if meta.path.is_ident("since") {
+                    since = Some(meta.value()?.parse::<syn::LitStr>()?);
+                } else if meta.input.peek(syn::Token![=]) {
+                    // rustc reports unknown items itself; just skip the value.
+                    meta.value()?.parse::<syn::Expr>()?;
                 }
                 Ok(())
             })?;
-            Ok(s)
+            Ok((note, since))
         }
+    }
+}
+
+/// Reads the `#[deprecated]` attribute into `deprecation`.
+///
+/// rustc accepts any string as `since`, so it is kept verbatim as the
+/// release the item was deprecated in, never as a date.
+fn parse_deprecation(cx: &Context, attr: &syn::Attribute, deprecation: &mut ParsedDeprecation) {
+    let (note, since) = match parse_deprecated_attr(attr) {
+        Ok(parsed) => parsed,
+        Err(err) => return cx.syn_error(err),
+    };
+    deprecation.note = Some(note);
+    deprecation.release = since.map(|lit| lit.value());
+}
+
+/// Parses `name = "YYYY-MM-DD"` inside `#[reflectapi(..)]` into `slot`.
+fn parse_date(
+    cx: &Context,
+    name: Symbol,
+    meta: &syn::meta::ParseNestedMeta<'_>,
+    slot: &mut Option<syn::LitStr>,
+) -> syn::Result<()> {
+    if let Some(lit) = parse_lit_str(cx, name, name, meta)? {
+        set_date(cx, &name.to_string(), slot, lit);
+    }
+    Ok(())
+}
+
+fn set_date(cx: &Context, name: &str, slot: &mut Option<syn::LitStr>, lit: syn::LitStr) {
+    if let Err(err) = reflectapi_schema::validate_deprecation_dates(Some(&lit.value()), None) {
+        return cx.impl_error(&lit, format!("`{name}`: {err}"));
+    }
+    match slot {
+        Some(existing) if existing.value() != lit.value() => cx.impl_error(
+            &lit,
+            format!(
+                "conflicting deprecation dates `{}` and `{}`",
+                existing.value(),
+                lit.value()
+            ),
+        ),
+        _ => *slot = Some(lit),
+    }
+}
+
+/// Checks the parts of a deprecation against each other once all attributes
+/// of the item have been read.
+fn check_deprecation(cx: &Context, deprecation: &ParsedDeprecation) {
+    if deprecation.note.is_none() {
+        for date in deprecation.since.iter().chain(&deprecation.sunset) {
+            cx.impl_error(
+                date,
+                "deprecation dates require `#[deprecated]` on the same item",
+            );
+        }
+        return;
+    }
+    let (Some(since), Some(sunset)) = (&deprecation.since, &deprecation.sunset) else {
+        return;
+    };
+    if let Err(err) =
+        reflectapi_schema::validate_deprecation_dates(Some(&since.value()), Some(&sunset.value()))
+    {
+        cx.impl_error(sunset, err);
+    }
+}
+
+impl ParsedDeprecation {
+    /// The note, release, deprecation date and sunset, in that order.
+    pub fn into_parts(
+        self,
+    ) -> (
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    ) {
+        (
+            self.note,
+            self.release,
+            self.since.map(|lit| lit.value()),
+            self.sunset.map(|lit| lit.value()),
+        )
     }
 }
 
@@ -265,10 +374,15 @@ pub(crate) fn parse_variant_attributes(
     cx: &Context,
     attributes: &[syn::Attribute],
 ) -> ParsedVariantAttributes {
+    let mut deprecation = ParsedDeprecation::default();
     let mut input_skip = false;
     let mut output_skip = false;
 
     for attr in attributes.iter() {
+        if attr.path() == DEPRECATED {
+            parse_deprecation(cx, attr, &mut deprecation);
+        }
+
         if attr.path() != REFLECT {
             continue;
         }
@@ -290,6 +404,12 @@ pub(crate) fn parse_variant_attributes(
                 // #[reflectapi(skip)]
                 input_skip = true;
                 output_skip = true;
+            } else if meta.path == DEPRECATED_SINCE {
+                // #[reflectapi(deprecated_since = "...")]
+                parse_date(cx, DEPRECATED_SINCE, &meta, &mut deprecation.since)?;
+            } else if meta.path == SUNSET {
+                // #[reflectapi(sunset = "...")]
+                parse_date(cx, SUNSET, &meta, &mut deprecation.sunset)?;
             } else {
                 let path = meta.path.to_token_stream().to_string();
                 return Err(meta.error(format_args!("unknown reflect variant attribute `{path}`")));
@@ -300,7 +420,10 @@ pub(crate) fn parse_variant_attributes(
         }
     }
 
+    check_deprecation(cx, &deprecation);
+
     ParsedVariantAttributes {
+        deprecation,
         input_skip,
         output_skip,
     }
@@ -314,10 +437,7 @@ pub(crate) fn parse_field_attributes(
 
     for attr in attributes.iter() {
         if attr.path() == DEPRECATED {
-            match parse_deprecated_attr(attr) {
-                Ok(note) => result.deprecation_note = Some(note),
-                Err(err) => cx.syn_error(err),
-            }
+            parse_deprecation(cx, attr, &mut result.deprecation);
         }
 
         if attr.path() != REFLECT {
@@ -394,6 +514,12 @@ pub(crate) fn parse_field_attributes(
             } else if meta.path == HIDDEN {
                 // #[reflectapi(hidden)]
                 result.hidden = true;
+            } else if meta.path == DEPRECATED_SINCE {
+                // #[reflectapi(deprecated_since = "...")]
+                parse_date(cx, DEPRECATED_SINCE, &meta, &mut result.deprecation.since)?;
+            } else if meta.path == SUNSET {
+                // #[reflectapi(sunset = "...")]
+                parse_date(cx, SUNSET, &meta, &mut result.deprecation.sunset)?;
             } else {
                 let path = meta.path.to_token_stream().to_string();
                 return Err(meta.error(format_args!("unknown reflect field attribute `{path}`")));
@@ -403,6 +529,7 @@ pub(crate) fn parse_field_attributes(
             cx.syn_error(err);
         }
     }
+    check_deprecation(cx, &result.deprecation);
     result
 }
 
