@@ -493,14 +493,15 @@ impl<T> Ref<T> {
 struct Converter<'a> {
     components: Components,
     config: &'a Config,
-    /// Type references currently being converted. Keyed by
+    /// Type references currently being converted, and whether each was
+    /// referenced from within itself. Keyed by
     /// `fmt_type_ref` so different monomorphizations of the same
     /// generic (e.g. `Tree<i32>` vs `Tree<u32>`) are tracked
     /// independently. Required to break recursion for generic
     /// self-referential types, which are inlined rather than
     /// promoted to `components.schemas` and so don't benefit from
     /// the stub-on-insert guard elsewhere in this module.
-    in_progress: std::collections::HashSet<String>,
+    in_progress: std::collections::HashMap<String, bool>,
 }
 
 impl Converter<'_> {
@@ -665,11 +666,21 @@ impl Converter<'_> {
         schema: &crate::Schema,
         type_ref: &crate::TypeReference,
     ) -> Vec<Parameter> {
+        let registered_before = self
+            .components
+            .schemas
+            .contains_key(&normalize(&type_ref.name));
         let schema = match self.convert_type_ref(schema, Kind::Input, type_ref) {
             InlineOrRef::Inline(schema) => schema,
             InlineOrRef::Ref(r) => {
                 let name = r.ref_path.strip_prefix("#/components/schemas/").unwrap();
-                self.components.schemas.remove(name).unwrap()
+                // Headers are inlined as parameters, so drop the component
+                // this call added, but keep one other schemas refer to.
+                if registered_before {
+                    self.components.schemas[name].clone()
+                } else {
+                    self.components.schemas.remove(name).unwrap()
+                }
             }
         };
 
@@ -730,25 +741,52 @@ impl Converter<'_> {
         // generic types are guarded by the stub-insert into
         // `components.schemas` below, which the early-return at the
         // top of this function uses to break re-entry. Generic types
-        // are inlined into their use sites and so don't appear in
-        // `components.schemas` at all — they need a separate
-        // in-progress set keyed by the full monomorphization, so
+        // are inlined into their use sites, so they need a separate
+        // in-progress map keyed by the full monomorphization, so
         // distinct instantiations of the same generic are tracked
-        // independently.
-        let in_progress_key = fmt_type_ref(ty_ref);
-        if self.in_progress.contains(&in_progress_key) {
-            // Emit a placeholder ref. The target isn't a real
-            // component (generics aren't promoted to named
-            // components), but the schema remains parseable as
-            // documentation and bounded in size.
-            let safe_key = in_progress_key.replace(['<', '>'], "_").replace(", ", "_");
-            return InlineOrRef::Ref(Ref::new(format!("#/components/schemas/{safe_key}")));
+        // independently. An instantiation that turns out to refer to
+        // itself is promoted to a component under `component_name`, so
+        // the `$ref` emitted on re-entry resolves. Primitives such as
+        // `Vec<T>` are skipped: they only recurse through a struct or
+        // enum argument, which is the better place to break the cycle.
+        let type_def = match kind {
+            Kind::Input => schema.input_types.get_type(&ty_ref.name),
+            Kind::Output => schema.output_types.get_type(&ty_ref.name),
+        };
+        if matches!(type_def, None | Some(crate::Type::Primitive(_))) {
+            return self.convert_type_ref_inner(schema, kind, ty_ref, name);
         }
-        self.in_progress.insert(in_progress_key.clone());
+        let in_progress_key = fmt_type_ref(ty_ref);
+        let component_name = in_progress_key.replace(['<', '>'], "_").replace(", ", "_");
+        let component_ref =
+            || InlineOrRef::Ref(Ref::new(format!("#/components/schemas/{component_name}")));
+        if let Some(referenced) = self.in_progress.get_mut(&in_progress_key) {
+            *referenced = true;
+            return component_ref();
+        }
+        if !ty_ref.arguments.is_empty() && self.components.schemas.contains_key(&component_name) {
+            return component_ref();
+        }
+        self.in_progress.insert(in_progress_key.clone(), false);
 
         let result = self.convert_type_ref_inner(schema, kind, ty_ref, name);
-        self.in_progress.remove(&in_progress_key);
-        result
+        if !self
+            .in_progress
+            .remove(&in_progress_key)
+            .unwrap_or_default()
+        {
+            return result;
+        }
+        let promoted = match result {
+            Inline(schema) => schema,
+            r @ InlineOrRef::Ref(_) => Schema::AllOf {
+                subschemas: vec![r],
+            },
+        };
+        self.components
+            .schemas
+            .insert(component_name.clone(), promoted);
+        component_ref()
     }
 
     fn convert_type_ref_inner(

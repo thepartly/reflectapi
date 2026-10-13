@@ -54,7 +54,82 @@ fn generated_openapi_spec_has_resolvable_refs() {
     assert_local_openapi_refs_resolve(&spec);
 }
 
-fn assert_local_openapi_refs_resolve(spec: &serde_json::Value) {
+/// A generic instantiation that reaches itself only through a non-generic
+/// enum: `Outcome<Observation>` is first converted from a route, then
+/// re-entered from the `oneOf` of `Activation`, which `Observation` refers
+/// to. The re-entry used to emit a `$ref` to a component never written.
+#[test]
+fn openapi_refs_resolve_for_generic_reentered_through_enum() {
+    mod m {
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub struct Outcome<O> {
+            pub value: O,
+        }
+
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub struct Observation {
+            pub activation: Option<Box<Activation>>,
+        }
+
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub enum Activation {
+            Tuple(Outcome<Observation>),
+            Struct { outcome: Outcome<Observation> },
+            List(Vec<Outcome<Observation>>),
+        }
+
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub struct Request {
+            pub outcome: Outcome<Observation>,
+            pub activation: Activation,
+        }
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(
+            |_: (), _: m::Outcome<m::Observation>, _: reflectapi::Empty| async {
+                reflectapi::Empty {}
+            },
+            |b| b.name("internal.outcome").tag("internal"),
+        )
+        .route(
+            |_: (), r: m::Request, _: reflectapi::Empty| async { r },
+            |b| b.name("public.activate").tag("public"),
+        )
+        .build()
+        .unwrap();
+
+    for exclude_tags in [BTreeSet::new(), BTreeSet::from(["internal".to_owned()])] {
+        let spec = reflectapi::codegen::openapi::generate_spec(
+            &schema,
+            reflectapi::codegen::openapi::Config::default().exclude_tags(exclude_tags),
+        );
+        assert_local_openapi_refs_resolve(&serde_json::to_value(spec).unwrap());
+    }
+}
+
+#[test]
+fn openapi_refs_resolve_for_header_type_also_used_as_body() {
+    #[derive(::serde::Deserialize, reflectapi::Input)]
+    struct SharedHeaders {
+        _authorization: String,
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(
+            |_: (), _: SharedHeaders, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("a.body"),
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: SharedHeaders| async { reflectapi::Empty {} },
+            |b| b.name("b.headers"),
+        )
+        .build()
+        .unwrap();
+    assert_openapi_refs_resolve(&schema);
+}
+
+pub(crate) fn assert_local_openapi_refs_resolve(spec: &serde_json::Value) {
     let schemas = spec
         .pointer("/components/schemas")
         .and_then(serde_json::Value::as_object)

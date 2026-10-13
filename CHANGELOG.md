@@ -40,6 +40,8 @@ Messages read like `Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11
 
 ### Fixed
 
+- OpenAPI: a generic instantiation that reaches itself, directly (`Tree<T>` with `children: Vec<Tree<T>>`) or through another type (`Outcome<Observation>` where `Observation` contains an enum with an `Outcome<Observation>` variant), no longer produces a `$ref` to a component that doesn't exist, such as `#/components/schemas/Outcome_Observation_`. Such an instantiation is now written to `components.schemas` under that name.
+- OpenAPI: a struct used both as a request body and as request headers no longer leaves a dangling `$ref` from the body.
 - Rust clients: a deprecation note containing `"` or `\` no longer produces code that doesn't compile.
 - Python clients: field deprecation notes, previously dropped, are now rendered.
 - TypeScript clients: a `*/` in a doc comment or deprecation note no longer ends the JSDoc comment early and breaks the generated file.

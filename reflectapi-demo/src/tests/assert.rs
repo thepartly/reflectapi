@@ -163,8 +163,16 @@ where
     codegen_python(eps)
 }
 
+/// Every `$ref` in the OpenAPI spec of every test schema must resolve, even
+/// for the schemas whose spec isn't snapshotted.
+pub fn assert_openapi_refs_resolve(schema: &reflectapi::Schema) {
+    let spec = serde_json::to_value(reflectapi::codegen::openapi::Spec::from(schema)).unwrap();
+    super::assert_local_openapi_refs_resolve(&spec);
+}
+
 macro_rules! assert_input_snapshot {
     ($I:ty) => {
+        super::assert_openapi_refs_resolve(&super::into_input_schema::<$I>());
         insta::assert_json_snapshot!(super::into_input_schema::<$I>().input_types);
         insta::assert_snapshot!(super::into_input_typescript_code::<$I>());
         insta::assert_snapshot!(super::into_input_rust_code::<$I>());
@@ -174,6 +182,7 @@ macro_rules! assert_input_snapshot {
 
 macro_rules! assert_output_snapshot {
     ($O:ty) => {
+        super::assert_openapi_refs_resolve(&super::into_output_schema::<$O>());
         insta::assert_json_snapshot!(super::into_output_schema::<$O>().output_types);
         insta::assert_snapshot!(super::into_output_typescript_code::<$O>());
         insta::assert_snapshot!(super::into_output_rust_code::<$O>());
@@ -184,6 +193,7 @@ macro_rules! assert_output_snapshot {
 macro_rules! assert_snapshot {
     ($T:ty) => {{
         let schema = super::into_schema::<$T>();
+        super::assert_openapi_refs_resolve(&schema);
         insta::assert_json_snapshot!(schema);
         insta::assert_snapshot!(super::into_typescript_code::<$T>());
         insta::assert_snapshot!(super::into_rust_code::<$T>());
@@ -195,6 +205,7 @@ macro_rules! assert_snapshot {
 macro_rules! assert_builder_snapshot {
     ($builder:expr) => {{
         let (schema, _) = $builder.build().unwrap();
+        super::assert_openapi_refs_resolve(&schema);
         let rust = reflectapi::codegen::strip_boilerplate(
             &reflectapi::codegen::rust::generate(
                 schema.clone(),
