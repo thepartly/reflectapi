@@ -1365,6 +1365,8 @@ fn generate_init_py(config: &Config) -> String {
 
 struct PythonGeneration {
     preamble: String,
+    /// `preamble` plus the imports the client code's deprecation warnings need.
+    client_preamble: String,
     schema_name: String,
     schema_description: String,
     module_tree: templates::Module,
@@ -1707,8 +1709,13 @@ fn build_python_generation(
         has_streaming,
         has_partial_models,
     };
-    // Use optimized import generation instead of template
-    generated_code.push(generate_optimized_imports(&imports));
+    // Only the client code warns about deprecated methods, so model modules
+    // get the imports without `warnings` and `typing_extensions`.
+    let imports_index = generated_code.len();
+    generated_code.push(generate_optimized_imports(&templates::Imports {
+        has_warnings: false,
+        ..imports.clone()
+    }));
 
     let class_names = build_python_class_name_map(
         semantic
@@ -1923,8 +1930,11 @@ fn build_python_generation(
         None
     };
 
+    let preamble = generated_code.join("\n\n");
+    generated_code[imports_index] = generate_optimized_imports(&imports);
     Ok(PythonGeneration {
-        preamble: generated_code.join("\n\n"),
+        preamble,
+        client_preamble: generated_code.join("\n\n"),
         schema_name: schema.name.clone(),
         schema_description: schema.description.clone(),
         module_tree,
@@ -1937,7 +1947,7 @@ fn build_python_generation(
 pub fn generate(schema: Schema, config: &Config) -> anyhow::Result<String> {
     let generation = build_python_generation(schema, config)?;
     let mut generated_code = Vec::new();
-    generated_code.push(generation.preamble);
+    generated_code.push(generation.client_preamble);
 
     let module_tree_code = generation.module_tree.render();
     if !module_tree_code.trim().is_empty() {
@@ -3108,7 +3118,7 @@ fn render_client_file(
     registry: &CollisionRegistry,
     config: &Config,
 ) -> anyhow::Result<String> {
-    let mut parts = vec![generation.preamble.clone()];
+    let mut parts = vec![generation.client_preamble.clone()];
 
     for root in ordered_child_modules(&generation.module_tree, &[])? {
         parts.push(format!("from . import {root}"));
@@ -6150,6 +6160,7 @@ pub mod templates {
         )
     }
 
+    #[derive(Clone)]
     pub struct Imports {
         pub has_async: bool,
         pub has_sync: bool,

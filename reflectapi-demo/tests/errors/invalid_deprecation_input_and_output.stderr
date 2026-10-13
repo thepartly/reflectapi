@@ -1,0 +1,5 @@
+error: sunset date 2026-10-01 is before the deprecation date 2026-11-01
+ --> tests/errors/invalid_deprecation_input_and_output.rs:5:60
+  |
+5 |     #[reflectapi(deprecated_since = "2026-11-01", sunset = "2026-10-01")]
+  |                                                            ^^^^^^^^^^^^
