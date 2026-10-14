@@ -112,6 +112,8 @@ fn openapi_refs_resolve_for_generic_reentered_through_enum() {
 fn openapi_refs_resolve_for_header_type_also_used_as_body() {
     #[derive(::serde::Deserialize, reflectapi::Input)]
     struct SharedHeaders {
+        #[deprecated(since = "0.19.0", note = "Use the new authorization header.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
         _authorization: String,
     }
 
@@ -127,6 +129,66 @@ fn openapi_refs_resolve_for_header_type_also_used_as_body() {
         .build()
         .unwrap();
     assert_openapi_refs_resolve(&schema);
+    let spec = serde_json::to_value(reflectapi::codegen::openapi::generate_spec(
+        &schema,
+        &reflectapi::codegen::openapi::Config::default(),
+    ))
+    .unwrap();
+    let header = &spec["paths"]["/b.headers"]["post"]["parameters"][0];
+    assert_eq!(header["deprecated"], true);
+    assert_eq!(header["x-deprecated-in"], "0.19.0");
+    assert_eq!(header["x-deprecated-since"], "2026-10-01");
+    assert_eq!(header["x-sunset"], "2026-11-01");
+}
+
+#[test]
+fn openapi_refs_resolve_for_recursive_open_enum_with_deprecated_variant() {
+    #[derive(::serde::Serialize, reflectapi::Output)]
+    #[serde(tag = "kind")]
+    #[reflectapi(open)]
+    enum Tree<T> {
+        Leaf {
+            value: T,
+        },
+        #[deprecated(since = "0.19.0", note = "Use a leaf.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        Branch {
+            children: Vec<Tree<T>>,
+        },
+    }
+
+    #[allow(deprecated)]
+    let source = Tree::Branch {
+        children: vec![Tree::Leaf {
+            value: "example".to_owned(),
+        }],
+    };
+    assert_eq!(
+        serde_json::to_value(source).unwrap(),
+        serde_json::json!({"kind": "Branch", "children": [{"kind": "Leaf", "value": "example"}]})
+    );
+
+    let schema = into_output_schema::<Tree<String>>();
+    let spec = serde_json::to_value(reflectapi::codegen::openapi::generate_spec(
+        &schema,
+        &reflectapi::codegen::openapi::Config::default(),
+    ))
+    .unwrap();
+    assert_local_openapi_refs_resolve(&spec);
+    let root = spec["paths"]["/output_test"]["post"]["responses"]["200"]["content"]
+        ["application/json"]["schema"]["$ref"]
+        .as_str()
+        .unwrap();
+    let tree = spec.pointer(root.strip_prefix('#').unwrap()).unwrap();
+    let branch = &tree["oneOf"][1];
+    assert_eq!(branch["deprecated"], true);
+    assert_eq!(branch["x-deprecated-in"], "0.19.0");
+    assert_eq!(branch["x-deprecated-since"], "2026-10-01");
+    assert_eq!(branch["x-sunset"], "2026-11-01");
+    assert_eq!(branch["properties"]["children"]["items"]["$ref"], root);
+    // Open is a client decoding policy: the server schema contains only
+    // declared wire variants, with no synthetic unknown alternative.
+    assert_eq!(tree["oneOf"].as_array().unwrap().len(), 2);
 }
 
 /// Generic header structs: one shared with a request body (plain and
