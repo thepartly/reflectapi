@@ -1454,7 +1454,13 @@ impl Converter<'_> {
                 } => Ok(Inline(Schema::Flat(FlatSchema {
                     description: sanitize_description(&schema.description),
                     ty: Type::Object {
-                        title: title.to_owned(),
+                        // A newtype variant's object carries the wrapped struct's name, which
+                        // two variants wrapping the same struct would share.
+                        title: if variant_title.is_empty() {
+                            title.to_owned()
+                        } else {
+                            variant_title.to_owned()
+                        },
                         required: required
                             .iter()
                             .cloned()

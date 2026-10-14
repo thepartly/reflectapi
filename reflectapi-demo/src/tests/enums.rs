@@ -257,3 +257,23 @@ fn test_internally_tagged_enum_wrapping_untagged_enum() {
 
     assert_snapshot!(Rule);
 }
+
+#[test]
+fn test_internally_tagged_variants_wrapping_one_struct() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct Body {
+        x: u32,
+    }
+
+    // Both branches would otherwise carry `Body`'s name as their title.
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    enum E {
+        #[serde(rename = "first")]
+        A(Body),
+        #[serde(rename = "second")]
+        C(Body),
+    }
+
+    assert_snapshot!(E);
+}
