@@ -50,6 +50,23 @@ export namespace reflectapi_demo {
     }
   }
 }
+const __decoder_specs: __DecodeSpecs = Object.fromEntries([
+  [
+    "reflectapi_demo::tests::serde::output::TestEnumWithVariantOther",
+    (args: __DecodeSpec[]) => ({
+      k: "enum",
+      r: "internal",
+      t: "type",
+      c: "",
+      o: false,
+      f: "Variant1",
+      v: [
+        { t: "V0", s: "none", d: "pass" },
+        { t: "Variant1", s: "none", d: "pass" },
+      ],
+    }),
+  ],
+]);
 
 namespace __implementation {
 
@@ -64,6 +81,24 @@ namespace __implementation {
         {},
         reflectapi_demo.tests.serde.output.TestEnumWithVariantOther,
         {}
-      >(client, "/inout_test", input, headers, options);
+      >(
+        client,
+        "/inout_test",
+        input,
+        headers,
+        options,
+        [],
+        (__value: unknown) =>
+          __decode(
+            __value,
+            {
+              k: "ref",
+              n: "reflectapi_demo::tests::serde::output::TestEnumWithVariantOther",
+              a: [],
+            },
+            __decoder_specs,
+          ),
+        undefined,
+      );
   }
 }

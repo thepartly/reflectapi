@@ -138,6 +138,7 @@ fn types_referenced_by(
 }
 
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
+    super::validate_response_enums(&schema)?;
     schema.strip_hidden_fields();
     let mut implemented_types = __build_implemented_types();
     for type_def in schema
@@ -305,7 +306,23 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
         std::fs::write(path.join(name), content)?;
     }
 
-    std::fs::write(path.join("generated.rs"), src)?;
+    // The lightweight serde stub gives every type blanket Serialize/Deserialize
+    // implementations. It cannot also accept the real custom implementations
+    // used by open enums. Cargo integration tests compile those implementations
+    // against serde; this pass still checks the surrounding generated client.
+    let mut typecheck_src = String::with_capacity(src.len());
+    let mut in_open_impl = false;
+    for line in src.lines() {
+        match line.trim() {
+            "// reflectapi-open-impl-start" => in_open_impl = true,
+            "// reflectapi-open-impl-end" => in_open_impl = false,
+            _ if !in_open_impl => typecheck_src.push_str(line),
+            _ => {}
+        }
+        typecheck_src.push('\n');
+    }
+    anyhow::ensure!(!in_open_impl, "unterminated open enum implementation");
+    std::fs::write(path.join("generated.rs"), typecheck_src)?;
 
     let output = Command::new("make")
         .current_dir(&path)
@@ -466,9 +483,12 @@ mod templates {
 
     pub(super) struct __Enum {
         pub name: String,
+        pub base_name: String,
+        pub parameters: Vec<String>,
         pub description: String,
         pub variants: Vec<__Variant>,
         pub representation: crate::Representation,
+        pub open: bool,
         pub is_input_type: bool,
         pub is_output_type: bool,
         pub is_error_type: bool,
@@ -477,14 +497,42 @@ mod templates {
     }
 
     impl __Enum {
+        fn derive_name(derive: &str) -> &str {
+            derive.rsplit("::").next().unwrap_or(derive)
+        }
+
+        fn private_type_name(&self, preferred: &str) -> String {
+            let mut name = preferred.to_owned();
+            while self.parameters.iter().any(|parameter| parameter == &name) {
+                name.push('_');
+            }
+            name
+        }
+
+        fn requests_serialize(&self) -> bool {
+            self.codegen_config
+                .additional_derives
+                .iter()
+                .chain(&self.base_derives)
+                .any(|derive| Self::derive_name(derive) == "Serialize")
+        }
+
         fn render_attributes_derive(&self) -> String {
             let mut attrs = self.codegen_config.additional_derives.clone();
             attrs.extend(self.base_derives.iter().cloned());
-            if self.is_input_type || self.is_error_type {
-                attrs.insert("serde::Serialize".into());
-            }
-            if self.is_output_type {
-                attrs.insert("serde::Deserialize".into());
+            if self.open {
+                // Open enums implement serde themselves so unknown variants retain
+                // their original tags and complete JSON values.
+                attrs.retain(|derive| {
+                    !matches!(Self::derive_name(derive), "Serialize" | "Deserialize")
+                });
+            } else {
+                if self.is_input_type || self.is_error_type {
+                    attrs.insert("serde::Serialize".into());
+                }
+                if self.is_output_type {
+                    attrs.insert("serde::Deserialize".into());
+                }
             }
             if attrs.is_empty() {
                 "".into()
@@ -519,32 +567,274 @@ mod templates {
         }
 
         pub fn render(&self) -> anyhow::Result<String> {
+            let unknown_name = if self.open {
+                let mut name = "Unknown".to_owned();
+                while self.variants.iter().any(|variant| variant.name == name) {
+                    name.push('_');
+                }
+                Some(name)
+            } else {
+                None
+            };
             let mut out = format!(
                 "\n{}{}\n{}pub enum {} {{",
                 self.description,
                 self.render_attributes_derive(),
-                self.render_attributes(),
+                if self.open {
+                    String::new()
+                } else {
+                    self.render_attributes()
+                },
                 self.name,
             );
             for variant in &self.variants {
-                write!(out, "\n    {}", variant.render()?).unwrap();
+                write!(
+                    out,
+                    "\n    {}",
+                    if self.open {
+                        variant.render_plain()?
+                    } else {
+                        variant.render(true)?
+                    }
+                )
+                .unwrap();
+            }
+            if let Some(name) = &unknown_name {
+                write!(
+                    out,
+                    "\n    {name} {{ tag: std::string::String, raw: reflectapi::rt::serde_json::Value }},"
+                )
+                .unwrap();
             }
             out.push_str("\n}\n");
 
+            if let Some(name) = unknown_name {
+                out.push_str("\n// reflectapi-open-impl-start\n");
+                out.push_str(&self.render_open_deserialize(&name)?);
+                if self.is_input_type || self.is_error_type || self.requests_serialize() {
+                    out.push_str(&self.render_open_serialize(&name)?);
+                }
+                out.push_str("\n// reflectapi-open-impl-end\n");
+            }
+
             if self.is_error_type {
+                let (impl_prefix, display_type, bounds) = self.render_error_impl_parts();
                 write!(
                     out,
-                    "\nimpl std::fmt::Display for {} {{\n\
+                    "\nimpl{impl_prefix} std::fmt::Display for {display_type}{bounds} {{\n\
                          fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {{\n\
                              write!(f, \"{{}}\", reflectapi::rt::error_to_string(self))\n\
                          }}\n\
                      }}\n\n\
-                     impl std::error::Error for {} {{}}\n",
-                    self.name, self.name,
+                     impl{impl_prefix} std::error::Error for {display_type}{bounds} {{}}\n",
                 )
                 .unwrap();
             }
             out.push('\n');
+            Ok(out)
+        }
+
+        fn render_error_impl_parts(&self) -> (String, String, String) {
+            let params = self.parameters.join(", ");
+            if params.is_empty() {
+                return (String::new(), self.base_name.clone(), String::new());
+            }
+            let bounds = self
+                .parameters
+                .iter()
+                .map(|param| format!("{param}: serde::Serialize + std::fmt::Debug"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            (
+                format!("<{params}>"),
+                format!("{}<{params}>", self.base_name),
+                format!(" where {bounds}"),
+            )
+        }
+
+        fn render_open_deserialize(&self, unknown_name: &str) -> anyhow::Result<String> {
+            let deserializer_type = self.private_type_name("__ReflectapiDeserializer");
+            let helper_type = self.private_type_name("__ReflectapiKnown");
+            let params = self.parameters.join(", ");
+            let impl_params = if params.is_empty() {
+                "'__reflectapi_de".to_owned()
+            } else {
+                format!("'__reflectapi_de, {params}")
+            };
+            let bounds = self
+                .parameters
+                .iter()
+                .map(|param| format!("{param}: serde::Deserialize<'__reflectapi_de>"))
+                .collect::<Vec<_>>();
+            let where_clause = if bounds.is_empty() {
+                String::new()
+            } else {
+                format!(" where {}", bounds.join(", "))
+            };
+            let type_params = if params.is_empty() {
+                String::new()
+            } else {
+                format!("<{params}>")
+            };
+            let mut out = format!(
+                "\n#[allow(deprecated)]\nimpl<{impl_params}> serde::Deserialize<'__reflectapi_de> for {}{type_params}{where_clause} {{\n\
+                     fn deserialize<{deserializer_type}>(deserializer: {deserializer_type}) -> std::result::Result<Self, {deserializer_type}::Error>\n\
+                     where {deserializer_type}: serde::Deserializer<'__reflectapi_de> {{\n\
+                         let raw = <reflectapi::rt::serde_json::Value as serde::Deserialize>::deserialize(deserializer)?;\n",
+                self.base_name,
+            );
+            let tag_expression = match &self.representation {
+                crate::Representation::External => {
+                    "match &raw {\n\
+                         reflectapi::rt::serde_json::Value::String(tag) => tag.clone(),\n\
+                         reflectapi::rt::serde_json::Value::Object(fields) if fields.len() == 1 => fields.keys().next().unwrap().clone(),\n\
+                         _ => return Err(serde::de::Error::custom(\"externally tagged enum requires a string or a single-key object\")),\n\
+                     }"
+                        .to_owned()
+                }
+                crate::Representation::Internal { tag }
+                | crate::Representation::Adjacent { tag, .. } => format!(
+                    "raw.as_object().and_then(|fields| fields.get({tag:?})).and_then(reflectapi::rt::serde_json::Value::as_str)\n\
+                     .ok_or_else(|| serde::de::Error::custom(\"missing or non-string enum discriminator\"))?.to_owned()"
+                ),
+                crate::Representation::None => {
+                    anyhow::bail!("open enum cannot use untagged representation")
+                }
+            };
+            writeln!(out, "let tag = {tag_expression};").unwrap();
+            if !self.variants.is_empty() {
+                write!(
+                    out,
+                    "#[derive(serde::Deserialize)]\n\
+                     {}enum {helper_type}{type_params} {{\n",
+                    self.render_attributes(),
+                )
+                .unwrap();
+                for variant in &self.variants {
+                    writeln!(out, "{}", variant.render(false)?).unwrap();
+                }
+                out.push_str("}\n");
+            }
+            writeln!(out, "match tag.as_str() {{").unwrap();
+            if !self.variants.is_empty() {
+                let known_tags = self
+                    .variants
+                    .iter()
+                    .map(|variant| format!("{:?}", variant.serde_name))
+                    .collect::<Vec<_>>()
+                    .join(" | ");
+                write!(
+                    out,
+                    "{known_tags} => {{\n\
+                     let known: {helper_type}{type_params} = serde::Deserialize::deserialize(raw).map_err(serde::de::Error::custom)?;\n\
+                     Ok(match known {{\n",
+                )
+                .unwrap();
+                for variant in &self.variants {
+                    writeln!(
+                        out,
+                        "{helper_type}::{name}{pattern} => Self::{name}{constructor},",
+                        name = variant.name,
+                        pattern = variant.match_pattern(),
+                        constructor = variant.match_constructor(),
+                    )
+                    .unwrap();
+                }
+                out.push_str("})\n},\n");
+            }
+            write!(
+                out,
+                "_ => Ok(Self::{unknown_name} {{ tag, raw }}),\n\
+                 }}\n\
+                 }}\n\
+                 }}\n"
+            )
+            .unwrap();
+            Ok(out)
+        }
+
+        fn render_open_serialize(&self, unknown_name: &str) -> anyhow::Result<String> {
+            let serializer_type = self.private_type_name("__ReflectapiSerializer");
+            let helper_type = self.private_type_name("__ReflectapiKnown");
+            let params = self.parameters.join(", ");
+            let type_params = if params.is_empty() {
+                String::new()
+            } else {
+                format!("<{params}>")
+            };
+            let bounds = self
+                .parameters
+                .iter()
+                .map(|param| format!("{param}: serde::Serialize"))
+                .collect::<Vec<_>>();
+            let where_clause = if bounds.is_empty() {
+                String::new()
+            } else {
+                format!(" where {}", bounds.join(", "))
+            };
+            let mut out = format!(
+                "\n#[allow(deprecated)]\nimpl{type_params} serde::Serialize for {}{type_params}{where_clause} {{\n\
+                 fn serialize<{serializer_type}>(&self, serializer: {serializer_type}) -> std::result::Result<{serializer_type}::Ok, {serializer_type}::Error>\n\
+                 where {serializer_type}: serde::Serializer {{\n",
+                self.base_name,
+            );
+            if self.variants.is_empty() {
+                write!(
+                    out,
+                    "let Self::{unknown_name} {{ raw, .. }} = self;\n\
+                     serde::Serialize::serialize(raw, serializer)\n\
+                     }}\n\
+                     }}\n"
+                )
+                .unwrap();
+                return Ok(out);
+            }
+
+            let has_fields = self
+                .variants
+                .iter()
+                .any(|variant| !variant.fields.is_empty());
+            let helper_params = match (has_fields, params.is_empty()) {
+                (true, true) => "<'__reflectapi_ref>".to_owned(),
+                (true, false) => format!("<'__reflectapi_ref, {params}>"),
+                (false, true) => String::new(),
+                (false, false) => type_params.clone(),
+            };
+            write!(
+                out,
+                "match self {{\n\
+                 Self::{unknown_name} {{ raw, .. }} => serde::Serialize::serialize(raw, serializer),\n\
+                 _ => {{\n\
+                 #[derive(serde::Serialize)]\n\
+                 {}enum {helper_type}{helper_params} {{\n",
+                self.render_attributes(),
+            )
+            .unwrap();
+            for variant in &self.variants {
+                writeln!(out, "{}", variant.render_reference()?).unwrap();
+            }
+            out.push_str("}\nlet known = match self {\n");
+            for variant in &self.variants {
+                writeln!(
+                    out,
+                    "Self::{name}{pattern} => {helper_type}::{name}{constructor},",
+                    name = variant.name,
+                    pattern = variant.match_pattern(),
+                    constructor = variant.match_constructor(),
+                )
+                .unwrap();
+            }
+            write!(
+                out,
+                "Self::{unknown_name} {{ .. }} => unreachable!(),\n\
+                 }};\n\
+                 serde::Serialize::serialize(&known, serializer)\n\
+                 }}\n\
+                 }}\n\
+                 }}\n\
+                 }}\n"
+            )
+            .unwrap();
             Ok(out)
         }
     }
@@ -557,15 +847,66 @@ mod templates {
         pub fields: Vec<__Field>,
         pub discriminant: Option<isize>,
         pub untagged: bool,
+        pub other: bool,
     }
 
     impl __Variant {
-        pub fn render(&self) -> anyhow::Result<String> {
+        fn render_plain(&self) -> anyhow::Result<String> {
+            let brackets = self.render_brackets();
+            let deprecated = self
+                .deprecated
+                .as_ref()
+                .map_or_else(String::new, |attribute| format!("{attribute}\n    "));
+            let fields = self
+                .fields
+                .iter()
+                .map(__Field::render_plain)
+                .collect::<Vec<_>>();
+            let body = if fields.is_empty() {
+                String::new()
+            } else {
+                format!("\n        {},\n    ", fields.join(",\n        "))
+            };
+            Ok(format!(
+                "{}{}{}{}{}{}{},",
+                self.description,
+                deprecated,
+                self.name,
+                brackets.0,
+                body,
+                brackets.1,
+                self.discriminant
+                    .map(|value| format!(" = {value}"))
+                    .unwrap_or_default(),
+            ))
+        }
+
+        pub fn render(&self, preserve_other: bool) -> anyhow::Result<String> {
             Ok(format!(
                 "{}{}{},",
                 self.description,
-                self.render_attributes(),
+                self.render_attributes(preserve_other),
                 self.render_self()?,
+            ))
+        }
+
+        fn render_reference(&self) -> anyhow::Result<String> {
+            let rendered_fields = self
+                .fields
+                .iter()
+                .map(__Field::render_reference)
+                .collect::<Vec<_>>();
+            let body = if rendered_fields.is_empty() {
+                String::new()
+            } else if self.is_tuple() {
+                format!("({})", rendered_fields.join(", "))
+            } else {
+                format!(" {{ {} }}", rendered_fields.join(", "))
+            };
+            Ok(format!(
+                "{}{}{body},",
+                self.render_attributes(false),
+                self.name,
             ))
         }
 
@@ -584,13 +925,16 @@ mod templates {
             Ok(r)
         }
 
-        fn render_attributes(&self) -> String {
+        fn render_attributes(&self, preserve_other: bool) -> String {
             let mut attrs = vec![];
             if self.serde_name != self.name {
                 attrs.push(format!("rename = \"{}\"", self.serde_name));
             }
             if self.untagged {
                 attrs.push("untagged".into());
+            }
+            if preserve_other && self.other {
+                attrs.push("other".into());
             }
             let mut out = if attrs.is_empty() {
                 String::new()
@@ -632,6 +976,33 @@ mod templates {
         fn is_tuple(&self) -> bool {
             self.fields.iter().all(|f| f.is_unnamed())
         }
+
+        fn match_pattern(&self) -> String {
+            if self.fields.is_empty() {
+                String::new()
+            } else if self.is_tuple() {
+                format!(
+                    "({})",
+                    (0..self.fields.len())
+                        .map(|index| format!("field_{index}"))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            } else {
+                format!(
+                    "{{ {} }}",
+                    self.fields
+                        .iter()
+                        .map(|field| field.name.clone())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+        }
+
+        fn match_constructor(&self) -> String {
+            self.match_pattern()
+        }
     }
 
     #[derive(Clone)]
@@ -648,6 +1019,26 @@ mod templates {
     }
 
     impl __Field {
+        fn render_plain(&self) -> String {
+            if self.is_unnamed() {
+                format!(
+                    "{}{}{}",
+                    self.description,
+                    self.render_deprecation(),
+                    self.type_
+                )
+            } else {
+                format!(
+                    "{}{}{}{}: {}",
+                    self.description,
+                    self.render_deprecation(),
+                    self.render_visibility_modifier(),
+                    self.name,
+                    self.type_,
+                )
+            }
+        }
+
         fn is_unnamed(&self) -> bool {
             self.name.parse::<u64>().is_ok()
         }
@@ -705,12 +1096,15 @@ mod templates {
                 out.push_str(")]\n    ");
             }
 
-            if let Some(deprecated) = &self.deprecated {
-                out.push_str(deprecated);
-                out.push_str("\n    ");
-            }
+            out.push_str(&self.render_deprecation());
 
             out
+        }
+
+        fn render_deprecation(&self) -> String {
+            self.deprecated
+                .as_ref()
+                .map_or_else(String::new, |attribute| format!("{attribute}\n    "))
         }
 
         pub fn render(&self) -> String {
@@ -729,6 +1123,18 @@ mod templates {
                     self.render_visibility_modifier(),
                     self.name,
                     self.type_,
+                )
+            }
+        }
+
+        fn render_reference(&self) -> String {
+            let attributes = self.render_attributes();
+            if self.is_unnamed() {
+                format!("{attributes}&'__reflectapi_ref {}", self.type_)
+            } else {
+                format!(
+                    "{attributes}{}: &'__reflectapi_ref {}",
+                    self.name, self.type_
                 )
             }
         }
@@ -1339,8 +1745,16 @@ fn __render_type(
         crate::Type::Enum(enum_def) => {
             let enum_template = templates::__Enum {
                 name: type_name,
+                base_name: enum_def
+                    .name
+                    .split("::")
+                    .last()
+                    .unwrap_or_default()
+                    .to_owned(),
+                parameters: enum_def.parameters.iter().map(|p| p.name.clone()).collect(),
                 description: __doc_to_ts_comments(&enum_def.description, 0),
                 representation: enum_def.representation.clone(),
+                open: enum_def.open && is_output_type,
                 is_input_type,
                 is_output_type,
                 is_error_type,
@@ -1376,6 +1790,7 @@ fn __render_type(
                             .collect::<Vec<_>>(),
                         discriminant: variant.discriminant,
                         untagged: variant.untagged,
+                        other: variant.other && is_output_type,
                     })
                     .collect::<Vec<_>>(),
             };

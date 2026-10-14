@@ -175,6 +175,7 @@ impl ToTokens for TokenizableVariant<'_> {
             .map(|d| quote::quote! { Some(#d) })
             .unwrap_or_else(|| quote::quote! { None });
         let untagged = self.inner.untagged;
+        let other = self.inner.other;
         tokens.extend(quote::quote! {
             reflectapi::Variant {
                 name: #name.into(),
@@ -187,6 +188,7 @@ impl ToTokens for TokenizableVariant<'_> {
                 fields: #fields,
                 discriminant: #discriminant,
                 untagged: #untagged,
+                other: #other,
             }
         });
     }
@@ -247,6 +249,7 @@ impl ToTokens for TokenizableEnum<'_> {
         let description = self.inner.description.as_str();
         let parameters = self.inner.parameters().map(TokenizableTypeParameter::new);
         let representation = TokenizableRepresentation::new(&self.inner.representation);
+        let open = self.inner.open;
         let variants = self.inner.variants().map(TokenizableVariant::new);
         let codegen_config =
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
@@ -257,6 +260,7 @@ impl ToTokens for TokenizableEnum<'_> {
                 description: #description.into(),
                 parameters: vec![#(#parameters),*],
                 representation: #representation,
+                open: #open,
                 variants: vec![#(#variants),*],
                 codegen_config: #codegen_config,
             }

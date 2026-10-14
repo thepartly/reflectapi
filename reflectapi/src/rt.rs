@@ -1,6 +1,7 @@
 use std::{future::Future, pin::Pin};
 
 use futures_util::Stream;
+pub use serde_json;
 pub use url::{ParseError as UrlParseError, Url};
 
 pub fn error_to_string<T: serde::Serialize>(error: &T) -> String {

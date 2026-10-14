@@ -1,0 +1,5 @@
+error: #[reflectapi(open)] cannot be combined with #[serde(other)]; choose either a declared fallback or a rich unknown response
+ --> tests/errors/open_with_other.rs:4:6
+  |
+4 | enum Value {
+  |      ^^^^^

@@ -1340,6 +1340,11 @@ pub struct Enum {
     #[serde(skip_serializing_if = "Representation::is_default", default)]
     pub representation: Representation,
 
+    /// Generated response clients retain unfamiliar enum tags and their raw JSON.
+    /// This policy is never reflected into request types.
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub open: bool,
+
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub variants: Vec<Variant>,
 
@@ -1358,6 +1363,7 @@ impl Enum {
             description: Default::default(),
             parameters: Default::default(),
             representation: Default::default(),
+            open: false,
             variants: Default::default(),
             codegen_config: Default::default(),
         }
@@ -1426,6 +1432,10 @@ pub struct Variant {
     /// If serde `untagged` attribute is set on a variant
     #[serde(skip_serializing_if = "is_false", default)]
     pub untagged: bool,
+
+    /// Serde's unit catch-all for an internally or adjacently tagged enum.
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub other: bool,
 }
 
 impl Variant {
@@ -1441,6 +1451,7 @@ impl Variant {
             fields: Fields::None,
             discriminant: None,
             untagged: false,
+            other: false,
         }
     }
 

@@ -7,6 +7,76 @@ ReflectAPI provides `#[reflectapi(...)]` attributes that control how Rust types 
 | Attribute | Description |
 |-----------|-------------|
 | `#[reflectapi(derive(...))]` | Forward additional derive traits to the generated Rust client type. |
+| `#[reflectapi(open)]` | Make a tagged enum open in generated responses: retain unfamiliar tags and raw JSON in an explicit unknown case. Request types stay closed. |
+
+### Enum evolution
+
+An enum marked `#[reflectapi(open)]` tells generated clients to accept future
+response variants while preserving their content:
+
+```rust,ignore
+#[derive(serde::Serialize, reflectapi::Output)]
+#[serde(tag = "kind")]
+#[reflectapi(open)]
+enum PetKind {
+    Dog { breed: String },
+    Bird,
+}
+```
+
+This response-only type needs `Serialize` to send values and `Output` to
+describe them in the schema. Request-only types use `Deserialize` and `Input`.
+Add all four derives only when the same type is used in both directions; an
+`open` enum's generated request type still stays closed.
+
+Serde controls the wire representation (`kind` in this example). ReflectAPI's
+`open` attribute controls how generated clients handle future response tags.
+
+A response such as `{"kind":"Fox","nocturnal":true}` becomes an explicit
+unknown value. A known `Dog` missing `breed` still fails decoding. Rust clients
+get an `Unknown { tag, raw }` variant (with a suffix if that variant name is
+already taken). Python clients get an unknown model with `.tag` and `.raw`.
+TypeScript clients get a branded `UnknownEnum`, detected with `isUnknownEnum`;
+its tag and raw value are available under the exported `unknownEnum` symbol.
+The same policy applies to nested models, application errors, and SSE items.
+See [handling unfamiliar enum variants](../clients/README.md#handling-unfamiliar-enum-variants)
+for client-side examples.
+Rust retains Serde's surrounding container rules: an optional flattened enum
+can become `None` when its contents fail validation. Use a required flattened
+field when invalid content must produce a decoding error.
+
+Open enums support external string/single-key-object tags, internal tags, and
+adjacent tags. Untagged enums and untagged variants are rejected because an
+overlapping future shape cannot be reliably distinguished from a known shape.
+Numeric `#[reflectapi(discriminant)]` enums and output type overrides cannot be
+combined with `open`.
+Directly flattened open enums must use internal or adjacent tags. Codegen
+rejects flattened external open enums because a future variant key cannot be
+distinguished from a newly added parent field. An external open enum used as a
+regular field inside a flattened struct remains supported.
+An object with a flattened open or declared-fallback enum cannot flatten
+another enum. Use named fields for additional enums so each unknown case has
+its own discriminator, payload, and client representation.
+
+This attribute changes client decoding, not server Serde behavior. Requests
+use separate closed generated types, and the current wire variants in OpenAPI
+are unchanged. Existing SDKs need regeneration to acquire the new policy;
+enabling it does not change already distributed SDKs.
+
+Without `open`, a declared `#[serde(other)]` unit variant is preserved in the
+generated response clients. An unfamiliar valid tag maps to that unit variant,
+discarding its original tag and content. This is supported for internally and
+adjacently tagged enums; adjacent unit variants accept only absent or null
+content, matching Serde. Missing/non-string tags and malformed known variants
+remain errors for ordinary enum fields. A directly flattened internal fallback
+also preserves Serde's integer variant identifiers: an index selects the
+declared variant, or the fallback when it is out of range. Open enums always
+require string tags.
+
+Declaring both `open` and `#[serde(other)]` is rejected. Choose the existing
+unit fallback when unfamiliar tags should map to that declared variant, or
+`open` when clients should retain the unfamiliar tag and raw JSON. Neither
+policy widens generated request types.
 
 ## Field Level
 

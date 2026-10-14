@@ -54,13 +54,16 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
-class _ReflectapiDeferredNamespace:
-    def __getattr__(self, name: str) -> Any:
-        raise NameError(name)
+from typing import TYPE_CHECKING
 
+if not TYPE_CHECKING:
 
-if not hasattr(myapi, "model"):
-    myapi.model = _ReflectapiDeferredNamespace()
+    class _ReflectapiDeferredNamespace:
+        def __getattr__(self, name: str) -> Any:
+            raise NameError(name)
+
+    if not hasattr(myapi, "model"):
+        myapi.model = _ReflectapiDeferredNamespace()
 
 
 class MyapiProtoHeaders(BaseModel):

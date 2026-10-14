@@ -48,6 +48,7 @@ pub fn generate(
     config: &Config,
 ) -> anyhow::Result<BTreeMap<String, String>> {
     schema.strip_hidden_fields();
+    super::validate_response_enums(&schema)?;
     let implemented_types = build_implemented_types();
 
     let mut rendered_types = HashMap::new();
@@ -86,6 +87,9 @@ pub fn generate(
         .functions()
         .map(|f| (f.name.clone(), f))
         .collect::<IndexMap<_, _>>();
+    let needs_decoders = schema
+        .functions()
+        .any(|function| function_has_decoder(function, &schema));
     let function_groups = function_groups_from_function_names(
         schema
             .functions()
@@ -103,6 +107,9 @@ pub fn generate(
 
     generated_code.push(START_BOILERPLATE.into());
     generated_code.push(include_str!("./lib.ts").to_owned());
+    if needs_decoders {
+        generated_code.push(include_str!("./lib_decode.ts").to_owned());
+    }
     generated_code.push(END_BOILERPLATE.into());
 
     let mut types = vec![];
@@ -125,6 +132,10 @@ pub fn generate(
 
     let module = modules_from_rendered_types(schema.consolidate_types(), rendered_types);
     generated_code.push(module.render().trim().to_string());
+
+    if needs_decoders {
+        generated_code.push(render_decoder_specs(&schema));
+    }
 
     let mut rendered_functions = Vec::new();
     for function in schema.functions.iter() {
@@ -401,6 +412,7 @@ mod templates {
         pub name: String,
         pub description: String,
         pub variants: Vec<Variant>,
+        pub open: bool,
     }
 
     impl Enum {
@@ -408,6 +420,9 @@ mod templates {
             let mut out = format!("\n{}export type {} =", self.description, self.name,);
             for variant in &self.variants {
                 write!(out, "\n    {}", variant.render()?).unwrap();
+            }
+            if self.open {
+                out.push_str("\n    | UnknownEnum");
             }
             out.push(';');
             Ok(out)
@@ -540,7 +555,8 @@ mod templates {
                 crate::Representation::Adjacent { tag, content } => {
                     if self.fields.is_empty() {
                         return Ok(match &self.fields {
-                            Fields::None | Fields::Named(_) => {
+                            Fields::None => format!(r#"{{ {tag}: "{}" }}"#, self.name),
+                            Fields::Named(_) => {
                                 format!(r#"{{ {tag}: "{}", {content}: {{}} }}"#, self.name)
                             }
                             Fields::Unnamed(_) => {
@@ -670,6 +686,7 @@ mod templates {
         pub output_type: String,
         pub error_type: String,
         pub response_headers: Option<super::ResponseHeaders>,
+        pub decoder_args: String,
     }
 
     impl FunctionImplementationTemplate {
@@ -688,7 +705,7 @@ mod templates {
                 "function {name}(client: Client) {{\n\
                      return (input: {input_type}, headers: {input_headers}, options?: RequestOptions) => __request<\n\
                          {input_type}, {input_headers}, {output_type}, {error_type}{response_headers_type}\n\
-                     >(client, '{path}', input, headers, options{response_headers_arg});\n\
+                     >(client, '{path}', input, headers, options{response_headers_arg}{decoder_args});\n\
                  }}",
                 name = self.name,
                 input_type = self.input_type,
@@ -696,6 +713,7 @@ mod templates {
                 output_type = self.output_type,
                 error_type = self.error_type,
                 path = self.path,
+                decoder_args = self.decoder_args,
             )
         }
     }
@@ -708,6 +726,7 @@ mod templates {
         pub item_type: String,
         pub error_type: String,
         pub response_headers: Option<super::ResponseHeaders>,
+        pub decoder_args: String,
     }
 
     impl StreamFunctionImplementationTemplate {
@@ -726,7 +745,7 @@ mod templates {
                 "function {name}(client: Client) {{\n\
                      return (input: {input_type}, headers: {input_headers}, options?: RequestOptions) => __stream_request<\n\
                          {input_type}, {input_headers}, {item_type}, {error_type}{response_headers_type}\n\
-                     >(client, '{path}', input, headers, options{response_headers_arg});\n\
+                     >(client, '{path}', input, headers, options{response_headers_arg}{decoder_args});\n\
                  }}",
                 name = self.name,
                 input_type = self.input_type,
@@ -734,6 +753,7 @@ mod templates {
                 item_type = self.item_type,
                 error_type = self.error_type,
                 path = self.path,
+                decoder_args = self.decoder_args,
             )
         }
     }
@@ -1023,6 +1043,357 @@ fn modules_from_rendered_types(
     root_module
 }
 
+fn output_type<'a>(schema: &'a crate::Schema, name: &str) -> Option<&'a crate::Type> {
+    schema
+        .output_types()
+        .get_type(name)
+        .or_else(|| schema.input_types().get_type(name))
+}
+
+fn function_has_decoder(function: &Function, schema: &crate::Schema) -> bool {
+    let output = match &function.output_type {
+        reflectapi_schema::OutputType::Complete { output_type } => output_type.as_ref(),
+        reflectapi_schema::OutputType::Stream { item_type } => Some(item_type),
+    };
+    output.is_some_and(|r| reaches_decoded_enum(r, schema, &mut BTreeSet::new()))
+        || function
+            .error_type
+            .as_ref()
+            .is_some_and(|r| reaches_decoded_enum(r, schema, &mut BTreeSet::new()))
+        || function
+            .response_headers
+            .as_ref()
+            .is_some_and(|r| reaches_decoded_enum(r, schema, &mut BTreeSet::new()))
+}
+
+fn reaches_decoded_enum(
+    reference: &crate::TypeReference,
+    schema: &crate::Schema,
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    if reference
+        .arguments
+        .iter()
+        .any(|argument| reaches_decoded_enum(argument, schema, visiting))
+    {
+        return true;
+    }
+    if !visiting.insert(reference.name.clone()) {
+        return false;
+    }
+    let result = match output_type(schema, &reference.name) {
+        Some(crate::Type::Enum(e)) => {
+            e.open
+                || e.variants.iter().any(|v| v.other)
+                || e.variants.iter().any(|v| {
+                    v.fields
+                        .iter()
+                        .any(|f| reaches_decoded_enum(&f.type_ref, schema, visiting))
+                })
+        }
+        Some(crate::Type::Struct(s)) => s
+            .fields
+            .iter()
+            .any(|f| reaches_decoded_enum(&f.type_ref, schema, visiting)),
+        Some(crate::Type::Primitive(_)) => reference
+            .fallback_once(schema.output_types())
+            .is_some_and(|fallback| reaches_decoded_enum(&fallback, schema, visiting)),
+        None => false,
+    };
+    visiting.remove(&reference.name);
+    result
+}
+
+fn decoder_for_ref(reference: &crate::TypeReference, schema: &crate::Schema) -> Option<String> {
+    reaches_decoded_enum(reference, schema, &mut BTreeSet::new()).then(|| {
+        format!(
+            "(__value: unknown) => __decode(__value, {}, __decoder_specs)",
+            decoder_ref_spec(reference, schema, &HashMap::new())
+        )
+    })
+}
+
+fn ts_quote(value: &str) -> String {
+    serde_json::to_string(value).expect("string serializes")
+}
+
+fn decoder_ref_spec(
+    reference: &crate::TypeReference,
+    schema: &crate::Schema,
+    parameters: &HashMap<String, usize>,
+) -> String {
+    if let Some(index) = parameters.get(&reference.name) {
+        return format!("args[{index}]");
+    }
+    let args = &reference.arguments;
+    let argument = |index: usize| {
+        args.get(index)
+            .map(|r| decoder_ref_spec(r, schema, parameters))
+            .unwrap_or_else(|| "\"pass\"".into())
+    };
+    match reference.name.as_str() {
+        "bool" => return "\"boolean\"".into(),
+        "char" | "std::string::String" | "uuid::Uuid" => return "\"string\"".into(),
+        "std::option::Option" | "reflectapi::Option" => {
+            return format!("{{k:\"nullable\",v:{}}}", argument(0));
+        }
+        "std::vec::Vec" | "std::array::Array" => {
+            return format!("{{k:\"array\",v:{}}}", argument(0));
+        }
+        "std::collections::HashMap" | "std::collections::BTreeMap" => {
+            return format!("{{k:\"map\",v:{}}}", argument(1));
+        }
+        "std::tuple::Tuple0" => return "\"null\"".into(),
+        "serde_json::Value" | "std::marker::PhantomData" => return "\"pass\"".into(),
+        "u8" => return "{k:\"integer\",min:0,max:255}".into(),
+        "u16" => return "{k:\"integer\",min:0,max:65535}".into(),
+        "u32" => return "{k:\"integer\",min:0,max:4294967295}".into(),
+        "u64" | "u128" => return "{k:\"integer\",min:0}".into(),
+        "i8" => return "{k:\"integer\",min:-128,max:127}".into(),
+        "i16" => return "{k:\"integer\",min:-32768,max:32767}".into(),
+        "i32" => return "{k:\"integer\",min:-2147483648,max:2147483647}".into(),
+        "i64" | "i128" => return "{k:\"integer\"}".into(),
+        "f32" | "f64" => return "\"number\"".into(),
+        name if name.starts_with("std::tuple::Tuple") => {
+            return format!(
+                "{{k:\"tuple\",v:[{}]}}",
+                args.iter()
+                    .map(|r| decoder_ref_spec(r, schema, parameters))
+                    .collect::<Vec<_>>()
+                    .join(",")
+            );
+        }
+        _ => {}
+    }
+    if let Some(crate::Type::Primitive(_)) = output_type(schema, &reference.name) {
+        if let Some(fallback) = reference.fallback_once(schema.output_types()) {
+            return decoder_ref_spec(&fallback, schema, parameters);
+        }
+        return "\"pass\"".into();
+    }
+    if output_type(schema, &reference.name).is_none() {
+        return "\"pass\"".into();
+    }
+    let args = args
+        .iter()
+        .map(|r| decoder_ref_spec(r, schema, parameters))
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("{{k:\"ref\",n:{},a:[{args}]}}", ts_quote(&reference.name))
+}
+
+fn decoder_fields_spec(
+    fields: &crate::Fields,
+    schema: &crate::Schema,
+    parameters: &HashMap<String, usize>,
+) -> String {
+    match fields {
+        crate::Fields::None => "\"pass\"".into(),
+        crate::Fields::Named(fields) => decoder_object_spec(fields, schema, parameters),
+        crate::Fields::Unnamed(fields) => {
+            if fields.len() == 1 {
+                decoder_ref_spec(&fields[0].type_ref, schema, parameters)
+            } else {
+                format!(
+                    "{{k:\"tuple\",v:[{}]}}",
+                    fields
+                        .iter()
+                        .map(|f| decoder_ref_spec(&f.type_ref, schema, parameters))
+                        .collect::<Vec<_>>()
+                        .join(",")
+                )
+            }
+        }
+    }
+}
+
+fn decoder_object_spec(
+    fields: &[crate::Field],
+    schema: &crate::Schema,
+    parameters: &HashMap<String, usize>,
+) -> String {
+    let ordinary = fields
+        .iter()
+        .filter(|f| !f.flattened)
+        .map(|field| {
+            format!(
+                "[{},{},{}]",
+                ts_quote(field.serde_name()),
+                decoder_ref_spec(&field.type_ref, schema, parameters),
+                field.required
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let flattened = fields
+        .iter()
+        .filter(|f| f.flattened)
+        .map(|field| decoder_ref_spec(&field.type_ref, schema, parameters))
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("{{k:\"object\",f:[{ordinary}],x:[{flattened}]}}")
+}
+
+fn decoder_type_spec(
+    type_def: &crate::Type,
+    schema: &crate::Schema,
+    parameters: &HashMap<String, usize>,
+) -> String {
+    match type_def {
+        crate::Type::Struct(s) if s.is_alias() => {
+            decoder_ref_spec(&s.fields[0].type_ref, schema, parameters)
+        }
+        crate::Type::Struct(s) if s.is_tuple() => {
+            format!(
+                "{{k:\"tuple\",v:[{}]}}",
+                s.fields
+                    .iter()
+                    .map(|f| decoder_ref_spec(&f.type_ref, schema, parameters))
+                    .collect::<Vec<_>>()
+                    .join(",")
+            )
+        }
+        crate::Type::Struct(s) => match &s.fields {
+            crate::Fields::Named(fields) => decoder_object_spec(fields, schema, parameters),
+            crate::Fields::Unnamed(fields) => format!(
+                "{{k:\"tuple\",v:[{}]}}",
+                fields
+                    .iter()
+                    .map(|f| decoder_ref_spec(&f.type_ref, schema, parameters))
+                    .collect::<Vec<_>>()
+                    .join(",")
+            ),
+            crate::Fields::None => decoder_object_spec(&[], schema, parameters),
+        },
+        crate::Type::Enum(e) => {
+            let (repr, tag, content) = match &e.representation {
+                crate::Representation::External => ("external", "", ""),
+                crate::Representation::Internal { tag } => ("internal", tag.as_str(), ""),
+                crate::Representation::Adjacent { tag, content } => {
+                    ("adjacent", tag.as_str(), content.as_str())
+                }
+                crate::Representation::None => {
+                    let variants = e
+                        .variants
+                        .iter()
+                        .map(|variant| match &variant.fields {
+                            crate::Fields::None => "\"null\"".into(),
+                            fields => decoder_fields_spec(fields, schema, parameters),
+                        })
+                        .collect::<Vec<_>>()
+                        .join(",");
+                    return format!("{{k:\"untagged\",v:[{variants}]}}");
+                }
+            };
+            let fallback = e
+                .variants
+                .iter()
+                .find(|v| v.other)
+                .map(|v| ts_quote(v.serde_name()))
+                .unwrap_or_else(|| "null".into());
+            let variants = e
+                .variants
+                .iter()
+                .map(|variant| {
+                    let style = match &variant.fields {
+                        crate::Fields::None => "none",
+                        crate::Fields::Named(_) => "named",
+                        crate::Fields::Unnamed(_) => "unnamed",
+                    };
+                    format!(
+                        "{{t:{},s:{},d:{}}}",
+                        ts_quote(variant.serde_name()),
+                        ts_quote(style),
+                        decoder_fields_spec(&variant.fields, schema, parameters)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            format!(
+                "{{k:\"enum\",r:{},t:{},c:{},o:{},f:{},v:[{variants}]}}",
+                ts_quote(repr),
+                ts_quote(tag),
+                ts_quote(content),
+                e.open,
+                fallback
+            )
+        }
+        crate::Type::Primitive(_) => "\"pass\"".into(),
+    }
+}
+
+fn collect_decoder_types(
+    reference: &crate::TypeReference,
+    schema: &crate::Schema,
+    names: &mut BTreeSet<String>,
+) {
+    for argument in &reference.arguments {
+        collect_decoder_types(argument, schema, names);
+    }
+    let Some(type_def) = output_type(schema, &reference.name) else {
+        return;
+    };
+    if !names.insert(reference.name.clone()) {
+        return;
+    }
+    match type_def {
+        crate::Type::Struct(s) => {
+            for field in s.fields.iter() {
+                collect_decoder_types(&field.type_ref, schema, names);
+            }
+        }
+        crate::Type::Enum(e) => {
+            for variant in &e.variants {
+                for field in variant.fields.iter() {
+                    collect_decoder_types(&field.type_ref, schema, names);
+                }
+            }
+        }
+        crate::Type::Primitive(_) => {
+            if let Some(fallback) = reference.fallback_once(schema.output_types()) {
+                collect_decoder_types(&fallback, schema, names);
+            }
+        }
+    }
+}
+
+fn render_decoder_specs(schema: &crate::Schema) -> String {
+    let mut names = BTreeSet::new();
+    for function in schema.functions() {
+        let output = match &function.output_type {
+            reflectapi_schema::OutputType::Complete { output_type } => output_type.as_ref(),
+            reflectapi_schema::OutputType::Stream { item_type } => Some(item_type),
+        };
+        for reference in output
+            .into_iter()
+            .chain(function.error_type.as_ref())
+            .chain(function.response_headers.as_ref())
+        {
+            if reaches_decoded_enum(reference, schema, &mut BTreeSet::new()) {
+                collect_decoder_types(reference, schema, &mut names);
+            }
+        }
+    }
+    let entries = names
+        .into_iter()
+        .filter_map(|name| output_type(schema, &name).map(|type_def| (name, type_def)))
+        .map(|(name, type_def)| {
+            let parameters = type_def
+                .parameters()
+                .enumerate()
+                .map(|(index, param)| (param.name.clone(), index))
+                .collect::<HashMap<_, _>>();
+            format!(
+                "[{}, (args: __DecodeSpec[]) => ({})]",
+                ts_quote(&name),
+                decoder_type_spec(type_def, schema, &parameters)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",\n");
+    format!("const __decoder_specs: __DecodeSpecs = Object.fromEntries([\n{entries}\n]);\n")
+}
+
 fn render_function(
     function: &Function,
     schema: &crate::Schema,
@@ -1031,6 +1402,40 @@ fn render_function(
     let sig = function_signature(function, schema, implemented_types);
     let name = function.name.replace('-', "_").replace('.', "__");
     let path = format!("{}/{}", function.path, function.name);
+    let output_ref = match &function.output_type {
+        reflectapi_schema::OutputType::Complete { output_type } => output_type.as_ref(),
+        reflectapi_schema::OutputType::Stream { item_type } => Some(item_type),
+    };
+    let output_decoder = output_ref.and_then(|t| decoder_for_ref(t, schema));
+    let error_decoder = function
+        .error_type
+        .as_ref()
+        .and_then(|t| decoder_for_ref(t, schema));
+    let headers_decoder = function
+        .response_headers
+        .as_ref()
+        .and_then(|t| decoder_for_ref(t, schema));
+    let decoder_args =
+        if output_decoder.is_some() || error_decoder.is_some() || headers_decoder.is_some() {
+            let mut args = vec![
+                output_decoder.unwrap_or_else(|| "undefined".into()),
+                error_decoder.unwrap_or_else(|| "undefined".into()),
+            ];
+            if let Some(headers_decoder) = headers_decoder {
+                args.push(headers_decoder);
+            }
+            format!(
+                "{}, {}",
+                if sig.response_headers.is_some() {
+                    ""
+                } else {
+                    ", []"
+                },
+                args.join(", ")
+            )
+        } else {
+            String::new()
+        };
     match sig.output {
         FunctionOutput::Single { output_type } => {
             let function_template = templates::FunctionImplementationTemplate {
@@ -1041,6 +1446,7 @@ fn render_function(
                 output_type,
                 error_type: sig.error_type,
                 response_headers: sig.response_headers,
+                decoder_args,
             };
             Ok(function_template.render())
         }
@@ -1053,6 +1459,7 @@ fn render_function(
                 item_type,
                 error_type: sig.error_type,
                 response_headers: sig.response_headers,
+                decoder_args,
             };
             Ok(function_template.render())
         }
@@ -1094,12 +1501,26 @@ fn render_type(
                         .map(|field| {
                             let type_ref =
                                 type_ref_to_ts_ref(&field.type_ref, schema, implemented_types);
+                            let external = flattened_external_enum_ref(
+                                &field.type_ref,
+                                schema,
+                                &mut BTreeSet::new(),
+                            );
                             if field.required {
                                 // Rust `()` maps to `null` in typescript. This has bad interactions when used with `&`.
                                 // Avoid this by turning `null -> {}`.
-                                format!("NullToEmptyObject<{type_ref}>")
+                                if external {
+                                    format!("NullToEmptyObject<__FlattenExternalEnum<{type_ref}>>")
+                                } else {
+                                    format!("NullToEmptyObject<{type_ref}>")
+                                }
                             } else {
-                                format!("Partial<{}>", type_ref.replace(" | null", ""))
+                                let nonnullable = type_ref.replace(" | null", "");
+                                if external {
+                                    format!("Partial<__FlattenExternalEnum<{nonnullable}>>")
+                                } else {
+                                    format!("Partial<{nonnullable}>")
+                                }
                             }
                         })
                         .collect::<Vec<_>>(),
@@ -1112,13 +1533,14 @@ fn render_type(
 
             // An empty enum requires special handling.
             // This is isomorphic to the never type as a value of this type does not exist.
-            if enum_def.variants.is_empty() {
+            if enum_def.variants.is_empty() && !enum_def.open {
                 return Ok(format!("{description}export type {type_name} = never"));
             }
 
             let enum_template = templates::Enum {
                 name: type_name,
                 description,
+                open: enum_def.open,
                 variants: enum_def
                     .variants
                     .iter()
@@ -1155,6 +1577,46 @@ fn render_type(
             alias_template.render()
         }
     })
+}
+
+fn flattened_external_enum_ref(
+    reference: &crate::TypeReference,
+    schema: &crate::Schema,
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    if matches!(
+        reference.name.as_str(),
+        "std::option::Option" | "reflectapi::Option" | "std::boxed::Box"
+    ) {
+        return reference
+            .arguments
+            .first()
+            .is_some_and(|inner| flattened_external_enum_ref(inner, schema, visiting));
+    }
+    if !visiting.insert(reference.name.clone()) {
+        return false;
+    }
+    let result = match output_type(schema, &reference.name) {
+        Some(crate::Type::Enum(enm)) => {
+            matches!(enm.representation, crate::Representation::External)
+                && enm
+                    .variants
+                    .iter()
+                    .any(|variant| matches!(&variant.fields, crate::Fields::None))
+        }
+        Some(ty @ crate::Type::Struct(strukt)) if strukt.is_alias() => strukt
+            .fields
+            .iter()
+            .next()
+            .map(|field| super::bind_type_parameters(&field.type_ref, ty, reference))
+            .is_some_and(|inner| flattened_external_enum_ref(&inner, schema, visiting)),
+        Some(crate::Type::Primitive(_)) => reference
+            .fallback_once(schema.output_types())
+            .is_some_and(|inner| flattened_external_enum_ref(&inner, schema, visiting)),
+        _ => false,
+    };
+    visiting.remove(&reference.name);
+    result
 }
 
 fn fields_to_ts_fields(
@@ -1426,4 +1888,33 @@ fn build_implemented_types() -> HashMap<String, String> {
     );
 
     implemented_types
+}
+
+#[cfg(test)]
+mod enum_decoder_tests {
+    use super::*;
+
+    #[test]
+    fn empty_fallback_tag_is_distinct_from_no_fallback() {
+        let mut enm = reflectapi_schema::Enum::new("Example".into());
+        enm.representation = crate::Representation::Internal { tag: "kind".into() };
+        let without_fallback = decoder_type_spec(
+            &crate::Type::Enum(enm.clone()),
+            &crate::Schema::new(),
+            &HashMap::new(),
+        );
+        assert!(without_fallback.contains("f:null"));
+
+        // A schema can carry an empty wire tag. Keep it distinct from the
+        // absence of a serde(other) variant when emitting decoder metadata.
+        let mut fallback = reflectapi_schema::Variant::new(String::new());
+        fallback.other = true;
+        enm.variants.push(fallback);
+        let with_fallback = decoder_type_spec(
+            &crate::Type::Enum(enm),
+            &crate::Schema::new(),
+            &HashMap::new(),
+        );
+        assert!(with_fallback.contains("f:\"\""));
+    }
 }

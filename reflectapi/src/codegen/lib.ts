@@ -20,6 +20,9 @@ export type NullToEmptyObject<T> = IsAny<T> extends true
     ? {}
     : T;
 
+// A flattened external unit variant occupies a parent object key on the wire.
+type __FlattenExternalEnum<T> = T extends string ? { [K in T]: null } : T;
+
 export type AsyncResult<T, E, H = {}> = Promise<CallResult<T, E, H>>;
 
 export type FixedSizeArray<T, N extends number> = Array<T> & { length: N };
@@ -264,6 +267,40 @@ export class Err<E, H = {}> {
   }
 }
 
+// A decoded future enum variant is separate from every possible wire tag.
+const __unknownEnumBrand: unique symbol = Symbol("reflectapi.unknownEnumBrand");
+/** Read unknown value metadata with `value[unknownEnum]`, or use this symbol as a `match` case. */
+export const unknownEnum: unique symbol = Symbol("reflectapi.unknownEnumCase");
+export type UnknownEnumValue = { readonly tag: string; readonly raw: unknown };
+export type UnknownEnum = {
+  readonly [__unknownEnumBrand]: true;
+  readonly [unknownEnum]: UnknownEnumValue;
+};
+export function isUnknownEnum<T>(value: T): value is T & UnknownEnum {
+  return typeof value === "object" && value !== null &&
+    (value as any)[__unknownEnumBrand] === true;
+}
+function __copy_unknown_enum(target: object, source: unknown): void {
+  if (!isUnknownEnum(source)) return;
+  Object.defineProperty(target, __unknownEnumBrand, { value: true });
+  Object.defineProperty(target, unknownEnum, { value: source[unknownEnum] });
+}
+function __make_unknown_enum(tag: string, raw: unknown, fields?: Record<string, unknown>): UnknownEnum {
+  // Keep every wire field under its original name. The symbols carry client
+  // metadata without occupying business fields such as `tag` or `raw`.
+  const value: Record<string, unknown> = fields ? { ...fields } :
+    typeof raw === "object" && raw !== null && !Array.isArray(raw) ? { ...raw } : {};
+  if (typeof raw === "string") {
+    // An unknown external unit variant has no object fields to copy.
+    Object.defineProperty(value, "toJSON", { value: () => raw });
+  }
+  Object.defineProperty(value, __unknownEnumBrand, { value: true });
+  Object.defineProperty(value, unknownEnum, { value: { tag, raw } });
+  return value as UnknownEnum;
+}
+
+type __Decoder<T> = (value: unknown) => T;
+
 export function __request<I, H, O, E, RH = {}>(
   client: Client,
   path: string,
@@ -271,23 +308,27 @@ export function __request<I, H, O, E, RH = {}>(
   headers: H | undefined,
   options?: RequestOptions,
   response_headers: string[] = [],
+  decode_output?: __Decoder<O>,
+  decode_error?: __Decoder<E>,
+  decode_response_headers?: __Decoder<RH>,
 ): AsyncResult<O, E, RH> {
   return __call<O, E, RH>(
     client, path, input, headers, options, {}, response_headers, async (response) => {
       const body = await __read_response_body(response);
       if (response.status < 200 || response.status >= 300) {
-        return __error_outcome<E>(response.status, body);
+        return __error_outcome<E>(response.status, body, decode_error);
       }
       try {
-        return { ok: JSON.parse(body) as O };
-      } catch {
+        const parsed = JSON.parse(body);
+        return { ok: decode_output ? decode_output(parsed) : parsed as O };
+      } catch (error) {
         return {
           other_err:
-            "internal error: failure to parse response body as json on successful status code: " +
-            body,
+            decode_output ? error :
+              "internal error: failure to parse response body as json on successful status code: " + body,
         };
       }
-    },
+    }, decode_response_headers,
   );
 }
 
@@ -298,12 +339,15 @@ export function __stream_request<I, H, O, E, RH = {}>(
   headers: H | undefined,
   options?: RequestOptions,
   response_headers: string[] = [],
+  decode_item?: __Decoder<O>,
+  decode_error?: __Decoder<E>,
+  decode_response_headers?: __Decoder<RH>,
 ): AsyncResult<AsyncIterable<O>, E, RH> {
   const extra_headers = { accept: "text/event-stream" };
   return __call<AsyncIterable<O>, E, RH>(
     client, path, input, headers, options, extra_headers, response_headers, async (response) => {
       if (response.status < 200 || response.status >= 300) {
-        return __error_outcome<E>(response.status, await __read_response_body(response));
+        return __error_outcome<E>(response.status, await __read_response_body(response), decode_error);
       }
       const contentType = response.headers.get("content-type") || "";
       if (!contentType.toLowerCase().includes("text/event-stream")) {
@@ -314,8 +358,8 @@ export function __stream_request<I, H, O, E, RH = {}>(
       if (!response.body || typeof response.body.pipeThrough !== "function") {
         return { other_err: "expected response body to be a WHATWG ReadableStream" };
       }
-      return { ok: __sse_to_async_iterable<O>(response, options) };
-    },
+      return { ok: __sse_to_async_iterable<O>(response, options, decode_item) };
+    }, decode_response_headers,
   );
 }
 
@@ -333,6 +377,7 @@ async function __call<T, E, RH>(
   extra_headers: Record<string, string>,
   response_headers: string[],
   handle: (response: ClientResponse) => Promise<__Outcome<T, E>>,
+  decode_response_headers?: __Decoder<RH>,
 ): Promise<CallResult<T, E, RH>> {
   const hdrs: Record<string, string> = {
     "content-type": "application/json",
@@ -357,6 +402,9 @@ async function __call<T, E, RH>(
       headers: __pick_headers<RH>(response.headers, response_headers),
       raw_headers: response.headers,
     };
+    if (decode_response_headers) {
+      response_info.headers = decode_response_headers(response_info.headers);
+    }
     outcome = await handle(response);
   } catch (e) {
     outcome = { other_err: e };
@@ -377,10 +425,15 @@ function __pick_headers<RH>(headers: ClientHeaders, names: string[]): RH {
 
 // Non-2xx responses: below 500, a JSON body is the endpoint's typed
 // error; 5xx and non-JSON bodies are surfaced as `other_err`.
-function __error_outcome<E>(status: number, body: string): __Outcome<never, E> {
+function __error_outcome<E>(status: number, body: string, decode?: __Decoder<E>): __Outcome<never, E> {
   if (status < 500) {
     try {
-      return { application_err: JSON.parse(body) as E };
+      const parsed = JSON.parse(body);
+      try {
+        return { application_err: decode ? decode(parsed) : parsed as E };
+      } catch (error) {
+        return { other_err: error };
+      }
     } catch {
       // not JSON: fall through to other_err
     }
@@ -391,6 +444,7 @@ function __error_outcome<E>(status: number, body: string): __Outcome<never, E> {
 async function* __sse_to_async_iterable<O>(
   response: ClientResponse,
   options?: RequestOptions,
+  decode?: __Decoder<O>,
 ): AsyncIterable<O> {
   const body = response.body;
   if (!body) return;
@@ -413,7 +467,8 @@ async function* __sse_to_async_iterable<O>(
       const { done, value } = await reader.read();
       if (done) break;
       try {
-        yield JSON.parse(value.data) as O;
+        const parsed = JSON.parse(value.data);
+        yield decode ? decode(parsed) : parsed as O;
       } catch (e) {
         throw new Error(
           `SSE parse error: ${e instanceof Error ? e.message : String(e)} (raw: ${value.data})`,
@@ -453,7 +508,7 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => unknown : never) extend
 // 	| { b: number }
 // 	| { c: {} }
 
-type Step1<T> = T extends object ? T : T extends string ? { [K in T]: unknown } : never;
+type Step1<T> = T extends UnknownEnum ? { [unknownEnum]: UnknownEnumValue } : T extends object ? T : T extends string ? { [K in T]: unknown } : never;
 
 // Second transformation:
 // We want to merge the unions into a single object type.
@@ -510,24 +565,30 @@ export function match<T extends object | string, R>(value: T, cases: Cases<T, R>
 export function match<T extends object | string, R>(
   value: T,
   cases: CasesNonExhaustive<T, R>,
-  otherwise: () => R
+  otherwise: (value: T) => R
 ): R;
 export function match<T extends object | string, R>(
   value: T,
   cases: Cases<T, R> | CasesNonExhaustive<T, R>,
-  otherwise?: () => R
+  otherwise?: (value: T) => R
 ): R {
   const branches = cases as Record<string, (arg: any) => R>;
+  if (isUnknownEnum(value)) {
+    const handler = (cases as any)[unknownEnum] as ((arg: UnknownEnumValue) => R) | undefined;
+    if (handler) return handler(value[unknownEnum]);
+    if (otherwise) return otherwise(value);
+    throw new Error('unknown enum variant requires a handler');
+  }
   switch (typeof value) {
     case 'string':
-      if (value in branches) {
+      if (Object.prototype.hasOwnProperty.call(branches, value)) {
         return branches[value]({});
       }
 
       if (!otherwise) {
         throw new Error('otherwise must exist for non-exhaustive match');
       }
-      return otherwise();
+      return otherwise(value);
 
     case 'object': {
       if (Object.keys(value).length !== 1) {
@@ -537,13 +598,13 @@ export function match<T extends object | string, R>(
       }
 
       const [k, v] = Object.entries(value)[0];
-      if (k in branches) {
+      if (Object.prototype.hasOwnProperty.call(branches, k)) {
         return branches[k](v);
       }
       if (!otherwise) {
         throw new Error('otherwise must exist for non-exhaustive match');
       }
-      return otherwise();
+      return otherwise(value);
     }
 
     default:

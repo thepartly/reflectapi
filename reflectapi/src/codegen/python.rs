@@ -427,6 +427,16 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
             "parse_externally_tagged as _parse_externally_tagged, serialize_externally_tagged as _serialize_externally_tagged".to_string(),
         );
     }
+    if imports.has_forward_compatible_enums {
+        third_party_imports.insert("model_validator");
+        third_party_imports.insert("RootModel");
+        runtime_imports
+            .insert("UnknownEnumValue, classify_tagged_enum as _classify_tagged_enum".to_string());
+    }
+    if imports.has_typed_flattened_enum {
+        third_party_imports.insert("model_serializer");
+        third_party_imports.insert("model_validator");
+    }
 
     // Runtime imports - client bases
     if imports.has_async && imports.has_sync {
@@ -654,6 +664,8 @@ fn render_struct_with_flatten(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
+    let effective = materialize_nested_policy_flatten(struct_def, schema)?;
+    let struct_def = effective.as_ref().unwrap_or(struct_def);
     let struct_name = python_class_name(&struct_def.name, class_names);
     let active_generics: Vec<String> = struct_def
         .parameters
@@ -665,8 +677,9 @@ fn render_struct_with_flatten(
         used_type_vars.insert(generic.clone());
     }
 
-    // Check if any flattened field is an internally-tagged enum
-    let flattened_internal_enum =
+    // Forward-compatible tagged enums need a typed field so their classifier
+    // can distinguish unfamiliar tags from malformed known variants.
+    let flattened_tagged_enum =
         struct_def
             .fields
             .iter()
@@ -679,6 +692,14 @@ fn render_struct_with_flatten(
                             reflectapi_schema::Representation::Internal { tag } => {
                                 Some((field, enum_def.clone(), tag.clone()))
                             }
+                            reflectapi_schema::Representation::Adjacent { tag, .. }
+                                if enum_def.open || enum_def.variants.iter().any(|v| v.other) =>
+                            {
+                                Some((field, enum_def.clone(), tag.clone()))
+                            }
+                            reflectapi_schema::Representation::External if !enum_def.open => {
+                                Some((field, enum_def.clone(), String::new()))
+                            }
                             _ => None,
                         }
                     }
@@ -686,12 +707,12 @@ fn render_struct_with_flatten(
                 }
             });
 
-    if let Some((_enum_field, enum_def, tag)) = flattened_internal_enum {
-        // Wire-compatible path: generate per-variant models with merged fields
-        render_struct_with_flattened_internal_enum(
+    if let Some((enum_field, enum_def, tag)) = flattened_tagged_enum {
+        render_struct_with_flattened_tagged_enum(
             struct_def,
             &struct_name,
             &enum_def,
+            enum_field,
             &tag,
             schema,
             implemented_types,
@@ -713,6 +734,78 @@ fn render_struct_with_flatten(
     }
 }
 
+/// Expand nested flattened structs only when one contains a response enum
+/// whose tag must be classified before Pydantic validates it. Keep the enum
+/// field marked as flattened so the existing tagged-enum renderer handles it.
+fn materialize_nested_policy_flatten(
+    struct_def: &reflectapi_schema::Struct,
+    schema: &Schema,
+) -> anyhow::Result<Option<reflectapi_schema::Struct>> {
+    fn expand(
+        fields: &reflectapi_schema::Fields,
+        schema: &Schema,
+        depth: usize,
+        required: bool,
+        policy_count: &mut usize,
+        nested_policy: &mut bool,
+    ) -> Vec<reflectapi_schema::Field> {
+        let mut expanded = Vec::new();
+        for field in fields.iter() {
+            if field.flattened() && depth < 10 {
+                let type_name = resolve_flattened_type_name(&field.type_ref);
+                if let Some(Type::Struct(inner)) = schema.get_type(type_name) {
+                    expanded.extend(expand(
+                        &inner.fields,
+                        schema,
+                        depth + 1,
+                        required && field.required,
+                        policy_count,
+                        nested_policy,
+                    ));
+                    continue;
+                }
+                if let Some(Type::Enum(enum_def)) = schema.get_type(type_name) {
+                    if (enum_def.open || enum_def.variants.iter().any(|v| v.other))
+                        && matches!(
+                            enum_def.representation,
+                            reflectapi_schema::Representation::Internal { .. }
+                                | reflectapi_schema::Representation::Adjacent { .. }
+                        )
+                    {
+                        *policy_count += 1;
+                        *nested_policy |= depth > 0;
+                    }
+                }
+            }
+            let mut cloned = field.clone();
+            cloned.required &= required;
+            expanded.push(cloned);
+        }
+        expanded
+    }
+
+    let mut policy_count = 0;
+    let mut nested_policy = false;
+    let fields = expand(
+        &struct_def.fields,
+        schema,
+        0,
+        true,
+        &mut policy_count,
+        &mut nested_policy,
+    );
+    if !nested_policy {
+        return Ok(None);
+    }
+    anyhow::ensure!(
+        policy_count == 1,
+        "python codegen: nested flattened response enums require exactly one open or fallback enum"
+    );
+    let mut effective = struct_def.clone();
+    effective.fields = reflectapi_schema::Fields::Named(fields);
+    Ok(Some(effective))
+}
+
 /// Resolve the target type name for a flattened field, unwrapping `Option<T>`
 fn resolve_flattened_type_name(type_ref: &TypeReference) -> &str {
     if (type_ref.name == "std::option::Option" || type_ref.name == "reflectapi::Option")
@@ -724,13 +817,14 @@ fn resolve_flattened_type_name(type_ref: &TypeReference) -> &str {
     }
 }
 
-/// Render a struct with a flattened internally-tagged enum by generating
-/// per-variant models that merge parent fields + variant fields + tag.
+/// Render a struct with a flattened tagged enum. Forward-compatible response
+/// enums keep a typed field; legacy closed internal enums use merged variants.
 #[allow(clippy::too_many_arguments)]
-fn render_struct_with_flattened_internal_enum(
+fn render_struct_with_flattened_tagged_enum(
     struct_def: &reflectapi_schema::Struct,
     struct_name: &str,
     enum_def: &reflectapi_schema::Enum,
+    enum_field: &reflectapi_schema::Field,
     tag: &str,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
@@ -786,14 +880,16 @@ fn render_struct_with_flattened_internal_enum(
                 Some(field.name()),
             )?;
             base_fields.extend(flattened);
-        // Enum fields are handled below as variants
-        } else if let Some(reflectapi_schema::Type::Enum(enum_def)) = schema.get_type(type_name) {
-            // Check if this is the internally-tagged enum we're expanding
-            // (it's handled below as variants). Other enums get emitted as regular fields.
+        // The selected enum is rendered below; other enum fields remain typed.
+        } else if let Some(reflectapi_schema::Type::Enum(flattened_enum_def)) =
+            schema.get_type(type_name)
+        {
+            // Preserve legacy handling of internal enums while also recognizing
+            // the selected adjacent enum.
             let is_the_expanding_enum = matches!(
-                &enum_def.representation,
+                &flattened_enum_def.representation,
                 reflectapi_schema::Representation::Internal { .. }
-            );
+            ) || flattened_enum_def.name == enum_def.name;
             if !is_the_expanding_enum {
                 let field_type = type_ref_to_python_type(
                     &field.type_ref,
@@ -820,6 +916,148 @@ fn render_struct_with_flattened_internal_enum(
                 });
             }
         }
+    }
+
+    if enum_def.open
+        || enum_def.variants.iter().any(|v| v.other)
+        || matches!(
+            enum_def.representation,
+            reflectapi_schema::Representation::External
+        )
+    {
+        let mut enum_type = type_ref_to_python_type(
+            &enum_field.type_ref,
+            schema,
+            implemented_types,
+            class_names,
+            active_generics,
+            used_type_vars,
+        )?;
+        let enum_class = python_class_name(&enum_def.name, class_names);
+        let enum_module = enum_def.name.rsplit_once("::").map(|(module, _)| module);
+        let struct_module = struct_def.name.rsplit_once("::").map(|(module, _)| module);
+        if let (Some(enum_module), Some(struct_module)) = (enum_module, struct_module) {
+            if enum_module == struct_module
+                || struct_module.starts_with(&format!("{enum_module}::"))
+            {
+                // A child namespace can import a class already defined in its
+                // parent. This gives static checkers a concrete type instead of
+                // a dynamically attached namespace attribute (which is `Any`).
+                if enum_module != struct_module {
+                    let levels = struct_module[enum_module.len() + 2..].split("::").count();
+                    output.push_str(&format!(
+                        "from {} import {}\n\n",
+                        ".".repeat(levels + 1),
+                        enum_class
+                    ));
+                }
+                enum_type = enum_type.replacen(
+                    &type_name_to_python_ref(&enum_def.name, class_names),
+                    &enum_class,
+                    1,
+                );
+            }
+        }
+        let (enum_field_name, _) =
+            sanitize_field_name_with_alias(enum_field.name(), enum_field.name());
+        let (enum_optional, enum_default, enum_type) =
+            resolve_field_optionality(&enum_field.type_ref.name, enum_type, enum_field.required);
+        let enum_class_check = if enum_type.starts_with(&enum_class) {
+            enum_class
+        } else {
+            type_name_to_python_ref(&enum_def.name, class_names)
+        };
+        let mut fields = base_fields.clone();
+        fields.push(templates::Field {
+            name: enum_field_name.clone(),
+            type_annotation: enum_type,
+            description: Some(enum_field.description().to_string()),
+            deprecation_note: enum_field.deprecation().map(|d| d.message()),
+            optional: enum_optional,
+            default_value: enum_default,
+            alias: None,
+            is_partial: enum_field.type_ref.name == "reflectapi::Option",
+        });
+        let parent_keys = base_fields
+            .iter()
+            .map(|field| python_string_literal(field.alias.as_deref().unwrap_or(&field.name)))
+            .collect::<Vec<_>>();
+        let parent_keys = if parent_keys.is_empty() {
+            "frozenset()".to_string()
+        } else {
+            format!("frozenset(({},))", parent_keys.join(", "))
+        };
+        let class = templates::DataClass {
+            name: struct_name.to_string(),
+            description: Some(struct_def.description().to_string()),
+            fields,
+            is_tuple: false,
+            is_generic: !active_generics.is_empty(),
+            generic_params: active_generics.to_vec(),
+        }
+        .render();
+        output.push_str(class.trim_end());
+        let missing_tag = if enum_optional {
+            "            return {key: value for key, value in data.items() if key in parent_keys}\n"
+        } else {
+            "            raise ValueError('Flattened enum requires a top-level discriminator')\n"
+        };
+        let typed_none = if enum_optional {
+            format!(
+                " or data[{}] is None",
+                python_string_literal(&enum_field_name)
+            )
+        } else {
+            String::new()
+        };
+        // Serde's flattened internal map accepts numeric variant identifiers
+        // for a declared `other` unit fallback. Reproduce that local wire rule
+        // without widening ordinary tagged enums or open enum classifiers.
+        let numeric_fallback = if matches!(
+            enum_def.representation,
+            reflectapi_schema::Representation::Internal { .. }
+        ) {
+            enum_def.variants.iter().find(|variant| variant.other).map(|other| {
+                let tags = enum_def
+                    .variants
+                    .iter()
+                    .map(|variant| python_string_literal(variant.serde_name()))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!(
+                    "        discriminator = parent[{field}].get({tag})\n        if isinstance(discriminator, int) and not isinstance(discriminator, bool) and 0 <= discriminator <= 18446744073709551615:\n            tags = ({tags},)\n            parent[{field}][{tag}] = tags[discriminator] if discriminator < len(tags) else {fallback}\n",
+                    field = python_string_literal(&enum_field_name),
+                    tag = python_string_literal(tag),
+                    fallback = python_string_literal(other.serde_name()),
+                )
+            }).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let field = python_string_literal(&enum_field_name);
+        let unflatten = if matches!(
+            enum_def.representation,
+            reflectapi_schema::Representation::External
+        ) {
+            let missing_variant = if enum_optional {
+                "            return {key: value for key, value in data.items() if key in parent_keys}\n"
+            } else {
+                "            raise ValueError('Flattened enum requires a variant key')\n"
+            };
+            format!(
+                "        variant_keys = {}\n        present = variant_keys.intersection(data)\n        if len(present) != 1:\n            if not present and {field} in data:\n                if isinstance(data[{field}], {enum_class_check}){typed_none}:\n                    return data\n                raise ValueError('Flattened enum requires a variant key')\n            if present:\n                raise ValueError('Flattened enum requires exactly one variant key')\n{missing_variant}        parent = {{key: value for key, value in data.items() if key in parent_keys}}\n        key = next(iter(present))\n        parent[{field}] = {{key: data[key]}}\n",
+                enum_tag_set(enum_def),
+            )
+        } else {
+            let tag = python_string_literal(tag);
+            format!(
+                "        if {tag} not in data:\n            if {field} in data:\n                if isinstance(data[{field}], {enum_class_check}){typed_none}:\n                    return data\n                raise ValueError('Flattened enum requires a top-level discriminator')\n{missing_tag}        parent = {{key: value for key, value in data.items() if key in parent_keys}}\n        parent[{field}] = {{key: value for key, value in data.items() if key not in parent_keys}}\n{numeric_fallback}"
+            )
+        };
+        output.push_str(&format!(
+            "\n\n    @model_validator(mode='before')\n    @classmethod\n    def _unflatten_enum(cls, data):\n        if not isinstance(data, dict):\n            return data\n        parent_keys = {parent_keys}\n{unflatten}        return parent\n\n    @model_serializer(mode='wrap')\n    def _flatten_enum(self, handler):\n        value = handler(self)\n        enum_value = value.pop({field}, None)\n        if enum_value is None:\n            return value\n        return {{**value, **enum_value}}\n\n",
+        ));
+        return Ok(output);
     }
 
     // Generate per-variant models
@@ -1560,6 +1798,7 @@ fn build_python_generation(
     mut schema: Schema,
     config: &Config,
 ) -> anyhow::Result<PythonGeneration> {
+    super::validate_response_enums(&schema)?;
     schema.strip_hidden_fields();
     // `PhantomData<T>` is a Rust-only type-system marker — it carries
     // no wire data. Strip every such field before rendering so the
@@ -1689,6 +1928,28 @@ fn build_python_generation(
         .functions()
         .any(|f| matches!(f.output_type, OutputType::Stream { .. }));
     let has_partial_models = schema_has_partial_field(&schema);
+    let has_forward_compatible_enums = schema
+        .output_types
+        .types()
+        .any(|t| matches!(t, Type::Enum(e) if e.open || e.variants.iter().any(|v| v.other)));
+    let has_typed_flattened_enum = schema
+        .input_types
+        .types()
+        .chain(schema.output_types.types())
+        .any(|t| {
+        let Type::Struct(struct_def) = t else {
+            return false;
+        };
+        struct_def.fields.iter().filter(|f| f.flattened()).any(|field| {
+            matches!(
+                schema.get_type(resolve_flattened_type_name(&field.type_ref)),
+                Some(Type::Enum(enum_def))
+                    if ((enum_def.open || enum_def.variants.iter().any(|v| v.other))
+                        && matches!(enum_def.representation, reflectapi_schema::Representation::Internal { .. } | reflectapi_schema::Representation::Adjacent { .. }))
+                        || matches!(enum_def.representation, reflectapi_schema::Representation::External)
+            )
+        })
+    });
 
     // Generate imports
     let imports = templates::Imports {
@@ -1708,6 +1969,8 @@ fn build_python_generation(
         global_type_vars: Vec::new(), // Will be added later after tracking usage
         has_streaming,
         has_partial_models,
+        has_forward_compatible_enums,
+        has_typed_flattened_enum,
     };
     // Only the client code warns about deprecated methods, so model modules
     // get the imports without `warnings` and `typing_extensions`.
@@ -2802,7 +3065,16 @@ fn render_deferred_namespace_placeholders(
             )
         }),
     );
-    lines.join("\n")
+    // These placeholders are needed while Python imports partially initialized
+    // namespace packages. Static checkers should see the real imports emitted
+    // later in the module, so the placeholders must be runtime-only.
+    let body = lines
+        .join("\n")
+        .lines()
+        .map(|line| format!("    {line}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("from typing import TYPE_CHECKING\n\nif not TYPE_CHECKING:\n{body}")
 }
 
 fn render_root_type_namespace_bindings(
@@ -3983,12 +4255,166 @@ fn render_enum(
                         description: Some(enum_def.description().to_string()),
                         variants,
                     };
-
-                    Ok(enum_template.render())
+                    if enum_def.open {
+                        let enum_name = python_class_name(&enum_def.name, class_names);
+                        let known_name = allocate_enum_companion_name(
+                            &format!("{enum_name}Known"),
+                            enum_def,
+                            class_names,
+                        );
+                        let unknown_name = allocate_enum_companion_name(
+                            &format!("{enum_name}Unknown"),
+                            enum_def,
+                            class_names,
+                        );
+                        let known_code = templates::EnumClass {
+                            name: known_name.clone(),
+                            description: Some(enum_def.description().to_string()),
+                            variants: enum_template.variants,
+                        }
+                        .render();
+                        let tags = enum_tag_set(enum_def);
+                        let mut result = format!(
+                            "{known_code}\nclass {unknown_name}(UnknownEnumValue):\n    pass\n\nclass {enum_name}(RootModel[Union[{known_name}, {unknown_name}]]):\n    root: Union[{known_name}, {unknown_name}]\n\n    @model_validator(mode='before')\n    @classmethod\n    def _classify(cls, data):\n        return _classify_tagged_enum(data, {tags}, representation='external', unknown_type={unknown_name}, unit_tags={tags})\n\n"
+                        );
+                        for variant in &enum_def.variants {
+                            let member = to_screaming_snake_case(variant.name());
+                            result.push_str(&format!(
+                                "setattr({enum_name}, {}, {known_name}.{member})\n",
+                                python_string_literal(&member),
+                            ));
+                        }
+                        Ok(result)
+                    } else {
+                        Ok(enum_template.render())
+                    }
                 }
             }
         }
     }
+}
+
+fn allocate_enum_companion_name(
+    preferred: &str,
+    enum_def: &reflectapi_schema::Enum,
+    class_names: &BTreeMap<String, String>,
+) -> String {
+    let enum_name = python_class_name(&enum_def.name, class_names);
+    let occupied = |candidate: &str| {
+        class_names.values().any(|name| name == candidate)
+            || enum_def.variants.iter().any(|v| {
+                let suffix = to_pascal_case(v.name());
+                candidate == format!("{enum_name}{suffix}")
+                    || candidate == format!("{enum_name}{suffix}Variant")
+                    || candidate == format!("{enum_name}{suffix}Content")
+            })
+    };
+    if !occupied(preferred) {
+        return preferred.to_string();
+    }
+    for index in 2.. {
+        let candidate = format!("{preferred}{index}");
+        if !occupied(&candidate) {
+            return candidate;
+        }
+    }
+    unreachable!()
+}
+
+fn enum_tag_set(enum_def: &reflectapi_schema::Enum) -> String {
+    if enum_def.variants.is_empty() {
+        return "frozenset()".to_string();
+    }
+    let tags = enum_def
+        .variants
+        .iter()
+        .map(|v| python_string_literal(v.serde_name()))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("frozenset(({tags},))")
+}
+
+fn enum_unit_tag_set(enum_def: &reflectapi_schema::Enum) -> String {
+    let tags = enum_def
+        .variants
+        .iter()
+        .filter(|v| matches!(v.fields, reflectapi_schema::Fields::None))
+        .map(|v| python_string_literal(v.serde_name()))
+        .collect::<Vec<_>>();
+    if tags.is_empty() {
+        "frozenset()".to_string()
+    } else {
+        format!("frozenset(({},))", tags.join(", "))
+    }
+}
+
+fn render_forward_compatible_tagged_union(
+    enum_def: &reflectapi_schema::Enum,
+    enum_name: &str,
+    variants: &[templates::UnionVariant],
+    tag_field: &str,
+    generic_params: &[String],
+    class_names: &BTreeMap<String, String>,
+) -> String {
+    let mut code = String::new();
+    let unknown_name = if enum_def.open {
+        let name =
+            allocate_enum_companion_name(&format!("{enum_name}Unknown"), enum_def, class_names);
+        code.push_str(&format!("class {name}(UnknownEnumValue):\n    pass\n\n"));
+        Some(name)
+    } else {
+        None
+    };
+    let variant_types = variants
+        .iter()
+        .map(|v| v.type_annotation.as_str())
+        .collect::<Vec<_>>();
+    let known_type = if variant_types.len() > 1 {
+        format!(
+            "Annotated[Union[{}], Field(discriminator={})]",
+            variant_types.join(", "),
+            python_string_literal(tag_field)
+        )
+    } else {
+        variant_types.first().copied().unwrap_or("None").to_string()
+    };
+    let root_type = match &unknown_name {
+        Some(name) => format!("Union[{known_type}, {name}]"),
+        None => known_type,
+    };
+    let generic_inherits = if generic_params.is_empty() {
+        String::new()
+    } else {
+        format!(", Generic[{}]", generic_params.join(", "))
+    };
+    code.push_str(&format!(
+        "class {enum_name}(RootModel[{root_type}]{generic_inherits}):\n    root: {root_type}\n\n"
+    ));
+    let fallback = enum_def
+        .variants
+        .iter()
+        .find(|v| v.other)
+        .map(|v| format!(", fallback_tag={}", python_string_literal(v.serde_name())))
+        .unwrap_or_default();
+    let unknown = unknown_name
+        .map(|name| format!(", unknown_type={name}"))
+        .unwrap_or_default();
+    let (representation, adjacent_args) = match &enum_def.representation {
+        reflectapi_schema::Representation::Adjacent { content, .. } => (
+            "adjacent",
+            format!(
+                ", content_field={}, unit_tags={}",
+                python_string_literal(content),
+                enum_unit_tag_set(enum_def),
+            ),
+        ),
+        _ => ("tagged", String::new()),
+    };
+    code.push_str(&format!(
+        "    @model_validator(mode='before')\n    @classmethod\n    def _classify(cls, data):\n        return _classify_tagged_enum(data, {}, representation='{representation}', tag_field={}{}{}{})\n\n",
+        enum_tag_set(enum_def), python_string_literal(tag_field), adjacent_args, fallback, unknown,
+    ));
+    code
 }
 
 fn render_adjacently_tagged_enum(
@@ -4195,7 +4621,18 @@ fn render_adjacently_tagged_enum(
         generic_params: generic_params.clone(),
     };
 
-    let union_definition = union_template.render();
+    let union_definition = if enum_def.open || enum_def.variants.iter().any(|v| v.other) {
+        render_forward_compatible_tagged_union(
+            enum_def,
+            &enum_name,
+            &union_template.variants,
+            tag,
+            &generic_params,
+            class_names,
+        )
+    } else {
+        union_template.render()
+    };
 
     // Combine all parts
     let mut result = String::new();
@@ -4320,8 +4757,18 @@ fn render_externally_tagged_enum(
                         .map(|(i, name)| format!("{name}=v[{i}]"))
                         .collect::<Vec<_>>()
                         .join(", ");
+                    let length_check = if enum_def.open {
+                        format!("isinstance(v, list) and len(v) == {}", field_names.len())
+                    } else {
+                        "isinstance(v, list)".to_string()
+                    };
+                    let expected = if enum_def.open {
+                        "tuple payload for variant"
+                    } else {
+                        "list for tuple variant"
+                    };
                     variant_entries.push(format!(
-                        "\"{wire_name}\": lambda v: {variant_class_name}({assigns}) if isinstance(v, list) else (_ for _ in ()).throw(ValueError(\"Expected list for tuple variant {wire_name}\"))"
+                        "\"{wire_name}\": lambda v: {variant_class_name}({assigns}) if {length_check} else (_ for _ in ()).throw(ValueError(\"Expected {expected} {wire_name}\"))"
                     ));
                     let field_accesses = field_names
                         .iter()
@@ -4385,9 +4832,12 @@ fn render_externally_tagged_enum(
                 };
                 union_variants.push(union_member);
 
-                variant_entries.push(format!(
-                    "\"{wire_name}\": lambda v: {variant_class_name}(**v)"
-                ));
+                let parse_value = if enum_def.open {
+                    format!("{variant_class_name}.model_validate(v)")
+                } else {
+                    format!("{variant_class_name}(**v)")
+                };
+                variant_entries.push(format!("\"{wire_name}\": lambda v: {parse_value}"));
                 serializer_entries.push(format!(
                     "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": r.model_dump(by_alias=True)}})"
                 ));
@@ -4397,6 +4847,14 @@ fn render_externally_tagged_enum(
 
     // Check if this enum is generic
     let is_generic = !generic_params.is_empty();
+    let unknown_class_name = if enum_def.open {
+        let name =
+            allocate_enum_companion_name(&format!("{enum_name}Unknown"), enum_def, class_names);
+        union_variants.push(name.clone());
+        Some(name)
+    } else {
+        None
+    };
 
     // Render using compact helper-based template
     let template = templates::ExternallyTaggedEnumCompact {
@@ -4414,6 +4872,7 @@ fn render_externally_tagged_enum(
         variant_class_names,
         is_generic,
         generic_params: generic_params.clone(),
+        unknown_class_name,
     };
     let enum_code = template.render();
 
@@ -4711,7 +5170,19 @@ fn render_internally_tagged_enum(
         generic_params: generic_params.clone(),
     };
 
-    let union_definition = union_template.render();
+    let forward_compatible = enum_def.open || enum_def.variants.iter().any(|v| v.other);
+    let union_definition = if forward_compatible {
+        render_forward_compatible_tagged_union(
+            enum_def,
+            &enum_name,
+            &union_template.variants,
+            tag,
+            &generic_params,
+            class_names,
+        )
+    } else {
+        union_template.render()
+    };
 
     // Combine all parts
     let mut result = String::new();
@@ -4738,9 +5209,13 @@ fn render_internally_tagged_enum(
     let header = format!("class {enum_name}(RootModel[{enum_name}Variants])");
     let replacement =
         format!("class {enum_name}(RootModel[{enum_name}Variants]{generic_inherits})");
-    let result = result.replace(&header, &replacement);
+    let result = if forward_compatible {
+        result
+    } else {
+        result.replace(&header, &replacement)
+    };
     let mut result = result;
-    if !generic_inherits.is_empty() {
+    if !forward_compatible && !generic_inherits.is_empty() {
         // Add __class_getitem__ passthrough for runtime convenience
         let inject = "\n    def __class_getitem__(cls, params):\n        return cls\n".to_string();
         // Insert after class docstring or after class line
@@ -6182,6 +6657,8 @@ pub mod templates {
         /// field, so the bundle needs to import
         /// `ReflectapiPartialModel`.
         pub has_partial_models: bool,
+        pub has_forward_compatible_enums: bool,
+        pub has_typed_flattened_enum: bool,
     }
 
     pub struct DataClass {
@@ -7364,6 +7841,7 @@ pub mod templates {
         pub variant_class_names: Vec<String>,
         pub is_generic: bool,
         pub generic_params: Vec<String>,
+        pub unknown_class_name: Option<String>,
     }
 
     impl ExternallyTaggedEnumCompact {
@@ -7371,6 +7849,11 @@ pub mod templates {
             let mut s = String::new();
             for variant_model in &self.variant_models {
                 writeln!(s, "{variant_model}").unwrap();
+                writeln!(s).unwrap();
+            }
+            if let Some(name) = &self.unknown_class_name {
+                writeln!(s, "class {name}(UnknownEnumValue):").unwrap();
+                writeln!(s, "    pass").unwrap();
                 writeln!(s).unwrap();
             }
             writeln!(s).unwrap();
@@ -7425,7 +7908,17 @@ pub mod templates {
             } else {
                 format!("({})", self.variant_class_names.join(", "))
             };
-            writeln!(s, "}}, {types_tuple}, \"{name}\")", name = self.name).unwrap();
+            let unknown_arg = self
+                .unknown_class_name
+                .as_ref()
+                .map(|name| format!(", unknown_type={name}, strict_unit=True"))
+                .unwrap_or_default();
+            writeln!(
+                s,
+                "}}, {types_tuple}, \"{name}\"{unknown_arg})",
+                name = self.name
+            )
+            .unwrap();
             writeln!(s).unwrap();
 
             // Emit compact model_serializer using helper

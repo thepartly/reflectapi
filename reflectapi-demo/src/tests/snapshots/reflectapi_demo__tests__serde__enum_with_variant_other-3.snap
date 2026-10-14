@@ -70,6 +70,7 @@ pub mod types {
                     #[serde(tag = "type")]
                     pub enum TestEnumWithVariantOther {
                         V0,
+                        #[serde(other)]
                         Variant1,
                     }
                 }

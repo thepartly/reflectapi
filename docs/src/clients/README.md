@@ -75,8 +75,20 @@ The demo repository includes extra project scaffolding around some generated cli
   the same name when imported from `generated.ts`. Custom transports
   import from `./generated.transport`.
 - Uses generated TypeScript types and function wrappers.
+- Response enums with `#[reflectapi(open)]` include a branded `UnknownEnum`.
+  `isUnknownEnum(value)` narrows it; `value[unknownEnum]` holds `tag` and `raw`
+  without occupying any wire field names. Generated `match`
+  calls handle it with the exported `[unknownEnum]` handler key or an `otherwise`
+  fallback. Known values keep their wire shape. Runtime decoding is enabled
+  for responses/errors that reach an open enum or `#[serde(other)]`, including
+  nested values and SSE items.
 - Uses a `fetch`-based default client implementation.
-- Parses JSON responses, but does not generate runtime schema validators today.
+- Ordinary response paths parse JSON without runtime schema validation. Paths
+  that reach an open enum or declared fallback use generated decoders.
+  These check known payload shapes against the generated TypeScript types;
+  they do not validate every Rust-specific constraint, such as UUID syntax
+  for a field represented as a TypeScript string. A known tag is never
+  reclassified as an unknown case when its payload fails those checks.
 - Supports custom client implementations via the generated client interface.
   A custom transport's `Headers.get(name)` must match names case-insensitively,
   as `fetch`'s does: declared response headers are looked up by their
@@ -117,6 +129,10 @@ The demo repository includes extra project scaffolding around some generated cli
   namespace-prefixed name (`nomatches.NomatchesIfConflictOnUpdate`). This keeps
   one Python class per logical type so `model.<X>` resolves consistently.
 - Uses `reflectapi_runtime` for client base classes and runtime helpers.
+- Open response enum wrappers include a generated unknown model with `.tag`
+  and `.raw`. Unknown values serialize to their original wire JSON. Known
+  values still validate normally; `#[serde(other)]` without `open` maps to the
+  declared unit fallback instead.
 
 ### Rust
 
@@ -137,6 +153,76 @@ The demo repository includes extra project scaffolding around some generated cli
       `reflectapi/reqwest`).
 - Supports optional tracing instrumentation through `--instrument`.
 - Generates serde-compatible types and request helpers for JSON-based transport.
+- Open response enums have a generated `Unknown { tag, raw }` variant and
+  tag-first deserialization. Ordinary `#[serde(other)]` output variants keep
+  that attribute. Unknown open error variants serialize to their original
+  JSON for diagnostics.
+
+## Handling Unfamiliar Enum Variants
+
+An enum declared with `#[reflectapi(open)]` keeps known cases typed and adds an
+explicit unknown case to generated responses. Handle it before reading known
+variant fields. The following snippets assume the generated `PetKind` and
+related types are imported from their generated namespace.
+
+Rust uses a normal enum match:
+
+```rust,ignore
+match pet_kind {
+    PetKind::Dog { breed } => println!("Dog: {breed}"),
+    PetKind::Bird => println!("Bird"),
+    PetKind::Unknown { tag, raw } => println!("New kind {tag}: {raw}"),
+}
+```
+
+Python exposes the variant through the generated model's `.root`:
+
+```python
+variant = pet_kind.root
+if isinstance(variant, PetKindUnknown):
+    print(variant.tag, variant.raw)
+elif isinstance(variant, PetKindDog):
+    print(variant.breed)
+else:
+    print("Bird")
+```
+
+TypeScript narrows the union with the helper exported from `generated.ts`:
+
+```typescript
+import { isUnknownEnum, unknownEnum } from "./generated";
+
+if (isUnknownEnum(petKind)) {
+  console.log(petKind[unknownEnum].tag, petKind[unknownEnum].raw);
+} else if (petKind.kind === "Dog") {
+  console.log(petKind.breed);
+} else {
+  console.log("Bird");
+}
+```
+
+Generated unknown names get a suffix when they would conflict with a declared
+variant or another generated type. For externally tagged and unit enum unions
+in TypeScript, `match` accepts an unknown handler under the exported
+`[unknownEnum]` symbol; it is separate from a real wire variant named `Unknown`.
+That handler receives `{ tag, raw }` directly. An `otherwise` handler receives
+the original value and can use `isUnknownEnum` to narrow it.
+
+`raw` is the parsed JSON value, rather than the original response bytes.
+Python and TypeScript unknown cases serialize back to their retained wire
+value. Rust does the same when `serde::Serialize` is requested through
+`#[reflectapi(derive(serde::Serialize))]`; responses otherwise derive only
+`Deserialize` by default. TypeScript stores its metadata under non-enumerable
+symbols so `JSON.stringify` keeps wire fields intact. For a directly flattened enum,
+Rust and Python expose a typed enum field and retain the remaining enum JSON;
+TypeScript keeps the flat object and retains the whole original object in
+`value[unknownEnum].raw`.
+
+A declared `#[serde(other)]` uses its unit fallback instead and discards the
+unfamiliar tag and payload. It cannot be combined with `open`. Neither policy
+adds an unknown case to generated requests. See the
+[attribute reference](../getting-started/attributes.md#enum-evolution) for
+representation restrictions and migration requirements.
 
 ## Streaming Endpoints
 
@@ -219,7 +305,7 @@ retryDelay: (failureCount, error) => {
 
 | Output | Response headers |
 |--------|------------------|
-| TypeScript | `headers()` on the `CallResult` and on its `Err` returns the declared headers: each has the field's generated type or is `null` when that header is absent; `headers()` itself is `undefined` when no response arrived. Values aren't validated at runtime, as with response bodies: an enum-typed header holds whatever string arrived. `raw_headers()` returns all response headers, untyped, for ones the API doesn't declare, such as `cf-ray` from a CDN. `result.map(...)` keeps the response; `map_err` returns a plain `Result`. |
+| TypeScript | `headers()` on the `CallResult` and on its `Err` returns the declared headers: each has the field's generated type or is `null` when that header is absent; `headers()` itself is `undefined` when no response arrived. Open enum headers decode unfamiliar strings into `UnknownEnum`; ordinary enum headers retain the existing unvalidated string behavior. `raw_headers()` returns all response headers, untyped, for ones the API doesn't declare, such as `cf-ray` from a CDN. `result.map(...)` keeps the response; `map_err` returns a plain `Result`. |
 | Python | `ApiResponse.headers` and `ApiError.headers` (including `ValidationError` when the response body is invalid) hold the declared headers validated into the generated model; a field is `None` when its header is absent or its value doesn't validate. `headers` is `None` when the API declares none or no response arrived. All headers, untyped, are in `.metadata.headers`. Streaming methods return an `ApiStream` / `AsyncApiStream` whose `headers` and `metadata` are set once iteration starts. |
 | Rust | The headers struct is generated as a type, but the client doesn't populate it yet. The generated method signatures of routes with declared headers will change when it does. |
 | OpenAPI | Documented as optional headers on the operation's `200` and `default` responses. |

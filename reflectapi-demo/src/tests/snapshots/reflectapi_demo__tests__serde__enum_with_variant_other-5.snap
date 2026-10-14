@@ -17,12 +17,16 @@ from enum import Enum
 from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import (
+    UnknownEnumValue,
+    classify_tagged_enum as _classify_tagged_enum,
+)
 
 
 class ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherV0(BaseModel):
@@ -58,7 +62,17 @@ class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherVariant1(BaseModel):
     )
 
 
-class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther(RootModel):
+class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther(
+    RootModel[
+        Annotated[
+            Union[
+                ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherV0,
+                ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherVariant1,
+            ],
+            Field(discriminator="type"),
+        ]
+    ]
+):
     root: Annotated[
         Union[
             ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherV0,
@@ -66,6 +80,22 @@ class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther(RootModel):
         ],
         Field(discriminator="type"),
     ]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _classify(cls, data):
+        return _classify_tagged_enum(
+            data,
+            frozenset(
+                (
+                    "V0",
+                    "Variant1",
+                )
+            ),
+            representation="tagged",
+            tag_field="type",
+            fallback_tag="Variant1",
+        )
 
 
 # Namespace classes for dotted access to types

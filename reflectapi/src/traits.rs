@@ -12,9 +12,9 @@
 /// a correct and efficient implementation.
 ///
 /// ```rust
-/// # use reflectapi::{Input, Output};
+/// # use reflectapi::Input;
 ///
-/// #[derive(Input, Output)]
+/// #[derive(serde::Deserialize, Input)]
 /// struct User {
 ///     id: u64,
 ///     username: String,
@@ -41,14 +41,34 @@ pub trait Input {
 /// a correct and efficient implementation.
 ///
 /// ```rust
-/// # use reflectapi::{Input, Output};
+/// # use reflectapi::Output;
 ///
-/// #[derive(Input, Output)]
+/// #[derive(serde::Serialize, Output)]
 /// struct User {
 ///     id: u64,
 ///     username: String,
 /// }
 /// ```
+///
+/// Response enums can opt into retaining unfamiliar variants in generated
+/// clients with `#[reflectapi(open)]`. Serde still controls the server's wire
+/// representation; this policy does not add a variant to the server enum.
+///
+/// ```rust
+/// #[derive(serde::Serialize, reflectapi::Output)]
+/// #[serde(tag = "kind")]
+/// #[reflectapi(open)]
+/// enum PetKind {
+///     Dog { breed: String },
+///     Bird,
+/// }
+/// ```
+///
+/// The policy supports tagged response enums and cannot be combined with
+/// `#[serde(other)]`. A shared request/response type can also derive
+/// `serde::Deserialize` and `Input`; its generated request enum stays closed.
+/// Directly flattened open enums require internal or adjacent tags. Use named
+/// fields when an object needs multiple response-policy enums.
 // TODO: We need examples for manual derive and supported flags for the derive macro.
 pub trait Output {
     /// Recursively adds the type definition to the schema and returns a reference to it.

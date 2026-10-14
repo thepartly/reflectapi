@@ -119,6 +119,7 @@ pub(crate) struct ParsedTypeAttributes {
     pub input_type: Option<syn::Type>,
     pub output_type: Option<syn::Type>,
     pub discriminant: bool,
+    pub open: bool,
     pub derives: Vec<syn::Meta>,
 }
 
@@ -231,6 +232,9 @@ pub(crate) fn parse_type_attributes(
             } else if meta.path == DISCRIMINANT {
                 // #[reflectapi(discriminant)]
                 result.discriminant = true;
+            } else if meta.path.is_ident("open") {
+                // #[reflectapi(open)] applies only to generated response enums.
+                result.open = true;
             } else if meta.path == DERIVE {
                 // #[reflectapi(derive(...))]
                 let metas;
