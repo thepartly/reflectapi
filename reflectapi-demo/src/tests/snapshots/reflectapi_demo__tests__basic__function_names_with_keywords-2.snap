@@ -18,7 +18,17 @@ export namespace __definition {
       headers: {},
       options?: RequestOptions,
     ) => AsyncResult<{}, {}>;
+    enum_: (
+      input: {},
+      headers: {},
+      options?: RequestOptions,
+    ) => AsyncResult<{}, {}>;
     delete: (
+      input: {},
+      headers: {},
+      options?: RequestOptions,
+    ) => AsyncResult<{}, {}>;
+    delete_: (
       input: {},
       headers: {},
       options?: RequestOptions,
@@ -27,6 +37,7 @@ export namespace __definition {
     type: TypeInterface;
     self: SelfInterface;
     crate: CrateInterface;
+    gen: GenInterface;
   }
 
   export interface WithInterface {
@@ -108,6 +119,14 @@ export namespace __definition {
   }
 
   export interface CrateSuperInterface {
+    get: (
+      input: {},
+      headers: {},
+      options?: RequestOptions,
+    ) => AsyncResult<{}, {}>;
+  }
+
+  export interface GenInterface {
     get: (
       input: {},
       headers: {},
@@ -203,12 +222,24 @@ namespace __implementation {
         options,
       );
   }
-  function enum_(client: Client) {
+  function gen__get(client: Client) {
+    return (input: {}, headers: {}, options?: RequestOptions) =>
+      __request<{}, {}, {}, {}>(client, "/gen.get", input, headers, options);
+  }
+  function enum__(client: Client) {
     return (input: {}, headers: {}, options?: RequestOptions) =>
       __request<{}, {}, {}, {}>(client, "/enum", input, headers, options);
   }
-  function delete_(client: Client) {
+  function enum_(client: Client) {
+    return (input: {}, headers: {}, options?: RequestOptions) =>
+      __request<{}, {}, {}, {}>(client, "/enum_", input, headers, options);
+  }
+  function delete__(client: Client) {
     return (input: {}, headers: {}, options?: RequestOptions) =>
       __request<{}, {}, {}, {}>(client, "/delete", input, headers, options);
+  }
+  function delete_(client: Client) {
+    return (input: {}, headers: {}, options?: RequestOptions) =>
+      __request<{}, {}, {}, {}>(client, "/delete_", input, headers, options);
   }
 }

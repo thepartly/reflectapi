@@ -50,10 +50,70 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         }
       }
     },
+    "/delete_": {
+      "description": "",
+      "post": {
+        "operationId": "delete_",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/enum": {
       "description": "",
       "post": {
         "operationId": "enum",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/enum_": {
+      "description": "",
+      "post": {
+        "operationId": "enum_",
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gen.get": {
+      "description": "",
+      "post": {
+        "operationId": "gen.get",
         "responses": {
           "200": {
             "description": "200 OK",

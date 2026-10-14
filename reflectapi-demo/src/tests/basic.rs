@@ -1060,6 +1060,9 @@ fn test_function_names_with_keywords() {
         .route(empty, |b| b.name("type.get"))
         .route(empty, |b| b.name("self.get"))
         .route(empty, |b| b.name("crate.super.get"))
+        .route(empty, |b| b.name("gen.get"))
         .route(empty, |b| b.name("enum"))
-        .route(empty, |b| b.name("delete")))
+        .route(empty, |b| b.name("enum_"))
+        .route(empty, |b| b.name("delete"))
+        .route(empty, |b| b.name("delete_")))
 }

@@ -2123,8 +2123,18 @@ fn build_python_generation(
         let rendered_function =
             render_function(function_schema, &schema, &implemented_types, &class_names)?;
 
-        // Check for grouping patterns: underscore or dot notation
-        if let Some(separator_pos) = sem_func.name.find('_').or_else(|| sem_func.name.find('.')) {
+        // Group only when both the group and method names are nonempty.
+        if let Some(separator_pos) = sem_func
+            .name
+            .find('_')
+            .filter(|&pos| pos > 0 && pos + 1 < sem_func.name.len())
+            .or_else(|| {
+                sem_func
+                    .name
+                    .find('.')
+                    .filter(|&pos| pos > 0 && pos + 1 < sem_func.name.len())
+            })
+        {
             let group_name = &sem_func.name[..separator_pos];
             let method_name = &sem_func.name[separator_pos + 1..];
 
@@ -8610,6 +8620,57 @@ mod tests {
         assert!(init_py.contains("from ._client import AsyncClient, Client"));
         assert!(init_py.contains("__all__ = [\"AsyncClient\", \"Client\"]"));
         assert!(!init_py.contains("SyncClient"));
+    }
+
+    #[test]
+    fn function_grouping_keeps_edge_underscores_as_top_level_methods() {
+        let mut schema = crate::Schema::new();
+        let names = [
+            "enum_",
+            "delete_",
+            "_private",
+            "users_read",
+            "orders.get",
+            "orders.get_",
+        ];
+        schema.functions = names
+            .iter()
+            .map(|&name| {
+                let mut function = reflectapi_schema::Function::new(name.to_string());
+                function.path = "/api".into();
+                function
+            })
+            .collect();
+        let config = Config {
+            format: false,
+            ..Config::default()
+        };
+        let files = super::generate_files(schema, &config).unwrap();
+        let client = &files["_client.py"];
+
+        for class in ["AsyncClient(AsyncClientBase)", "Client(ClientBase)"] {
+            let class_body = client
+                .split_once(&format!("class {class}:"))
+                .unwrap()
+                .1
+                .split("\nclass ")
+                .next()
+                .unwrap();
+            for name in ["enum_", "delete_", "_private"] {
+                assert!(class_body.contains(&format!("def {name}(")));
+            }
+            assert!(!class_body.contains("def read("));
+            assert!(!class_body.contains("def get("));
+        }
+        assert!(!client.contains("def ("));
+        assert!(client.contains("self.users = UsersClient(self)"));
+        assert!(client.contains("self.orders = OrdersClient(self)"));
+        assert!(client.contains("def read("));
+        assert!(client.contains("def get("));
+        assert!(client.contains("def get_("));
+        for name in names {
+            assert!(client.contains(&format!("path = \"/api/{name}\"")));
+        }
     }
 
     #[test]

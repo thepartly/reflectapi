@@ -132,6 +132,15 @@ expression: schema
       ]
     },
     {
+      "name": "gen.get",
+      "path": "",
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    },
+    {
       "name": "enum",
       "path": "",
       "output_kind": "complete",
@@ -141,7 +150,25 @@ expression: schema
       ]
     },
     {
+      "name": "enum_",
+      "path": "",
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    },
+    {
       "name": "delete",
+      "path": "",
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    },
+    {
+      "name": "delete_",
       "path": "",
       "output_kind": "complete",
       "serialization": [
