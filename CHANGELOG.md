@@ -46,6 +46,8 @@ Messages read like `Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11
 
 - OpenAPI: a generic instantiation that reaches itself, directly (`Tree<T>` with `children: Vec<Tree<T>>`) or through another type (`Outcome<Observation>` where `Observation` contains an enum with an `Outcome<Observation>` variant), no longer produces a `$ref` to a component that doesn't exist, such as `#/components/schemas/Outcome_Observation_`. Such an instantiation is now written to `components.schemas` under that name, with a numeric suffix when another type or instantiation already has it.
 - OpenAPI: a struct used both as a request body and as request headers, or a self-referential generic used as request headers, no longer leaves a dangling `$ref`.
+- Rust and TypeScript clients: endpoint names containing keywords now generate valid methods and bindings, including Rust 2024's `gen`. TypeScript helper names remain distinct from literal endpoints such as `enum_`; public TypeScript properties and HTTP paths are unchanged.
+- Python clients: endpoints with leading or trailing underscores no longer produce an empty method name. Existing underscore and dot grouping is retained.
 - Rust clients: a deprecation note containing `"` or `\` no longer produces code that doesn't compile.
 - Python clients: field deprecation notes, previously dropped, are now rendered.
 - TypeScript clients: a `*/` in a doc comment or deprecation note no longer ends the JSDoc comment early and breaks the generated file.
