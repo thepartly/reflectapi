@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "reflectapi-runtime"
-version = "0.19.0"
+version = "0.20.0"
 description = "Runtime library for ReflectAPI Python clients"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -28,6 +28,8 @@ classifiers = [
 dependencies = [
     "pydantic>=2.7.0",
     "httpx>=0.25.0",
+    "anyio>=4.14.2",
+    "idna>=3.15",
     "typing-extensions>=4.5.0",
 ]
 
