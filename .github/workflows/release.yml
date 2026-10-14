@@ -3,12 +3,11 @@ name: Release
 # Adapted from https://github.com/thepartly/awa release.yml.
 #
 # Triggered by pushing a `v*` tag (e.g. `v0.17.2`, `v0.18.0-alpha.1`).
-# Stable tags publish full releases; tags containing `alpha`, `beta`, or
-# `rc` are marked as GitHub pre-releases automatically.
+# Stable tags publish full releases; prerelease versions are marked as
+# GitHub pre-releases automatically.
 #
-# All publish jobs depend on `version-check`, which fails fast if the tag
-# disagrees with any Cargo.toml or pyproject.toml in the repo. That stops
-# us from shipping mismatched crate/wheel versions.
+# All publish jobs require successful main-push CI for the tagged SHA,
+# matching package/dependency versions, and a nonempty changelog section.
 
 on:
   push:
@@ -29,12 +28,29 @@ jobs:
   version-check:
     name: Verify version consistency
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      prerelease: ${{ steps.versions.outputs.prerelease }}
     steps:
       - uses: actions/checkout@v6
+      - name: Require successful main CI for this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          passed=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yaml/runs?event=push&branch=main&head_sha=${GITHUB_SHA}&per_page=100" \
+            --jq ".workflow_runs | any(.head_sha == \"${GITHUB_SHA}\" and .head_branch == \"main\" and .event == \"push\" and .conclusion == \"success\")")
+          if [ "$passed" != "true" ]; then
+            echo "::error::No successful main-push CI run exists for tagged commit ${GITHUB_SHA}; wait for CI before tagging."
+            exit 1
+          fi
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Tag matches all package versions
+        id: versions
         shell: bash
         # SemVer (Cargo) and PEP 440 (Python) spell pre-releases
         # differently — `0.17.2-alpha.1` vs `0.17.2a1`. We compare both
@@ -44,7 +60,8 @@ jobs:
           set -euo pipefail
           python3 -m pip install --quiet packaging
           python3 - <<'PY'
-          import os, sys, tomllib
+          import ast, os, re, sys, tomllib
+          from pathlib import Path
           from packaging.version import InvalidVersion, Version
 
           tag = os.environ["GITHUB_REF_NAME"]
@@ -78,6 +95,36 @@ jobs:
               ("reflectapi-python-runtime/pyproject.toml", pyproject_version("reflectapi-python-runtime/pyproject.toml")),
           ]
 
+          runtime_path = "reflectapi-python-runtime/src/reflectapi_runtime/__init__.py"
+          runtime_ast = ast.parse(Path(runtime_path).read_text())
+          runtime_versions = [
+              ast.literal_eval(node.value)
+              for node in runtime_ast.body
+              if isinstance(node, ast.Assign)
+              and any(isinstance(target, ast.Name) and target.id == "__version__" for target in node.targets)
+          ]
+          checks.append((runtime_path, runtime_versions[0] if len(runtime_versions) == 1 else None))
+
+          published_crates = {"reflectapi", "reflectapi-derive", "reflectapi-schema", "reflectapi-cli"}
+
+          def internal_requirements(data, prefix=""):
+              for key, value in data.items():
+                  if key in {"dependencies", "dev-dependencies", "build-dependencies"}:
+                      for name, dependency in value.items():
+                          package = dependency.get("package", name) if isinstance(dependency, dict) else name
+                          if package in published_crates:
+                              raw = dependency.get("version") if isinstance(dependency, dict) else dependency
+                              yield f"{prefix}{key}.{name}", raw
+                  elif isinstance(value, dict):
+                      yield from internal_requirements(value, f"{prefix}{key}.")
+
+          for crate in sorted(published_crates):
+              path = f"{crate}/Cargo.toml"
+              with open(path, "rb") as f:
+                  data = tomllib.load(f)
+              for dependency, raw in internal_requirements(data):
+                  checks.append((f"{path} ({dependency})", raw))
+
           fail = 0
           for file, raw in checks:
               if raw is None:
@@ -96,8 +143,48 @@ jobs:
               else:
                   print(f"ok: {file} = {raw}")
 
-          sys.exit(fail)
+          heading = re.compile(r"^## (?:\[" + re.escape(expected_str) + r"\]|" + re.escape(expected_str) + r")(?=\s|$)")
+          lines = Path("CHANGELOG.md").read_text().splitlines(keepends=True)
+          starts = [i for i, line in enumerate(lines) if heading.match(line)]
+          notes = ""
+          if len(starts) == 1:
+              start = starts[0] + 1
+              end = next((i for i in range(start, len(lines)) if lines[i].startswith("## ")), len(lines))
+              notes = "".join(lines[start:end]).strip()
+          if not notes or not any(line.strip() and not line.lstrip().startswith("#") for line in notes.splitlines()):
+              print(f"::error file=CHANGELOG.md::expected one nonempty changelog section for {expected_str}")
+              fail = 1
+          if fail:
+              sys.exit(fail)
+          Path("release-notes.md").write_text(notes + "\n")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              print(f"prerelease={str(expected.is_prerelease).lower()}", file=f)
           PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+
+  # Verify every packaged crate before either registry receives a release.
+  # Cargo's staged workspace registry resolves the new internal versions
+  # together, even though they are not yet available on crates.io.
+  rust-package:
+    name: Verify Rust packages
+    needs: [version-check]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Package and verify all publishable crates
+        run: |
+          cargo package --workspace --all-features --locked \
+            --exclude reflectapi-demo \
+            --exclude reflectapi-demo-client \
+            --exclude reflectapi-demo-client-generated
 
   # ─── Publish Rust crates to crates.io ────────────────────────────────
   # Uses crates.io Trusted Publishing (OIDC) — no long-lived
@@ -113,7 +200,7 @@ jobs:
   # we re-mint it per crate to stay safe across the inter-publish waits.
   publish-crates:
     name: Publish to crates.io
-    needs: [version-check]
+    needs: [version-check, rust-package, python-build]
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -125,7 +212,7 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth-schema
       - name: Publish reflectapi-schema
-        run: cargo publish --package reflectapi-schema --no-verify
+        run: cargo publish --package reflectapi-schema --locked
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth-schema.outputs.token }}
 
@@ -134,7 +221,7 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth-derive
       - name: Publish reflectapi-derive
-        run: cargo publish --package reflectapi-derive --no-verify
+        run: cargo publish --package reflectapi-derive --locked
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth-derive.outputs.token }}
 
@@ -143,7 +230,7 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth-reflectapi
       - name: Publish reflectapi
-        run: cargo publish --package reflectapi --no-verify
+        run: cargo publish --package reflectapi --locked
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth-reflectapi.outputs.token }}
 
@@ -152,7 +239,7 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth-cli
       - name: Publish reflectapi-cli
-        run: cargo publish --package reflectapi-cli --no-verify
+        run: cargo publish --package reflectapi-cli --locked
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth-cli.outputs.token }}
 
@@ -184,7 +271,7 @@ jobs:
   # with PyPI as the trusted publisher.
   publish-pypi:
     name: Publish reflectapi-runtime to PyPI
-    needs: [python-build]
+    needs: [rust-package, python-build]
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -197,14 +284,17 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
 
   # ─── Publish a GitHub Release ───────────────────────────────────────
-  # Auto-generates release notes from commits/PRs since the previous tag.
-  # Pre-release tags (alpha/beta/rc) are flagged accordingly.
+  # Uses the matching curated changelog section, validated before publishing.
   github-release:
     name: GitHub Release
-    needs: [publish-crates, publish-pypi]
+    needs: [version-check, publish-crates, publish-pypi]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+          path: .
       - uses: actions/download-artifact@v8
         with:
           name: python-runtime-dist
@@ -212,15 +302,16 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ needs.version-check.outputs.prerelease }}
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME}"
-          prerelease_flag=""
-          if echo "$tag" | grep -qE 'alpha|beta|rc'; then
-            prerelease_flag="--prerelease"
+          args=(--verify-tag --title "$tag" --notes-file release-notes.md)
+          if [ "$PRERELEASE" = "true" ]; then
+            args+=(--prerelease)
           fi
           if ! gh release view "$tag" --json tagName >/dev/null 2>&1; then
-            gh release create "$tag" --title "$tag" --generate-notes $prerelease_flag
+            gh release create "$tag" "${args[@]}"
           fi
           for f in dist/*.tar.gz dist/*.whl; do
             [ -e "$f" ] && gh release upload "$tag" "$f" --clobber

@@ -44,12 +44,15 @@ against the declared item model. The wire format is Server-Sent Events
 do not enter the iterator. Breaking out of the loop or calling
 `stream.aclose()` releases the underlying HTTP connection.
 
-Validation is strict: an event whose payload doesn't match the item model
-(for example, an unknown discriminated-union variant added by a newer
-server) raises `ValidationError` mid-stream and the iterator terminates.
-Items received before the bad event are still delivered.
+Events are validated against the generated model. Closed response enums reject
+unfamiliar variants; enums declared with `#[reflectapi(open)]` retain them as
+an unknown case with the tag and parsed JSON, and `#[serde(other)]` uses the
+declared fallback. A malformed known variant raises `ValidationError`
+mid-stream and terminates the iterator. Earlier items remain delivered.
 
 ## Compatibility
 
-Python 3.12+. The package targets the same `reflectapi` minor version as
-the schema you generate from; mismatches will surface at import time.
+Python 3.12+. SDKs generated with ReflectAPI 0.20 require the 0.20 runtime.
+Pydantic 2.10 or newer supports the generated generic models; Python 3.14
+requires Pydantic 2.12 or newer. Installing the runtime resolves these requirements
+and the supported HTTP dependencies automatically.

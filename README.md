@@ -127,14 +127,14 @@ mdbook serve  # Opens at http://localhost:3000
 
 Pushing a `v*` tag triggers `.github/workflows/release.yml`, which:
 
-1. Verifies every package version matches the tag (`packaging.version` parses both Cargo SemVer and PEP 440 forms so the same tag covers both ecosystems).
-2. Publishes the four Rust crates to crates.io in dependency order — `reflectapi-schema` → `reflectapi-derive` → `reflectapi` → `reflectapi-cli` — using crates.io Trusted Publishing (OIDC, no `CARGO_REGISTRY_TOKEN` secret).
-3. Builds the pure-Python `reflectapi-runtime` and publishes to PyPI via Trusted Publishing.
-4. Cuts a GitHub Release with auto-generated notes; tags containing `alpha`, `beta`, or `rc` are flagged as pre-releases automatically.
+1. Requires successful `CI` on a push to `main` for the exact tagged commit, verifies every published package version and internal dependency version matches the tag, and extracts a nonempty matching section from `CHANGELOG.md` (`packaging.version` parses both Cargo SemVer and PEP 440 forms).
+2. Packages and verifies all four Rust crates with the locked dependencies and all features, and builds the pure-Python `reflectapi-runtime` sdist and wheel before either registry publishes.
+3. Publishes the four Rust crates to crates.io in dependency order — `reflectapi-schema` → `reflectapi-derive` → `reflectapi` → `reflectapi-cli` — using crates.io Trusted Publishing (OIDC, no `CARGO_REGISTRY_TOKEN` secret), and publishes the Python runtime via PyPI Trusted Publishing. Cargo verifies each crate before publishing.
+4. Cuts a GitHub Release with the curated changelog section; pre-release versions are flagged automatically.
 
 Both publishers run inside the `release` GitHub Environment, which is configured as a trusted publisher on each crate (crates.io) and on the `reflectapi-runtime` PyPI project.
 
-To cut a release, bump every version in lockstep and push the matching tag. The Cargo files use SemVer (`0.18.0-alpha.1`), `reflectapi-python-runtime/pyproject.toml` and `src/reflectapi_runtime/__init__.py` use PEP 440 (`0.18.0a1`):
+To prepare a release, bump every version in lockstep, update the internal Cargo dependency versions and lockfiles, and move the release notes under a matching `## <version>` heading in `CHANGELOG.md`. The Cargo files use SemVer (`0.18.0-alpha.1`), `reflectapi-python-runtime/pyproject.toml` and `src/reflectapi_runtime/__init__.py` use PEP 440 (`0.18.0a1`):
 
 ```fish
 # 1. Bump Cargo SemVer in all four crates.
@@ -148,10 +148,19 @@ cargo release \
 #    reflectapi-python-runtime/pyproject.toml         version = "..."
 #    reflectapi-python-runtime/src/reflectapi_runtime/__init__.py  __version__ = "..."
 
-# 3. Commit, tag, push:
+# 3. Verify every publishable crate, using Cargo's staged workspace registry:
+cargo package --workspace --all-features --locked --allow-dirty \
+    --exclude reflectapi-demo \
+    --exclude reflectapi-demo-client \
+    --exclude reflectapi-demo-client-generated
+
+# 4. Commit and land the release preparation on main:
 git commit -am "chore: <version>"
+
+# 5. Wait for successful CI on the exact main commit to release.
+#    Then, once publishing is approved, tag that commit and push the tag:
 git tag v<version>          # the `v` prefix is required
-git push origin main v<version>
+git push origin v<version>
 ```
 
 For pre-releases use `--prerelease alpha` (or `beta` / `rc`) on `cargo release`; the Python equivalent is `0.18.0a1`, `0.18.0b1`, `0.18.0rc1`.

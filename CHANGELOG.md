@@ -2,9 +2,13 @@
 
 ## Unreleased
 
+## 0.20.0
+
+Response SDKs can now preserve unfamiliar enum variants, and deprecations carry release versions and calendar dates across all SDKs and OpenAPI. This release also repairs recursive generic OpenAPI references. Regenerate SDKs and upgrade the Python runtime to 0.20.0 to use the new decoding behavior.
+
 ### Deprecation dates
 
-Deprecated routes, fields and enum variants can now say which release deprecated them, when they were deprecated and when they may be removed, and generated clients and OpenAPI specs show all three. See [Deprecations](docs/src/getting-started/deprecations.md).
+Deprecated routes, fields and enum variants can now say which release deprecated them, when they were deprecated and when they may be removed, and generated clients and OpenAPI specs show all three. See [Deprecations](https://github.com/thepartly/reflectapi/blob/main/docs/src/getting-started/deprecations.md).
 
 ```rust
 #[derive(serde::Deserialize, reflectapi::Input)]
@@ -29,7 +33,7 @@ builder.route(handler, |b| {
 - **OpenAPI:** `x-deprecated-in`, `x-deprecated-since` and `x-sunset` next to `deprecated: true` on operations, properties, header parameters and response headers. Schemas of deprecated enum variants are marked `deprecated: true` with the same extensions.
 - **Rust clients:** `#[deprecated(note = "..")]` with the release and dates in the note, on functions, fields and now variants.
 - **TypeScript clients:** the release and dates are in the `@deprecated` text, and deprecated variants get `@deprecated` on their union member and, for externally tagged variants with fields, on the tag key.
-- **Python clients:** deprecated methods are decorated with `typing_extensions.deprecated(..., category=None)` (PEP 702), so pyright and mypy report call sites; the runtime `DeprecationWarning` is unchanged. Deprecated fields now render as `Field(deprecated=...)`, so Pydantic warns when they are read. `reflectapi-runtime` now requires `pydantic>=2.7` and `typing-extensions>=4.5`.
+- **Python clients:** deprecated methods are decorated with `typing_extensions.deprecated(..., category=None)` (PEP 702), so pyright and mypy report call sites; the runtime `DeprecationWarning` is unchanged. Deprecated fields now render as `Field(deprecated=...)`, so Pydantic warns when they are read. The runtime requires Pydantic 2.10 or newer (2.12 on Python 3.14) and `typing-extensions>=4.5`.
 
 Messages read like `Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use items.current instead.`
 
@@ -42,6 +46,8 @@ Messages read like `Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11
 
 - OpenAPI: a generic instantiation that reaches itself, directly (`Tree<T>` with `children: Vec<Tree<T>>`) or through another type (`Outcome<Observation>` where `Observation` contains an enum with an `Outcome<Observation>` variant), no longer produces a `$ref` to a component that doesn't exist, such as `#/components/schemas/Outcome_Observation_`. Such an instantiation is now written to `components.schemas` under that name, with a numeric suffix when another type or instantiation already has it.
 - OpenAPI: a struct used both as a request body and as request headers, or a self-referential generic used as request headers, no longer leaves a dangling `$ref`.
+- Rust and TypeScript clients: endpoint names containing keywords now generate valid methods and bindings, including Rust 2024's `gen`. TypeScript helper names remain distinct from literal endpoints such as `enum_`; public TypeScript properties and HTTP paths are unchanged.
+- Python clients: endpoints with leading or trailing underscores no longer produce an empty method name. Existing underscore and dot grouping is retained.
 - Rust clients: a deprecation note containing `"` or `\` no longer produces code that doesn't compile.
 - Python clients: field deprecation notes, previously dropped, are now rendered.
 - TypeScript clients: a `*/` in a doc comment or deprecation note no longer ends the JSDoc comment early and breaks the generated file.
@@ -54,6 +60,12 @@ Messages read like `Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11
 
 - **`reflectapi-schema`:** `Enum` gains `open` and `Variant` gains `other`. Downstream struct literals must supply these fields, or use `Enum::new` and `Variant::new`. Older serialized schemas remain compatible: omitted flags default to `false` and are omitted again when serialized.
 - **Generated clients:** regenerate SDKs to acquire fallback or open-response decoding; already distributed SDKs keep their existing behavior. Regenerated Python clients using either policy need the updated `reflectapi-runtime`. Open response types gain an explicit unknown case, which callers must handle when matching exhaustively. Generated request types remain closed; a type previously shared between requests and responses may now produce separate input and output types.
+
+### Dependency updates
+
+- The Python runtime now requires `anyio>=4.14.2` and `idna>=3.15` to exclude versions affected by TLS hostname validation and input validation advisories.
+- Python dependencies now require `httpx>=0.25.2` and `httpcore>=1.0.9` for Python 3.14 compatibility and patched HTTP parsing. Pydantic minimum versions support rebuilding generated generic models, and CI exercises the minimum dependency sets on Python 3.12 and 3.14.
+- Rust dependency locks use patched versions of Rustls, OpenSSL, h2 and anyhow. The Rust lock also updates rust_decimal to remove its unused rkyv dependency. The TypeScript demo lock uses patched form-data. Applications with their own Rust dependency locks should update them to pick up these fixes.
 
 ## 0.19.0
 
