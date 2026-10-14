@@ -69,6 +69,7 @@ snapshot_kind: text
       "reflectapi_demo.tests.serde.Test": {
         "oneOf": [
           {
+            "title": "S",
             "allOf": [
               {
                 "$ref": "#/components/schemas/reflectapi_demo.tests.serde.A"
