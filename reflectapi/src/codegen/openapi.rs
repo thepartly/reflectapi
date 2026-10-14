@@ -328,6 +328,9 @@ pub enum Schema {
         subschemas: Vec<InlineOrRef<Schema>>,
     },
     OneOf {
+        /// Names an enum variant's branch, as on `AllOf`.
+        #[serde(skip_serializing_if = "String::is_empty")]
+        title: String,
         #[serde(rename = "oneOf")]
         subschemas: Vec<InlineOrRef<Schema>>,
     },
@@ -375,8 +378,9 @@ impl fmt::Debug for Schema {
                 .field("title", title)
                 .field("subschemas", subschemas)
                 .finish(),
-            Schema::OneOf { subschemas } => f
+            Schema::OneOf { title, subschemas } => f
                 .debug_struct("OneOf")
+                .field("title", title)
                 .field("subschemas", subschemas)
                 .finish(),
             Schema::Const { value, description } => f
@@ -930,6 +934,7 @@ impl Converter<'_> {
                 if adt.name == "std::option::Option" || adt.name == "reflectapi::Option" {
                     // Special case `Option` to generate a nicer spec.
                     Schema::OneOf {
+                        title: String::new(),
                         subschemas: vec![
                             Inline(Schema::Flat(FlatSchema {
                                 description: "Null".to_owned(),
@@ -1079,10 +1084,16 @@ impl Converter<'_> {
             .collect::<Vec<_>>();
 
         let schema = match adt.representation() {
-            crate::Representation::Internal { tag: _ } => Schema::OneOf { subschemas },
+            crate::Representation::Internal { tag: _ } => Schema::OneOf {
+                title: String::new(),
+                subschemas,
+            },
             crate::Representation::External
             | crate::Representation::Adjacent { .. }
-            | crate::Representation::None => Schema::OneOf { subschemas },
+            | crate::Representation::None => Schema::OneOf {
+                title: String::new(),
+                subschemas,
+            },
         };
 
         Inline(schema)
@@ -1352,7 +1363,8 @@ impl Converter<'_> {
                 };
                 Ok(Inline(Schema::AllOf { title, subschemas }))
             }
-            Schema::OneOf { subschemas } => Ok(Inline(Schema::OneOf {
+            Schema::OneOf { subschemas, .. } => Ok(Inline(Schema::OneOf {
+                title: variant_title.to_owned(),
                 subschemas: subschemas
                     .iter()
                     // One title on every branch of the inner `oneOf` would make them indistinguishable.

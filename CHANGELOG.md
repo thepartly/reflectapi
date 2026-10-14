@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- **OpenAPI:** each internally tagged enum variant's branch now has a `title`, the variant's tag value. Diff tools such as oasdiff pair `oneOf` branches by title and otherwise by content, so a change nested anywhere inside a variant was reported as the variant removed.
+- **OpenAPI:** each internally tagged enum variant's branch now has a `title`, the variant's tag value. This covers a variant that wraps an untagged enum, whose branch is a `oneOf`. Diff tools such as oasdiff pair `oneOf` branches by title and otherwise by content, so a change nested anywhere inside a variant was reported as the variant removed.
 
 ## 0.20.0
 

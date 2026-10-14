@@ -1,0 +1,166 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.Rule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.Rule"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.enums.Evaluation": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.enums.Evaluation",
+        "required": [
+          "score"
+        ],
+        "properties": {
+          "score": {
+            "$ref": "#/components/schemas/u32"
+          }
+        }
+      },
+      "reflectapi_demo.tests.enums.Failure": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.enums.Failure",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "reflectapi_demo.tests.enums.Outcome": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.enums.Evaluation"
+          },
+          {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.enums.Failure"
+          }
+        ]
+      },
+      "reflectapi_demo.tests.enums.Rule": {
+        "oneOf": [
+          {
+            "title": "First",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "reflectapi_demo.tests.enums.Evaluation",
+                "required": [
+                  "score",
+                  "type"
+                ],
+                "properties": {
+                  "score": {
+                    "$ref": "#/components/schemas/u32"
+                  },
+                  "type": {
+                    "const": "First"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "title": "reflectapi_demo.tests.enums.Failure",
+                "required": [
+                  "reason",
+                  "type"
+                ],
+                "properties": {
+                  "reason": {
+                    "$ref": "#/components/schemas/std.string.String"
+                  },
+                  "type": {
+                    "const": "First"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "Second",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "reflectapi_demo.tests.enums.Evaluation",
+                "required": [
+                  "score",
+                  "type"
+                ],
+                "properties": {
+                  "score": {
+                    "$ref": "#/components/schemas/u32"
+                  },
+                  "type": {
+                    "const": "Second"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "title": "reflectapi_demo.tests.enums.Failure",
+                "required": [
+                  "reason",
+                  "type"
+                ],
+                "properties": {
+                  "reason": {
+                    "$ref": "#/components/schemas/std.string.String"
+                  },
+                  "type": {
+                    "const": "Second"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}
