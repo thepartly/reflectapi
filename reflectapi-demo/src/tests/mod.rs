@@ -54,7 +54,186 @@ fn generated_openapi_spec_has_resolvable_refs() {
     assert_local_openapi_refs_resolve(&spec);
 }
 
-fn assert_local_openapi_refs_resolve(spec: &serde_json::Value) {
+/// A generic instantiation that reaches itself only through a non-generic
+/// enum: `Outcome<Observation>` is first converted from a route, then
+/// re-entered from the `oneOf` of `Activation`, which `Observation` refers
+/// to. The re-entry used to emit a `$ref` to a component never written.
+#[test]
+fn openapi_refs_resolve_for_generic_reentered_through_enum() {
+    mod m {
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub struct Outcome<O> {
+            pub value: O,
+        }
+
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub struct Observation {
+            pub activation: Option<Box<Activation>>,
+        }
+
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub enum Activation {
+            Tuple(Outcome<Observation>),
+            Struct { outcome: Outcome<Observation> },
+            List(Vec<Outcome<Observation>>),
+        }
+
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub struct Request {
+            pub outcome: Outcome<Observation>,
+            pub activation: Activation,
+        }
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(
+            |_: (), _: m::Outcome<m::Observation>, _: reflectapi::Empty| async {
+                reflectapi::Empty {}
+            },
+            |b| b.name("internal.outcome").tag("internal"),
+        )
+        .route(
+            |_: (), r: m::Request, _: reflectapi::Empty| async { r },
+            |b| b.name("public.activate").tag("public"),
+        )
+        .build()
+        .unwrap();
+
+    for exclude_tags in [BTreeSet::new(), BTreeSet::from(["internal".to_owned()])] {
+        let spec = reflectapi::codegen::openapi::generate_spec(
+            &schema,
+            reflectapi::codegen::openapi::Config::default().exclude_tags(exclude_tags),
+        );
+        assert_local_openapi_refs_resolve(&serde_json::to_value(spec).unwrap());
+    }
+}
+
+#[test]
+fn openapi_refs_resolve_for_header_type_also_used_as_body() {
+    #[derive(::serde::Deserialize, reflectapi::Input)]
+    struct SharedHeaders {
+        #[deprecated(since = "0.19.0", note = "Use the new authorization header.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        _authorization: String,
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(
+            |_: (), _: SharedHeaders, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("a.body"),
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: SharedHeaders| async { reflectapi::Empty {} },
+            |b| b.name("b.headers"),
+        )
+        .build()
+        .unwrap();
+    assert_openapi_refs_resolve(&schema);
+    let spec = serde_json::to_value(reflectapi::codegen::openapi::generate_spec(
+        &schema,
+        &reflectapi::codegen::openapi::Config::default(),
+    ))
+    .unwrap();
+    let header = &spec["paths"]["/b.headers"]["post"]["parameters"][0];
+    assert_eq!(header["deprecated"], true);
+    assert_eq!(header["x-deprecated-in"], "0.19.0");
+    assert_eq!(header["x-deprecated-since"], "2026-10-01");
+    assert_eq!(header["x-sunset"], "2026-11-01");
+}
+
+#[test]
+fn openapi_refs_resolve_for_recursive_open_enum_with_deprecated_variant() {
+    #[derive(::serde::Serialize, reflectapi::Output)]
+    #[serde(tag = "kind")]
+    #[reflectapi(open)]
+    enum Tree<T> {
+        Leaf {
+            value: T,
+        },
+        #[deprecated(since = "0.19.0", note = "Use a leaf.")]
+        #[reflectapi(deprecated_since = "2026-10-01", sunset = "2026-11-01")]
+        Branch {
+            children: Vec<Tree<T>>,
+        },
+    }
+
+    #[allow(deprecated)]
+    let source = Tree::Branch {
+        children: vec![Tree::Leaf {
+            value: "example".to_owned(),
+        }],
+    };
+    assert_eq!(
+        serde_json::to_value(source).unwrap(),
+        serde_json::json!({"kind": "Branch", "children": [{"kind": "Leaf", "value": "example"}]})
+    );
+
+    let schema = into_output_schema::<Tree<String>>();
+    let spec = serde_json::to_value(reflectapi::codegen::openapi::generate_spec(
+        &schema,
+        &reflectapi::codegen::openapi::Config::default(),
+    ))
+    .unwrap();
+    assert_local_openapi_refs_resolve(&spec);
+    let root = spec["paths"]["/output_test"]["post"]["responses"]["200"]["content"]
+        ["application/json"]["schema"]["$ref"]
+        .as_str()
+        .unwrap();
+    let tree = spec.pointer(root.strip_prefix('#').unwrap()).unwrap();
+    let branch = &tree["oneOf"][1];
+    assert_eq!(branch["deprecated"], true);
+    assert_eq!(branch["x-deprecated-in"], "0.19.0");
+    assert_eq!(branch["x-deprecated-since"], "2026-10-01");
+    assert_eq!(branch["x-sunset"], "2026-11-01");
+    assert_eq!(branch["properties"]["children"]["items"]["$ref"], root);
+    // Open is a client decoding policy: the server schema contains only
+    // declared wire variants, with no synthetic unknown alternative.
+    assert_eq!(tree["oneOf"].as_array().unwrap().len(), 2);
+}
+
+/// Generic header structs: one shared with a request body (plain and
+/// self-referential), and a self-referential one used only as headers, whose
+/// parameters refer back to its component.
+#[test]
+fn openapi_refs_resolve_for_generic_header_types() {
+    #[derive(::serde::Deserialize, reflectapi::Input)]
+    struct GenericHeaders<T> {
+        _authorization: T,
+    }
+
+    #[derive(::serde::Deserialize, reflectapi::Input)]
+    struct TreeHeaders<T> {
+        _authorization: T,
+        _children: Vec<TreeHeaders<T>>,
+    }
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(
+            |_: (), _: GenericHeaders<String>, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("generic.body"),
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: GenericHeaders<String>| async { reflectapi::Empty {} },
+            |b| b.name("generic.headers"),
+        )
+        .route(
+            |_: (), _: TreeHeaders<String>, _: reflectapi::Empty| async { reflectapi::Empty {} },
+            |b| b.name("tree.body"),
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: TreeHeaders<String>| async { reflectapi::Empty {} },
+            |b| b.name("tree.headers"),
+        )
+        .route(
+            |_: (), _: reflectapi::Empty, _: TreeHeaders<u8>| async { reflectapi::Empty {} },
+            |b| b.name("tree.headers_only"),
+        )
+        .build()
+        .unwrap();
+    assert_openapi_refs_resolve(&schema);
+}
+
+pub(crate) fn assert_local_openapi_refs_resolve(spec: &serde_json::Value) {
     let schemas = spec
         .pointer("/components/schemas")
         .and_then(serde_json::Value::as_object)

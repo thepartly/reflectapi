@@ -55,22 +55,12 @@ pub fn generate(schema: &crate::Schema, config: &Config) -> anyhow::Result<Strin
 pub fn generate_spec(schema: &crate::Schema, config: &Config) -> Spec {
     let mut schema = schema.clone();
     schema.strip_hidden_fields();
-    Converter {
-        config,
-        components: Default::default(),
-        in_progress: Default::default(),
-    }
-    .convert(&schema)
+    Converter::new(config).convert(&schema)
 }
 
 impl From<&crate::Schema> for Spec {
     fn from(schema: &crate::Schema) -> Self {
-        Converter {
-            config: &Config::default(),
-            components: Default::default(),
-            in_progress: Default::default(),
-        }
-        .convert(schema)
+        Converter::new(&Config::default()).convert(schema)
     }
 }
 
@@ -493,18 +483,71 @@ impl<T> Ref<T> {
 struct Converter<'a> {
     components: Components,
     config: &'a Config,
-    /// Type references currently being converted. Keyed by
-    /// `fmt_type_ref` so different monomorphizations of the same
-    /// generic (e.g. `Tree<i32>` vs `Tree<u32>`) are tracked
-    /// independently. Required to break recursion for generic
-    /// self-referential types, which are inlined rather than
-    /// promoted to `components.schemas` and so don't benefit from
-    /// the stub-on-insert guard elsewhere in this module.
-    in_progress: std::collections::HashSet<String>,
+    /// Generic instantiations currently being converted, and whether each
+    /// was referenced from within itself. Keyed by `fmt_type_ref` so
+    /// different monomorphizations of the same generic (e.g. `Tree<i32>` vs
+    /// `Tree<u32>`) are tracked independently. Generic types are inlined
+    /// rather than promoted to `components.schemas`, so they don't benefit
+    /// from the stub-on-insert guard that breaks recursion for other types.
+    in_progress: std::collections::HashMap<String, bool>,
+    /// Component name of each generic instantiation that needed one, keyed
+    /// by `fmt_type_ref`. Only looked up, never iterated, so output order
+    /// doesn't depend on hashing.
+    generic_component_names: std::collections::HashMap<String, String>,
+    /// Names handed out in `generic_component_names`, plus the normalized
+    /// name of every type in the schema, so a generic instantiation never
+    /// takes a name another type uses.
+    taken_component_names: std::collections::HashSet<String>,
+    /// Components registered while converting request headers. Headers
+    /// are inlined as parameters, so these are dropped at the end unless
+    /// something refers to them.
+    header_components: BTreeSet<String>,
+}
+
+impl<'a> Converter<'a> {
+    fn new(config: &'a Config) -> Self {
+        Self {
+            components: Default::default(),
+            config,
+            in_progress: Default::default(),
+            generic_component_names: Default::default(),
+            taken_component_names: Default::default(),
+            header_components: Default::default(),
+        }
+    }
 }
 
 impl Converter<'_> {
     fn convert(mut self, schema: &crate::Schema) -> Spec {
+        self.taken_component_names = schema
+            .input_types
+            .types()
+            .chain(schema.output_types.types())
+            .map(|ty| normalize(ty.name()))
+            .collect();
+        let paths = schema
+            .functions
+            .iter()
+            .filter(|f| {
+                self.config.include_tags.is_empty()
+                    || f.tags
+                        .iter()
+                        .any(|tag| self.config.include_tags.contains(tag))
+            })
+            .filter(|f| {
+                self.config.exclude_tags.is_empty()
+                    || f.tags
+                        .iter()
+                        .all(|tag| !self.config.exclude_tags.contains(tag))
+            })
+            .map(|f| {
+                (
+                    format!("{}/{}", f.path(), f.name()),
+                    self.convert_function(schema, f),
+                )
+            })
+            .collect();
+        self.drop_unreferenced_header_components(&paths);
         Spec {
             openapi: "3.1.0".into(),
             tags: self.config.tags.clone(),
@@ -513,30 +556,68 @@ impl Converter<'_> {
                 description: sanitize_description(&schema.description),
                 version: "1.0.0".into(),
             },
-            paths: schema
-                .functions
-                .iter()
-                .filter(|f| {
-                    self.config.include_tags.is_empty()
-                        || f.tags
-                            .iter()
-                            .any(|tag| self.config.include_tags.contains(tag))
-                })
-                .filter(|f| {
-                    self.config.exclude_tags.is_empty()
-                        || f.tags
-                            .iter()
-                            .all(|tag| !self.config.exclude_tags.contains(tag))
-                })
-                .map(|f| {
-                    (
-                        format!("{}/{}", f.path(), f.name()),
-                        self.convert_function(schema, f),
-                    )
-                })
-                .collect(),
+            paths,
             components: self.components,
         }
+    }
+
+    fn drop_unreferenced_header_components(&mut self, paths: &BTreeMap<String, PathItem>) {
+        if self.header_components.is_empty() {
+            return;
+        }
+        fn collect_refs(value: &serde_json::Value, refs: &mut BTreeSet<String>) {
+            match value {
+                serde_json::Value::Object(object) => {
+                    if let Some(name) = object
+                        .get("$ref")
+                        .and_then(serde_json::Value::as_str)
+                        .and_then(|r| r.strip_prefix("#/components/schemas/"))
+                    {
+                        refs.insert(name.to_owned());
+                    }
+                    object.values().for_each(|v| collect_refs(v, refs));
+                }
+                serde_json::Value::Array(items) => items.iter().for_each(|v| collect_refs(v, refs)),
+                _ => {}
+            }
+        }
+        let mut refs = BTreeSet::new();
+        // Serializing these plain data types to a `Value` can't fail.
+        if let (Ok(paths), Ok(components)) = (
+            serde_json::to_value(paths),
+            serde_json::to_value(&self.components),
+        ) {
+            collect_refs(&paths, &mut refs);
+            collect_refs(&components, &mut refs);
+        } else {
+            return;
+        }
+        for name in std::mem::take(&mut self.header_components) {
+            if !refs.contains(&name) {
+                self.components.schemas.remove(&name);
+            }
+        }
+    }
+
+    /// The component name for a generic instantiation: its type reference
+    /// with `<`, `>` and `, ` replaced by `_`, plus a numeric suffix when
+    /// that is already taken, since the replacement can map different
+    /// instantiations (`Foo<A, B, C>`, `Foo<A, B_C>`) to the same string.
+    fn generic_component_name(&mut self, key: &str) -> String {
+        if let Some(name) = self.generic_component_names.get(key) {
+            return name.clone();
+        }
+        let base = key.replace(['<', '>'], "_").replace(", ", "_");
+        let mut name = base.clone();
+        let mut suffix = 2;
+        while self.taken_component_names.contains(&name) {
+            name = format!("{base}_{suffix}");
+            suffix += 1;
+        }
+        self.taken_component_names.insert(name.clone());
+        self.generic_component_names
+            .insert(key.to_owned(), name.clone());
+        name
     }
 
     fn convert_function(&mut self, schema: &crate::Schema, f: &crate::Function) -> PathItem {
@@ -669,7 +750,8 @@ impl Converter<'_> {
             InlineOrRef::Inline(schema) => schema,
             InlineOrRef::Ref(r) => {
                 let name = r.ref_path.strip_prefix("#/components/schemas/").unwrap();
-                self.components.schemas.remove(name).unwrap()
+                self.header_components.insert(name.to_owned());
+                self.components.schemas[name].clone()
             }
         };
 
@@ -730,25 +812,58 @@ impl Converter<'_> {
         // generic types are guarded by the stub-insert into
         // `components.schemas` below, which the early-return at the
         // top of this function uses to break re-entry. Generic types
-        // are inlined into their use sites and so don't appear in
-        // `components.schemas` at all — they need a separate
-        // in-progress set keyed by the full monomorphization, so
+        // are inlined into their use sites, so they need a separate
+        // in-progress map keyed by the full monomorphization, so
         // distinct instantiations of the same generic are tracked
-        // independently.
-        let in_progress_key = fmt_type_ref(ty_ref);
-        if self.in_progress.contains(&in_progress_key) {
-            // Emit a placeholder ref. The target isn't a real
-            // component (generics aren't promoted to named
-            // components), but the schema remains parseable as
-            // documentation and bounded in size.
-            let safe_key = in_progress_key.replace(['<', '>'], "_").replace(", ", "_");
-            return InlineOrRef::Ref(Ref::new(format!("#/components/schemas/{safe_key}")));
+        // independently. An instantiation that turns out to refer to
+        // itself is promoted to a component named by
+        // `generic_component_name`, so the `$ref` emitted on re-entry
+        // resolves. Primitives such as
+        // `Vec<T>` are skipped: they only recurse through a struct or
+        // enum argument, which is the better place to break the cycle.
+        let type_def = match kind {
+            Kind::Input => schema.input_types.get_type(&ty_ref.name),
+            Kind::Output => schema.output_types.get_type(&ty_ref.name),
+        };
+        if matches!(type_def, None | Some(crate::Type::Primitive(_))) {
+            return self.convert_type_ref_inner(schema, kind, ty_ref, name);
         }
-        self.in_progress.insert(in_progress_key.clone());
+        if ty_ref.arguments.is_empty() {
+            return self.convert_type_ref_inner(schema, kind, ty_ref, name);
+        }
+        let in_progress_key = fmt_type_ref(ty_ref);
+        let component_ref =
+            |name: &str| InlineOrRef::Ref(Ref::new(format!("#/components/schemas/{name}")));
+        if let Some(referenced) = self.in_progress.get_mut(&in_progress_key) {
+            *referenced = true;
+            return component_ref(&self.generic_component_name(&in_progress_key));
+        }
+        if let Some(component_name) = self.generic_component_names.get(&in_progress_key) {
+            if self.components.schemas.contains_key(component_name) {
+                return component_ref(component_name);
+            }
+        }
+        self.in_progress.insert(in_progress_key.clone(), false);
 
         let result = self.convert_type_ref_inner(schema, kind, ty_ref, name);
-        self.in_progress.remove(&in_progress_key);
-        result
+        if !self
+            .in_progress
+            .remove(&in_progress_key)
+            .unwrap_or_default()
+        {
+            return result;
+        }
+        let promoted = match result {
+            Inline(schema) => schema,
+            r @ InlineOrRef::Ref(_) => Schema::AllOf {
+                subschemas: vec![r],
+            },
+        };
+        let component_name = self.generic_component_name(&in_progress_key);
+        self.components
+            .schemas
+            .insert(component_name.clone(), promoted);
+        component_ref(&component_name)
     }
 
     fn convert_type_ref_inner(
@@ -1511,6 +1626,111 @@ Trailing docs."##
         assert!(spec_json.contains("Public docs."));
         assert!(spec_json.contains("Trailing docs."));
         assert!(spec_json.contains("#/components/schemas/tier1.ContextWithDiagrams"));
+    }
+
+    /// `Foo<Wrap<A>, B>` and `Foo<Wrap_A_, B>` sanitize to the same name, and
+    /// `Foo<A>`'s sanitized name is a real type's name. Each self-referential
+    /// instantiation must still get its own component.
+    #[test]
+    fn generic_component_names_are_distinct() {
+        let mut schema = crate::Schema::new();
+        let mut foo = crate::Struct::new("Foo");
+        foo.parameters = vec!["T".into(), "U".into()];
+        foo.fields = reflectapi_schema::Fields::Named(vec![
+            crate::Field::new("t".into(), "T".into()).with_required(true),
+            crate::Field::new(
+                "children".into(),
+                crate::TypeReference::new(
+                    "std::vec::Vec",
+                    vec![crate::TypeReference::new(
+                        "Foo",
+                        vec!["T".into(), "U".into()],
+                    )],
+                ),
+            )
+            .with_required(true),
+        ]);
+        let mut bar = crate::Struct::new("Bar");
+        bar.parameters = vec!["T".into()];
+        bar.fields = reflectapi_schema::Fields::Named(vec![crate::Field::new(
+            "children".into(),
+            crate::TypeReference::new(
+                "std::vec::Vec",
+                vec![crate::TypeReference::new("Bar", vec!["T".into()])],
+            ),
+        )
+        .with_required(true)]);
+        let mut wrap = crate::Struct::new("Wrap");
+        wrap.parameters = vec!["T".into()];
+        wrap.fields =
+            reflectapi_schema::Fields::Named(vec![
+                crate::Field::new("t".into(), "T".into()).with_required(true)
+            ]);
+        let vec = crate::Primitive::new(
+            "std::vec::Vec".into(),
+            String::new(),
+            vec!["T".into()],
+            None,
+        );
+        let mut types: Vec<crate::Type> = vec![foo.into(), bar.into(), wrap.into(), vec.into()];
+        for name in ["A", "B", "Wrap_A_", "Bar_A_"] {
+            types.push(crate::Struct::new(name).into());
+        }
+        for ty in types {
+            schema.output_types.insert_type(ty);
+        }
+        let outputs = [
+            (
+                "nested",
+                crate::TypeReference::new(
+                    "Foo",
+                    vec![
+                        crate::TypeReference::new("Wrap", vec!["A".into()]),
+                        "B".into(),
+                    ],
+                ),
+            ),
+            (
+                "flat",
+                crate::TypeReference::new("Foo", vec!["Wrap_A_".into(), "B".into()]),
+            ),
+            (
+                "reserved",
+                crate::TypeReference::new("Bar", vec!["A".into()]),
+            ),
+        ];
+        for (name, output) in outputs {
+            schema.functions.push(crate::Function {
+                output_type: crate::OutputType::Complete {
+                    output_type: Some(output),
+                },
+                ..crate::Function::new(name.to_owned())
+            });
+        }
+
+        let spec = serde_json::to_value(Spec::from(&schema)).unwrap();
+        let schemas = spec["components"]["schemas"].as_object().unwrap();
+        let output_ref = |name: &str| {
+            spec["paths"][format!("/{name}")]["post"]["responses"]["200"]["content"]
+                ["application/json"]["schema"]["$ref"]
+                .as_str()
+                .unwrap()
+                .strip_prefix("#/components/schemas/")
+                .unwrap()
+                .to_owned()
+        };
+        assert_eq!(output_ref("nested"), "Foo_Wrap_A__B_");
+        assert_eq!(output_ref("flat"), "Foo_Wrap_A__B__2");
+        assert_eq!(output_ref("reserved"), "Bar_A__2");
+        // Each component refers to itself, not to the other instantiation.
+        for name in ["Foo_Wrap_A__B_", "Foo_Wrap_A__B__2", "Bar_A__2"] {
+            let children = &schemas[name]["properties"]["children"]["items"]["$ref"];
+            assert_eq!(
+                children.as_str(),
+                Some(format!("#/components/schemas/{name}").as_str())
+            );
+        }
+        assert_ne!(schemas["Foo_Wrap_A__B_"], schemas["Foo_Wrap_A__B__2"]);
     }
 }
 

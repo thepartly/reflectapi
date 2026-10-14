@@ -105,6 +105,39 @@ fn builder() -> reflectapi::Builder<Arc<State>> {
         })
 }
 
+/// Every `$ref` in the generated OpenAPI spec must point at a defined
+/// component. Recursive generic instantiations used to emit refs to
+/// components that were never written.
+#[test]
+fn openapi_refs_resolve() {
+    let (schema, _) = builder().build().unwrap();
+    let spec = serde_json::to_value(reflectapi::codegen::openapi::Spec::from(&schema)).unwrap();
+    let schemas = spec["components"]["schemas"].as_object().unwrap();
+
+    fn collect_refs<'a>(value: &'a serde_json::Value, refs: &mut Vec<&'a str>) {
+        match value {
+            serde_json::Value::Object(object) => {
+                if let Some(r) = object.get("$ref").and_then(serde_json::Value::as_str) {
+                    refs.push(r);
+                }
+                object.values().for_each(|v| collect_refs(v, refs));
+            }
+            serde_json::Value::Array(items) => items.iter().for_each(|v| collect_refs(v, refs)),
+            _ => {}
+        }
+    }
+    let mut refs = Vec::new();
+    collect_refs(&spec, &mut refs);
+    let unresolved = refs
+        .into_iter()
+        .filter(|r| {
+            r.strip_prefix("#/components/schemas/")
+                .is_none_or(|name| !schemas.contains_key(name))
+        })
+        .collect::<Vec<_>>();
+    assert!(unresolved.is_empty(), "unresolved refs: {unresolved:#?}");
+}
+
 #[test]
 fn write_python_client() {
     let (schema, _) = builder().build().unwrap();
