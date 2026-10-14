@@ -97,6 +97,9 @@ pub fn generate(
             .collect::<Vec<_>>(),
     );
 
+    let implementation_names =
+        implementation_function_names(schema.functions().map(|f| f.name.as_str()));
+
     let mut generated_code = vec![];
 
     let file_template = templates::FileHeader {
@@ -139,10 +142,16 @@ pub fn generate(
 
     let mut rendered_functions = Vec::new();
     for function in schema.functions.iter() {
-        rendered_functions.push(render_function(function, &schema, &implemented_types)?);
+        rendered_functions.push(render_function(
+            function,
+            &implementation_names[&function.name],
+            &schema,
+            &implemented_types,
+        )?);
     }
 
-    let generated_impl_client = client_impl_from_function_group(8, &function_groups).render();
+    let generated_impl_client =
+        client_impl_from_function_group(8, &function_groups, &implementation_names).render();
     let file_template = templates::FileFooter {
         start_boilerplate: START_BOILERPLATE,
         end_boilerplate: END_BOILERPLATE,
@@ -822,6 +831,7 @@ fn function_groups_from_function_names(function_names: Vec<String>) -> FunctionG
 fn client_impl_from_function_group(
     offset: usize,
     group: &FunctionGroup,
+    implementation_names: &HashMap<String, String>,
 ) -> templates::ClientImplementationGroup {
     templates::ClientImplementationGroup {
         offset,
@@ -831,7 +841,7 @@ fn client_impl_from_function_group(
             .map(|f| {
                 (
                     f.split('.').next_back().unwrap().replace('-', "_"),
-                    f.replace('.', "__").replace('-', "_"),
+                    implementation_names[f].clone(),
                 )
             })
             .collect(),
@@ -841,7 +851,7 @@ fn client_impl_from_function_group(
             .map(|(n, g)| {
                 (
                     n.replace('-', "_"),
-                    client_impl_from_function_group(offset + 4, g),
+                    client_impl_from_function_group(offset + 4, g, implementation_names),
                 )
             })
             .collect(),
@@ -1396,11 +1406,12 @@ fn render_decoder_specs(schema: &crate::Schema) -> String {
 
 fn render_function(
     function: &Function,
+    implementation_name: &str,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> Result<String, anyhow::Error> {
     let sig = function_signature(function, schema, implemented_types);
-    let name = function.name.replace('-', "_").replace('.', "__");
+    let name = implementation_name.to_owned();
     let path = format!("{}/{}", function.path, function.name);
     let output_ref = match &function.output_type {
         reflectapi_schema::OutputType::Complete { output_type } => output_type.as_ref(),
@@ -1786,6 +1797,86 @@ fn doc_to_ts_comments(doc: &str, deprecation_note: Option<&str>, offset: u8) -> 
         .join("\n")
 }
 
+/// Allocate module-level implementation names independently of the public
+/// client properties and endpoint paths. Reserve literal endpoint names before
+/// escaping keywords so `class` cannot take the name of an endpoint `class_`.
+fn implementation_function_names<'a>(
+    function_names: impl Iterator<Item = &'a str>,
+) -> HashMap<String, String> {
+    const RESERVED_WORDS: &[&str] = &[
+        "arguments",
+        "await",
+        "break",
+        "case",
+        "catch",
+        "class",
+        "const",
+        "continue",
+        "debugger",
+        "default",
+        "delete",
+        "do",
+        "else",
+        "enum",
+        "eval",
+        "export",
+        "extends",
+        "false",
+        "finally",
+        "for",
+        "function",
+        "if",
+        "implements",
+        "import",
+        "in",
+        "instanceof",
+        "interface",
+        "let",
+        "new",
+        "null",
+        "package",
+        "private",
+        "protected",
+        "public",
+        "return",
+        "static",
+        "super",
+        "switch",
+        "this",
+        "throw",
+        "true",
+        "try",
+        "typeof",
+        "var",
+        "void",
+        "while",
+        "with",
+        "yield",
+    ];
+
+    let normalized_names = function_names
+        .map(|name| (name, name.replace('-', "_").replace('.', "__")))
+        .collect::<Vec<_>>();
+    let literal_names = normalized_names
+        .iter()
+        .map(|(_, name)| name.as_str())
+        .collect::<BTreeSet<_>>();
+    let mut allocated_names = BTreeSet::new();
+    let mut implementation_names = HashMap::new();
+    for (function_name, normalized_name) in &normalized_names {
+        let mut name = normalized_name.clone();
+        if RESERVED_WORDS.contains(&name.as_str()) || allocated_names.contains(&name) {
+            name.push('_');
+            while literal_names.contains(name.as_str()) || allocated_names.contains(&name) {
+                name.push('_');
+            }
+        }
+        allocated_names.insert(name.clone());
+        implementation_names.insert((*function_name).to_owned(), name);
+    }
+    implementation_names
+}
+
 fn camelcase(name: &str) -> String {
     let mut result = String::new();
     let mut capitalize = true;
@@ -1916,5 +2007,65 @@ mod enum_decoder_tests {
             &HashMap::new(),
         );
         assert!(with_fallback.contains("f:\"\""));
+    }
+}
+
+#[cfg(test)]
+mod function_name_tests {
+    use super::*;
+
+    #[test]
+    fn reserved_implementation_names_preserve_public_names_and_routes() {
+        let mut schema = crate::Schema::new();
+        // Put keywords first so allocation must account for later literal names.
+        for name in [
+            "class",
+            "class_",
+            "class__",
+            "default",
+            "default_",
+            "eval",
+            "arguments",
+            "await",
+            "nested.class",
+            "nested.default",
+        ] {
+            let mut function = Function::new(name.into());
+            function.path = "/api".into();
+            schema.functions.push(function);
+        }
+        let generated = generate(schema, Config::default().typecheck(true)).unwrap();
+        let generated = &generated["generated.ts"];
+        for (endpoint, property, implementation) in [
+            ("class", "class", "class___"),
+            ("class_", "class_", "class_"),
+            ("class__", "class__", "class__"),
+            ("default", "default", "default__"),
+            ("default_", "default_", "default_"),
+            ("eval", "eval", "eval_"),
+            ("arguments", "arguments", "arguments_"),
+            ("await", "await", "await_"),
+            ("nested.class", "class", "nested__class"),
+            ("nested.default", "default", "nested__default"),
+        ] {
+            let declaration = format!("function {implementation}(client: Client)");
+            assert_eq!(
+                generated.matches(&declaration).count(),
+                1,
+                "endpoint {endpoint} must have its own implementation"
+            );
+            assert!(generated.contains(&format!(
+                "\"{property}\": {implementation}(client_instance)"
+            )));
+            let body = generated
+                .split(&declaration)
+                .nth(1)
+                .unwrap()
+                .split("\n}")
+                .next()
+                .unwrap();
+            assert!(body.contains(&format!("'/api/{endpoint}'")));
+            assert!(generated.contains(&format!("{property}: (input:")));
+        }
     }
 }
