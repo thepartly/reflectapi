@@ -33,7 +33,7 @@ builder.route(handler, |b| {
 - **OpenAPI:** `x-deprecated-in`, `x-deprecated-since` and `x-sunset` next to `deprecated: true` on operations, properties, header parameters and response headers. Schemas of deprecated enum variants are marked `deprecated: true` with the same extensions.
 - **Rust clients:** `#[deprecated(note = "..")]` with the release and dates in the note, on functions, fields and now variants.
 - **TypeScript clients:** the release and dates are in the `@deprecated` text, and deprecated variants get `@deprecated` on their union member and, for externally tagged variants with fields, on the tag key.
-- **Python clients:** deprecated methods are decorated with `typing_extensions.deprecated(..., category=None)` (PEP 702), so pyright and mypy report call sites; the runtime `DeprecationWarning` is unchanged. Deprecated fields now render as `Field(deprecated=...)`, so Pydantic warns when they are read. `reflectapi-runtime` now requires `pydantic>=2.7` and `typing-extensions>=4.5`.
+- **Python clients:** deprecated methods are decorated with `typing_extensions.deprecated(..., category=None)` (PEP 702), so pyright and mypy report call sites; the runtime `DeprecationWarning` is unchanged. Deprecated fields now render as `Field(deprecated=...)`, so Pydantic warns when they are read. The runtime requires Pydantic 2.10 or newer (2.12 on Python 3.14) and `typing-extensions>=4.5`.
 
 Messages read like `Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use items.current instead.`
 
@@ -64,6 +64,7 @@ Messages read like `Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11
 ### Dependency updates
 
 - The Python runtime now requires `anyio>=4.14.2` and `idna>=3.15` to exclude versions affected by TLS hostname validation and input validation advisories.
+- Python dependencies now require `httpx>=0.25.2` and `httpcore>=1.0.9` for Python 3.14 compatibility and patched HTTP parsing. Pydantic minimum versions support rebuilding generated generic models, and CI exercises the minimum dependency sets on Python 3.12 and 3.14.
 - Rust dependency locks use patched versions of Rustls, OpenSSL, h2 and anyhow. The Rust lock also updates rust_decimal to remove its unused rkyv dependency. The TypeScript demo lock uses patched form-data. Applications with their own Rust dependency locks should update them to pick up these fixes.
 
 ## 0.19.0

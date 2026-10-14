@@ -1,6 +1,10 @@
 version = 1
 revision = 3
 requires-python = ">=3.12"
+resolution-markers = [
+    "python_full_version >= '3.14'",
+    "python_full_version < '3.14'",
+]
 
 [[package]]
 name = "annotated-types"
@@ -294,6 +298,7 @@ version = "0.20.0"
 source = { editable = "../../../reflectapi-python-runtime" }
 dependencies = [
     { name = "anyio" },
+    { name = "httpcore" },
     { name = "httpx" },
     { name = "idna" },
     { name = "pydantic" },
@@ -303,12 +308,14 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "anyio", specifier = ">=4.14.2" },
-    { name = "httpx", specifier = ">=0.25.0" },
+    { name = "httpcore", specifier = ">=1.0.9" },
+    { name = "httpx", specifier = ">=0.25.2" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "hypothesis", marker = "extra == 'test'", specifier = ">=6.0.0" },
     { name = "idna", specifier = ">=3.15" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.5.0" },
-    { name = "pydantic", specifier = ">=2.7.0" },
+    { name = "pydantic", marker = "python_full_version < '3.14'", specifier = ">=2.10.0" },
+    { name = "pydantic", marker = "python_full_version >= '3.14'", specifier = ">=2.12.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=7.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.0" },

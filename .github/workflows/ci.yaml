@@ -81,14 +81,35 @@ jobs:
   # this job catches the class of bug where the codegen emits a
   # Python annotation pointing at a symbol it never defined.
   python-codegen-smoke:
-    name: Python codegen smoke test (${{ matrix.python-version }})
+    name: Python codegen smoke test (${{ matrix.python-version }}${{ matrix.dependencies == 'minimum' && ', minimum' || '' }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.14"]
+        include:
+          - python-version: "3.12"
+            dependencies: latest
+            uv-run-args: ""
+          - python-version: "3.14"
+            dependencies: latest
+            uv-run-args: ""
+          # Exercise the supported floors against the generated SDK, including
+          # recursive PEP 695 models, wire samples, and enum compatibility.
+          - python-version: "3.12"
+            dependencies: minimum
+            uv-run-args: >-
+              --isolated --with pydantic==2.10.0 --with httpx==0.25.2
+              --with httpcore==1.0.9 --with anyio==4.14.2 --with idna==3.15
+          - python-version: "3.14"
+            dependencies: minimum
+            uv-run-args: >-
+              --isolated --with pydantic==2.12.0 --with httpx==0.25.2
+              --with httpcore==1.0.9 --with anyio==4.14.2 --with idna==3.15
     env:
       UV_PYTHON: ${{ matrix.python-version }}
+      # --with uses an ephemeral overlay; --locked preserves the tracked lock.
+      # These flags must accompany every uv invocation in this job.
+      UV_RUN_ARGS: ${{ matrix.uv-run-args }}
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
@@ -105,6 +126,14 @@ jobs:
           # we only want ruff on PATH so the codegen can shell out to
           # `ruff format`, not for the action itself to lint the repo.
           args: "--version"
+      - name: Report dependency versions
+        working-directory: reflectapi-demo/clients/python
+        run: |
+          uv run --locked $UV_RUN_ARGS python - <<'PY'
+          from importlib.metadata import version
+          for package in ("pydantic", "httpx", "httpcore", "anyio", "idna"):
+              print(f"{package}=={version(package)}")
+          PY
       - name: Regenerate demo Python client from schema
         run: |
           cargo run -p reflectapi-cli --quiet -- codegen \
@@ -113,7 +142,7 @@ jobs:
             -l python --python-package-name api_client --python-sync -f
       - name: Import demo client (triggers strict model_rebuild)
         working-directory: reflectapi-demo/clients/python
-        run: uv run python -c "import api_client; print('demo client import OK')"
+        run: uv run --locked $UV_RUN_ARGS python -c "import api_client; print('demo client import OK')"
       - name: Demo snapshot is committed (no drift)
         run: git diff --exit-code reflectapi-demo/clients/python/api_client/
       # Codegen coverage fixtures (recursive types, Python keyword
@@ -127,7 +156,7 @@ jobs:
       - name: Import codegen coverage client
         working-directory: reflectapi-demo/clients/python
         run: |
-          uv run python -c "
+          uv run --locked $UV_RUN_ARGS python -c "
           import sys, pathlib
           sys.path.insert(0, str(pathlib.Path('../../target/codegen-coverage-client').resolve()))
           import codegen_coverage_client
@@ -135,18 +164,18 @@ jobs:
           "
       - name: Replay serde wire samples through the coverage client
         working-directory: reflectapi-demo/clients/python
-        run: uv run pytest ../../tests/python/test_wire.py -q -p no:cacheprovider
+        run: uv run --locked $UV_RUN_ARGS pytest ../../tests/python/test_wire.py -q -p no:cacheprovider
       - name: Type-check generated clients
         working-directory: reflectapi-demo/clients/python
-        run: uv run pyright
+        run: uv run --locked $UV_RUN_ARGS pyright
       - name: Run demo client tests
         working-directory: reflectapi-demo/clients/python
-        run: uv run pytest -q
+        run: uv run --locked $UV_RUN_ARGS pytest -q
       - name: Generate enum compatibility clients
         run: cargo test -p reflectapi-demo --test enum_compatibility
       - name: Type-check enum compatibility consumer
         working-directory: reflectapi-demo/clients/python
-        run: uv run pyright --project ../../tests/python/pyrightconfig.json
+        run: uv run --locked $UV_RUN_ARGS pyright --project ../../tests/python/pyrightconfig.json
       - name: Test generated Python enum compatibility
         working-directory: reflectapi-demo/clients/python
-        run: uv run pytest ../../tests/python/test_enum_compatibility.py -q -p no:cacheprovider
+        run: uv run --locked $UV_RUN_ARGS pytest ../../tests/python/test_enum_compatibility.py -q -p no:cacheprovider
