@@ -226,6 +226,7 @@ function __decode_enum(value: unknown, spec: any, specs: __DecodeSpecs): any {
     if (spec.o) return __make_unknown_enum(tag, value);
     if (spec.f !== null) {
       __check_adjacent_unit_content(value, spec);
+      __check_external_unit_payload(payload, spec);
       return __fallback_enum_value(spec);
     }
     throw new Error(`unknown enum variant ${tag}`);
@@ -233,6 +234,7 @@ function __decode_enum(value: unknown, spec: any, specs: __DecodeSpecs): any {
 
   if (spec.f !== null && tag === spec.f) {
     __check_adjacent_unit_content(value, spec);
+    __check_external_unit_payload(payload, spec);
     return __fallback_enum_value(spec);
   }
 
@@ -271,6 +273,13 @@ function __fallback_enum_value(spec: any): any {
 function __check_adjacent_unit_content(value: unknown, spec: any): void {
   if (spec.r === "adjacent" && __is_record(value) &&
       Object.prototype.hasOwnProperty.call(value, spec.c) && value[spec.c] !== null) {
+    throw new Error("expected unit variant content");
+  }
+}
+
+// Serde reads an external unit variant from a bare tag or `{ tag: null }`.
+function __check_external_unit_payload(payload: unknown, spec: any): void {
+  if (spec.r === "external" && payload !== undefined && payload !== null) {
     throw new Error("expected unit variant content");
   }
 }

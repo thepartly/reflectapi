@@ -87,6 +87,14 @@ pub mod fixtures {
         Other,
     }
 
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    #[serde(rename_all = "snake_case")]
+    pub enum FallbackExternal {
+        Known,
+        #[serde(other)]
+        Unknown,
+    }
+
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Output)]
     #[serde(tag = "kind")]
     #[reflectapi(open, derive(serde_derive::Serialize, serde_alias::Deserialize))]
@@ -350,6 +358,10 @@ fn schema() -> reflectapi::Schema {
             |b| b.name("enums.adjacent_fallback"),
         )
         .route(
+            |_: (), input: fixtures::FallbackExternal, _: reflectapi::Empty| async { input },
+            |b| b.name("enums.external_fallback"),
+        )
+        .route(
             |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async {
                 Err::<reflectapi::Empty, fixtures::OpenInternal>(fixtures::OpenInternal::Bird)
             },
@@ -572,6 +584,24 @@ fn write_generated_clients() {
         serde_json::json!({"kind": 1.5}),
         serde_json::json!({"data": {}}),
     ];
+    let external_samples = [
+        serde_json::json!("known"),
+        serde_json::json!("unknown"),
+        serde_json::json!("future"),
+        serde_json::json!(""),
+        serde_json::json!({"known": null}),
+        serde_json::json!({"future": null}),
+        serde_json::json!({"unknown": null}),
+        serde_json::json!({"unknown": 5}),
+        serde_json::json!({"known": 5}),
+        serde_json::json!({"future": 5}),
+        serde_json::json!({"future": {}}),
+        serde_json::json!({"known": null, "future": null}),
+        serde_json::json!({}),
+        serde_json::json!(5),
+        serde_json::json!(null),
+        serde_json::json!(true),
+    ];
     let flattened_samples = samples
         .iter()
         .map(|sample| {
@@ -587,6 +617,7 @@ fn write_generated_clients() {
         serde_json::to_string_pretty(&serde_json::json!({
             "internal": fallback_samples::<fixtures::FallbackInternal>(&samples),
             "adjacent": fallback_samples::<fixtures::FallbackAdjacent>(&samples),
+            "external": fallback_samples::<fixtures::FallbackExternal>(&external_samples),
             "flatten_internal": fallback_samples::<fixtures::FlattenFallbackEnvelope>(&flattened_samples),
             "flatten_adjacent": fallback_samples::<fixtures::FlattenAdjacentFallbackEnvelope>(&flattened_samples),
         }))

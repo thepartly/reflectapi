@@ -5,6 +5,7 @@
 ### Fixed
 
 - **OpenAPI:** each internally tagged enum variant's branch now has a `title`, the variant's tag value. This covers a variant that wraps an untagged enum, whose branch is a `oneOf`. A newtype variant wrapping a struct now takes the tag value as its title instead of the struct's name, as named-field variants already did, so two variants wrapping the same struct no longer share one title. Diff tools such as oasdiff pair `oneOf` branches by title and otherwise by content, so a change nested anywhere inside a variant was reported as the variant removed.
+- Codegen no longer rejects `#[serde(other)]` on an externally tagged response enum whose variants are all units, such as a `rename_all = "snake_case"` string enum with an `Unknown` catch-all. 0.20.0 accepted the fallback only on internally and adjacently tagged enums, although Serde honours it here too. Generated clients now decode an unknown string, or `{"tag": null}`, to the fallback variant, as Serde does: Rust keeps `#[serde(other)]`, TypeScript maps the value in its response decoder, and the Python `str` enum gains a `_missing_` hook. External enums with fields are still rejected.
 
 ## 0.20.0
 

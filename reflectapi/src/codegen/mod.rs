@@ -58,11 +58,21 @@ pub(super) fn validate_response_enums(schema: &crate::Schema) -> anyhow::Result<
         let mut other_count = 0;
         for variant in enm.variants.iter().filter(|variant| variant.other) {
             other_count += 1;
+            // Serde also honours `other` in an externally tagged enum, where an
+            // unknown string selects it. Only an all-unit enum is accepted there:
+            // it is a plain string on the wire, so every client can decode it.
+            let supported = match enm.representation {
+                crate::Representation::Internal { .. } | crate::Representation::Adjacent { .. } => {
+                    true
+                }
+                crate::Representation::External => enm.variants.iter().all(|variant| {
+                    matches!(variant.fields, crate::Fields::None) && variant.discriminant.is_none()
+                }),
+                crate::Representation::None => false,
+            };
             anyhow::ensure!(
-                matches!(enm.representation, crate::Representation::Internal { .. } | crate::Representation::Adjacent { .. })
-                    && matches!(variant.fields, crate::Fields::None)
-                    && !variant.untagged,
-                "{}::{}: serde(other) requires a unit variant in an internally or adjacently tagged enum",
+                supported && matches!(variant.fields, crate::Fields::None) && !variant.untagged,
+                "{}::{}: serde(other) requires a unit variant in an internally or adjacently tagged enum, or in an externally tagged enum whose variants are all units",
                 enm.name, variant.name,
             );
         }

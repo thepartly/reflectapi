@@ -309,14 +309,15 @@ test("untagged wrappers decode reachable open enums in order", async () => {
 
 test("serde fallback accepts and rejects the source-backed wire samples", async () => {
   for (const [representation, method] of [
-    ["internal", "fallback"], ["adjacent", "adjacent_fallback"],
+    ["internal", "fallback"], ["adjacent", "adjacent_fallback"], ["external", "external_fallback"],
     ["flatten_internal", "flatten_fallback"], ["flatten_adjacent", "flatten_adjacent_fallback"],
   ]) {
     for (const sample of fallbackSamples[representation]) {
       const result = await call(method, sample.wire);
       if (sample.ok) {
         assert.equal(result.is_ok(), true, `${representation}: ${JSON.stringify(sample.wire)}`);
-        if (sample.value.kind === "other" || sample.value.kind === "Other") {
+        if (typeof sample.value === "string" ||
+            sample.value.kind === "other" || sample.value.kind === "Other") {
           assert.deepEqual(result.unwrap_ok(), sample.value);
         }
       } else {

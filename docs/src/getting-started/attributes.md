@@ -66,8 +66,10 @@ enabling it does not change already distributed SDKs.
 Without `open`, a declared `#[serde(other)]` unit variant is preserved in the
 generated response clients. An unfamiliar valid tag maps to that unit variant,
 discarding its original tag and content. This is supported for internally and
-adjacently tagged enums; adjacent unit variants accept only absent or null
-content, matching Serde. Missing/non-string tags and malformed known variants
+adjacently tagged enums, and for externally tagged enums whose variants are all
+units, which are plain strings on the wire. Adjacent unit variants accept only
+absent or null content, and external ones only a bare tag or `{"tag": null}`,
+matching Serde. Missing/non-string tags and malformed known variants
 remain errors for ordinary enum fields. A directly flattened internal fallback
 also preserves Serde's integer variant identifiers: an index selects the
 declared variant, or the fallback when it is out of range. Open enums always
