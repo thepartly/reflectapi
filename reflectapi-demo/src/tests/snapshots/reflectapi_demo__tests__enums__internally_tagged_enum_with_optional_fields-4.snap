@@ -45,7 +45,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         "oneOf": [
           {
             "type": "object",
-            "title": "reflectapi_demo.tests.enums.input.VariantBody",
+            "title": "variant",
             "required": [
               "always_null_on_wire",
               "amount",
@@ -141,7 +141,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         "oneOf": [
           {
             "type": "object",
-            "title": "reflectapi_demo.tests.enums.output.VariantBody",
+            "title": "variant",
             "required": [
               "always_null_on_wire",
               "type"

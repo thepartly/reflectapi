@@ -45,6 +45,7 @@ snapshot_kind: text
       "reflectapi_demo.tests.serde.Test": {
         "oneOf": [
           {
+            "title": "v1",
             "oneOf": [
               {
                 "type": "object",
@@ -89,6 +90,7 @@ snapshot_kind: text
             ]
           },
           {
+            "title": "v2",
             "oneOf": [
               {
                 "type": "object",

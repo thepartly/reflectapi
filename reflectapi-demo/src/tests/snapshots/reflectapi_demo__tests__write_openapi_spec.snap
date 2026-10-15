@@ -856,7 +856,7 @@ expression: s
           },
           {
             "type": "object",
-            "title": "myapi.proto.InternalError",
+            "title": "Internal",
             "required": [
               "kind",
               "message"

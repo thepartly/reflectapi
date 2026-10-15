@@ -1,0 +1,98 @@
+---
+source: reflectapi-demo/src/tests/enums.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.enums.E"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.enums.E"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.enums.Body": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.enums.Body",
+        "required": [
+          "x"
+        ],
+        "properties": {
+          "x": {
+            "$ref": "#/components/schemas/u32"
+          }
+        }
+      },
+      "reflectapi_demo.tests.enums.E": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "first",
+            "required": [
+              "type",
+              "x"
+            ],
+            "properties": {
+              "type": {
+                "const": "first"
+              },
+              "x": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "second",
+            "required": [
+              "type",
+              "x"
+            ],
+            "properties": {
+              "type": {
+                "const": "second"
+              },
+              "x": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          }
+        ]
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

@@ -321,10 +321,16 @@ impl serde::Serialize for Property {
 #[serde(rename_all = "camelCase")]
 pub enum Schema {
     AllOf {
+        /// Names an enum variant's branch, so diff tools pair it by name rather than by content.
+        #[serde(skip_serializing_if = "String::is_empty")]
+        title: String,
         #[serde(rename = "allOf")]
         subschemas: Vec<InlineOrRef<Schema>>,
     },
     OneOf {
+        /// Names an enum variant's branch, as on `AllOf`.
+        #[serde(skip_serializing_if = "String::is_empty")]
+        title: String,
         #[serde(rename = "oneOf")]
         subschemas: Vec<InlineOrRef<Schema>>,
     },
@@ -367,12 +373,14 @@ impl Serialize for DeprecatedSchema {
 impl fmt::Debug for Schema {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Schema::AllOf { subschemas } => f
+            Schema::AllOf { title, subschemas } => f
                 .debug_struct("AllOf")
+                .field("title", title)
                 .field("subschemas", subschemas)
                 .finish(),
-            Schema::OneOf { subschemas } => f
+            Schema::OneOf { title, subschemas } => f
                 .debug_struct("OneOf")
+                .field("title", title)
                 .field("subschemas", subschemas)
                 .finish(),
             Schema::Const { value, description } => f
@@ -856,6 +864,7 @@ impl Converter<'_> {
         let promoted = match result {
             Inline(schema) => schema,
             r @ InlineOrRef::Ref(_) => Schema::AllOf {
+                title: String::new(),
                 subschemas: vec![r],
             },
         };
@@ -925,6 +934,7 @@ impl Converter<'_> {
                 if adt.name == "std::option::Option" || adt.name == "reflectapi::Option" {
                     // Special case `Option` to generate a nicer spec.
                     Schema::OneOf {
+                        title: String::new(),
                         subschemas: vec![
                             Inline(Schema::Flat(FlatSchema {
                                 description: "Null".to_owned(),
@@ -1074,10 +1084,16 @@ impl Converter<'_> {
             .collect::<Vec<_>>();
 
         let schema = match adt.representation() {
-            crate::Representation::Internal { tag: _ } => Schema::OneOf { subschemas },
+            crate::Representation::Internal { tag: _ } => Schema::OneOf {
+                title: String::new(),
+                subschemas,
+            },
             crate::Representation::External
             | crate::Representation::Adjacent { .. }
-            | crate::Representation::None => Schema::OneOf { subschemas },
+            | crate::Representation::None => Schema::OneOf {
+                title: String::new(),
+                subschemas,
+            },
         };
 
         Inline(schema)
@@ -1267,7 +1283,7 @@ impl Converter<'_> {
                 };
 
                 return self
-                    .internally_tag(tag, mk_tag(&variant.name), &s)
+                    .internally_tag(tag, &variant.name, mk_tag(&variant.name), &s)
                     .unwrap_or_else(|err| panic!("{}: {err}", adt.name()));
             }
             crate::Representation::None => {
@@ -1315,11 +1331,12 @@ impl Converter<'_> {
     fn internally_tag(
         &self,
         tag_name: &str,
+        variant_title: &str,
         tag_schema: InlineOrRef<Schema>,
         schema: &InlineOrRef<Schema>,
     ) -> Result<InlineOrRef<Schema>, InvalidInternalTagError> {
         match self.resolve_schema_ref(schema) {
-            Schema::AllOf { subschemas } => {
+            Schema::AllOf { title, subschemas } => {
                 let mut subschemas = subschemas.clone();
                 subschemas.push(Inline(
                     FlatSchema {
@@ -1339,12 +1356,21 @@ impl Converter<'_> {
                     }
                     .into(),
                 ));
-                Ok(Inline(Schema::AllOf { subschemas }))
+                let title = if title.is_empty() {
+                    variant_title.to_owned()
+                } else {
+                    title.clone()
+                };
+                Ok(Inline(Schema::AllOf { title, subschemas }))
             }
-            Schema::OneOf { subschemas } => Ok(Inline(Schema::OneOf {
+            Schema::OneOf { subschemas, .. } => Ok(Inline(Schema::OneOf {
+                title: variant_title.to_owned(),
                 subschemas: subschemas
                     .iter()
-                    .map(|subschema| self.internally_tag(tag_name, tag_schema.clone(), subschema))
+                    // One title on every branch of the inner `oneOf` would make them indistinguishable.
+                    .map(|subschema| {
+                        self.internally_tag(tag_name, "", tag_schema.clone(), subschema)
+                    })
                     .collect::<Result<_, _>>()?,
             })),
             Schema::Const { value, description } => {
@@ -1380,7 +1406,7 @@ impl Converter<'_> {
                 Ok(Inline(Schema::Flat(FlatSchema {
                     description: sanitize_description(description),
                     ty: Type::Object {
-                        title: String::new(),
+                        title: variant_title.to_owned(),
                         required,
                         properties,
                     },
@@ -1390,7 +1416,12 @@ impl Converter<'_> {
                 schema,
                 deprecation,
             }) => Ok(Inline(Schema::Deprecated(DeprecatedSchema {
-                schema: Box::new(self.internally_tag(tag_name, tag_schema, schema)?),
+                schema: Box::new(self.internally_tag(
+                    tag_name,
+                    variant_title,
+                    tag_schema,
+                    schema,
+                )?),
                 deprecation: deprecation.clone(),
             }))),
             Schema::Flat(schema) => match &schema.ty {
@@ -1404,7 +1435,7 @@ impl Converter<'_> {
                 Type::Null => Ok(Inline(Schema::Flat(FlatSchema {
                     description: sanitize_description(&schema.description),
                     ty: Type::Object {
-                        title: String::new(),
+                        title: variant_title.to_owned(),
                         required: [tag_name.to_owned()].into(),
                         properties: BTreeMap::from([(
                             tag_name.to_owned(),
@@ -1423,7 +1454,13 @@ impl Converter<'_> {
                 } => Ok(Inline(Schema::Flat(FlatSchema {
                     description: sanitize_description(&schema.description),
                     ty: Type::Object {
-                        title: title.to_owned(),
+                        // A newtype variant's object carries the wrapped struct's name, which
+                        // two variants wrapping the same struct would share.
+                        title: if variant_title.is_empty() {
+                            title.to_owned()
+                        } else {
+                            variant_title.to_owned()
+                        },
                         required: required
                             .iter()
                             .cloned()
@@ -1515,7 +1552,10 @@ impl Converter<'_> {
             if subschemas.len() == 1 {
                 return subschemas.into_iter().next().unwrap();
             } else {
-                Schema::AllOf { subschemas }
+                Schema::AllOf {
+                    title: String::new(),
+                    subschemas,
+                }
             }
         };
 

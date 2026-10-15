@@ -58,6 +58,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           {
             "description": "Unit type",
             "type": "object",
+            "title": "Y",
             "required": [
               "type"
             ],

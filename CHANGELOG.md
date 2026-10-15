@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- **OpenAPI:** each internally tagged enum variant's branch now has a `title`, the variant's tag value. This covers a variant that wraps an untagged enum, whose branch is a `oneOf`. A newtype variant wrapping a struct now takes the tag value as its title instead of the struct's name, as named-field variants already did, so two variants wrapping the same struct no longer share one title. Diff tools such as oasdiff pair `oneOf` branches by title and otherwise by content, so a change nested anywhere inside a variant was reported as the variant removed.
+
 ## 0.20.0
 
 Response SDKs can now preserve unfamiliar enum variants, and deprecations carry release versions and calendar dates across all SDKs and OpenAPI. This release also repairs recursive generic OpenAPI references. Regenerate SDKs and upgrade the Python runtime to 0.20.0 to use the new decoding behavior.

@@ -226,3 +226,54 @@ fn test_internally_tagged_enum_with_unit_variants() {
 
     assert_snapshot!(A);
 }
+
+#[test]
+fn test_internally_tagged_enum_wrapping_untagged_enum() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct Evaluation {
+        score: u32,
+    }
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct Failure {
+        reason: String,
+    }
+
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(untagged)]
+    enum Outcome {
+        Evaluation(Evaluation),
+        Failure(Failure),
+    }
+
+    // Each variant's branch is a `oneOf` of the inner enum's variants; the two differ only in
+    // their tag, so only a title lets a diff tool tell them apart.
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    enum Rule {
+        First(Outcome),
+        Second(Outcome),
+    }
+
+    assert_snapshot!(Rule);
+}
+
+#[test]
+fn test_internally_tagged_variants_wrapping_one_struct() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct Body {
+        x: u32,
+    }
+
+    // Both branches would otherwise carry `Body`'s name as their title.
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    #[serde(tag = "type")]
+    enum E {
+        #[serde(rename = "first")]
+        A(Body),
+        #[serde(rename = "second")]
+        C(Body),
+    }
+
+    assert_snapshot!(E);
+}
