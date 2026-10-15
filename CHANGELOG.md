@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+Serve a reflectapi API from runtimes that bring their own HTTP server, such as Cloudflare-compatible Workers, and build the schema only where it is needed. See [Serving with celld and Cloudflare Workers](https://thepartly.github.io/reflectapi/serving/workers.html) and [Integrating Other Servers](https://thepartly.github.io/reflectapi/serving/other-servers.html).
+
+### Dispatch without axum
+
+`reflectapi::dispatch::Dispatcher` routes requests to the handlers of built routers, by path and method, exactly as `reflectapi::axum::into_router` serves them (including `405` replies with `allow`; it does not answer `HEAD`, which axum does for readonly routes by running the `GET` handler), and returns a `Reply`: a complete response, or the items of a stream route, which `dispatch::sse_event` frames as Server-Sent Events. It needs only the `builder` feature and builds for `wasm32-unknown-unknown`. The axum adapter now runs on the same request path.
+
+### Build modes: the schema at build time, the routes at runtime
+
+`Builder` takes a build mode, `Builder<S, M = WithSchema>`. `WithSchema` builds the schema and the routes, as before. `DispatchOnly` builds only the routes: no type is reflected, so serving does no schema work at startup and the reflection code is not linked. Define the API once, generic over `M: BuildMode`, starting from `Builder::default()`; `Builder::new()` still creates a `WithSchema` builder, so existing code is unchanged.
+
+```rust
+pub fn api<M: reflectapi::BuildMode>() -> reflectapi::Builder<AppState, M> {
+    reflectapi::Builder::default().route(pets_list, |b| b.name("pets.list"))
+}
+
+let (schema, _) = api::<reflectapi::WithSchema>().build()?; // build step: codegen, CI
+let routers = api::<reflectapi::DispatchOnly>().build()?;   // serving
+```
+
+### Fixes
+
+- A request headers type with a field name that is not a valid header name is now a `BuildError` instead of a panic.
+- An error returned by a stream handler before its stream opens is sent with `content-type: application/json` instead of `text/event-stream`, and a failure to serialize it is a `500` instead of a panic.
+- The `axum` feature no longer enables axum's default features, which pulled in tokio networking; enable the axum features your server uses in your own dependency.
+- `reflectapi-schema`'s `glob` support is enabled only through reflectapi's `glob` feature (on by default), instead of always.
+
 ## 0.20.0
 
 Response SDKs can now preserve unfamiliar enum variants, and deprecations carry release versions and calendar dates across all SDKs and OpenAPI. This release also repairs recursive generic OpenAPI references. Regenerate SDKs and upgrade the Python runtime to 0.20.0 to use the new decoding behavior.
