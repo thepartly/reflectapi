@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.20.1
+
+Two code generation fixes. Regenerate SDKs and OpenAPI specs to pick them up; the Python runtime changes only its version.
 
 ### Fixed
 
