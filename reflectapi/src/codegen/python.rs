@@ -4264,6 +4264,11 @@ fn render_enum(
                         name: python_class_name(&enum_def.name, class_names),
                         description: Some(enum_def.description().to_string()),
                         variants,
+                        fallback: enum_def
+                            .variants
+                            .iter()
+                            .find(|variant| variant.other)
+                            .map(|variant| to_screaming_snake_case(variant.name())),
                     };
                     if enum_def.open {
                         let enum_name = python_class_name(&enum_def.name, class_names);
@@ -4281,6 +4286,7 @@ fn render_enum(
                             name: known_name.clone(),
                             description: Some(enum_def.description().to_string()),
                             variants: enum_template.variants,
+                            fallback: None,
                         }
                         .render();
                         let tags = enum_tag_set(enum_def);
@@ -6788,6 +6794,8 @@ pub mod templates {
         pub name: String,
         pub description: Option<String>,
         pub variants: Vec<EnumVariant>,
+        /// Member a `#[serde(other)]` response enum decodes unknown strings to.
+        pub fallback: Option<String>,
     }
 
     impl EnumClass {
@@ -6807,6 +6815,22 @@ pub mod templates {
                 for variant in &self.variants {
                     writeln!(s, "    {} = \"{}\"", variant.name, variant.value).unwrap();
                 }
+            }
+            if let Some(fallback) = &self.fallback {
+                // Mirrors serde: an unknown string, or a single-key map whose value
+                // is null, selects the fallback; anything else is rejected.
+                writeln!(s).unwrap();
+                writeln!(s, "    @classmethod").unwrap();
+                writeln!(s, "    def _missing_(cls, value):").unwrap();
+                writeln!(s, "        if isinstance(value, dict) and len(value) == 1:").unwrap();
+                writeln!(s, "            ((value, content),) = value.items()").unwrap();
+                writeln!(s, "            if content is not None:").unwrap();
+                writeln!(s, "                return None").unwrap();
+                writeln!(s, "            if value in cls._value2member_map_:").unwrap();
+                writeln!(s, "                return cls._value2member_map_[value]").unwrap();
+                writeln!(s, "        if isinstance(value, str):").unwrap();
+                writeln!(s, "            return cls.{fallback}").unwrap();
+                writeln!(s, "        return None").unwrap();
             }
             writeln!(s).unwrap();
             s

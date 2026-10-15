@@ -1,5 +1,5 @@
 use reflectapi_enum_compatibility_rust::types::enum_compatibility::fixtures::output::{
-    FallbackAdjacent, FallbackInternal, FlattenAdjacentEnvelope, FlattenAdjacentFallbackEnvelope,
+    FallbackAdjacent, FallbackExternal, FallbackInternal, FlattenAdjacentEnvelope, FlattenAdjacentFallbackEnvelope,
     FlattenClosedExternalEnvelope, FlattenEnumEnvelope, FlattenEnvelope, FlattenFallbackEnvelope,
     FlattenNamedEnvelope, NestedFlattenEnvelope, OpenAdjacent, OpenExternal, OpenGeneric,
     OpenGenericDS, OpenInternal, OpenNested, OpenUnit, OptionalFlattenAdjacentEnvelope,
@@ -271,6 +271,30 @@ fn flattened_declared_fallbacks_match_source_serde() {
         assert_eq!(decoded.is_ok(), sample["ok"].as_bool().unwrap(), "{sample}");
         if let Ok(value) = decoded {
             assert_eq!(value.id, 7);
+        }
+    }
+}
+
+#[test]
+fn external_declared_fallback_matches_source_serde() {
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../target/enum-compatibility/fallback_samples.json"
+    );
+    let oracle: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    for sample in oracle["external"].as_array().unwrap() {
+        let decoded = serde_json::from_value::<FallbackExternal>(sample["wire"].clone());
+        assert_eq!(decoded.is_ok(), sample["ok"].as_bool().unwrap(), "{sample}");
+        if let Ok(value) = decoded {
+            let expected = match sample["value"].as_str().unwrap() {
+                "known" => FallbackExternal::Known,
+                _ => FallbackExternal::Unknown,
+            };
+            assert_eq!(
+                std::mem::discriminant(&value),
+                std::mem::discriminant(&expected),
+                "{sample}"
+            );
         }
     }
 }

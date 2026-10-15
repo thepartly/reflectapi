@@ -50,6 +50,22 @@ def test_serde_other_matches_rust_oracle(representation: str) -> None:
                 model.model_validate(sample["wire"])
 
 
+def test_external_serde_other_matches_rust_oracle() -> None:
+    oracle = json.loads((FIXTURE_ROOT / "fallback_samples.json").read_text())
+    adapter = TypeAdapter(output.FallbackExternal)
+    for sample in oracle["external"]:
+        if sample["ok"]:
+            decoded = adapter.validate_python(sample["wire"])
+            assert isinstance(decoded, output.FallbackExternal), sample
+            assert adapter.dump_python(decoded, mode="json") == sample["value"], sample
+            assert adapter.validate_json(json.dumps(sample["wire"])) == decoded, sample
+        else:
+            with pytest.raises(ValidationError):
+                adapter.validate_python(sample["wire"])
+            with pytest.raises(ValidationError):
+                adapter.validate_json(json.dumps(sample["wire"]))
+
+
 @pytest.mark.parametrize(
     ("model", "wire", "unknown_class"),
     [
