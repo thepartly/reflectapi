@@ -7,9 +7,15 @@ use tokio::sync::broadcast;
 mod tests;
 
 pub fn builder() -> reflectapi::Builder<Arc<AppState>> {
+    api()
+}
+
+/// The demo API in any [`reflectapi::BuildMode`]: [`builder`] builds it with
+/// its schema, `api::<reflectapi::DispatchOnly>()` builds only the routes.
+pub fn api<M: reflectapi::BuildMode>() -> reflectapi::Builder<Arc<AppState>, M> {
     // build an application, by providing pointers to handlers
     // and assigning those to named routes
-    reflectapi::Builder::new()
+    reflectapi::Builder::default()
         .name("Demo application")
         .description("This is a demo application")
         .response_headers::<proto::ResponseHeaders>()

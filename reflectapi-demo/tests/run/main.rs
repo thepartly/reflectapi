@@ -13,28 +13,42 @@ async fn run(path: &datatest_stable::Utf8Path) -> datatest_stable::Result<()> {
     let (_schema, router) = reflectapi_demo::builder().build().unwrap();
     let mut app = reflectapi::axum::into_router(Default::default(), router, |_name, r| r);
 
+    // The same requests also go, against separate state, to a dispatcher built
+    // without a schema, which must reply exactly as axum does.
+    let routers = reflectapi_demo::api::<reflectapi::DispatchOnly>().build()?;
+    let dispatcher = reflectapi::dispatch::Dispatcher::new(routers);
+    let state = std::sync::Arc::<reflectapi_demo::AppState>::default();
+
     let mut pretty = String::new();
-    for mut req in reqs {
+    for req in reqs {
         let content_type = reflectapi::ContentType::extract(req.headers()).unwrap();
 
-        match content_type {
-            reflectapi::ContentType::Json => {}
-            reflectapi::ContentType::MessagePack => {
-                // For msgpack requests the file still contains json, so we need to convert it.
-                let body = std::mem::take(req.body_mut());
-                let bytes = axum::body::to_bytes(body, 10000).await?;
-                if !bytes.is_empty() {
-                    let value = serde_json::from_slice::<serde_json::Value>(&bytes).unwrap();
-                    let bytes = rmp_serde::to_vec_named(&value).unwrap();
-                    *req.body_mut() = axum::body::Body::from(bytes);
-                }
-            }
+        let (parts, body) = req.into_parts();
+        let mut body = axum::body::to_bytes(body, 10000).await?;
+        if content_type == reflectapi::ContentType::MessagePack && !body.is_empty() {
+            // For msgpack requests the file still contains json, so we need to convert it.
+            let value = serde_json::from_slice::<serde_json::Value>(&body).unwrap();
+            body = rmp_serde::to_vec_named(&value).unwrap().into();
         }
 
-        let response = app.call(req).await?;
+        let request = format!("{} {}", parts.method, parts.uri);
+        let dispatched = dispatcher
+            .dispatch(
+                state.clone(),
+                &parts.method,
+                parts.uri.path(),
+                &parts.headers,
+                body.clone(),
+            )
+            .await;
+
+        let response = app
+            .call(http::Request::from_parts(parts, Body::from(body)))
+            .await?;
 
         let (parts, body) = response.into_parts();
         let body: Vec<u8> = axum::body::to_bytes(body, 10000).await?.into();
+        assert_dispatched_matches_axum(dispatched, &parts, &body, &request)?;
 
         let value = match content_type {
             reflectapi::ContentType::Json => {
@@ -72,6 +86,32 @@ async fn run(path: &datatest_stable::Utf8Path) -> datatest_stable::Result<()> {
         pretty
     );
 
+    Ok(())
+}
+
+fn assert_dispatched_matches_axum(
+    dispatched: Option<reflectapi::dispatch::Reply>,
+    axum: &http::response::Parts,
+    axum_body: &[u8],
+    request: &str,
+) -> datatest_stable::Result<()> {
+    let Some(reflectapi::dispatch::Reply::Complete {
+        status,
+        headers,
+        body,
+    }) = dispatched
+    else {
+        return Err(format!("{request}: expected a complete reply").into());
+    };
+    // axum's router adds `content-length` for bodies of known size; a host
+    // server sets it itself when sending the dispatched body.
+    let mut axum_headers = axum.headers.clone();
+    if let Some(length) = axum_headers.remove(http::header::CONTENT_LENGTH) {
+        assert_eq!(length.to_str()?, axum_body.len().to_string(), "{request}");
+    }
+    assert_eq!(status, axum.status, "{request}");
+    assert_eq!(headers, axum_headers, "{request}");
+    assert_eq!(&body[..], axum_body, "{request}");
     Ok(())
 }
 
