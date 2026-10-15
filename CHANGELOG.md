@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.21.0-alpha.1
 
 Serve a reflectapi API from runtimes that bring their own HTTP server, such as Cloudflare-compatible Workers, and build the schema only where it is needed. See [Serving with celld and Cloudflare Workers](https://thepartly.github.io/reflectapi/serving/workers.html) and [Integrating Other Servers](https://thepartly.github.io/reflectapi/serving/other-servers.html).
 
