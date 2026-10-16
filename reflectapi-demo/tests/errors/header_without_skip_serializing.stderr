@@ -1,0 +1,6 @@
+error: a `header` field must also be `#[serde(skip_serializing)]`, otherwise its value is sent in the response body as well
+ --> tests/errors/header_without_skip_serializing.rs:6:5
+  |
+6 | /     #[reflectapi(header)]
+7 | |     set_cookie: String,
+  | |______________________^

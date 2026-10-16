@@ -1,0 +1,5 @@
+error: `header` cannot be used on unnamed (tuple) fields: a header needs a name
+ --> tests/errors/header_on_tuple_struct_field.rs:2:17
+  |
+2 | struct Response(#[reflectapi(header)] String);
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
