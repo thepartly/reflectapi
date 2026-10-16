@@ -9,3 +9,4 @@ myapi/model/__init__.py
 myapi/model/input/__init__.py
 myapi/model/output/__init__.py
 myapi/proto/__init__.py
+py.typed
