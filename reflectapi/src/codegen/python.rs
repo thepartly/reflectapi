@@ -3653,6 +3653,9 @@ fn render_package_files(
         render_root_init_py(&generation, config)?,
     );
 
+    // PEP 561: without the marker, type checkers read an installed client as untyped.
+    files.insert("py.typed".to_string(), String::new());
+
     if let Some(testing_code) = &generation.testing_code {
         files.insert(
             "testing.py".to_string(),
