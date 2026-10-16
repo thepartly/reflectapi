@@ -33,6 +33,9 @@ class ReflectapiDemoTestsSerdeTestV1(BaseModel):
     version: Literal["v1"] = Field(default="v1", description="Discriminator field")
     value: reflectapi_demo.tests.serde.V1 = Field(description="Tuple variant value")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"version"})
+
 
 class ReflectapiDemoTestsSerdeTest(RootModel):
     root: Annotated[
@@ -47,6 +50,9 @@ class ReflectapiDemoTestsSerdeV1A(BaseModel):
 
     type: Literal["A"] = Field(default="A", description="Discriminator field")
     a: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeV1(RootModel):

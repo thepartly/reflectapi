@@ -9,11 +9,11 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::TreeNode"
+        "name": "reflectapi_demo::tests::serde::input::TreeNode"
       },
       "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::TreeNode"
+        "name": "reflectapi_demo::tests::serde::output::TreeNode"
       },
       "serialization": [
         "json",
@@ -31,7 +31,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TreeNode",
+        "name": "reflectapi_demo::tests::serde::input::TreeNode",
         "fields": {
           "named": [
             {
@@ -50,13 +50,12 @@ expression: schema
                     "name": "std::boxed::Box",
                     "arguments": [
                       {
-                        "name": "reflectapi_demo::tests::serde::TreeNode"
+                        "name": "reflectapi_demo::tests::serde::input::TreeNode"
                       }
                     ]
                   }
                 ]
-              },
-              "required": true
+              }
             }
           ]
         }
@@ -123,7 +122,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TreeNode",
+        "name": "reflectapi_demo::tests::serde::output::TreeNode",
         "fields": {
           "named": [
             {
@@ -142,7 +141,7 @@ expression: schema
                     "name": "std::boxed::Box",
                     "arguments": [
                       {
-                        "name": "reflectapi_demo::tests::serde::TreeNode"
+                        "name": "reflectapi_demo::tests::serde::output::TreeNode"
                       }
                     ]
                   }

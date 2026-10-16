@@ -43,8 +43,8 @@ export namespace reflectapi_demo {
         /**
          * @deprecated Deprecated since 2026-10-01; removal after 2026-11-01. Send `x-current` instead.
          */
-        "x-legacy": string | null;
-        "x-current": string | null;
+        "x-legacy"?: string | null;
+        "x-current"?: string | null;
       }
 
       export interface ResponseHeaders {

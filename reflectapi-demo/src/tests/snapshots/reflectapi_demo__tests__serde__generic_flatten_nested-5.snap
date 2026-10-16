@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import ReflectapiPartialModel
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIdent(BaseModel):
@@ -59,14 +60,30 @@ class ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59
     payload: str
 
 
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8(
+class ReflectapiDemoTestsSerdeInputTestUpdateOrElseReflectapiDemoTestsSerdeTes33b46d70(
+    ReflectapiPartialModel
+):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
+    )
+
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None = None
+    job_id: int
+    payload: str
+
+
+class ReflectapiDemoTestsSerdeOutputTestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2(
     BaseModel
 ):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None = None
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
     job_id: int
     payload: str
 
@@ -85,7 +102,16 @@ class reflectapi_demo:
             TestFlattenIdentData = ReflectapiDemoTestsSerdeTestFlattenIdentData
             TestFlattenIfElse = ReflectapiDemoTestsSerdeTestFlattenIfElse
             TestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8 = ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8
-            TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
+
+            class input:
+                """Namespace for input types."""
+
+                TestUpdateOrElseReflectapiDemoTestsSerdeTes33b46d70 = ReflectapiDemoTestsSerdeInputTestUpdateOrElseReflectapiDemoTestsSerdeTes33b46d70
+
+            class output:
+                """Namespace for output types."""
+
+                TestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2 = ReflectapiDemoTestsSerdeOutputTestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2
 
 
 class AsyncInoutClient:
@@ -97,10 +123,10 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
+            reflectapi_demo.tests.serde.input.TestUpdateOrElseReflectapiDemoTestsSerdeTes33b46d70
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
+        reflectapi_demo.tests.serde.output.TestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2
     ]:
         """
 
@@ -108,7 +134,7 @@ class AsyncInoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8]: Response containing reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8 data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2]: Response containing reflectapi_demo.tests.serde.output.TestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2 data
         """
         path = "/inout_test"
 
@@ -117,7 +143,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8,
+            response_model=reflectapi_demo.tests.serde.output.TestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2,
         )
 
 
@@ -143,10 +169,10 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
+            reflectapi_demo.tests.serde.input.TestUpdateOrElseReflectapiDemoTestsSerdeTes33b46d70
         ] = None,
     ) -> ApiResponse[
-        reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8
+        reflectapi_demo.tests.serde.output.TestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2
     ]:
         """
 
@@ -154,7 +180,7 @@ class InoutClient:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8]: Response containing reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8 data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2]: Response containing reflectapi_demo.tests.serde.output.TestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2 data
         """
         path = "/inout_test"
 
@@ -163,7 +189,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8,
+            response_model=reflectapi_demo.tests.serde.output.TestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2,
         )
 
 
@@ -193,7 +219,8 @@ for _model in [
     ReflectapiDemoTestsSerdeTestFlattenIdentData,
     ReflectapiDemoTestsSerdeTestFlattenIfElse,
     ReflectapiDemoTestsSerdeTestIdentityDataReflectapiDemoTestsSerdeTestFlat59f317e8,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeTestIden572a52e8,
+    ReflectapiDemoTestsSerdeInputTestUpdateOrElseReflectapiDemoTestsSerdeTes33b46d70,
+    ReflectapiDemoTestsSerdeOutputTestUpdateOrElseReflectapiDemoTestsSerdeTe1facbce2,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

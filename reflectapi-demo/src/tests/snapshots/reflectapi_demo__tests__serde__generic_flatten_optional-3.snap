@@ -73,10 +73,10 @@ pub mod types {
                     pub struct TestOptionalFlatten<T> {
                         #[serde(
                             default = "Default::default",
-                            skip_serializing_if = "std::option::Option::is_none",
+                            skip_serializing_if = "reflectapi::Option::is_undefined",
                             flatten
                         )]
-                        pub inner: std::option::Option<T>,
+                        pub inner: reflectapi::Option<T>,
                         pub code: u16,
                     }
                 }

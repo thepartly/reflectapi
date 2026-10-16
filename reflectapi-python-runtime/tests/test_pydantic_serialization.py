@@ -198,7 +198,7 @@ class TestClientBasePydanticSerialization:
         assert call_args[1]["params"] == {"source": "api", "version": "v1"}
 
         expected_json = (
-            '{"name":"Param User","age":40,"email":"param@example.com","active":true}'
+            '{"name":"Param User","age":40,"email":"param@example.com"}'
         )
         assert call_args[1]["content"] == expected_json.encode("utf-8")
         assert call_args[1]["headers"] == {"Content-Type": "application/json"}
@@ -336,7 +336,9 @@ class TestPydanticSerializationEdgeCases:
         assert parsed_data["user"]["name"] == "Complex User"
         assert parsed_data["user"]["age"] == 45
         assert parsed_data["address"]["street"] == "123 Main St"
-        assert parsed_data["address"]["country"] == "USA"  # Default value
+        # Unset defaults are left for the server to apply, including nested models.
+        assert "country" not in parsed_data["address"]
+        assert "active" not in parsed_data["user"]
         assert parsed_data["tags"] == ["premium", "verified"]
         assert parsed_data["metadata"]["source"] == "test"
 

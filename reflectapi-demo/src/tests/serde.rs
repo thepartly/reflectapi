@@ -324,6 +324,65 @@ fn test_struct_with_flatten_optional_and_required() {
     assert_snapshot!(TestStructWithFlattenOptionalAndRequired);
 }
 
+#[test]
+fn test_struct_with_option_fields_without_serde_default() {
+    // Named plain options accept omission on input; output presence follows
+    // skip_serializing_if. Custom deserializers require a key unless a default
+    // is declared. Snapshot both directions after consolidation.
+    fn deserialize_option<'de, D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<String>, D::Error> {
+        serde::Deserialize::deserialize(deserializer)
+    }
+
+    fn serialize_option<S: serde::Serializer>(
+        value: &Option<String>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        serde::Serialize::serialize(value, serializer)
+    }
+
+    mod option_passthrough {
+        pub fn serialize<S: serde::Serializer>(
+            value: &std::option::Option<String>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+            serde::Serialize::serialize(value, serializer)
+        }
+
+        pub fn deserialize<'de, D: serde::Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<std::option::Option<String>, D::Error> {
+            serde::Deserialize::deserialize(deserializer)
+        }
+    }
+
+    #[allow(dead_code)]
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    #[serde(deny_unknown_fields)]
+    pub struct ARequest {
+        pub reflect_option: reflectapi::Option<String>,
+
+        #[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]
+        pub annotated_reflect_option: reflectapi::Option<String>,
+
+        pub std_option: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub annotated_std_option: Option<String>,
+
+        #[serde(deserialize_with = "deserialize_option")]
+        pub custom_deserializer_option: Option<String>,
+
+        #[serde(serialize_with = "serialize_option")]
+        pub custom_serializer_option: Option<String>,
+
+        #[serde(with = "option_passthrough")]
+        pub with_module_option: Option<String>,
+    }
+
+    assert_snapshot!(ARequest);
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 #[serde(rename = "struct-name&&")]
 struct TestStructWithRenameToInvalidChars {
@@ -1322,8 +1381,10 @@ fn test_generic_flatten_nested() {
 fn test_generic_flatten_pydantic_roundtrip() {
     use std::io::Write;
 
+    // The directional presence regression has dedicated SDK tests; this
+    // regression needs one concrete class to inspect for flatten expansion.
     let py_source =
-        super::into_python_code::<TestUpdateOrElse<TestFlattenInner, TestFlattenIfElse>>();
+        super::into_input_python_code::<TestUpdateOrElse<TestFlattenInner, TestFlattenIfElse>>();
 
     // Wire format that serde would actually produce / accept: T's
     // fields ⊕ if_else, all at top level.

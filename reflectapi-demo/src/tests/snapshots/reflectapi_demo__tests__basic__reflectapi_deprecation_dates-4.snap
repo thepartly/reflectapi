@@ -18,7 +18,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.StructWithDeprecationDates"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.basic.input.StructWithDeprecationDates"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.StructWithDeprecationDates"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.basic.output.StructWithDeprecationDates"
                 }
               }
             }
@@ -95,9 +95,69 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           }
         ]
       },
-      "reflectapi_demo.tests.basic.StructWithDeprecationDates": {
+      "reflectapi_demo.tests.basic.input.StructWithDeprecationDates": {
         "type": "object",
-        "title": "reflectapi_demo.tests.basic.StructWithDeprecationDates",
+        "title": "reflectapi_demo.tests.basic.input.StructWithDeprecationDates",
+        "required": [
+          "_current",
+          "_release_and_dates",
+          "_release_like_a_date",
+          "_release_only",
+          "_since_and_sunset",
+          "_since_only"
+        ],
+        "properties": {
+          "_current": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.basic.EnumWithDeprecatedVariants"
+          },
+          "_release_and_dates": {
+            "deprecated": true,
+            "x-deprecated-in": "2.3.0",
+            "x-deprecated-since": "2026-10-01",
+            "x-sunset": "2026-11-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_release_like_a_date": {
+            "description": "It is never read as a date, even when it looks like one.",
+            "deprecated": true,
+            "x-deprecated-in": "2026-10-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_release_only": {
+            "description": "rustc's `since` is the release, kept verbatim.",
+            "deprecated": true,
+            "x-deprecated-in": "1.2.0",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_since_and_sunset": {
+            "deprecated": true,
+            "x-deprecated-since": "2026-10-01",
+            "x-sunset": "2026-11-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_since_only": {
+            "deprecated": true,
+            "x-deprecated-since": "2026-10-01",
+            "$ref": "#/components/schemas/u8"
+          },
+          "_sunset_only": {
+            "deprecated": true,
+            "x-sunset": "2026-11-01",
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/u8"
+              }
+            ]
+          }
+        }
+      },
+      "reflectapi_demo.tests.basic.output.StructWithDeprecationDates": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.basic.output.StructWithDeprecationDates",
         "required": [
           "_current",
           "_release_and_dates",

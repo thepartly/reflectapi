@@ -21,6 +21,7 @@ from pydantic import (
     ConfigDict,
     Field,
     RootModel,
+    field_validator,
     model_serializer,
     model_validator,
 )

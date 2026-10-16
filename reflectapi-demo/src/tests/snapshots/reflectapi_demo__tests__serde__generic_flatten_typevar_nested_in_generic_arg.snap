@@ -9,7 +9,7 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::TestWrapperWithNestedTypevarArg",
+        "name": "reflectapi_demo::tests::serde::input::TestWrapperWithNestedTypevarArg",
         "arguments": [
           {
             "name": "reflectapi_demo::tests::serde::TestFlattenInner"
@@ -18,7 +18,7 @@ expression: schema
       },
       "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::TestWrapperWithNestedTypevarArg",
+        "name": "reflectapi_demo::tests::serde::output::TestWrapperWithNestedTypevarArg",
         "arguments": [
           {
             "name": "reflectapi_demo::tests::serde::TestFlattenInner"
@@ -78,7 +78,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "name": "reflectapi_demo::tests::serde::input::TestUpdateOrElse",
         "parameters": [
           {
             "name": "T"
@@ -106,15 +106,14 @@ expression: schema
                     "name": "C"
                   }
                 ]
-              },
-              "required": true
+              }
             }
           ]
         }
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestWrapperWithNestedTypevarArg",
+        "name": "reflectapi_demo::tests::serde::input::TestWrapperWithNestedTypevarArg",
         "parameters": [
           {
             "name": "I"
@@ -125,7 +124,7 @@ expression: schema
             {
               "name": "body",
               "type": {
-                "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+                "name": "reflectapi_demo::tests::serde::input::TestUpdateOrElse",
                 "arguments": [
                   {
                     "name": "std::option::Option",
@@ -248,7 +247,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "name": "reflectapi_demo::tests::serde::output::TestUpdateOrElse",
         "parameters": [
           {
             "name": "T"
@@ -284,7 +283,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestWrapperWithNestedTypevarArg",
+        "name": "reflectapi_demo::tests::serde::output::TestWrapperWithNestedTypevarArg",
         "parameters": [
           {
             "name": "I"
@@ -295,7 +294,7 @@ expression: schema
             {
               "name": "body",
               "type": {
-                "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+                "name": "reflectapi_demo::tests::serde::output::TestUpdateOrElse",
                 "arguments": [
                   {
                     "name": "std::option::Option",

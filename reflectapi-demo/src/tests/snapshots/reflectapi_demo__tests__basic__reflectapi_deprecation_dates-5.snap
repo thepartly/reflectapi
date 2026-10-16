@@ -30,53 +30,11 @@ from pydantic import (
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     parse_externally_tagged as _parse_externally_tagged,
     serialize_externally_tagged as _serialize_externally_tagged,
 )
-
-
-class ReflectapiDemoTestsBasicStructWithDeprecationDates(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
-    )
-
-    since_and_sunset: int = Field(
-        serialization_alias="_since_and_sunset",
-        validation_alias="_since_and_sunset",
-        deprecated="Deprecated since 2026-10-01; removal after 2026-11-01. Use `current` instead.",
-    )
-    since_only: int = Field(
-        serialization_alias="_since_only",
-        validation_alias="_since_only",
-        deprecated="Deprecated since 2026-10-01.",
-    )
-    sunset_only: int | None = Field(
-        default=None,
-        serialization_alias="_sunset_only",
-        validation_alias="_sunset_only",
-        deprecated="Removal after 2026-11-01.",
-    )
-    release_only: int = Field(
-        serialization_alias="_release_only",
-        validation_alias="_release_only",
-        description="rustc's `since` is the release, kept verbatim.",
-        deprecated="Deprecated in 1.2.0. Versioned.",
-    )
-    release_like_a_date: int = Field(
-        serialization_alias="_release_like_a_date",
-        validation_alias="_release_like_a_date",
-        description="It is never read as a date, even when it looks like one.",
-        deprecated="Deprecated in 2026-10-01.",
-    )
-    release_and_dates: int = Field(
-        serialization_alias="_release_and_dates",
-        validation_alias="_release_and_dates",
-        deprecated="Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use `current` instead.",
-    )
-    current: reflectapi_demo.tests.basic.EnumWithDeprecatedVariants = Field(
-        serialization_alias="_current", validation_alias="_current"
-    )
 
 
 class ReflectapiDemoTestsBasicEnumWithDeprecatedVariantsTupleVariant(BaseModel):
@@ -166,6 +124,95 @@ class ReflectapiDemoTestsBasicEnumWithDeprecatedVariants(
         )
 
 
+class ReflectapiDemoTestsBasicInputStructWithDeprecationDates(ReflectapiPartialModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
+    )
+
+    since_and_sunset: int = Field(
+        serialization_alias="_since_and_sunset",
+        validation_alias="_since_and_sunset",
+        deprecated="Deprecated since 2026-10-01; removal after 2026-11-01. Use `current` instead.",
+    )
+    since_only: int = Field(
+        serialization_alias="_since_only",
+        validation_alias="_since_only",
+        deprecated="Deprecated since 2026-10-01.",
+    )
+    sunset_only: int | None = Field(
+        default=None,
+        serialization_alias="_sunset_only",
+        validation_alias="_sunset_only",
+        deprecated="Removal after 2026-11-01.",
+    )
+    release_only: int = Field(
+        serialization_alias="_release_only",
+        validation_alias="_release_only",
+        description="rustc's `since` is the release, kept verbatim.",
+        deprecated="Deprecated in 1.2.0. Versioned.",
+    )
+    release_like_a_date: int = Field(
+        serialization_alias="_release_like_a_date",
+        validation_alias="_release_like_a_date",
+        description="It is never read as a date, even when it looks like one.",
+        deprecated="Deprecated in 2026-10-01.",
+    )
+    release_and_dates: int = Field(
+        serialization_alias="_release_and_dates",
+        validation_alias="_release_and_dates",
+        deprecated="Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use `current` instead.",
+    )
+    current: reflectapi_demo.tests.basic.EnumWithDeprecatedVariants = Field(
+        serialization_alias="_current", validation_alias="_current"
+    )
+
+
+class ReflectapiDemoTestsBasicOutputStructWithDeprecationDates(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+    )
+
+    since_and_sunset: int = Field(
+        serialization_alias="_since_and_sunset",
+        validation_alias="_since_and_sunset",
+        deprecated="Deprecated since 2026-10-01; removal after 2026-11-01. Use `current` instead.",
+    )
+    since_only: int = Field(
+        serialization_alias="_since_only",
+        validation_alias="_since_only",
+        deprecated="Deprecated since 2026-10-01.",
+    )
+    sunset_only: int | None = Field(
+        serialization_alias="_sunset_only",
+        validation_alias="_sunset_only",
+        deprecated="Removal after 2026-11-01.",
+    )
+    release_only: int = Field(
+        serialization_alias="_release_only",
+        validation_alias="_release_only",
+        description="rustc's `since` is the release, kept verbatim.",
+        deprecated="Deprecated in 1.2.0. Versioned.",
+    )
+    release_like_a_date: int = Field(
+        serialization_alias="_release_like_a_date",
+        validation_alias="_release_like_a_date",
+        description="It is never read as a date, even when it looks like one.",
+        deprecated="Deprecated in 2026-10-01.",
+    )
+    release_and_dates: int = Field(
+        serialization_alias="_release_and_dates",
+        validation_alias="_release_and_dates",
+        deprecated="Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use `current` instead.",
+    )
+    current: reflectapi_demo.tests.basic.EnumWithDeprecatedVariants = Field(
+        serialization_alias="_current", validation_alias="_current"
+    )
+
+
 # Namespace classes for dotted access to types
 class reflectapi_demo:
     """Namespace for reflectapi_demo types."""
@@ -176,9 +223,6 @@ class reflectapi_demo:
         class basic:
             """Namespace for basic types."""
 
-            StructWithDeprecationDates = (
-                ReflectapiDemoTestsBasicStructWithDeprecationDates
-            )
             EnumWithDeprecatedVariantsTupleVariant = (
                 ReflectapiDemoTestsBasicEnumWithDeprecatedVariantsTupleVariant
             )
@@ -189,6 +233,20 @@ class reflectapi_demo:
                 ReflectapiDemoTestsBasicEnumWithDeprecatedVariants
             )
 
+            class input:
+                """Namespace for input types."""
+
+                StructWithDeprecationDates = (
+                    ReflectapiDemoTestsBasicInputStructWithDeprecationDates
+                )
+
+            class output:
+                """Namespace for output types."""
+
+                StructWithDeprecationDates = (
+                    ReflectapiDemoTestsBasicOutputStructWithDeprecationDates
+                )
+
 
 class AsyncInoutClient:
     """Async client for inout operations."""
@@ -198,15 +256,17 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[reflectapi_demo.tests.basic.StructWithDeprecationDates] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.basic.StructWithDeprecationDates]:
+        data: Optional[
+            reflectapi_demo.tests.basic.input.StructWithDeprecationDates
+        ] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.output.StructWithDeprecationDates]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.basic.StructWithDeprecationDates]: Response containing reflectapi_demo.tests.basic.StructWithDeprecationDates data
+            ApiResponse[reflectapi_demo.tests.basic.output.StructWithDeprecationDates]: Response containing reflectapi_demo.tests.basic.output.StructWithDeprecationDates data
         """
         path = "/inout_test"
 
@@ -215,7 +275,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.basic.StructWithDeprecationDates,
+            response_model=reflectapi_demo.tests.basic.output.StructWithDeprecationDates,
         )
 
 
@@ -240,15 +300,17 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[reflectapi_demo.tests.basic.StructWithDeprecationDates] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.basic.StructWithDeprecationDates]:
+        data: Optional[
+            reflectapi_demo.tests.basic.input.StructWithDeprecationDates
+        ] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.output.StructWithDeprecationDates]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.basic.StructWithDeprecationDates]: Response containing reflectapi_demo.tests.basic.StructWithDeprecationDates data
+            ApiResponse[reflectapi_demo.tests.basic.output.StructWithDeprecationDates]: Response containing reflectapi_demo.tests.basic.output.StructWithDeprecationDates data
         """
         path = "/inout_test"
 
@@ -257,7 +319,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.basic.StructWithDeprecationDates,
+            response_model=reflectapi_demo.tests.basic.output.StructWithDeprecationDates,
         )
 
 
@@ -284,7 +346,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 _rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsBasicEnumWithDeprecatedVariants,
-    ReflectapiDemoTestsBasicStructWithDeprecationDates,
+    ReflectapiDemoTestsBasicInputStructWithDeprecationDates,
+    ReflectapiDemoTestsBasicOutputStructWithDeprecationDates,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

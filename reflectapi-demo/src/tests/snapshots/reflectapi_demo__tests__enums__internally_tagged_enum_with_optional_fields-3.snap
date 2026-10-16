@@ -67,14 +67,23 @@ pub mod types {
     ),
     #[serde(rename = "named")]
     Named {
-        amount: std::option::Option<std::string::String>,
+        #[serde(default = "Default::default", skip_serializing_if = "reflectapi::Option::is_undefined")]
+    amount: reflectapi::Option<std::string::String>,
     },
 }
 
                     #[derive(Debug, serde::Serialize)]
                     pub struct VariantBody {
-                        pub amount: std::option::Option<std::string::String>,
-                        pub always_null_on_wire: std::option::Option<std::string::String>,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub amount: reflectapi::Option<std::string::String>,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub always_null_on_wire: reflectapi::Option<std::string::String>,
                     }
                 }
                 pub mod output {

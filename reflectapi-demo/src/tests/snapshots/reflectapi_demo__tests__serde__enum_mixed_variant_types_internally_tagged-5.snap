@@ -32,6 +32,9 @@ class ReflectapiDemoTestsSerdeMixedUnit(BaseModel):
 
     type: Literal["Unit"] = Field(default="Unit", description="Discriminator field")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeMixedWrap(BaseModel):
     model_config = ConfigDict(
@@ -40,6 +43,9 @@ class ReflectapiDemoTestsSerdeMixedWrap(BaseModel):
 
     type: Literal["Wrap"] = Field(default="Wrap", description="Discriminator field")
     value: str
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeMixedFull(BaseModel):
@@ -50,6 +56,9 @@ class ReflectapiDemoTestsSerdeMixedFull(BaseModel):
     type: Literal["Full"] = Field(default="Full", description="Discriminator field")
     x: int
     y: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeMixed(RootModel):

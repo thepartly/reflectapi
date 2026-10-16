@@ -90,6 +90,34 @@ policy widens generated request types.
 | `#[reflectapi(input_type = "T")]` | Override the reflected type for the input schema only. |
 | `#[reflectapi(output_type = "T")]` | Override the reflected type for the output schema only. |
 
+### Missing fields and null
+
+Field presence is directional. For a named field `value: Option<String>` without
+other Serde attributes, the server accepts a missing request key as `None`, but
+serializes a response with `"value": null`. Generated request types therefore
+allow omission; generated response types require the key. When these contracts
+differ, a Rust type used in both directions gets separate input and output
+models. Tuple elements retain their required positions. Presence inference applies to
+resolved option wrappers, including `Option<T>` and standard pointer wrappers; an unresolved generic field
+`value: T` keeps its declared contract even if one use substitutes `Option<U>`.
+
+`#[serde(default)]` allows a missing input field. A custom deserializer
+(`deserialize_with` or `with`) requires the key unless a default is declared;
+a custom serializer alone does not change input presence.
+`#[serde(skip_serializing_if = "...")]` allows omission on output.
+
+For `reflectapi::Option<T>`, a missing input becomes `None` without a default;
+`#[serde(default)]` instead supplies `Undefined`. A custom default function
+supplies whatever that function returns. To preserve all three states on the
+server, use `#[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]`.
+Client-side omission and explicit null remain separate wire states.
+
+These rules are resolved before field transforms, so an explicit
+`make_required` override remains authoritative. Arbitrary custom codecs may
+change the wire type; use a reflected type override to describe that type.
+Previously exported schema JSON keeps its recorded `required` flags: re-export
+the schema to obtain the corrected input contract.
+
 ### Transform
 
 | Attribute | Description |

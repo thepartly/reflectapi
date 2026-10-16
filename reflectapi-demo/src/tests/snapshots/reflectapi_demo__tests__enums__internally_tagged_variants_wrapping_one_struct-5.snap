@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/enums.rs
-expression: "super :: into_python_code :: < A > ()"
+expression: "super :: into_python_code :: < E > ()"
 ---
 """
 DO NOT MODIFY THIS FILE MANUALLY
@@ -41,6 +41,9 @@ class ReflectapiDemoTestsEnumsEFirst(BaseModel):
     type: Literal["first"] = Field(default="first", description="Discriminator field")
     x: int
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsEnumsESecond(BaseModel):
     model_config = ConfigDict(
@@ -49,6 +52,9 @@ class ReflectapiDemoTestsEnumsESecond(BaseModel):
 
     type: Literal["second"] = Field(default="second", description="Discriminator field")
     x: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsEnumsE(RootModel):

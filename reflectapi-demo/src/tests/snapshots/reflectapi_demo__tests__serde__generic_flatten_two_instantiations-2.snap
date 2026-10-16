@@ -14,10 +14,13 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.TestTwoInstantiations,
+      input: reflectapi_demo.tests.serde.input.TestTwoInstantiations,
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<reflectapi_demo.tests.serde.TestTwoInstantiations, {}>;
+    ) => AsyncResult<
+      reflectapi_demo.tests.serde.output.TestTwoInstantiations,
+      {}
+    >;
   }
 }
 export namespace reflectapi {
@@ -48,20 +51,39 @@ export namespace reflectapi_demo {
         alt_x: boolean;
       }
 
-      export interface TestTwoInstantiations {
-        a: reflectapi_demo.tests.serde.TestUpdateOrElse<
-          reflectapi_demo.tests.serde.TestFlattenInner,
-          reflectapi_demo.tests.serde.TestFlattenIfElse
-        >;
-        b: reflectapi_demo.tests.serde.TestUpdateOrElse<
-          reflectapi_demo.tests.serde.TestFlattenInnerAlt,
-          reflectapi_demo.tests.serde.TestFlattenIfElse
-        >;
+      export namespace input {
+        export interface TestTwoInstantiations {
+          a: reflectapi_demo.tests.serde.input.TestUpdateOrElse<
+            reflectapi_demo.tests.serde.TestFlattenInner,
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+          >;
+          b: reflectapi_demo.tests.serde.input.TestUpdateOrElse<
+            reflectapi_demo.tests.serde.TestFlattenInnerAlt,
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+          >;
+        }
+
+        export type TestUpdateOrElse<T, C> = {
+          if_else?: C | null;
+        } & NullToEmptyObject<T>;
       }
 
-      export type TestUpdateOrElse<T, C> = {
-        if_else: C | null;
-      } & NullToEmptyObject<T>;
+      export namespace output {
+        export interface TestTwoInstantiations {
+          a: reflectapi_demo.tests.serde.output.TestUpdateOrElse<
+            reflectapi_demo.tests.serde.TestFlattenInner,
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+          >;
+          b: reflectapi_demo.tests.serde.output.TestUpdateOrElse<
+            reflectapi_demo.tests.serde.TestFlattenInnerAlt,
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+          >;
+        }
+
+        export type TestUpdateOrElse<T, C> = {
+          if_else: C | null;
+        } & NullToEmptyObject<T>;
+      }
     }
   }
 }
@@ -70,14 +92,14 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.serde.TestTwoInstantiations,
+      input: reflectapi_demo.tests.serde.input.TestTwoInstantiations,
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        reflectapi_demo.tests.serde.TestTwoInstantiations,
+        reflectapi_demo.tests.serde.input.TestTwoInstantiations,
         {},
-        reflectapi_demo.tests.serde.TestTwoInstantiations,
+        reflectapi_demo.tests.serde.output.TestTwoInstantiations,
         {}
       >(client, "/inout_test", input, headers, options);
   }

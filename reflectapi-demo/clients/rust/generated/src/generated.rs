@@ -238,10 +238,10 @@ pub mod types {
                     /// age of the pet
                     #[serde(
                         default = "Default::default",
-                        skip_serializing_if = "std::option::Option::is_none"
+                        skip_serializing_if = "reflectapi::Option::is_undefined"
                     )]
                     #[deprecated(note = "test deprecation")]
-                    pub age: std::option::Option<u8>,
+                    pub age: reflectapi::Option<u8>,
                     #[serde(default = "Default::default")]
                     pub updated_at: chrono::DateTime<chrono::Utc>,
                     /// behaviors of the pet
@@ -339,14 +339,14 @@ pub mod types {
             pub struct PetsListRequest {
                 #[serde(
                     default = "Default::default",
-                    skip_serializing_if = "std::option::Option::is_none"
+                    skip_serializing_if = "reflectapi::Option::is_undefined"
                 )]
-                pub limit: std::option::Option<u8>,
+                pub limit: reflectapi::Option<u8>,
                 #[serde(
                     default = "Default::default",
-                    skip_serializing_if = "std::option::Option::is_none"
+                    skip_serializing_if = "reflectapi::Option::is_undefined"
                 )]
-                pub cursor: std::option::Option<std::string::String>,
+                pub cursor: reflectapi::Option<std::string::String>,
             }
 
             #[derive(Debug, serde::Deserialize, serde::Serialize)]
@@ -391,9 +391,9 @@ pub mod types {
                 /// kind of pet, non nullable in the model
                 #[serde(
                     default = "Default::default",
-                    skip_serializing_if = "std::option::Option::is_none"
+                    skip_serializing_if = "reflectapi::Option::is_undefined"
                 )]
-                pub kind: std::option::Option<super::super::myapi::model::Kind>,
+                pub kind: reflectapi::Option<super::super::myapi::model::Kind>,
                 /// age of the pet, nullable in the model
                 #[serde(
                     default = "Default::default",

@@ -9,11 +9,11 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::input::TestStructWithSerdeSkipSerializeIf"
+        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf"
       },
       "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::output::TestStructWithSerdeSkipSerializeIf"
+        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf"
       },
       "serialization": [
         "json",
@@ -31,7 +31,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::input::TestStructWithSerdeSkipSerializeIf",
+        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf",
         "fields": {
           "named": [
             {
@@ -43,8 +43,7 @@ expression: schema
                     "name": "u8"
                   }
                 ]
-              },
-              "required": true
+              }
             }
           ]
         }
@@ -98,7 +97,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::output::TestStructWithSerdeSkipSerializeIf",
+        "name": "reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf",
         "fields": {
           "named": [
             {

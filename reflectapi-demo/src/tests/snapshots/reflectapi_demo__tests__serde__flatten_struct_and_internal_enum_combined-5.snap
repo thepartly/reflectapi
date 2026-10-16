@@ -50,6 +50,9 @@ class ReflectapiDemoTestsSerdePostText(BaseModel):
     )
     body: str
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type_"})
+
 
 class ReflectapiDemoTestsSerdePostImage(BaseModel):
     """'Image' variant of ReflectapiDemoTestsSerdePost"""
@@ -68,6 +71,9 @@ class ReflectapiDemoTestsSerdePostImage(BaseModel):
     )
     url: str
     width: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type_"})
 
 
 class ReflectapiDemoTestsSerdePost(RootModel):
@@ -88,6 +94,9 @@ class ReflectapiDemoTestsSerdeContentText(BaseModel):
     type: Literal["Text"] = Field(default="Text", description="Discriminator field")
     body: str
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeContentImage(BaseModel):
     model_config = ConfigDict(
@@ -97,6 +106,9 @@ class ReflectapiDemoTestsSerdeContentImage(BaseModel):
     type: Literal["Image"] = Field(default="Image", description="Discriminator field")
     url: str
     width: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeContent(RootModel):

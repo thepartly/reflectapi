@@ -83,11 +83,10 @@ class TestDurationRoundTrip:
 
 
 class TestRequestSerializationOmitsUnsetOptional:
-    """Plain ``BaseModel`` request types must omit unset optional fields
-    from the wire, matching what ``#[serde(skip_serializing_if =
-    "Option::is_none")]`` produces on the server side. Partial models,
-    by contrast, must keep explicit ``None`` to preserve the
-    absent-vs-null distinction.
+    """Request models omit unset fields so the server can apply defaults.
+
+    Both plain and partial models preserve explicitly supplied ``None``
+    as JSON null, independently of whether a field has a default.
     """
 
     def _client(self):

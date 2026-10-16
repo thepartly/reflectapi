@@ -47,7 +47,7 @@ def _json_serializer(obj: Any) -> Any:
     elif isinstance(obj, datetime.date):
         return obj.isoformat()
     elif hasattr(obj, "model_dump"):
-        return obj.model_dump(exclude_none=True)
+        return obj.model_dump(mode="json", by_alias=True, exclude_unset=True)
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
@@ -153,13 +153,29 @@ def _parse_response_headers(headers: Any, model: type[Any] | None) -> Any | None
         return None
     items = headers.items() if headers is not None else ()
     lowered = {str(name).lower(): str(value) for name, value in items}
+    # HTTP headers are independently optional, even when the same model has
+    # required nullable fields when used as a JSON body. Supply absent headers
+    # here rather than weakening the model's body-validation contract.
+    field_keys = {
+        name: (
+            field.validation_alias
+            if isinstance(field.validation_alias, str)
+            else field.alias or name
+        )
+        for name, field in model.model_fields.items()
+    }
+    defaults = dict.fromkeys(field_keys.values())
     try:
-        return model.model_validate(lowered)
+        return model.model_validate(defaults | lowered)
     except PydanticValidationError as e:
         invalid = {error["loc"][0] for error in e.errors() if error["loc"]}
         logger.debug("ignoring malformed response headers: %s", sorted(invalid))
+        # Pydantic can report locations using field names or validation aliases.
+        invalid.update(
+            field_keys[name] for name in tuple(invalid) if name in field_keys
+        )
         valid = {name: value for name, value in lowered.items() if name not in invalid}
-        return model.model_validate(valid)
+        return model.model_validate(defaults | valid)
 
 
 def _validate_body(
@@ -422,15 +438,11 @@ class ClientBase(ABC):
     ) -> tuple[bytes, dict[str, str]]:
         """Serialize the request body.
 
-        ``ReflectapiPartialModel`` subclasses carry their own
-        ``@model_serializer`` that omits keys not in
-        ``model_fields_set``, so explicit ``None`` values must reach
-        the wire (they encode the protocol's "explicit null" state).
-
-        Plain Pydantic models use ``exclude_none=True`` so an unset
-        optional field renders as an absent key, matching the wire
-        shape produced by serde with
-        ``#[serde(skip_serializing_if = "Option::is_none")]``.
+        Only fields supplied by the caller are sent, recursively through
+        nested models. This lets the server apply defaults for omitted
+        fields, while explicitly supplied defaults and ``None`` values
+        reach the wire. In particular, required nullable fields and
+        explicit nulls in partial models must serialize as JSON ``null``.
         """
         # Handle primitive types (for untagged unions)
         if not hasattr(json_model, "model_dump_json"):
@@ -439,14 +451,9 @@ class ClientBase(ABC):
             ).encode("utf-8")
             return content, {"Content-Type": "application/json"}
 
-        from .partial import ReflectapiPartialModel
-
-        if isinstance(json_model, ReflectapiPartialModel):
-            content = json_model.model_dump_json(by_alias=True).encode("utf-8")
-        else:
-            content = json_model.model_dump_json(
-                by_alias=True, exclude_none=True
-            ).encode("utf-8")
+        content = json_model.model_dump_json(
+            by_alias=True, exclude_unset=True
+        ).encode("utf-8")
         return content, {"Content-Type": "application/json"}
 
     def _build_headers(
@@ -947,15 +954,11 @@ class AsyncClientBase(ABC):
     ) -> tuple[bytes, dict[str, str]]:
         """Serialize the request body.
 
-        ``ReflectapiPartialModel`` subclasses carry their own
-        ``@model_serializer`` that omits keys not in
-        ``model_fields_set``, so explicit ``None`` values must reach
-        the wire (they encode the protocol's "explicit null" state).
-
-        Plain Pydantic models use ``exclude_none=True`` so an unset
-        optional field renders as an absent key, matching the wire
-        shape produced by serde with
-        ``#[serde(skip_serializing_if = "Option::is_none")]``.
+        Only fields supplied by the caller are sent, recursively through
+        nested models. This lets the server apply defaults for omitted
+        fields, while explicitly supplied defaults and ``None`` values
+        reach the wire. In particular, required nullable fields and
+        explicit nulls in partial models must serialize as JSON ``null``.
         """
         # Handle primitive types (for untagged unions)
         if not hasattr(json_model, "model_dump_json"):
@@ -964,14 +967,9 @@ class AsyncClientBase(ABC):
             ).encode("utf-8")
             return content, {"Content-Type": "application/json"}
 
-        from .partial import ReflectapiPartialModel
-
-        if isinstance(json_model, ReflectapiPartialModel):
-            content = json_model.model_dump_json(by_alias=True).encode("utf-8")
-        else:
-            content = json_model.model_dump_json(
-                by_alias=True, exclude_none=True
-            ).encode("utf-8")
+        content = json_model.model_dump_json(
+            by_alias=True, exclude_unset=True
+        ).encode("utf-8")
         return content, {"Content-Type": "application/json"}
 
     def _build_headers(

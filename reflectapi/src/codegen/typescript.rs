@@ -1657,6 +1657,11 @@ fn field_to_ts_field(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> templates::Field {
+    // Reflection has already resolved directional presence, before type
+    // consolidation and user transforms. Keep required authoritative.
+    let contract = crate::codegen::schema::resolve_field_wire_contract(
+        crate::codegen::schema::FieldWireFacts::of(field),
+    );
     templates::Field {
         name: field.serde_name().into(),
         description: doc_to_ts_comments(
@@ -1665,7 +1670,7 @@ fn field_to_ts_field(
             4,
         ),
         type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
-        optional: !field.required,
+        optional: contract.key == crate::codegen::schema::KeyPresence::Optional,
     }
 }
 

@@ -1,6 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/enums.rs
-expression: "super :: into_python_code :: < A > ()"
+expression: "super :: into_python_code :: < Rule > ()"
 ---
 """
 DO NOT MODIFY THIS FILE MANUALLY
@@ -66,6 +66,9 @@ class ReflectapiDemoTestsEnumsRuleFirst(BaseModel):
         description="Tuple variant value"
     )
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsEnumsRuleSecond(BaseModel):
     model_config = ConfigDict(
@@ -76,6 +79,9 @@ class ReflectapiDemoTestsEnumsRuleSecond(BaseModel):
     value: reflectapi_demo.tests.enums.Outcome = Field(
         description="Tuple variant value"
     )
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsEnumsRule(RootModel):

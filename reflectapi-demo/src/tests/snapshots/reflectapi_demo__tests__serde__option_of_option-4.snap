@@ -18,7 +18,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Nested"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.Nested"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Nested"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.Nested"
                 }
               }
             }
@@ -41,9 +41,34 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.Nested": {
+      "reflectapi_demo.tests.serde.input.Nested": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.Nested",
+        "title": "reflectapi_demo.tests.serde.input.Nested",
+        "properties": {
+          "value": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "oneOf": [
+                  {
+                    "description": "Null",
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/std.string.String"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.output.Nested": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.output.Nested",
         "required": [
           "value"
         ],

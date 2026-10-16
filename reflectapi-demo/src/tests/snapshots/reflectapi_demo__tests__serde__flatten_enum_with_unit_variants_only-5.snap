@@ -37,6 +37,9 @@ class ReflectapiDemoTestsSerdeItemActive(BaseModel):
         default="Active", description="Discriminator field"
     )
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"status"})
+
 
 class ReflectapiDemoTestsSerdeItemInactive(BaseModel):
     """'Inactive' variant of ReflectapiDemoTestsSerdeItem"""
@@ -50,6 +53,9 @@ class ReflectapiDemoTestsSerdeItemInactive(BaseModel):
         default="Inactive", description="Discriminator field"
     )
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"status"})
+
 
 class ReflectapiDemoTestsSerdeItemPending(BaseModel):
     """'Pending' variant of ReflectapiDemoTestsSerdeItem"""
@@ -62,6 +68,9 @@ class ReflectapiDemoTestsSerdeItemPending(BaseModel):
     status: Literal["Pending"] = Field(
         default="Pending", description="Discriminator field"
     )
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"status"})
 
 
 class ReflectapiDemoTestsSerdeItem(RootModel):
@@ -84,6 +93,9 @@ class ReflectapiDemoTestsSerdeStatusActive(BaseModel):
         default="Active", description="Discriminator field"
     )
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"status"})
+
 
 class ReflectapiDemoTestsSerdeStatusInactive(BaseModel):
     model_config = ConfigDict(
@@ -94,6 +106,9 @@ class ReflectapiDemoTestsSerdeStatusInactive(BaseModel):
         default="Inactive", description="Discriminator field"
     )
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"status"})
+
 
 class ReflectapiDemoTestsSerdeStatusPending(BaseModel):
     model_config = ConfigDict(
@@ -103,6 +118,9 @@ class ReflectapiDemoTestsSerdeStatusPending(BaseModel):
     status: Literal["Pending"] = Field(
         default="Pending", description="Discriminator field"
     )
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"status"})
 
 
 class ReflectapiDemoTestsSerdeStatus(RootModel):

@@ -26,10 +26,10 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::serde::TreeNode,
+            input: super::types::reflectapi_demo::tests::serde::input::TreeNode,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::serde::TreeNode,
+            super::types::reflectapi_demo::tests::serde::output::TreeNode,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
             reflectapi::rt::__request_impl(&self.client, "/inout_test", input, headers).await
@@ -56,15 +56,22 @@ pub mod types {
     pub mod reflectapi_demo {
         pub mod tests {
             pub mod serde {
+                pub mod input {
 
-                #[derive(Debug, serde::Deserialize, serde::Serialize)]
-                pub struct TreeNode {
-                    pub label: std::string::String,
-                    pub child: std::option::Option<
-                        std::boxed::Box<
-                            super::super::super::reflectapi_demo::tests::serde::TreeNode,
-                        >,
-                    >,
+                    #[derive(Debug, serde::Serialize)]
+                    pub struct TreeNode {
+    pub label: std::string::String,
+    #[serde(default = "Default::default", skip_serializing_if = "reflectapi::Option::is_undefined")]
+    pub child: reflectapi::Option<std::boxed::Box<super::super::super::super::reflectapi_demo::tests::serde::input::TreeNode>>,
+}
+                }
+                pub mod output {
+
+                    #[derive(Debug, serde::Deserialize)]
+                    pub struct TreeNode {
+    pub label: std::string::String,
+    pub child: std::option::Option<std::boxed::Box<super::super::super::super::reflectapi_demo::tests::serde::output::TreeNode>>,
+}
                 }
             }
         }

@@ -1,0 +1,18 @@
+[package]
+name = "reflectapi-field-presence-rust"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[lib]
+path = "../../../target/field-presence/rust/generated.rs"
+
+[dependencies]
+reflectapi = { path = "../../../../reflectapi", features = ["rt", "rt-sse"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[features]
+reqwest = []

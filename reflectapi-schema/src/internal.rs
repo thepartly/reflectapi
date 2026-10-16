@@ -48,11 +48,12 @@ pub(crate) fn replace_type_references_for_type(
     this: &mut Type,
     remap: &std::collections::HashMap<TypeReference, TypeReference>,
     schema: &Typespace,
+    input: bool,
 ) {
     match this {
         Type::Primitive(_) => {}
-        Type::Struct(s) => replace_type_references_for_struct(s, remap, schema),
-        Type::Enum(e) => replace_type_references_for_enum(e, remap, schema),
+        Type::Struct(s) => replace_type_references_for_struct(s, remap, schema, input),
+        Type::Enum(e) => replace_type_references_for_enum(e, remap, schema, input),
     }
 }
 
@@ -60,9 +61,11 @@ fn replace_type_references_for_struct(
     this: &mut Struct,
     remap: &std::collections::HashMap<TypeReference, TypeReference>,
     schema: &Typespace,
+    input: bool,
 ) {
+    let input = input && matches!(this.fields, Fields::Named(_));
     for field in this.fields.iter_mut() {
-        replace_type_references_for_field(field, remap, schema, &this.parameters);
+        replace_type_references_for_field(field, remap, schema, &this.parameters, input);
     }
 }
 
@@ -71,6 +74,7 @@ fn replace_type_references_for_field(
     remap: &std::collections::HashMap<TypeReference, TypeReference>,
     schema: &Typespace,
     declaring_type_parameters: &Vec<TypeParameter>,
+    input: bool,
 ) {
     if let Some(new_type_ref) = remap.get(&this.type_ref) {
         replace_type_references_for_type_ref(
@@ -79,18 +83,47 @@ fn replace_type_references_for_field(
             declaring_type_parameters,
         );
     }
+    // Serde's missing-field deserializer accepts a plain option as None.
+    // Resolve this only for derived inputs, after aliases are canonicalized
+    // and generic parameters restored. User transforms run afterwards and
+    // remain authoritative over the reflected wire contract.
+    if input && !this.deserialize_with && accepts_missing_option(&this.type_ref, schema) {
+        this.required = false;
+    }
     if let Some(transform_callback_fn) = this.transform_callback_fn {
         transform_callback_fn(this, schema);
     }
+}
+
+// These standard Serde pointer implementations delegate deserialization to T.
+// Arbitrary primitive fallbacks describe a representation, not a decoder's
+// missing-field behavior, so they must not imply option-style leniency.
+fn accepts_missing_option(type_ref: &TypeReference, schema: &Typespace) -> bool {
+    let mut current = type_ref.clone();
+    let mut visited = std::collections::HashSet::new();
+    while visited.insert(current.clone()) {
+        match current.name() {
+            "std::option::Option" | "reflectapi::Option" => return true,
+            "std::boxed::Box" | "std::rc::Rc" | "std::sync::Arc" => {
+                let Some(inner) = current.fallback_once(schema) else {
+                    return false;
+                };
+                current = inner;
+            }
+            _ => return false,
+        }
+    }
+    false
 }
 
 fn replace_type_references_for_enum(
     this: &mut Enum,
     remap: &std::collections::HashMap<TypeReference, TypeReference>,
     schema: &Typespace,
+    input: bool,
 ) {
     for variant in this.variants.iter_mut() {
-        replace_type_references_for_variant(variant, remap, schema, &this.parameters);
+        replace_type_references_for_variant(variant, remap, schema, &this.parameters, input);
     }
 }
 
@@ -99,9 +132,11 @@ fn replace_type_references_for_variant(
     remap: &std::collections::HashMap<TypeReference, TypeReference>,
     schema: &Typespace,
     declaring_type_parameters: &Vec<TypeParameter>,
+    input: bool,
 ) {
+    let input = input && matches!(this.fields, Fields::Named(_));
     for field in this.fields.iter_mut() {
-        replace_type_references_for_field(field, remap, schema, declaring_type_parameters);
+        replace_type_references_for_field(field, remap, schema, declaring_type_parameters, input);
     }
 }
 

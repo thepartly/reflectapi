@@ -20,6 +20,7 @@ from pydantic import (
     ConfigDict,
     Field,
     RootModel,
+    field_validator,
     model_serializer,
     model_validator,
 )
@@ -55,9 +56,13 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
-class MyapiModelOutputPet(BaseModel):
+class MyapiModelOutputPet(ReflectapiPartialModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     name: str = Field(description="identity")
@@ -69,6 +74,13 @@ class MyapiModelOutputPet(BaseModel):
     behaviors: list[myapi.model.Behavior] | None = Field(
         default=None, description="behaviors of the pet"
     )
+
+    @field_validator("behaviors", mode="before")
+    @classmethod
+    def _reflectapi_reject_null(cls, value):
+        if value is None:
+            raise ValueError("Field may be omitted but cannot be null")
+        return value
 
 
 # Public aliases for this module

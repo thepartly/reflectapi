@@ -23,6 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import ReflectapiPartialModel
 
 
 class ReflectapiDemoTestsBasicTest(BaseModel):

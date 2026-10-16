@@ -70,8 +70,8 @@ pub mod types {
 
                 #[derive(Debug, serde::Deserialize, serde::Serialize)]
                 pub struct TestStructWithFlattenOptionalAndRequired {
-    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none", flatten)]
-    pub g: std::option::Option<super::super::super::reflectapi_demo::tests::serde::TestStructWithFlattenNested>,
+    #[serde(default = "Default::default", skip_serializing_if = "reflectapi::Option::is_undefined", flatten)]
+    pub g: reflectapi::Option<super::super::super::reflectapi_demo::tests::serde::TestStructWithFlattenNested>,
     #[serde(flatten)]
     pub k: super::super::super::reflectapi_demo::tests::serde::TestStructRenameAll,
 }

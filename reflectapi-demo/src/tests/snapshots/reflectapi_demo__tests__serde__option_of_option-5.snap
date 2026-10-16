@@ -22,14 +22,27 @@ from pydantic import BaseModel, ConfigDict, Field
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import ReflectapiPartialModel
 
 
-class ReflectapiDemoTestsSerdeNested(BaseModel):
+class ReflectapiDemoTestsSerdeInputNested(ReflectapiPartialModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
+    )
+
+    value: str | None | None = None
+
+
+class ReflectapiDemoTestsSerdeOutputNested(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    value: str | None | None = None
+    value: str | None | None
 
 
 # Namespace classes for dotted access to types
@@ -42,7 +55,15 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            Nested = ReflectapiDemoTestsSerdeNested
+            class input:
+                """Namespace for input types."""
+
+                Nested = ReflectapiDemoTestsSerdeInputNested
+
+            class output:
+                """Namespace for output types."""
+
+                Nested = ReflectapiDemoTestsSerdeOutputNested
 
 
 class AsyncInoutClient:
@@ -53,15 +74,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.Nested] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.Nested]:
+        data: Optional[reflectapi_demo.tests.serde.input.Nested] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.Nested]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.Nested]: Response containing reflectapi_demo.tests.serde.Nested data
+            ApiResponse[reflectapi_demo.tests.serde.output.Nested]: Response containing reflectapi_demo.tests.serde.output.Nested data
         """
         path = "/inout_test"
 
@@ -70,7 +91,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.Nested,
+            response_model=reflectapi_demo.tests.serde.output.Nested,
         )
 
 
@@ -95,15 +116,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.Nested] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.Nested]:
+        data: Optional[reflectapi_demo.tests.serde.input.Nested] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.Nested]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.Nested]: Response containing reflectapi_demo.tests.serde.Nested data
+            ApiResponse[reflectapi_demo.tests.serde.output.Nested]: Response containing reflectapi_demo.tests.serde.output.Nested data
         """
         path = "/inout_test"
 
@@ -112,7 +133,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.Nested,
+            response_model=reflectapi_demo.tests.serde.output.Nested,
         )
 
 
@@ -138,7 +159,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 _rebuild_errors: list[str] = []
 for _model in [
-    ReflectapiDemoTestsSerdeNested,
+    ReflectapiDemoTestsSerdeInputNested,
+    ReflectapiDemoTestsSerdeOutputNested,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

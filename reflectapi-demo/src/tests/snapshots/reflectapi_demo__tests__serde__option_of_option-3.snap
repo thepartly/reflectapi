@@ -26,10 +26,10 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::serde::Nested,
+            input: super::types::reflectapi_demo::tests::serde::input::Nested,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::serde::Nested,
+            super::types::reflectapi_demo::tests::serde::output::Nested,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
             reflectapi::rt::__request_impl(&self.client, "/inout_test", input, headers).await
@@ -56,10 +56,23 @@ pub mod types {
     pub mod reflectapi_demo {
         pub mod tests {
             pub mod serde {
+                pub mod input {
 
-                #[derive(Debug, serde::Deserialize, serde::Serialize)]
-                pub struct Nested {
-                    pub value: std::option::Option<std::option::Option<std::string::String>>,
+                    #[derive(Debug, serde::Serialize)]
+                    pub struct Nested {
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub value: reflectapi::Option<std::option::Option<std::string::String>>,
+                    }
+                }
+                pub mod output {
+
+                    #[derive(Debug, serde::Deserialize)]
+                    pub struct Nested {
+                        pub value: std::option::Option<std::option::Option<std::string::String>>,
+                    }
                 }
             }
         }

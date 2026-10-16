@@ -9,11 +9,11 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::Nested"
+        "name": "reflectapi_demo::tests::serde::input::Nested"
       },
       "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::Nested"
+        "name": "reflectapi_demo::tests::serde::output::Nested"
       },
       "serialization": [
         "json",
@@ -31,7 +31,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::Nested",
+        "name": "reflectapi_demo::tests::serde::input::Nested",
         "fields": {
           "named": [
             {
@@ -48,8 +48,7 @@ expression: schema
                     ]
                   }
                 ]
-              },
-              "required": true
+              }
             }
           ]
         }
@@ -103,7 +102,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::Nested",
+        "name": "reflectapi_demo::tests::serde::output::Nested",
         "fields": {
           "named": [
             {

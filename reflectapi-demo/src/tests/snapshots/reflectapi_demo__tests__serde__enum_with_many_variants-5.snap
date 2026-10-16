@@ -32,6 +32,9 @@ class ReflectapiDemoTestsSerdeLargeEnumAlpha(BaseModel):
 
     type: Literal["Alpha"] = Field(default="Alpha", description="Discriminator field")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeLargeEnumBeta(BaseModel):
     model_config = ConfigDict(
@@ -39,6 +42,9 @@ class ReflectapiDemoTestsSerdeLargeEnumBeta(BaseModel):
     )
 
     type: Literal["Beta"] = Field(default="Beta", description="Discriminator field")
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeLargeEnumGamma(BaseModel):
@@ -49,6 +55,9 @@ class ReflectapiDemoTestsSerdeLargeEnumGamma(BaseModel):
     type: Literal["Gamma"] = Field(default="Gamma", description="Discriminator field")
     x: int
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeLargeEnumDelta(BaseModel):
     model_config = ConfigDict(
@@ -57,6 +66,9 @@ class ReflectapiDemoTestsSerdeLargeEnumDelta(BaseModel):
 
     type: Literal["Delta"] = Field(default="Delta", description="Discriminator field")
     value: str
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeLargeEnumEpsilon(BaseModel):
@@ -68,6 +80,9 @@ class ReflectapiDemoTestsSerdeLargeEnumEpsilon(BaseModel):
         default="Epsilon", description="Discriminator field"
     )
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeLargeEnumZeta(BaseModel):
     model_config = ConfigDict(
@@ -77,6 +92,9 @@ class ReflectapiDemoTestsSerdeLargeEnumZeta(BaseModel):
     type: Literal["Zeta"] = Field(default="Zeta", description="Discriminator field")
     y: bool
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeLargeEnumEta(BaseModel):
     model_config = ConfigDict(
@@ -84,6 +102,9 @@ class ReflectapiDemoTestsSerdeLargeEnumEta(BaseModel):
     )
 
     type: Literal["Eta"] = Field(default="Eta", description="Discriminator field")
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeLargeEnumTheta(BaseModel):
@@ -94,6 +115,9 @@ class ReflectapiDemoTestsSerdeLargeEnumTheta(BaseModel):
     type: Literal["Theta"] = Field(default="Theta", description="Discriminator field")
     value: int
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeLargeEnumIota(BaseModel):
     model_config = ConfigDict(
@@ -101,6 +125,9 @@ class ReflectapiDemoTestsSerdeLargeEnumIota(BaseModel):
     )
 
     type: Literal["Iota"] = Field(default="Iota", description="Discriminator field")
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeLargeEnumKappa(BaseModel):
@@ -111,6 +138,9 @@ class ReflectapiDemoTestsSerdeLargeEnumKappa(BaseModel):
     type: Literal["Kappa"] = Field(default="Kappa", description="Discriminator field")
     z: float
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeLargeEnumLambda(BaseModel):
     model_config = ConfigDict(
@@ -118,6 +148,9 @@ class ReflectapiDemoTestsSerdeLargeEnumLambda(BaseModel):
     )
 
     type: Literal["Lambda"] = Field(default="Lambda", description="Discriminator field")
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeLargeEnumMu(BaseModel):
@@ -128,6 +161,9 @@ class ReflectapiDemoTestsSerdeLargeEnumMu(BaseModel):
     type: Literal["Mu"] = Field(default="Mu", description="Discriminator field")
     w: str
     v: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeLargeEnum(RootModel):

@@ -47,8 +47,7 @@ expression: schema
                     "name": "std::string::String"
                   }
                 ]
-              },
-              "required": true
+              }
             },
             {
               "name": "x_current",
@@ -60,8 +59,7 @@ expression: schema
                     "name": "std::string::String"
                   }
                 ]
-              },
-              "required": true
+              }
             }
           ]
         }

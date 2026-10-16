@@ -14,10 +14,10 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.TreeNode,
+      input: reflectapi_demo.tests.serde.input.TreeNode,
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<reflectapi_demo.tests.serde.TreeNode, {}>;
+    ) => AsyncResult<reflectapi_demo.tests.serde.output.TreeNode, {}>;
   }
 }
 export namespace reflectapi {
@@ -35,9 +35,18 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
-      export interface TreeNode {
-        label: string;
-        child: reflectapi_demo.tests.serde.TreeNode | null;
+      export namespace input {
+        export interface TreeNode {
+          label: string;
+          child?: reflectapi_demo.tests.serde.input.TreeNode | null;
+        }
+      }
+
+      export namespace output {
+        export interface TreeNode {
+          label: string;
+          child: reflectapi_demo.tests.serde.output.TreeNode | null;
+        }
       }
     }
   }
@@ -47,14 +56,14 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.serde.TreeNode,
+      input: reflectapi_demo.tests.serde.input.TreeNode,
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        reflectapi_demo.tests.serde.TreeNode,
+        reflectapi_demo.tests.serde.input.TreeNode,
         {},
-        reflectapi_demo.tests.serde.TreeNode,
+        reflectapi_demo.tests.serde.output.TreeNode,
         {}
       >(client, "/inout_test", input, headers, options);
   }

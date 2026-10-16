@@ -23,39 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
-
-
-class ReflectapiDemoTestsSerdeTaskHigh(BaseModel):
-    """'High' variant of ReflectapiDemoTestsSerdeTask"""
-
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
-    )
-
-    title: str
-    kind: Literal["High"] = Field(default="High", description="Discriminator field")
-    deadline: str
-
-
-class ReflectapiDemoTestsSerdeTaskLow(BaseModel):
-    """'Low' variant of ReflectapiDemoTestsSerdeTask"""
-
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
-    )
-
-    title: str
-    kind: Literal["Low"] = Field(default="Low", description="Discriminator field")
-
-
-class ReflectapiDemoTestsSerdeTask(RootModel):
-    root: Annotated[
-        Union[
-            ReflectapiDemoTestsSerdeTaskHigh,
-            ReflectapiDemoTestsSerdeTaskLow,
-        ],
-        Field(discriminator="kind"),
-    ]
+from reflectapi_runtime import ReflectapiPartialModel
 
 
 class ReflectapiDemoTestsSerdePriorityHigh(BaseModel):
@@ -66,6 +34,9 @@ class ReflectapiDemoTestsSerdePriorityHigh(BaseModel):
     kind: Literal["High"] = Field(default="High", description="Discriminator field")
     deadline: str
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"kind"})
+
 
 class ReflectapiDemoTestsSerdePriorityLow(BaseModel):
     model_config = ConfigDict(
@@ -74,11 +45,92 @@ class ReflectapiDemoTestsSerdePriorityLow(BaseModel):
 
     kind: Literal["Low"] = Field(default="Low", description="Discriminator field")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"kind"})
+
 
 class ReflectapiDemoTestsSerdePriority(RootModel):
     root: Annotated[
         Union[
             ReflectapiDemoTestsSerdePriorityHigh, ReflectapiDemoTestsSerdePriorityLow
+        ],
+        Field(discriminator="kind"),
+    ]
+
+
+class ReflectapiDemoTestsSerdeInputTaskHigh(BaseModel):
+    """'High' variant of ReflectapiDemoTestsSerdeInputTask"""
+
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+    )
+
+    title: str
+    kind: Literal["High"] = Field(default="High", description="Discriminator field")
+    deadline: str
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"kind"})
+
+
+class ReflectapiDemoTestsSerdeInputTaskLow(BaseModel):
+    """'Low' variant of ReflectapiDemoTestsSerdeInputTask"""
+
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+    )
+
+    title: str
+    kind: Literal["Low"] = Field(default="Low", description="Discriminator field")
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"kind"})
+
+
+class ReflectapiDemoTestsSerdeInputTask(RootModel):
+    root: Annotated[
+        Union[
+            ReflectapiDemoTestsSerdeInputTaskHigh,
+            ReflectapiDemoTestsSerdeInputTaskLow,
+        ],
+        Field(discriminator="kind"),
+    ]
+
+
+class ReflectapiDemoTestsSerdeOutputTaskHigh(BaseModel):
+    """'High' variant of ReflectapiDemoTestsSerdeOutputTask"""
+
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+    )
+
+    title: str
+    kind: Literal["High"] = Field(default="High", description="Discriminator field")
+    deadline: str
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"kind"})
+
+
+class ReflectapiDemoTestsSerdeOutputTaskLow(BaseModel):
+    """'Low' variant of ReflectapiDemoTestsSerdeOutputTask"""
+
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+    )
+
+    title: str
+    kind: Literal["Low"] = Field(default="Low", description="Discriminator field")
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"kind"})
+
+
+class ReflectapiDemoTestsSerdeOutputTask(RootModel):
+    root: Annotated[
+        Union[
+            ReflectapiDemoTestsSerdeOutputTaskHigh,
+            ReflectapiDemoTestsSerdeOutputTaskLow,
         ],
         Field(discriminator="kind"),
     ]
@@ -94,12 +146,23 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            TaskHigh = ReflectapiDemoTestsSerdeTaskHigh
-            TaskLow = ReflectapiDemoTestsSerdeTaskLow
-            Task = ReflectapiDemoTestsSerdeTask
             PriorityHigh = ReflectapiDemoTestsSerdePriorityHigh
             PriorityLow = ReflectapiDemoTestsSerdePriorityLow
             Priority = ReflectapiDemoTestsSerdePriority
+
+            class input:
+                """Namespace for input types."""
+
+                TaskHigh = ReflectapiDemoTestsSerdeInputTaskHigh
+                TaskLow = ReflectapiDemoTestsSerdeInputTaskLow
+                Task = ReflectapiDemoTestsSerdeInputTask
+
+            class output:
+                """Namespace for output types."""
+
+                TaskHigh = ReflectapiDemoTestsSerdeOutputTaskHigh
+                TaskLow = ReflectapiDemoTestsSerdeOutputTaskLow
+                Task = ReflectapiDemoTestsSerdeOutputTask
 
 
 class AsyncInoutClient:
@@ -110,15 +173,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.Task] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.Task]:
+        data: Optional[reflectapi_demo.tests.serde.input.Task] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.Task]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.Task]: Response containing reflectapi_demo.tests.serde.Task data
+            ApiResponse[reflectapi_demo.tests.serde.output.Task]: Response containing reflectapi_demo.tests.serde.output.Task data
         """
         path = "/inout_test"
 
@@ -127,7 +190,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.Task,
+            response_model=reflectapi_demo.tests.serde.output.Task,
         )
 
 
@@ -152,15 +215,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.Task] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.Task]:
+        data: Optional[reflectapi_demo.tests.serde.input.Task] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.Task]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.Task]: Response containing reflectapi_demo.tests.serde.Task data
+            ApiResponse[reflectapi_demo.tests.serde.output.Task]: Response containing reflectapi_demo.tests.serde.output.Task data
         """
         path = "/inout_test"
 
@@ -169,7 +232,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.Task,
+            response_model=reflectapi_demo.tests.serde.output.Task,
         )
 
 
@@ -196,7 +259,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 _rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsSerdePriority,
-    ReflectapiDemoTestsSerdeTask,
+    ReflectapiDemoTestsSerdeInputTask,
+    ReflectapiDemoTestsSerdeOutputTask,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

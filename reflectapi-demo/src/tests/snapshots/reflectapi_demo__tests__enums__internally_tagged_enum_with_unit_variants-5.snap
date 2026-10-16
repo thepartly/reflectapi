@@ -32,6 +32,9 @@ class ReflectapiDemoTestsEnumsAX(BaseModel):
 
     type: Literal["X"] = Field(default="X", description="Discriminator field")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsEnumsAY(BaseModel):
     model_config = ConfigDict(
@@ -40,6 +43,9 @@ class ReflectapiDemoTestsEnumsAY(BaseModel):
 
     type: Literal["Y"] = Field(default="Y", description="Discriminator field")
     value: None = Field(description="Tuple variant value")
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsEnumsA(RootModel):

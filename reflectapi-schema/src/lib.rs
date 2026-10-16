@@ -803,7 +803,17 @@ impl Type {
         unresolved_to_resolved_map: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Typespace,
     ) {
-        internal::replace_type_references_for_type(self, unresolved_to_resolved_map, schema)
+        internal::replace_type_references_for_type(self, unresolved_to_resolved_map, schema, false)
+    }
+
+    /// Rebind derived input fields and resolve serde's missing-option behavior.
+    #[doc(hidden)]
+    pub fn __internal_rebind_input_generic_parameters(
+        &mut self,
+        unresolved_to_resolved_map: &std::collections::HashMap<TypeReference, TypeReference>,
+        schema: &Typespace,
+    ) {
+        internal::replace_type_references_for_type(self, unresolved_to_resolved_map, schema, true)
     }
 }
 
@@ -1147,6 +1157,13 @@ pub struct Field {
     /// Type of a field
     #[serde(rename = "type")]
     pub type_ref: TypeReference,
+    /// Whether the field's key is required in this type's wire direction.
+    /// For inputs, a missing required key is rejected; for outputs, a required
+    /// key is always serialized. Value nullability is represented by the type.
+    /// Derived input option fields accept a missing key unless a custom
+    /// deserializer prevents serde's missing-option behavior. User transforms
+    /// and explicitly constructed schemas may override this contract.
+    ///
     /// required and not nullable:
     /// - field always present and not null / none
     ///
@@ -1178,6 +1195,21 @@ pub struct Field {
     #[serde(skip_serializing_if = "is_false", default)]
     pub hidden: bool,
 
+    /// If true, the field has a custom serde serializer:
+    /// `#[serde(serialize_with = ...)]` or `#[serde(with = ...)]`.
+    /// Serialized wire shape cannot be inferred from the field's type alone.
+    /// Default is false
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub serialize_with: bool,
+
+    /// If true, the field has a custom serde deserializer:
+    /// `#[serde(deserialize_with = ...)]` or `#[serde(with = ...)]`.
+    /// Deserialization behavior — such as whether a missing key is
+    /// accepted — cannot be inferred from the field's type alone.
+    /// Default is false
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub deserialize_with: bool,
+
     #[serde(skip, default)]
     pub transform_callback: String,
     #[serde(skip, default)]
@@ -1199,6 +1231,8 @@ impl PartialEq for Field {
             required,
             flattened,
             hidden,
+            serialize_with,
+            deserialize_with,
             transform_callback,
             transform_callback_fn: _,
         }: &Self,
@@ -1214,6 +1248,8 @@ impl PartialEq for Field {
             && self.required == *required
             && self.flattened == *flattened
             && self.hidden == *hidden
+            && self.serialize_with == *serialize_with
+            && self.deserialize_with == *deserialize_with
             && self.transform_callback == *transform_callback
     }
 }
@@ -1231,6 +1267,8 @@ impl std::hash::Hash for Field {
         self.required.hash(state);
         self.flattened.hash(state);
         self.hidden.hash(state);
+        self.serialize_with.hash(state);
+        self.deserialize_with.hash(state);
         self.transform_callback.hash(state);
     }
 }
@@ -1249,6 +1287,8 @@ impl Field {
             required: Default::default(),
             flattened: Default::default(),
             hidden: Default::default(),
+            serialize_with: Default::default(),
+            deserialize_with: Default::default(),
             transform_callback: Default::default(),
             transform_callback_fn: Default::default(),
         }

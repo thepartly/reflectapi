@@ -15,9 +15,9 @@ the ``reflectapi::Option<T>`` enum. The Python equivalent uses
 - emits a wire payload that omits keys not in ``model_fields_set``,
   preserving the absent-vs-null distinction round-trip.
 
-Codegen makes every generated class with at least one
-``reflectapi::Option<T>`` field inherit from this class instead of
-``pydantic.BaseModel``.
+Codegen also uses this base for models with other omittable fields, so their
+unset defaults stay absent during direct model serialization as well as client
+requests.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ from pydantic import BaseModel, model_serializer
 
 
 class ReflectapiPartialModel(BaseModel):
-    """Base class for reflectapi models with partial (three-state) fields.
+    """Base class for reflectapi models with omittable fields.
 
     Wire-format guarantee: a field that was never explicitly set on the
     instance is omitted from the serialised output entirely. A field set
@@ -70,7 +70,9 @@ class ReflectapiPartialModel(BaseModel):
     # ``m.snapshot = None`` after construction and have it land on the
     # wire.
 
-    @model_serializer(mode="wrap")
+    # Pydantic 2.10 can resolve an inherited serializer's postponed return
+    # annotation in the subclass's module, which need not import ``Any``.
+    @model_serializer(mode="wrap", return_type=dict[str, Any])
     def _serialize_partial(
         self, handler: Any, info: Any | None = None
     ) -> dict[str, Any]:

@@ -18,7 +18,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestTwoInstantiations"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestTwoInstantiations"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestTwoInstantiations"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestTwoInstantiations"
                 }
               }
             }
@@ -85,9 +85,9 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           }
         }
       },
-      "reflectapi_demo.tests.serde.TestTwoInstantiations": {
+      "reflectapi_demo.tests.serde.input.TestTwoInstantiations": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.TestTwoInstantiations",
+        "title": "reflectapi_demo.tests.serde.input.TestTwoInstantiations",
         "required": [
           "a",
           "b"
@@ -100,7 +100,65 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
               },
               {
                 "type": "object",
-                "title": "reflectapi_demo.tests.serde.TestUpdateOrElse<reflectapi_demo.tests.serde.TestFlattenInner, reflectapi_demo.tests.serde.TestFlattenIfElse>",
+                "title": "reflectapi_demo.tests.serde.input.TestUpdateOrElse<reflectapi_demo.tests.serde.TestFlattenInner, reflectapi_demo.tests.serde.TestFlattenIfElse>",
+                "properties": {
+                  "if_else": {
+                    "oneOf": [
+                      {
+                        "description": "Null",
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenIfElse"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "b": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenInnerAlt"
+              },
+              {
+                "type": "object",
+                "title": "reflectapi_demo.tests.serde.input.TestUpdateOrElse<reflectapi_demo.tests.serde.TestFlattenInnerAlt, reflectapi_demo.tests.serde.TestFlattenIfElse>",
+                "properties": {
+                  "if_else": {
+                    "oneOf": [
+                      {
+                        "description": "Null",
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenIfElse"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.output.TestTwoInstantiations": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.output.TestTwoInstantiations",
+        "required": [
+          "a",
+          "b"
+        ],
+        "properties": {
+          "a": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenInner"
+              },
+              {
+                "type": "object",
+                "title": "reflectapi_demo.tests.serde.output.TestUpdateOrElse<reflectapi_demo.tests.serde.TestFlattenInner, reflectapi_demo.tests.serde.TestFlattenIfElse>",
                 "required": [
                   "if_else"
                 ],
@@ -127,7 +185,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
               },
               {
                 "type": "object",
-                "title": "reflectapi_demo.tests.serde.TestUpdateOrElse<reflectapi_demo.tests.serde.TestFlattenInnerAlt, reflectapi_demo.tests.serde.TestFlattenIfElse>",
+                "title": "reflectapi_demo.tests.serde.output.TestUpdateOrElse<reflectapi_demo.tests.serde.TestFlattenInnerAlt, reflectapi_demo.tests.serde.TestFlattenIfElse>",
                 "required": [
                   "if_else"
                 ],

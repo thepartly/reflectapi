@@ -14,10 +14,10 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.Nested,
+      input: reflectapi_demo.tests.serde.input.Nested,
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<reflectapi_demo.tests.serde.Nested, {}>;
+    ) => AsyncResult<reflectapi_demo.tests.serde.output.Nested, {}>;
   }
 }
 export namespace reflectapi {
@@ -35,8 +35,16 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
-      export interface Nested {
-        value: (string | null) | null;
+      export namespace input {
+        export interface Nested {
+          value?: (string | null) | null;
+        }
+      }
+
+      export namespace output {
+        export interface Nested {
+          value: (string | null) | null;
+        }
       }
     }
   }
@@ -46,14 +54,14 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.serde.Nested,
+      input: reflectapi_demo.tests.serde.input.Nested,
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        reflectapi_demo.tests.serde.Nested,
+        reflectapi_demo.tests.serde.input.Nested,
         {},
-        reflectapi_demo.tests.serde.Nested,
+        reflectapi_demo.tests.serde.output.Nested,
         {}
       >(client, "/inout_test", input, headers, options);
   }

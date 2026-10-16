@@ -39,6 +39,9 @@ class ReflectapiDemoTestsSerdeTaggedItem(BaseModel, Generic[T]):
     t: Literal["Item"] = Field(default="Item", description="Discriminator field")
     c: T
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"t"})
+
 
 class ReflectapiDemoTestsSerdeTaggedNothing(BaseModel, Generic[T]):
     model_config = ConfigDict(
@@ -46,6 +49,9 @@ class ReflectapiDemoTestsSerdeTaggedNothing(BaseModel, Generic[T]):
     )
 
     t: Literal["Nothing"] = Field(default="Nothing", description="Discriminator field")
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"t"})
 
 
 class ReflectapiDemoTestsSerdeTagged(Generic[T]):

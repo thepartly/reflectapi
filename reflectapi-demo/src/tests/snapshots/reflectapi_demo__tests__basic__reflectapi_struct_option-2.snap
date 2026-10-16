@@ -14,10 +14,10 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.basic.TestStructOption,
+      input: reflectapi_demo.tests.basic.input.TestStructOption,
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<reflectapi_demo.tests.basic.TestStructOption, {}>;
+    ) => AsyncResult<reflectapi_demo.tests.basic.output.TestStructOption, {}>;
   }
 }
 export namespace reflectapi {
@@ -35,8 +35,16 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace basic {
-      export interface TestStructOption {
-        _f: number /* u8 */ | null;
+      export namespace input {
+        export interface TestStructOption {
+          _f?: number /* u8 */ | null;
+        }
+      }
+
+      export namespace output {
+        export interface TestStructOption {
+          _f: number /* u8 */ | null;
+        }
       }
     }
   }
@@ -46,14 +54,14 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.basic.TestStructOption,
+      input: reflectapi_demo.tests.basic.input.TestStructOption,
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        reflectapi_demo.tests.basic.TestStructOption,
+        reflectapi_demo.tests.basic.input.TestStructOption,
         {},
-        reflectapi_demo.tests.basic.TestStructOption,
+        reflectapi_demo.tests.basic.output.TestStructOption,
         {}
       >(client, "/inout_test", input, headers, options);
   }

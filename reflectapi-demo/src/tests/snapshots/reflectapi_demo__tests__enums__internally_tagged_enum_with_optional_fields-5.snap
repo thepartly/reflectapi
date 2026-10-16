@@ -23,20 +23,29 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import ReflectapiPartialModel
 
 
-class ReflectapiDemoTestsEnumsInputVariantBody(BaseModel):
+class ReflectapiDemoTestsEnumsInputVariantBody(ReflectapiPartialModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     amount: str | None = None
     always_null_on_wire: str | None = None
 
 
-class ReflectapiDemoTestsEnumsInputThingVariant(BaseModel):
+class ReflectapiDemoTestsEnumsInputThingVariant(ReflectapiPartialModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     type: Literal["variant"] = Field(
@@ -45,14 +54,24 @@ class ReflectapiDemoTestsEnumsInputThingVariant(BaseModel):
     amount: str | None = None
     always_null_on_wire: str | None = None
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
-class ReflectapiDemoTestsEnumsInputThingNamed(BaseModel):
+
+class ReflectapiDemoTestsEnumsInputThingNamed(ReflectapiPartialModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     type: Literal["named"] = Field(default="named", description="Discriminator field")
     amount: str | None = None
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsEnumsInputThing(RootModel):
@@ -65,34 +84,52 @@ class ReflectapiDemoTestsEnumsInputThing(RootModel):
     ]
 
 
-class ReflectapiDemoTestsEnumsOutputVariantBody(BaseModel):
+class ReflectapiDemoTestsEnumsOutputVariantBody(ReflectapiPartialModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     amount: str | None = None
-    always_null_on_wire: str | None = None
+    always_null_on_wire: str | None
 
 
-class ReflectapiDemoTestsEnumsOutputThingVariant(BaseModel):
+class ReflectapiDemoTestsEnumsOutputThingVariant(ReflectapiPartialModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     type: Literal["variant"] = Field(
         default="variant", description="Discriminator field"
     )
     amount: str | None = None
-    always_null_on_wire: str | None = None
+    always_null_on_wire: str | None
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
-class ReflectapiDemoTestsEnumsOutputThingNamed(BaseModel):
+class ReflectapiDemoTestsEnumsOutputThingNamed(ReflectapiPartialModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     type: Literal["named"] = Field(default="named", description="Discriminator field")
     amount: str | None = None
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsEnumsOutputThing(RootModel):

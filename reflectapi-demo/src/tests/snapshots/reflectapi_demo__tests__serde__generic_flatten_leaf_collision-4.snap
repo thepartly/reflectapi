@@ -18,7 +18,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestLeafCollisionPair"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestLeafCollisionPair"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestLeafCollisionPair"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestLeafCollisionPair"
                 }
               }
             }
@@ -57,9 +57,9 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           }
         }
       },
-      "reflectapi_demo.tests.serde.TestLeafCollisionPair": {
+      "reflectapi_demo.tests.serde.input.TestLeafCollisionPair": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.TestLeafCollisionPair",
+        "title": "reflectapi_demo.tests.serde.input.TestLeafCollisionPair",
         "required": [
           "a",
           "b"
@@ -72,10 +72,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
               },
               {
                 "type": "object",
-                "title": "reflectapi_demo.tests.serde.TestUpdateOrElse<reflectapi_demo.tests.serde.module_a.Sample, reflectapi_demo.tests.serde.TestFlattenIfElse>",
-                "required": [
-                  "if_else"
-                ],
+                "title": "reflectapi_demo.tests.serde.input.TestUpdateOrElse<reflectapi_demo.tests.serde.module_a.Sample, reflectapi_demo.tests.serde.TestFlattenIfElse>",
                 "properties": {
                   "if_else": {
                     "oneOf": [
@@ -99,10 +96,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
               },
               {
                 "type": "object",
-                "title": "reflectapi_demo.tests.serde.TestUpdateOrElse<reflectapi_demo.tests.serde.module_b.Sample, reflectapi_demo.tests.serde.TestFlattenIfElse>",
-                "required": [
-                  "if_else"
-                ],
+                "title": "reflectapi_demo.tests.serde.input.TestUpdateOrElse<reflectapi_demo.tests.serde.module_b.Sample, reflectapi_demo.tests.serde.TestFlattenIfElse>",
                 "properties": {
                   "if_else": {
                     "oneOf": [
@@ -142,6 +136,70 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         "properties": {
           "b_field": {
             "$ref": "#/components/schemas/bool"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.output.TestLeafCollisionPair": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.output.TestLeafCollisionPair",
+        "required": [
+          "a",
+          "b"
+        ],
+        "properties": {
+          "a": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.module_a.Sample"
+              },
+              {
+                "type": "object",
+                "title": "reflectapi_demo.tests.serde.output.TestUpdateOrElse<reflectapi_demo.tests.serde.module_a.Sample, reflectapi_demo.tests.serde.TestFlattenIfElse>",
+                "required": [
+                  "if_else"
+                ],
+                "properties": {
+                  "if_else": {
+                    "oneOf": [
+                      {
+                        "description": "Null",
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenIfElse"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "b": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.module_b.Sample"
+              },
+              {
+                "type": "object",
+                "title": "reflectapi_demo.tests.serde.output.TestUpdateOrElse<reflectapi_demo.tests.serde.module_b.Sample, reflectapi_demo.tests.serde.TestFlattenIfElse>",
+                "required": [
+                  "if_else"
+                ],
+                "properties": {
+                  "if_else": {
+                    "oneOf": [
+                      {
+                        "description": "Null",
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenIfElse"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
           }
         }
       },
