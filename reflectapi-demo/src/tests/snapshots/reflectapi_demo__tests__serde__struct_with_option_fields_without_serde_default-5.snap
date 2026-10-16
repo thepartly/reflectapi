@@ -13,7 +13,6 @@ from __future__ import annotations
 
 
 # Standard library imports
-from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
@@ -26,7 +25,7 @@ from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import ReflectapiPartialModel
 
 
-class ReflectapiDemoTestsSerdeARequest(ReflectapiPartialModel):
+class ReflectapiDemoTestsSerdeInputARequest(ReflectapiPartialModel):
     model_config = ConfigDict(
         extra="ignore",
         populate_by_name=True,
@@ -44,6 +43,24 @@ class ReflectapiDemoTestsSerdeARequest(ReflectapiPartialModel):
     with_module_option: str | None
 
 
+class ReflectapiDemoTestsSerdeOutputARequest(ReflectapiPartialModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
+    )
+
+    reflect_option: str | None
+    annotated_reflect_option: str | None = None
+    std_option: str | None
+    annotated_std_option: str | None = None
+    custom_deserializer_option: str | None
+    custom_serializer_option: str | None
+    with_module_option: str | None
+
+
 # Namespace classes for dotted access to types
 class reflectapi_demo:
     """Namespace for reflectapi_demo types."""
@@ -54,7 +71,15 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            ARequest = ReflectapiDemoTestsSerdeARequest
+            class input:
+                """Namespace for input types."""
+
+                ARequest = ReflectapiDemoTestsSerdeInputARequest
+
+            class output:
+                """Namespace for output types."""
+
+                ARequest = ReflectapiDemoTestsSerdeOutputARequest
 
 
 class AsyncInoutClient:
@@ -65,15 +90,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.ARequest] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.ARequest]:
+        data: Optional[reflectapi_demo.tests.serde.input.ARequest] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.ARequest]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.ARequest]: Response containing reflectapi_demo.tests.serde.ARequest data
+            ApiResponse[reflectapi_demo.tests.serde.output.ARequest]: Response containing reflectapi_demo.tests.serde.output.ARequest data
         """
         path = "/inout_test"
 
@@ -82,7 +107,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.ARequest,
+            response_model=reflectapi_demo.tests.serde.output.ARequest,
         )
 
 
@@ -107,15 +132,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.ARequest] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.ARequest]:
+        data: Optional[reflectapi_demo.tests.serde.input.ARequest] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.ARequest]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.ARequest]: Response containing reflectapi_demo.tests.serde.ARequest data
+            ApiResponse[reflectapi_demo.tests.serde.output.ARequest]: Response containing reflectapi_demo.tests.serde.output.ARequest data
         """
         path = "/inout_test"
 
@@ -124,7 +149,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.ARequest,
+            response_model=reflectapi_demo.tests.serde.output.ARequest,
         )
 
 
@@ -150,7 +175,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 _rebuild_errors: list[str] = []
 for _model in [
-    ReflectapiDemoTestsSerdeARequest,
+    ReflectapiDemoTestsSerdeInputARequest,
+    ReflectapiDemoTestsSerdeOutputARequest,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

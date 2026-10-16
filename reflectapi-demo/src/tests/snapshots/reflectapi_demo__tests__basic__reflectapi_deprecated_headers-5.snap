@@ -22,11 +22,16 @@ from pydantic import BaseModel, ConfigDict, Field
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import ReflectapiPartialModel
 
 
-class ReflectapiDemoTestsBasicRequestHeaders(BaseModel):
+class ReflectapiDemoTestsBasicRequestHeaders(ReflectapiPartialModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     x_legacy: str | None = Field(
@@ -46,16 +51,13 @@ class ReflectapiDemoTestsBasicResponseHeaders(BaseModel):
     )
 
     x_legacy_request_id: str | None = Field(
-        default=None,
         serialization_alias="x-legacy-request-id",
         validation_alias="x-legacy-request-id",
         description="The old request id",
         deprecated="Deprecated since 2026-10-01; removal after 2026-11-01. Read `x-request-id` instead.",
     )
     x_request_id: str | None = Field(
-        default=None,
-        serialization_alias="x-request-id",
-        validation_alias="x-request-id",
+        serialization_alias="x-request-id", validation_alias="x-request-id"
     )
 
 

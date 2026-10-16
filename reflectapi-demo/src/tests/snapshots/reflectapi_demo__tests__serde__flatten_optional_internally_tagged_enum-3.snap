@@ -26,10 +26,10 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::serde::Task,
+            input: super::types::reflectapi_demo::tests::serde::input::Task,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::serde::Task,
+            super::types::reflectapi_demo::tests::serde::output::Task,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
             reflectapi::rt::__request_impl(&self.client, "/inout_test", input, headers).await
@@ -64,13 +64,31 @@ pub mod types {
                     Low,
                 }
 
-                #[derive(Debug, serde::Deserialize, serde::Serialize)]
-                pub struct Task {
-                    pub title: std::string::String,
-                    #[serde(flatten)]
-                    pub priority: std::option::Option<
-                        super::super::super::reflectapi_demo::tests::serde::Priority,
-                    >,
+                pub mod input {
+
+                    #[derive(Debug, serde::Serialize)]
+                    pub struct Task {
+                        pub title: std::string::String,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined",
+                            flatten
+                        )]
+                        pub priority: reflectapi::Option<
+                            super::super::super::super::reflectapi_demo::tests::serde::Priority,
+                        >,
+                    }
+                }
+                pub mod output {
+
+                    #[derive(Debug, serde::Deserialize)]
+                    pub struct Task {
+                        pub title: std::string::String,
+                        #[serde(flatten)]
+                        pub priority: std::option::Option<
+                            super::super::super::super::reflectapi_demo::tests::serde::Priority,
+                        >,
+                    }
                 }
             }
         }

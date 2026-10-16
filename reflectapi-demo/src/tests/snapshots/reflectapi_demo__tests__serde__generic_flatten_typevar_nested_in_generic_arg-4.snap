@@ -19,7 +19,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "application/json": {
               "schema": {
                 "type": "object",
-                "title": "reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>",
+                "title": "reflectapi_demo.tests.serde.input.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>",
                 "required": [
                   "body",
                   "extra"
@@ -40,10 +40,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                       },
                       {
                         "type": "object",
-                        "title": "reflectapi_demo.tests.serde.TestUpdateOrElse<std.option.Option<reflectapi_demo.tests.serde.TestFlattenInner>, reflectapi_demo.tests.serde.TestFlattenIfElse>",
-                        "required": [
-                          "if_else"
-                        ],
+                        "title": "reflectapi_demo.tests.serde.input.TestUpdateOrElse<std.option.Option<reflectapi_demo.tests.serde.TestFlattenInner>, reflectapi_demo.tests.serde.TestFlattenIfElse>",
                         "properties": {
                           "if_else": {
                             "oneOf": [
@@ -76,7 +73,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "title": "reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>",
+                  "title": "reflectapi_demo.tests.serde.output.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>",
                   "required": [
                     "body",
                     "extra"
@@ -97,7 +94,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                         },
                         {
                           "type": "object",
-                          "title": "reflectapi_demo.tests.serde.TestUpdateOrElse<std.option.Option<reflectapi_demo.tests.serde.TestFlattenInner>, reflectapi_demo.tests.serde.TestFlattenIfElse>",
+                          "title": "reflectapi_demo.tests.serde.output.TestUpdateOrElse<std.option.Option<reflectapi_demo.tests.serde.TestFlattenInner>, reflectapi_demo.tests.serde.TestFlattenIfElse>",
                           "required": [
                             "if_else"
                           ],

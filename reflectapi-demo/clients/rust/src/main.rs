@@ -18,7 +18,7 @@ fn pet(name: &str, kind: Kind) -> Pet {
     Pet {
         name: name.into(),
         kind,
-        age: None,
+        age: reflectapi::Option::Undefined,
         updated_at: Default::default(),
         behaviors: vec![],
     }

@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import ReflectapiPartialModel
 
 
 class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
@@ -32,35 +33,43 @@ class ReflectapiDemoTestsSerdeTestFlattenIfElse(BaseModel):
     code: int
 
 
-class ReflectapiDemoTestsSerdeTestLeafCollisionPair(BaseModel):
+class ReflectapiDemoTestsSerdeInputTestLeafCollisionPair(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    a: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeModuleAS0030345e
-    b: reflectapi_demo.tests.serde.TestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4368653
+    a: reflectapi_demo.tests.serde.input.TestUpdateOrElseReflectapiDemoTestsSerdeModF4d421ce
+    b: reflectapi_demo.tests.serde.input.TestUpdateOrElseReflectapiDemoTestsSerdeModA78d47be
 
 
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleAS0030345e(
-    BaseModel
+class ReflectapiDemoTestsSerdeInputTestUpdateOrElseReflectapiDemoTestsSerdeModA78d47be(
+    ReflectapiPartialModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
-    )
-
-    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None = None
-    a_field: int
-
-
-class ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4368653(
-    BaseModel
-):
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None = None
     b_field: bool
+
+
+class ReflectapiDemoTestsSerdeInputTestUpdateOrElseReflectapiDemoTestsSerdeModF4d421ce(
+    ReflectapiPartialModel
+):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
+    )
+
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None = None
+    a_field: int
 
 
 class ReflectapiDemoTestsSerdeModuleASample(BaseModel):
@@ -79,6 +88,37 @@ class ReflectapiDemoTestsSerdeModuleBSample(BaseModel):
     b_field: bool
 
 
+class ReflectapiDemoTestsSerdeOutputTestLeafCollisionPair(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+    )
+
+    a: reflectapi_demo.tests.serde.output.TestUpdateOrElseReflectapiDemoTestsSerdeMo8c12f32f
+    b: reflectapi_demo.tests.serde.output.TestUpdateOrElseReflectapiDemoTestsSerdeMoFf633375
+
+
+class ReflectapiDemoTestsSerdeOutputTestUpdateOrElseReflectapiDemoTestsSerdeMo8c12f32f(
+    BaseModel
+):
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+    )
+
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
+    a_field: int
+
+
+class ReflectapiDemoTestsSerdeOutputTestUpdateOrElseReflectapiDemoTestsSerdeMoFf633375(
+    BaseModel
+):
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+    )
+
+    if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
+    b_field: bool
+
+
 # Namespace classes for dotted access to types
 class reflectapi_demo:
     """Namespace for reflectapi_demo types."""
@@ -90,9 +130,15 @@ class reflectapi_demo:
             """Namespace for serde types."""
 
             TestFlattenIfElse = ReflectapiDemoTestsSerdeTestFlattenIfElse
-            TestLeafCollisionPair = ReflectapiDemoTestsSerdeTestLeafCollisionPair
-            TestUpdateOrElseReflectapiDemoTestsSerdeModuleAS0030345e = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleAS0030345e
-            TestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4368653 = ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4368653
+
+            class input:
+                """Namespace for input types."""
+
+                TestLeafCollisionPair = (
+                    ReflectapiDemoTestsSerdeInputTestLeafCollisionPair
+                )
+                TestUpdateOrElseReflectapiDemoTestsSerdeModA78d47be = ReflectapiDemoTestsSerdeInputTestUpdateOrElseReflectapiDemoTestsSerdeModA78d47be
+                TestUpdateOrElseReflectapiDemoTestsSerdeModF4d421ce = ReflectapiDemoTestsSerdeInputTestUpdateOrElseReflectapiDemoTestsSerdeModF4d421ce
 
             class module_a:
                 """Namespace for module_a types."""
@@ -104,6 +150,15 @@ class reflectapi_demo:
 
                 Sample = ReflectapiDemoTestsSerdeModuleBSample
 
+            class output:
+                """Namespace for output types."""
+
+                TestLeafCollisionPair = (
+                    ReflectapiDemoTestsSerdeOutputTestLeafCollisionPair
+                )
+                TestUpdateOrElseReflectapiDemoTestsSerdeMo8c12f32f = ReflectapiDemoTestsSerdeOutputTestUpdateOrElseReflectapiDemoTestsSerdeMo8c12f32f
+                TestUpdateOrElseReflectapiDemoTestsSerdeMoFf633375 = ReflectapiDemoTestsSerdeOutputTestUpdateOrElseReflectapiDemoTestsSerdeMoFf633375
+
 
 class AsyncInoutClient:
     """Async client for inout operations."""
@@ -113,15 +168,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.TestLeafCollisionPair] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.TestLeafCollisionPair]:
+        data: Optional[reflectapi_demo.tests.serde.input.TestLeafCollisionPair] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TestLeafCollisionPair]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestLeafCollisionPair]: Response containing reflectapi_demo.tests.serde.TestLeafCollisionPair data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestLeafCollisionPair]: Response containing reflectapi_demo.tests.serde.output.TestLeafCollisionPair data
         """
         path = "/inout_test"
 
@@ -130,7 +185,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestLeafCollisionPair,
+            response_model=reflectapi_demo.tests.serde.output.TestLeafCollisionPair,
         )
 
 
@@ -155,15 +210,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.TestLeafCollisionPair] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.TestLeafCollisionPair]:
+        data: Optional[reflectapi_demo.tests.serde.input.TestLeafCollisionPair] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TestLeafCollisionPair]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TestLeafCollisionPair]: Response containing reflectapi_demo.tests.serde.TestLeafCollisionPair data
+            ApiResponse[reflectapi_demo.tests.serde.output.TestLeafCollisionPair]: Response containing reflectapi_demo.tests.serde.output.TestLeafCollisionPair data
         """
         path = "/inout_test"
 
@@ -172,7 +227,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TestLeafCollisionPair,
+            response_model=reflectapi_demo.tests.serde.output.TestLeafCollisionPair,
         )
 
 
@@ -199,11 +254,14 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 _rebuild_errors: list[str] = []
 for _model in [
     ReflectapiDemoTestsSerdeTestFlattenIfElse,
-    ReflectapiDemoTestsSerdeTestLeafCollisionPair,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleAS0030345e,
-    ReflectapiDemoTestsSerdeTestUpdateOrElseReflectapiDemoTestsSerdeModuleBSD4368653,
+    ReflectapiDemoTestsSerdeInputTestLeafCollisionPair,
+    ReflectapiDemoTestsSerdeInputTestUpdateOrElseReflectapiDemoTestsSerdeModA78d47be,
+    ReflectapiDemoTestsSerdeInputTestUpdateOrElseReflectapiDemoTestsSerdeModF4d421ce,
     ReflectapiDemoTestsSerdeModuleASample,
     ReflectapiDemoTestsSerdeModuleBSample,
+    ReflectapiDemoTestsSerdeOutputTestLeafCollisionPair,
+    ReflectapiDemoTestsSerdeOutputTestUpdateOrElseReflectapiDemoTestsSerdeMo8c12f32f,
+    ReflectapiDemoTestsSerdeOutputTestUpdateOrElseReflectapiDemoTestsSerdeMoFf633375,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

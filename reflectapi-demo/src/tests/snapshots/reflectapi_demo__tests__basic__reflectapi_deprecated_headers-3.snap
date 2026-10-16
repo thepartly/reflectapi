@@ -71,13 +71,21 @@ pub mod types {
 
                 #[derive(Debug, serde::Serialize)]
                 pub struct RequestHeaders {
-                    #[serde(rename = "x-legacy")]
+                    #[serde(
+                        rename = "x-legacy",
+                        default = "Default::default",
+                        skip_serializing_if = "reflectapi::Option::is_undefined"
+                    )]
                     #[deprecated(
                         note = "Deprecated since 2026-10-01; removal after 2026-11-01. Send `x-current` instead."
                     )]
-                    pub x_legacy: std::option::Option<std::string::String>,
-                    #[serde(rename = "x-current")]
-                    pub x_current: std::option::Option<std::string::String>,
+                    pub x_legacy: reflectapi::Option<std::string::String>,
+                    #[serde(
+                        rename = "x-current",
+                        default = "Default::default",
+                        skip_serializing_if = "reflectapi::Option::is_undefined"
+                    )]
+                    pub x_current: reflectapi::Option<std::string::String>,
                 }
 
                 #[derive(Debug, serde::Deserialize)]

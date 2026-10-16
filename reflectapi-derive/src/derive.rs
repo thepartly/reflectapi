@@ -107,6 +107,10 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
         });
     }
 
+    let rebind_method = match reflectapi_type {
+        ReflectType::Input => quote::quote!(__internal_rebind_input_generic_parameters),
+        ReflectType::Output => quote::quote!(__internal_rebind_generic_parameters),
+    };
     let reflected_type_def = crate::tokenizable_schema::TokenizableType::new(&reflected_type_def);
     TokenStream::from(quote::quote! {
         #[allow(unused_doc_comments)]
@@ -122,7 +126,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
 
                     let mut unresolved_to_resolved_fields_type_refs = std::collections::HashMap::new();
                     #fields_type_references_resolution_code;
-                    reflected_type_def.__internal_rebind_generic_parameters(&unresolved_to_resolved_fields_type_refs, schema);
+                    reflected_type_def.#rebind_method(&unresolved_to_resolved_fields_type_refs, schema);
 
                     schema.insert_type(reflected_type_def);
                 }

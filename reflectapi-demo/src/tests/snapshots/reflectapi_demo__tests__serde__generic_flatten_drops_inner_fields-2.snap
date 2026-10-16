@@ -14,14 +14,14 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.TestUpdateOrElse<
+      input: reflectapi_demo.tests.serde.input.TestUpdateOrElse<
         reflectapi_demo.tests.serde.TestFlattenInner,
         reflectapi_demo.tests.serde.TestFlattenIfElse
       >,
       headers: {},
       options?: RequestOptions,
     ) => AsyncResult<
-      reflectapi_demo.tests.serde.TestUpdateOrElse<
+      reflectapi_demo.tests.serde.output.TestUpdateOrElse<
         reflectapi_demo.tests.serde.TestFlattenInner,
         reflectapi_demo.tests.serde.TestFlattenIfElse
       >,
@@ -53,9 +53,17 @@ export namespace reflectapi_demo {
         inner_b: string;
       }
 
-      export type TestUpdateOrElse<T, C> = {
-        if_else?: C | null;
-      } & NullToEmptyObject<T>;
+      export namespace input {
+        export type TestUpdateOrElse<T, C> = {
+          if_else?: C | null;
+        } & NullToEmptyObject<T>;
+      }
+
+      export namespace output {
+        export type TestUpdateOrElse<T, C> = {
+          if_else: C | null;
+        } & NullToEmptyObject<T>;
+      }
     }
   }
 }
@@ -64,7 +72,7 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.serde.TestUpdateOrElse<
+      input: reflectapi_demo.tests.serde.input.TestUpdateOrElse<
         reflectapi_demo.tests.serde.TestFlattenInner,
         reflectapi_demo.tests.serde.TestFlattenIfElse
       >,
@@ -72,12 +80,12 @@ namespace __implementation {
       options?: RequestOptions,
     ) =>
       __request<
-        reflectapi_demo.tests.serde.TestUpdateOrElse<
+        reflectapi_demo.tests.serde.input.TestUpdateOrElse<
           reflectapi_demo.tests.serde.TestFlattenInner,
           reflectapi_demo.tests.serde.TestFlattenIfElse
         >,
         {},
-        reflectapi_demo.tests.serde.TestUpdateOrElse<
+        reflectapi_demo.tests.serde.output.TestUpdateOrElse<
           reflectapi_demo.tests.serde.TestFlattenInner,
           reflectapi_demo.tests.serde.TestFlattenIfElse
         >,

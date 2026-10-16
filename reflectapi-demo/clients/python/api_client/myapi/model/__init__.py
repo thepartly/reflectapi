@@ -20,6 +20,7 @@ from pydantic import (
     ConfigDict,
     Field,
     RootModel,
+    field_validator,
     model_serializer,
     model_validator,
 )
@@ -60,17 +61,28 @@ class MyapiModelBehaviorAggressiveVariant(BaseModel):
     field_1: str = Field(description="some notes")
 
 
-class MyapiModelBehaviorOtherVariant(BaseModel):
+class MyapiModelBehaviorOtherVariant(ReflectapiPartialModel):
     """Other variant"""
 
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     description: str = Field(description="Custom provided description of a behavior")
     notes: str | None = Field(
         default=None, description="Additional notes\nUp to a user to put free text here"
     )
+
+    @field_validator("notes", mode="before")
+    @classmethod
+    def _reflectapi_reject_null(cls, value):
+        if value is None:
+            raise ValueError("Field may be omitted but cannot be null")
+        return value
 
 
 # Externally tagged enum using RootModel
@@ -131,6 +143,9 @@ class MyapiModelKindDog(BaseModel):
     type: Literal["dog"] = Field(default="dog", description="Discriminator field")
     breed: str = Field(description="breed of the dog")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class MyapiModelKindCat(BaseModel):
     """A cat"""
@@ -142,6 +157,9 @@ class MyapiModelKindCat(BaseModel):
     type: Literal["cat"] = Field(default="cat", description="Discriminator field")
     lives: int = Field(description="lives left")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class MyapiModelKindBird(BaseModel):
     """Test for unit variants in internally tagged enums"""
@@ -151,6 +169,9 @@ class MyapiModelKindBird(BaseModel):
     )
 
     type: Literal["bird"] = Field(default="bird", description="Discriminator field")
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class MyapiModelKind(RootModel):

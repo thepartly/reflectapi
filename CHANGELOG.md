@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Field presence now follows Serde in each direction. Plain named `Option<T>` and `reflectapi::Option<T>` input fields accept omission without `#[serde(default)]`; response fields remain required unless serialization may skip them. Custom deserializers without a default keep input fields required. Reflection resolves presence before schema consolidation and transforms, so Rust, TypeScript, Python and OpenAPI use the same contract. A type used in both directions may now generate separate input and output models; regenerate SDKs and update affected type imports.
+- Generated Rust named optional nullable request fields use `reflectapi::Option<T>` so `Undefined`, `None` and `Some(value)` serialize as omission, null and a value respectively. This changes affected Rust SDK field types from `std::option::Option<T>`; use `reflectapi::Option::Undefined` to omit a key and `reflectapi::Option::None` to send null.
+- Python request serialization now omits unset model fields and preserves explicitly supplied `None` as JSON `null`, recursively, including aliases and models inside lists or dictionaries. Generated Python fields with known non-nullable primitive or container types reject explicit null while allowing omission. Unset non-null Pydantic defaults are also omitted; explicitly supply a default value to send it. Upgrade the Python runtime alongside regenerated clients.
+- Schema format: `Field` records additive `serialize_with` and `deserialize_with` flags (omitted when false). Exhaustive Rust `Field` literals need these fields. Existing JSON schemas retain their declared requiredness; re-export the schema to obtain corrected directional presence.
+
 ## 0.20.1
 
 Two code generation fixes. Regenerate SDKs and OpenAPI specs to pick them up; the Python runtime changes only its version.
@@ -167,10 +176,6 @@ See [Response Headers](https://reflectapi-docs.partly.workers.dev/clients/#respo
 
 ### Fixed
 
-- TypeScript codegen now emits option-typed fields (`std::option::Option<T>` and `reflectapi::Option<T>`) as optional interface properties (`field?: T | null`) regardless of `#[serde(default)]` / `skip_serializing_if` annotations. serde accepts a missing key for option-typed fields unconditionally, so generated clients no longer force callers to pass explicit nulls. This matches the Python backend's behavior.
-- The exception is fields with a custom serde deserializer: `#[serde(deserialize_with = ...)]` / `#[serde(with = ...)]` without `#[serde(default)]` rejects a missing key, so such fields stay required. This also fixes the Python backend, which previously generated those fields as omittable keys the server rejects. A custom serializer alone (`serialize_with`) does not affect key optionality.
-- Schema format: `Field` gains two additive flags, `serialize_with` and `deserialize_with`, recording the presence of the corresponding serde attributes (`with` sets both; omitted from the JSON when false). Code constructing `reflectapi_schema::Field` with exhaustive struct literals needs the new fields.
-- Internals: field key-presence/nullability resolution now lives in one shared codegen schema pass (`resolve_field_wire_contract`) consumed by the TypeScript and Python backends, instead of per-backend heuristics.
 - **Security:** instrumented Rust clients (`--instrument`) no longer record request bodies and headers as tracing span fields. The generated `#[tracing::instrument]` attribute now uses `skip_all`, so credentials in request payloads (passwords, tokens) can no longer reach logs in cleartext via their `Debug` output. Spans are still named after the endpoint path. Regenerate clients to pick this up.
 - Python runtime: responses with a `Content-Encoding` (gzip, br, zstd) no longer fail with `NetworkError: ... incorrect header check`. The runtime rebuilt an `httpx.Response` from the already-decoded body while keeping the compression header, so httpx decompressed it a second time; response parsing now reads the transport body directly. Custom `transport.Client` implementations must return the decoded body, as `httpx.Response.content` provides. When a custom transport supplies no wire-level `raw` response, `TransportMetadata.raw_response` is a synthetic `httpx.Response` without `Content-Encoding`/`Content-Length`; `metadata.headers` still has the original wire headers.
 - Generated Python clients now type-check under pyright. `ApiResponse`'s error type parameter defaults to `Any`, both type parameters are covariant, and the internal `_make_request` overloads accept the arguments generated clients pass. `reflectapi-runtime` declares `typing-extensions` as a direct dependency. These are typing-only changes; runtime behaviour is unchanged.

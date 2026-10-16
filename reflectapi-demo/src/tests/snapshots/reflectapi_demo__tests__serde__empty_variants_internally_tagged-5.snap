@@ -32,6 +32,9 @@ class ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTaggedEmpty(BaseModel):
 
     type: Literal["Empty"] = Field(default="Empty", description="Discriminator field")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTaggedEmptyStruct(BaseModel):
     model_config = ConfigDict(
@@ -41,6 +44,9 @@ class ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTaggedEmptyStruct(BaseMo
     type: Literal["EmptyStruct"] = Field(
         default="EmptyStruct", description="Discriminator field"
     )
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsInterallyTagged(RootModel):

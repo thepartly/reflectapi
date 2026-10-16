@@ -9,11 +9,11 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::TestLeafCollisionPair"
+        "name": "reflectapi_demo::tests::serde::input::TestLeafCollisionPair"
       },
       "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::TestLeafCollisionPair"
+        "name": "reflectapi_demo::tests::serde::output::TestLeafCollisionPair"
       },
       "serialization": [
         "json",
@@ -51,13 +51,13 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestLeafCollisionPair",
+        "name": "reflectapi_demo::tests::serde::input::TestLeafCollisionPair",
         "fields": {
           "named": [
             {
               "name": "a",
               "type": {
-                "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+                "name": "reflectapi_demo::tests::serde::input::TestUpdateOrElse",
                 "arguments": [
                   {
                     "name": "reflectapi_demo::tests::serde::module_a::Sample"
@@ -72,7 +72,7 @@ expression: schema
             {
               "name": "b",
               "type": {
-                "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+                "name": "reflectapi_demo::tests::serde::input::TestUpdateOrElse",
                 "arguments": [
                   {
                     "name": "reflectapi_demo::tests::serde::module_b::Sample"
@@ -89,7 +89,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "name": "reflectapi_demo::tests::serde::input::TestUpdateOrElse",
         "parameters": [
           {
             "name": "T"
@@ -117,8 +117,7 @@ expression: schema
                     "name": "C"
                   }
                 ]
-              },
-              "required": true
+              }
             }
           ]
         }
@@ -227,13 +226,13 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestLeafCollisionPair",
+        "name": "reflectapi_demo::tests::serde::output::TestLeafCollisionPair",
         "fields": {
           "named": [
             {
               "name": "a",
               "type": {
-                "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+                "name": "reflectapi_demo::tests::serde::output::TestUpdateOrElse",
                 "arguments": [
                   {
                     "name": "reflectapi_demo::tests::serde::module_a::Sample"
@@ -248,7 +247,7 @@ expression: schema
             {
               "name": "b",
               "type": {
-                "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+                "name": "reflectapi_demo::tests::serde::output::TestUpdateOrElse",
                 "arguments": [
                   {
                     "name": "reflectapi_demo::tests::serde::module_b::Sample"
@@ -265,7 +264,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "name": "reflectapi_demo::tests::serde::output::TestUpdateOrElse",
         "parameters": [
           {
             "name": "T"

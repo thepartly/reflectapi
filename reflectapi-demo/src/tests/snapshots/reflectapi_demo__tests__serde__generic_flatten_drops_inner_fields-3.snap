@@ -26,13 +26,13 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::serde::TestUpdateOrElse<
+            input: super::types::reflectapi_demo::tests::serde::input::TestUpdateOrElse<
                 super::types::reflectapi_demo::tests::serde::TestFlattenInner,
                 super::types::reflectapi_demo::tests::serde::TestFlattenIfElse,
             >,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::serde::TestUpdateOrElse<
+            super::types::reflectapi_demo::tests::serde::output::TestUpdateOrElse<
                 super::types::reflectapi_demo::tests::serde::TestFlattenInner,
                 super::types::reflectapi_demo::tests::serde::TestFlattenIfElse,
             >,
@@ -74,11 +74,27 @@ pub mod types {
                     pub inner_b: std::string::String,
                 }
 
-                #[derive(Debug, serde::Deserialize, serde::Serialize)]
-                pub struct TestUpdateOrElse<T, C> {
-                    #[serde(flatten)]
-                    pub inner: T,
-                    pub if_else: std::option::Option<C>,
+                pub mod input {
+
+                    #[derive(Debug, serde::Serialize)]
+                    pub struct TestUpdateOrElse<T, C> {
+                        #[serde(flatten)]
+                        pub inner: T,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub if_else: reflectapi::Option<C>,
+                    }
+                }
+                pub mod output {
+
+                    #[derive(Debug, serde::Deserialize)]
+                    pub struct TestUpdateOrElse<T, C> {
+                        #[serde(flatten)]
+                        pub inner: T,
+                        pub if_else: std::option::Option<C>,
+                    }
                 }
             }
         }

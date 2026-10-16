@@ -144,6 +144,9 @@ class ReflectapiDemoTestsBasicInternalUnit(BaseModel):
 
     type: Literal["Unit"] = Field(default="Unit", description="Discriminator field")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsBasicInternalStruct(BaseModel):
     model_config = ConfigDict(
@@ -152,6 +155,9 @@ class ReflectapiDemoTestsBasicInternalStruct(BaseModel):
 
     type: Literal["Struct"] = Field(default="Struct", description="Discriminator field")
     a: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsBasicInternal(RootModel):

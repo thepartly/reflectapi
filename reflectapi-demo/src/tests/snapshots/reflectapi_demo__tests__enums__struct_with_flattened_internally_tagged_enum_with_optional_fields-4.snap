@@ -50,8 +50,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "type": "object",
             "title": "reflectapi_demo.tests.enums.input.Offer",
             "required": [
-              "id",
-              "note"
+              "id"
             ],
             "properties": {
               "id": {
@@ -78,8 +77,6 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "type": "object",
             "title": "variant",
             "required": [
-              "always_null_on_wire",
-              "amount",
               "type"
             ],
             "properties": {
@@ -114,7 +111,6 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "type": "object",
             "title": "named",
             "required": [
-              "amount",
               "type"
             ],
             "properties": {
@@ -139,10 +135,6 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
       "reflectapi_demo.tests.enums.input.VariantBody": {
         "type": "object",
         "title": "reflectapi_demo.tests.enums.input.VariantBody",
-        "required": [
-          "always_null_on_wire",
-          "amount"
-        ],
         "properties": {
           "always_null_on_wire": {
             "oneOf": [

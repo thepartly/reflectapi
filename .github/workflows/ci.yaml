@@ -31,12 +31,19 @@ jobs:
       - run: cargo test --workspace
       - name: Test generated Rust enum compatibility
         run: cargo test --manifest-path reflectapi-demo/tests/rust/enum_compatibility/Cargo.toml
+      - name: Test generated Rust field presence
+        run: cargo test --manifest-path reflectapi-demo/tests/rust/field_presence/Cargo.toml
       - uses: actions/upload-artifact@v7
         with:
           name: enum-compatibility-typescript
           path: |
             reflectapi-demo/target/enum-compatibility/typescript/*.ts
             reflectapi-demo/target/enum-compatibility/fallback_samples.json
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: field-presence-typescript
+          path: reflectapi-demo/target/field-presence/typescript/*.ts
 
   typescript-runtime:
     name: TypeScript runtime tests
@@ -58,6 +65,13 @@ jobs:
           path: reflectapi-demo/target/enum-compatibility
       - name: Test generated TypeScript enum compatibility
         run: REFLECTAPI_ENUM_SKIP_GENERATION=1 sh ../../tests/typescript/run.sh
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: field-presence-typescript
+          path: reflectapi-demo/target/field-presence/typescript
+      - name: Check generated TypeScript field presence
+        run: REFLECTAPI_PRESENCE_SKIP_GENERATION=1 sh ../../tests/typescript/run-field-presence.sh
 
   python-runtime:
     name: Python runtime tests (${{ matrix.python-version }})
@@ -179,3 +193,8 @@ jobs:
       - name: Test generated Python enum compatibility
         working-directory: reflectapi-demo/clients/python
         run: uv run --locked $UV_RUN_ARGS pytest ../../tests/python/test_enum_compatibility.py -q -p no:cacheprovider
+      - name: Generate field-presence clients
+        run: cargo test -p reflectapi-demo --test field_presence
+      - name: Test generated Python field presence
+        working-directory: reflectapi-demo/clients/python
+        run: uv run --locked $UV_RUN_ARGS pytest ../../tests/python/test_field_presence.py -q -p no:cacheprovider

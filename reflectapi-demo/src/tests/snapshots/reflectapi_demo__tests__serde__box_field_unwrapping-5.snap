@@ -22,15 +22,29 @@ from pydantic import BaseModel, ConfigDict, Field
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import ReflectapiPartialModel
 
 
-class ReflectapiDemoTestsSerdeTreeNode(BaseModel):
+class ReflectapiDemoTestsSerdeInputTreeNode(ReflectapiPartialModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
+    )
+
+    label: str
+    child: reflectapi_demo.tests.serde.input.TreeNode | None = None
+
+
+class ReflectapiDemoTestsSerdeOutputTreeNode(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
     label: str
-    child: reflectapi_demo.tests.serde.TreeNode | None = None
+    child: reflectapi_demo.tests.serde.output.TreeNode | None
 
 
 # Namespace classes for dotted access to types
@@ -43,7 +57,15 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            TreeNode = ReflectapiDemoTestsSerdeTreeNode
+            class input:
+                """Namespace for input types."""
+
+                TreeNode = ReflectapiDemoTestsSerdeInputTreeNode
+
+            class output:
+                """Namespace for output types."""
+
+                TreeNode = ReflectapiDemoTestsSerdeOutputTreeNode
 
 
 class AsyncInoutClient:
@@ -54,15 +76,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.TreeNode] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.TreeNode]:
+        data: Optional[reflectapi_demo.tests.serde.input.TreeNode] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TreeNode]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TreeNode]: Response containing reflectapi_demo.tests.serde.TreeNode data
+            ApiResponse[reflectapi_demo.tests.serde.output.TreeNode]: Response containing reflectapi_demo.tests.serde.output.TreeNode data
         """
         path = "/inout_test"
 
@@ -71,7 +93,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TreeNode,
+            response_model=reflectapi_demo.tests.serde.output.TreeNode,
         )
 
 
@@ -96,15 +118,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[reflectapi_demo.tests.serde.TreeNode] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.serde.TreeNode]:
+        data: Optional[reflectapi_demo.tests.serde.input.TreeNode] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.serde.output.TreeNode]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.TreeNode]: Response containing reflectapi_demo.tests.serde.TreeNode data
+            ApiResponse[reflectapi_demo.tests.serde.output.TreeNode]: Response containing reflectapi_demo.tests.serde.output.TreeNode data
         """
         path = "/inout_test"
 
@@ -113,7 +135,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.TreeNode,
+            response_model=reflectapi_demo.tests.serde.output.TreeNode,
         )
 
 
@@ -139,7 +161,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 _rebuild_errors: list[str] = []
 for _model in [
-    ReflectapiDemoTestsSerdeTreeNode,
+    ReflectapiDemoTestsSerdeInputTreeNode,
+    ReflectapiDemoTestsSerdeOutputTreeNode,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

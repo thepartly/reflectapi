@@ -26,10 +26,10 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::serde::input::TestStructWithSerdeSkipSerializeIf,
+            input: super::types::reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::serde::output::TestStructWithSerdeSkipSerializeIf,
+            super::types::reflectapi_demo::tests::serde::TestStructWithSerdeSkipSerializeIf,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
             reflectapi::rt::__request_impl(&self.client, "/inout_test", input, headers).await
@@ -56,23 +56,14 @@ pub mod types {
     pub mod reflectapi_demo {
         pub mod tests {
             pub mod serde {
-                pub mod input {
 
-                    #[derive(Debug, serde::Serialize)]
-                    pub struct TestStructWithSerdeSkipSerializeIf {
-                        pub f: std::option::Option<u8>,
-                    }
-                }
-                pub mod output {
-
-                    #[derive(Debug, serde::Deserialize)]
-                    pub struct TestStructWithSerdeSkipSerializeIf {
-                        #[serde(
-                            default = "Default::default",
-                            skip_serializing_if = "std::option::Option::is_none"
-                        )]
-                        pub f: std::option::Option<u8>,
-                    }
+                #[derive(Debug, serde::Deserialize, serde::Serialize)]
+                pub struct TestStructWithSerdeSkipSerializeIf {
+                    #[serde(
+                        default = "Default::default",
+                        skip_serializing_if = "reflectapi::Option::is_undefined"
+                    )]
+                    pub f: reflectapi::Option<u8>,
                 }
             }
         }

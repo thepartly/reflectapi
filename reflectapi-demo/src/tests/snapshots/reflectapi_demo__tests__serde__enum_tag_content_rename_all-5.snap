@@ -47,6 +47,9 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant1(BaseModel):
         description="variant1 content"
     )
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2(BaseModel):
     model_config = ConfigDict(
@@ -57,6 +60,9 @@ class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAllVariant2(BaseModel):
         default="variant2", description="Discriminator field"
     )
     content: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeTestEnumTagContentRenameAll(RootModel):

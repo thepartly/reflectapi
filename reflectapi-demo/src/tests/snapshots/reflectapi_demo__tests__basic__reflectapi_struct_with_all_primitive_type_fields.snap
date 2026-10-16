@@ -9,11 +9,11 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::basic::TestStructWithAllPrimitiveTypeFields"
+        "name": "reflectapi_demo::tests::basic::input::TestStructWithAllPrimitiveTypeFields"
       },
       "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi_demo::tests::basic::TestStructWithAllPrimitiveTypeFields"
+        "name": "reflectapi_demo::tests::basic::output::TestStructWithAllPrimitiveTypeFields"
       },
       "serialization": [
         "json",
@@ -90,7 +90,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::basic::TestStructWithAllPrimitiveTypeFields",
+        "name": "reflectapi_demo::tests::basic::input::TestStructWithAllPrimitiveTypeFields",
         "fields": {
           "named": [
             {
@@ -228,8 +228,7 @@ expression: schema
                     "name": "u8"
                   }
                 ]
-              },
-              "required": true
+              }
             },
             {
               "name": "_f_vec",
@@ -1332,7 +1331,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::basic::TestStructWithAllPrimitiveTypeFields",
+        "name": "reflectapi_demo::tests::basic::output::TestStructWithAllPrimitiveTypeFields",
         "fields": {
           "named": [
             {

@@ -63,6 +63,31 @@ The generators do not all emit the same file layout:
 
 The demo repository includes extra project scaffolding around some generated clients, but that scaffolding is not produced by `reflectapi codegen` itself.
 
+## Missing fields and explicit null
+
+Input and output types follow the server's directional Serde contract. A plain
+named `Option<T>` input field may be omitted, while an output field that is
+always serialized remains required and nullable. Types used in both directions
+may therefore generate separate input and output models. See
+[Missing fields and null](../getting-started/attributes.md#missing-fields-and-null)
+for defaults, custom codecs and transforms.
+
+Generated Python models with omittable fields preserve omission in direct
+`model_dump()` / `model_dump_json()` calls using `ReflectapiPartialModel`.
+Python requests omit fields the caller has not set (`exclude_unset=True`) and
+send explicitly supplied `None` as JSON `null`. This applies recursively to
+nested models, including models inside lists and dictionaries, and uses wire
+aliases. Unset non-null Pydantic defaults are omitted too; pass the value
+explicitly to send it. For example, an optional nullable field can be left out
+with `Request()`, or sent as null with `Request(value=None)`. Generated fields
+with known non-nullable primitive or container types reject explicit null.
+Opaque aliases and custom codecs may require server-side validation.
+
+Rust named optional nullable request fields use `reflectapi::Option<T>`:
+`Undefined` omits the key, `None` sends null, and `Some(value)` sends the value.
+After regenerating, update affected field initializers that previously used
+`std::option::Option<T>`. Output-only nullable fields keep their existing types.
+
 ## Language Behavior
 
 ### TypeScript

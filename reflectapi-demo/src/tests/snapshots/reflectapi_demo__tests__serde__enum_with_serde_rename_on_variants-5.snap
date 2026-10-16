@@ -47,6 +47,9 @@ class ReflectapiDemoTestsSerdeActionCreateItem(BaseModel):
         description="create_item content"
     )
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"kind"})
+
 
 class ReflectapiDemoTestsSerdeActionDeleteItemContent(BaseModel):
     """delete_item content"""
@@ -69,6 +72,9 @@ class ReflectapiDemoTestsSerdeActionDeleteItem(BaseModel):
     data: ReflectapiDemoTestsSerdeActionDeleteItemContent = Field(
         description="delete_item content"
     )
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"kind"})
 
 
 class ReflectapiDemoTestsSerdeAction(RootModel):

@@ -142,7 +142,9 @@ fn test_python_namespace_leaf_collision_no_shadowing() {
         Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
     )]
     struct RootConflict<C> {
+        #[serde(skip_serializing_if = "Option::is_none")]
         not_exists: Option<C>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         matches: Option<SomeMatch>,
     }
 
@@ -150,7 +152,9 @@ fn test_python_namespace_leaf_collision_no_shadowing() {
         Debug, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
     )]
     struct NsConflict<C> {
+        #[serde(skip_serializing_if = "Option::is_none")]
         not_exists: Option<C>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         matches: Option<SomeMatch>,
     }
 
@@ -214,8 +218,8 @@ fn test_python_namespace_leaf_collision_no_shadowing() {
 
     // The root type is defined once (in _types.py); the namespace type keeps
     // its globally-unique, namespace-prefixed flat name.
-    assert!(types_py.contains("class IfConflictOnUpdate(BaseModel"));
-    assert!(nomatches_py.contains("class NomatchesIfConflictOnUpdate(BaseModel"));
+    assert!(types_py.contains("class IfConflictOnUpdate("));
+    assert!(nomatches_py.contains("class NomatchesIfConflictOnUpdate("));
     assert!(nomatches_py.contains("from .._types import"));
 
     // The namespace must NOT rebind the bare `IfConflictOnUpdate` it imports

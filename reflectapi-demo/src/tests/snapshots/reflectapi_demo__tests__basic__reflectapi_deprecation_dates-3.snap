@@ -26,10 +26,10 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::basic::StructWithDeprecationDates,
+            input: super::types::reflectapi_demo::tests::basic::input::StructWithDeprecationDates,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::basic::StructWithDeprecationDates,
+            super::types::reflectapi_demo::tests::basic::output::StructWithDeprecationDates,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
             reflectapi::rt::__request_impl(&self.client, "/inout_test", input, headers).await
@@ -74,8 +74,32 @@ pub mod types {
                     Released,
                 }
 
-                #[derive(Debug, serde::Deserialize, serde::Serialize)]
-                pub struct StructWithDeprecationDates {
+                pub mod input {
+
+                    #[derive(Debug, serde::Serialize)]
+                    pub struct StructWithDeprecationDates {
+    #[deprecated(note = "Deprecated since 2026-10-01; removal after 2026-11-01. Use `current` instead.")]
+    pub _since_and_sunset: u8,
+    #[deprecated(note = "Deprecated since 2026-10-01.")]
+    pub _since_only: u8,
+    #[serde(default = "Default::default", skip_serializing_if = "reflectapi::Option::is_undefined")]
+    #[deprecated(note = "Removal after 2026-11-01.")]
+    pub _sunset_only: reflectapi::Option<u8>,
+    /// rustc's `since` is the release, kept verbatim.
+    #[deprecated(note = "Deprecated in 1.2.0. Versioned.")]
+    pub _release_only: u8,
+    /// It is never read as a date, even when it looks like one.
+    #[deprecated(note = "Deprecated in 2026-10-01.")]
+    pub _release_like_a_date: u8,
+    #[deprecated(note = "Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use `current` instead.")]
+    pub _release_and_dates: u8,
+    pub _current: super::super::super::super::reflectapi_demo::tests::basic::EnumWithDeprecatedVariants,
+}
+                }
+                pub mod output {
+
+                    #[derive(Debug, serde::Deserialize)]
+                    pub struct StructWithDeprecationDates {
     #[deprecated(note = "Deprecated since 2026-10-01; removal after 2026-11-01. Use `current` instead.")]
     pub _since_and_sunset: u8,
     #[deprecated(note = "Deprecated since 2026-10-01.")]
@@ -90,8 +114,9 @@ pub mod types {
     pub _release_like_a_date: u8,
     #[deprecated(note = "Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use `current` instead.")]
     pub _release_and_dates: u8,
-    pub _current: super::super::super::reflectapi_demo::tests::basic::EnumWithDeprecatedVariants,
+    pub _current: super::super::super::super::reflectapi_demo::tests::basic::EnumWithDeprecatedVariants,
 }
+                }
             }
         }
     }

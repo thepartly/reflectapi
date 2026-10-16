@@ -9,11 +9,11 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::basic::StructWithDeprecationDates"
+        "name": "reflectapi_demo::tests::basic::input::StructWithDeprecationDates"
       },
       "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi_demo::tests::basic::StructWithDeprecationDates"
+        "name": "reflectapi_demo::tests::basic::output::StructWithDeprecationDates"
       },
       "serialization": [
         "json",
@@ -85,7 +85,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::basic::StructWithDeprecationDates",
+        "name": "reflectapi_demo::tests::basic::input::StructWithDeprecationDates",
         "fields": {
           "named": [
             {
@@ -118,8 +118,7 @@ expression: schema
                     "name": "u8"
                   }
                 ]
-              },
-              "required": true
+              }
             },
             {
               "name": "_release_only",
@@ -265,7 +264,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::basic::StructWithDeprecationDates",
+        "name": "reflectapi_demo::tests::basic::output::StructWithDeprecationDates",
         "fields": {
           "named": [
             {

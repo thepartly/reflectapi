@@ -14,11 +14,11 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.basic.StructWithDeprecationDates,
+      input: reflectapi_demo.tests.basic.input.StructWithDeprecationDates,
       headers: {},
       options?: RequestOptions,
     ) => AsyncResult<
-      reflectapi_demo.tests.basic.StructWithDeprecationDates,
+      reflectapi_demo.tests.basic.output.StructWithDeprecationDates,
       {}
     >;
   }
@@ -69,34 +69,68 @@ export namespace reflectapi_demo {
          */
         | "Released";
 
-      export interface StructWithDeprecationDates {
-        /**
-         * @deprecated Deprecated since 2026-10-01; removal after 2026-11-01. Use `current` instead.
-         */
-        _since_and_sunset: number /* u8 */;
-        /**
-         * @deprecated Deprecated since 2026-10-01.
-         */
-        _since_only: number /* u8 */;
-        /**
-         * @deprecated Removal after 2026-11-01.
-         */
-        _sunset_only: number /* u8 */ | null;
-        /**
-         * @deprecated Deprecated in 1.2.0. Versioned.
-         * rustc's `since` is the release, kept verbatim.
-         */
-        _release_only: number /* u8 */;
-        /**
-         * @deprecated Deprecated in 2026-10-01.
-         * It is never read as a date, even when it looks like one.
-         */
-        _release_like_a_date: number /* u8 */;
-        /**
-         * @deprecated Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use `current` instead.
-         */
-        _release_and_dates: number /* u8 */;
-        _current: reflectapi_demo.tests.basic.EnumWithDeprecatedVariants;
+      export namespace input {
+        export interface StructWithDeprecationDates {
+          /**
+           * @deprecated Deprecated since 2026-10-01; removal after 2026-11-01. Use `current` instead.
+           */
+          _since_and_sunset: number /* u8 */;
+          /**
+           * @deprecated Deprecated since 2026-10-01.
+           */
+          _since_only: number /* u8 */;
+          /**
+           * @deprecated Removal after 2026-11-01.
+           */
+          _sunset_only?: number /* u8 */ | null;
+          /**
+           * @deprecated Deprecated in 1.2.0. Versioned.
+           * rustc's `since` is the release, kept verbatim.
+           */
+          _release_only: number /* u8 */;
+          /**
+           * @deprecated Deprecated in 2026-10-01.
+           * It is never read as a date, even when it looks like one.
+           */
+          _release_like_a_date: number /* u8 */;
+          /**
+           * @deprecated Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use `current` instead.
+           */
+          _release_and_dates: number /* u8 */;
+          _current: reflectapi_demo.tests.basic.EnumWithDeprecatedVariants;
+        }
+      }
+
+      export namespace output {
+        export interface StructWithDeprecationDates {
+          /**
+           * @deprecated Deprecated since 2026-10-01; removal after 2026-11-01. Use `current` instead.
+           */
+          _since_and_sunset: number /* u8 */;
+          /**
+           * @deprecated Deprecated since 2026-10-01.
+           */
+          _since_only: number /* u8 */;
+          /**
+           * @deprecated Removal after 2026-11-01.
+           */
+          _sunset_only: number /* u8 */ | null;
+          /**
+           * @deprecated Deprecated in 1.2.0. Versioned.
+           * rustc's `since` is the release, kept verbatim.
+           */
+          _release_only: number /* u8 */;
+          /**
+           * @deprecated Deprecated in 2026-10-01.
+           * It is never read as a date, even when it looks like one.
+           */
+          _release_like_a_date: number /* u8 */;
+          /**
+           * @deprecated Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use `current` instead.
+           */
+          _release_and_dates: number /* u8 */;
+          _current: reflectapi_demo.tests.basic.EnumWithDeprecatedVariants;
+        }
       }
     }
   }
@@ -106,14 +140,14 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.basic.StructWithDeprecationDates,
+      input: reflectapi_demo.tests.basic.input.StructWithDeprecationDates,
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        reflectapi_demo.tests.basic.StructWithDeprecationDates,
+        reflectapi_demo.tests.basic.input.StructWithDeprecationDates,
         {},
-        reflectapi_demo.tests.basic.StructWithDeprecationDates,
+        reflectapi_demo.tests.basic.output.StructWithDeprecationDates,
         {}
       >(client, "/inout_test", input, headers, options);
   }

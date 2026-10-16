@@ -26,10 +26,10 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::serde::ARequest,
+            input: super::types::reflectapi_demo::tests::serde::input::ARequest,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::serde::ARequest,
+            super::types::reflectapi_demo::tests::serde::output::ARequest,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
             reflectapi::rt::__request_impl(&self.client, "/inout_test", input, headers).await
@@ -56,24 +56,59 @@ pub mod types {
     pub mod reflectapi_demo {
         pub mod tests {
             pub mod serde {
+                pub mod input {
 
-                #[derive(Debug, serde::Deserialize, serde::Serialize)]
-                pub struct ARequest {
-                    pub reflect_option: reflectapi::Option<std::string::String>,
-                    #[serde(
-                        default = "Default::default",
-                        skip_serializing_if = "reflectapi::Option::is_undefined"
-                    )]
-                    pub annotated_reflect_option: reflectapi::Option<std::string::String>,
-                    pub std_option: std::option::Option<std::string::String>,
-                    #[serde(
-                        default = "Default::default",
-                        skip_serializing_if = "std::option::Option::is_none"
-                    )]
-                    pub annotated_std_option: std::option::Option<std::string::String>,
-                    pub custom_deserializer_option: std::option::Option<std::string::String>,
-                    pub custom_serializer_option: std::option::Option<std::string::String>,
-                    pub with_module_option: std::option::Option<std::string::String>,
+                    #[derive(Debug, serde::Serialize)]
+                    pub struct ARequest {
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub reflect_option: reflectapi::Option<std::string::String>,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub annotated_reflect_option: reflectapi::Option<std::string::String>,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub std_option: reflectapi::Option<std::string::String>,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub annotated_std_option: reflectapi::Option<std::string::String>,
+                        pub custom_deserializer_option: std::option::Option<std::string::String>,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub custom_serializer_option: reflectapi::Option<std::string::String>,
+                        pub with_module_option: std::option::Option<std::string::String>,
+                    }
+                }
+                pub mod output {
+
+                    #[derive(Debug, serde::Deserialize)]
+                    pub struct ARequest {
+                        pub reflect_option: reflectapi::Option<std::string::String>,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub annotated_reflect_option: reflectapi::Option<std::string::String>,
+                        pub std_option: std::option::Option<std::string::String>,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "std::option::Option::is_none"
+                        )]
+                        pub annotated_std_option: std::option::Option<std::string::String>,
+                        pub custom_deserializer_option: std::option::Option<std::string::String>,
+                        pub custom_serializer_option: std::option::Option<std::string::String>,
+                        pub with_module_option: std::option::Option<std::string::String>,
+                    }
                 }
             }
         }

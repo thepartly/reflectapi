@@ -18,7 +18,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.ARequest"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.ARequest"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.ARequest"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.ARequest"
                 }
               }
             }
@@ -41,9 +41,96 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.ARequest": {
+      "reflectapi_demo.tests.serde.input.ARequest": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.ARequest",
+        "title": "reflectapi_demo.tests.serde.input.ARequest",
+        "required": [
+          "custom_deserializer_option",
+          "with_module_option"
+        ],
+        "properties": {
+          "annotated_reflect_option": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          },
+          "annotated_std_option": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          },
+          "custom_deserializer_option": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          },
+          "custom_serializer_option": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          },
+          "reflect_option": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          },
+          "std_option": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          },
+          "with_module_option": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.output.ARequest": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.output.ARequest",
         "required": [
           "custom_deserializer_option",
           "custom_serializer_option",

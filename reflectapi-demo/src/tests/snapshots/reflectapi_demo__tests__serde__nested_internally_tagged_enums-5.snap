@@ -33,6 +33,9 @@ class ReflectapiDemoTestsSerdeTestV1(BaseModel):
     version: Literal["v1"] = Field(default="v1", description="Discriminator field")
     value: reflectapi_demo.tests.serde.V1 = Field(description="Tuple variant value")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"version"})
+
 
 class ReflectapiDemoTestsSerdeTestV2(BaseModel):
     model_config = ConfigDict(
@@ -41,6 +44,9 @@ class ReflectapiDemoTestsSerdeTestV2(BaseModel):
 
     version: Literal["v2"] = Field(default="v2", description="Discriminator field")
     value: reflectapi_demo.tests.serde.V2 = Field(description="Tuple variant value")
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"version"})
 
 
 class ReflectapiDemoTestsSerdeTest(RootModel):
@@ -58,6 +64,9 @@ class ReflectapiDemoTestsSerdeV1A(BaseModel):
     type: Literal["A"] = Field(default="A", description="Discriminator field")
     a: int
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeV1B(BaseModel):
     model_config = ConfigDict(
@@ -66,6 +75,9 @@ class ReflectapiDemoTestsSerdeV1B(BaseModel):
 
     type: Literal["B"] = Field(default="B", description="Discriminator field")
     b: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeV1(RootModel):
@@ -83,6 +95,9 @@ class ReflectapiDemoTestsSerdeV2C(BaseModel):
     type: Literal["C"] = Field(default="C", description="Discriminator field")
     c: int
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeV2D(BaseModel):
     model_config = ConfigDict(
@@ -91,6 +106,9 @@ class ReflectapiDemoTestsSerdeV2D(BaseModel):
 
     type: Literal["D"] = Field(default="D", description="Discriminator field")
     d: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeV2(RootModel):

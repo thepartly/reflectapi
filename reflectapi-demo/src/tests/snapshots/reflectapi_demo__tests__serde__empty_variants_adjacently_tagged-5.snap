@@ -32,6 +32,9 @@ class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmpty(BaseModel):
 
     t: Literal["Empty"] = Field(default="Empty", description="Discriminator field")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"t"})
+
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnit(BaseModel):
     model_config = ConfigDict(
@@ -42,6 +45,9 @@ class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyUnit(BaseMod
         default="EmptyUnit", description="Discriminator field"
     )
     c: list[Any] = Field(description="Tuple variant fields")
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"t"})
 
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructContent(
@@ -65,6 +71,9 @@ class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStruct(BaseM
     c: ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTaggedEmptyStructContent = (
         Field(description="EmptyStruct content")
     )
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"t"})
 
 
 class ReflectapiDemoTestsSerdeTestEmptyVariantsAdjacentlyTagged(RootModel):

@@ -14,10 +14,13 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.TestLeafCollisionPair,
+      input: reflectapi_demo.tests.serde.input.TestLeafCollisionPair,
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<reflectapi_demo.tests.serde.TestLeafCollisionPair, {}>;
+    ) => AsyncResult<
+      reflectapi_demo.tests.serde.output.TestLeafCollisionPair,
+      {}
+    >;
   }
 }
 export namespace reflectapi {
@@ -39,20 +42,22 @@ export namespace reflectapi_demo {
         code: number /* u16 */;
       }
 
-      export interface TestLeafCollisionPair {
-        a: reflectapi_demo.tests.serde.TestUpdateOrElse<
-          reflectapi_demo.tests.serde.module_a.Sample,
-          reflectapi_demo.tests.serde.TestFlattenIfElse
-        >;
-        b: reflectapi_demo.tests.serde.TestUpdateOrElse<
-          reflectapi_demo.tests.serde.module_b.Sample,
-          reflectapi_demo.tests.serde.TestFlattenIfElse
-        >;
-      }
+      export namespace input {
+        export interface TestLeafCollisionPair {
+          a: reflectapi_demo.tests.serde.input.TestUpdateOrElse<
+            reflectapi_demo.tests.serde.module_a.Sample,
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+          >;
+          b: reflectapi_demo.tests.serde.input.TestUpdateOrElse<
+            reflectapi_demo.tests.serde.module_b.Sample,
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+          >;
+        }
 
-      export type TestUpdateOrElse<T, C> = {
-        if_else?: C | null;
-      } & NullToEmptyObject<T>;
+        export type TestUpdateOrElse<T, C> = {
+          if_else?: C | null;
+        } & NullToEmptyObject<T>;
+      }
 
       export namespace module_a {
         export interface Sample {
@@ -65,6 +70,23 @@ export namespace reflectapi_demo {
           b_field: boolean;
         }
       }
+
+      export namespace output {
+        export interface TestLeafCollisionPair {
+          a: reflectapi_demo.tests.serde.output.TestUpdateOrElse<
+            reflectapi_demo.tests.serde.module_a.Sample,
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+          >;
+          b: reflectapi_demo.tests.serde.output.TestUpdateOrElse<
+            reflectapi_demo.tests.serde.module_b.Sample,
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+          >;
+        }
+
+        export type TestUpdateOrElse<T, C> = {
+          if_else: C | null;
+        } & NullToEmptyObject<T>;
+      }
     }
   }
 }
@@ -73,14 +95,14 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.serde.TestLeafCollisionPair,
+      input: reflectapi_demo.tests.serde.input.TestLeafCollisionPair,
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        reflectapi_demo.tests.serde.TestLeafCollisionPair,
+        reflectapi_demo.tests.serde.input.TestLeafCollisionPair,
         {},
-        reflectapi_demo.tests.serde.TestLeafCollisionPair,
+        reflectapi_demo.tests.serde.output.TestLeafCollisionPair,
         {}
       >(client, "/inout_test", input, headers, options);
   }

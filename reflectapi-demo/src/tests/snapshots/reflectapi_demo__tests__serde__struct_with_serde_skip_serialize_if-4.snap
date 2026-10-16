@@ -1,7 +1,6 @@
 ---
 source: reflectapi-demo/src/tests/serde.rs
-expression: "reflectapi::codegen::openapi::Spec::from(&schema)"
-snapshot_kind: text
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
 ---
 {
   "openapi": "3.1.0",
@@ -19,7 +18,7 @@ snapshot_kind: text
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf"
               }
             }
           },
@@ -31,7 +30,7 @@ snapshot_kind: text
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf"
                 }
               }
             }
@@ -42,29 +41,9 @@ snapshot_kind: text
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf": {
+      "reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf",
-        "required": [
-          "f"
-        ],
-        "properties": {
-          "f": {
-            "oneOf": [
-              {
-                "description": "Null",
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/u8"
-              }
-            ]
-          }
-        }
-      },
-      "reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf": {
-        "type": "object",
-        "title": "reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf",
+        "title": "reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf",
         "properties": {
           "f": {
             "oneOf": [

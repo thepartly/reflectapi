@@ -41,6 +41,9 @@ class ReflectapiDemoTestsSerdeOfferSingle(BaseModel):
     )
     business: str
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type_"})
+
 
 class ReflectapiDemoTestsSerdeOfferGroup(BaseModel):
     """'Group' variant of ReflectapiDemoTestsSerdeOffer"""
@@ -57,6 +60,9 @@ class ReflectapiDemoTestsSerdeOfferGroup(BaseModel):
         description="Discriminator field",
     )
     count: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type_"})
 
 
 class ReflectapiDemoTestsSerdeOffer(RootModel):
@@ -77,6 +83,9 @@ class ReflectapiDemoTestsSerdeOfferKindSingle(BaseModel):
     type: Literal["Single"] = Field(default="Single", description="Discriminator field")
     business: str
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeOfferKindGroup(BaseModel):
     model_config = ConfigDict(
@@ -85,6 +94,9 @@ class ReflectapiDemoTestsSerdeOfferKindGroup(BaseModel):
 
     type: Literal["Group"] = Field(default="Group", description="Discriminator field")
     count: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeOfferKind(RootModel):

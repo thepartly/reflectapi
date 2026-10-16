@@ -19,13 +19,21 @@ directly.
 - `ApplicationError`, `NetworkError`, `TimeoutError`, `ValidationError` —
   exceptions raised by the generated methods on non-2xx, transport, and
   validation failures respectively.
-- `ReflectapiPartialModel` — base class for generated models with three-state
-  fields (value / explicit-null / absent) so absent and explicit-null can
-  round-trip, tracked via Pydantic's `model_fields_set`.
+- `ReflectapiPartialModel` — base class for generated models with omittable
+  fields. Unset fields stay absent during direct serialization; explicit null
+  and values remain set, tracked via Pydantic's `model_fields_set`.
 - Authentication helpers (`BearerTokenAuth`, `APIKeyAuth`, `BasicAuth`,
   `OAuth2ClientCredentialsAuth`, `OAuth2AuthorizationCodeAuth`).
 - Middleware, batching, and testing utilities (`MockClient`,
   `CassetteMiddleware`).
+
+## Request field presence
+
+Requests serialize Pydantic models with wire aliases and `exclude_unset=True`,
+recursively. A field omitted during construction is absent from JSON; a field
+explicitly set to `None` is sent as `null`. This also applies to nested models
+and models inside list or dictionary bodies. Unset non-null defaults are
+omitted too: pass the default value explicitly if the server should receive it.
 
 ## Streaming endpoints
 

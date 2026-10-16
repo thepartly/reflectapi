@@ -9,7 +9,7 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "name": "reflectapi_demo::tests::serde::input::TestUpdateOrElse",
         "arguments": [
           {
             "name": "reflectapi_demo::tests::serde::TestIdentityData",
@@ -29,7 +29,7 @@ expression: schema
       },
       "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "name": "reflectapi_demo::tests::serde::output::TestUpdateOrElse",
         "arguments": [
           {
             "name": "reflectapi_demo::tests::serde::TestIdentityData",
@@ -140,7 +140,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "name": "reflectapi_demo::tests::serde::input::TestUpdateOrElse",
         "parameters": [
           {
             "name": "T"
@@ -168,8 +168,7 @@ expression: schema
                     "name": "C"
                   }
                 ]
-              },
-              "required": true
+              }
             }
           ]
         }
@@ -310,7 +309,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::TestUpdateOrElse",
+        "name": "reflectapi_demo::tests::serde::output::TestUpdateOrElse",
         "parameters": [
           {
             "name": "T"

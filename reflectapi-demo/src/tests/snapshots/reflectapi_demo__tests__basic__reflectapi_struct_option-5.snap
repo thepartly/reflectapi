@@ -22,14 +22,27 @@ from pydantic import BaseModel, ConfigDict, Field
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import ReflectapiPartialModel
 
 
-class ReflectapiDemoTestsBasicTestStructOption(BaseModel):
+class ReflectapiDemoTestsBasicInputTestStructOption(ReflectapiPartialModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
+    )
+
+    f: int | None = Field(default=None, serialization_alias="_f", validation_alias="_f")
+
+
+class ReflectapiDemoTestsBasicOutputTestStructOption(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    f: int | None = Field(default=None, serialization_alias="_f", validation_alias="_f")
+    f: int | None = Field(serialization_alias="_f", validation_alias="_f")
 
 
 # Namespace classes for dotted access to types
@@ -42,7 +55,15 @@ class reflectapi_demo:
         class basic:
             """Namespace for basic types."""
 
-            TestStructOption = ReflectapiDemoTestsBasicTestStructOption
+            class input:
+                """Namespace for input types."""
+
+                TestStructOption = ReflectapiDemoTestsBasicInputTestStructOption
+
+            class output:
+                """Namespace for output types."""
+
+                TestStructOption = ReflectapiDemoTestsBasicOutputTestStructOption
 
 
 class AsyncInoutClient:
@@ -53,15 +74,15 @@ class AsyncInoutClient:
 
     async def test(
         self,
-        data: Optional[reflectapi_demo.tests.basic.TestStructOption] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructOption]:
+        data: Optional[reflectapi_demo.tests.basic.input.TestStructOption] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.output.TestStructOption]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.basic.TestStructOption]: Response containing reflectapi_demo.tests.basic.TestStructOption data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestStructOption]: Response containing reflectapi_demo.tests.basic.output.TestStructOption data
         """
         path = "/inout_test"
 
@@ -70,7 +91,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.basic.TestStructOption,
+            response_model=reflectapi_demo.tests.basic.output.TestStructOption,
         )
 
 
@@ -95,15 +116,15 @@ class InoutClient:
 
     def test(
         self,
-        data: Optional[reflectapi_demo.tests.basic.TestStructOption] = None,
-    ) -> ApiResponse[reflectapi_demo.tests.basic.TestStructOption]:
+        data: Optional[reflectapi_demo.tests.basic.input.TestStructOption] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.basic.output.TestStructOption]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.basic.TestStructOption]: Response containing reflectapi_demo.tests.basic.TestStructOption data
+            ApiResponse[reflectapi_demo.tests.basic.output.TestStructOption]: Response containing reflectapi_demo.tests.basic.output.TestStructOption data
         """
         path = "/inout_test"
 
@@ -112,7 +133,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.basic.TestStructOption,
+            response_model=reflectapi_demo.tests.basic.output.TestStructOption,
         )
 
 
@@ -138,7 +159,8 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 _rebuild_errors: list[str] = []
 for _model in [
-    ReflectapiDemoTestsBasicTestStructOption,
+    ReflectapiDemoTestsBasicInputTestStructOption,
+    ReflectapiDemoTestsBasicOutputTestStructOption,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

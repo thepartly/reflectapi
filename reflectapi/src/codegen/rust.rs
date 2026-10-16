@@ -1666,6 +1666,25 @@ fn __modules_from_rendered_types(
     root_module
 }
 
+fn request_field_type_ref(
+    field: &crate::Field,
+    is_input_type: bool,
+) -> std::borrow::Cow<'_, crate::TypeReference> {
+    if is_input_type
+        && field.is_named()
+        && !field.required
+        && field.type_ref.name == "std::option::Option"
+    {
+        // Optional nullable request keys need all three wire states. A regular
+        // Option would serialize both an omitted key and explicit null as None.
+        let mut type_ref = field.type_ref.clone();
+        type_ref.name = "reflectapi::Option".into();
+        std::borrow::Cow::Owned(type_ref)
+    } else {
+        std::borrow::Cow::Borrowed(&field.type_ref)
+    }
+}
+
 fn __render_type(
     config: &Config,
     type_def: &crate::Type,
@@ -1724,7 +1743,7 @@ fn __render_type(
                             description: __doc_to_ts_comments(&field.description, 4),
                             deprecated: __deprecated_attribute(field.deprecation()),
                             type_: __type_ref_to_ts_ref(
-                                &field.type_ref,
+                                &request_field_type_ref(field, is_input_type),
                                 schema,
                                 implemented_types,
                                 type_name_depth,
@@ -1774,7 +1793,7 @@ fn __render_type(
                                 description: __doc_to_ts_comments(&field.description, 12),
                                 deprecated: __deprecated_attribute(field.deprecation()),
                                 type_: __type_ref_to_ts_ref(
-                                    &field.type_ref,
+                                    &request_field_type_ref(field, is_input_type),
                                     schema,
                                     implemented_types,
                                     type_name_depth,

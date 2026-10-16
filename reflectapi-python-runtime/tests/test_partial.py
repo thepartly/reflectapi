@@ -12,6 +12,8 @@ Contract:
 from __future__ import annotations
 
 import json
+import sys
+from types import ModuleType
 
 import pytest
 from pydantic import BaseModel, ValidationError
@@ -229,3 +231,23 @@ class TestEdgeCases:
         """`model_dump()` (Python dict) must also drop unset keys."""
         item = Item(identity="x")
         assert item.model_dump() == {"identity": "x"}
+
+
+def test_partial_subclass_does_not_require_any_in_callers_module(monkeypatch):
+    """Inherited serializers resolve their return type in the runtime module."""
+    caller = ModuleType("_reflectapi_partial_caller_without_any")
+    caller.ReflectapiPartialModel = ReflectapiPartialModel
+    monkeypatch.setitem(sys.modules, caller.__name__, caller)
+    exec(
+        "class Request(ReflectapiPartialModel):\n"
+        "    required: str | None\n"
+        "    optional: str | None = None\n",
+        caller.__dict__,
+    )
+
+    assert "Any" not in caller.__dict__
+    request = caller.Request(required=None)
+    assert request.model_dump_json() == '{"required":null}'
+    assert caller.Request(required=None, optional=None).model_dump_json() == (
+        '{"required":null,"optional":null}'
+    )

@@ -81,30 +81,62 @@ struct PythonMetadataUsage {
 fn resolve_field_optionality(
     facts: schema_codegen::FieldWireFacts<'_>,
     field_type: String,
-) -> (bool, Option<String>, String) {
+) -> (bool, Option<String>, String, bool) {
     let contract = schema_codegen::resolve_field_wire_contract(facts);
+    let reject_null = contract.key == schema_codegen::KeyPresence::Optional
+        && rendered_type_is_nonnullable(&field_type);
     match (contract.key, contract.declared_nullable) {
         (schema_codegen::KeyPresence::Optional, true) => {
-            (true, Some("None".to_string()), field_type)
+            (true, Some("None".to_string()), field_type, reject_null)
         }
-        // The wire never carries null for these fields (the key is simply
-        // absent), but pydantic has no idiomatic "may be absent yet never
-        // null" without a sentinel type, so absence is modeled as a None
-        // default — the long-standing rendering choice for this quadrant.
+        // None remains the omission default; generated field validators reject
+        // explicit null for nonnullable fields without validating that default.
         (schema_codegen::KeyPresence::Optional, false) => (
             true,
             Some("None".to_string()),
             format!("{field_type} | None"),
+            reject_null,
         ),
-        (schema_codegen::KeyPresence::Required, _) => (false, None, field_type),
+        (schema_codegen::KeyPresence::Required, _) => (false, None, field_type, false),
     }
 }
 
-/// A field rendered on `ReflectapiPartialModel`: absence must stay
-/// distinguishable from an explicit null (`model_fields_set` semantics).
+/// Preserve omission separately from explicit null for omittable reflectapi
+/// options. This describes the client's wire states, not the server default:
+/// without `serde(default)`, Serde decodes a missing reflectapi option as None.
 fn is_partial_field(field: &reflectapi_schema::Field) -> bool {
-    schema_codegen::resolve_field_wire_contract(schema_codegen::FieldWireFacts::of(field))
-        .absent_distinct_from_null
+    !field.required && field.type_ref.name == "reflectapi::Option"
+}
+
+/// Reject null only when the rendered value type is provably nonnullable.
+/// Named models and aliases may hide nullable RootModels or enum variants;
+/// generic arguments and custom codecs cannot establish a stronger contract.
+fn rendered_type_is_nonnullable(annotation: &str) -> bool {
+    let annotation = annotation.trim();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    let mut alternatives = Vec::new();
+    for (index, character) in annotation.char_indices() {
+        match character {
+            '[' | '(' => depth += 1,
+            ']' | ')' => depth = depth.saturating_sub(1),
+            '|' if depth == 0 => {
+                alternatives.push(&annotation[start..index]);
+                start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    if !alternatives.is_empty() {
+        alternatives.push(&annotation[start..]);
+        return alternatives.into_iter().all(rendered_type_is_nonnullable);
+    }
+    matches!(annotation, "int" | "str" | "float" | "bool" | "bytes")
+        || annotation.strip_suffix(']').is_some_and(|body| {
+            ["list[", "dict[", "tuple[", "set[", "frozenset["]
+                .iter()
+                .any(|prefix| body.starts_with(prefix))
+        })
 }
 
 struct PythonTypeMapping {
@@ -447,6 +479,9 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
     if imports.has_typed_flattened_enum {
         third_party_imports.insert("model_serializer");
         third_party_imports.insert("model_validator");
+    }
+    if imports.has_field_validators {
+        third_party_imports.insert("field_validator");
     }
 
     // Runtime imports - client bases
@@ -860,7 +895,7 @@ fn render_struct_with_flattened_tagged_enum(
             active_generics,
             used_type_vars,
         )?;
-        let (optional, default_value, final_type) =
+        let (optional, default_value, final_type, reject_null) =
             resolve_field_optionality(schema_codegen::FieldWireFacts::of(field), field_type);
         base_fields.push(templates::Field {
             name: python_name,
@@ -872,6 +907,8 @@ fn render_struct_with_flattened_tagged_enum(
             alias,
 
             is_partial: is_partial_field(field),
+
+            reject_null,
         });
     }
 
@@ -912,7 +949,7 @@ fn render_struct_with_flattened_tagged_enum(
                 )?;
                 let (python_name, alias) =
                     sanitize_field_name_with_alias(field.name(), field.serde_name());
-                let (optional, default_value, final_type) = resolve_field_optionality(
+                let (optional, default_value, final_type, reject_null) = resolve_field_optionality(
                     schema_codegen::FieldWireFacts::of(field),
                     field_type,
                 );
@@ -926,6 +963,8 @@ fn render_struct_with_flattened_tagged_enum(
                     alias,
 
                     is_partial: is_partial_field(field),
+
+                    reject_null,
                 });
             }
         }
@@ -973,8 +1012,8 @@ fn render_struct_with_flattened_tagged_enum(
         }
         let (enum_field_name, _) =
             sanitize_field_name_with_alias(enum_field.name(), enum_field.name());
-        let (enum_optional, enum_default, enum_type) =
-            resolve_field_optionality(&enum_field.type_ref.name, enum_type, enum_field.required);
+        let (enum_optional, enum_default, enum_type, enum_reject_null) =
+            resolve_field_optionality(schema_codegen::FieldWireFacts::of(enum_field), enum_type);
         let enum_class_check = if enum_type.starts_with(&enum_class) {
             enum_class
         } else {
@@ -989,7 +1028,8 @@ fn render_struct_with_flattened_tagged_enum(
             optional: enum_optional,
             default_value: enum_default,
             alias: None,
-            is_partial: enum_field.type_ref.name == "reflectapi::Option",
+            is_partial: is_partial_field(enum_field),
+            reject_null: enum_reject_null,
         });
         let parent_keys = base_fields
             .iter()
@@ -1093,6 +1133,8 @@ fn render_struct_with_flattened_tagged_enum(
             alias: tag_alias.clone(),
 
             is_partial: false,
+
+            reject_null: false,
         });
 
         // Add variant-specific fields
@@ -1107,10 +1149,11 @@ fn render_struct_with_flattened_tagged_enum(
                         active_generics,
                         used_type_vars,
                     )?;
-                    let (optional, default_value, final_type) = resolve_field_optionality(
-                        schema_codegen::FieldWireFacts::of(vf),
-                        field_type,
-                    );
+                    let (optional, default_value, final_type, reject_null) =
+                        resolve_field_optionality(
+                            schema_codegen::FieldWireFacts::of(vf),
+                            field_type,
+                        );
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(vf.name(), vf.serde_name());
                     fields.push(templates::Field {
@@ -1123,6 +1166,8 @@ fn render_struct_with_flattened_tagged_enum(
                         alias,
 
                         is_partial: is_partial_field(vf),
+
+                        reject_null,
                     });
                 }
             }
@@ -1171,10 +1216,11 @@ fn render_struct_with_flattened_tagged_enum(
                         )?;
                         let (sanitized, alias) =
                             sanitize_field_name_with_alias(sf.name(), sf.serde_name());
-                        let (optional, default_value, final_type) = resolve_field_optionality(
-                            schema_codegen::FieldWireFacts::of(sf),
-                            field_type,
-                        );
+                        let (optional, default_value, final_type, reject_null) =
+                            resolve_field_optionality(
+                                schema_codegen::FieldWireFacts::of(sf),
+                                field_type,
+                            );
                         fields.push(templates::Field {
                             name: sanitized,
                             type_annotation: final_type,
@@ -1185,6 +1231,8 @@ fn render_struct_with_flattened_tagged_enum(
                             alias,
 
                             is_partial: is_partial_field(sf),
+
+                            reject_null,
                         });
                     }
                 }
@@ -1257,7 +1305,7 @@ fn render_struct_with_flatten_standard(
             used_type_vars,
         )?;
 
-        let (optional, default_value, final_type) =
+        let (optional, default_value, final_type, reject_null) =
             resolve_field_optionality(schema_codegen::FieldWireFacts::of(field), field_type);
         all_fields.push(templates::Field {
             name: python_name,
@@ -1269,6 +1317,8 @@ fn render_struct_with_flatten_standard(
             alias,
 
             is_partial: is_partial_field(field),
+
+            reject_null,
         });
     }
 
@@ -1347,16 +1397,17 @@ fn strip_phantom_data_fields(schema: &mut Schema) {
 }
 
 /// Walk every input/output struct in the schema and return `true` if
-/// any field uses the three-state `reflectapi::Option<T>`. Used to
+/// any field may be omitted. Used to
 /// decide whether to import `ReflectapiPartialModel` into the generated
 /// bundle. Cheap — runs once per generation.
 fn schema_has_partial_field(schema: &Schema) -> bool {
     fn iter_typespace_has_partial(typespace: &reflectapi_schema::Typespace) -> bool {
         typespace.types().any(|t| match t {
-            reflectapi_schema::Type::Struct(s) => s.fields().any(is_partial_field),
-            reflectapi_schema::Type::Enum(e) => {
-                e.variants.iter().any(|v| v.fields().any(is_partial_field))
-            }
+            reflectapi_schema::Type::Struct(s) => s.fields().any(|field| !field.required),
+            reflectapi_schema::Type::Enum(e) => e
+                .variants
+                .iter()
+                .any(|v| v.fields().any(|field| !field.required)),
             _ => false,
         })
     }
@@ -1966,7 +2017,7 @@ fn build_python_generation(
     });
 
     // Generate imports
-    let imports = templates::Imports {
+    let mut imports = templates::Imports {
         has_async: config.generate_async,
         has_sync: config.generate_sync,
         has_testing: config.generate_testing,
@@ -1985,6 +2036,7 @@ fn build_python_generation(
         has_partial_models,
         has_forward_compatible_enums,
         has_typed_flattened_enum,
+        has_field_validators: false,
     };
     // Only the client code warns about deprecated methods, so model modules
     // get the imports without `warnings` and `typing_extensions`.
@@ -2111,6 +2163,13 @@ fn build_python_generation(
     }
 
     // Collect rendered type keys before passing ownership to the module tree builder.
+    imports.has_field_validators = rendered_types
+        .values()
+        .any(|code| code.contains("@field_validator("));
+    // Flattening can synthesize omittable fields from required children.
+    imports.has_partial_models |= rendered_types
+        .values()
+        .any(|code| code.contains("(ReflectapiPartialModel"));
     let rendered_type_keys: Vec<String> = rendered_types.keys().cloned().collect();
 
     // Build namespace module tree. Single-file output still renders this tree
@@ -2217,6 +2276,10 @@ fn build_python_generation(
         None
     };
 
+    generated_code[imports_index] = generate_optimized_imports(&templates::Imports {
+        has_warnings: false,
+        ..imports.clone()
+    });
     let preamble = generated_code.join("\n\n");
     generated_code[imports_index] = generate_optimized_imports(&imports);
     Ok(PythonGeneration {
@@ -3861,6 +3924,8 @@ fn collect_flattened_fields(
             alias: None,
 
             is_partial: false,
+
+            reject_null: false,
         }]);
     }
 
@@ -3979,7 +4044,7 @@ fn make_flattened_field(
         used_type_vars,
     )?;
 
-    let (optional, default_value, final_field_type) = resolve_field_optionality(
+    let (optional, default_value, final_field_type, reject_null) = resolve_field_optionality(
         schema_codegen::FieldWireFacts::of(field).with_required(field.required && parent_required),
         field_type,
     );
@@ -4003,6 +4068,8 @@ fn make_flattened_field(
         alias,
 
         is_partial: is_partial_field(field),
+
+        reject_null,
     })
 }
 
@@ -4047,13 +4114,10 @@ fn collect_flattened_enum_fields(
         });
     let (sanitized, alias) = sanitize_field_name_with_alias(&field_name, &field_name);
 
-    // A flattened enum field has no schema `Field` of its own; assert its
-    // wire facts directly. serde rejects `flatten` combined with
-    // `with`-family attributes, so there is no deserializer flag to carry.
-    let (optional, default_value, final_type) = resolve_field_optionality(
+    // A synthesized flattened enum field inherits the parent's presence.
+    let (optional, default_value, final_type, reject_null) = resolve_field_optionality(
         schema_codegen::FieldWireFacts {
             type_name: &type_ref.name,
-            deserialize_with: false,
             required: parent_required,
         },
         enum_python_type,
@@ -4069,6 +4133,8 @@ fn collect_flattened_enum_fields(
         alias,
 
         is_partial: false,
+
+        reject_null,
     });
 
     Ok(())
@@ -4121,7 +4187,7 @@ fn render_struct(
                     &active_generics,
                     used_type_vars,
                 )?;
-                let (_, _, field_type) = resolve_field_optionality(
+                let (_, _, field_type, _) = resolve_field_optionality(
                     schema_codegen::FieldWireFacts::of(field),
                     base_field_type,
                 );
@@ -4158,7 +4224,7 @@ fn render_struct(
                 used_type_vars,
             )?;
 
-            let (optional, default_value, field_type) = resolve_field_optionality(
+            let (optional, default_value, field_type, reject_null) = resolve_field_optionality(
                 schema_codegen::FieldWireFacts::of(field),
                 base_field_type,
             );
@@ -4175,6 +4241,8 @@ fn render_struct(
                 alias,
 
                 is_partial: is_partial_field(field),
+
+                reject_null,
             })
         })
         .collect::<Result<Vec<_>, anyhow::Error>>()?;
@@ -4504,6 +4572,8 @@ fn render_adjacently_tagged_enum(
             alias: None,
 
             is_partial: false,
+
+            reject_null: false,
         }];
 
         // Add the content field based on variant type
@@ -4533,6 +4603,8 @@ fn render_adjacently_tagged_enum(
                         alias: None,
 
                         is_partial: false,
+
+                        reject_null: false,
                     });
                 } else {
                     // Multi-field tuple: content is a list
@@ -4557,6 +4629,8 @@ fn render_adjacently_tagged_enum(
                         alias: None,
 
                         is_partial: false,
+
+                        reject_null: false,
                     });
                 }
             }
@@ -4574,10 +4648,11 @@ fn render_adjacently_tagged_enum(
                         &generic_params,
                         used_type_vars,
                     )?;
-                    let (optional, default_value, final_field_type) = resolve_field_optionality(
-                        schema_codegen::FieldWireFacts::of(field),
-                        field_type,
-                    );
+                    let (optional, default_value, final_field_type, reject_null) =
+                        resolve_field_optionality(
+                            schema_codegen::FieldWireFacts::of(field),
+                            field_type,
+                        );
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
                     content_fields.push(templates::Field {
@@ -4590,6 +4665,8 @@ fn render_adjacently_tagged_enum(
                         alias,
 
                         is_partial: is_partial_field(field),
+
+                        reject_null,
                     });
                 }
                 let content_model = templates::DataClass {
@@ -4618,6 +4695,8 @@ fn render_adjacently_tagged_enum(
                     alias: None,
 
                     is_partial: false,
+
+                    reject_null: false,
                 });
             }
         }
@@ -4763,6 +4842,8 @@ fn render_externally_tagged_enum(
                         alias: None,
 
                         is_partial: is_partial_field(field),
+
+                        reject_null: false,
                     });
                 }
 
@@ -4838,10 +4919,11 @@ fn render_externally_tagged_enum(
                         used_type_vars,
                     )?;
 
-                    let (optional, default_value, final_field_type) = resolve_field_optionality(
-                        schema_codegen::FieldWireFacts::of(field),
-                        field_type,
-                    );
+                    let (optional, default_value, final_field_type, reject_null) =
+                        resolve_field_optionality(
+                            schema_codegen::FieldWireFacts::of(field),
+                            field_type,
+                        );
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -4855,6 +4937,8 @@ fn render_externally_tagged_enum(
                         alias,
 
                         is_partial: is_partial_field(field),
+
+                        reject_null,
                     });
                 }
 
@@ -5012,6 +5096,8 @@ fn render_internally_tagged_enum(
             alias: None,
 
             is_partial: false,
+
+            reject_null: false,
         }];
 
         // Handle variant fields based on type
@@ -5088,7 +5174,7 @@ fn render_internally_tagged_enum(
                                 used_type_vars,
                             )?;
 
-                            let (optional, default_value, final_field_type) =
+                            let (optional, default_value, final_field_type, reject_null) =
                                 resolve_field_optionality(
                                     schema_codegen::FieldWireFacts::of(struct_field),
                                     field_type,
@@ -5108,6 +5194,8 @@ fn render_internally_tagged_enum(
                                 alias,
 
                                 is_partial: is_partial_field(struct_field),
+
+                                reject_null,
                             });
                         }
                     }
@@ -5133,6 +5221,8 @@ fn render_internally_tagged_enum(
                             alias: None,
 
                             is_partial: is_partial_field(inner_field),
+
+                            reject_null: false,
                         });
                     }
                 }
@@ -5149,10 +5239,11 @@ fn render_internally_tagged_enum(
                         used_type_vars,
                     )?;
 
-                    let (optional, default_value, final_field_type) = resolve_field_optionality(
-                        schema_codegen::FieldWireFacts::of(field),
-                        field_type,
-                    );
+                    let (optional, default_value, final_field_type, reject_null) =
+                        resolve_field_optionality(
+                            schema_codegen::FieldWireFacts::of(field),
+                            field_type,
+                        );
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -5166,6 +5257,8 @@ fn render_internally_tagged_enum(
                         alias,
 
                         is_partial: is_partial_field(field),
+
+                        reject_null,
                     });
                 }
             }
@@ -5320,10 +5413,11 @@ fn render_untagged_enum(
                         &generic_params,
                         used_type_vars,
                     )?;
-                    let (optional, default_value, final_field_type) = resolve_field_optionality(
-                        schema_codegen::FieldWireFacts::of(field),
-                        field_type,
-                    );
+                    let (optional, default_value, final_field_type, reject_null) =
+                        resolve_field_optionality(
+                            schema_codegen::FieldWireFacts::of(field),
+                            field_type,
+                        );
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -5337,6 +5431,8 @@ fn render_untagged_enum(
                         alias,
 
                         is_partial: is_partial_field(field),
+
+                        reject_null,
                     });
                 }
             }
@@ -6699,12 +6795,13 @@ pub mod templates {
         pub global_type_vars: Vec<String>,
         /// At least one streaming endpoint is exposed by the client.
         pub has_streaming: bool,
-        /// At least one generated class has a `reflectapi::Option<T>`
-        /// field, so the bundle needs to import
+        /// At least one generated class has an omittable field,
+        /// so the bundle needs to import
         /// `ReflectapiPartialModel`.
         pub has_partial_models: bool,
         pub has_forward_compatible_enums: bool,
         pub has_typed_flattened_enum: bool,
+        pub has_field_validators: bool,
     }
 
     pub struct DataClass {
@@ -6717,11 +6814,11 @@ pub mod templates {
     }
 
     impl DataClass {
-        /// True iff any field came from `reflectapi::Option<T>`; the
-        /// containing class then needs `ReflectapiPartialModel` so that
+        /// True iff any field may be omitted; the containing class needs
+        /// `ReflectapiPartialModel` so that
         /// `model_fields_set` drives wire-format presence.
         fn is_partial(&self) -> bool {
-            self.fields.iter().any(|f| f.is_partial)
+            self.fields.iter().any(|f| f.optional || f.is_partial)
         }
 
         pub fn render(&self) -> String {
@@ -6758,7 +6855,7 @@ pub mod templates {
             // `defer_build=True` lets the generated package finish
             // importing all namespace modules before Pydantic resolves
             // annotations; `_rebuild.py` then performs a strict rebuild.
-            let config = if self.is_partial() {
+            let config = if self.is_partial() || self.fields.iter().any(|f| f.reject_null) {
                 "ConfigDict(extra=\"ignore\", populate_by_name=True, validate_assignment=True, protected_namespaces=(), defer_build=True)"
             } else {
                 "ConfigDict(extra=\"ignore\", populate_by_name=True, protected_namespaces=(), defer_build=True)"
@@ -6815,9 +6912,49 @@ pub mod templates {
                 }
                 writeln!(s).unwrap();
             }
+            let required_defaults = self
+                .fields
+                .iter()
+                .filter(|field| !field.optional && field.default_value.is_some())
+                .map(|field| super::python_string_literal(&field.name))
+                .collect::<Vec<_>>();
+            if !required_defaults.is_empty() {
+                writeln!(s).unwrap();
+                writeln!(s, "    def model_post_init(self, _context: Any) -> None:").unwrap();
+                writeln!(
+                    s,
+                    "        self.__pydantic_fields_set__.update({{{}}})",
+                    required_defaults.join(", ")
+                )
+                .unwrap();
+            }
+            s.push_str(&render_null_validator(&self.fields, &self.generic_params));
             writeln!(s).unwrap();
             s
         }
+    }
+
+    /// Keep None as an unvalidated omission default while rejecting an
+    /// explicitly supplied null for fields whose wire type cannot contain it.
+    fn render_null_validator(fields: &[Field], generic_params: &[String]) -> String {
+        let names = fields
+            .iter()
+            .filter(|field| {
+                field.reject_null
+                    // An unresolved T may itself be instantiated as Option<U>.
+                    && !generic_params.iter().any(|parameter| {
+                        field.type_annotation.strip_suffix(" | None") == Some(parameter.as_str())
+                    })
+            })
+            .map(|field| super::python_string_literal(&field.name))
+            .collect::<Vec<_>>();
+        if names.is_empty() {
+            return String::new();
+        }
+        format!(
+            "\n    @field_validator({}, mode='before')\n    @classmethod\n    def _reflectapi_reject_null(cls, value):\n        if value is None:\n            raise ValueError('Field may be omitted but cannot be null')\n        return value\n",
+            names.join(", ")
+        )
     }
 
     pub struct EnumClass {
@@ -7425,6 +7562,8 @@ pub mod templates {
     #[derive(Clone)]
     pub struct Field {
         pub name: String,
+        /// Omission is allowed, but an explicitly supplied null is rejected.
+        pub reject_null: bool,
         pub type_annotation: String,
         pub description: Option<String>,
         /// `Deprecation::message()`, `Some("")` if deprecated without a note or dates
@@ -7432,10 +7571,8 @@ pub mod templates {
         pub optional: bool,
         pub default_value: Option<String>,
         pub alias: Option<String>,
-        /// `true` iff this field came from `reflectapi::Option<T>` in the
-        /// source schema (the three-state Option). The renderer uses this
-        /// to decide whether the containing class needs to inherit from
-        /// `ReflectapiPartialModel`.
+        /// This field requires omission-aware serialization in addition to
+        /// fields marked optional. Retained for three-state Option metadata.
         pub is_partial: bool,
     }
 
@@ -7611,9 +7748,14 @@ pub mod templates {
                 .unwrap();
             }
             writeln!(s).unwrap();
+            let assignment = if self.fields.iter().any(|field| field.reject_null) {
+                ", validate_assignment=True"
+            } else {
+                ""
+            };
             writeln!(
                 s,
-                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=(), defer_build=True)"
+                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=(), defer_build=True{assignment})"
             )
             .unwrap();
             writeln!(s).unwrap();
@@ -7627,6 +7769,7 @@ pub mod templates {
                 writeln!(s).unwrap();
             }
             writeln!(s).unwrap();
+            s.push_str(&render_null_validator(&self.fields, &[]));
             writeln!(s, "    def model_dump(self, **kwargs):").unwrap();
             writeln!(
                 s,
@@ -7682,9 +7825,14 @@ pub mod templates {
                 )
                 .unwrap();
             }
+            let assignment = if self.fields.iter().any(|field| field.reject_null) {
+                ", validate_assignment=True"
+            } else {
+                ""
+            };
             writeln!(
                 s,
-                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=(), defer_build=True)"
+                "    model_config = ConfigDict(extra=\"ignore\", protected_namespaces=(), defer_build=True{assignment})"
             )
             .unwrap();
             writeln!(s).unwrap();
@@ -7698,6 +7846,7 @@ pub mod templates {
                 writeln!(s).unwrap();
             }
             writeln!(s).unwrap();
+            s.push_str(&render_null_validator(&self.fields, &[]));
             writeln!(s, "    def model_dump(self, **kwargs):").unwrap();
             writeln!(
                 s,
@@ -8656,6 +8805,158 @@ mod tests {
         sanitize_for_docstring, Config,
     };
     use crate::TypeReference;
+
+    #[test]
+    fn optional_nonnullable_fields_reject_explicit_null_without_validating_defaults() {
+        let schema: crate::Schema = serde_json::from_value(serde_json::json!({
+            "name": "null-contract",
+            "input_types": {"types": [
+                {"kind": "primitive", "name": "u32"},
+                {"kind": "primitive", "name": "std::tuple::Tuple0"},
+                {"kind": "primitive", "name": "serde_json::Value"},
+                {"kind": "primitive", "name": "std::option::Option", "parameters": [{"name": "T"}]},
+                {"kind": "struct", "name": "Request", "fields": {"named": [
+                    {"name": "limit", "serde_name": "page-size", "type": {"name": "u32"}},
+                    {"name": "optional_nullable", "type": {"name": "std::option::Option", "arguments": [{"name": "u32"}]}},
+                    {"name": "required_nullable", "required": true, "type": {"name": "std::option::Option", "arguments": [{"name": "u32"}]}},
+                    {"name": "unit", "type": {"name": "std::tuple::Tuple0"}},
+                    {"name": "json", "type": {"name": "serde_json::Value"}}
+                ]}}
+            ]}
+        })).unwrap();
+        let config = Config {
+            format: false,
+            ..Config::default()
+        };
+        let python = super::generate(schema.clone(), &config).unwrap();
+        assert!(python.contains("class Request(ReflectapiPartialModel):"));
+        assert!(python.contains("@field_validator(\"limit\", mode='before')"));
+        assert!(python.contains("def _reflectapi_reject_null(cls, value):"));
+        assert!(python.contains("validate_assignment=True"));
+        assert!(python.contains("required_nullable: int | None\n"));
+        assert!(!python.contains("validate_default=True"));
+        let files = super::generate_files(schema, &config).unwrap();
+        let module = files
+            .values()
+            .find(|source| source.contains("class Request("))
+            .unwrap();
+        assert!(module.contains("field_validator"));
+        assert!(module.contains("@field_validator(\"limit\", mode='before')"));
+    }
+
+    #[test]
+    fn unresolved_generic_default_does_not_reject_nullable_instantiations() {
+        let schema: crate::Schema = serde_json::from_value(serde_json::json!({
+            "name": "generic-null-contract",
+            "input_types": {"types": [
+                {"kind": "struct", "name": "Generic", "parameters": [{"name": "T"}],
+                 "fields": {"named": [{"name": "value", "type": {"name": "T"}}]}}
+            ]}
+        }))
+        .unwrap();
+        let python = super::generate(
+            schema,
+            &Config {
+                format: false,
+                ..Config::default()
+            },
+        )
+        .unwrap();
+        assert!(!python.contains("@field_validator("));
+    }
+
+    #[test]
+    fn explicit_null_rejection_uses_original_rendered_top_level_type() {
+        use super::schema_codegen::FieldWireFacts;
+        let facts = FieldWireFacts {
+            type_name: "Wrapper",
+            required: false,
+        };
+        for nullable in [
+            "int | None",
+            "Any",
+            "None",
+            "NullableEnum",
+            "NullableRootModel",
+            "T",
+        ] {
+            assert!(
+                !super::resolve_field_optionality(facts, nullable.into()).3,
+                "{nullable}"
+            );
+        }
+        for nonnullable in [
+            "int",
+            "str",
+            "list[int | None]",
+            "dict[str, Any]",
+            "tuple[int, None]",
+            "int | str",
+        ] {
+            assert!(
+                super::resolve_field_optionality(facts, nonnullable.into()).3,
+                "{nonnullable}"
+            );
+        }
+    }
+
+    #[test]
+    fn required_discriminator_defaults_are_marked_present_for_serialization() {
+        let model = super::templates::DataClass {
+            name: "TaggedVariant".into(),
+            description: None,
+            fields: vec![super::templates::Field {
+                name: "kind".into(),
+                reject_null: false,
+                type_annotation: "Literal['Variant']".into(),
+                description: None,
+                deprecation_note: None,
+                optional: false,
+                default_value: Some("'Variant'".into()),
+                alias: None,
+                is_partial: false,
+            }],
+            is_tuple: false,
+            is_generic: false,
+            generic_params: vec![],
+        };
+        let python = model.render();
+        assert!(python.contains("def model_post_init(self, _context: Any) -> None:"));
+        assert!(python.contains("self.__pydantic_fields_set__.update({\"kind\"})"));
+        let (field_name, _) =
+            super::sanitize_field_name_with_alias("model_post_init", "model_post_init");
+        assert_ne!(field_name, "model_post_init");
+    }
+
+    #[test]
+    fn nullable_fallback_and_untagged_unit_alias_keep_explicit_null() {
+        let schema: crate::Schema = serde_json::from_value(serde_json::json!({
+            "name": "nullable-aliases",
+            "input_types": {"types": [
+                {"kind": "primitive", "name": "u32"},
+                {"kind": "primitive", "name": "std::option::Option", "parameters": [{"name": "T"}]},
+                {"kind": "primitive", "name": "std::vec::Vec", "parameters": [{"name": "T"}]},
+                {"kind": "primitive", "name": "std::sync::Arc", "parameters": [{"name": "T"}], "fallback": {"name": "T"}},
+                {"kind": "enum", "name": "Nullable", "representation": "none", "variants": [{"name": "Unit", "fields": "none"}]},
+                {"kind": "struct", "name": "Request", "fields": {"named": [
+                    {"name": "wrapped", "type": {"name": "std::sync::Arc", "arguments": [{"name": "std::option::Option", "arguments": [{"name": "u32"}]}]}},
+                    {"name": "alias", "type": {"name": "Nullable"}},
+                    {"name": "items", "type": {"name": "std::vec::Vec", "arguments": [{"name": "std::option::Option", "arguments": [{"name": "u32"}]}]}}
+                ]}}
+            ]}
+        })).unwrap();
+        let python = super::generate(
+            schema,
+            &Config {
+                format: false,
+                ..Config::default()
+            },
+        )
+        .unwrap();
+        assert!(python.contains("@field_validator(\"items\", mode='before')"));
+        assert!(!python.contains("@field_validator(\"wrapped\""));
+        assert!(!python.contains("@field_validator(\"alias\""));
+    }
 
     #[test]
     fn docstring_sanitizer_escapes_quotes_that_touch_delimiters() {

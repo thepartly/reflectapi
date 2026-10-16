@@ -26,12 +26,10 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::serde::TestWrapperWithNestedTypevarArg<
-                super::types::reflectapi_demo::tests::serde::TestFlattenInner,
-            >,
+            input: super::types::reflectapi_demo::tests::serde::input::TestWrapperWithNestedTypevarArg<super::types::reflectapi_demo::tests::serde::TestFlattenInner>,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::serde::TestWrapperWithNestedTypevarArg<
+            super::types::reflectapi_demo::tests::serde::output::TestWrapperWithNestedTypevarArg<
                 super::types::reflectapi_demo::tests::serde::TestFlattenInner,
             >,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
@@ -72,20 +70,39 @@ pub mod types {
                     pub inner_b: std::string::String,
                 }
 
-                #[derive(Debug, serde::Deserialize, serde::Serialize)]
-                pub struct TestUpdateOrElse<T, C> {
-                    #[serde(flatten)]
-                    pub inner: T,
-                    pub if_else: std::option::Option<C>,
-                }
+                pub mod input {
 
-                #[derive(Debug, serde::Deserialize, serde::Serialize)]
-                pub struct TestWrapperWithNestedTypevarArg<I> {
-                    pub body: super::super::super::reflectapi_demo::tests::serde::TestUpdateOrElse<
-                        std::option::Option<I>,
-                        super::super::super::reflectapi_demo::tests::serde::TestFlattenIfElse,
-                    >,
-                    pub extra: u32,
+                    #[derive(Debug, serde::Serialize)]
+                    pub struct TestUpdateOrElse<T, C> {
+                        #[serde(flatten)]
+                        pub inner: T,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub if_else: reflectapi::Option<C>,
+                    }
+
+                    #[derive(Debug, serde::Serialize)]
+                    pub struct TestWrapperWithNestedTypevarArg<I> {
+    pub body: super::super::super::super::reflectapi_demo::tests::serde::input::TestUpdateOrElse<std::option::Option<I>, super::super::super::super::reflectapi_demo::tests::serde::TestFlattenIfElse>,
+    pub extra: u32,
+}
+                }
+                pub mod output {
+
+                    #[derive(Debug, serde::Deserialize)]
+                    pub struct TestUpdateOrElse<T, C> {
+                        #[serde(flatten)]
+                        pub inner: T,
+                        pub if_else: std::option::Option<C>,
+                    }
+
+                    #[derive(Debug, serde::Deserialize)]
+                    pub struct TestWrapperWithNestedTypevarArg<I> {
+    pub body: super::super::super::super::reflectapi_demo::tests::serde::output::TestUpdateOrElse<std::option::Option<I>, super::super::super::super::reflectapi_demo::tests::serde::TestFlattenIfElse>,
+    pub extra: u32,
+}
                 }
             }
         }

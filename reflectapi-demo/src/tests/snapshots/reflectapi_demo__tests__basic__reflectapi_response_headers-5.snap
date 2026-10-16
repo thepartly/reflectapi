@@ -24,6 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import ReflectapiPartialModel
 
 
 class ReflectapiDemoTestsBasicResponseHeaders(BaseModel):
@@ -32,23 +33,18 @@ class ReflectapiDemoTestsBasicResponseHeaders(BaseModel):
     )
 
     retry_after: str | None = Field(
-        default=None,
         serialization_alias="retry-after",
         validation_alias="retry-after",
         description="Seconds, or an HTTP date, after which to retry",
     )
     x_request_id: str | None = Field(
-        default=None,
-        serialization_alias="x-request-id",
-        validation_alias="x-request-id",
+        serialization_alias="x-request-id", validation_alias="x-request-id"
     )
     x_expires_at: datetime | None = Field(
-        default=None,
-        serialization_alias="x-expires-at",
-        validation_alias="x-expires-at",
+        serialization_alias="x-expires-at", validation_alias="x-expires-at"
     )
     x_cache: reflectapi_demo.tests.basic.CacheStatus | None = Field(
-        default=None, serialization_alias="x-cache", validation_alias="x-cache"
+        serialization_alias="x-cache", validation_alias="x-cache"
     )
 
 
@@ -57,9 +53,7 @@ class ReflectapiDemoTestsBasicRouteResponseHeaders(BaseModel):
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    cf_ray: str | None = Field(
-        default=None, serialization_alias="cf-ray", validation_alias="cf-ray"
-    )
+    cf_ray: str | None = Field(serialization_alias="cf-ray", validation_alias="cf-ray")
 
 
 class ReflectapiDemoTestsBasicCacheStatus(str, Enum):

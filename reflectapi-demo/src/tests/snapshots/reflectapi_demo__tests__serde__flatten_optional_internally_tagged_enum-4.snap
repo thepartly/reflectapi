@@ -18,7 +18,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Task"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.Task"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Task"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.Task"
                 }
               }
             }
@@ -73,7 +73,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           }
         ]
       },
-      "reflectapi_demo.tests.serde.Task": {
+      "reflectapi_demo.tests.serde.input.Task": {
         "allOf": [
           {
             "oneOf": [
@@ -88,7 +88,34 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           },
           {
             "type": "object",
-            "title": "reflectapi_demo.tests.serde.Task",
+            "title": "reflectapi_demo.tests.serde.input.Task",
+            "required": [
+              "title"
+            ],
+            "properties": {
+              "title": {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.output.Task": {
+        "allOf": [
+          {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Priority"
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.output.Task",
             "required": [
               "title"
             ],

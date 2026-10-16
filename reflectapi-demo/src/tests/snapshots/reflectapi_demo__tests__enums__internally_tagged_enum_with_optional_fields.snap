@@ -65,8 +65,7 @@ expression: schema
                         "name": "std::string::String"
                       }
                     ]
-                  },
-                  "required": true
+                  }
                 }
               ]
             }
@@ -87,8 +86,7 @@ expression: schema
                     "name": "std::string::String"
                   }
                 ]
-              },
-              "required": true
+              }
             },
             {
               "name": "always_null_on_wire",
@@ -99,8 +97,7 @@ expression: schema
                     "name": "std::string::String"
                   }
                 ]
-              },
-              "required": true
+              }
             }
           ]
         }

@@ -14,11 +14,11 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf,
+      input: reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf,
       headers: {},
       options?: RequestOptions,
     ) => AsyncResult<
-      reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf,
+      reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf,
       {}
     >;
   }
@@ -38,16 +38,8 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
-      export namespace input {
-        export interface TestStructWithSerdeSkipSerializeIf {
-          f?: number /* u8 */ | null;
-        }
-      }
-
-      export namespace output {
-        export interface TestStructWithSerdeSkipSerializeIf {
-          f?: number /* u8 */ | null;
-        }
+      export interface TestStructWithSerdeSkipSerializeIf {
+        f?: number /* u8 */ | null;
       }
     }
   }
@@ -57,14 +49,14 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf,
+      input: reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf,
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf,
+        reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf,
         {},
-        reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf,
+        reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf,
         {}
       >(client, "/inout_test", input, headers, options);
   }

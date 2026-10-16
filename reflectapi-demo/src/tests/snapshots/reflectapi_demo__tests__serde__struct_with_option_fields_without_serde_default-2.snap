@@ -14,10 +14,10 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.ARequest,
+      input: reflectapi_demo.tests.serde.input.ARequest,
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<reflectapi_demo.tests.serde.ARequest, {}>;
+    ) => AsyncResult<reflectapi_demo.tests.serde.output.ARequest, {}>;
   }
 }
 export namespace reflectapi {
@@ -35,14 +35,28 @@ export namespace reflectapi {
 export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
-      export interface ARequest {
-        reflect_option?: string | null | undefined;
-        annotated_reflect_option?: string | null | undefined;
-        std_option?: string | null;
-        annotated_std_option?: string | null;
-        custom_deserializer_option: string | null;
-        custom_serializer_option?: string | null;
-        with_module_option: string | null;
+      export namespace input {
+        export interface ARequest {
+          reflect_option?: string | null | undefined;
+          annotated_reflect_option?: string | null | undefined;
+          std_option?: string | null;
+          annotated_std_option?: string | null;
+          custom_deserializer_option: string | null;
+          custom_serializer_option?: string | null;
+          with_module_option: string | null;
+        }
+      }
+
+      export namespace output {
+        export interface ARequest {
+          reflect_option: string | null | undefined;
+          annotated_reflect_option?: string | null | undefined;
+          std_option: string | null;
+          annotated_std_option?: string | null;
+          custom_deserializer_option: string | null;
+          custom_serializer_option: string | null;
+          with_module_option: string | null;
+        }
       }
     }
   }
@@ -52,14 +66,14 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.serde.ARequest,
+      input: reflectapi_demo.tests.serde.input.ARequest,
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        reflectapi_demo.tests.serde.ARequest,
+        reflectapi_demo.tests.serde.input.ARequest,
         {},
-        reflectapi_demo.tests.serde.ARequest,
+        reflectapi_demo.tests.serde.output.ARequest,
         {}
       >(client, "/inout_test", input, headers, options);
   }

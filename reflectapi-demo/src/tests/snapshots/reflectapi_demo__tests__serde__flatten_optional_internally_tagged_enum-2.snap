@@ -14,10 +14,10 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.Task,
+      input: reflectapi_demo.tests.serde.input.Task,
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<reflectapi_demo.tests.serde.Task, {}>;
+    ) => AsyncResult<reflectapi_demo.tests.serde.output.Task, {}>;
   }
 }
 export namespace reflectapi {
@@ -42,9 +42,17 @@ export namespace reflectapi_demo {
           }
         | { kind: "Low" };
 
-      export type Task = {
-        title: string;
-      } & NullToEmptyObject<reflectapi_demo.tests.serde.Priority | null>;
+      export namespace input {
+        export type Task = {
+          title: string;
+        } & Partial<reflectapi_demo.tests.serde.Priority>;
+      }
+
+      export namespace output {
+        export type Task = {
+          title: string;
+        } & NullToEmptyObject<reflectapi_demo.tests.serde.Priority | null>;
+      }
     }
   }
 }
@@ -53,14 +61,14 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.serde.Task,
+      input: reflectapi_demo.tests.serde.input.Task,
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        reflectapi_demo.tests.serde.Task,
+        reflectapi_demo.tests.serde.input.Task,
         {},
-        reflectapi_demo.tests.serde.Task,
+        reflectapi_demo.tests.serde.output.Task,
         {}
       >(client, "/inout_test", input, headers, options);
   }

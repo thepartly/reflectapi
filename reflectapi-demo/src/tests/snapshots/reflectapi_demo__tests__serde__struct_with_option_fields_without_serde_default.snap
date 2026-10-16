@@ -9,11 +9,11 @@ expression: schema
       "name": "inout_test",
       "path": "",
       "input_type": {
-        "name": "reflectapi_demo::tests::serde::ARequest"
+        "name": "reflectapi_demo::tests::serde::input::ARequest"
       },
       "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi_demo::tests::serde::ARequest"
+        "name": "reflectapi_demo::tests::serde::output::ARequest"
       },
       "serialization": [
         "json",
@@ -68,7 +68,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::ARequest",
+        "name": "reflectapi_demo::tests::serde::input::ARequest",
         "fields": {
           "named": [
             {
@@ -80,8 +80,7 @@ expression: schema
                     "name": "std::string::String"
                   }
                 ]
-              },
-              "required": true
+              }
             },
             {
               "name": "annotated_reflect_option",
@@ -103,8 +102,7 @@ expression: schema
                     "name": "std::string::String"
                   }
                 ]
-              },
-              "required": true
+              }
             },
             {
               "name": "annotated_std_option",
@@ -140,7 +138,6 @@ expression: schema
                   }
                 ]
               },
-              "required": true,
               "serialize_with": true
             },
             {
@@ -246,7 +243,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi_demo::tests::serde::ARequest",
+        "name": "reflectapi_demo::tests::serde::output::ARequest",
         "fields": {
           "named": [
             {

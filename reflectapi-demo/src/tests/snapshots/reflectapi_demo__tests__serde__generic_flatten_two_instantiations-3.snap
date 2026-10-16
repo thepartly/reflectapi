@@ -26,10 +26,10 @@ pub mod interface {
         }
         pub async fn inout_test(
             &self,
-            input: super::types::reflectapi_demo::tests::serde::TestTwoInstantiations,
+            input: super::types::reflectapi_demo::tests::serde::input::TestTwoInstantiations,
             headers: reflectapi::Empty,
         ) -> Result<
-            super::types::reflectapi_demo::tests::serde::TestTwoInstantiations,
+            super::types::reflectapi_demo::tests::serde::output::TestTwoInstantiations,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
         > {
             reflectapi::rt::__request_impl(&self.client, "/inout_test", input, headers).await
@@ -73,23 +73,39 @@ pub mod types {
                     pub alt_x: bool,
                 }
 
-                #[derive(Debug, serde::Deserialize, serde::Serialize)]
-                pub struct TestTwoInstantiations {
-                    pub a: super::super::super::reflectapi_demo::tests::serde::TestUpdateOrElse<
-                        super::super::super::reflectapi_demo::tests::serde::TestFlattenInner,
-                        super::super::super::reflectapi_demo::tests::serde::TestFlattenIfElse,
-                    >,
-                    pub b: super::super::super::reflectapi_demo::tests::serde::TestUpdateOrElse<
-                        super::super::super::reflectapi_demo::tests::serde::TestFlattenInnerAlt,
-                        super::super::super::reflectapi_demo::tests::serde::TestFlattenIfElse,
-                    >,
-                }
+                pub mod input {
 
-                #[derive(Debug, serde::Deserialize, serde::Serialize)]
-                pub struct TestUpdateOrElse<T, C> {
-                    #[serde(flatten)]
-                    pub inner: T,
-                    pub if_else: std::option::Option<C>,
+                    #[derive(Debug, serde::Serialize)]
+                    pub struct TestTwoInstantiations {
+    pub a: super::super::super::super::reflectapi_demo::tests::serde::input::TestUpdateOrElse<super::super::super::super::reflectapi_demo::tests::serde::TestFlattenInner, super::super::super::super::reflectapi_demo::tests::serde::TestFlattenIfElse>,
+    pub b: super::super::super::super::reflectapi_demo::tests::serde::input::TestUpdateOrElse<super::super::super::super::reflectapi_demo::tests::serde::TestFlattenInnerAlt, super::super::super::super::reflectapi_demo::tests::serde::TestFlattenIfElse>,
+}
+
+                    #[derive(Debug, serde::Serialize)]
+                    pub struct TestUpdateOrElse<T, C> {
+                        #[serde(flatten)]
+                        pub inner: T,
+                        #[serde(
+                            default = "Default::default",
+                            skip_serializing_if = "reflectapi::Option::is_undefined"
+                        )]
+                        pub if_else: reflectapi::Option<C>,
+                    }
+                }
+                pub mod output {
+
+                    #[derive(Debug, serde::Deserialize)]
+                    pub struct TestTwoInstantiations {
+    pub a: super::super::super::super::reflectapi_demo::tests::serde::output::TestUpdateOrElse<super::super::super::super::reflectapi_demo::tests::serde::TestFlattenInner, super::super::super::super::reflectapi_demo::tests::serde::TestFlattenIfElse>,
+    pub b: super::super::super::super::reflectapi_demo::tests::serde::output::TestUpdateOrElse<super::super::super::super::reflectapi_demo::tests::serde::TestFlattenInnerAlt, super::super::super::super::reflectapi_demo::tests::serde::TestFlattenIfElse>,
+}
+
+                    #[derive(Debug, serde::Deserialize)]
+                    pub struct TestUpdateOrElse<T, C> {
+                        #[serde(flatten)]
+                        pub inner: T,
+                        pub if_else: std::option::Option<C>,
+                    }
                 }
             }
         }

@@ -38,6 +38,9 @@ class ReflectapiDemoTestsEnumsEA(BaseModel):
     type: Literal["a"] = Field(default="a", description="Discriminator field")
     value: reflectapi_demo.tests.enums.A = Field(description="Tuple variant value")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsEnumsE(RootModel):
     root: Annotated[Union[ReflectapiDemoTestsEnumsEA], Field(discriminator="type")]

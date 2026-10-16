@@ -803,7 +803,17 @@ impl Type {
         unresolved_to_resolved_map: &std::collections::HashMap<TypeReference, TypeReference>,
         schema: &Typespace,
     ) {
-        internal::replace_type_references_for_type(self, unresolved_to_resolved_map, schema)
+        internal::replace_type_references_for_type(self, unresolved_to_resolved_map, schema, false)
+    }
+
+    /// Rebind derived input fields and resolve serde's missing-option behavior.
+    #[doc(hidden)]
+    pub fn __internal_rebind_input_generic_parameters(
+        &mut self,
+        unresolved_to_resolved_map: &std::collections::HashMap<TypeReference, TypeReference>,
+        schema: &Typespace,
+    ) {
+        internal::replace_type_references_for_type(self, unresolved_to_resolved_map, schema, true)
     }
 }
 
@@ -1147,6 +1157,13 @@ pub struct Field {
     /// Type of a field
     #[serde(rename = "type")]
     pub type_ref: TypeReference,
+    /// Whether the field's key is required in this type's wire direction.
+    /// For inputs, a missing required key is rejected; for outputs, a required
+    /// key is always serialized. Value nullability is represented by the type.
+    /// Derived input option fields accept a missing key unless a custom
+    /// deserializer prevents serde's missing-option behavior. User transforms
+    /// and explicitly constructed schemas may override this contract.
+    ///
     /// required and not nullable:
     /// - field always present and not null / none
     ///
@@ -1163,14 +1180,6 @@ pub struct Field {
     ///   missing fields and null / none fields
     /// - Rust: `reflectapi::Option<T>` is enum with Undefined, None and Some variants
     /// - TypeScript: T | null | undefined
-    ///
-    /// Note: the quadrants above describe the serialize-side contract.
-    /// On the deserialize side serde is lenient for option-typed fields —
-    /// a missing key is accepted as None even when `required` is true —
-    /// unless the field has a custom deserializer (see `deserialize_with`).
-    /// Generated clients therefore render option-typed fields as optional
-    /// keys regardless of `required`; consumers of this schema should not
-    /// assume `required` alone implies the key is present on the wire.
     ///
     /// Default is false
     #[serde(skip_serializing_if = "is_false", default)]

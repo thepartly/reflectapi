@@ -18,7 +18,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TreeNode"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TreeNode"
               }
             }
           },
@@ -30,7 +30,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TreeNode"
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TreeNode"
                 }
               }
             }
@@ -41,9 +41,32 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi_demo.tests.serde.TreeNode": {
+      "reflectapi_demo.tests.serde.input.TreeNode": {
         "type": "object",
-        "title": "reflectapi_demo.tests.serde.TreeNode",
+        "title": "reflectapi_demo.tests.serde.input.TreeNode",
+        "required": [
+          "label"
+        ],
+        "properties": {
+          "child": {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TreeNode"
+              }
+            ]
+          },
+          "label": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.output.TreeNode": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.output.TreeNode",
         "required": [
           "child",
           "label"
@@ -56,7 +79,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TreeNode"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TreeNode"
               }
             ]
           },

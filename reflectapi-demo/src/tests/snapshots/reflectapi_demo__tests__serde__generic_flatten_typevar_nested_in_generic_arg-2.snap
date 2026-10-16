@@ -14,11 +14,11 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>,
+      input: reflectapi_demo.tests.serde.input.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>,
       headers: {},
       options?: RequestOptions,
     ) => AsyncResult<
-      reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>,
+      reflectapi_demo.tests.serde.output.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>,
       {}
     >;
   }
@@ -47,16 +47,32 @@ export namespace reflectapi_demo {
         inner_b: string;
       }
 
-      export type TestUpdateOrElse<T, C> = {
-        if_else?: C | null;
-      } & NullToEmptyObject<T>;
+      export namespace input {
+        export type TestUpdateOrElse<T, C> = {
+          if_else?: C | null;
+        } & NullToEmptyObject<T>;
 
-      export interface TestWrapperWithNestedTypevarArg<I> {
-        body: reflectapi_demo.tests.serde.TestUpdateOrElse<
-          I | null,
-          reflectapi_demo.tests.serde.TestFlattenIfElse
-        >;
-        extra: number /* u32 */;
+        export interface TestWrapperWithNestedTypevarArg<I> {
+          body: reflectapi_demo.tests.serde.input.TestUpdateOrElse<
+            I | null,
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+          >;
+          extra: number /* u32 */;
+        }
+      }
+
+      export namespace output {
+        export type TestUpdateOrElse<T, C> = {
+          if_else: C | null;
+        } & NullToEmptyObject<T>;
+
+        export interface TestWrapperWithNestedTypevarArg<I> {
+          body: reflectapi_demo.tests.serde.output.TestUpdateOrElse<
+            I | null,
+            reflectapi_demo.tests.serde.TestFlattenIfElse
+          >;
+          extra: number /* u32 */;
+        }
       }
     }
   }
@@ -66,14 +82,14 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>,
+      input: reflectapi_demo.tests.serde.input.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>,
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>,
+        reflectapi_demo.tests.serde.input.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>,
         {},
-        reflectapi_demo.tests.serde.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>,
+        reflectapi_demo.tests.serde.output.TestWrapperWithNestedTypevarArg<reflectapi_demo.tests.serde.TestFlattenInner>,
         {}
       >(client, "/inout_test", input, headers, options);
   }

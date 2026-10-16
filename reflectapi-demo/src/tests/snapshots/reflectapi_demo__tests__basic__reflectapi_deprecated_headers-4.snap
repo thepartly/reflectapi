@@ -67,7 +67,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           {
             "name": "x-current",
             "in": "header",
-            "required": true,
+            "required": false,
             "schema": {
               "oneOf": [
                 {
@@ -83,7 +83,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           {
             "name": "x-legacy",
             "in": "header",
-            "required": true,
+            "required": false,
             "schema": {
               "oneOf": [
                 {

@@ -22,19 +22,18 @@ from pydantic import BaseModel, ConfigDict, Field
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
+from reflectapi_runtime import ReflectapiPartialModel
 
 
-class ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerializeIf(BaseModel):
+class ReflectapiDemoTestsSerdeTestStructWithSerdeSkipSerializeIf(
+    ReflectapiPartialModel
+):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
-    )
-
-    f: int | None = None
-
-
-class ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     f: int | None = None
@@ -50,19 +49,9 @@ class reflectapi_demo:
         class serde:
             """Namespace for serde types."""
 
-            class input:
-                """Namespace for input types."""
-
-                TestStructWithSerdeSkipSerializeIf = (
-                    ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerializeIf
-                )
-
-            class output:
-                """Namespace for output types."""
-
-                TestStructWithSerdeSkipSerializeIf = (
-                    ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf
-                )
+            TestStructWithSerdeSkipSerializeIf = (
+                ReflectapiDemoTestsSerdeTestStructWithSerdeSkipSerializeIf
+            )
 
 
 class AsyncInoutClient:
@@ -74,18 +63,16 @@ class AsyncInoutClient:
     async def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf
+            reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf
         ] = None,
-    ) -> ApiResponse[
-        reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf
-    ]:
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf]: Response containing reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf data
+            ApiResponse[reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf]: Response containing reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf data
         """
         path = "/inout_test"
 
@@ -94,7 +81,7 @@ class AsyncInoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf,
+            response_model=reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf,
         )
 
 
@@ -120,18 +107,16 @@ class InoutClient:
     def test(
         self,
         data: Optional[
-            reflectapi_demo.tests.serde.input.TestStructWithSerdeSkipSerializeIf
+            reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf
         ] = None,
-    ) -> ApiResponse[
-        reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf
-    ]:
+    ) -> ApiResponse[reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf]:
         """
 
         Args:
             data: Request data for the test operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf]: Response containing reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf data
+            ApiResponse[reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf]: Response containing reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf data
         """
         path = "/inout_test"
 
@@ -140,7 +125,7 @@ class InoutClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.serde.output.TestStructWithSerdeSkipSerializeIf,
+            response_model=reflectapi_demo.tests.serde.TestStructWithSerdeSkipSerializeIf,
         )
 
 
@@ -166,8 +151,7 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 _rebuild_errors: list[str] = []
 for _model in [
-    ReflectapiDemoTestsSerdeInputTestStructWithSerdeSkipSerializeIf,
-    ReflectapiDemoTestsSerdeOutputTestStructWithSerdeSkipSerializeIf,
+    ReflectapiDemoTestsSerdeTestStructWithSerdeSkipSerializeIf,
 ]:
     if not hasattr(_model, "model_rebuild"):
         continue

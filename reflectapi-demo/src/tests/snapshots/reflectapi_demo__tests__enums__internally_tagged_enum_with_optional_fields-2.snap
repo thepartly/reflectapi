@@ -63,7 +63,7 @@ export namespace reflectapi_demo {
 
         export interface VariantBody {
           amount?: string | null;
-          always_null_on_wire?: string | null;
+          always_null_on_wire: string | null;
         }
       }
     }

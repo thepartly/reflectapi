@@ -36,6 +36,9 @@ class ReflectapiDemoTestsSerdeInputTestEnumWithVariantOtherV0(BaseModel):
 
     type: Literal["V0"] = Field(default="V0", description="Discriminator field")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeInputTestEnumWithVariantOther(RootModel):
     root: Annotated[
@@ -51,6 +54,9 @@ class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherV0(BaseModel):
 
     type: Literal["V0"] = Field(default="V0", description="Discriminator field")
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherVariant1(BaseModel):
     model_config = ConfigDict(
@@ -60,6 +66,9 @@ class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOtherVariant1(BaseModel):
     type: Literal["Variant1"] = Field(
         default="Variant1", description="Discriminator field"
     )
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeOutputTestEnumWithVariantOther(

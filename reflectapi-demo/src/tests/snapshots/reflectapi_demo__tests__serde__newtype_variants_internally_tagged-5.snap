@@ -52,6 +52,9 @@ class ReflectapiDemoTestsSerdeEnumA(BaseModel):
     a: int
     b: int
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
+
 
 class ReflectapiDemoTestsSerdeEnumB(BaseModel):
     model_config = ConfigDict(
@@ -61,6 +64,9 @@ class ReflectapiDemoTestsSerdeEnumB(BaseModel):
     type: Literal["b"] = Field(default="b", description="Discriminator field")
     c: int
     d: int
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"type"})
 
 
 class ReflectapiDemoTestsSerdeEnum(RootModel):

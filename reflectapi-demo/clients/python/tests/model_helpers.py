@@ -26,6 +26,9 @@ def aggressive_behavior(level: float, description: str) -> Behavior:
 
 
 def other_behavior(description: str, notes: str | None = None) -> Behavior:
+    if notes is None:
+        # The Rust field defaults to an empty string; omission is valid, null is not.
+        return Behavior(root=BehaviorOtherVariant(description=description))
     return Behavior(root=BehaviorOtherVariant(description=description, notes=notes))
 
 

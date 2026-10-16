@@ -1657,10 +1657,8 @@ fn field_to_ts_field(
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> templates::Field {
-    // Key presence is resolved by the shared wire-contract rules (a missing
-    // key is accepted for plain option-typed fields, but not when a custom
-    // serde deserializer is involved); nullability is already carried by
-    // the type mapping (`T | null`, `T | null | undefined`).
+    // Reflection has already resolved directional presence, before type
+    // consolidation and user transforms. Keep required authoritative.
     let contract = crate::codegen::schema::resolve_field_wire_contract(
         crate::codegen::schema::FieldWireFacts::of(field),
     );

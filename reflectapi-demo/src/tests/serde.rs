@@ -326,16 +326,9 @@ fn test_struct_with_flatten_optional_and_required() {
 
 #[test]
 fn test_struct_with_option_fields_without_serde_default() {
-    // Option fields must be optional keys in generated clients regardless of
-    // `#[serde(default)]` / `skip_serializing_if`, because serde accepts a
-    // missing key for option-typed fields unconditionally (`missing_field`
-    // special-cases `deserialize_option`, and `reflectapi::Option`
-    // deserializes the same way). The exception is a field with a custom
-    // serde deserializer: `missing_field` cannot route through
-    // `deserialize_with`, so a missing key is rejected and the field must
-    // stay required. A custom serializer alone does not affect key
-    // presence, so `serialize_with` fields remain optional, while `with`
-    // implies a custom deserializer and the field stays required.
+    // Named plain options accept omission on input; output presence follows
+    // skip_serializing_if. Custom deserializers require a key unless a default
+    // is declared. Snapshot both directions after consolidation.
     fn deserialize_option<'de, D: serde::Deserializer<'de>>(
         deserializer: D,
     ) -> Result<Option<String>, D::Error> {
@@ -1388,8 +1381,10 @@ fn test_generic_flatten_nested() {
 fn test_generic_flatten_pydantic_roundtrip() {
     use std::io::Write;
 
+    // The directional presence regression has dedicated SDK tests; this
+    // regression needs one concrete class to inspect for flatten expansion.
     let py_source =
-        super::into_python_code::<TestUpdateOrElse<TestFlattenInner, TestFlattenIfElse>>();
+        super::into_input_python_code::<TestUpdateOrElse<TestFlattenInner, TestFlattenIfElse>>();
 
     // Wire format that serde would actually produce / accept: T's
     // fields ⊕ if_else, all at top level.

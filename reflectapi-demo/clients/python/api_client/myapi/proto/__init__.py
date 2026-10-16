@@ -20,6 +20,7 @@ from pydantic import (
     ConfigDict,
     Field,
     RootModel,
+    field_validator,
     model_serializer,
     model_validator,
 )
@@ -82,18 +83,26 @@ class MyapiProtoInternalError(BaseModel):
     message: str
 
 
-class MyapiProtoPaginated(BaseModel, Generic[T]):
+class MyapiProtoPaginated(ReflectapiPartialModel, Generic[T]):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     items: list[T] = Field(description="slice of a collection")
     cursor: str | None = Field(default=None, description="cursor for getting next page")
 
 
-class MyapiProtoPetsListRequest(BaseModel):
+class MyapiProtoPetsListRequest(ReflectapiPartialModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     limit: int | None = None
@@ -138,13 +147,11 @@ class MyapiProtoResponseHeaders(BaseModel):
     )
 
     x_request_id: str | None = Field(
-        default=None,
         serialization_alias="x-request-id",
         validation_alias="x-request-id",
         description="Request ID to quote when reporting a problem",
     )
     retry_after: str | None = Field(
-        default=None,
         serialization_alias="retry-after",
         validation_alias="retry-after",
         description="Seconds, or an HTTP date, after which to retry",
@@ -226,6 +233,9 @@ class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
         default="InvalidCursor", description="Discriminator field"
     )
 
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"kind"})
+
 
 class MyapiProtoPetsListErrorUnauthorized(BaseModel):
     model_config = ConfigDict(
@@ -235,6 +245,9 @@ class MyapiProtoPetsListErrorUnauthorized(BaseModel):
     kind: Literal["Unauthorized"] = Field(
         default="Unauthorized", description="Discriminator field"
     )
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"kind"})
 
 
 class MyapiProtoPetsListErrorInternal(BaseModel):
@@ -246,6 +259,9 @@ class MyapiProtoPetsListErrorInternal(BaseModel):
         default="Internal", description="Discriminator field"
     )
     message: str
+
+    def model_post_init(self, _context: Any) -> None:
+        self.__pydantic_fields_set__.update({"kind"})
 
 
 class MyapiProtoPetsListError(RootModel):
