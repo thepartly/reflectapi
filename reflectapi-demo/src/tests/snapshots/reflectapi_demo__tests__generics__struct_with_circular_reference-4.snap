@@ -90,7 +90,7 @@ class AsyncClient(AsyncClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.input_ = AsyncInputClient(self)
+        self.input_: AsyncInputClient = AsyncInputClient(self)
 
 
 class InputClient:
@@ -134,7 +134,7 @@ class Client(ClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.input_ = InputClient(self)
+        self.input_: InputClient = InputClient(self)
 
 
 # External type definitions

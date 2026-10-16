@@ -88,7 +88,7 @@ class AsyncClient(AsyncClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.inout = AsyncInoutClient(self)
+        self.inout: AsyncInoutClient = AsyncInoutClient(self)
 
 
 class InoutClient:
@@ -130,7 +130,7 @@ class Client(ClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.inout = InoutClient(self)
+        self.inout: InoutClient = InoutClient(self)
 
 
 # External type definitions
