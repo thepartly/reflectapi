@@ -1673,10 +1673,13 @@ fn request_field_type_ref(
     if is_input_type
         && field.is_named()
         && !field.required
+        && !field.flattened
         && field.type_ref.name == "std::option::Option"
     {
         // Optional nullable request keys need all three wire states. A regular
         // Option would serialize both an omitted key and explicit null as None.
+        // A flattened field has no key of its own, and serde can only flatten
+        // std's Option, so it stays one.
         let mut type_ref = field.type_ref.clone();
         type_ref.name = "reflectapi::Option".into();
         std::borrow::Cow::Owned(type_ref)
