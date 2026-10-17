@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.21.0
+
+Field presence now follows Serde in each direction, so a type used in both directions may generate separate input and output models, and Rust SDK optional nullable request fields become `reflectapi::Option<T>`. Generated Python packages are also typed for checkers. Regenerate SDKs and upgrade the Python runtime to 0.21.0 alongside them.
 
 ### Fixed
 

@@ -60,7 +60,7 @@ mid-stream and terminates the iterator. Earlier items remain delivered.
 
 ## Compatibility
 
-Python 3.12+. SDKs generated with ReflectAPI 0.20 require the 0.20 runtime.
+Python 3.12+. SDKs generated with ReflectAPI 0.21 require the 0.21 runtime.
 Pydantic 2.10 or newer supports the generated generic models; Python 3.14
 requires Pydantic 2.12 or newer. Installing the runtime resolves these requirements
 and the supported HTTP dependencies automatically.
