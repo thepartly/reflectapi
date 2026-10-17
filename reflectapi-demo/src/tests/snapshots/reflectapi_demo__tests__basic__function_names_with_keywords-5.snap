@@ -324,15 +324,15 @@ class AsyncClient(AsyncClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.crate = AsyncCrateClient(self)
+        self.crate: AsyncCrateClient = AsyncCrateClient(self)
 
-        self.gen = AsyncGenClient(self)
+        self.gen: AsyncGenClient = AsyncGenClient(self)
 
-        self.self = AsyncSelfClient(self)
+        self.self: AsyncSelfClient = AsyncSelfClient(self)
 
-        self.type_ = AsyncTypeClient(self)
+        self.type_: AsyncTypeClient = AsyncTypeClient(self)
 
-        self.with_ = AsyncWithClient(self)
+        self.with_: AsyncWithClient = AsyncWithClient(self)
 
     async def delete(
         self,
@@ -703,15 +703,15 @@ class Client(ClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.crate = CrateClient(self)
+        self.crate: CrateClient = CrateClient(self)
 
-        self.gen = GenClient(self)
+        self.gen: GenClient = GenClient(self)
 
-        self.self = SelfClient(self)
+        self.self: SelfClient = SelfClient(self)
 
-        self.type_ = TypeClient(self)
+        self.type_: TypeClient = TypeClient(self)
 
-        self.with_ = WithClient(self)
+        self.with_: WithClient = WithClient(self)
 
     def delete(
         self,

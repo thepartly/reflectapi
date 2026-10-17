@@ -181,11 +181,11 @@ class AsyncClient(AsyncClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.before = AsyncBeforeClient(self)
+        self.before: AsyncBeforeClient = AsyncBeforeClient(self)
 
-        self.with_ = AsyncWithClient(self)
+        self.with_: AsyncWithClient = AsyncWithClient(self)
 
-        self.with_route = AsyncWithRouteClient(self)
+        self.with_route: AsyncWithRouteClient = AsyncWithRouteClient(self)
 
     async def infallible(
         self,
@@ -306,11 +306,11 @@ class Client(ClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.before = BeforeClient(self)
+        self.before: BeforeClient = BeforeClient(self)
 
-        self.with_ = WithClient(self)
+        self.with_: WithClient = WithClient(self)
 
-        self.with_route = WithRouteClient(self)
+        self.with_route: WithRouteClient = WithRouteClient(self)
 
     def infallible(
         self,

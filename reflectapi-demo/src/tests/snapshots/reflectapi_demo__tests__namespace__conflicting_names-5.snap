@@ -76,7 +76,7 @@ class AsyncClient(AsyncClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.foos = AsyncFoosClient(self)
+        self.foos: AsyncFoosClient = AsyncFoosClient(self)
 
 
 class FoosClient:
@@ -118,7 +118,7 @@ class Client(ClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.foos = FoosClient(self)
+        self.foos: FoosClient = FoosClient(self)
 
 
 # External type definitions

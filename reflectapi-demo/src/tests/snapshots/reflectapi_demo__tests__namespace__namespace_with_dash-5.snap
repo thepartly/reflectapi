@@ -58,7 +58,7 @@ class AsyncClient(AsyncClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.jobs_two = AsyncJobsTwoClient(self)
+        self.jobs_two: AsyncJobsTwoClient = AsyncJobsTwoClient(self)
 
 
 class JobsTwoClient:
@@ -95,7 +95,7 @@ class Client(ClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.jobs_two = JobsTwoClient(self)
+        self.jobs_two: JobsTwoClient = JobsTwoClient(self)
 
 
 # External type definitions

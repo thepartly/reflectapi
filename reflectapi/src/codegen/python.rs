@@ -7238,8 +7238,8 @@ pub mod templates {
                     writeln!(s).unwrap();
                     writeln!(
                         s,
-                        "        self.{} = Async{}(self)",
-                        group.name, group.class_name
+                        "        self.{}: Async{} = Async{}(self)",
+                        group.name, group.class_name, group.class_name
                     )
                     .unwrap();
                 }
@@ -7294,8 +7294,8 @@ pub mod templates {
                     writeln!(s).unwrap();
                     writeln!(
                         s,
-                        "        self.{} = {}(self)",
-                        group.name, group.class_name
+                        "        self.{}: {} = {}(self)",
+                        group.name, group.class_name, group.class_name
                     )
                     .unwrap();
                 }
@@ -9021,8 +9021,8 @@ mod tests {
             assert!(!class_body.contains("def get("));
         }
         assert!(!client.contains("def ("));
-        assert!(client.contains("self.users = UsersClient(self)"));
-        assert!(client.contains("self.orders = OrdersClient(self)"));
+        assert!(client.contains("self.users: UsersClient = UsersClient(self)"));
+        assert!(client.contains("self.orders: OrdersClient = OrdersClient(self)"));
         assert!(client.contains("def read("));
         assert!(client.contains("def get("));
         assert!(client.contains("def get_("));

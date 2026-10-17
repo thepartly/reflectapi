@@ -284,9 +284,9 @@ class AsyncClient(AsyncClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.health = AsyncHealthClient(self)
+        self.health: AsyncHealthClient = AsyncHealthClient(self)
 
-        self.pets = AsyncPetsClient(self)
+        self.pets: AsyncPetsClient = AsyncPetsClient(self)
 
 
 class HealthClient:
@@ -521,6 +521,6 @@ class Client(ClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.health = HealthClient(self)
+        self.health: HealthClient = HealthClient(self)
 
-        self.pets = PetsClient(self)
+        self.pets: PetsClient = PetsClient(self)

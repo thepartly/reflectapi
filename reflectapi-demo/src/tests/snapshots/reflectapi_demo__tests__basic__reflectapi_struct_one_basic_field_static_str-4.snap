@@ -81,7 +81,7 @@ class AsyncClient(AsyncClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.output = AsyncOutputClient(self)
+        self.output: AsyncOutputClient = AsyncOutputClient(self)
 
 
 class OutputClient:
@@ -118,7 +118,7 @@ class Client(ClientBase):
     ) -> None:
         super().__init__(base_url, **kwargs)
 
-        self.output = OutputClient(self)
+        self.output: OutputClient = OutputClient(self)
 
 
 # External type definitions
