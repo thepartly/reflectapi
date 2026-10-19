@@ -363,6 +363,7 @@ where
         }
         self.errors.extend(validate_response_headers(&self.schema));
         self.errors.extend(validate_deprecation_dates(&self.schema));
+        self.errors.extend(validate_flattened_options(&self.schema));
 
         if !self.errors.is_empty() {
             return Err(crate::BuildErrors(self.errors));
@@ -531,6 +532,47 @@ fn validate_deprecation_dates(schema: &crate::Schema) -> Vec<BuildError> {
                 })
         })
         .collect()
+}
+
+/// Rejects `#[serde(flatten)]` on a `reflectapi::Option` field. The type means a
+/// key that can be absent, null or set, and a flattened field has no key: its
+/// fields are either in the parent or not, which is what std's `Option` models.
+/// serde cannot deserialize the flattened `reflectapi::Option` anyway.
+fn validate_flattened_options(schema: &crate::Schema) -> Vec<BuildError> {
+    let mut checked = BTreeSet::new();
+    let mut errors = Vec::new();
+    for ty in schema
+        .input_types
+        .types()
+        .chain(schema.output_types.types())
+    {
+        if !checked.insert(ty.name().to_owned()) {
+            continue;
+        }
+        let fields: Vec<(String, &crate::Field)> = match ty {
+            crate::Type::Struct(s) => s.fields().map(|f| (f.name().to_owned(), f)).collect(),
+            crate::Type::Enum(e) => e
+                .variants()
+                .flat_map(|v| {
+                    v.fields()
+                        .map(move |f| (format!("{}.{}", v.name(), f.name()), f))
+                })
+                .collect(),
+            crate::Type::Primitive(_) => continue,
+        };
+        for (path, field) in fields {
+            if field.flattened && field.type_ref.name == "reflectapi::Option" {
+                errors.push(BuildError::Other(
+                    format!(
+                        "`{}.{path}` flattens a `reflectapi::Option`, which has no key to be absent or null; use `Option<T>`",
+                        ty.name()
+                    )
+                    .into(),
+                ));
+            }
+        }
+    }
+    errors
 }
 
 /// Checks each distinct `response_headers` type: a non-generic struct of
