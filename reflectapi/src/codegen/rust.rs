@@ -1670,16 +1670,13 @@ fn request_field_type_ref(
     field: &crate::Field,
     is_input_type: bool,
 ) -> std::borrow::Cow<'_, crate::TypeReference> {
-    if is_input_type
-        && field.is_named()
-        && !field.required
-        && !field.flattened
-        && field.type_ref.name == "std::option::Option"
+    let contract = crate::codegen::schema::resolve_field_wire_contract(
+        crate::codegen::schema::FieldWireFacts::of(field),
+    );
+    if is_input_type && contract.preserves_absence() && field.type_ref.name == "std::option::Option"
     {
-        // Optional nullable request keys need all three wire states. A regular
-        // Option would serialize both an omitted key and explicit null as None.
-        // A flattened field has no key of its own, and serde can only flatten
-        // std's Option, so it stays one.
+        // A regular Option would serialize both an omitted key and explicit
+        // null as None.
         let mut type_ref = field.type_ref.clone();
         type_ref.name = "reflectapi::Option".into();
         std::borrow::Cow::Owned(type_ref)

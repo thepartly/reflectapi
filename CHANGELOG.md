@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- A struct that flattens a plain `Option<T>` (no `skip_serializing_if`) is described correctly in generated Python response models and OpenAPI. Serde omits an absent group's keys whatever the field's attributes, but the Python response model made the group's fields required, so a valid response without them failed validation. OpenAPI described the group as `oneOf: [null, T]`, which rejects an object without the group's keys; an optional flattened group is now `oneOf: [T, { not: { required: [<key>] } }]`, either a valid `T` or an object without a key every `T` has (a required field, or the tag of an internally or adjacently tagged enum).
+
+### Changed
+
+- Codegen derives a flattened field's presence from one shared rule: a flattened field has no key of its own, so its group is optional exactly when its type is an `Option`, whatever its `default` or `skip_serializing_if`. The Rust, Python and OpenAPI generators use it; generated Rust and TypeScript output is unchanged.
+
 ## 0.21.1
 
 Flattened optional fields in generated Rust SDKs are `std::option::Option<T>` again, and `Builder::build` rejects a flattened `reflectapi::Option`. Regenerate Rust SDKs generated with 0.21.0.

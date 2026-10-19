@@ -71,11 +71,16 @@ snapshot_kind: text
           {
             "oneOf": [
               {
-                "description": "Null",
-                "type": "null"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
               },
               {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "f"
+                  ],
+                  "properties": {}
+                }
               }
             ]
           },

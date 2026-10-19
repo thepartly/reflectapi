@@ -83,22 +83,34 @@ fn resolve_field_optionality(
     field_type: String,
 ) -> (bool, Option<String>, String, bool) {
     let contract = schema_codegen::resolve_field_wire_contract(facts);
-    let reject_null = contract.key == schema_codegen::KeyPresence::Optional
-        && rendered_type_is_nonnullable(&field_type);
-    match (contract.key, contract.declared_nullable) {
-        (schema_codegen::KeyPresence::Optional, true) => {
-            (true, Some("None".to_string()), field_type, reject_null)
-        }
+    // A flattened field rendered as an ordinary field is present exactly when
+    // its group is.
+    let may_be_absent = matches!(
+        contract.key,
+        schema_codegen::KeyPresence::Optional
+            | schema_codegen::KeyPresence::Flattened { optional: true }
+    );
+    let reject_null = may_be_absent && rendered_type_is_nonnullable(&field_type);
+    match (may_be_absent, contract.declared_nullable) {
+        (true, true) => (true, Some("None".to_string()), field_type, reject_null),
         // None remains the omission default; generated field validators reject
         // explicit null for nonnullable fields without validating that default.
-        (schema_codegen::KeyPresence::Optional, false) => (
+        (true, false) => (
             true,
             Some("None".to_string()),
             format!("{field_type} | None"),
             reject_null,
         ),
-        (schema_codegen::KeyPresence::Required, _) => (false, None, field_type, false),
+        (false, _) => (false, None, field_type, false),
     }
+}
+
+/// Whether a flattened field's group must be present. A flattened field has no
+/// key, so its `required` flag doesn't apply; only an `Option` type makes the
+/// group optional.
+fn flattened_group_required(field: &reflectapi_schema::Field) -> bool {
+    schema_codegen::resolve_field_wire_contract(schema_codegen::FieldWireFacts::of(field))
+        .flattened_group_required()
 }
 
 /// Preserve omission separately from explicit null for omittable reflectapi
@@ -804,7 +816,7 @@ fn materialize_nested_policy_flatten(
                         &inner.fields,
                         schema,
                         depth + 1,
-                        required && field.required,
+                        required && flattened_group_required(field),
                         policy_count,
                         nested_policy,
                     ));
@@ -922,7 +934,7 @@ fn render_struct_with_flattened_tagged_enum(
                 implemented_types,
                 class_names,
                 active_generics,
-                field.required,
+                flattened_group_required(field),
                 0,
                 used_type_vars,
                 Some(field.name()),
@@ -1198,7 +1210,7 @@ fn render_struct_with_flattened_tagged_enum(
                                 implemented_types,
                                 class_names,
                                 active_generics,
-                                sf.required,
+                                flattened_group_required(sf),
                                 0,
                                 used_type_vars,
                                 Some(sf.name()),
@@ -1330,7 +1342,7 @@ fn render_struct_with_flatten_standard(
             implemented_types,
             class_names,
             active_generics,
-            field.required,
+            flattened_group_required(field),
             0,
             used_type_vars,
             Some(field.name()),
@@ -3955,7 +3967,7 @@ fn collect_flattened_fields(
                         implemented_types,
                         class_names,
                         active_generics,
-                        parent_required && field.required,
+                        parent_required && flattened_group_required(field),
                         depth + 1,
                         used_type_vars,
                         Some(field.name()),
@@ -4122,6 +4134,8 @@ fn collect_flattened_enum_fields(
         schema_codegen::FieldWireFacts {
             type_name: &type_ref.name,
             required: parent_required,
+            named: true,
+            flattened: false,
         },
         enum_python_type,
     );
@@ -5160,7 +5174,7 @@ fn render_internally_tagged_enum(
                                     implemented_types,
                                     class_names,
                                     &generic_params,
-                                    struct_field.required,
+                                    flattened_group_required(struct_field),
                                     0,
                                     used_type_vars,
                                     Some(struct_field.name()),
@@ -8874,6 +8888,8 @@ mod tests {
         let facts = FieldWireFacts {
             type_name: "Wrapper",
             required: false,
+            named: true,
+            flattened: false,
         };
         for nullable in [
             "int | None",

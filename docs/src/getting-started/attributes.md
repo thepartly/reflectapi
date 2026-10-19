@@ -105,6 +105,8 @@ resolved option wrappers, including `Option<T>` and standard pointer wrappers; a
 (`deserialize_with` or `with`) requires the key unless a default is declared;
 a custom serializer alone does not change input presence.
 `#[serde(skip_serializing_if = "...")]` allows omission on output.
+A `#[serde(flatten)]` field has no key of its own, so neither attribute applies
+to it: its fields are optional as a group exactly when its type is an `Option`.
 
 For `reflectapi::Option<T>`, a missing input becomes `None` without a default;
 `#[serde(default)]` instead supplies `Undefined`. A custom default function

@@ -313,6 +313,25 @@ fn test_struct_with_flatten_optional() {
 }
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithFlattenOptionalWithoutAttributes {
+    a: u8,
+    #[serde(flatten)]
+    g: Option<TestStructWithFlattenNested>,
+}
+#[test]
+fn test_struct_with_flatten_optional_without_attributes() {
+    assert_snapshot!(TestStructWithFlattenOptionalWithoutAttributes);
+
+    // A flattened field has no key, so serde omits an absent group's keys even
+    // without `skip_serializing_if`: the generated output models must accept that.
+    let absent = TestStructWithFlattenOptionalWithoutAttributes { a: 1, g: None };
+    assert_eq!(serde_json::to_string(&absent).unwrap(), r#"{"a":1}"#);
+    let parsed: TestStructWithFlattenOptionalWithoutAttributes =
+        serde_json::from_str(r#"{"a":1}"#).unwrap();
+    assert!(parsed.g.is_none());
+}
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithFlattenOptionalAndRequired {
     #[serde(flatten, skip_serializing_if = "Option::is_none", default)]
     g: Option<TestStructWithFlattenNested>,

@@ -58,15 +58,26 @@ class ReflectapiDemoTestsSerdeInputTestOptionalFlattenReflectapiDemoTestsSerdeEe
 
 
 class ReflectapiDemoTestsSerdeOutputTestOptionalFlattenReflectapiDemoTestsSerd85639aef(
-    BaseModel
+    ReflectapiPartialModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     code: int
-    inner_a: int
-    inner_b: str
+    inner_a: int | None = None
+    inner_b: str | None = None
+
+    @field_validator("inner_a", "inner_b", mode="before")
+    @classmethod
+    def _reflectapi_reject_null(cls, value):
+        if value is None:
+            raise ValueError("Field may be omitted but cannot be null")
+        return value
 
 
 # Namespace classes for dotted access to types

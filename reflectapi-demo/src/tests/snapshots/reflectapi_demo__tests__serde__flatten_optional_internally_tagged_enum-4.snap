@@ -78,11 +78,16 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           {
             "oneOf": [
               {
-                "description": "Null",
-                "type": "null"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Priority"
               },
               {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Priority"
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {}
+                }
               }
             ]
           },
@@ -105,11 +110,16 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           {
             "oneOf": [
               {
-                "description": "Null",
-                "type": "null"
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Priority"
               },
               {
-                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.Priority"
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {}
+                }
               }
             ]
           },

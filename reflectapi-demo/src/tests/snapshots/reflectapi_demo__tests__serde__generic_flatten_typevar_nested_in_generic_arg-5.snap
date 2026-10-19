@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -54,8 +54,15 @@ class ReflectapiDemoTestsSerdeInputTestUpdateOrElseStdOptionReflectapiDemoTestAc
     )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None = None
-    inner_a: int
-    inner_b: str
+    inner_a: int | None = None
+    inner_b: str | None = None
+
+    @field_validator("inner_a", "inner_b", mode="before")
+    @classmethod
+    def _reflectapi_reject_null(cls, value):
+        if value is None:
+            raise ValueError("Field may be omitted but cannot be null")
+        return value
 
 
 class ReflectapiDemoTestsSerdeInputTestWrapperWithNestedTypevarArgReflectapiDeB04edf34(
@@ -70,15 +77,26 @@ class ReflectapiDemoTestsSerdeInputTestWrapperWithNestedTypevarArgReflectapiDeB0
 
 
 class ReflectapiDemoTestsSerdeOutputTestUpdateOrElseStdOptionReflectapiDemoTesCa6f661b(
-    BaseModel
+    ReflectapiPartialModel
 ):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     if_else: reflectapi_demo.tests.serde.TestFlattenIfElse | None
-    inner_a: int
-    inner_b: str
+    inner_a: int | None = None
+    inner_b: str | None = None
+
+    @field_validator("inner_a", "inner_b", mode="before")
+    @classmethod
+    def _reflectapi_reject_null(cls, value):
+        if value is None:
+            raise ValueError("Field may be omitted but cannot be null")
+        return value
 
 
 class ReflectapiDemoTestsSerdeOutputTestWrapperWithNestedTypevarArgReflectapiD8dc9dd62(

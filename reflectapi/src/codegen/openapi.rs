@@ -9,6 +9,7 @@
 // These definitions are only suitable only for serialization, not deserialization
 // because they are stricter than the OpenAPI spec.
 
+use crate::codegen::schema as schema_codegen;
 use core::fmt;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
@@ -343,6 +344,10 @@ pub enum Schema {
     Flat(FlatSchema),
     /// A schema marked deprecated, such as that of a deprecated enum variant.
     Deprecated(DeprecatedSchema),
+    /// Matches exactly when `not` doesn't.
+    Not {
+        not: Box<InlineOrRef<Schema>>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -390,6 +395,7 @@ impl fmt::Debug for Schema {
                 .finish(),
             Schema::Flat(schema) => schema.fmt(f),
             Schema::Deprecated(schema) => schema.fmt(f),
+            Schema::Not { not } => f.debug_struct("Not").field("not", not).finish(),
         }
     }
 }
@@ -1424,6 +1430,9 @@ impl Converter<'_> {
                 )?),
                 deprecation: deprecation.clone(),
             }))),
+            Schema::Not { .. } => {
+                unreachable!("a `not` schema only describes an absent flattened group")
+            }
             Schema::Flat(schema) => match &schema.ty {
                 Type::Boolean
                 | Type::Integer
@@ -1481,6 +1490,102 @@ impl Converter<'_> {
                     },
                 }))),
             },
+        }
+    }
+
+    /// A flattened field contributes its type's keys rather than a key of its
+    /// own. An optional group (an `Option`) is either a valid value of the inner
+    /// type or entirely absent; it's described as that type, or as an object
+    /// without a key every value has.
+    fn convert_flattened_field(
+        &mut self,
+        schema: &crate::Schema,
+        kind: Kind,
+        field: &crate::Field,
+    ) -> InlineOrRef<Schema> {
+        let type_ref = field.type_ref();
+        let contract =
+            schema_codegen::resolve_field_wire_contract(schema_codegen::FieldWireFacts::of(field));
+        let ([inner], false) = (
+            type_ref.arguments.as_slice(),
+            contract.flattened_group_required(),
+        ) else {
+            return self.convert_type_ref(schema, kind, type_ref);
+        };
+        let inner_schema = self.convert_type_ref(schema, kind, inner);
+        let key = match self.group_key(schema, kind, inner, 0) {
+            GroupKey::Key(key) => key,
+            // An absent group already validates as the inner type, or no
+            // single key identifies it; describe the inner type alone.
+            GroupKey::NoneRequired | GroupKey::Unknown => return inner_schema,
+        };
+        let absent = Schema::Not {
+            not: Box::new(Inline(Schema::Flat(FlatSchema {
+                description: String::new(),
+                ty: Type::Object {
+                    title: String::new(),
+                    required: [key].into(),
+                    properties: BTreeMap::new(),
+                },
+            }))),
+        };
+        Inline(Schema::OneOf {
+            title: String::new(),
+            subschemas: vec![inner_schema, Inline(absent)],
+        })
+    }
+
+    /// A key every value of `type_ref` has, chosen by name so it doesn't change
+    /// when fields are reordered.
+    fn group_key(
+        &self,
+        schema: &crate::Schema,
+        kind: Kind,
+        type_ref: &crate::TypeReference,
+        depth: usize,
+    ) -> GroupKey {
+        if depth > 8 {
+            return GroupKey::Unknown;
+        }
+        let type_def = match kind {
+            Kind::Input => schema.input_types.get_type(&type_ref.name),
+            Kind::Output => schema.output_types.get_type(&type_ref.name),
+        };
+        match type_def {
+            Some(crate::Type::Struct(strukt)) if !strukt.transparent() => {
+                let own_key = strukt
+                    .fields()
+                    .filter(|f| f.is_named() && !f.flattened && f.required)
+                    .map(|f| f.serde_name().to_owned())
+                    .min();
+                if let Some(key) = own_key {
+                    return GroupKey::Key(key);
+                }
+                // Otherwise a key of a flattened group that is always present.
+                let mut keys = Vec::new();
+                for field in strukt.fields().filter(|f| f.flattened) {
+                    let contract = schema_codegen::resolve_field_wire_contract(
+                        schema_codegen::FieldWireFacts::of(field),
+                    );
+                    if !contract.flattened_group_required() {
+                        continue;
+                    }
+                    match self.group_key(schema, kind, field.type_ref(), depth + 1) {
+                        GroupKey::Key(key) => keys.push(key),
+                        GroupKey::NoneRequired => {}
+                        GroupKey::Unknown => return GroupKey::Unknown,
+                    }
+                }
+                keys.into_iter()
+                    .min()
+                    .map_or(GroupKey::NoneRequired, GroupKey::Key)
+            }
+            Some(crate::Type::Enum(enm)) => match &enm.representation {
+                crate::Representation::Internal { tag }
+                | crate::Representation::Adjacent { tag, .. } => GroupKey::Key(tag.clone()),
+                crate::Representation::External | crate::Representation::None => GroupKey::Unknown,
+            },
+            _ => GroupKey::Unknown,
         }
     }
 
@@ -1545,7 +1650,7 @@ impl Converter<'_> {
         } else {
             let subschemas = flattened_fields
                 .into_iter()
-                .map(|field| self.convert_type_ref(schema, kind, field.type_ref()))
+                .map(|field| self.convert_flattened_field(schema, kind, field))
                 .chain(std::iter::once(Inline(s)))
                 .collect::<Vec<_>>();
 
@@ -1561,6 +1666,17 @@ impl Converter<'_> {
 
         Inline(s)
     }
+}
+
+/// A key that every value of a flattened group's type has, used to describe
+/// the group being absent.
+enum GroupKey {
+    /// One key every value has.
+    Key(String),
+    /// Every key may be absent, so an absent group is already a valid value.
+    NoneRequired,
+    /// No single key is always present (e.g. an externally tagged enum).
+    Unknown,
 }
 
 fn primitive_fallback_type_ref(
