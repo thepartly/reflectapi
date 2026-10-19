@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.21.1
+
+Flattened optional fields in generated Rust SDKs are `std::option::Option<T>` again, and `Builder::build` rejects a flattened `reflectapi::Option`. Regenerate Rust SDKs generated with 0.21.0.
 
 ### Fixed
 
