@@ -348,7 +348,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "anyhow",
  "bytes",
@@ -366,7 +366,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-derive"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -387,7 +387,7 @@ dependencies = [
 
 [[package]]
 name = "reflectapi-schema"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "glob",
  "serde",
