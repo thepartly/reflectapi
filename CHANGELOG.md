@@ -4,7 +4,8 @@
 
 ### Fixed
 
-- Generated Rust request fields that are both optional and `#[serde(flatten)]` stay `std::option::Option<T>`. 0.21.0 typed them as `reflectapi::Option<T>`, which serde cannot flatten, so deserializing such a type failed with "can only flatten structs and maps". A flattened field has no key of its own, so it has no omitted-versus-null distinction to preserve.
+- Generated Rust request fields that are both optional and `#[serde(flatten)]` stay `std::option::Option<T>`. 0.21.0 typed them as `reflectapi::Option<T>`, which serde cannot flatten, so deserializing such a type failed with "can only flatten structs and maps". A flattened field has no key of its own, so it has no omitted-versus-null distinction to preserve. Regenerate Rust SDKs generated with 0.21.0.
+- `Builder::build` rejects a `#[serde(flatten)]` field of type `reflectapi::Option<T>`, pointing to `Option<T>`. Such a type never deserialized.
 
 ## 0.21.0
 

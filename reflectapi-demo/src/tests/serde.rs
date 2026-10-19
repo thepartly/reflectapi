@@ -324,6 +324,34 @@ fn test_struct_with_flatten_optional_and_required() {
     assert_snapshot!(TestStructWithFlattenOptionalAndRequired);
 }
 
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithFlattenReflectapiOption {
+    #[serde(
+        flatten,
+        skip_serializing_if = "reflectapi::Option::is_undefined",
+        default
+    )]
+    g: reflectapi::Option<TestStructWithFlattenNested>,
+}
+#[test]
+fn test_struct_with_flatten_reflectapi_option_is_rejected() {
+    let Err(errors) = reflectapi::Builder::<()>::new()
+        .route(
+            super::handler::<TestStructWithFlattenReflectapiOption, reflectapi::Empty>,
+            |b| b.name("input_test"),
+        )
+        .build()
+    else {
+        panic!("a flattened reflectapi::Option must fail the build");
+    };
+    assert!(
+        errors.to_string().contains(
+            "`reflectapi_demo::tests::serde::TestStructWithFlattenReflectapiOption.g` flattens a `reflectapi::Option`"
+        ),
+        "{errors}"
+    );
+}
+
 #[test]
 fn test_struct_with_option_fields_without_serde_default() {
     // Named plain options accept omission on input; output presence follows
