@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- A struct that flattens a plain `Option<T>` (no `skip_serializing_if`) is described correctly in generated Python response models and OpenAPI. Serde omits an absent group's keys whatever the field's attributes, but the Python response model made the group's fields required, so a valid response without them failed validation. OpenAPI described the group as `oneOf: [null, T]`, which rejects an object without the group's keys; an optional flattened group is now `oneOf: [T, { not: { required: [<key>] } }]`, either a valid `T` or an object without a key every `T` has (a required field, or the tag of an internally or adjacently tagged enum).
+- A struct that flattens a plain `Option<T>` (no `skip_serializing_if`) is described correctly in generated Python models and OpenAPI. Serde writes all of an optional flattened group's keys or none of them, whatever the field's attributes. The Python response model made the group's fields required, so a valid response without them failed validation; Python models now accept the group's fields together or not at all. OpenAPI described the group as `oneOf: [null, T]`, which rejects an object without the group's keys; it is now `oneOf: [T, { not: { anyOf: [{ required: [<key>] }, ...] } }]`, either a valid `T` or an object with none of the group's keys.
 
 ### Changed
 

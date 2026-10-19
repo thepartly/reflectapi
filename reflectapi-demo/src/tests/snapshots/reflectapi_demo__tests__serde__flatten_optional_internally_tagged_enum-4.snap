@@ -82,11 +82,22 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
               },
               {
                 "not": {
-                  "type": "object",
-                  "required": [
-                    "kind"
-                  ],
-                  "properties": {}
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "deadline"
+                      ],
+                      "properties": {}
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "kind"
+                      ],
+                      "properties": {}
+                    }
+                  ]
                 }
               }
             ]
@@ -114,11 +125,22 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
               },
               {
                 "not": {
-                  "type": "object",
-                  "required": [
-                    "kind"
-                  ],
-                  "properties": {}
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "deadline"
+                      ],
+                      "properties": {}
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "kind"
+                      ],
+                      "properties": {}
+                    }
+                  ]
                 }
               }
             ]

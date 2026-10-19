@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -64,6 +64,17 @@ class ReflectapiDemoTestsSerdeInputTestUpdateOrElseStdOptionReflectapiDemoTestAc
             raise ValueError("Field may be omitted but cannot be null")
         return value
 
+    @model_validator(mode="after")
+    def _reflectapi_flattened_groups(self):
+        for fields, required in ((("inner_a", "inner_b"), ("inner_a", "inner_b")),):
+            given = self.model_fields_set.intersection(fields)
+            missing = set(required) - self.model_fields_set
+            if given and missing:
+                raise ValueError(
+                    f"Optional flattened group with {sorted(given)} is missing {sorted(missing)}"
+                )
+        return self
+
 
 class ReflectapiDemoTestsSerdeInputTestWrapperWithNestedTypevarArgReflectapiDeB04edf34(
     BaseModel
@@ -97,6 +108,17 @@ class ReflectapiDemoTestsSerdeOutputTestUpdateOrElseStdOptionReflectapiDemoTesCa
         if value is None:
             raise ValueError("Field may be omitted but cannot be null")
         return value
+
+    @model_validator(mode="after")
+    def _reflectapi_flattened_groups(self):
+        for fields, required in ((("inner_a", "inner_b"), ("inner_a", "inner_b")),):
+            given = self.model_fields_set.intersection(fields)
+            missing = set(required) - self.model_fields_set
+            if given and missing:
+                raise ValueError(
+                    f"Optional flattened group with {sorted(given)} is missing {sorted(missing)}"
+                )
+        return self
 
 
 class ReflectapiDemoTestsSerdeOutputTestWrapperWithNestedTypevarArgReflectapiD8dc9dd62(

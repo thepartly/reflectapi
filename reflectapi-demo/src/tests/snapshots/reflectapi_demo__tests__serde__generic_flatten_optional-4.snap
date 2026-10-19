@@ -26,11 +26,22 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                       },
                       {
                         "not": {
-                          "type": "object",
-                          "required": [
-                            "inner_a"
-                          ],
-                          "properties": {}
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "inner_a"
+                              ],
+                              "properties": {}
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "inner_b"
+                              ],
+                              "properties": {}
+                            }
+                          ]
                         }
                       }
                     ]
@@ -67,11 +78,22 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                         },
                         {
                           "not": {
-                            "type": "object",
-                            "required": [
-                              "inner_a"
-                            ],
-                            "properties": {}
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "inner_a"
+                                ],
+                                "properties": {}
+                              },
+                              {
+                                "type": "object",
+                                "required": [
+                                  "inner_b"
+                                ],
+                                "properties": {}
+                              }
+                            ]
                           }
                         }
                       ]
