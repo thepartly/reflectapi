@@ -83,22 +83,34 @@ fn resolve_field_optionality(
     field_type: String,
 ) -> (bool, Option<String>, String, bool) {
     let contract = schema_codegen::resolve_field_wire_contract(facts);
-    let reject_null = contract.key == schema_codegen::KeyPresence::Optional
-        && rendered_type_is_nonnullable(&field_type);
-    match (contract.key, contract.declared_nullable) {
-        (schema_codegen::KeyPresence::Optional, true) => {
-            (true, Some("None".to_string()), field_type, reject_null)
-        }
+    // A flattened field rendered as an ordinary field is present exactly when
+    // its group is.
+    let may_be_absent = matches!(
+        contract.key,
+        schema_codegen::KeyPresence::Optional
+            | schema_codegen::KeyPresence::Flattened { optional: true }
+    );
+    let reject_null = may_be_absent && rendered_type_is_nonnullable(&field_type);
+    match (may_be_absent, contract.declared_nullable) {
+        (true, true) => (true, Some("None".to_string()), field_type, reject_null),
         // None remains the omission default; generated field validators reject
         // explicit null for nonnullable fields without validating that default.
-        (schema_codegen::KeyPresence::Optional, false) => (
+        (true, false) => (
             true,
             Some("None".to_string()),
             format!("{field_type} | None"),
             reject_null,
         ),
-        (schema_codegen::KeyPresence::Required, _) => (false, None, field_type, false),
+        (false, _) => (false, None, field_type, false),
     }
+}
+
+/// Whether a flattened field's group must be present. A flattened field has no
+/// key, so its `required` flag doesn't apply; only an `Option` type makes the
+/// group optional.
+fn flattened_group_required(field: &reflectapi_schema::Field) -> bool {
+    schema_codegen::resolve_field_wire_contract(schema_codegen::FieldWireFacts::of(field))
+        .flattened_group_required()
 }
 
 /// Preserve omission separately from explicit null for omittable reflectapi
@@ -483,6 +495,9 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
     if imports.has_field_validators {
         third_party_imports.insert("field_validator");
     }
+    if imports.has_model_validators {
+        third_party_imports.insert("model_validator");
+    }
 
     // Runtime imports - client bases
     if imports.has_async && imports.has_sync {
@@ -710,6 +725,8 @@ fn render_struct_with_flatten(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
+    // Materializing loses the group structure, so it's read beforehand.
+    let flattened_groups = optional_flattened_groups(struct_def.fields.iter(), schema);
     let effective = materialize_nested_policy_flatten(struct_def, schema)?;
     let struct_def = effective.as_ref().unwrap_or(struct_def);
     let struct_name = python_class_name(&struct_def.name, class_names);
@@ -764,6 +781,7 @@ fn render_struct_with_flatten(
             implemented_types,
             class_names,
             &active_generics,
+            &flattened_groups,
             used_type_vars,
         )
     } else {
@@ -775,6 +793,7 @@ fn render_struct_with_flatten(
             implemented_types,
             class_names,
             &active_generics,
+            flattened_groups,
             used_type_vars,
         )
     }
@@ -804,7 +823,7 @@ fn materialize_nested_policy_flatten(
                         &inner.fields,
                         schema,
                         depth + 1,
-                        required && field.required,
+                        required && flattened_group_required(field),
                         policy_count,
                         nested_policy,
                     ));
@@ -852,6 +871,93 @@ fn materialize_nested_policy_flatten(
     Ok(Some(effective))
 }
 
+/// The optional flattened groups among `fields`, including those nested in
+/// other flattened structs, as the model fields each contributes.
+fn optional_flattened_groups<'a>(
+    fields: impl IntoIterator<Item = &'a reflectapi_schema::Field>,
+    schema: &Schema,
+) -> Vec<templates::FlattenedGroup> {
+    fn flattened_struct<'s>(
+        field: &reflectapi_schema::Field,
+        schema: &'s Schema,
+    ) -> Option<&'s reflectapi_schema::Struct> {
+        match schema.get_type(resolve_flattened_type_name(&field.type_ref)) {
+            Some(Type::Struct(inner)) => Some(inner),
+            _ => None,
+        }
+    }
+
+    /// `None` when a member isn't a struct field, e.g. a flattened enum.
+    fn members(
+        fields: &reflectapi_schema::Fields,
+        schema: &Schema,
+        depth: usize,
+    ) -> Option<templates::FlattenedGroup> {
+        let mut group = templates::FlattenedGroup::default();
+        for field in fields.iter() {
+            if !field.flattened() {
+                let (name, _) = sanitize_field_name_with_alias(field.name(), field.serde_name());
+                if field.required {
+                    group.required.push(name.clone());
+                }
+                group.fields.push(name);
+                continue;
+            }
+            if depth > 10 {
+                return None;
+            }
+            let nested = members(&flattened_struct(field, schema)?.fields, schema, depth + 1)?;
+            if flattened_group_required(field) {
+                group.required.extend(nested.required);
+            }
+            group.fields.extend(nested.fields);
+        }
+        Some(group)
+    }
+
+    fn collect<'a>(
+        fields: impl IntoIterator<Item = &'a reflectapi_schema::Field>,
+        schema: &Schema,
+        depth: usize,
+        groups: &mut Vec<templates::FlattenedGroup>,
+    ) {
+        for field in fields.into_iter().filter(|field| field.flattened()) {
+            let Some(inner) = flattened_struct(field, schema) else {
+                continue;
+            };
+            if depth > 10 {
+                return;
+            }
+            if !flattened_group_required(field) {
+                groups.extend(members(&inner.fields, schema, depth + 1));
+            }
+            collect(inner.fields.iter(), schema, depth + 1, groups);
+        }
+    }
+
+    let mut groups = Vec::new();
+    collect(fields, schema, 0, &mut groups);
+    groups
+}
+
+/// The optional flattened groups of a variant's fields, or of the struct a
+/// newtype variant wraps.
+fn variant_flattened_groups(
+    variant: &reflectapi_schema::Variant,
+    schema: &Schema,
+) -> Vec<templates::FlattenedGroup> {
+    match &variant.fields {
+        reflectapi_schema::Fields::Unnamed(fields) => match fields.as_slice() {
+            [newtype] => match schema.get_type(resolve_flattened_type_name(&newtype.type_ref)) {
+                Some(Type::Struct(inner)) => optional_flattened_groups(inner.fields.iter(), schema),
+                _ => Vec::new(),
+            },
+            _ => Vec::new(),
+        },
+        fields => optional_flattened_groups(fields.iter(), schema),
+    }
+}
+
 /// Resolve the target type name for a flattened field, unwrapping `Option<T>`
 fn resolve_flattened_type_name(type_ref: &TypeReference) -> &str {
     if (type_ref.name == "std::option::Option" || type_ref.name == "reflectapi::Option")
@@ -876,6 +982,7 @@ fn render_struct_with_flattened_tagged_enum(
     implemented_types: &BTreeMap<String, String>,
     class_names: &BTreeMap<String, String>,
     active_generics: &[String],
+    flattened_groups: &[templates::FlattenedGroup],
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     use reflectapi_schema::Fields;
@@ -922,7 +1029,7 @@ fn render_struct_with_flattened_tagged_enum(
                 implemented_types,
                 class_names,
                 active_generics,
-                field.required,
+                flattened_group_required(field),
                 0,
                 used_type_vars,
                 Some(field.name()),
@@ -1047,6 +1154,7 @@ fn render_struct_with_flattened_tagged_enum(
             is_tuple: false,
             is_generic: !active_generics.is_empty(),
             generic_params: active_generics.to_vec(),
+            flattened_groups: flattened_groups.to_vec(),
         }
         .render();
         output.push_str(class.trim_end());
@@ -1198,7 +1306,7 @@ fn render_struct_with_flattened_tagged_enum(
                                 implemented_types,
                                 class_names,
                                 active_generics,
-                                sf.required,
+                                flattened_group_required(sf),
                                 0,
                                 used_type_vars,
                                 Some(sf.name()),
@@ -1253,6 +1361,11 @@ fn render_struct_with_flattened_tagged_enum(
             is_tuple: false,
             is_generic: !active_generics.is_empty(),
             generic_params: active_generics.to_vec(),
+            flattened_groups: flattened_groups
+                .iter()
+                .cloned()
+                .chain(variant_flattened_groups(variant, schema))
+                .collect(),
         };
         output.push_str(&variant_template.render());
         output.push('\n');
@@ -1282,6 +1395,7 @@ fn render_struct_with_flattened_tagged_enum(
 }
 
 /// Standard flatten path: expand all flattened struct fields inline into a single model.
+#[allow(clippy::too_many_arguments)]
 fn render_struct_with_flatten_standard(
     struct_def: &reflectapi_schema::Struct,
     struct_name: &str,
@@ -1289,6 +1403,7 @@ fn render_struct_with_flatten_standard(
     implemented_types: &BTreeMap<String, String>,
     class_names: &BTreeMap<String, String>,
     active_generics: &[String],
+    flattened_groups: Vec<templates::FlattenedGroup>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
     let mut all_fields = Vec::new();
@@ -1330,7 +1445,7 @@ fn render_struct_with_flatten_standard(
             implemented_types,
             class_names,
             active_generics,
-            field.required,
+            flattened_group_required(field),
             0,
             used_type_vars,
             Some(field.name()),
@@ -1345,6 +1460,7 @@ fn render_struct_with_flatten_standard(
         is_tuple: false,
         is_generic: !active_generics.is_empty(),
         generic_params: active_generics.to_vec(),
+        flattened_groups,
     };
 
     let rendered = struct_template.render();
@@ -2037,6 +2153,7 @@ fn build_python_generation(
         has_forward_compatible_enums,
         has_typed_flattened_enum,
         has_field_validators: false,
+        has_model_validators: false,
     };
     // Only the client code warns about deprecated methods, so model modules
     // get the imports without `warnings` and `typing_extensions`.
@@ -2166,6 +2283,9 @@ fn build_python_generation(
     imports.has_field_validators = rendered_types
         .values()
         .any(|code| code.contains("@field_validator("));
+    imports.has_model_validators = rendered_types
+        .values()
+        .any(|code| code.contains("@model_validator("));
     // Flattening can synthesize omittable fields from required children.
     imports.has_partial_models |= rendered_types
         .values()
@@ -3955,7 +4075,7 @@ fn collect_flattened_fields(
                         implemented_types,
                         class_names,
                         active_generics,
-                        parent_required && field.required,
+                        parent_required && flattened_group_required(field),
                         depth + 1,
                         used_type_vars,
                         Some(field.name()),
@@ -4122,6 +4242,8 @@ fn collect_flattened_enum_fields(
         schema_codegen::FieldWireFacts {
             type_name: &type_ref.name,
             required: parent_required,
+            named: true,
+            flattened: false,
         },
         enum_python_type,
     );
@@ -4265,6 +4387,7 @@ fn render_struct(
         is_tuple: false,
         is_generic: has_generics,
         generic_params: active_generics.clone(),
+        flattened_groups: Vec::new(),
     };
 
     Ok(class_template.render())
@@ -4679,6 +4802,7 @@ fn render_adjacently_tagged_enum(
                     is_tuple: false,
                     is_generic,
                     generic_params: generic_params.clone(),
+                    flattened_groups: Vec::new(),
                 };
                 variant_class_definitions.push(content_model.render());
 
@@ -4712,6 +4836,7 @@ fn render_adjacently_tagged_enum(
             is_tuple: false,
             is_generic,
             generic_params: generic_params.clone(),
+            flattened_groups: Vec::new(),
         };
 
         variant_class_definitions.push(variant_template.render());
@@ -4857,6 +4982,7 @@ fn render_externally_tagged_enum(
                     is_tuple: true,
                     is_generic: !generic_params.is_empty(),
                     generic_params: generic_params.clone(),
+                    flattened_groups: Vec::new(),
                 };
 
                 variant_models.push(variant_model.render());
@@ -4952,6 +5078,7 @@ fn render_externally_tagged_enum(
                     is_tuple: false,
                     is_generic: !generic_params.is_empty(),
                     generic_params: generic_params.clone(),
+                    flattened_groups: Vec::new(),
                 };
 
                 variant_models.push(variant_model.render());
@@ -5160,7 +5287,7 @@ fn render_internally_tagged_enum(
                                     implemented_types,
                                     class_names,
                                     &generic_params,
-                                    struct_field.required,
+                                    flattened_group_required(struct_field),
                                     0,
                                     used_type_vars,
                                     Some(struct_field.name()),
@@ -5278,6 +5405,7 @@ fn render_internally_tagged_enum(
             is_tuple: false,
             is_generic,
             generic_params: generic_params.clone(),
+            flattened_groups: variant_flattened_groups(variant, schema),
         };
 
         variant_class_definitions.push(variant_template.render());
@@ -5494,6 +5622,7 @@ fn render_untagged_enum(
             is_tuple: false,
             is_generic: !generic_params.is_empty(),
             generic_params: generic_params.clone(),
+            flattened_groups: Vec::new(),
         };
 
         variant_classes.push(variant_template.render());
@@ -6805,6 +6934,7 @@ pub mod templates {
         pub has_forward_compatible_enums: bool,
         pub has_typed_flattened_enum: bool,
         pub has_field_validators: bool,
+        pub has_model_validators: bool,
     }
 
     pub struct DataClass {
@@ -6814,6 +6944,16 @@ pub mod templates {
         pub is_tuple: bool,
         pub is_generic: bool,
         pub generic_params: Vec<String>,
+        pub flattened_groups: Vec<FlattenedGroup>,
+    }
+
+    /// The fields an optional flattened group contributes to a model. Serde
+    /// writes all of the group or none of it.
+    #[derive(Clone, Debug, Default, PartialEq)]
+    pub struct FlattenedGroup {
+        pub fields: Vec<String>,
+        /// The fields every present group has.
+        pub required: Vec<String>,
     }
 
     impl DataClass {
@@ -6932,6 +7072,10 @@ pub mod templates {
                 .unwrap();
             }
             s.push_str(&render_null_validator(&self.fields, &self.generic_params));
+            s.push_str(&render_flattened_group_validator(
+                &self.fields,
+                &self.flattened_groups,
+            ));
             writeln!(s).unwrap();
             s
         }
@@ -6957,6 +7101,42 @@ pub mod templates {
         format!(
             "\n    @field_validator({}, mode='before')\n    @classmethod\n    def _reflectapi_reject_null(cls, value):\n        if value is None:\n            raise ValueError('Field may be omitted but cannot be null')\n        return value\n",
             names.join(", ")
+        )
+    }
+
+    fn render_flattened_group_validator(fields: &[Field], groups: &[FlattenedGroup]) -> String {
+        let has_field = |name: &String| fields.iter().any(|field| &field.name == name);
+        let tuple = |names: &[String]| {
+            let names = names
+                .iter()
+                .map(|name| super::python_string_literal(name))
+                .collect::<Vec<_>>();
+            match names.as_slice() {
+                [name] => format!("({name},)"),
+                _ => format!("({})", names.join(", ")),
+            }
+        };
+        let groups = groups
+            .iter()
+            // A single field is already all of its group or none of it.
+            .filter(|group| {
+                group.fields.len() > 1
+                    && !group.required.is_empty()
+                    && group.fields.iter().all(has_field)
+            })
+            .map(|group| {
+                format!(
+                    "            ({}, {}),\n",
+                    tuple(&group.fields),
+                    tuple(&group.required)
+                )
+            })
+            .collect::<String>();
+        if groups.is_empty() {
+            return String::new();
+        }
+        format!(
+            "\n    @model_validator(mode='after')\n    def _reflectapi_flattened_groups(self):\n        for fields, required in (\n{groups}        ):\n            given = self.model_fields_set.intersection(fields)\n            missing = set(required) - self.model_fields_set\n            if given and missing:\n                raise ValueError(f'Optional flattened group with {{sorted(given)}} is missing {{sorted(missing)}}')\n        return self\n"
         )
     }
 
@@ -8874,6 +9054,8 @@ mod tests {
         let facts = FieldWireFacts {
             type_name: "Wrapper",
             required: false,
+            named: true,
+            flattened: false,
         };
         for nullable in [
             "int | None",
@@ -8922,6 +9104,7 @@ mod tests {
             is_tuple: false,
             is_generic: false,
             generic_params: vec![],
+            flattened_groups: Vec::new(),
         };
         let python = model.render();
         assert!(python.contains("def model_post_init(self, _context: Any) -> None:"));

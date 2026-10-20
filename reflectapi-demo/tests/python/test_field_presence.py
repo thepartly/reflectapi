@@ -62,6 +62,15 @@ def test_struct_variants_flatten_and_option_type_parameters() -> None:
     Equal.model_validate({})
 
 
+@pytest.mark.parametrize("model", [input.OptionalFlat, output.OptionalFlat])
+def test_optional_flattened_group_is_all_or_none(model: type) -> None:
+    assert model.model_validate({"id": 1}).model_dump(exclude_unset=True) == {"id": 1}
+    model.model_validate({"id": 1, "left": 2, "right": 3})
+    for partial in ({"left": 2}, {"right": 3}):
+        with pytest.raises(ValidationError):
+            model.model_validate({"id": 1, **partial})
+
+
 @pytest.mark.parametrize("asynchronous", [False, True])
 @pytest.mark.parametrize("explicit_null", [False, True])
 @pytest.mark.parametrize("flattened", [False, True])

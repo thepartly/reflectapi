@@ -22,11 +22,27 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                   {
                     "oneOf": [
                       {
-                        "description": "Null",
-                        "type": "null"
+                        "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenInner"
                       },
                       {
-                        "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenInner"
+                        "not": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "inner_a"
+                              ],
+                              "properties": {}
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "inner_b"
+                              ],
+                              "properties": {}
+                            }
+                          ]
+                        }
                       }
                     ]
                   },
@@ -58,11 +74,27 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                     {
                       "oneOf": [
                         {
-                          "description": "Null",
-                          "type": "null"
+                          "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenInner"
                         },
                         {
-                          "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenInner"
+                          "not": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "inner_a"
+                                ],
+                                "properties": {}
+                              },
+                              {
+                                "type": "object",
+                                "required": [
+                                  "inner_b"
+                                ],
+                                "properties": {}
+                              }
+                            ]
+                          }
                         }
                       ]
                     },

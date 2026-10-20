@@ -1,0 +1,126 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestStructWithFlattenOptionalWithoutAttributes"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestStructWithFlattenOptionalWithoutAttributes"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.TestStructWithFlattenNested": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestStructWithFlattenNested",
+        "required": [
+          "f"
+        ],
+        "properties": {
+          "f": {
+            "$ref": "#/components/schemas/u8"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.input.TestStructWithFlattenOptionalWithoutAttributes": {
+        "allOf": [
+          {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "f"
+                  ],
+                  "properties": {}
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.input.TestStructWithFlattenOptionalWithoutAttributes",
+            "required": [
+              "a"
+            ],
+            "properties": {
+              "a": {
+                "$ref": "#/components/schemas/u8"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.output.TestStructWithFlattenOptionalWithoutAttributes": {
+        "allOf": [
+          {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithFlattenNested"
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "f"
+                  ],
+                  "properties": {}
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.output.TestStructWithFlattenOptionalWithoutAttributes",
+            "required": [
+              "a"
+            ],
+            "properties": {
+              "a": {
+                "$ref": "#/components/schemas/u8"
+              }
+            }
+          }
+        ]
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

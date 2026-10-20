@@ -44,6 +44,19 @@ pub mod fixtures {
     }
 
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct Pair {
+        pub left: u32,
+        pub right: u32,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct OptionalFlat {
+        pub id: u32,
+        #[serde(flatten)]
+        pub pair: Option<Pair>,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct Wrapper<T> {
         pub value: Option<T>,
     }
@@ -85,6 +98,10 @@ fn schema() -> reflectapi::Schema {
         .route(
             |_: (), input: fixtures::Flat, _: reflectapi::Empty| async { input },
             |b| b.name("fields.flat"),
+        )
+        .route(
+            |_: (), input: fixtures::OptionalFlat, _: reflectapi::Empty| async { input },
+            |b| b.name("fields.optional_flat"),
         )
         .route(
             |_: (), input: fixtures::Wrapper<String>, _: reflectapi::Empty| async { input },
