@@ -11,7 +11,8 @@ use reflectapi_schema::{Field, Fields, Representation, Type, TypeReference};
 
 use super::presence::{resolve_field_wire_contract, FieldWireFacts, KeyPresence};
 
-/// Flattening deeper than this is treated as unknown.
+/// Flattening deeper than this is treated as unknown. The outermost flattened
+/// field's type is at depth 0, as in Python's `collect_flattened_fields`.
 const MAX_DEPTH: usize = 10;
 
 /// Resolves a type name in the typespace the backend is describing.
@@ -65,7 +66,7 @@ impl<'a> FlattenedGroup<'a> {
             field,
             optional,
             layout: type_ref.map_or(Layout::Unknown, |type_ref| {
-                Layout::of_type(type_ref, lookup, depth + 1)
+                Layout::of_type(type_ref, lookup, depth)
             }),
         }
     }
@@ -117,7 +118,7 @@ impl<'a> Layout<'a> {
             if field.flattened() {
                 layout
                     .flattened
-                    .push(FlattenedGroup::at_depth(field, lookup, depth));
+                    .push(FlattenedGroup::at_depth(field, lookup, depth + 1));
             } else if field.is_named() {
                 layout.fields.push(field);
             } else {
@@ -313,6 +314,34 @@ mod tests {
         let layout = Layout::of_type(&"Priority".into(), &lookup_in(&types), 0);
         assert_eq!(layout.keys().unwrap(), BTreeSet::from(["deadline", "kind"]));
         assert!(layout.has_required_key());
+    }
+
+    #[test]
+    fn ten_nested_flattens_are_followed_and_an_eleventh_is_not() {
+        let chain = |nested: usize| {
+            let mut types = (0..nested)
+                .map(|i| {
+                    strukt(
+                        &format!("S{i}"),
+                        vec![flattened("next", format!("S{}", i + 1).as_str().into())],
+                    )
+                })
+                .collect::<Vec<_>>();
+            types.push(strukt(
+                &format!("S{nested}"),
+                vec![field("leaf", "u32", true)],
+            ));
+            types
+        };
+        let parent = flattened("group", option_of("S0"));
+        let known = |types: &[Type]| {
+            FlattenedGroup::of(&parent, &lookup_in(types))
+                .layout
+                .keys()
+                .is_some()
+        };
+        assert!(known(&chain(10)));
+        assert!(!known(&chain(11)));
     }
 
     #[test]
