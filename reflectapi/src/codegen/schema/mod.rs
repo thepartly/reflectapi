@@ -7,6 +7,7 @@
 #![allow(dead_code)]
 
 mod ids;
+mod layout;
 mod normalize;
 pub(crate) mod presence;
 mod semantic;
@@ -16,6 +17,7 @@ mod symbol;
 // actually consume is re-exported; everything else stays accessible as
 // `self::ids::*`, `self::normalize::*`, etc. for the module's own tests.
 pub(crate) use self::ids::{build_schema_ids, SchemaIds};
+pub(crate) use self::layout::{FlattenedGroup, Layout};
 pub(crate) use self::normalize::{Consolidation, Naming, Normalizer, PipelineBuilder};
 pub(crate) use self::presence::{resolve_field_wire_contract, FieldWireFacts, KeyPresence};
 pub(crate) use self::semantic::{

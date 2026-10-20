@@ -1511,35 +1511,26 @@ impl Converter<'_> {
         kind: Kind,
         field: &crate::Field,
     ) -> InlineOrRef<Schema> {
-        let type_ref = field.type_ref();
-        let contract =
-            schema_codegen::resolve_field_wire_contract(schema_codegen::FieldWireFacts::of(field));
-        let ([inner], false) = (
-            type_ref.arguments.as_slice(),
-            contract.flattened_group_required(),
-        ) else {
-            return self.convert_type_ref(schema, kind, type_ref);
+        let typespace = match kind {
+            Kind::Input => &schema.input_types,
+            Kind::Output => &schema.output_types,
+        };
+        let group = schema_codegen::FlattenedGroup::of(field, &|name| typespace.get_type(name));
+        let ([inner], true) = (field.type_ref().arguments.as_slice(), group.optional) else {
+            return self.convert_type_ref(schema, kind, field.type_ref());
         };
         let inner_schema = self.convert_type_ref(schema, kind, inner);
-        let keys = match self.group_keys(schema, kind, inner, 0) {
-            Some(GroupKeys {
-                keys,
-                has_required: true,
-            }) => keys,
-            // With no required key an absent group already validates as the
-            // inner type; with unknown keys it can't be described.
-            Some(GroupKeys {
-                has_required: false,
-                ..
-            })
-            | None => return inner_schema,
+        // With no required key an absent group already validates as the
+        // inner type; with unknown keys it can't be described.
+        let (Some(keys), true) = (group.layout.keys(), group.layout.has_required_key()) else {
+            return inner_schema;
         };
-        let has_key = |key: String| {
+        let has_key = |key: &str| {
             Inline(Schema::Flat(FlatSchema {
                 description: String::new(),
                 ty: Type::Object {
                     title: String::new(),
-                    required: [key].into(),
+                    required: [key.to_owned()].into(),
                     properties: BTreeMap::new(),
                 },
             }))
@@ -1556,89 +1547,6 @@ impl Converter<'_> {
             title: String::new(),
             subschemas: vec![inner_schema, Inline(absent)],
         })
-    }
-
-    /// Every key a value of `type_ref` may have, or `None` when its keys
-    /// aren't known from the schema (e.g. an externally tagged enum).
-    fn group_keys(
-        &self,
-        schema: &crate::Schema,
-        kind: Kind,
-        type_ref: &crate::TypeReference,
-        depth: usize,
-    ) -> Option<GroupKeys> {
-        if depth > 8 {
-            return None;
-        }
-        let type_def = match kind {
-            Kind::Input => schema.input_types.get_type(&type_ref.name),
-            Kind::Output => schema.output_types.get_type(&type_ref.name),
-        };
-        match type_def? {
-            crate::Type::Struct(strukt) if !strukt.transparent() => {
-                self.fields_keys(schema, kind, &strukt.fields, depth)
-            }
-            crate::Type::Enum(enm) => match &enm.representation {
-                crate::Representation::Internal { tag } => {
-                    let mut group = GroupKeys {
-                        keys: [tag.clone()].into(),
-                        has_required: true,
-                    };
-                    for variant in enm.variants() {
-                        let variant_keys = match &variant.fields {
-                            crate::Fields::Unnamed(fields) => match fields.as_slice() {
-                                [newtype] => {
-                                    self.group_keys(schema, kind, newtype.type_ref(), depth + 1)?
-                                }
-                                _ => return None,
-                            },
-                            fields => self.fields_keys(schema, kind, fields, depth)?,
-                        };
-                        group.keys.extend(variant_keys.keys);
-                    }
-                    Some(group)
-                }
-                crate::Representation::Adjacent { tag, content } => Some(GroupKeys {
-                    keys: [tag.clone(), content.clone()].into(),
-                    has_required: true,
-                }),
-                crate::Representation::External | crate::Representation::None => None,
-            },
-            _ => None,
-        }
-    }
-
-    fn fields_keys(
-        &self,
-        schema: &crate::Schema,
-        kind: Kind,
-        fields: &crate::Fields,
-        depth: usize,
-    ) -> Option<GroupKeys> {
-        let mut group = GroupKeys {
-            keys: BTreeSet::new(),
-            has_required: false,
-        };
-        for field in fields.iter() {
-            if field.flattened {
-                let contract = schema_codegen::resolve_field_wire_contract(
-                    schema_codegen::FieldWireFacts::of(field),
-                );
-                let type_ref = match field.type_ref().arguments.as_slice() {
-                    [inner] if !contract.flattened_group_required() => inner,
-                    _ => field.type_ref(),
-                };
-                let nested = self.group_keys(schema, kind, type_ref, depth + 1)?;
-                group.has_required |= nested.has_required && contract.flattened_group_required();
-                group.keys.extend(nested.keys);
-            } else if field.is_named() {
-                group.has_required |= field.required;
-                group.keys.insert(field.serde_name().to_owned());
-            } else {
-                return None;
-            }
-        }
-        Some(group)
     }
 
     fn struct_to_schema(
@@ -1718,13 +1626,6 @@ impl Converter<'_> {
 
         Inline(s)
     }
-}
-
-/// The keys a flattened group's type contributes to its parent.
-struct GroupKeys {
-    keys: BTreeSet<String>,
-    /// Some key is present in every value, so an absent group isn't a value.
-    has_required: bool,
 }
 
 fn primitive_fallback_type_ref(

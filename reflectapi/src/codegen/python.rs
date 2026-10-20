@@ -875,76 +875,41 @@ fn materialize_nested_policy_flatten(
 /// other flattened structs, as the model fields each contributes.
 fn optional_flattened_groups<'a>(
     fields: impl IntoIterator<Item = &'a reflectapi_schema::Field>,
-    schema: &Schema,
+    schema: &'a Schema,
 ) -> Vec<templates::FlattenedGroup> {
-    fn flattened_struct<'s>(
-        field: &reflectapi_schema::Field,
-        schema: &'s Schema,
-    ) -> Option<&'s reflectapi_schema::Struct> {
-        match schema.get_type(resolve_flattened_type_name(&field.type_ref)) {
-            Some(Type::Struct(inner)) => Some(inner),
-            _ => None,
-        }
-    }
-
-    /// `None` when a member isn't a struct field, e.g. a flattened enum.
-    fn members(
-        fields: &reflectapi_schema::Fields,
-        schema: &Schema,
-        depth: usize,
-    ) -> Option<templates::FlattenedGroup> {
-        let mut group = templates::FlattenedGroup::default();
-        for field in fields.iter() {
-            if !field.flattened() {
-                let (name, _) = sanitize_field_name_with_alias(field.name(), field.serde_name());
-                if field.required {
-                    group.required.push(name.clone());
-                }
-                group.fields.push(name);
-                continue;
-            }
-            if depth > 10 {
-                return None;
-            }
-            let nested = members(&flattened_struct(field, schema)?.fields, schema, depth + 1)?;
-            if flattened_group_required(field) {
-                group.required.extend(nested.required);
-            }
-            group.fields.extend(nested.fields);
-        }
-        Some(group)
-    }
-
-    fn collect<'a>(
-        fields: impl IntoIterator<Item = &'a reflectapi_schema::Field>,
-        schema: &Schema,
-        depth: usize,
-        groups: &mut Vec<templates::FlattenedGroup>,
-    ) {
-        for field in fields.into_iter().filter(|field| field.flattened()) {
-            let Some(inner) = flattened_struct(field, schema) else {
-                continue;
-            };
-            if depth > 10 {
-                return;
-            }
-            if !flattened_group_required(field) {
-                groups.extend(members(&inner.fields, schema, depth + 1));
-            }
-            collect(inner.fields.iter(), schema, depth + 1, groups);
-        }
-    }
-
+    let lookup = |name: &str| schema.get_type(name);
+    let names = |fields: Vec<&reflectapi_schema::Field>| {
+        fields
+            .into_iter()
+            .map(|field| sanitize_field_name_with_alias(field.name(), field.serde_name()).0)
+            .collect::<Vec<_>>()
+    };
     let mut groups = Vec::new();
-    collect(fields, schema, 0, &mut groups);
+    for field in fields.into_iter().filter(|field| field.flattened()) {
+        let group = schema_codegen::FlattenedGroup::of(field, &lookup);
+        let schema_codegen::Layout::Struct(layout) = &group.layout else {
+            continue;
+        };
+        let nested = layout.optional_struct_groups();
+        let optional = group.optional.then_some(layout);
+        for layout in optional.into_iter().chain(nested) {
+            // A group whose fields aren't all known can't be checked.
+            if let Some(fields) = layout.all_fields() {
+                groups.push(templates::FlattenedGroup {
+                    fields: names(fields),
+                    required: names(layout.required_fields()),
+                });
+            }
+        }
+    }
     groups
 }
 
 /// The optional flattened groups of a variant's fields, or of the struct a
 /// newtype variant wraps.
-fn variant_flattened_groups(
-    variant: &reflectapi_schema::Variant,
-    schema: &Schema,
+fn variant_flattened_groups<'a>(
+    variant: &'a reflectapi_schema::Variant,
+    schema: &'a Schema,
 ) -> Vec<templates::FlattenedGroup> {
     match &variant.fields {
         reflectapi_schema::Fields::Unnamed(fields) => match fields.as_slice() {
