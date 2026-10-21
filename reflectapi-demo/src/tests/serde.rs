@@ -332,6 +332,65 @@ fn test_struct_with_flatten_optional_without_attributes() {
 }
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestFlattenPair {
+    left: u32,
+    right: u32,
+}
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestFlattenMiddle {
+    middle: u32,
+    #[serde(flatten)]
+    pair: Option<TestFlattenPair>,
+}
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestFlattenStart {
+    from: u32,
+}
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestFlattenRange {
+    #[serde(flatten)]
+    start: TestFlattenStart,
+    to: u32,
+}
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+#[serde(transparent)]
+struct TestFlattenTransparentRange(TestFlattenRange);
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithNestedOptionalFlatten {
+    id: u32,
+    #[serde(flatten)]
+    middle: TestFlattenMiddle,
+    #[serde(flatten)]
+    range: Option<TestFlattenTransparentRange>,
+}
+#[test]
+fn test_struct_with_nested_optional_flatten() {
+    // An optional group nested in a required one, and an optional group of a
+    // transparent wrapper (reflection describes the wrapped struct) that itself
+    // flattens a struct: each is all of its keys or none of them.
+    assert_snapshot!(TestStructWithNestedOptionalFlatten);
+
+    let parsed: TestStructWithNestedOptionalFlatten =
+        serde_json::from_str(r#"{"id":1,"middle":2,"from":3,"to":4}"#).unwrap();
+    assert!(parsed.middle.pair.is_none());
+    assert_eq!(
+        parsed
+            .range
+            .as_ref()
+            .map(|range| (range.0.start.from, range.0.to)),
+        Some((3, 4))
+    );
+    let absent = TestStructWithNestedOptionalFlatten {
+        range: None,
+        ..parsed
+    };
+    assert_eq!(
+        serde_json::to_string(&absent).unwrap(),
+        r#"{"id":1,"middle":2}"#
+    );
+}
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithFlattenOptionalAndRequired {
     #[serde(flatten, skip_serializing_if = "Option::is_none", default)]
     g: Option<TestStructWithFlattenNested>,
