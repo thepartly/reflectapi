@@ -38,8 +38,9 @@ axum::serve(listener, app).await?;
   API module: authentication for one, a different timeout for another.
 - `app_state` is cloned into every handler call. Use cheap clones, such as an
   `Arc`.
-- Stream routes respond with Server-Sent Events, one `data:` event per item.
-  An error returned before the stream opens is a normal HTTP error response.
+- Stream routes respond with Server-Sent Events, one `data:` event per item,
+  with an `id:` for items the route wraps in `reflectapi::Event`. An error
+  returned before the stream opens is a normal HTTP error response.
 
 ## The schema
 

@@ -233,6 +233,36 @@ opens are returned as a normal HTTP 4xx/5xx response, not as SSE events; the
 server does not emit heartbeats or end-of-stream markers, so streams end
 when the connection closes.
 
+A stream can give its events ids, so that it can be resumed: the handler
+yields each item wrapped in `reflectapi::Event`, usually with an id the item
+already carries, and the event is sent with the standard SSE `id:` field
+before its `data:`. A route that declares the `last-event-id` request header
+gets the id of the last event the client received, when the client, or a
+server or proxy resuming the stream for it, sends one, and continues after
+it. The schema, and so every generated client, shows only the item:
+
+```rust,ignore
+#[derive(serde::Deserialize, reflectapi::Input)]
+struct Headers {
+    #[serde(rename = "last-event-id")]
+    last_event_id: Option<String>,
+}
+
+fn pets_events(
+    state: AppState,
+    _: reflectapi::Empty,
+    headers: Headers,
+) -> Result<impl Stream<Item = reflectapi::Event<PetEvent>>, Error> {
+    let events = state.events_after(headers.last_event_id.as_deref());
+    Ok(events.map(|event: PetEvent| reflectapi::Event::new(event.seq, event)))
+}
+```
+
+The id is a `reflectapi::EventId`. Integers and `uuid::Uuid` convert to one
+as is; a string goes through `EventId::new`, which returns an error if it
+contains a line break or NUL, as such an id cannot be sent. Generated clients
+read the ids but do not yet send `Last-Event-ID` when they reconnect.
+
 | Output | Streaming client surface |
 |--------|--------------------------|
 | TypeScript | Method returns `Promise<Result<AsyncIterable<Item>, Err<Error>>>`; consume with `for await`. |

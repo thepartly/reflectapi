@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Event ids for stream routes
+
+A stream route can give its events Server-Sent Events ids, so that a client, or a server or proxy resuming the stream for it, can continue after the last event it received: the handler yields each item wrapped in `reflectapi::Event`, and the route declares the `last-event-id` request header to read the id back. Items that are not wrapped are sent as before, and the schema and generated clients are unchanged: they show only the item. See [Streaming Endpoints](https://thepartly.github.io/reflectapi/clients/index.html#streaming-endpoints).
+
+```rust
+fn pets_events(state: AppState, _: reflectapi::Empty, headers: Headers)
+    -> Result<impl Stream<Item = reflectapi::Event<PetEvent>>, Error>
+{
+    let events = state.events_after(headers.last_event_id.as_deref());
+    Ok(events.map(|event: PetEvent| reflectapi::Event::new(event.seq, event)))
+}
+```
+
+- **Breaking, for integrations of `reflectapi::dispatch`:** a `Reply::Stream` item is an `Event<String>`, the serialized item and its id, instead of a `String`, and `dispatch::sse_event` takes an `&Event<String>` and writes the `id:` line before the `data:` lines. Code that uses `Builder::stream_route` or the axum adapter is unchanged.
+- An event's id is a `reflectapi::EventId`. Integers and `uuid::Uuid` convert to one as is; a string goes through `EventId::new`, which returns an `InvalidEventId` error if it contains a line break or NUL, so the handler sees the error instead of the stream ending.
+
 ## 0.21.0-alpha.1
 
 Serve a reflectapi API from runtimes that bring their own HTTP server, such as Cloudflare-compatible Workers, and build the schema only where it is needed. See [Serving with celld and Cloudflare Workers](https://thepartly.github.io/reflectapi/serving/workers.html) and [Integrating Other Servers](https://thepartly.github.io/reflectapi/serving/other-servers.html).

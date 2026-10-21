@@ -157,8 +157,8 @@ pub mod codegen;
 
 #[cfg(feature = "builder")]
 pub use self::builder::{
-    BuildError, BuildErrors, BuildMode, Builder, ContentType, DispatchOnly, IntoResult,
-    RouteBuilder, Router, StatusCode, WithSchema,
+    BuildError, BuildErrors, BuildMode, Builder, ContentType, DispatchOnly, Event, EventId,
+    IntoResult, InvalidEventId, RouteBuilder, Router, StatusCode, StreamItem, WithSchema,
 };
 #[cfg(feature = "builder")]
 use self::builder::{Handler, HandlerCallback};
