@@ -42,10 +42,15 @@ pub(crate) enum Layout<'a> {
     Unknown,
 }
 
+/// A struct's fields in declaration order.
 pub(crate) struct StructLayout<'a> {
-    /// Named fields with keys of their own.
-    pub fields: Vec<&'a Field>,
-    pub flattened: Vec<FlattenedGroup<'a>>,
+    pub members: Vec<Member<'a>>,
+}
+
+pub(crate) enum Member<'a> {
+    /// A named field with a key of its own.
+    Key(&'a Field),
+    Flattened(FlattenedGroup<'a>),
 }
 
 impl<'a> FlattenedGroup<'a> {
@@ -110,22 +115,17 @@ impl<'a> Layout<'a> {
     }
 
     fn of_fields(fields: &'a Fields, lookup: Lookup<'a, '_>, depth: usize) -> Self {
-        let mut layout = StructLayout {
-            fields: Vec::new(),
-            flattened: Vec::new(),
-        };
+        let mut members = Vec::new();
         for field in fields.iter() {
-            if field.flattened() {
-                layout
-                    .flattened
-                    .push(FlattenedGroup::at_depth(field, lookup, depth + 1));
+            members.push(if field.flattened() {
+                Member::Flattened(FlattenedGroup::at_depth(field, lookup, depth + 1))
             } else if field.is_named() {
-                layout.fields.push(field);
+                Member::Key(field)
             } else {
                 return Layout::Unknown;
-            }
+            });
         }
-        Layout::Struct(layout)
+        Layout::Struct(StructLayout { members })
     }
 
     /// Every key a value may have, or `None` if some aren't known.
@@ -138,9 +138,13 @@ impl<'a> Layout<'a> {
     fn collect_keys(&self, keys: &mut BTreeSet<&'a str>) -> Option<()> {
         match self {
             Layout::Struct(layout) => {
-                keys.extend(layout.fields.iter().map(|field| field.serde_name()));
-                for group in &layout.flattened {
-                    group.layout.collect_keys(keys)?;
+                for member in &layout.members {
+                    match member {
+                        Member::Key(field) => {
+                            keys.insert(field.serde_name());
+                        }
+                        Member::Flattened(group) => group.layout.collect_keys(keys)?,
+                    }
                 }
             }
             Layout::InternallyTagged { tag, variants } => {
@@ -160,13 +164,10 @@ impl<'a> Layout<'a> {
     /// Some key is present in every value, so an absent group isn't a value.
     pub fn has_required_key(&self) -> bool {
         match self {
-            Layout::Struct(layout) => {
-                layout.fields.iter().any(|field| is_required(field))
-                    || layout
-                        .flattened
-                        .iter()
-                        .any(|group| !group.optional && group.layout.has_required_key())
-            }
+            Layout::Struct(layout) => layout.members.iter().any(|member| match member {
+                Member::Key(field) => is_required(field),
+                Member::Flattened(group) => !group.optional && group.layout.has_required_key(),
+            }),
             Layout::InternallyTagged { .. } | Layout::AdjacentlyTagged { .. } => true,
             Layout::Unknown => false,
         }
@@ -177,12 +178,16 @@ impl<'a> StructLayout<'a> {
     /// Every field with a key, through flattened structs, or `None` if a
     /// flattened group isn't a struct.
     pub fn all_fields(&self) -> Option<Vec<&'a Field>> {
-        let mut fields = self.fields.clone();
-        for group in &self.flattened {
-            let Layout::Struct(layout) = &group.layout else {
-                return None;
-            };
-            fields.extend(layout.all_fields()?);
+        let mut fields = Vec::new();
+        for member in &self.members {
+            match member {
+                Member::Key(field) => fields.push(*field),
+                Member::Flattened(FlattenedGroup {
+                    layout: Layout::Struct(layout),
+                    ..
+                }) => fields.extend(layout.all_fields()?),
+                Member::Flattened(_) => return None,
+            }
         }
         Some(fields)
     }
@@ -190,15 +195,16 @@ impl<'a> StructLayout<'a> {
     /// The fields every value has, through flattened structs that are
     /// always present.
     pub fn required_fields(&self) -> Vec<&'a Field> {
-        let mut fields = self
-            .fields
-            .iter()
-            .copied()
-            .filter(|field| is_required(field))
-            .collect::<Vec<_>>();
-        for group in self.flattened.iter().filter(|group| !group.optional) {
-            if let Layout::Struct(layout) = &group.layout {
-                fields.extend(layout.required_fields());
+        let mut fields = Vec::new();
+        for member in &self.members {
+            match member {
+                Member::Key(field) if is_required(field) => fields.push(*field),
+                Member::Flattened(FlattenedGroup {
+                    optional: false,
+                    layout: Layout::Struct(layout),
+                    ..
+                }) => fields.extend(layout.required_fields()),
+                _ => {}
             }
         }
         fields
@@ -208,9 +214,14 @@ impl<'a> StructLayout<'a> {
     /// flattened structs.
     pub fn optional_struct_groups(&self) -> Vec<&StructLayout<'a>> {
         let mut groups = Vec::new();
-        for group in &self.flattened {
-            if let Layout::Struct(layout) = &group.layout {
-                if group.optional {
+        for member in &self.members {
+            if let Member::Flattened(FlattenedGroup {
+                optional,
+                layout: Layout::Struct(layout),
+                ..
+            }) = member
+            {
+                if *optional {
                     groups.push(layout);
                 }
                 groups.extend(layout.optional_struct_groups());
@@ -256,14 +267,14 @@ mod tests {
     }
 
     #[test]
-    fn an_optional_group_lists_every_key_and_its_required_ones() {
+    fn an_optional_group_lists_its_keys_and_required_fields_in_declaration_order() {
         let types = [
             strukt(
                 "Pair",
                 vec![
                     field("left", "u32", true),
-                    field("right", "u32", false),
                     flattened("extra", "Extra".into()),
+                    field("right", "u32", false),
                 ],
             ),
             strukt("Extra", vec![field("note", "u32", true)]),
@@ -277,7 +288,7 @@ mod tests {
         let names = |fields: Vec<&Field>| fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>();
         assert_eq!(
             names(layout.all_fields().unwrap()),
-            ["left", "right", "note"]
+            ["left", "note", "right"]
         );
         assert_eq!(names(layout.required_fields()), ["left", "note"]);
         assert_eq!(

@@ -1,0 +1,365 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+assertion_line: 371
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::input::TestStructWithNestedOptionalFlatten"
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::output::TestStructWithNestedOptionalFlatten"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::input::TestFlattenMiddle",
+        "fields": {
+          "named": [
+            {
+              "name": "middle",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "pair",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::serde::TestFlattenPair"
+                  }
+                ]
+              },
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenPair",
+        "fields": {
+          "named": [
+            {
+              "name": "left",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "right",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenRange",
+        "fields": {
+          "named": [
+            {
+              "name": "start",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestFlattenStart"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "to",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenStart",
+        "fields": {
+          "named": [
+            {
+              "name": "from",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::input::TestStructWithNestedOptionalFlatten",
+        "fields": {
+          "named": [
+            {
+              "name": "id",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "middle",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::input::TestFlattenMiddle"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "range",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::serde::TestFlattenRange"
+                  }
+                ]
+              },
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::output::TestFlattenMiddle",
+        "fields": {
+          "named": [
+            {
+              "name": "middle",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "pair",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::serde::TestFlattenPair"
+                  }
+                ]
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenPair",
+        "fields": {
+          "named": [
+            {
+              "name": "left",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "right",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenRange",
+        "fields": {
+          "named": [
+            {
+              "name": "start",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestFlattenStart"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "to",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestFlattenStart",
+        "fields": {
+          "named": [
+            {
+              "name": "from",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::output::TestStructWithNestedOptionalFlatten",
+        "fields": {
+          "named": [
+            {
+              "name": "id",
+              "type": {
+                "name": "u32"
+              },
+              "required": true
+            },
+            {
+              "name": "middle",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::output::TestFlattenMiddle"
+              },
+              "required": true,
+              "flattened": true
+            },
+            {
+              "name": "range",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::serde::TestFlattenRange"
+                  }
+                ]
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  }
+}

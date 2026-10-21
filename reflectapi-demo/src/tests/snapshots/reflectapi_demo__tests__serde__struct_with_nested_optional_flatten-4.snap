@@ -1,0 +1,276 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+assertion_line: 371
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestStructWithNestedOptionalFlatten"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestStructWithNestedOptionalFlatten"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.TestFlattenPair": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestFlattenPair",
+        "required": [
+          "left",
+          "right"
+        ],
+        "properties": {
+          "left": {
+            "$ref": "#/components/schemas/u32"
+          },
+          "right": {
+            "$ref": "#/components/schemas/u32"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.TestFlattenRange": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenStart"
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.TestFlattenRange",
+            "required": [
+              "to"
+            ],
+            "properties": {
+              "to": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.TestFlattenStart": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestFlattenStart",
+        "required": [
+          "from"
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/u32"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.input.TestFlattenMiddle": {
+        "allOf": [
+          {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenPair"
+              },
+              {
+                "not": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "left"
+                      ],
+                      "properties": {}
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "right"
+                      ],
+                      "properties": {}
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.input.TestFlattenMiddle",
+            "required": [
+              "middle"
+            ],
+            "properties": {
+              "middle": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.input.TestStructWithNestedOptionalFlatten": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestFlattenMiddle"
+          },
+          {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenRange"
+              },
+              {
+                "not": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "from"
+                      ],
+                      "properties": {}
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "to"
+                      ],
+                      "properties": {}
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.input.TestStructWithNestedOptionalFlatten",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.output.TestFlattenMiddle": {
+        "allOf": [
+          {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenPair"
+              },
+              {
+                "not": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "left"
+                      ],
+                      "properties": {}
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "right"
+                      ],
+                      "properties": {}
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.output.TestFlattenMiddle",
+            "required": [
+              "middle"
+            ],
+            "properties": {
+              "middle": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.output.TestStructWithNestedOptionalFlatten": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestFlattenMiddle"
+          },
+          {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestFlattenRange"
+              },
+              {
+                "not": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "from"
+                      ],
+                      "properties": {}
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "to"
+                      ],
+                      "properties": {}
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.output.TestStructWithNestedOptionalFlatten",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/u32"
+              }
+            }
+          }
+        ]
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}
