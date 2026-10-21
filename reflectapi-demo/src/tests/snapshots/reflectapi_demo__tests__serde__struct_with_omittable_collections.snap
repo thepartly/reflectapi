@@ -1,0 +1,398 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::TestStructWithOmittableCollections"
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::TestStructWithOmittableCollections"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStructWithOmittableCollections",
+        "fields": {
+          "named": [
+            {
+              "name": "list",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "map",
+              "type": {
+                "name": "std::collections::HashMap",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "set",
+              "type": {
+                "name": "std::collections::BTreeSet",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "group",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::serde::TestStructWithOmittableCollectionsGroup"
+                  }
+                ]
+              },
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStructWithOmittableCollectionsGroup",
+        "fields": {
+          "named": [
+            {
+              "name": "tags",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::BTreeSet",
+        "description": "Ordered set type",
+        "parameters": [
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::collections::HashSet",
+          "arguments": [
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashMap",
+        "description": "Key-value map type",
+        "parameters": [
+          {
+            "name": "K"
+          },
+          {
+            "name": "V"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashSet",
+        "description": "Value set type",
+        "parameters": [
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::vec::Vec",
+          "arguments": [
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStructWithOmittableCollections",
+        "fields": {
+          "named": [
+            {
+              "name": "list",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "map",
+              "type": {
+                "name": "std::collections::HashMap",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  },
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "set",
+              "type": {
+                "name": "std::collections::BTreeSet",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "group",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::serde::TestStructWithOmittableCollectionsGroup"
+                  }
+                ]
+              },
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestStructWithOmittableCollectionsGroup",
+        "fields": {
+          "named": [
+            {
+              "name": "tags",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::BTreeSet",
+        "description": "Ordered set type",
+        "parameters": [
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::collections::HashSet",
+          "arguments": [
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashMap",
+        "description": "Key-value map type",
+        "parameters": [
+          {
+            "name": "K"
+          },
+          {
+            "name": "V"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::collections::HashSet",
+        "description": "Value set type",
+        "parameters": [
+          {
+            "name": "V"
+          }
+        ],
+        "fallback": {
+          "name": "std::vec::Vec",
+          "arguments": [
+            {
+              "name": "V"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}
