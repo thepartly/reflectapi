@@ -78,6 +78,9 @@ class TestBasicModels:
         assert "behaviors" not in pet.model_dump()
         with pytest.raises(ValidationError):
             Pet(name="buddy", kind=dog_kind, behaviors=None)
+        # Filling the empty default in place still reaches the wire.
+        pet.behaviors.append(Behavior.model_validate(BehaviorCalm))
+        assert pet.model_dump(mode="json", exclude_unset=True)["behaviors"] == [BehaviorCalm]
 
     def test_pet_details_required_updated_at(self):
         """Test PetDetails requires updated_at field."""

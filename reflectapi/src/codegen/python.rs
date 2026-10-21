@@ -105,6 +105,7 @@ fn resolve_field_optionality_with(
     if absent_reads_empty
         && contract.key == schema_codegen::KeyPresence::Optional
         && !contract.declared_nullable
+        && DEFAULTS_TO_EMPTY.contains(&facts.type_name)
     {
         if let Some(empty) = empty_collection_literal(&field_type) {
             return (true, Some(empty.to_string()), field_type, false);
@@ -125,10 +126,25 @@ fn resolve_field_optionality_with(
     }
 }
 
+/// Collections whose `Default` is always empty. Others that render as a Python
+/// collection, such as `[T; N]` or a custom type falling back to `Vec`, may
+/// default to a non-empty value, so they keep `None` for an omitted key. A custom
+/// `#[serde(default = "...")]` isn't in the schema.
+const DEFAULTS_TO_EMPTY: &[&str] = &[
+    "std::vec::Vec",
+    "std::collections::HashMap",
+    "std::collections::BTreeMap",
+    "std::collections::HashSet",
+    "std::collections::BTreeSet",
+    "indexmap::IndexMap",
+    "indexmap::IndexSet",
+];
+
 /// The empty value of a single collection annotation such as `list[int]`, but
 /// not of a union such as `list[int] | dict[str, int]`. Pydantic copies a
 /// mutable default per instance and leaves it out of `model_fields_set`, so the
-/// literal is safe to share and stays off the wire.
+/// literal is safe to share and stays off the wire; `ReflectapiPartialModel`
+/// sends it once it is edited in place.
 fn empty_collection_literal(annotation: &str) -> Option<&'static str> {
     let annotation = annotation.trim();
     let (prefix, empty) = [
@@ -9133,23 +9149,37 @@ mod tests {
                 "{nonnullable}"
             );
         }
-        for (collection, empty) in [
-            ("list[int | None]", "[]"),
-            ("dict[str, list[int]]", "{}"),
-            ("set[str]", "set()"),
-            ("frozenset[str]", "frozenset()"),
+        for (type_name, collection, empty) in [
+            ("std::vec::Vec", "list[int | None]", "[]"),
+            ("std::collections::HashMap", "dict[str, list[int]]", "{}"),
+            ("std::collections::HashSet", "set[str]", "set()"),
+            ("indexmap::IndexSet", "frozenset[str]", "frozenset()"),
         ] {
+            let facts = FieldWireFacts { type_name, ..facts };
             let (optional, default, annotation, reject_null) =
                 super::resolve_field_optionality(facts, collection.into());
             assert!(optional && !reject_null, "{collection}");
             assert_eq!(default.as_deref(), Some(empty), "{collection}");
             assert_eq!(annotation, collection);
         }
+        let vec = FieldWireFacts {
+            type_name: "std::vec::Vec",
+            ..facts
+        };
         let (_, default, annotation, reject_null) =
-            super::resolve_field_optionality_with(facts, "list[int]".into(), false);
+            super::resolve_field_optionality_with(vec, "list[int]".into(), false);
         assert_eq!(default.as_deref(), Some("None"));
         assert_eq!(annotation, "list[int] | None");
         assert!(reject_null);
+        // A fixed-size array may default to a non-empty value.
+        let array = FieldWireFacts {
+            type_name: "std::array::Array",
+            ..facts
+        };
+        let (_, default, annotation, _) =
+            super::resolve_field_optionality(array, "list[float]".into());
+        assert_eq!(default.as_deref(), Some("None"));
+        assert_eq!(annotation, "list[float] | None");
     }
 
     #[test]
