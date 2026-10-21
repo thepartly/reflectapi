@@ -83,7 +83,10 @@ server sets when it writes the body (axum does, and so do Worker runtimes).
 - Respond `200` with `content-type: text/event-stream` and
   `cache-control: no-cache`.
 - Frame each `Ok` item with `sse_event`, and send it as soon as it arrives:
-  do not buffer the response.
+  do not buffer the response. An item is an `Event<String>`: the serialized
+  value, and the event id if the route gave the item one by wrapping it in
+  `reflectapi::Event`; `sse_event` writes the id as the standard SSE `id:`
+  field.
 - An `Err` item is a value that failed to serialize: log it and end the
   response.
 - reflectapi sends no heartbeats and no end-of-stream marker; the stream ends

@@ -21,6 +21,22 @@ let (schema, _) = api::<reflectapi::WithSchema>().build()?; // build step: codeg
 let routers = api::<reflectapi::DispatchOnly>().build()?;   // serving
 ```
 
+### Event ids for stream routes
+
+A stream route can give its events Server-Sent Events ids, so that a client, or a server or proxy resuming the stream for it, can continue after the last event it received: the handler yields each item wrapped in `reflectapi::Event`, and the route declares the `last-event-id` request header to read the id back. Items that are not wrapped are sent as before, and the schema and generated clients are unchanged: they show only the item. See [Streaming Endpoints](https://thepartly.github.io/reflectapi/clients/index.html#streaming-endpoints).
+
+```rust
+fn pets_events(state: AppState, _: reflectapi::Empty, headers: Headers)
+    -> Result<impl Stream<Item = reflectapi::Event<PetEvent>>, Error>
+{
+    let events = state.events_after(headers.last_event_id.as_deref());
+    Ok(events.map(|event: PetEvent| reflectapi::Event::new(event.seq, event)))
+}
+```
+
+- For integrations of `reflectapi::dispatch`: a `Reply::Stream` item is an `Event<String>`, the serialized item and its id, and `dispatch::sse_event` takes an `&Event<String>` and writes the `id:` line before the `data:` lines.
+- An event's id is a `reflectapi::EventId`. Integers and `uuid::Uuid` convert to one as is; a string goes through `EventId::new`, which returns an `InvalidEventId` error if it contains a line break or NUL, so the handler sees the error instead of the stream ending.
+
 ### Fixed
 
 - A struct that flattens a plain `Option<T>` (no `skip_serializing_if`) is described correctly in generated Python models and OpenAPI. Serde writes all of an optional flattened group's keys or none of them, whatever the field's attributes. The Python response model made the group's fields required, so a valid response without them failed validation; Python models now accept the group's fields together or not at all. OpenAPI described the group as `oneOf: [null, T]`, which rejects an object without the group's keys; it is now `oneOf: [T, { not: { anyOf: [{ required: [<key>] }, ...] } }]`, either a valid `T` or an object with none of the group's keys.

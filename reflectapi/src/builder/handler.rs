@@ -7,7 +7,7 @@ use http::HeaderName;
 
 use crate::{Input, Output};
 
-use super::RouteBuilder;
+use super::{Event, RouteBuilder, StreamItem};
 
 pub struct HandlerInput {
     pub body: bytes::Bytes,
@@ -75,7 +75,7 @@ impl From<ContentType> for http::HeaderValue {
 pub(crate) type HandlerFuture = Pin<Box<dyn Future<Output = HandlerOutput> + Send + 'static>>;
 
 pub(crate) type HandlerStream =
-    Pin<Box<dyn Stream<Item = Result<String, String>> + Send + 'static>>;
+    Pin<Box<dyn Stream<Item = Result<Event<String>, String>> + Send + 'static>>;
 
 pub(crate) enum HandlerCallback<S> {
     Future(Arc<dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync>),
@@ -162,7 +162,7 @@ where
         St: Stream<Item = O> + Send + 'static,
         I: Input + serde::de::DeserializeOwned + Send + 'static,
         H: Input + serde::de::DeserializeOwned + Send + 'static,
-        O: Output + serde::ser::Serialize + Send + 'static,
+        O: StreamItem + Send + 'static,
         E1: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
         S: Send + 'static,
     {
@@ -349,11 +349,11 @@ where
         state: S,
         input: HandlerInput,
         handler: F,
-    ) -> Result<impl Stream<Item = Result<String, String>>, HandlerOutput>
+    ) -> Result<impl Stream<Item = Result<Event<String>, String>>, HandlerOutput>
     where
         I: Input + serde::de::DeserializeOwned,
         H: Input + serde::de::DeserializeOwned,
-        O: Output + serde::ser::Serialize,
+        O: StreamItem,
         E1: Output + serde::ser::Serialize + crate::StatusCode,
         F: Fn(S, I, H) -> Result<St, E1>,
         St: Stream<Item = O> + Send + 'static,
@@ -408,7 +408,11 @@ where
                 }
             })?;
 
-        Ok(st.map(|v| serde_json::to_string(&v).map_err(|err| err.to_string())))
+        Ok(st.map(|item| {
+            let Event { id, data } = item.into_event();
+            let data = serde_json::to_string(&data).map_err(|err| err.to_string())?;
+            Ok(Event { id, data })
+        }))
     }
 }
 

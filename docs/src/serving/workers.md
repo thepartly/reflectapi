@@ -113,7 +113,7 @@ where
             .with_headers(worker_headers(&headers)?)),
         Some(Reply::Stream(items)) => {
             let events = items.map(|item| {
-                item.map(|data| sse_event(&data).into_bytes())
+                item.map(|event| sse_event(&event).into_bytes())
                     .map_err(Error::RustError)
             });
             let headers = Headers::new();

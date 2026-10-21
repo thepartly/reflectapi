@@ -1,3 +1,4 @@
+mod event;
 mod handler;
 mod mode;
 mod result;
@@ -5,6 +6,7 @@ mod result;
 use core::fmt;
 use std::{borrow::Borrow, collections::BTreeSet, error::Error, marker::PhantomData};
 
+pub use event::{Event, EventId, InvalidEventId, StreamItem};
 use futures_util::Stream;
 pub use handler::*;
 pub use mode::{BuildMode, DispatchOnly, WithSchema};
@@ -215,6 +217,8 @@ where
     ///
     /// This method takes a stream handler function and a closure that configures the
     /// route's metadata (like its name, path, and description) using a [`RouteBuilder`].
+    /// The stream yields its items as they are, or each in an [`Event`] to send
+    /// it with an event id.
     pub fn stream_route<F, St, I, O, E1, H>(
         mut self,
         handler: F,
@@ -225,11 +229,11 @@ where
         St: Stream<Item = O> + Send + 'static,
         I: Input + DeserializeOwned + Send + 'static,
         H: Input + DeserializeOwned + Send + 'static,
-        O: Output + Serialize + Send + 'static,
+        O: StreamItem + Send + 'static,
         E1: Output + Serialize + StatusCode + Send + 'static,
     {
         let rb = builder(self.route_defaults());
-        match M::register_function::<I, H, O, E1>(&rb, &mut self.schema, true) {
+        match M::register_function::<I, H, O::Data, E1>(&rb, &mut self.schema, true) {
             Ok(input_headers) => {
                 self.handlers
                     .push(crate::Handler::new_stream(rb, handler, input_headers))

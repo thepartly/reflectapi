@@ -12,7 +12,7 @@
 //! match dispatcher.dispatch(state, &method, &path, &headers, body).await {
 //!     None => not_found(),
 //!     Some(Reply::Complete { status, headers, body }) => respond(status, headers, body),
-//!     Some(Reply::Stream(items)) => respond_sse(items.map(|item| item.map(sse_event))),
+//!     Some(Reply::Stream(events)) => respond_sse(events.map(|event| event.map(|e| sse_event(&e)))),
 //! }
 //! ```
 
@@ -22,7 +22,7 @@ use futures_util::Stream;
 use http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
 
 use crate::builder::{HandlerInput, HandlerOutput};
-use crate::{Handler, HandlerCallback, Router};
+use crate::{Event, Handler, HandlerCallback, Router};
 
 /// The outcome of dispatching one request.
 pub enum Reply {
@@ -33,14 +33,14 @@ pub enum Reply {
         body: bytes::Bytes,
     },
     /// The response of a stream route, to send as `text/event-stream`.
-    /// Each `Ok` item is one serialized value, the payload of one event (see
-    /// [`sse_event`]). An `Err` item reports a value that failed to
-    /// serialize; the response ends there.
+    /// Each `Ok` item is one event: a serialized value, with the event id the
+    /// route gave it, if any (see [`sse_event`]). An `Err` item reports a
+    /// value that failed to serialize; the response ends there.
     Stream(ReplyStream),
 }
 
 /// The items of a [`Reply::Stream`].
-pub type ReplyStream = Pin<Box<dyn Stream<Item = Result<String, String>> + Send + 'static>>;
+pub type ReplyStream = Pin<Box<dyn Stream<Item = Result<Event<String>, String>> + Send + 'static>>;
 
 impl fmt::Debug for Reply {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -70,10 +70,15 @@ impl From<HandlerOutput> for Reply {
     }
 }
 
-/// Frames one [`Reply::Stream`] item as a Server-Sent Event: one `data:` line
-/// per line of `data`, then a blank line.
-pub fn sse_event(data: &str) -> String {
+/// Frames one [`Reply::Stream`] item as a Server-Sent Event: an `id:` line if
+/// it has an id, one `data:` line per line of its data, then a blank line.
+pub fn sse_event(Event { id, data }: &Event<String>) -> String {
     let mut event = String::with_capacity(data.len() + 8);
+    if let Some(id) = id {
+        event.push_str("id: ");
+        event.push_str(id.as_str());
+        event.push('\n');
+    }
     for line in data.split('\n') {
         event.push_str("data: ");
         event.push_str(line.strip_suffix('\r').unwrap_or(line));
@@ -211,11 +216,35 @@ where
 #[cfg(test)]
 mod tests {
     use super::sse_event;
+    use crate::{Event, EventId};
+
+    fn data(data: &str) -> Event<String> {
+        Event {
+            id: None,
+            data: data.into(),
+        }
+    }
 
     #[test]
     fn sse_event_frames_each_line() {
-        assert_eq!(sse_event(r#"{"a":1}"#), "data: {\"a\":1}\n\n");
-        assert_eq!(sse_event("a\nb\r\nc"), "data: a\ndata: b\ndata: c\n\n");
-        assert_eq!(sse_event(""), "data: \n\n");
+        assert_eq!(sse_event(&data(r#"{"a":1}"#)), "data: {\"a\":1}\n\n");
+        assert_eq!(
+            sse_event(&data("a\nb\r\nc")),
+            "data: a\ndata: b\ndata: c\n\n"
+        );
+        assert_eq!(sse_event(&data("")), "data: \n\n");
+    }
+
+    #[test]
+    fn sse_event_writes_the_id_first() -> Result<(), crate::InvalidEventId> {
+        assert_eq!(
+            sse_event(&Event::new(42, "a\nb".to_string())),
+            "id: 42\ndata: a\ndata: b\n\n"
+        );
+        assert_eq!(
+            sse_event(&Event::new(EventId::new("")?, "{}".to_string())),
+            "id: \ndata: {}\n\n"
+        );
+        Ok(())
     }
 }

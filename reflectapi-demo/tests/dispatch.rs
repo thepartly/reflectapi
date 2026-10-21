@@ -71,11 +71,112 @@ async fn stream_route_replies_with_a_stream_of_serialized_items() -> TestResult 
     );
 
     let event = events.next().await.ok_or("stream ended")??;
-    let pet: serde_json::Value = serde_json::from_str(&event)?;
+    let pet: serde_json::Value = serde_json::from_str(&event.data)?;
     assert_eq!(pet["name"], "Tweety");
+    assert_eq!(event.id, None);
     assert_eq!(
         reflectapi::dispatch::sse_event(&event),
-        format!("data: {event}\n\n")
+        format!("data: {}\n\n", event.data)
+    );
+    Ok(())
+}
+
+mod events {
+    use futures_util::Stream;
+
+    #[derive(serde::Serialize, reflectapi::Output)]
+    pub struct Tick {
+        pub seq: u32,
+    }
+
+    /// Ticks 1 and 2 with their `seq` as the event id, then one without an id.
+    pub fn ticks(
+        _: (),
+        _: reflectapi::Empty,
+        _: reflectapi::Empty,
+    ) -> Result<impl Stream<Item = reflectapi::Event<Tick>>, reflectapi::Infallible> {
+        Ok(futures_util::stream::iter(
+            [1, 2]
+                .map(|seq| reflectapi::Event::new(seq, Tick { seq }))
+                .into_iter()
+                .chain([reflectapi::Event {
+                    id: None,
+                    data: Tick { seq: 3 },
+                }]),
+        ))
+    }
+
+    pub fn api<M: reflectapi::BuildMode>() -> reflectapi::Builder<(), M> {
+        reflectapi::Builder::default().stream_route(ticks, |b| b.name("ticks"))
+    }
+}
+
+#[tokio::test]
+async fn stream_route_sends_the_ids_of_events() -> TestResult {
+    let dispatcher = Dispatcher::new(events::api::<DispatchOnly>().build()?);
+    let reply = dispatcher
+        .dispatch(
+            (),
+            &http::Method::POST,
+            "/ticks",
+            &json_headers(),
+            bytes::Bytes::new(),
+        )
+        .await
+        .ok_or("no route")?;
+    let Reply::Stream(events) = reply else {
+        return Err(format!("expected a stream, got {reply:?}").into());
+    };
+
+    let framed = events
+        .map(|event| event.map(|event| reflectapi::dispatch::sse_event(&event)))
+        .collect::<Vec<_>>()
+        .await;
+    assert_eq!(
+        framed,
+        [
+            Ok("id: 1\ndata: {\"seq\":1}\n\n".to_string()),
+            Ok("id: 2\ndata: {\"seq\":2}\n\n".to_string()),
+            Ok("data: {\"seq\":3}\n\n".to_string()),
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn the_schema_shows_the_item_of_an_event() -> TestResult {
+    let (schema, _) = events::api::<WithSchema>().build()?;
+    let function = schema.functions().next().ok_or("no function")?;
+    let reflectapi::OutputType::Stream { item_type } = &function.output_type else {
+        return Err(format!("expected a stream, got {:?}", function.output_type).into());
+    };
+    assert!(item_type.name.ends_with("Tick"), "{}", item_type.name);
+    Ok(())
+}
+
+/// The axum adapter sends events as `sse_event` frames them.
+#[tokio::test]
+async fn event_ids_match_axum() -> TestResult {
+    use tower::Service as _;
+
+    let (_schema, routers) = events::api::<WithSchema>().build()?;
+    let mut app = reflectapi::axum::into_router((), routers, |_, r| r);
+    let response = app
+        .call(
+            http::Request::builder()
+                .method(http::Method::POST)
+                .uri("/ticks")
+                .body(axum::body::Body::empty())?,
+        )
+        .await?;
+    let mut frames = response.into_body().into_data_stream();
+    let mut sent = String::new();
+    while let Some(frame) = frames.next().await {
+        sent.push_str(std::str::from_utf8(&frame?)?);
+    }
+    assert_eq!(
+        sent,
+        "id: 1\ndata: {\"seq\":1}\n\nid: 2\ndata: {\"seq\":2}\n\ndata: {\"seq\":3}\n\n"
     );
     Ok(())
 }

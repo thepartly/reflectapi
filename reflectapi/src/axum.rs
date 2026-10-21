@@ -1,5 +1,5 @@
 use axum::{
-    response::{sse, IntoResponse, Sse},
+    response::IntoResponse,
     routing::{get, post},
     Router,
 };
@@ -7,7 +7,7 @@ use futures_util::StreamExt;
 
 use crate::{
     builder::HandlerOutput,
-    dispatch::{invoke, Reply},
+    dispatch::{invoke, sse_event, Reply},
     Handler,
 };
 
@@ -70,10 +70,16 @@ impl IntoResponse for Reply {
                 *response.headers_mut() = headers;
                 response
             }
-            Reply::Stream(stream) => {
-                Sse::new(stream.map(|item| item.map(|data| sse::Event::default().data(data))))
-                    .into_response()
-            }
+            Reply::Stream(stream) => (
+                [
+                    (http::header::CONTENT_TYPE, "text/event-stream"),
+                    (http::header::CACHE_CONTROL, "no-cache"),
+                ],
+                axum::body::Body::from_stream(
+                    stream.map(|item| item.map(|event| sse_event(&event))),
+                ),
+            )
+                .into_response(),
         }
     }
 }
