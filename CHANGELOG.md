@@ -8,6 +8,7 @@
 
 ### Changed
 
+- A generated Python field for a list, dict or set that may be omitted but is never null is annotated without `| None` and defaults to an empty collection, as in the Rust SDK. Passing `None`, which the model rejects only when it validates, is now a type error that pyright and ty report. An omitted field reads as empty instead of `None`, and it stays omitted on the wire unless set, so replace `is None` checks with an emptiness check. A required field of an optional flattened group still defaults to `None`, since it is absent only with its group.
 - Codegen derives a flattened field's presence from one shared rule: a flattened field has no key of its own, so its group is optional exactly when its type is an `Option`, whatever its `default` or `skip_serializing_if`. The Rust, Python and OpenAPI generators use it; generated Rust and TypeScript output is unchanged.
 
 ## 0.21.1

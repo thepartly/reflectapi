@@ -73,7 +73,11 @@ class TestBasicModels:
         assert kind.type == "dog"
         assert kind.breed == "Golden Retriever"
         assert pet.age is None
-        assert pet.behaviors is None
+        # An omitted list reads as empty, as in the Rust SDK, and stays omitted.
+        assert pet.behaviors == []
+        assert "behaviors" not in pet.model_dump()
+        with pytest.raises(ValidationError):
+            Pet(name="buddy", kind=dog_kind, behaviors=None)
 
     def test_pet_details_required_updated_at(self):
         """Test PetDetails requires updated_at field."""
