@@ -374,7 +374,10 @@ fn test_struct_with_nested_optional_flatten() {
         serde_json::from_str(r#"{"id":1,"middle":2,"from":3,"to":4}"#).unwrap();
     assert!(parsed.middle.pair.is_none());
     assert_eq!(
-        parsed.range.as_ref().map(|range| (range.0.start.from, range.0.to)),
+        parsed
+            .range
+            .as_ref()
+            .map(|range| (range.0.start.from, range.0.to)),
         Some((3, 4))
     );
     let absent = TestStructWithNestedOptionalFlatten {
