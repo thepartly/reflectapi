@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.21.0-alpha.2
 
 ### Event ids for stream routes
 
