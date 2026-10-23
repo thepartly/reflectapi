@@ -13,7 +13,7 @@ documentation. `Builder<S, M>` takes a build mode:
 | Mode | `build()` returns | Use |
 |---|---|---|
 | `WithSchema` (default) | `(Schema, Vec<Router<S>>)` | Build step: write the schema, generate clients, check them in CI. A server that also serves its schema |
-| `DispatchOnly` | `Vec<Router<S>>` | Serving. No type is reflected, so startup does no schema work and the reflection code is not linked |
+| `DispatchOnly` | `Vec<Router<S>>` | Serving. Only request-headers types are reflected, for the header names, so startup does almost no schema work and the reflection code of every other type is not linked |
 
 Write the definition once, generic over the mode, starting from
 `Builder::default()` (`Builder::new()` is always `WithSchema`):

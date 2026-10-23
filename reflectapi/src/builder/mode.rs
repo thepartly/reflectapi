@@ -22,7 +22,7 @@ mod sealed {
 ///
 /// // Build time (codegen, CI): the schema, plus the routes.
 /// let (schema, _) = api::<reflectapi::WithSchema>().build()?;
-/// // Serving: the routes alone; no type is reflected.
+/// // Serving: the routes alone; only request-headers types are reflected.
 /// let routers = api::<reflectapi::DispatchOnly>().build()?;
 /// ```
 pub trait BuildMode: sealed::Sealed + Send + 'static {
@@ -48,9 +48,10 @@ pub trait BuildMode: sealed::Sealed + Send + 'static {
 #[derive(Debug, Clone, Copy, Default)]
 pub struct WithSchema;
 
-/// Builds the routes only, for serving: types are not reflected, so the
-/// schema is never built at runtime and its code is not linked into the
-/// binary. Produce the schema at build time with [`WithSchema`].
+/// Builds the routes only, for serving: the schema is never built at
+/// runtime, and only request-headers types are reflected, for the names of
+/// the headers to forward, so the reflection code of every other type is not
+/// linked into the binary. Produce the schema at build time with [`WithSchema`].
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DispatchOnly;
 

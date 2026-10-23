@@ -1,8 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.22.0
 
-Serve a reflectapi API from runtimes that bring their own HTTP server, such as Cloudflare-compatible Workers, and build the schema only where it is needed. See [Serving with celld and Cloudflare Workers](https://thepartly.github.io/reflectapi/serving/workers.html) and [Integrating Other Servers](https://thepartly.github.io/reflectapi/serving/other-servers.html).
+Serve a reflectapi API from runtimes that bring their own HTTP server, such as Cloudflare-compatible Workers, and build the schema only where it is needed. See [Serving with celld and Cloudflare Workers](https://thepartly.github.io/reflectapi/serving/workers.html) and [Integrating Other Servers](https://thepartly.github.io/reflectapi/serving/other-servers.html). `Builder::default()` may need a type annotation, and the `axum` feature no longer enables axum's default features; see Breaking.
+
+### Breaking
+
+- **`Builder::default()` is generic over the build mode.** A call that nothing else pins to a mode no longer compiles ("cannot infer type for type parameter `M`"). Use `Builder::new()`, `Builder::<S>::default()`, or a `Builder<S>` return type or annotation, which all select `WithSchema`.
+- **The `axum` feature no longer enables axum's default features**, which pulled in tokio networking. Enable the axum features your server uses in your own `axum` dependency, for example `axum = { version = "0.8", features = ["tokio", "http1"] }`.
 
 ### Dispatch without axum
 
@@ -10,7 +15,7 @@ Serve a reflectapi API from runtimes that bring their own HTTP server, such as C
 
 ### Build modes: the schema at build time, the routes at runtime
 
-`Builder` takes a build mode, `Builder<S, M = WithSchema>`. `WithSchema` builds the schema and the routes, as before. `DispatchOnly` builds only the routes: no type is reflected, so serving does no schema work at startup and the reflection code is not linked. Define the API once, generic over `M: BuildMode`, starting from `Builder::default()`; `Builder::new()` still creates a `WithSchema` builder, so existing code is unchanged.
+`Builder` takes a build mode, `Builder<S, M = WithSchema>`. `WithSchema` builds the schema and the routes, as before. `DispatchOnly` builds only the routes: only request-headers types are reflected, for the names of the headers to forward, so serving does almost no schema work at startup and the reflection code of every other type is not linked. Define the API once, generic over `M: BuildMode`, starting from `Builder::default()`; `Builder::new()` still creates a `WithSchema` builder, so existing code is unchanged.
 
 ```rust
 pub fn api<M: reflectapi::BuildMode>() -> reflectapi::Builder<AppState, M> {
@@ -42,7 +47,6 @@ fn pets_events(state: AppState, _: reflectapi::Empty, headers: Headers)
 - A struct that flattens a plain `Option<T>` (no `skip_serializing_if`) is described correctly in generated Python models and OpenAPI. Serde writes all of an optional flattened group's keys or none of them, whatever the field's attributes. The Python response model made the group's fields required, so a valid response without them failed validation; Python models now accept the group's fields together or not at all. OpenAPI described the group as `oneOf: [null, T]`, which rejects an object without the group's keys; it is now `oneOf: [T, { not: { anyOf: [{ required: [<key>] }, ...] } }]`, either a valid `T` or an object with none of the group's keys.
 - A request headers type with a field name that is not a valid header name is now a `BuildError` instead of a panic.
 - An error returned by a stream handler before its stream opens is sent with `content-type: application/json` instead of `text/event-stream`, and a failure to serialize it is a `500` instead of a panic.
-- The `axum` feature no longer enables axum's default features, which pulled in tokio networking; enable the axum features your server uses in your own dependency.
 - `reflectapi-schema`'s `glob` support is enabled only through reflectapi's `glob` feature (on by default), instead of always.
 
 ### Changed
