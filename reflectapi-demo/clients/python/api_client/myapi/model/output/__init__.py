@@ -71,16 +71,9 @@ class MyapiModelOutputPet(ReflectapiPartialModel):
         default=None, description="age of the pet", deprecated="test deprecation"
     )
     updated_at: datetime
-    behaviors: list[myapi.model.Behavior] | None = Field(
-        default=None, description="behaviors of the pet"
+    behaviors: list[myapi.model.Behavior] = Field(
+        default=[], description="behaviors of the pet"
     )
-
-    @field_validator("behaviors", mode="before")
-    @classmethod
-    def _reflectapi_reject_null(cls, value):
-        if value is None:
-            raise ValueError("Field may be omitted but cannot be null")
-        return value
 
 
 # Public aliases for this module

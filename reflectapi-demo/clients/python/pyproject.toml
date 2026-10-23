@@ -32,6 +32,7 @@ python_functions = ["test_*"]
 include = [
   "api_client",
   "typecheck_deprecations.py",
+  "typecheck_field_presence.py",
   "../../target/codegen-coverage-client/codegen_coverage_client",
 ]
 typeCheckingMode = "basic"
