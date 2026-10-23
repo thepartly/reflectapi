@@ -1,14 +1,14 @@
 use axum::{
-    http::response::Builder,
-    response::{sse, IntoResponse, Sse},
+    response::IntoResponse,
     routing::{get, post},
     Router,
 };
 use futures_util::StreamExt;
 
 use crate::{
-    builder::{HandlerInput, HandlerOutput},
-    Handler, HandlerCallback,
+    builder::HandlerOutput,
+    dispatch::{invoke, sse_event, Reply},
+    Handler,
 };
 
 pub fn into_router<S, F>(app_state: S, router: Vec<crate::Router<S>>, cb: F) -> Router
@@ -42,23 +42,9 @@ where
         let axum_handler = {
             let state = app_state.clone();
             move |axum_headers: http::HeaderMap, body: axum::body::Bytes| async move {
-                let mut headers = http::HeaderMap::new();
-                for h in input_headers {
-                    if let Some(value) = axum_headers.get(&h) {
-                        headers.insert(h, value.clone());
-                    }
-                }
-                let input = HandlerInput { body, headers };
-                match callback {
-                    HandlerCallback::Future(f) => f(state, input).await.into_response(),
-                    HandlerCallback::Stream(f) => match f(state, input) {
-                        Ok(st) => {
-                            Sse::new(st.map(|s| s.map(|data| sse::Event::default().data(data))))
-                                .into_response()
-                        }
-                        Err(err) => err.into_response(),
-                    },
-                }
+                invoke(&callback, &input_headers, state, &axum_headers, body)
+                    .await
+                    .into_response()
             }
         };
         let mount_path = format!("{path}/{name}");
@@ -71,10 +57,35 @@ where
     (name, app)
 }
 
+impl IntoResponse for Reply {
+    fn into_response(self) -> axum::response::Response {
+        match self {
+            Reply::Complete {
+                status,
+                headers,
+                body,
+            } => {
+                let mut response = axum::response::Response::new(body.into());
+                *response.status_mut() = status;
+                *response.headers_mut() = headers;
+                response
+            }
+            Reply::Stream(stream) => (
+                [
+                    (http::header::CONTENT_TYPE, "text/event-stream"),
+                    (http::header::CACHE_CONTROL, "no-cache"),
+                ],
+                axum::body::Body::from_stream(
+                    stream.map(|item| item.map(|event| sse_event(&event))),
+                ),
+            )
+                .into_response(),
+        }
+    }
+}
+
 impl IntoResponse for HandlerOutput {
-    fn into_response(self) -> axum::http::Response<axum::body::Body> {
-        let mut builder = Builder::new().status(self.code);
-        *builder.headers_mut().unwrap() = self.headers;
-        builder.body(self.body.into()).unwrap()
+    fn into_response(self) -> axum::response::Response {
+        Reply::from(self).into_response()
     }
 }

@@ -148,13 +148,17 @@ pub(crate) mod builder;
 #[cfg(feature = "axum")]
 pub mod axum;
 
+#[cfg(feature = "builder")]
+pub mod dispatch;
+
 #[doc(hidden)]
 #[cfg(feature = "codegen")]
 pub mod codegen;
 
 #[cfg(feature = "builder")]
 pub use self::builder::{
-    BuildError, BuildErrors, Builder, ContentType, IntoResult, RouteBuilder, Router, StatusCode,
+    BuildError, BuildErrors, BuildMode, Builder, ContentType, DispatchOnly, Event, EventId,
+    IntoResult, InvalidEventId, RouteBuilder, Router, StatusCode, StreamItem, WithSchema,
 };
 #[cfg(feature = "builder")]
 use self::builder::{Handler, HandlerCallback};

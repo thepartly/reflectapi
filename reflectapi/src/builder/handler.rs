@@ -5,9 +5,9 @@ use futures_util::{stream::Stream, StreamExt};
 
 use http::HeaderName;
 
-use crate::{Function, Input, Output, OutputType, Schema, Struct};
+use crate::{Input, Output};
 
-use super::RouteBuilder;
+use super::{Event, RouteBuilder, StreamItem};
 
 pub struct HandlerInput {
     pub body: bytes::Bytes,
@@ -75,7 +75,7 @@ impl From<ContentType> for http::HeaderValue {
 pub(crate) type HandlerFuture = Pin<Box<dyn Future<Output = HandlerOutput> + Send + 'static>>;
 
 pub(crate) type HandlerStream =
-    Pin<Box<dyn Stream<Item = Result<String, String>> + Send + 'static>>;
+    Pin<Box<dyn Stream<Item = Result<Event<String>, String>> + Send + 'static>>;
 
 pub(crate) enum HandlerCallback<S> {
     Future(Arc<dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync>),
@@ -126,7 +126,7 @@ where
     pub(crate) fn new<F, Fut, R, I, O, E, H>(
         rb: RouteBuilder,
         handler: F,
-        schema: &mut Schema,
+        mut input_headers: Vec<HeaderName>,
     ) -> Handler<S>
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
@@ -137,9 +137,6 @@ where
         O: Output + serde::ser::Serialize + Send + 'static,
         E: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
     {
-        let (function_def, mut input_headers) = Self::mk_function::<I, H, O, E>(&rb, schema, false);
-        schema.functions.push(function_def);
-
         // inject system header requirements used by the handler wrapper
         input_headers.push(http::header::CONTENT_TYPE);
         input_headers.push(HeaderName::from_static("traceparent"));
@@ -158,20 +155,17 @@ where
     pub(crate) fn new_stream<F, St, I, O, E1, H>(
         rb: RouteBuilder,
         handler: F,
-        schema: &mut Schema,
+        mut input_headers: Vec<HeaderName>,
     ) -> Handler<S>
     where
         F: Fn(S, I, H) -> Result<St, E1> + Send + Sync + Copy + 'static,
         St: Stream<Item = O> + Send + 'static,
         I: Input + serde::de::DeserializeOwned + Send + 'static,
         H: Input + serde::de::DeserializeOwned + Send + 'static,
-        O: Output + serde::ser::Serialize + Send + 'static,
+        O: StreamItem + Send + 'static,
         E1: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
         S: Send + 'static,
     {
-        let (function_def, mut input_headers) = Self::mk_function::<I, H, O, E1>(&rb, schema, true);
-        schema.functions.push(function_def);
-
         // inject system header requirements used by the handler wrapper
         input_headers.push(http::header::CONTENT_TYPE);
         input_headers.push(HeaderName::from_static("traceparent"));
@@ -186,87 +180,6 @@ where
                     .map(|stream| Box::pin(stream) as HandlerStream)
             })),
         }
-    }
-
-    fn mk_function<I: Input, H: Input, O: Output, E1: Output>(
-        rb: &RouteBuilder,
-        schema: &mut Schema,
-        is_stream: bool,
-    ) -> (Function, Vec<HeaderName>) {
-        let input_type = I::reflectapi_input_type(&mut schema.input_types);
-        let output_type = O::reflectapi_output_type(&mut schema.output_types);
-        let error_type = E1::reflectapi_output_type(&mut schema.output_types);
-        let input_headers = H::reflectapi_input_type(&mut schema.input_types);
-
-        let input_headers_names = schema
-            .input_types
-            .get_type(input_headers.name.as_str())
-            .map(|type_def| match type_def {
-                crate::Type::Struct(Struct { fields, .. }) => fields
-                    .iter()
-                    .map(|field| {
-                        let header_name = if field.serde_name.is_empty() {
-                            field.name.as_str()
-                        } else {
-                            field.serde_name.as_str()
-                        };
-                        HeaderName::from_bytes(header_name.as_bytes())
-                            .unwrap_or_else(|_| panic!("invalid header name: `{header_name}`"))
-                    })
-                    .collect(),
-                _ => vec![],
-            })
-            .unwrap_or_default();
-
-        let function_def = Function {
-            name: rb.name.clone(),
-            path: rb.path.clone(),
-            deprecation_note: rb.deprecation_note.clone(),
-            deprecated_in: rb.deprecated_in.clone(),
-            deprecated_since: rb.deprecated_since.clone(),
-            sunset: rb.sunset.clone(),
-            description: rb.description.clone(),
-            input_type: if input_type.name == "reflectapi::Empty" {
-                None
-            } else {
-                Some(input_type)
-            },
-            output_type: if is_stream {
-                OutputType::Stream {
-                    item_type: output_type,
-                }
-            } else {
-                OutputType::Complete {
-                    output_type: if output_type.name == "reflectapi::Empty" {
-                        None
-                    } else {
-                        Some(output_type)
-                    },
-                }
-            },
-            error_type: if error_type.name == "reflectapi::Infallible" {
-                None
-            } else {
-                Some(error_type)
-            },
-            response_headers: rb
-                .response_headers
-                .map(|reflect_output_type| reflect_output_type(&mut schema.output_types)),
-            input_headers: if input_headers_names.is_empty() {
-                None
-            } else {
-                Some(input_headers)
-            },
-            serialization: vec![
-                crate::SerializationMode::Json,
-                #[cfg(feature = "msgpack")]
-                crate::SerializationMode::Msgpack,
-            ],
-            readonly: rb.readonly,
-            tags: rb.tags.clone(),
-        };
-
-        (function_def, input_headers_names)
     }
 
     #[allow(clippy::result_large_err)]
@@ -324,12 +237,12 @@ where
         let mut headers_as_json_map = serde_json::Map::new();
         let mut current_header_name = None;
         for (header_name, header_value) in handler_input.headers.drain() {
-            let header_name = match header_name {
-                Some(header_name) => {
-                    current_header_name = Some(header_name.clone());
-                    header_name
-                }
-                None => current_header_name.as_ref().cloned().unwrap(),
+            // `drain` names a header once, followed by its remaining values.
+            if let Some(header_name) = header_name {
+                current_header_name = Some(header_name);
+            }
+            let Some(header_name) = current_header_name.clone() else {
+                continue;
             };
 
             if header_name == "traceparent" {
@@ -436,11 +349,11 @@ where
         state: S,
         input: HandlerInput,
         handler: F,
-    ) -> Result<impl Stream<Item = Result<String, String>>, HandlerOutput>
+    ) -> Result<impl Stream<Item = Result<Event<String>, String>>, HandlerOutput>
     where
         I: Input + serde::de::DeserializeOwned,
         H: Input + serde::de::DeserializeOwned,
-        O: Output + serde::ser::Serialize,
+        O: StreamItem,
         E1: Output + serde::ser::Serialize + crate::StatusCode,
         F: Fn(S, I, H) -> Result<St, E1>,
         St: Stream<Item = O> + Send + 'static,
@@ -469,13 +382,37 @@ where
             http::HeaderValue::from_static("text/event-stream"),
         );
 
-        let st = handler(state, input, input_headers).map_err(|err| HandlerOutput {
-            code: err.status_code(),
-            body: serde_json::to_vec(&err).unwrap().into(),
-            headers: response_headers,
-        })?;
+        let st =
+            handler(state, input, input_headers).map_err(|err| match serde_json::to_vec(&err) {
+                Ok(body) => {
+                    response_headers.insert(
+                        http::header::CONTENT_TYPE,
+                        http::HeaderValue::from_static("application/json"),
+                    );
+                    HandlerOutput {
+                        code: err.status_code(),
+                        body: body.into(),
+                        headers: response_headers,
+                    }
+                }
+                Err(serialization) => {
+                    response_headers.insert(
+                        http::header::CONTENT_TYPE,
+                        http::HeaderValue::from_static("text/plain"),
+                    );
+                    HandlerOutput {
+                        code: http::StatusCode::INTERNAL_SERVER_ERROR,
+                        body: format!("Failed to serialize error response: {serialization}").into(),
+                        headers: response_headers,
+                    }
+                }
+            })?;
 
-        Ok(st.map(|v| serde_json::to_string(&v).map_err(|err| err.to_string())))
+        Ok(st.map(|item| {
+            let Event { id, data } = item.into_event();
+            let data = serde_json::to_string(&data).map_err(|err| err.to_string())?;
+            Ok(Event { id, data })
+        }))
     }
 }
 

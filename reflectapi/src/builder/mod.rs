@@ -1,11 +1,15 @@
+mod event;
 mod handler;
+mod mode;
 mod result;
 
 use core::fmt;
-use std::{borrow::Borrow, collections::BTreeSet, error::Error};
+use std::{borrow::Borrow, collections::BTreeSet, error::Error, marker::PhantomData};
 
+pub use event::{Event, EventId, InvalidEventId, StreamItem};
 use futures_util::Stream;
 pub use handler::*;
+pub use mode::{BuildMode, DispatchOnly, WithSchema};
 use reflectapi_schema::Pattern;
 pub use result::{IntoResult, StatusCode};
 use serde::{de::DeserializeOwned, ser::Serialize};
@@ -18,10 +22,15 @@ type OutputTypeFn = fn(&mut crate::Typespace) -> crate::TypeReference;
 
 /// [`Builder`] provides a chained API for defining the overall API specification,
 /// adding individual routes (handlers), and composing multiple builders together.
-pub struct Builder<S>
+///
+/// `M` is the [`BuildMode`]: [`WithSchema`] (the default) builds the schema
+/// and the routes; [`DispatchOnly`] builds the routes alone, for serving.
+pub struct Builder<S, M = WithSchema>
 where
     S: Send + 'static,
+    M: BuildMode,
 {
+    mode: PhantomData<M>,
     schema: crate::Schema,
     path: String,
     handlers: Vec<crate::Handler<S>>,
@@ -33,9 +42,10 @@ where
     default_response_headers: Option<OutputTypeFn>,
 }
 
-impl<S> fmt::Debug for Builder<S>
+impl<S, M> fmt::Debug for Builder<S, M>
 where
     S: Send + 'static,
+    M: BuildMode,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Builder")
@@ -52,23 +62,16 @@ where
     }
 }
 
-impl<S> Default for Builder<S>
+impl<S, M> Default for Builder<S, M>
 where
     S: Send + 'static,
+    M: BuildMode,
 {
-    /// Creates a new, empty [`Builder`]. Equivalent to [`Builder::new()`].
+    /// Creates a new, empty [`Builder`] in mode `M`. Use it to start an API
+    /// definition that is generic over the [`BuildMode`].
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<S> Builder<S>
-where
-    S: Send + 'static,
-{
-    /// Creates a new, empty [`Builder`].
-    pub fn new() -> Self {
         Self {
+            mode: PhantomData,
             schema: Default::default(),
             path: Default::default(),
             handlers: Default::default(),
@@ -80,7 +83,25 @@ where
             default_response_headers: Default::default(),
         }
     }
+}
 
+impl<S> Builder<S, WithSchema>
+where
+    S: Send + 'static,
+{
+    /// Creates a new, empty [`Builder`] that builds the schema and the routes.
+    /// For a definition generic over the [`BuildMode`], start from
+    /// [`Builder::default()`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<S, M> Builder<S, M>
+where
+    S: Send + 'static,
+    M: BuildMode,
+{
     /// Sets the top-level name for the API schema.
     pub fn name(mut self, name: impl Into<String>) -> Self {
         self.schema.name = name.into();
@@ -158,7 +179,7 @@ where
     /// them. As with routes, call [`Builder::rename_types`] afterwards so the
     /// rename applies to the headers type.
     pub fn response_headers<H: Output>(mut self) -> Self {
-        self.default_response_headers = Some(H::reflectapi_output_type);
+        self.default_response_headers = M::response_headers_type::<H>();
         self.apply_default_response_headers();
         self
     }
@@ -182,8 +203,13 @@ where
         E: Output + Serialize + StatusCode + Send + 'static,
     {
         let rb = builder(self.route_defaults());
-        let route = crate::Handler::new(rb, handler, &mut self.schema);
-        self.handlers.push(route);
+        match M::register_function::<I, H, O, E>(&rb, &mut self.schema, false) {
+            Ok(input_headers) => {
+                self.handlers
+                    .push(crate::Handler::new(rb, handler, input_headers))
+            }
+            Err(err) => self.errors.push(err),
+        }
         self
     }
 
@@ -191,6 +217,8 @@ where
     ///
     /// This method takes a stream handler function and a closure that configures the
     /// route's metadata (like its name, path, and description) using a [`RouteBuilder`].
+    /// The stream yields its items as they are, or each in an [`Event`] to send
+    /// it with an event id.
     pub fn stream_route<F, St, I, O, E1, H>(
         mut self,
         handler: F,
@@ -201,12 +229,17 @@ where
         St: Stream<Item = O> + Send + 'static,
         I: Input + DeserializeOwned + Send + 'static,
         H: Input + DeserializeOwned + Send + 'static,
-        O: Output + Serialize + Send + 'static,
+        O: StreamItem + Send + 'static,
         E1: Output + Serialize + StatusCode + Send + 'static,
     {
         let rb = builder(self.route_defaults());
-        let route = crate::Handler::new_stream(rb, handler, &mut self.schema);
-        self.handlers.push(route);
+        match M::register_function::<I, H, O::Data, E1>(&rb, &mut self.schema, true) {
+            Ok(input_headers) => {
+                self.handlers
+                    .push(crate::Handler::new_stream(rb, handler, input_headers))
+            }
+            Err(err) => self.errors.push(err),
+        }
         self
     }
 
@@ -246,7 +279,7 @@ where
     /// The handlers from `other` are grouped into a separate [`Router`] identified
     /// by `other`'s name. This is useful for combining independent API modules.
     /// Note: This does not prepend any paths. Use [`Builder::nest`] for hierarchical routing.
-    pub fn extend(mut self, other: Builder<S>) -> Self {
+    pub fn extend(mut self, other: Builder<S, M>) -> Self {
         let other_name = other.schema.name.clone();
         self.merged_handlers.push((other_name, other.handlers));
         self.schema.extend(other.schema);
@@ -261,6 +294,7 @@ where
 
         // Explicitly reconstruct Self to ensure new fields are handled appropriately.
         Self {
+            mode: self.mode,
             schema: self.schema,
             path: self.path,
             handlers: self.handlers,
@@ -278,7 +312,7 @@ where
     /// This is the primary method for composing modular APIs. It merges the schema
     /// and handlers from `other`, and prepends this builder's `path` to all of
     /// `other`'s routes.
-    pub fn nest(self, other: Builder<S>) -> Self {
+    pub fn nest(self, other: Builder<S, M>) -> Self {
         let other = other.prepend_path(self.path.as_str());
         self.extend(other)
     }
@@ -318,6 +352,9 @@ where
 
     /// Renames types in the schema that match a given pattern.
     pub fn rename_types(mut self, pattern: impl Pattern + fmt::Display, to: &str) -> Self {
+        if !M::WITH_SCHEMA {
+            return self;
+        }
         if self.schema.rename_types(pattern, to) == 0 && !self.allow_redundant_renames {
             self.errors.push(BuildError::RedundantRename {
                 pattern: pattern.to_string(),
@@ -342,10 +379,37 @@ where
     /// Inlines all types marked as `#[reflectapi(transparent)]` throughout the schema.
     /// This simplifies the schema by replacing wrapper types with their inner types.
     pub fn fold_transparent_types(mut self) -> Self {
-        self.schema.fold_transparent_types();
+        if M::WITH_SCHEMA {
+            self.schema.fold_transparent_types();
+        }
         self
     }
 
+    /// The schema as built so far and the routes, unless errors were recorded.
+    fn into_parts(
+        self,
+    ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), crate::BuildErrors> {
+        if !self.errors.is_empty() {
+            return Err(crate::BuildErrors(self.errors));
+        }
+
+        let mut routers = vec![Router {
+            name: self.schema.name.clone(),
+            handlers: self.handlers,
+        }];
+
+        for (name, handlers) in self.merged_handlers {
+            routers.push(Router { name, handlers });
+        }
+
+        Ok((self.schema, routers))
+    }
+}
+
+impl<S> Builder<S, WithSchema>
+where
+    S: Send + 'static,
+{
     /// Consumes the builder and attempts to build the final API [`crate::Schema`] and [`Vec<Router>`].
     ///
     /// This method performs final validation and consolidation. It returns an error
@@ -365,26 +429,25 @@ where
         self.errors.extend(validate_deprecation_dates(&self.schema));
         self.errors.extend(validate_flattened_options(&self.schema));
 
-        if !self.errors.is_empty() {
-            return Err(crate::BuildErrors(self.errors));
-        }
+        let (mut schema, routers) = self.into_parts()?;
+        schema.consolidate_types();
 
-        let mut routers = vec![Router {
-            name: self.schema.name.clone(),
-            handlers: self.handlers,
-        }];
+        Ok((schema, routers))
+    }
+}
 
-        for (name, handlers) in self.merged_handlers {
-            let router = Router {
-                name: name.clone(),
-                handlers,
-            };
-            routers.push(router);
-        }
-
-        self.schema.consolidate_types();
-
-        Ok((self.schema, routers))
+impl<S> Builder<S, DispatchOnly>
+where
+    S: Send + 'static,
+{
+    /// Consumes the builder and builds the routes, without a schema.
+    ///
+    /// Schema validation (custom validators, response headers, redundant
+    /// renames) is skipped: it runs where the schema is built, with
+    /// [`WithSchema`]. Errors that affect serving, such as an invalid request
+    /// header name, are still reported.
+    pub fn build(self) -> std::result::Result<Vec<Router<S>>, crate::BuildErrors> {
+        self.into_parts().map(|(_, routers)| routers)
     }
 }
 
