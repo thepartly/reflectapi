@@ -2,7 +2,8 @@
 
 `cargo test -p reflectapi-demo --test codegen_coverage` writes the client and
 `wire_samples.json`. Each sample must reach the transport unchanged, and the
-same bytes served back by the transport must parse and re-serialize unchanged.
+same bytes served back by the transport must parse and re-serialize unchanged,
+and the model's JSON schemas must describe it.
 """
 
 import asyncio
@@ -10,7 +11,9 @@ import json
 import pathlib
 import sys
 
+import jsonschema
 import pytest
+from pydantic.json_schema import JsonSchemaMode
 from reflectapi_runtime.transport import Request, Response
 
 CLIENT_DIR = (
@@ -71,3 +74,12 @@ def test_async_client_preserves_serde_wire_shape(sample: dict) -> None:
 
     assert transport.sent == sample
     assert reserialize(response.data) == sample
+
+
+@pytest.mark.parametrize("mode", ["validation", "serialization"])
+@pytest.mark.parametrize("sample", SAMPLES, ids=SAMPLE_IDS)
+def test_json_schema_describes_serde_wire_shape(
+    sample: dict, mode: JsonSchemaMode
+) -> None:
+    schema = WireRequest.model_json_schema(mode=mode)
+    jsonschema.validate(sample, schema, cls=jsonschema.Draft202012Validator)

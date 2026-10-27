@@ -380,6 +380,135 @@ fn schema() -> reflectapi::Schema {
         .0
 }
 
+/// Serde's own output for every known variant of each fixture, keyed by the
+/// fixture's name. The generated clients must accept and emit these values,
+/// and their JSON schemas must describe them.
+fn known_samples() -> serde_json::Value {
+    use fixtures::*;
+    use serde_json::{json, to_value as v};
+
+    let internal = || {
+        [
+            OpenInternal::Dog {
+                breed: "corgi".into(),
+            },
+            OpenInternal::Bird,
+        ]
+    };
+    let adjacent = || {
+        [
+            OpenAdjacent::Value {
+                message: "known".into(),
+            },
+            OpenAdjacent::Unit,
+        ]
+    };
+    let closed_external = || {
+        [
+            ClosedExternal::Unit,
+            ClosedExternal::Value {
+                message: "known".into(),
+            },
+        ]
+    };
+    let fallback = || {
+        [
+            FallbackInternal::Value {
+                message: "known".into(),
+            },
+            FallbackInternal::Other,
+        ]
+    };
+    let adjacent_fallback = || {
+        [
+            FallbackAdjacent::Value {
+                message: "known".into(),
+            },
+            FallbackAdjacent::Other,
+        ]
+    };
+    let all = |values: Vec<serde_json::Value>| serde_json::Value::Array(values);
+    json!({
+        "OpenInternal": all(internal().iter().map(|x| v(x).unwrap()).collect()),
+        "OpenAdjacent": all(adjacent().iter().map(|x| v(x).unwrap()).collect()),
+        "OpenExternal": [
+            v(OpenExternal::Unit).unwrap(),
+            v(OpenExternal::Value { message: "known".into() }).unwrap(),
+            v(OpenExternal::Number(5)).unwrap(),
+            v(OpenExternal::Tuple(5, "five".into())).unwrap(),
+            v(OpenExternal::Optional(Some("set".into()))).unwrap(),
+            v(OpenExternal::Optional(None)).unwrap(),
+        ],
+        "OpenUnit": [v(OpenUnit::Ready).unwrap(), v(OpenUnit::Unknown).unwrap()],
+        "ClosedExternal": all(closed_external().iter().map(|x| v(x).unwrap()).collect()),
+        "FallbackInternal": all(fallback().iter().map(|x| v(x).unwrap()).collect()),
+        "FallbackAdjacent": all(adjacent_fallback().iter().map(|x| v(x).unwrap()).collect()),
+        "FallbackExternal": [
+            v(FallbackExternal::Known).unwrap(),
+            v(FallbackExternal::Unknown).unwrap(),
+        ],
+        "FlattenEnvelope": [v(FlattenEnvelope {
+            ordinary: OpenUnit::Ready,
+            first_part: FlattenPartA { first: OpenUnit::Unknown },
+            second_part: FlattenPartB { second: OpenInternal::Bird },
+        }).unwrap()],
+        "FlattenEnumEnvelope": all(internal().into_iter()
+            .map(|value| v(FlattenEnumEnvelope { id: 7, value }).unwrap()).collect()),
+        "FlattenNamedEnvelope": all(internal().into_iter()
+            .map(|value| v(FlattenNamedEnvelope {
+                id: 7, tag: "tag".into(), raw: "raw".into(), value,
+            }).unwrap()).collect()),
+        "NestedFlattenEnvelope": all(internal().into_iter()
+            .map(|value| v(NestedFlattenEnvelope {
+                ordinary: "parent".into(),
+                inner: FlattenEnumEnvelope { id: 7, value },
+            }).unwrap()).collect()),
+        "OptionalFlattenEnumEnvelope": all(internal().into_iter().map(Some).chain([None])
+            .map(|value| v(OptionalFlattenEnumEnvelope { id: 7, value }).unwrap()).collect()),
+        "FlattenClosedExternalEnvelope": all(closed_external().into_iter()
+            .map(|value| v(FlattenClosedExternalEnvelope {
+                id: 7, ordinary: OpenInternal::Bird, value,
+            }).unwrap()).collect()),
+        "OptionalFlattenClosedExternalEnvelope": all(closed_external().into_iter()
+            .map(Some).chain([None])
+            .map(|value| v(OptionalFlattenClosedExternalEnvelope {
+                id: 7, ordinary: OpenInternal::Bird, value,
+            }).unwrap()).collect()),
+        "FlattenAdjacentEnvelope": all(adjacent().into_iter()
+            .map(|value| v(FlattenAdjacentEnvelope { id: 7, value }).unwrap()).collect()),
+        "OptionalFlattenAdjacentEnvelope": all(adjacent().into_iter().map(Some).chain([None])
+            .map(|value| v(OptionalFlattenAdjacentEnvelope { id: 7, value }).unwrap()).collect()),
+        "FlattenFallbackEnvelope": all(fallback().into_iter()
+            .map(|value| v(FlattenFallbackEnvelope { id: 7, value }).unwrap()).collect()),
+        "FlattenAdjacentFallbackEnvelope": all(adjacent_fallback().into_iter()
+            .map(|value| v(FlattenAdjacentFallbackEnvelope { id: 7, value }).unwrap()).collect()),
+        "FlattenProtoFallbackEnvelope": all(fallback().into_iter()
+            .map(|value| v(FlattenProtoFallbackEnvelope {
+                id: 7, properties: [("a".to_string(), 1)].into(), value,
+            }).unwrap()).collect()),
+        "UntaggedWrapper": [
+            v(UntaggedWrapper::Tagged(OpenInternal::Bird)).unwrap(),
+            v(UntaggedWrapper::Text("text".into())).unwrap(),
+        ],
+        "OpenNested": [v(OpenNested::Wrapped {
+            value: UntaggedWrapper::Text("text".into()),
+        }).unwrap()],
+        "Envelope": [v(Envelope {
+            internal: OpenInternal::Dog { breed: "corgi".into() },
+            adjacent: OpenAdjacent::Unit,
+            external: OpenExternal::Tuple(5, "five".into()),
+            units: OpenUnit::Ready,
+            generic: OpenGeneric::Value { value: "generic".into() },
+            fallback: FallbackInternal::Other,
+            adjacent_fallback: FallbackAdjacent::Other,
+            optional: None,
+            list: vec![OpenInternal::Bird],
+            map: [("bird".to_string(), OpenInternal::Bird)].into(),
+            alias: OpenAlias(OpenInternal::Bird),
+        }).unwrap()],
+    })
+}
+
 #[test]
 fn response_policies_do_not_widen_requests() {
     let schema = schema();
@@ -622,6 +751,11 @@ fn write_generated_clients() {
             "flatten_adjacent": fallback_samples::<fixtures::FlattenAdjacentFallbackEnvelope>(&flattened_samples),
         }))
         .unwrap(),
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("known_samples.json"),
+        serde_json::to_string_pretty(&known_samples()).unwrap(),
     )
     .unwrap();
     std::fs::write(
