@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.22.1
+
+Generated Python models with omittable fields keep their JSON schema in serialization mode, so FastAPI apps that return them publish typed OpenAPI response schemas again. Upgrade `reflectapi-runtime`; generated code is unchanged.
+
+### Fixed
+
+- `ReflectapiPartialModel`'s serializer no longer declares `return_type=dict[str, Any]`. Pydantic used that declared type as the model's serialization-mode JSON schema, so every partial model collapsed to `{"type": "object", "additionalProperties": true}`, and FastAPI response schemas (split input and output schemas, the default) lost their properties. Serialized output is unchanged. ([#208](https://github.com/thepartly/reflectapi/pull/208))
+
 ## 0.22.0
 
 Serve a reflectapi API from runtimes that bring their own HTTP server, such as Cloudflare-compatible Workers, and build the schema only where it is needed. See [Serving with celld and Cloudflare Workers](https://thepartly.github.io/reflectapi/serving/workers.html) and [Integrating Other Servers](https://thepartly.github.io/reflectapi/serving/other-servers.html). `Builder::default()` may need a type annotation, and the `axum` feature no longer enables axum's default features; see Breaking.
