@@ -251,3 +251,21 @@ def test_partial_subclass_does_not_require_any_in_callers_module(monkeypatch):
     assert caller.Request(required=None, optional=None).model_dump_json() == (
         '{"required":null,"optional":null}'
     )
+
+
+class TestJsonSchema:
+    """The serializer must not hide the model from serialization-mode schemas."""
+
+    def test_serialization_schema_keeps_model_properties(self):
+        schema = PartialItem.model_json_schema(mode="serialization")
+        assert set(schema["properties"]) == {"identity", "snapshot"}
+        assert schema["required"] == ["identity"]
+
+    def test_serialization_schema_keeps_nested_partial_refs(self):
+        schema = PartialItem.model_json_schema(mode="serialization")
+        refs = json.dumps(schema["properties"]["snapshot"])
+        assert "PartialSnapshot" in refs
+        assert set(schema["$defs"]["PartialSnapshot"]["properties"]) == {
+            "name",
+            "description",
+        }

@@ -70,12 +70,13 @@ class ReflectapiPartialModel(BaseModel):
     # ``m.snapshot = None`` after construction and have it land on the
     # wire.
 
-    # Pydantic 2.10 can resolve an inherited serializer's postponed return
-    # annotation in the subclass's module, which need not import ``Any``.
-    @model_serializer(mode="wrap", return_type=dict[str, Any])
-    def _serialize_partial(
-        self, handler: Any, info: Any | None = None
-    ) -> dict[str, Any]:
+    # Deliberately no return annotation and no ``return_type``: a declared
+    # ``dict[str, Any]`` replaces the model's serialization-mode JSON schema
+    # with a bare object, so consumers' OpenAPI specs lose the type. The
+    # missing annotation also keeps Pydantic 2.10 from resolving a postponed
+    # annotation in a subclass's module, which need not import ``Any``.
+    @model_serializer(mode="wrap")
+    def _serialize_partial(self, handler: Any, info: Any | None = None):
         """Drop fields the caller never explicitly set.
 
         Pydantic populates ``model_fields_set`` with the *field names*
