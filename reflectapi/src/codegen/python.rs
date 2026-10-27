@@ -479,18 +479,20 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
         third_party_imports.insert("model_validator");
         third_party_imports.insert("model_serializer");
         runtime_imports.insert(
-            "parse_externally_tagged as _parse_externally_tagged, serialize_externally_tagged as _serialize_externally_tagged".to_string(),
+            "externally_tagged_json_schema as _externally_tagged_json_schema, parse_externally_tagged as _parse_externally_tagged, serialize_externally_tagged as _serialize_externally_tagged".to_string(),
         );
     }
     if imports.has_forward_compatible_enums {
         third_party_imports.insert("model_validator");
         third_party_imports.insert("RootModel");
         runtime_imports
-            .insert("UnknownEnumValue, classify_tagged_enum as _classify_tagged_enum".to_string());
+            .insert("UnknownEnumValue, classify_tagged_enum as _classify_tagged_enum, known_variants_json_schema as _known_variants_json_schema".to_string());
     }
     if imports.has_typed_flattened_enum {
         third_party_imports.insert("model_serializer");
         third_party_imports.insert("model_validator");
+        runtime_imports
+            .insert("flattened_enum_json_schema as _flattened_enum_json_schema".to_string());
     }
     if imports.has_field_validators {
         third_party_imports.insert("field_validator");
@@ -1161,6 +1163,21 @@ fn render_struct_with_flattened_tagged_enum(
             String::new()
         };
         let field = python_string_literal(&enum_field_name);
+        let presence_keys = match &enum_def.representation {
+            reflectapi_schema::Representation::External => enum_tag_tuple(enum_def),
+            _ => format!("({},)", python_string_literal(tag)),
+        };
+        let optional_schema_arg = if enum_optional { ", optional=True" } else { "" };
+        // A flattened unit variant of an externally tagged enum is a key
+        // with a null value, as serde writes it.
+        let unit_variant = if matches!(
+            enum_def.representation,
+            reflectapi_schema::Representation::External
+        ) {
+            "        if isinstance(enum_value, str):\n            enum_value = {enum_value: None}\n"
+        } else {
+            ""
+        };
         let unflatten = if matches!(
             enum_def.representation,
             reflectapi_schema::Representation::External
@@ -1181,7 +1198,7 @@ fn render_struct_with_flattened_tagged_enum(
             )
         };
         output.push_str(&format!(
-            "\n\n    @model_validator(mode='before')\n    @classmethod\n    def _unflatten_enum(cls, data):\n        if not isinstance(data, dict):\n            return data\n        parent_keys = {parent_keys}\n{unflatten}        return parent\n\n    @model_serializer(mode='wrap')\n    def _flatten_enum(self, handler):\n        value = handler(self)\n        enum_value = value.pop({field}, None)\n        if enum_value is None:\n            return value\n        return {{**value, **enum_value}}\n\n",
+            "\n\n    @model_validator(mode='before')\n    @classmethod\n    def _unflatten_enum(cls, data):\n        if not isinstance(data, dict):\n            return data\n        parent_keys = {parent_keys}\n{unflatten}        return parent\n\n    @model_serializer(mode='wrap')\n    def _flatten_enum(self, handler):\n        value = handler(self)\n        enum_value = value.pop({field}, None)\n        if enum_value is None:\n            return value\n{unit_variant}        return {{**value, **enum_value}}\n\n    @classmethod\n    def __get_pydantic_json_schema__(cls, core_schema, handler):\n        return _flattened_enum_json_schema(core_schema, handler, {field}, {presence_keys}{optional_schema_arg})\n\n",
         ));
         return Ok(output);
     }
@@ -4472,8 +4489,9 @@ fn render_enum(
                         }
                         .render();
                         let tags = enum_tag_set(enum_def);
+                        let known_variants_json_schema = KNOWN_VARIANTS_JSON_SCHEMA;
                         let mut result = format!(
-                            "{known_code}\nclass {unknown_name}(UnknownEnumValue):\n    pass\n\nclass {enum_name}(RootModel[Union[{known_name}, {unknown_name}]]):\n    root: Union[{known_name}, {unknown_name}]\n\n    @model_validator(mode='before')\n    @classmethod\n    def _classify(cls, data):\n        return _classify_tagged_enum(data, {tags}, representation='external', unknown_type={unknown_name}, unit_tags={tags})\n\n"
+                            "{known_code}\nclass {unknown_name}(UnknownEnumValue):\n    pass\n\nclass {enum_name}(RootModel[Union[{known_name}, {unknown_name}]]):\n    root: Union[{known_name}, {unknown_name}]\n\n    @model_validator(mode='before')\n    @classmethod\n    def _classify(cls, data):\n        return _classify_tagged_enum(data, {tags}, representation='external', unknown_type={unknown_name}, unit_tags={tags})\n\n{known_variants_json_schema}"
                         );
                         for variant in &enum_def.variants {
                             let member = to_screaming_snake_case(variant.name());
@@ -4491,6 +4509,9 @@ fn render_enum(
         }
     }
 }
+
+/// An open enum's JSON schema lists its known variants only.
+const KNOWN_VARIANTS_JSON_SCHEMA: &str = "    @classmethod\n    def __get_pydantic_json_schema__(cls, core_schema, handler):\n        return _known_variants_json_schema(core_schema, handler)\n\n";
 
 fn allocate_enum_companion_name(
     preferred: &str,
@@ -4523,13 +4544,21 @@ fn enum_tag_set(enum_def: &reflectapi_schema::Enum) -> String {
     if enum_def.variants.is_empty() {
         return "frozenset()".to_string();
     }
+    format!("frozenset({})", enum_tag_tuple(enum_def))
+}
+
+/// The enum's wire tags as a Python tuple literal.
+fn enum_tag_tuple(enum_def: &reflectapi_schema::Enum) -> String {
+    if enum_def.variants.is_empty() {
+        return "()".to_string();
+    }
     let tags = enum_def
         .variants
         .iter()
         .map(|v| python_string_literal(v.serde_name()))
         .collect::<Vec<_>>()
         .join(", ");
-    format!("frozenset(({tags},))")
+    format!("({tags},)")
 }
 
 fn enum_unit_tag_set(enum_def: &reflectapi_schema::Enum) -> String {
@@ -4612,6 +4641,9 @@ fn render_forward_compatible_tagged_union(
         "    @model_validator(mode='before')\n    @classmethod\n    def _classify(cls, data):\n        return _classify_tagged_enum(data, {}, representation='{representation}', tag_field={}{}{}{})\n\n",
         enum_tag_set(enum_def), python_string_literal(tag_field), adjacent_args, fallback, unknown,
     ));
+    if enum_def.open {
+        code.push_str(KNOWN_VARIANTS_JSON_SCHEMA);
+    }
     code
 }
 
@@ -4880,6 +4912,7 @@ fn render_externally_tagged_enum(
     let mut variant_entries = Vec::new(); // (wire_name, handler_expr)
     let mut serializer_entries = Vec::new(); // (wire_name, check_expr, serialize_expr)
     let mut variant_class_names = Vec::new(); // class names for isinstance checks
+    let mut schema_entries = Vec::new(); // (wire_name, shape) for the JSON schema
 
     // Collect active generic parameter names for this enum
     let generic_params: Vec<String> = infer_enum_generic_params(enum_def, schema);
@@ -4898,6 +4931,7 @@ fn render_externally_tagged_enum(
             Fields::None => {
                 // Unit variant: represented as string literal
                 union_variants.push(format!("Literal[{variant_name:?}]"));
+                schema_entries.push(format!("({}, \"unit\")", python_string_literal(wire_name)));
 
                 variant_entries.push(format!("\"{wire_name}\": \"_unit\""));
                 serializer_entries.push(format!(
@@ -4957,6 +4991,16 @@ fn render_externally_tagged_enum(
                     variant_class_name.clone()
                 };
                 union_variants.push(union_member);
+
+                let shape = if field_names.len() == 1 {
+                    "newtype"
+                } else {
+                    "tuple"
+                };
+                schema_entries.push(format!(
+                    "({}, \"{shape}\")",
+                    python_string_literal(wire_name)
+                ));
 
                 // For tuple variants, the JSON value can be a single value or array
                 if field_names.len() == 1 {
@@ -5060,6 +5104,10 @@ fn render_externally_tagged_enum(
                     format!("{variant_class_name}(**v)")
                 };
                 variant_entries.push(format!("\"{wire_name}\": lambda v: {parse_value}"));
+                schema_entries.push(format!(
+                    "({}, \"struct\")",
+                    python_string_literal(wire_name)
+                ));
                 serializer_entries.push(format!(
                     "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": r.model_dump(by_alias=True)}})"
                 ));
@@ -5091,6 +5139,7 @@ fn render_externally_tagged_enum(
         is_single_variant: union_variants.len() == 1,
         variant_entries,
         serializer_entries,
+        schema_entries,
         variant_class_names,
         is_generic,
         generic_params: generic_params.clone(),
@@ -8198,6 +8247,8 @@ pub mod templates {
         pub is_single_variant: bool,
         pub variant_entries: Vec<String>,
         pub serializer_entries: Vec<String>,
+        /// `(wire_name, shape)` tuples, in union order, for the JSON schema
+        pub schema_entries: Vec<String>,
         /// Class names of non-unit variant types (for isinstance checks on direct instances)
         pub variant_class_names: Vec<String>,
         pub is_generic: bool,
@@ -8297,6 +8348,21 @@ pub mod templates {
                 write!(s, "{entry}").unwrap();
             }
             writeln!(s, "}}, \"{name}\")", name = self.name).unwrap();
+            writeln!(s).unwrap();
+
+            // Pydantic never runs the hooks above to build a JSON schema.
+            writeln!(s, "    @classmethod").unwrap();
+            writeln!(
+                s,
+                "    def __get_pydantic_json_schema__(cls, core_schema, handler):"
+            )
+            .unwrap();
+            writeln!(
+                s,
+                "        return _externally_tagged_json_schema(core_schema, handler, ({},))",
+                self.schema_entries.join(", ")
+            )
+            .unwrap();
             s
         }
     }

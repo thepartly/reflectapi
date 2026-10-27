@@ -42,6 +42,9 @@ from .response import ApiResponse, ApiStream, AsyncApiStream, TransportMetadata
 from .serde import (
     UnknownEnumValue,
     classify_tagged_enum,
+    externally_tagged_json_schema,
+    flattened_enum_json_schema,
+    known_variants_json_schema,
     parse_externally_tagged,
     serialize_externally_tagged,
 )
@@ -96,6 +99,9 @@ __all__ = [
     "ReflectapiEmpty",
     "ReflectapiInfallible",
     "ReflectapiPartialModel",
+    "externally_tagged_json_schema",
+    "flattened_enum_json_schema",
+    "known_variants_json_schema",
     "parse_externally_tagged",
     "serialize_externally_tagged",
     "UnknownEnumValue",

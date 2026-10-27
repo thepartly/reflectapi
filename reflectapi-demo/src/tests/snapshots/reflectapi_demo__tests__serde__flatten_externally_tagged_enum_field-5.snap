@@ -31,9 +31,11 @@ from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import (
+    externally_tagged_json_schema as _externally_tagged_json_schema,
     parse_externally_tagged as _parse_externally_tagged,
     serialize_externally_tagged as _serialize_externally_tagged,
 )
+from reflectapi_runtime import flattened_enum_json_schema as _flattened_enum_json_schema
 
 
 class ReflectapiDemoTestsSerdeDrawing(BaseModel):
@@ -76,7 +78,21 @@ class ReflectapiDemoTestsSerdeDrawing(BaseModel):
         enum_value = value.pop("shape", None)
         if enum_value is None:
             return value
+        if isinstance(enum_value, str):
+            enum_value = {enum_value: None}
         return {**value, **enum_value}
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return _flattened_enum_json_schema(
+            core_schema,
+            handler,
+            "shape",
+            (
+                "Circle",
+                "Rect",
+            ),
+        )
 
 
 class ReflectapiDemoTestsSerdeShapeCircleVariant(BaseModel):
@@ -140,6 +156,17 @@ class ReflectapiDemoTestsSerdeShape(RootModel[ReflectapiDemoTestsSerdeShapeVaria
                 ),
             },
             "ReflectapiDemoTestsSerdeShape",
+        )
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return _externally_tagged_json_schema(
+            core_schema,
+            handler,
+            (
+                ("Circle", "struct"),
+                ("Rect", "struct"),
+            ),
         )
 
 
