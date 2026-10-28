@@ -7,7 +7,7 @@
 
 use std::collections::BTreeSet;
 
-use reflectapi_schema::{Field, Fields, Representation, Type, TypeReference};
+use reflectapi_schema::{Enum, Field, Fields, Representation, Type, TypeReference};
 
 use super::presence::{resolve_field_wire_contract, FieldWireFacts, KeyPresence};
 
@@ -31,15 +31,33 @@ pub(crate) enum Layout<'a> {
     Struct(StructLayout<'a>),
     /// The tag, then one layout per variant.
     InternallyTagged {
+        enm: &'a Enum,
         tag: &'a str,
         variants: Vec<Layout<'a>>,
     },
     AdjacentlyTagged {
+        enm: &'a Enum,
         tag: &'a str,
         content: &'a str,
     },
-    /// The keys aren't known from the schema, e.g. an externally tagged enum.
-    Unknown,
+    /// The keys aren't known from the schema.
+    Unknown(Opaque<'a>),
+}
+
+/// Why a type's keys aren't known from the schema.
+pub(crate) enum Opaque<'a> {
+    /// An externally tagged or untagged enum.
+    Enum(&'a Enum),
+    /// A primitive: a unit type such as `()`, which has no keys, or a type
+    /// such as `u32`, which can't be flattened.
+    Primitive(&'a str),
+    /// The type isn't in the typespace.
+    Unresolved(String),
+    /// Nested deeper than `MAX_DEPTH` flattens.
+    TooDeep,
+    /// A tuple struct, a transparent struct without exactly one field, or an
+    /// `Option` without an argument.
+    Unsupported,
 }
 
 /// A struct's fields in declaration order.
@@ -70,7 +88,7 @@ impl<'a> FlattenedGroup<'a> {
         Self {
             field,
             optional,
-            layout: type_ref.map_or(Layout::Unknown, |type_ref| {
+            layout: type_ref.map_or(Layout::Unknown(Opaque::Unsupported), |type_ref| {
                 Layout::of_type(type_ref, lookup, depth)
             }),
         }
@@ -80,37 +98,41 @@ impl<'a> FlattenedGroup<'a> {
 impl<'a> Layout<'a> {
     pub fn of_type(type_ref: &TypeReference, lookup: Lookup<'a, '_>, depth: usize) -> Self {
         if depth > MAX_DEPTH {
-            return Layout::Unknown;
+            return Layout::Unknown(Opaque::TooDeep);
         }
         match lookup(&type_ref.name) {
             Some(Type::Struct(strukt)) if strukt.transparent() => {
                 let mut fields = strukt.fields();
                 match (fields.next(), fields.next()) {
                     (Some(inner), None) => Layout::of_type(&inner.type_ref, lookup, depth + 1),
-                    _ => Layout::Unknown,
+                    _ => Layout::Unknown(Opaque::Unsupported),
                 }
             }
             Some(Type::Struct(strukt)) => Layout::of_fields(&strukt.fields, lookup, depth),
             Some(Type::Enum(enm)) => match &enm.representation {
                 Representation::Internal { tag } => Layout::InternallyTagged {
+                    enm,
                     tag,
                     variants: enm
                         .variants()
                         .map(|variant| match &variant.fields {
                             Fields::Unnamed(fields) => match fields.as_slice() {
                                 [newtype] => Layout::of_type(&newtype.type_ref, lookup, depth + 1),
-                                _ => Layout::Unknown,
+                                _ => Layout::Unknown(Opaque::Unsupported),
                             },
                             fields => Layout::of_fields(fields, lookup, depth),
                         })
                         .collect(),
                 },
                 Representation::Adjacent { tag, content } => {
-                    Layout::AdjacentlyTagged { tag, content }
+                    Layout::AdjacentlyTagged { enm, tag, content }
                 }
-                Representation::External | Representation::None => Layout::Unknown,
+                Representation::External | Representation::None => {
+                    Layout::Unknown(Opaque::Enum(enm))
+                }
             },
-            Some(Type::Primitive(_)) | None => Layout::Unknown,
+            Some(Type::Primitive(primitive)) => Layout::Unknown(Opaque::Primitive(&primitive.name)),
+            None => Layout::Unknown(Opaque::Unresolved(type_ref.name.clone())),
         }
     }
 
@@ -122,7 +144,7 @@ impl<'a> Layout<'a> {
             } else if field.is_named() {
                 Member::Key(field)
             } else {
-                return Layout::Unknown;
+                return Layout::Unknown(Opaque::Unsupported);
             });
         }
         Layout::Struct(StructLayout { members })
@@ -147,16 +169,16 @@ impl<'a> Layout<'a> {
                     }
                 }
             }
-            Layout::InternallyTagged { tag, variants } => {
+            Layout::InternallyTagged { tag, variants, .. } => {
                 keys.insert(tag);
                 for variant in variants {
                     variant.collect_keys(keys)?;
                 }
             }
-            Layout::AdjacentlyTagged { tag, content } => {
+            Layout::AdjacentlyTagged { tag, content, .. } => {
                 keys.extend([*tag, *content]);
             }
-            Layout::Unknown => return None,
+            Layout::Unknown(_) => return None,
         }
         Some(())
     }
@@ -169,7 +191,7 @@ impl<'a> Layout<'a> {
                 Member::Flattened(group) => !group.optional && group.layout.has_required_key(),
             }),
             Layout::InternallyTagged { .. } | Layout::AdjacentlyTagged { .. } => true,
-            Layout::Unknown => false,
+            Layout::Unknown(_) => false,
         }
     }
 }
@@ -367,7 +389,73 @@ mod tests {
         assert!(layout.keys().is_none());
         assert!(matches!(
             Layout::of_type(&"Missing".into(), &lookup_in(&types), 0),
-            Layout::Unknown
+            Layout::Unknown(Opaque::Unresolved(name)) if name == "Missing"
         ));
+    }
+
+    #[test]
+    fn an_unknown_layout_says_why() {
+        let mut external = Enum::new("External".into());
+        external.representation = Representation::External;
+        let mut tuple = Struct::new("Tuple");
+        tuple.fields = Fields::Unnamed(vec![field("0", "u32", true)]);
+        let types = [
+            Type::Enum(external),
+            Type::Struct(tuple),
+            Type::Primitive(reflectapi_schema::Primitive::new(
+                "u32".into(),
+                String::new(),
+                Vec::new(),
+                None,
+            )),
+        ];
+        let layout = |name: &str| Layout::of_type(&name.into(), &lookup_in(&types), 0);
+        assert!(
+            matches!(layout("External"), Layout::Unknown(Opaque::Enum(e)) if e.name == "External")
+        );
+        assert!(matches!(
+            layout("Tuple"),
+            Layout::Unknown(Opaque::Unsupported)
+        ));
+        assert!(matches!(
+            layout("u32"),
+            Layout::Unknown(Opaque::Primitive("u32"))
+        ));
+        assert!(matches!(
+            Layout::of_type(&"u32".into(), &lookup_in(&types), MAX_DEPTH + 1),
+            Layout::Unknown(Opaque::TooDeep)
+        ));
+    }
+
+    #[test]
+    fn a_tagged_enum_layout_has_its_definition() {
+        let mut internal = Enum::new("Internal".into());
+        internal.representation = Representation::Internal { tag: "kind".into() };
+        let mut adjacent = Enum::new("Adjacent".into());
+        adjacent.representation = Representation::Adjacent {
+            tag: "t".into(),
+            content: "c".into(),
+        };
+        let types = [Type::Enum(internal), Type::Enum(adjacent)];
+        let layout = |name: &str| Layout::of_type(&name.into(), &lookup_in(&types), 0);
+        assert!(
+            matches!(layout("Internal"), Layout::InternallyTagged { enm, .. } if enm.name == "Internal")
+        );
+        assert!(
+            matches!(layout("Adjacent"), Layout::AdjacentlyTagged { enm, .. } if enm.name == "Adjacent")
+        );
+    }
+
+    #[test]
+    fn a_transparent_struct_has_the_keys_of_the_type_it_wraps() {
+        let mut wrapper = Struct::new("Wrapper");
+        wrapper.transparent = true;
+        wrapper.fields = Fields::Named(vec![field("inner", "Inner", true)]);
+        let types = [
+            Type::Struct(wrapper),
+            strukt("Inner", vec![field("a", "u32", true)]),
+        ];
+        let layout = Layout::of_type(&"Wrapper".into(), &lookup_in(&types), 0);
+        assert_eq!(layout.keys().unwrap(), BTreeSet::from(["a"]));
     }
 }

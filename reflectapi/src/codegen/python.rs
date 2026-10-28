@@ -989,15 +989,12 @@ fn render_struct_with_flattened_tagged_enum(
         let type_name = resolve_flattened_type_name(&field.type_ref);
         if let Some(reflectapi_schema::Type::Struct(_)) = schema.get_type(type_name) {
             let flattened = collect_flattened_fields(
-                &field.type_ref,
+                field,
                 schema,
                 implemented_types,
                 class_names,
                 active_generics,
-                flattened_group_required(field),
-                0,
                 used_type_vars,
-                Some(field.name()),
             )?;
             base_fields.extend(flattened);
         // The selected enum is rendered below; other enum fields remain typed.
@@ -1266,15 +1263,12 @@ fn render_struct_with_flattened_tagged_enum(
                             // those fields inline so the wire shape is
                             // preserved across the tuple-variant boundary.
                             let nested = collect_flattened_fields(
-                                &sf.type_ref,
+                                sf,
                                 schema,
                                 implemented_types,
                                 class_names,
                                 active_generics,
-                                flattened_group_required(sf),
-                                0,
                                 used_type_vars,
-                                Some(sf.name()),
                             )?;
                             fields.extend(nested);
                             continue;
@@ -1405,15 +1399,12 @@ fn render_struct_with_flatten_standard(
     // Add flattened fields (expanded directly)
     for field in struct_def.fields.iter().filter(|f| f.flattened()) {
         let flattened_fields = collect_flattened_fields(
-            &field.type_ref,
+            field,
             schema,
             implemented_types,
             class_names,
             active_generics,
-            flattened_group_required(field),
-            0,
             used_type_vars,
-            Some(field.name()),
         )?;
         all_fields.extend(flattened_fields);
     }
@@ -3985,24 +3976,94 @@ fn render_type(
     }
 }
 
-/// Recursively collect fields from flattened structures and enums.
-/// `field_name` is the original Rust field name for the flattened field
-/// (used when emitting enum types as regular fields).
-#[allow(clippy::too_many_arguments)]
+/// The model fields a flattened field expands to: the keys of its type,
+/// through nested flattened structs, with a flattened enum kept as one typed
+/// field. The structure is the shared [`schema_codegen::Layout`].
 fn collect_flattened_fields(
-    type_ref: &TypeReference,
+    field: &reflectapi_schema::Field,
     schema: &Schema,
     implemented_types: &BTreeMap<String, String>,
     class_names: &BTreeMap<String, String>,
     active_generics: &[String],
+    used_type_vars: &mut BTreeSet<String>,
+) -> anyhow::Result<Vec<templates::Field>> {
+    let lookup = |name: &str| schema.get_type(name);
+    let group = schema_codegen::FlattenedGroup::of(field, &lookup);
+    let mut collected_fields = Vec::new();
+    collect_group_fields(
+        &group,
+        !group.optional,
+        0,
+        schema,
+        implemented_types,
+        class_names,
+        active_generics,
+        used_type_vars,
+        &mut collected_fields,
+    )?;
+    Ok(collected_fields)
+}
+
+/// `parent_required` is false inside an optional group: its keys are absent
+/// whenever the group is.
+#[allow(clippy::too_many_arguments)]
+fn collect_group_fields(
+    group: &schema_codegen::FlattenedGroup<'_>,
     parent_required: bool,
     depth: usize,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
+    active_generics: &[String],
     used_type_vars: &mut BTreeSet<String>,
-    field_name: Option<&str>,
-) -> anyhow::Result<Vec<templates::Field>> {
-    // Prevent infinite recursion
-    if depth > 10 {
-        return Ok(vec![templates::Field {
+    collected_fields: &mut Vec<templates::Field>,
+) -> anyhow::Result<()> {
+    use schema_codegen::{Layout, Member, Opaque};
+    let type_ref = &group.field.type_ref;
+    match &group.layout {
+        Layout::Struct(layout) => {
+            for member in &layout.members {
+                match member {
+                    Member::Key(field) => collected_fields.push(make_flattened_field(
+                        field,
+                        schema,
+                        implemented_types,
+                        class_names,
+                        active_generics,
+                        parent_required,
+                        depth,
+                        used_type_vars,
+                    )?),
+                    Member::Flattened(nested) => collect_group_fields(
+                        nested,
+                        parent_required && !nested.optional,
+                        depth + 1,
+                        schema,
+                        implemented_types,
+                        class_names,
+                        active_generics,
+                        used_type_vars,
+                        collected_fields,
+                    )?,
+                }
+            }
+        }
+        // Pydantic can't flatten a union, so a flattened enum is a typed field.
+        Layout::InternallyTagged { enm, .. }
+        | Layout::AdjacentlyTagged { enm, .. }
+        | Layout::Unknown(Opaque::Enum(enm)) => collect_flattened_enum_fields(
+            enm,
+            type_ref,
+            schema,
+            implemented_types,
+            class_names,
+            active_generics,
+            parent_required,
+            used_type_vars,
+            collected_fields,
+            Some(group.field.name()),
+        )?,
+        Layout::Unknown(Opaque::TooDeep) => collected_fields.push(templates::Field {
             name: format!("# Max flattening depth reached for type {}", type_ref.name),
             type_annotation: "Any".to_string(),
             description: Some("Maximum flattening depth exceeded".to_string()),
@@ -4014,101 +4075,28 @@ fn collect_flattened_fields(
             is_partial: false,
 
             reject_null: false,
-        }]);
+        }),
+        // A unit type such as `()` flattens to no keys.
+        Layout::Unknown(Opaque::Primitive("std::tuple::Tuple0")) => {}
+        Layout::Unknown(Opaque::Primitive(name)) => anyhow::bail!(
+            "python codegen: cannot flatten primitive type '{name}' \
+             (only structs, internally-tagged enums, and unit types \
+             are valid flatten targets)",
+        ),
+        // After monomorphization a flatten target is always in the schema.
+        // Bail rather than silently drop the inner type's fields.
+        Layout::Unknown(Opaque::Unresolved(name)) => anyhow::bail!(
+            "python codegen: cannot resolve flatten target '{name}'. \
+             If this is a generic parameter, monomorphization should \
+             have replaced it; this is a codegen bug.",
+        ),
+        Layout::Unknown(Opaque::Unsupported) => anyhow::bail!(
+            "python codegen: cannot flatten '{}' into a model: only structs \
+             with named fields, enums, and unit types are supported",
+            type_ref.name,
+        ),
     }
-
-    let mut collected_fields = Vec::new();
-
-    // Unwrap Option<T> and ReflectapiOption<T> when flattening
-    let target_type_name = if (type_ref.name == "std::option::Option"
-        || type_ref.name == "reflectapi::Option")
-        && !type_ref.arguments.is_empty()
-    {
-        &type_ref.arguments[0].name
-    } else {
-        &type_ref.name
-    };
-
-    match schema.get_type(target_type_name) {
-        Some(reflectapi_schema::Type::Struct(struct_def)) => {
-            for field in struct_def.fields.iter() {
-                if field.flattened() {
-                    // Recursively collect fields from nested flattened structures
-                    let nested_fields = collect_flattened_fields(
-                        &field.type_ref,
-                        schema,
-                        implemented_types,
-                        class_names,
-                        active_generics,
-                        parent_required && flattened_group_required(field),
-                        depth + 1,
-                        used_type_vars,
-                        Some(field.name()),
-                    )?;
-                    collected_fields.extend(nested_fields);
-                } else {
-                    // Regular field in flattened struct
-                    collected_fields.push(make_flattened_field(
-                        field,
-                        schema,
-                        implemented_types,
-                        class_names,
-                        active_generics,
-                        parent_required,
-                        depth,
-                        used_type_vars,
-                    )?);
-                }
-            }
-        }
-        Some(reflectapi_schema::Type::Enum(enum_def)) => {
-            // Flattened enum: expand variant fields into the parent model.
-            // For internally-tagged enums, each variant's fields + the tag field
-            // get merged into the parent struct. For other representations,
-            // we emit the enum as a regular typed field since Pydantic cannot
-            // truly flatten non-internally-tagged unions.
-            collect_flattened_enum_fields(
-                enum_def,
-                type_ref,
-                schema,
-                implemented_types,
-                class_names,
-                active_generics,
-                parent_required,
-                used_type_vars,
-                &mut collected_fields,
-                field_name,
-            )?;
-        }
-        Some(reflectapi_schema::Type::Primitive(p)) => {
-            // Unit-like primitives (e.g. std::tuple::Tuple0) flatten to
-            // nothing — that's legitimate. Other primitives in a
-            // flatten position are a schema error: you can't flatten an
-            // i32 etc.
-            if p.name != "std::tuple::Tuple0" {
-                anyhow::bail!(
-                    "python codegen: cannot flatten primitive type '{}' \
-                     (only structs, internally-tagged enums, and unit types \
-                     are valid flatten targets)",
-                    p.name,
-                );
-            }
-        }
-        None => {
-            // We resolved a flatten target by name and the type wasn't
-            // in the schema. After monomorphization, this should be
-            // impossible — generic parameters are substituted away
-            // before rendering. Bail rather than silently drop the
-            // inner type's fields (the bug fixed by monomorphization).
-            anyhow::bail!(
-                "python codegen: cannot resolve flatten target '{target_type_name}'. \
-                 If this is a generic parameter, monomorphization should \
-                 have replaced it; this is a codegen bug.",
-            );
-        }
-    }
-
-    Ok(collected_fields)
+    Ok(())
 }
 
 /// Create a single flattened field entry from a struct field
@@ -5247,15 +5235,12 @@ fn render_internally_tagged_enum(
                                 // the wire shape gets a wrapper layer that
                                 // serde never produced.
                                 let nested = collect_flattened_fields(
-                                    &struct_field.type_ref,
+                                    struct_field,
                                     schema,
                                     implemented_types,
                                     class_names,
                                     &generic_params,
-                                    flattened_group_required(struct_field),
-                                    0,
                                     used_type_vars,
-                                    Some(struct_field.name()),
                                 )?;
                                 fields.extend(nested);
                                 continue;
@@ -9411,5 +9396,123 @@ mod tests {
         assert!(py.contains("children: list[FlatTreeItem]"));
         assert!(py.contains("    id: int"));
         assert!(py.contains("    label: str"));
+    }
+
+    /// `Outer { o: u32, #[serde(flatten)] inner: <inner> }` plus `types`.
+    fn generate_flattening(
+        inner: serde_json::Value,
+        types: Vec<serde_json::Value>,
+    ) -> anyhow::Result<String> {
+        let mut types = types;
+        types.push(serde_json::json!({"kind": "primitive", "name": "u32"}));
+        types.push(
+            serde_json::json!({"kind": "struct", "name": "Outer", "fields": {"named": [
+                {"name": "o", "type": {"name": "u32"}, "required": true},
+                {"name": "inner", "type": inner, "required": true, "flattened": true}
+            ]}}),
+        );
+        let schema: crate::Schema = serde_json::from_value(serde_json::json!({
+            "name": "flattening",
+            "input_types": {"types": types}
+        }))?;
+        super::generate(
+            schema,
+            &Config {
+                format: false,
+                ..Config::default()
+            },
+        )
+    }
+
+    #[test]
+    fn flattening_stops_after_ten_nested_levels() {
+        let mut types = Vec::new();
+        for level in 0..12 {
+            let mut fields = vec![serde_json::json!(
+                {"name": format!("f{level}"), "type": {"name": "u32"}, "required": true}
+            )];
+            if level < 11 {
+                fields.push(
+                    serde_json::json!({"name": "next", "required": true, "flattened": true,
+                    "type": {"name": format!("L{}", level + 1)}}),
+                );
+            }
+            types.push(serde_json::json!(
+                {"kind": "struct", "name": format!("L{level}"), "fields": {"named": fields}}
+            ));
+        }
+        let py = generate_flattening(serde_json::json!({"name": "L0"}), types).unwrap();
+        let outer = &py[py.find("class Outer(").unwrap()..];
+        let outer = &outer[..outer.find("\nclass ").unwrap_or(outer.len())];
+        for level in 0..=10 {
+            assert!(outer.contains(&format!("    f{level}: int\n")), "f{level}");
+        }
+        assert!(outer.contains(
+            "    # Max flattening depth reached for type L11: Any = Field(default=None, description=\"Maximum flattening depth exceeded\")\n"
+        ));
+        assert!(!outer.contains("f11"));
+    }
+
+    #[test]
+    fn a_flattened_unit_contributes_no_fields() {
+        let py = generate_flattening(
+            serde_json::json!({"name": "std::tuple::Tuple0"}),
+            vec![serde_json::json!({"kind": "primitive", "name": "std::tuple::Tuple0"})],
+        )
+        .unwrap();
+        let outer = &py[py.find("class Outer(").unwrap()..];
+        let outer = &outer[..outer.find("\nclass ").unwrap_or(outer.len())];
+        assert!(outer.contains("    o: int\n"));
+        assert!(!outer.contains("inner"));
+    }
+
+    #[test]
+    fn flattening_a_primitive_is_an_error() {
+        let err = generate_flattening(serde_json::json!({"name": "u32"}), Vec::new()).unwrap_err();
+        assert!(
+            format!("{err:#}").contains("cannot flatten primitive type 'u32'"),
+            "{err:#}"
+        );
+    }
+
+    #[test]
+    fn flattening_an_unresolved_type_is_an_error() {
+        let err =
+            generate_flattening(serde_json::json!({"name": "Missing"}), Vec::new()).unwrap_err();
+        assert!(format!("{err:#}").contains("Missing"), "{err:#}");
+    }
+
+    /// Serde writes the keys of the type a `#[serde(transparent)]` struct wraps.
+    #[test]
+    fn a_flattened_transparent_struct_contributes_the_keys_it_wraps() {
+        let py = generate_flattening(
+            serde_json::json!({"name": "Wrapper"}),
+            vec![
+                serde_json::json!({"kind": "struct", "name": "Wrapper", "transparent": true,
+                    "fields": {"named": [{"name": "inner", "type": {"name": "Inner"}, "required": true}]}}),
+                serde_json::json!({"kind": "struct", "name": "Inner",
+                    "fields": {"named": [{"name": "a", "type": {"name": "u32"}, "required": true}]}}),
+            ],
+        )
+        .unwrap();
+        let outer = &py[py.find("class Outer(").unwrap()..];
+        let outer = &outer[..outer.find("\nclass ").unwrap_or(outer.len())];
+        assert!(outer.contains("    o: int\n    a: int\n"), "{outer}");
+        assert!(!outer.contains("inner"), "{outer}");
+    }
+
+    /// The schema can't say which keys a tuple struct contributes.
+    #[test]
+    fn flattening_a_tuple_struct_is_an_error() {
+        let err = generate_flattening(
+            serde_json::json!({"name": "Tuple"}),
+            vec![serde_json::json!({"kind": "struct", "name": "Tuple",
+                "fields": {"unnamed": [{"name": "0", "type": {"name": "u32"}, "required": true}]}})],
+        )
+        .unwrap_err();
+        assert!(
+            format!("{err:#}").contains("cannot flatten 'Tuple' into a model"),
+            "{err:#}"
+        );
     }
 }
