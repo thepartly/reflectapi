@@ -171,6 +171,20 @@ pub mod fixtures {
         pub value: Option<ClosedExternal>,
     }
 
+    // Only unit variants: the codegen renders it as a string enum.
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub enum ClosedUnit {
+        On,
+        Off,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct FlattenClosedUnitEnvelope {
+        pub id: u32,
+        #[serde(flatten)]
+        pub value: ClosedUnit,
+    }
+
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct FlattenAdjacentEnvelope {
         pub id: u32,
@@ -308,6 +322,12 @@ fn schema() -> reflectapi::Schema {
              input: fixtures::OptionalFlattenClosedExternalEnvelope,
              _: reflectapi::Empty| async { input },
             |b| b.name("enums.optional_flatten_closed_external"),
+        )
+        .route(
+            |_: (), input: fixtures::FlattenClosedUnitEnvelope, _: reflectapi::Empty| async {
+                input
+            },
+            |b| b.name("enums.flatten_closed_unit"),
         )
         .route(
             |_: (), input: fixtures::FlattenAdjacentEnvelope, _: reflectapi::Empty| async { input },
@@ -474,6 +494,8 @@ fn known_samples() -> serde_json::Value {
             .map(|value| v(OptionalFlattenClosedExternalEnvelope {
                 id: 7, ordinary: OpenInternal::Bird, value,
             }).unwrap()).collect()),
+        "FlattenClosedUnitEnvelope": all([ClosedUnit::On, ClosedUnit::Off].into_iter()
+            .map(|value| v(FlattenClosedUnitEnvelope { id: 7, value }).unwrap()).collect()),
         "FlattenAdjacentEnvelope": all(adjacent().into_iter()
             .map(|value| v(FlattenAdjacentEnvelope { id: 7, value }).unwrap()).collect()),
         "OptionalFlattenAdjacentEnvelope": all(adjacent().into_iter().map(Some).chain([None])

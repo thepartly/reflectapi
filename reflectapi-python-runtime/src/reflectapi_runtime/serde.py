@@ -29,7 +29,9 @@ class UnknownEnumValue(BaseModel):
 
     It is left out of JSON schemas: an open enum is described by its known
     variants, as the server's own schema describes it. Its own schema is a
-    marker that the enum's schema (``known_variants_json_schema``) drops.
+    marker that the enum's schema (``known_variants_json_schema``) drops. The
+    marker matches no value, so an enum generated without that hook still
+    describes its known variants only.
     """
 
     tag: str
@@ -39,7 +41,7 @@ class UnknownEnumValue(BaseModel):
     def __get_pydantic_json_schema__(
         cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler
     ) -> JsonSchemaValue:
-        return {_UNKNOWN_VARIANT: True}
+        return {"not": {}, _UNKNOWN_VARIANT: True}
 
     @model_validator(mode="before")
     @classmethod
@@ -360,13 +362,22 @@ def flattened_enum_json_schema(
         present = [s for s in enum_schema["anyOf"] if s.get("type") != "null"]
         enum_schema = present[0] if len(present) == 1 else {"anyOf": present}
     resolved = _resolve(handler, enum_schema) or {}
-    for union in ("oneOf", "anyOf"):
-        alternatives = resolved.get(union)
-        if alternatives and any(
-            _flattened_alternative(a) is not a for a in alternatives
-        ):
-            enum_schema = {union: [_flattened_alternative(a) for a in alternatives]}
-            break
+    # An externally tagged enum with only unit variants is a string enum.
+    tags = resolved.get("enum")
+    if tags is not None:
+        enum_schema = {
+            "oneOf": [
+                _flattened_alternative({"const": tag, "type": "string"}) for tag in tags
+            ]
+        }
+    else:
+        for union in ("oneOf", "anyOf"):
+            alternatives = resolved.get(union)
+            if alternatives and any(
+                _flattened_alternative(a) is not a for a in alternatives
+            ):
+                enum_schema = {union: [_flattened_alternative(a) for a in alternatives]}
+                break
     if optional:
         present_keys = [{"required": [key]} for key in keys]
         absent = {

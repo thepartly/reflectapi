@@ -5,12 +5,14 @@ model's validators or serializers to build its JSON schema, so each class
 describes its wire shape through ``__get_pydantic_json_schema__``.
 """
 
-# The classes spell unions as `Union[...]`, as generated code does.
-# ruff: noqa: UP007
+# The classes spell unions as `Union[...]` and string enums as `(str, Enum)`,
+# as generated code does.
+# ruff: noqa: UP007, UP042
 
 from __future__ import annotations
 
 import json
+from enum import Enum
 from typing import Annotated, Any, Literal, Union
 
 import jsonschema
@@ -297,3 +299,37 @@ def test_flattened_enum_has_no_nested_field(mode: JsonSchemaMode) -> None:
         enum, parent = schema["allOf"]
         assert parent["properties"].keys() == {"id"}
         assert parent["required"] == ["id"]
+
+
+class Colour(str, Enum):
+    RED = "Red"
+
+
+class PaintUnknown(UnknownEnumValue):
+    pass
+
+
+# An open enum generated before `known_variants_json_schema`, without the hook
+class Paint(RootModel[Union[Colour, PaintUnknown]]):
+    root: Union[Colour, PaintUnknown]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _classify(cls, data: Any) -> Any:
+        return classify_tagged_enum(
+            data,
+            frozenset(("Red",)),
+            representation="external",
+            unknown_type=PaintUnknown,
+            unit_tags=frozenset(("Red",)),
+        )
+
+
+@pytest.mark.parametrize("mode", MODES)
+def test_unknown_case_matches_nothing_without_the_enum_hook(
+    mode: JsonSchemaMode,
+) -> None:
+    schema = Paint.model_json_schema(mode=mode)
+    assert matches(schema, "Red")
+    assert not matches(schema, "Blue")
+    assert not matches(schema, {"tag": "Blue", "raw": "Blue"})

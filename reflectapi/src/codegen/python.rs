@@ -1187,8 +1187,19 @@ fn render_struct_with_flattened_tagged_enum(
             } else {
                 "            raise ValueError('Flattened enum requires a variant key')\n"
             };
+            // An enum of unit variants only is a string enum, which takes the
+            // tag itself; serde writes its flattened variant as `"Tag": null`.
+            let variant_value = if enum_def
+                .variants
+                .iter()
+                .all(|v| matches!(v.fields, Fields::None))
+            {
+                "key if data[key] is None else {key: data[key]}"
+            } else {
+                "{key: data[key]}"
+            };
             format!(
-                "        variant_keys = {}\n        present = variant_keys.intersection(data)\n        if len(present) != 1:\n            if not present and {field} in data:\n                if isinstance(data[{field}], {enum_class_check}){typed_none}:\n                    return data\n                raise ValueError('Flattened enum requires a variant key')\n            if present:\n                raise ValueError('Flattened enum requires exactly one variant key')\n{missing_variant}        parent = {{key: value for key, value in data.items() if key in parent_keys}}\n        key = next(iter(present))\n        parent[{field}] = {{key: data[key]}}\n",
+                "        variant_keys = {}\n        present = variant_keys.intersection(data)\n        if len(present) != 1:\n            if not present and {field} in data:\n                if isinstance(data[{field}], {enum_class_check}){typed_none}:\n                    return data\n                raise ValueError('Flattened enum requires a variant key')\n            if present:\n                raise ValueError('Flattened enum requires exactly one variant key')\n{missing_variant}        parent = {{key: value for key, value in data.items() if key in parent_keys}}\n        key = next(iter(present))\n        parent[{field}] = {variant_value}\n",
                 enum_tag_set(enum_def),
             )
         } else {
