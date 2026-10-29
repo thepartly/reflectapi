@@ -96,7 +96,13 @@ class ReflectapiPartialModel(BaseModel):
         2. RootModel and friends may return non-dict data (e.g. a bare
            string for a unit-variant enum). In that case there's nothing
            to filter; just pass it through.
+
+        3. A mutable default edited in place (``m.items.append(x)``) is
+           never added to ``model_fields_set``, since no assignment ran.
+           Such a field is marked set before the handler runs, so it
+           reaches the wire under ``exclude_unset`` too.
         """
+        self._mark_edited_defaults()
         data = handler(self)
         if not isinstance(data, dict):
             return data
@@ -111,3 +117,15 @@ class ReflectapiPartialModel(BaseModel):
             if alias:
                 emit_keys.add(alias)
         return {key: value for key, value in data.items() if key in emit_keys}
+
+    def _mark_edited_defaults(self) -> None:
+        fields_set = self.__pydantic_fields_set__
+        values = self.__dict__
+        for name, field_info in type(self).model_fields.items():
+            default = field_info.default
+            if (
+                name not in fields_set
+                and isinstance(default, (list, dict, set))
+                and values.get(name, default) != default
+            ):
+                fields_set.add(name)

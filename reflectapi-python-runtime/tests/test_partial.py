@@ -210,6 +210,40 @@ class TestEdgeCases:
         m = M(count=0)
         assert m.model_dump_json() == '{"count":0}'
 
+    def test_collection_default_edited_in_place_appears_on_wire(self):
+        """Codegen defaults an omittable collection to empty; editing it in place
+        sets no field, yet the caller's items must still be sent."""
+
+        class Inner(ReflectapiPartialModel):
+            tags: list[str] = []
+            labels: dict[str, str] = {}
+            ids: set[int] = set()
+
+        class Outer(ReflectapiPartialModel):
+            inner: Inner
+
+        inner = Inner()
+        assert inner.model_dump_json() == "{}"
+        inner.tags.append("a")
+        inner.labels["k"] = "v"
+        inner.ids.add(1)
+        expected = {"tags": ["a"], "labels": {"k": "v"}, "ids": [1]}
+        assert json.loads(inner.model_dump_json()) == expected
+        assert json.loads(inner.model_dump_json(exclude_unset=True)) == expected
+        assert inner.model_dump(mode="json") == expected
+        outer = Outer(inner=Inner())
+        outer.inner.tags.append("b")
+        assert outer.model_dump_json(exclude_unset=True) == '{"inner":{"tags":["b"]}}'
+
+    def test_untouched_collection_default_stays_omitted(self):
+        class M(ReflectapiPartialModel):
+            tags: list[str] = []
+
+        m = M()
+        m.tags.append("a")
+        m.tags.clear()
+        assert m.model_dump_json(exclude_unset=True) == "{}"
+
     def test_alias_respected_on_serialise(self):
         from pydantic import Field
 
