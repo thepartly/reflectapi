@@ -548,6 +548,24 @@ mod wire {
         pub value: Identifier,
         pub values: Vec<Identifier>,
         pub one_or_many: OneOrMany<u32>,
+        #[serde(flatten)]
+        pub trace: Trace,
+    }
+
+    /// Flattened, it contributes the keys of the struct it wraps.
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    #[serde(transparent)]
+    pub struct Trace {
+        pub context: TraceContext,
+    }
+
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct TraceContext {
+        pub trace_id: String,
     }
 
     pub fn samples() -> Vec<serde_json::Value> {
@@ -575,6 +593,11 @@ mod wire {
                         OneOrMany::One(i as u32)
                     } else {
                         OneOrMany::Many(vec![i as u32, 0])
+                    },
+                    trace: Trace {
+                        context: TraceContext {
+                            trace_id: format!("trace-{i}"),
+                        },
                     },
                 };
                 let json = serde_json::to_value(&request).unwrap();

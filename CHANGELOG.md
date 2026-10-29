@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- A generated Python model that flattens a `#[serde(transparent)]` struct with a named field now has the keys of the struct it wraps, as serde writes them. It had the wrapper's field instead, so the model rejected the server's responses and sent the wrong request body. Schemas built with `fold_transparent_types()` weren't affected.
+- Flattening a type the schema can't describe as keys, such as a tuple struct, is now a Python codegen error. It used to generate a field named `0`, which isn't valid Python.
+
 ## 0.22.1
 
 Generated Python models with omittable fields keep their JSON schema in serialization mode, so FastAPI apps that return them publish typed OpenAPI response schemas again. Upgrade `reflectapi-runtime`; generated code is unchanged.
