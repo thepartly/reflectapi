@@ -1186,11 +1186,12 @@ fn render_struct_with_flattened_tagged_enum(
             };
             // An enum of unit variants only is a string enum, which takes the
             // tag itself; serde writes its flattened variant as `"Tag": null`.
-            let variant_value = if enum_def
-                .variants
-                .iter()
-                .all(|v| matches!(v.fields, Fields::None))
-            {
+            let variant_value = if enum_def.variants.iter().all(|v| {
+                matches!(
+                    schema_codegen::Shape::of(&v.fields),
+                    schema_codegen::Shape::Unit
+                )
+            }) {
                 "key if data[key] is None else {key: data[key]}"
             } else {
                 "{key: data[key]}"
@@ -4901,7 +4902,7 @@ fn render_externally_tagged_enum(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
+    use schema_codegen::Shape;
 
     let enum_name = python_class_name(&enum_def.name, class_names);
     let mut variant_models = Vec::new();
@@ -4926,18 +4927,23 @@ fn render_externally_tagged_enum(
         let variant_name = variant.name();
         let wire_name = variant.serde_name();
 
-        match &variant.fields {
-            Fields::None => {
+        let shape = schema_codegen::Shape::of(&variant.fields);
+        schema_entries.push(format!(
+            "({}, \"{}\")",
+            python_string_literal(wire_name),
+            json_schema_shape(shape)
+        ));
+        match shape {
+            Shape::Unit => {
                 // Unit variant: represented as string literal
                 union_variants.push(format!("Literal[{variant_name:?}]"));
-                schema_entries.push(format!("({}, \"unit\")", python_string_literal(wire_name)));
 
                 variant_entries.push(format!("\"{wire_name}\": \"_unit\""));
                 serializer_entries.push(format!(
                     "\"{wire_name}\": (lambda r: r == \"{wire_name}\", lambda r: \"{wire_name}\")"
                 ));
             }
-            Fields::Unnamed(unnamed_fields) => {
+            Shape::Newtype(_) | Shape::Tuple(_) => {
                 // Tuple variant: create a model class
                 let variant_class_name =
                     format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
@@ -4945,7 +4951,7 @@ fn render_externally_tagged_enum(
                 let mut fields = Vec::new();
                 let mut field_names = Vec::new();
 
-                for (i, field) in unnamed_fields.iter().enumerate() {
+                for (i, field) in shape.fields().iter().enumerate() {
                     let field_type = type_ref_to_python_type(
                         &field.type_ref,
                         schema,
@@ -4991,18 +4997,8 @@ fn render_externally_tagged_enum(
                 };
                 union_variants.push(union_member);
 
-                let shape = if field_names.len() == 1 {
-                    "newtype"
-                } else {
-                    "tuple"
-                };
-                schema_entries.push(format!(
-                    "({}, \"{shape}\")",
-                    python_string_literal(wire_name)
-                ));
-
                 // For tuple variants, the JSON value can be a single value or array
-                if field_names.len() == 1 {
+                if matches!(shape, Shape::Newtype(_)) {
                     variant_entries.push(format!(
                         "\"{wire_name}\": lambda v: {variant_class_name}(field_0=v)"
                     ));
@@ -5039,7 +5035,7 @@ fn render_externally_tagged_enum(
                     ));
                 }
             }
-            Fields::Named(named_fields) => {
+            Shape::Struct(named_fields) => {
                 // Struct variant: create a model class
                 let variant_class_name =
                     format!("{}{}Variant", enum_name, to_pascal_case(variant_name));
@@ -5103,10 +5099,6 @@ fn render_externally_tagged_enum(
                     format!("{variant_class_name}(**v)")
                 };
                 variant_entries.push(format!("\"{wire_name}\": lambda v: {parse_value}"));
-                schema_entries.push(format!(
-                    "({}, \"struct\")",
-                    python_string_literal(wire_name)
-                ));
                 serializer_entries.push(format!(
                     "\"{wire_name}\": (lambda r: isinstance(r, {variant_class_name}), lambda r: {{\"{wire_name}\": r.model_dump(by_alias=True)}})"
                 ));
@@ -5147,6 +5139,16 @@ fn render_externally_tagged_enum(
     let enum_code = template.render();
 
     Ok(enum_code)
+}
+
+/// How the runtime's JSON schema helpers name a variant's shape.
+fn json_schema_shape(shape: schema_codegen::Shape<'_>) -> &'static str {
+    match shape {
+        schema_codegen::Shape::Unit => "unit",
+        schema_codegen::Shape::Newtype(_) => "newtype",
+        schema_codegen::Shape::Tuple(_) => "tuple",
+        schema_codegen::Shape::Struct(_) => "struct",
+    }
 }
 
 fn render_primitive_enum(
