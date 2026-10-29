@@ -32,6 +32,7 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
+    externally_tagged_json_schema as _externally_tagged_json_schema,
     parse_externally_tagged as _parse_externally_tagged,
     serialize_externally_tagged as _serialize_externally_tagged,
 )
@@ -121,6 +122,20 @@ class ReflectapiDemoTestsBasicEnumWithDeprecatedVariants(
                 "Released": (lambda r: r == "Released", lambda r: "Released"),
             },
             "ReflectapiDemoTestsBasicEnumWithDeprecatedVariants",
+        )
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return _externally_tagged_json_schema(
+            core_schema,
+            handler,
+            (
+                ("Current", "unit"),
+                ("Unit", "unit"),
+                ("Tuple", "newtype"),
+                ("Struct", "struct"),
+                ("Released", "unit"),
+            ),
         )
 
 

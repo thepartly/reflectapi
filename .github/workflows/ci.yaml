@@ -193,6 +193,12 @@ jobs:
       - name: Test generated Python enum compatibility
         working-directory: reflectapi-demo/clients/python
         run: uv run --locked $UV_RUN_ARGS pytest ../../tests/python/test_enum_compatibility.py -q -p no:cacheprovider
+      # Pydantic builds JSON schemas without running the generated models'
+      # custom validators and serializers; replay serde's known variants
+      # against both the validation and serialization schemas.
+      - name: Check generated Python JSON schemas against serde samples
+        working-directory: reflectapi-demo/clients/python
+        run: uv run --locked $UV_RUN_ARGS pytest ../../tests/python/test_json_schema.py -q -p no:cacheprovider
       - name: Generate field-presence clients
         run: cargo test -p reflectapi-demo --test field_presence
       - name: Test generated Python field presence

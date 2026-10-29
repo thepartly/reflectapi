@@ -32,6 +32,7 @@ from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
+    externally_tagged_json_schema as _externally_tagged_json_schema,
     parse_externally_tagged as _parse_externally_tagged,
     serialize_externally_tagged as _serialize_externally_tagged,
 )
@@ -223,6 +224,18 @@ class MyapiProtoPetsCreateError(RootModel[MyapiProtoPetsCreateErrorVariants]):
             "MyapiProtoPetsCreateError",
         )
 
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return _externally_tagged_json_schema(
+            core_schema,
+            handler,
+            (
+                ("Conflict", "unit"),
+                ("NotAuthorized", "unit"),
+                ("InvalidIdentity", "struct"),
+            ),
+        )
+
 
 class MyapiProtoPetsListErrorInvalidCursor(BaseModel):
     model_config = ConfigDict(
@@ -335,6 +348,18 @@ class MyapiProtoPetsUpdateError(RootModel[MyapiProtoPetsUpdateErrorVariants]):
             "MyapiProtoPetsUpdateError",
         )
 
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return _externally_tagged_json_schema(
+            core_schema,
+            handler,
+            (
+                ("NotFound", "unit"),
+                ("NotAuthorized", "unit"),
+                ("Validation", "newtype"),
+            ),
+        )
+
 
 class MyapiProtoValidationErrorValidationAVariant(BaseModel):
     """ValidationA variant"""
@@ -380,6 +405,12 @@ class MyapiProtoValidationError(RootModel[MyapiProtoValidationErrorVariants]):
                 )
             },
             "MyapiProtoValidationError",
+        )
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return _externally_tagged_json_schema(
+            core_schema, handler, (("ValidationA", "newtype"),)
         )
 
 

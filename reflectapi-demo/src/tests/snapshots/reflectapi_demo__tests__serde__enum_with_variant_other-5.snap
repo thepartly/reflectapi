@@ -26,6 +26,7 @@ from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import (
     UnknownEnumValue,
     classify_tagged_enum as _classify_tagged_enum,
+    known_variants_json_schema as _known_variants_json_schema,
 )
 
 
