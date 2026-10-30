@@ -913,15 +913,17 @@ fn variant_flattened_groups<'a>(
     variant: &'a reflectapi_schema::Variant,
     schema: &'a Schema,
 ) -> Vec<templates::FlattenedGroup> {
-    match &variant.fields {
-        reflectapi_schema::Fields::Unnamed(fields) => match fields.as_slice() {
-            [newtype] => match schema.get_type(resolve_flattened_type_name(&newtype.type_ref)) {
+    match schema_codegen::Shape::of(&variant.fields) {
+        schema_codegen::Shape::Newtype(newtype) => {
+            match schema.get_type(resolve_flattened_type_name(&newtype.type_ref)) {
                 Some(Type::Struct(inner)) => optional_flattened_groups(inner.fields.iter(), schema),
                 _ => Vec::new(),
-            },
-            _ => Vec::new(),
-        },
-        fields => optional_flattened_groups(fields.iter(), schema),
+            }
+        }
+        schema_codegen::Shape::Tuple(_) => Vec::new(),
+        schema_codegen::Shape::Unit | schema_codegen::Shape::Struct(_) => {
+            optional_flattened_groups(variant.fields.iter(), schema)
+        }
     }
 }
 
@@ -952,8 +954,6 @@ fn render_struct_with_flattened_tagged_enum(
     flattened_groups: &[templates::FlattenedGroup],
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
     let mut output = String::new();
     let mut union_variant_names: Vec<String> = Vec::new();
 
@@ -1237,8 +1237,8 @@ fn render_struct_with_flattened_tagged_enum(
         });
 
         // Add variant-specific fields
-        match &variant.fields {
-            Fields::Named(named_fields) => {
+        match schema_codegen::Shape::of(&variant.fields) {
+            schema_codegen::Shape::Struct(named_fields) => {
                 for vf in named_fields {
                     let field_type = type_ref_to_python_type(
                         &vf.type_ref,
@@ -1270,9 +1270,8 @@ fn render_struct_with_flattened_tagged_enum(
                     });
                 }
             }
-            Fields::Unnamed(unnamed_fields) if unnamed_fields.len() == 1 => {
+            schema_codegen::Shape::Newtype(inner) => {
                 // Tuple variant with one field — expand inner struct fields
-                let inner = &unnamed_fields[0];
                 let inner_name = if inner.type_ref.name == "std::boxed::Box" {
                     inner
                         .type_ref
@@ -1333,10 +1332,10 @@ fn render_struct_with_flattened_tagged_enum(
                     }
                 }
             }
-            Fields::None => {
+            schema_codegen::Shape::Unit => {
                 // Unit variant — no additional fields beyond tag
             }
-            _ => {
+            schema_codegen::Shape::Tuple(_) => {
                 // Multi-field tuple variant — not supported for flattening
             }
         }
@@ -4269,7 +4268,10 @@ fn render_struct(
     }
 
     // Check if this is a single-field tuple struct that should be unwrapped
-    if struct_def.is_tuple() && struct_def.fields.len() == 1 {
+    if matches!(
+        schema_codegen::Shape::of(&struct_def.fields),
+        schema_codegen::Shape::Newtype(_)
+    ) {
         // Skip generation for single-field tuple structs
         // They should be unwrapped and used directly
         return Ok(String::new());
@@ -4382,7 +4384,7 @@ fn render_enum(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
-    use reflectapi_schema::{Fields, Representation};
+    use reflectapi_schema::Representation;
 
     // Check if this is a tagged enum (internally tagged)
     match &enum_def.representation {
@@ -4430,12 +4432,12 @@ fn render_enum(
                 render_primitive_enum(enum_def, class_names)
             } else {
                 // Check if this has complex variants (tuple or struct variants)
+                // An empty tuple variant `A()` counts as a unit here.
                 let has_complex_variants = enum_def.variants.iter().any(|v| {
-                    match &v.fields {
-                        Fields::Named(_) => true,                      // struct variant
-                        Fields::Unnamed(fields) => !fields.is_empty(), // tuple variant with fields
-                        Fields::None => false,                         // unit variant
-                    }
+                    !matches!(
+                        schema_codegen::Shape::of(&v.fields),
+                        schema_codegen::Shape::Unit | schema_codegen::Shape::Tuple([])
+                    )
                 });
 
                 if has_complex_variants {
@@ -4565,7 +4567,12 @@ fn enum_unit_tag_set(enum_def: &reflectapi_schema::Enum) -> String {
     let tags = enum_def
         .variants
         .iter()
-        .filter(|v| matches!(v.fields, reflectapi_schema::Fields::None))
+        .filter(|v| {
+            matches!(
+                schema_codegen::Shape::of(&v.fields),
+                schema_codegen::Shape::Unit
+            )
+        })
         .map(|v| python_string_literal(v.serde_name()))
         .collect::<Vec<_>>();
     if tags.is_empty() {
@@ -4656,8 +4663,6 @@ fn render_adjacently_tagged_enum(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<(String, Vec<String>)> {
-    use reflectapi_schema::Fields;
-
     let enum_name = python_class_name(&enum_def.name, class_names);
 
     let mut variant_class_definitions: Vec<String> = Vec::new();
@@ -4700,64 +4705,63 @@ fn render_adjacently_tagged_enum(
         }];
 
         // Add the content field based on variant type
-        match &variant.fields {
-            Fields::None => {
+        match schema_codegen::Shape::of(&variant.fields) {
+            schema_codegen::Shape::Unit => {
                 // Unit variant: only the tag field, no content field needed.
                 // The content field is optional and absent on the wire.
             }
-            Fields::Unnamed(unnamed_fields) => {
+            schema_codegen::Shape::Newtype(field) => {
                 // Tuple variant: add content field with the appropriate type
-                if unnamed_fields.len() == 1 {
-                    let field_type = type_ref_to_python_type(
-                        &unnamed_fields[0].type_ref,
+                let field_type = type_ref_to_python_type(
+                    &field.type_ref,
+                    schema,
+                    implemented_types,
+                    class_names,
+                    &generic_params,
+                    used_type_vars,
+                )?;
+                fields.push(templates::Field {
+                    name: content.to_string(),
+                    type_annotation: field_type,
+                    description: Some(field.description().to_string()),
+                    deprecation_note: field.deprecation().map(|d| d.message()),
+                    optional: false,
+                    default_value: None,
+                    alias: None,
+
+                    is_partial: false,
+
+                    reject_null: false,
+                });
+            }
+            schema_codegen::Shape::Tuple(unnamed_fields) => {
+                // Multi-field tuple: content is a list
+                // Resolve types for side-effects (populates used_type_vars)
+                for f in unnamed_fields {
+                    type_ref_to_python_type(
+                        &f.type_ref,
                         schema,
                         implemented_types,
                         class_names,
                         &generic_params,
                         used_type_vars,
                     )?;
-                    fields.push(templates::Field {
-                        name: content.to_string(),
-                        type_annotation: field_type,
-                        description: Some(unnamed_fields[0].description().to_string()),
-                        deprecation_note: unnamed_fields[0].deprecation().map(|d| d.message()),
-                        optional: false,
-                        default_value: None,
-                        alias: None,
-
-                        is_partial: false,
-
-                        reject_null: false,
-                    });
-                } else {
-                    // Multi-field tuple: content is a list
-                    // Resolve types for side-effects (populates used_type_vars)
-                    for f in unnamed_fields {
-                        type_ref_to_python_type(
-                            &f.type_ref,
-                            schema,
-                            implemented_types,
-                            class_names,
-                            &generic_params,
-                            used_type_vars,
-                        )?;
-                    }
-                    fields.push(templates::Field {
-                        name: content.to_string(),
-                        type_annotation: "list[Any]".to_string(),
-                        description: Some("Tuple variant fields".to_string()),
-                        deprecation_note: None,
-                        optional: false,
-                        default_value: None,
-                        alias: None,
-
-                        is_partial: false,
-
-                        reject_null: false,
-                    });
                 }
+                fields.push(templates::Field {
+                    name: content.to_string(),
+                    type_annotation: "list[Any]".to_string(),
+                    description: Some("Tuple variant fields".to_string()),
+                    deprecation_note: None,
+                    optional: false,
+                    default_value: None,
+                    alias: None,
+
+                    is_partial: false,
+
+                    reject_null: false,
+                });
             }
-            Fields::Named(named_fields) => {
+            schema_codegen::Shape::Struct(named_fields) => {
                 // Struct variant: we need a nested content model, then reference it
                 // First generate the content model
                 let content_class_name = format!("{variant_class_name}Content");
@@ -5196,7 +5200,7 @@ fn render_internally_tagged_enum(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<(String, Vec<String>)> {
-    use reflectapi_schema::{Fields, Type};
+    use reflectapi_schema::Type;
 
     let enum_name = python_class_name(&enum_def.name, class_names);
     let mut variant_class_definitions: Vec<String> = Vec::new();
@@ -5246,17 +5250,14 @@ fn render_internally_tagged_enum(
         }];
 
         // Handle variant fields based on type
-        match &variant.fields {
-            Fields::Unnamed(unnamed_fields) => {
+        match schema_codegen::Shape::of(&variant.fields) {
+            schema_codegen::Shape::Tuple(unnamed_fields) => anyhow::bail!(
+                "Internally tagged tuple variants must contain exactly one type, found {} in variant {}",
+                unnamed_fields.len(),
+                variant.name()
+            ),
+            schema_codegen::Shape::Newtype(inner_field) => {
                 // Tuple variant - flatten the inner type's fields
-                anyhow::ensure!(
-                    unnamed_fields.len() == 1,
-                    "Internally tagged tuple variants must contain exactly one type, found {} in variant {}",
-                    unnamed_fields.len(),
-                    variant.name()
-                );
-
-                let inner_field = &unnamed_fields[0];
                 let mut inner_type_name = &inner_field.type_ref.name;
 
                 // Handle Box<T> by looking inside the Box to find the actual struct
@@ -5280,8 +5281,8 @@ fn render_internally_tagged_enum(
                 match inner_type_def {
                     Type::Struct(inner_struct) => {
                         // Flatten the struct's fields into this variant class
-                        let struct_fields = match &inner_struct.fields {
-                            Fields::Named(fields) => fields,
+                        let struct_fields = match schema_codegen::Shape::of(&inner_struct.fields) {
+                            schema_codegen::Shape::Struct(fields) => fields,
                             _ => {
                                 return Err(anyhow::anyhow!(
                                     "Tuple variant {} contains a struct with non-named fields, which cannot be flattened",
@@ -5369,7 +5370,7 @@ fn render_internally_tagged_enum(
                     }
                 }
             }
-            Fields::Named(named_fields) => {
+            schema_codegen::Shape::Struct(named_fields) => {
                 // Struct variant - handle normally
                 for field in named_fields {
                     let field_type = type_ref_to_python_type(
@@ -5404,7 +5405,7 @@ fn render_internally_tagged_enum(
                     });
                 }
             }
-            Fields::None => {
+            schema_codegen::Shape::Unit => {
                 // Unit variant - only the discriminator field is needed
             }
         }
@@ -5517,8 +5518,6 @@ fn render_untagged_enum(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
-    use reflectapi_schema::Fields;
-
     let enum_name = python_class_name(&enum_def.name, class_names);
     let mut variant_classes = Vec::new();
     let mut union_variants = Vec::new();
@@ -5545,8 +5544,8 @@ fn render_untagged_enum(
         let mut fields = Vec::new();
 
         // Add variant-specific fields (no discriminator field for untagged)
-        match &variant.fields {
-            Fields::Named(named_fields) => {
+        match schema_codegen::Shape::of(&variant.fields) {
+            schema_codegen::Shape::Struct(named_fields) => {
                 for field in named_fields {
                     let field_type = type_ref_to_python_type(
                         &field.type_ref,
@@ -5579,12 +5578,23 @@ fn render_untagged_enum(
                     });
                 }
             }
-            Fields::Unnamed(_) | Fields::None => {
+            shape @ (schema_codegen::Shape::Unit
+            | schema_codegen::Shape::Newtype(_)
+            | schema_codegen::Shape::Tuple(_)) => {
                 // serde writes these variants without a wrapper object: a
                 // newtype as its inner value, a tuple as an array, a unit as null.
-                let root_type = match &variant.fields {
-                    Fields::Unnamed(unnamed_fields) => {
-                        let mut field_types = unnamed_fields
+                let root_type = match shape {
+                    schema_codegen::Shape::Newtype(field) => type_ref_to_python_type(
+                        &field.type_ref,
+                        schema,
+                        implemented_types,
+                        class_names,
+                        &generic_params,
+                        used_type_vars,
+                    )?,
+                    schema_codegen::Shape::Tuple([]) => "tuple[()]".to_string(),
+                    schema_codegen::Shape::Tuple(fields) => {
+                        let field_types = fields
                             .iter()
                             .map(|field| {
                                 type_ref_to_python_type(
@@ -5597,13 +5607,11 @@ fn render_untagged_enum(
                                 )
                             })
                             .collect::<anyhow::Result<Vec<_>>>()?;
-                        match field_types.len() {
-                            1 => field_types.remove(0),
-                            0 => "tuple[()]".to_string(),
-                            _ => format!("tuple[{}]", field_types.join(", ")),
-                        }
+                        format!("tuple[{}]", field_types.join(", "))
                     }
-                    _ => "None".to_string(),
+                    schema_codegen::Shape::Unit | schema_codegen::Shape::Struct(_) => {
+                        "None".to_string()
+                    }
                 };
                 // Pydantic only accepts a generic RootModel when its type
                 // parameters are declared; `root` stays a lazy annotation so
@@ -6471,9 +6479,10 @@ fn type_ref_to_python_type(
     if let Some(type_def) = schema.get_type(&type_ref.name) {
         // Check if this is a single-field tuple struct that should be unwrapped
         if let reflectapi_schema::Type::Struct(struct_def) = type_def {
-            if struct_def.is_tuple() && struct_def.fields.len() == 1 {
+            if let schema_codegen::Shape::Newtype(inner_field) =
+                schema_codegen::Shape::of(&struct_def.fields)
+            {
                 // Return the inner type instead of the wrapper
-                let inner_field = &struct_def.fields[0];
                 return type_ref_to_python_type(
                     &inner_field.type_ref,
                     schema,
@@ -9591,6 +9600,36 @@ mod tests {
         .unwrap_err();
         assert!(
             format!("{err:#}").contains("cannot flatten 'Tuple' into a model"),
+            "{err:#}"
+        );
+    }
+
+    #[test]
+    fn an_internally_tagged_tuple_variant_is_an_error() {
+        let schema: crate::Schema = serde_json::from_value(serde_json::json!({
+            "name": "internal-tuple",
+            "input_types": {"types": [
+                {"kind": "primitive", "name": "u32"},
+                {"kind": "enum", "name": "E", "representation": {"internal": {"tag": "type"}},
+                 "variants": [{"name": "Pair", "fields": {"unnamed": [
+                    {"name": "0", "type": {"name": "u32"}},
+                    {"name": "1", "type": {"name": "u32"}}
+                 ]}}]}
+            ]}
+        }))
+        .unwrap();
+        let err = super::generate(
+            schema,
+            &Config {
+                format: false,
+                ..Config::default()
+            },
+        )
+        .unwrap_err();
+        assert!(
+            format!("{err:#}").contains(
+                "Internally tagged tuple variants must contain exactly one type, found 2 in variant Pair"
+            ),
             "{err:#}"
         );
     }
