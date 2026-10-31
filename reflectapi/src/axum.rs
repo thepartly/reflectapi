@@ -54,6 +54,7 @@ where
                     HandlerCallback::Stream(f) => match f(state, input) {
                         Ok(st) => {
                             Sse::new(st.map(|s| s.map(|data| sse::Event::default().data(data))))
+                                .keep_alive(sse::KeepAlive::default())
                                 .into_response()
                         }
                         Err(err) => err.into_response(),
