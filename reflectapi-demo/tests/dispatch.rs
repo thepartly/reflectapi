@@ -360,3 +360,30 @@ async fn readonly_routes_reject_other_methods_including_head() -> TestResult {
     }
     Ok(())
 }
+
+#[tokio::test(start_paused = true)]
+async fn idle_axum_stream_sends_keepalive_before_the_next_event() -> TestResult {
+    use axum::response::IntoResponse as _;
+    use std::time::Duration;
+
+    let events = futures_util::stream::once(async {
+        tokio::time::sleep(Duration::from_secs(16)).await;
+        Ok(reflectapi::Event::new(42, "next".to_owned()))
+    });
+    let response = Reply::Stream(Box::pin(events)).into_response();
+    assert_eq!(
+        response.headers()[http::header::CONTENT_TYPE],
+        "text/event-stream"
+    );
+    let mut frames = response.into_body().into_data_stream();
+    let keepalive = tokio::time::timeout(Duration::from_secs(16), frames.next())
+        .await?
+        .ok_or("stream ended before keepalive")??;
+    assert_eq!(keepalive.as_ref(), b":\n\n");
+    let event = tokio::time::timeout(Duration::from_secs(2), frames.next())
+        .await?
+        .ok_or("stream ended before event")??;
+    assert_eq!(event.as_ref(), b"id: 42\ndata: next\n\n");
+    assert!(frames.next().await.is_none());
+    Ok(())
+}

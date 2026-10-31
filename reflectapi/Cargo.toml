@@ -81,6 +81,8 @@ rust_decimal = ["dep:rust_decimal"]
 # features for transforming reflect schema to runnable servers
 # based on different web server frameworks
 axum = ["dep:axum", "builder"]
+# Native SSE comment keepalives; kept separate so axum stays usable without tokio networking.
+axum-keepalive = ["axum", "axum/tokio"]
 # feature flag for enabling codegen libraries
 codegen = [
     "dep:anyhow",
