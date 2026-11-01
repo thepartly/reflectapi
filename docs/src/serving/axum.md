@@ -66,6 +66,10 @@ let app = reflectapi::axum::into_router_with(app_state, routers, options, |_name
 - It is off by default. 15 seconds is well inside common proxy timeouts.
 - reflectapi depends on no async runtime, so you pass the timer:
   `tokio::time::sleep` on tokio.
+- It is set where the server is assembled, not on routes in the `Builder`.
+  The interval depends on the proxies in front of a deployment, while the
+  route definitions also build the schema and may be served in several
+  places. Leave it off when a proxy in front already sends heartbeats.
 
 ## The schema
 

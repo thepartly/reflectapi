@@ -16,6 +16,12 @@ type Sleep = Arc<dyn Fn(Duration) -> Pin<Box<dyn Future<Output = ()> + Send>> + 
 
 /// How [`into_router_with`] serves the routes. The default is what
 /// [`into_router`] does.
+///
+/// These are serving settings, not part of the API: the right keep-alive
+/// interval depends on the proxies in front of a deployment, and the same
+/// API definition builds the schema and may be served in several places.
+/// So they are set here, where the server is assembled, rather than on
+/// routes in the [`crate::Builder`].
 #[derive(Clone, Default)]
 #[non_exhaustive]
 pub struct ServeOptions {
