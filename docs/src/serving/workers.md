@@ -77,9 +77,10 @@ Copy this module into your Worker crate.
 
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::time::Duration;
 
 use futures_util::{Stream, StreamExt};
-use reflectapi::dispatch::{sse_event, Dispatcher, Reply};
+use reflectapi::dispatch::{keep_alive, sse_frames, Dispatcher, Reply};
 use worker::{send::SendWrapper, Error, Headers, Request, Response, Result};
 
 /// Dispatches one Worker request and converts the reply to a Worker response.
@@ -112,10 +113,13 @@ where
             .with_status(status.as_u16())
             .with_headers(worker_headers(&headers)?)),
         Some(Reply::Stream(items)) => {
-            let events = items.map(|item| {
-                item.map(|event| sse_event(&event).into_bytes())
-                    .map_err(Error::RustError)
+            // A comment every 15s while the stream is idle, for proxies that
+            // close quiet connections. The timer keeps the isolate busy, so
+            // use `sse_frames(items)` alone where nothing needs it.
+            let frames = keep_alive(sse_frames(items), Duration::from_secs(15), |interval| {
+                worker::Delay::from(interval)
             });
+            let events = frames.map(|frame| frame.map(String::into_bytes).map_err(Error::RustError));
             let headers = Headers::new();
             headers.set("content-type", "text/event-stream")?;
             headers.set("cache-control", "no-cache")?;

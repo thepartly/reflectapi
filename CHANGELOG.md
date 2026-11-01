@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- **Keep idle stream routes open.** Proxies and load balancers close connections that send nothing for a while, so a stream route that only emits on change was reconnected over and over. A server can now write an SSE comment whenever a stream has sent nothing for an interval; the interval restarts after every event, so busy streams are unchanged. Generated clients already ignore comments, and the schema is unchanged. Off by default. ([#214](https://github.com/thepartly/reflectapi/issues/214))
+  - axum: `reflectapi::axum::into_router_with(state, routers, ServeOptions::default().sse_keep_alive(Duration::from_secs(15), tokio::time::sleep), cb)`.
+  - Other servers: `reflectapi::dispatch::keep_alive(sse_frames(items), interval, sleep)` with the host runtime's timer, such as `worker::Delay` on Workers. `sse_frames` is new too: it frames a stream reply with `sse_event`.
+
 ### Fixed
 
 - A generated Python model that flattens a `#[serde(transparent)]` struct with a named field now has the keys of the struct it wraps, as serde writes them. It had the wrapper's field instead, so the model rejected the server's responses and sent the wrong request body. Schemas built with `fold_transparent_types()` weren't affected.

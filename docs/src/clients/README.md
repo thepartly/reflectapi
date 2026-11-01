@@ -254,9 +254,11 @@ representation restrictions and migration requirements.
 Endpoints registered with `Builder::stream_route` produce a stream of items
 rather than a single response. The wire format is Server-Sent Events: each
 item is sent as a `data: <json>\n\n` event. Errors raised before the stream
-opens are returned as a normal HTTP 4xx/5xx response, not as SSE events; the
-server does not emit heartbeats or end-of-stream markers, so streams end
-when the connection closes.
+opens are returned as a normal HTTP 4xx/5xx response, not as SSE events.
+There is no end-of-stream marker: a stream ends when the connection closes.
+A server can keep a quiet stream open through proxies with SSE comment
+lines (see [Serving with axum](../serving/axum.md#keep-idle-streams-open));
+every generated client ignores them.
 
 A stream can give its events ids, so that it can be resumed: the handler
 yields each item wrapped in `reflectapi::Event`, usually with an id the item

@@ -42,6 +42,31 @@ axum::serve(listener, app).await?;
   with an `id:` for items the route wraps in `reflectapi::Event`. An error
   returned before the stream opens is a normal HTTP error response.
 
+## Keep idle streams open
+
+Proxies and load balancers close a connection that sends nothing for a while,
+often after 60 to 120 seconds. A stream route that only emits on change is
+then reconnected over and over, and each reconnect repeats the handler's
+connect work. `into_router_with` can write an SSE comment (`:` and a blank
+line) whenever a stream has sent nothing for an interval:
+
+```rust,ignore
+use std::time::Duration;
+use reflectapi::axum::ServeOptions;
+
+let options = ServeOptions::default()
+    .sse_keep_alive(Duration::from_secs(15), tokio::time::sleep);
+let app = reflectapi::axum::into_router_with(app_state, routers, options, |_name, router| router);
+```
+
+- The interval restarts after every event and every comment, so a busy
+  stream carries no extra bytes.
+- Clients that follow the SSE spec ignore comments, and every generated
+  client does; the schema is unchanged.
+- It is off by default. 15 seconds is well inside common proxy timeouts.
+- reflectapi depends on no async runtime, so you pass the timer:
+  `tokio::time::sleep` on tokio.
+
 ## The schema
 
 `build()` returns the schema next to the routes. Write it out for client

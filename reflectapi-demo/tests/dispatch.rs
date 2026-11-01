@@ -181,6 +181,87 @@ async fn event_ids_match_axum() -> TestResult {
     Ok(())
 }
 
+mod quiet {
+    use futures_util::{Stream, StreamExt};
+
+    /// One tick, then nothing, without ending.
+    pub fn quiet(
+        _: (),
+        _: reflectapi::Empty,
+        _: reflectapi::Empty,
+    ) -> Result<impl Stream<Item = super::events::Tick>, reflectapi::Infallible> {
+        Ok(futures_util::stream::iter([super::events::Tick { seq: 1 }])
+            .chain(futures_util::stream::pending()))
+    }
+
+    pub fn api() -> reflectapi::Builder<()> {
+        reflectapi::Builder::new().stream_route(quiet, |b| b.name("quiet"))
+    }
+}
+
+/// Posts to `path` on an axum app that keeps idle streams alive every 15s.
+async fn kept_alive_body(
+    routers: Vec<reflectapi::Router<()>>,
+    path: &str,
+) -> Result<axum::body::BodyDataStream, Box<dyn std::error::Error>> {
+    use tower::Service as _;
+
+    let options = reflectapi::axum::ServeOptions::default()
+        .sse_keep_alive(std::time::Duration::from_secs(15), tokio::time::sleep);
+    let mut app = reflectapi::axum::into_router_with((), routers, options, |_, r| r);
+    let response = app
+        .call(
+            http::Request::builder()
+                .method(http::Method::POST)
+                .uri(path)
+                .body(axum::body::Body::empty())?,
+        )
+        .await?;
+    assert_eq!(
+        response.headers()[http::header::CONTENT_TYPE],
+        "text/event-stream"
+    );
+    Ok(response.into_body().into_data_stream())
+}
+
+async fn next_frame(
+    frames: &mut axum::body::BodyDataStream,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let frame = frames.next().await.ok_or("the stream ended")??;
+    Ok(std::str::from_utf8(&frame)?.to_owned())
+}
+
+/// An idle stream gets a comment every interval, which SSE clients ignore.
+#[tokio::test(start_paused = true)]
+async fn an_idle_axum_stream_is_kept_alive() -> TestResult {
+    let (_schema, routers) = quiet::api().build()?;
+    let mut frames = kept_alive_body(routers, "/quiet").await?;
+
+    let start = tokio::time::Instant::now();
+    assert_eq!(next_frame(&mut frames).await?, "data: {\"seq\":1}\n\n");
+    assert_eq!(next_frame(&mut frames).await?, ":\n\n");
+    assert_eq!(start.elapsed(), std::time::Duration::from_secs(15));
+    assert_eq!(next_frame(&mut frames).await?, ":\n\n");
+    assert_eq!(start.elapsed(), std::time::Duration::from_secs(30));
+    Ok(())
+}
+
+/// A stream that is never idle for the interval carries no comments.
+#[tokio::test(start_paused = true)]
+async fn a_busy_axum_stream_carries_no_comments() -> TestResult {
+    let (_schema, routers) = events::api::<WithSchema>().build()?;
+    let mut frames = kept_alive_body(routers, "/ticks").await?;
+    let mut sent = String::new();
+    while let Some(frame) = frames.next().await {
+        sent.push_str(std::str::from_utf8(&frame?)?);
+    }
+    assert_eq!(
+        sent,
+        "id: 1\ndata: {\"seq\":1}\n\nid: 2\ndata: {\"seq\":2}\n\ndata: {\"seq\":3}\n\n"
+    );
+    Ok(())
+}
+
 #[tokio::test]
 async fn unknown_paths_and_unaccepted_methods() -> TestResult {
     let dispatcher = dispatcher()?;
