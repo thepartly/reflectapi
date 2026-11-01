@@ -77,10 +77,9 @@ Copy this module into your Worker crate.
 
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use std::time::Duration;
 
 use futures_util::{Stream, StreamExt};
-use reflectapi::dispatch::{keep_alive, sse_frames, Dispatcher, Reply};
+use reflectapi::dispatch::{sse_frames, Dispatcher, Reply};
 use worker::{send::SendWrapper, Error, Headers, Request, Response, Result};
 
 /// Dispatches one Worker request and converts the reply to a Worker response.
@@ -113,13 +112,8 @@ where
             .with_status(status.as_u16())
             .with_headers(worker_headers(&headers)?)),
         Some(Reply::Stream(items)) => {
-            // A comment every 15s while the stream is idle, for proxies that
-            // close quiet connections. The timer keeps the isolate busy, so
-            // use `sse_frames(items)` alone where nothing needs it.
-            let frames = keep_alive(sse_frames(items), Duration::from_secs(15), |interval| {
-                worker::Delay::from(interval)
-            });
-            let events = frames.map(|frame| frame.map(String::into_bytes).map_err(Error::RustError));
+            let events = sse_frames(items)
+                .map(|frame| frame.map(String::into_bytes).map_err(Error::RustError));
             let headers = Headers::new();
             headers.set("content-type", "text/event-stream")?;
             headers.set("cache-control", "no-cache")?;
@@ -156,6 +150,28 @@ impl<St: Stream> Stream for SendStream<St> {
         self.get_mut().0.as_mut().poll_next(cx)
     }
 }
+```
+
+### Idle streams
+
+A proxy may close a stream that sends nothing for a while. Check first whether
+anything needs to happen in the Worker:
+
+- **Leave it out** if the host runtime or a proxy in front of it already sends
+  heartbeats on long-lived responses, or if nothing between the client and the
+  Worker closes quiet connections. A timer in the Worker keeps the isolate
+  busy, which costs CPU time and stops a Durable Object from hibernating or
+  being evicted.
+- **Opt in** only when quiet streams are being closed and nothing upstream
+  keeps them open. `keep_alive` writes an SSE comment whenever the stream has
+  sent nothing for the interval, using the runtime's timer:
+
+```rust,ignore
+use std::time::Duration;
+use reflectapi::dispatch::keep_alive;
+
+let frames = keep_alive(sse_frames(items), Duration::from_secs(15), worker::Delay::from);
+let events = frames.map(|frame| frame.map(String::into_bytes).map_err(Error::RustError));
 ```
 
 ## Serve from a Worker or a Durable Object

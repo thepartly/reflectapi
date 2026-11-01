@@ -90,13 +90,17 @@ server sets when it writes the body (axum does, and so do Worker runtimes).
 - An `Err` item is a value that failed to serialize: log it and end the
   response.
 - There is no end-of-stream marker; the stream ends when the response ends.
-- If a proxy or runtime closes quiet connections, wrap the frames in
-  `keep_alive` with the host runtime's timer. It writes an SSE comment
-  whenever the stream has sent nothing for the interval, restarting the
-  interval after every frame:
+- If a proxy closes quiet connections and nothing upstream keeps them open,
+  wrap the frames in `keep_alive` with the host runtime's timer. It writes an
+  SSE comment whenever the stream has sent nothing for the interval,
+  restarting the interval after every frame:
   `keep_alive(sse_frames(items), Duration::from_secs(15), tokio::time::sleep)`.
   The result is `Send` when the timer is, so a single-threaded runtime's
   timer works too.
+- Leave `keep_alive` out when the host or a proxy in front of it already
+  sends heartbeats. A timer of the app's own then only keeps the instance
+  busy, and on serverless runtimes it stops the instance from hibernating or
+  being evicted.
 - An error that the handler returns before the stream opens arrives as a
   complete reply, not as a stream.
 
