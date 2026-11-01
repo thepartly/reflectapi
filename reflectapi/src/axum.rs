@@ -25,7 +25,7 @@ pub struct ServeOptions {
 impl ServeOptions {
     /// Writes an SSE comment on a stream route that has sent nothing for
     /// `interval`, using `sleep` as the timer, such as `tokio::time::sleep`.
-    /// See [`crate::dispatch::keep_alive`].
+    /// A zero interval writes none. See [`crate::dispatch::keep_alive`].
     ///
     /// ```rust,ignore
     /// let options = ServeOptions::default()

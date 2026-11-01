@@ -109,7 +109,8 @@ const KEEP_ALIVE_COMMENT: &str = ":\n\n";
 ///
 /// The interval restarts after every event and every comment, so a busy
 /// stream carries no extra bytes. Nothing is written after the stream ends
-/// or fails. `sleep` is the host runtime's timer, such as
+/// or fails. A zero interval writes no comments: a timer that is always due
+/// would otherwise flood the connection with them. `sleep` is the host runtime's timer, such as
 /// `tokio::time::sleep`; the result is `Send` exactly when `sleep` and its
 /// futures are, so a single-threaded runtime's timer works too.
 ///
@@ -134,14 +135,21 @@ where
 
     futures_util::stream::unfold(Some((frames, sleep)), move |state| async move {
         let (mut frames, mut sleep) = state?;
-        let timer = sleep(interval);
-        futures_util::pin_mut!(timer);
-        // Dropping a pending `next()` loses nothing: a stream yields an
-        // item only from the poll that returns it.
-        let next = match future::select(frames.next(), timer).await {
-            Either::Left((Some(frame), _)) => Next::Frame(frame),
-            Either::Left((None, _)) => Next::End,
-            Either::Right(((), _)) => Next::Idle,
+        let next = if interval.is_zero() {
+            match frames.next().await {
+                Some(frame) => Next::Frame(frame),
+                None => Next::End,
+            }
+        } else {
+            let timer = sleep(interval);
+            futures_util::pin_mut!(timer);
+            // Dropping a pending `next()` loses nothing: a stream yields an
+            // item only from the poll that returns it.
+            match future::select(frames.next(), timer).await {
+                Either::Left((Some(frame), _)) => Next::Frame(frame),
+                Either::Left((None, _)) => Next::End,
+                Either::Right(((), _)) => Next::Idle,
+            }
         };
         match next {
             Next::Frame(Ok(frame)) => Some((Ok(frame), Some((frames, sleep)))),
@@ -356,6 +364,20 @@ mod tests {
                 timers.sleep(),
             ));
             (frames, stream)
+        }
+
+        #[test]
+        fn a_zero_interval_writes_no_comments() {
+            let (frames, rx) = mpsc::unbounded::<Result<String, String>>();
+            // A timer that is always due, as `tokio::time::sleep(Duration::ZERO)` is.
+            let mut stream = Box::pin(super::super::keep_alive(rx, Duration::ZERO, |_| {
+                futures::future::ready(())
+            }));
+
+            assert_eq!(stream.next().now_or_never(), None);
+            frames.unbounded_send(Ok("a".into())).unwrap();
+            assert_eq!(stream.next().now_or_never(), Some(Some(Ok("a".into()))));
+            assert_eq!(stream.next().now_or_never(), None);
         }
 
         #[test]
