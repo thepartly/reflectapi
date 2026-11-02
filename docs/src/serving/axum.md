@@ -66,10 +66,29 @@ let app = reflectapi::axum::into_router_with(app_state, routers, options, |_name
 - It is off by default. 15 seconds is well inside common proxy timeouts.
 - reflectapi depends on no async runtime, so you pass the timer:
   `tokio::time::sleep` on tokio.
-- It is set where the server is assembled, not on routes in the `Builder`.
-  The interval depends on the proxies in front of a deployment, while the
-  route definitions also build the schema and may be served in several
-  places. Leave it off when a proxy in front already sends heartbeats.
+- The default is set where the server is assembled, because the interval
+  depends on the proxies in front of a deployment, and the same route
+  definitions may be served in several places. Leave it off when a proxy in
+  front already sends heartbeats.
+
+A stream route that needs a different interval, or none, sets its own in the
+`Builder`. It overrides the server's default, and `Duration::ZERO` turns
+keep-alive off for that route:
+
+```rust,ignore
+builder.stream_route(watch_jobs, |b| {
+    b.name("jobs.watch").sse_keep_alive(Duration::from_secs(5))
+})
+```
+
+- The route's interval changes only how it is served: the schema and the
+  generated clients are the same. Setting it on a route that isn't a stream
+  route is a build error.
+- Serving needs a timer for it. `ServeOptions::sse_keep_alive` provides one
+  along with the default; to keep alive only the routes that ask, pass just
+  the timer with `ServeOptions::default().sse_timer(tokio::time::sleep)`.
+  `into_router_with` panics if a route sets an interval and there is no
+  timer, and `into_router` has none.
 
 ## The schema
 

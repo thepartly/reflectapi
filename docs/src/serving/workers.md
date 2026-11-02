@@ -174,6 +174,15 @@ let frames = keep_alive(sse_frames(items), Duration::from_secs(15), worker::Dela
 let events = frames.map(|frame| frame.map(String::into_bytes).map_err(Error::RustError));
 ```
 
+To keep alive only the routes that set an interval with
+`RouteBuilder::sse_keep_alive`, use the route's own: a route that sets none
+gets `Duration::ZERO`, which writes no comments.
+
+```rust,ignore
+let interval = dispatcher.sse_keep_alive(&req.path()).unwrap_or(Duration::ZERO);
+let frames = keep_alive(sse_frames(items), interval, worker::Delay::from);
+```
+
 ## Serve from a Worker or a Durable Object
 
 A stateless API serves from the Worker's `fetch` handler. An API with state

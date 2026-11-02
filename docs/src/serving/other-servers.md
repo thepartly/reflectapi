@@ -97,6 +97,10 @@ server sets when it writes the body (axum does, and so do Worker runtimes).
   `keep_alive(sse_frames(items), Duration::from_secs(15), tokio::time::sleep)`.
   The result is `Send` when the timer is, so a single-threaded runtime's
   timer works too.
+- A route can set its own interval with `RouteBuilder::sse_keep_alive`.
+  `dispatcher.sse_keep_alive(&path)` returns it, or `None` when the route
+  leaves it to the host: `dispatcher.sse_keep_alive(&path).unwrap_or(default)`.
+  A zero interval writes no comments.
 - Leave `keep_alive` out when the host or a proxy in front of it already
   sends heartbeats. A timer of the app's own then only keeps the instance
   busy, and on serverless runtimes it stops the instance from hibernating or

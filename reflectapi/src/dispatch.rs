@@ -198,6 +198,7 @@ where
 {
     readonly: bool,
     input_headers: Vec<HeaderName>,
+    sse_keep_alive: Option<Duration>,
     callback: HandlerCallback<S>,
 }
 
@@ -236,6 +237,7 @@ where
                 path,
                 readonly,
                 input_headers,
+                sse_keep_alive,
                 callback,
             } in router.handlers
             {
@@ -244,12 +246,26 @@ where
                     Route {
                         readonly,
                         input_headers,
+                        sse_keep_alive,
                         callback,
                     },
                 );
             }
         }
         Self { routes }
+    }
+
+    /// The SSE keep-alive interval the route at `path` sets with
+    /// [`crate::RouteBuilder::sse_keep_alive`], or `None` if it doesn't, in
+    /// which case the host's own default applies. Pass the result to
+    /// [`keep_alive`]; a zero interval writes no comments.
+    ///
+    /// ```rust,ignore
+    /// let interval = dispatcher.sse_keep_alive(&path).unwrap_or(host_default);
+    /// let frames = keep_alive(sse_frames(items), interval, sleep);
+    /// ```
+    pub fn sse_keep_alive(&self, path: &str) -> Option<Duration> {
+        self.routes.get(path)?.sse_keep_alive
     }
 
     /// Dispatches one request, as axum serves the routes `into_router` mounts:

@@ -197,6 +197,21 @@ mod quiet {
     pub fn api() -> reflectapi::Builder<()> {
         reflectapi::Builder::new().stream_route(quiet, |b| b.name("quiet"))
     }
+
+    /// `/quiet`, with its own keep-alive interval of 5s.
+    pub fn api_keeping_alive() -> reflectapi::Builder<()> {
+        reflectapi::Builder::new().stream_route(quiet, |b| {
+            b.name("quiet")
+                .sse_keep_alive(std::time::Duration::from_secs(5))
+        })
+    }
+
+    /// `/quiet`, with keep-alive turned off.
+    pub fn api_never_keeping_alive() -> reflectapi::Builder<()> {
+        reflectapi::Builder::new().stream_route(quiet, |b| {
+            b.name("quiet").sse_keep_alive(std::time::Duration::ZERO)
+        })
+    }
 }
 
 /// Posts to `path` on an axum app that keeps idle streams alive every 15s.
@@ -204,10 +219,19 @@ async fn kept_alive_body(
     routers: Vec<reflectapi::Router<()>>,
     path: &str,
 ) -> Result<axum::body::BodyDataStream, Box<dyn std::error::Error>> {
-    use tower::Service as _;
-
     let options = reflectapi::axum::ServeOptions::default()
         .sse_keep_alive(std::time::Duration::from_secs(15), tokio::time::sleep);
+    served_body(routers, options, path).await
+}
+
+/// Posts to `path` on an axum app served with `options`.
+async fn served_body(
+    routers: Vec<reflectapi::Router<()>>,
+    options: reflectapi::axum::ServeOptions,
+    path: &str,
+) -> Result<axum::body::BodyDataStream, Box<dyn std::error::Error>> {
+    use tower::Service as _;
+
     let mut app = reflectapi::axum::into_router_with((), routers, options, |_, r| r);
     let response = app
         .call(
@@ -258,6 +282,97 @@ async fn a_busy_axum_stream_carries_no_comments() -> TestResult {
     assert_eq!(
         sent,
         "id: 1\ndata: {\"seq\":1}\n\nid: 2\ndata: {\"seq\":2}\n\ndata: {\"seq\":3}\n\n"
+    );
+    Ok(())
+}
+
+/// A route's own interval needs only a timer from the server.
+#[tokio::test(start_paused = true)]
+async fn a_route_sets_its_own_keep_alive_interval() -> TestResult {
+    let (_schema, routers) = quiet::api_keeping_alive().build()?;
+    let options = reflectapi::axum::ServeOptions::default().sse_timer(tokio::time::sleep);
+    let mut frames = served_body(routers, options, "/quiet").await?;
+
+    let start = tokio::time::Instant::now();
+    assert_eq!(next_frame(&mut frames).await?, "data: {\"seq\":1}\n\n");
+    assert_eq!(next_frame(&mut frames).await?, ":\n\n");
+    assert_eq!(start.elapsed(), std::time::Duration::from_secs(5));
+    Ok(())
+}
+
+/// A route's interval wins over the server's, so it can be shorter.
+#[tokio::test(start_paused = true)]
+async fn a_route_interval_overrides_the_server_default() -> TestResult {
+    let (_schema, routers) = quiet::api_keeping_alive().build()?;
+    let mut frames = kept_alive_body(routers, "/quiet").await?;
+
+    let start = tokio::time::Instant::now();
+    assert_eq!(next_frame(&mut frames).await?, "data: {\"seq\":1}\n\n");
+    assert_eq!(next_frame(&mut frames).await?, ":\n\n");
+    assert_eq!(start.elapsed(), std::time::Duration::from_secs(5));
+    Ok(())
+}
+
+/// `Duration::ZERO` on a route turns off the server's keep-alive for it.
+#[tokio::test(start_paused = true)]
+async fn a_zero_route_interval_turns_keep_alive_off() -> TestResult {
+    let (_schema, routers) = quiet::api_never_keeping_alive().build()?;
+    let mut frames = kept_alive_body(routers, "/quiet").await?;
+
+    assert_eq!(next_frame(&mut frames).await?, "data: {\"seq\":1}\n\n");
+    let idle = tokio::time::timeout(std::time::Duration::from_secs(60), frames.next()).await;
+    assert!(idle.is_err(), "expected nothing, got {idle:?}");
+    Ok(())
+}
+
+#[test]
+#[should_panic(expected = "ServeOptions have no timer")]
+fn a_route_interval_without_a_timer_panics_when_served() {
+    let (_schema, routers) = quiet::api_keeping_alive().build().unwrap();
+    let _ = reflectapi::axum::into_router_with(
+        (),
+        routers,
+        reflectapi::axum::ServeOptions::default(),
+        |_, r| r,
+    );
+}
+
+#[test]
+fn a_zero_route_interval_needs_no_timer() -> TestResult {
+    let (_schema, routers) = quiet::api_never_keeping_alive().build()?;
+    let _ = reflectapi::axum::into_router((), routers, |_, r| r);
+    Ok(())
+}
+
+#[test]
+fn the_dispatcher_reports_a_route_interval() -> TestResult {
+    let dispatcher = Dispatcher::new(quiet::api_keeping_alive().build()?.1);
+    assert_eq!(
+        dispatcher.sse_keep_alive("/quiet"),
+        Some(std::time::Duration::from_secs(5))
+    );
+
+    let dispatcher = Dispatcher::new(quiet::api().build()?.1);
+    assert_eq!(dispatcher.sse_keep_alive("/quiet"), None);
+    assert_eq!(dispatcher.sse_keep_alive("/nowhere"), None);
+    Ok(())
+}
+
+#[test]
+fn keep_alive_on_a_route_that_is_not_a_stream_is_a_build_error() -> TestResult {
+    let result = reflectapi::Builder::<()>::new()
+        .route(invalid_headers::handler, |b| {
+            b.name("plain")
+                .sse_keep_alive(std::time::Duration::from_secs(5))
+        })
+        .build();
+    let Err(errors) = result else {
+        return Err("expected a build error".into());
+    };
+    let errors = errors.to_string();
+    assert!(
+        errors.contains("route `plain`: `sse_keep_alive` applies only to stream routes"),
+        "{errors}"
     );
     Ok(())
 }

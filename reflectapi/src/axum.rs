@@ -20,32 +20,46 @@ type Sleep = Arc<dyn Fn(Duration) -> Pin<Box<dyn Future<Output = ()> + Send>> + 
 /// These are serving settings, not part of the API: the right keep-alive
 /// interval depends on the proxies in front of a deployment, and the same
 /// API definition builds the schema and may be served in several places.
-/// So they are set here, where the server is assembled, rather than on
-/// routes in the [`crate::Builder`].
+/// The server-wide default is set here; a stream route can override it with
+/// [`crate::RouteBuilder::sse_keep_alive`].
 #[derive(Clone, Default)]
 #[non_exhaustive]
 pub struct ServeOptions {
-    keep_alive: Option<(Duration, Sleep)>,
+    keep_alive: Option<Duration>,
+    timer: Option<Sleep>,
 }
 
 impl ServeOptions {
     /// Writes an SSE comment on a stream route that has sent nothing for
     /// `interval`, using `sleep` as the timer, such as `tokio::time::sleep`.
-    /// A zero interval writes none. See [`crate::dispatch::keep_alive`].
+    /// A zero interval writes none. A route's own
+    /// [`crate::RouteBuilder::sse_keep_alive`] takes precedence. See
+    /// [`crate::dispatch::keep_alive`].
     ///
     /// ```rust,ignore
     /// let options = ServeOptions::default()
     ///     .sse_keep_alive(Duration::from_secs(15), tokio::time::sleep);
     /// ```
-    pub fn sse_keep_alive<F, Fut>(mut self, interval: Duration, sleep: F) -> Self
+    pub fn sse_keep_alive<F, Fut>(self, interval: Duration, sleep: F) -> Self
     where
         F: Fn(Duration) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = ()> + Send + 'static,
     {
-        self.keep_alive = Some((
-            interval,
-            Arc::new(move |interval| Box::pin(sleep(interval))),
-        ));
+        Self {
+            keep_alive: Some(interval),
+            ..self.sse_timer(sleep)
+        }
+    }
+
+    /// The timer for SSE keep-alive, such as `tokio::time::sleep`, without a
+    /// server-wide interval: only stream routes that set
+    /// [`crate::RouteBuilder::sse_keep_alive`] write comments.
+    pub fn sse_timer<F, Fut>(mut self, sleep: F) -> Self
+    where
+        F: Fn(Duration) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
+    {
+        self.timer = Some(Arc::new(move |interval| Box::pin(sleep(interval))));
         self
     }
 }
@@ -53,10 +67,8 @@ impl ServeOptions {
 impl fmt::Debug for ServeOptions {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ServeOptions")
-            .field(
-                "sse_keep_alive",
-                &self.keep_alive.as_ref().map(|(interval, _)| interval),
-            )
+            .field("sse_keep_alive", &self.keep_alive)
+            .field("sse_timer", &self.timer.is_some())
             .finish()
     }
 }
@@ -70,6 +82,11 @@ where
 }
 
 /// [`into_router`], served as `options` says.
+///
+/// # Panics
+///
+/// If a stream route sets a non-zero
+/// [`crate::RouteBuilder::sse_keep_alive`] and `options` has no timer.
 pub fn into_router_with<S, F>(
     app_state: S,
     router: Vec<crate::Router<S>>,
@@ -105,11 +122,25 @@ where
             path,
             readonly,
             input_headers,
+            sse_keep_alive,
             callback,
         } = handler;
+        // The route's own interval wins over the server's; zero means none.
+        let keep_alive = match sse_keep_alive.or(options.keep_alive) {
+            Some(interval) if !interval.is_zero() => {
+                let Some(sleep) = options.timer.clone() else {
+                    panic!(
+                        "route `{path}/{name}` sets an SSE keep-alive interval, but the \
+                         ServeOptions have no timer: add one with `sse_timer` or `sse_keep_alive`"
+                    );
+                };
+                Some((interval, sleep))
+            }
+            _ => None,
+        };
         let axum_handler = {
             let state = app_state.clone();
-            let keep_alive = options.keep_alive.clone();
+            let keep_alive = keep_alive.clone();
             move |axum_headers: http::HeaderMap, body: axum::body::Bytes| async move {
                 let reply = invoke(&callback, &input_headers, state, &axum_headers, body).await;
                 into_response(reply, keep_alive)
