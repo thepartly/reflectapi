@@ -1,0 +1,5 @@
+error: a bare `partition_key` is position 1 and cannot be mixed with numbered ones; number every field of the key
+ --> tests/errors/partition_key_mixed_bare_and_numbered.rs:3:18
+  |
+3 |     #[reflectapi(partition_key)]
+  |                  ^^^^^^^^^^^^^

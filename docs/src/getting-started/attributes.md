@@ -227,6 +227,44 @@ When a field is excluded from generated clients (via `skip`, `input_skip`, or `h
 
 - **Without `#[serde(default)]`:** If the field is absent, deserialization fails with a protocol error. Use this for fields that a proxy or middleware is expected to inject — a missing value means the infrastructure is misconfigured, and you want to reject the request loudly rather than proceed silently with a zero-value.
 
+### Partition key
+
+| Attribute | Description |
+|-----------|-------------|
+| `#[reflectapi(partition_key = N)]` | Make the field position `N`, from 1, of its request's partition key. |
+| `#[reflectapi(partition_key)]` | Position 1, for a key of one field. |
+
+A request's partition key is what a server, a gateway or a client may route it
+by, such as a tenant or an account: the values of the marked fields of the
+route's input type and its request headers type, in position order. Positions
+across the two types must run from 1 with no gap or repeat, or the build
+fails. The schema records each marked field's position as `"partition_key"`.
+
+```rust,ignore
+#[derive(serde::Deserialize, reflectapi::Input)]
+pub struct TenantHeaders {
+    #[reflectapi(partition_key = 1)]
+    #[serde(rename = "x-tenant")]
+    pub tenant: String,
+}
+
+#[derive(serde::Deserialize, reflectapi::Input)]
+pub struct PayRequest {
+    #[reflectapi(partition_key = 2)]
+    pub order: String,
+    pub amount: u64,
+}
+
+// A route taking `PayRequest` and `TenantHeaders` has the key [tenant, order].
+```
+
+The field's type implements `reflectapi::PartitionKeyPart`: strings, integers
+and, with the `uuid` feature, UUIDs; implement it for a type of your own. A
+field of the key cannot be in an enum variant, flattened or skipped, nor in a
+type deserialized from another (`from`, `try_from`, `input_type`). See
+[Partitioned servers](../serving/other-servers.md#partitioned-servers) for
+routing by the key.
+
 ### Deprecation
 
 | Attribute | Description |

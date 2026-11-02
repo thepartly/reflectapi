@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Partition keys
+
+Mark the fields that name a request's partition, such as a tenant or an account, with `#[reflectapi(partition_key = N)]`, in a route's input type, its request headers type, or both, to route requests by them. The schema records each marked field's position (`Field::partition_key`, `"partition_key"` in JSON). `Dispatcher::partition_key` gives a request's key without calling the handler, for a router; `Dispatcher::dispatch_in` serves the requests of one partition, answering `400` without calling the handler for a request whose key is another's. A route's positions must run from 1 with no gap or repeat, or `build()` fails. See [Partitioned servers](https://thepartly.github.io/reflectapi/serving/other-servers.html#partitioned-servers).
+
+- `Input` gains `REFLECTAPI_PARTITION_KEY` and `reflectapi_partition_key`, with defaults, which the derive implements. A new trait, `PartitionKeyPart`, is implemented for strings, integers and `uuid::Uuid`.
+- Schema format: `Field` records an additive `partition_key`, omitted when absent. Exhaustive Rust `Field` literals need this field.
+
 ## 0.22.1
 
 Generated Python models with omittable fields keep their JSON schema in serialization mode, so FastAPI apps that return them publish typed OpenAPI response schemas again. Upgrade `reflectapi-runtime`; generated code is unchanged.

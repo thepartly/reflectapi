@@ -107,6 +107,10 @@ impl ToTokens for TokenizableField<'_> {
         let hidden = self.inner.hidden;
         let serialize_with = self.inner.serialize_with;
         let deserialize_with = self.inner.deserialize_with;
+        let partition_key = match self.inner.partition_key {
+            Some(position) => quote::quote!(Some(#position)),
+            None => quote::quote!(None),
+        };
         let transform_callback = self.inner.transform_callback.as_str();
         let mut transform_callback_fn = quote::quote! {
             None
@@ -133,6 +137,7 @@ impl ToTokens for TokenizableField<'_> {
                 hidden: #hidden,
                 serialize_with: #serialize_with,
                 deserialize_with: #deserialize_with,
+                partition_key: #partition_key,
                 transform_callback: String::new(),
                 transform_callback_fn: #transform_callback_fn,
             }

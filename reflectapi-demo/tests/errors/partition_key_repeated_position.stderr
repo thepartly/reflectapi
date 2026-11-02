@@ -1,0 +1,5 @@
+error: partition key position 1 is taken by another field
+ --> tests/errors/partition_key_repeated_position.rs:5:18
+  |
+5 |     #[reflectapi(partition_key = 1)]
+  |                  ^^^^^^^^^^^^^

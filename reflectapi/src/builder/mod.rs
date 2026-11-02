@@ -203,6 +203,9 @@ where
         E: Output + Serialize + StatusCode + Send + 'static,
     {
         let rb = builder(self.route_defaults());
+        if let Err(err) = check_partition_key::<I, H>(&rb.name) {
+            self.errors.push(err);
+        }
         match M::register_function::<I, H, O, E>(&rb, &mut self.schema, false) {
             Ok(input_headers) => {
                 self.handlers
@@ -233,6 +236,9 @@ where
         E1: Output + Serialize + StatusCode + Send + 'static,
     {
         let rb = builder(self.route_defaults());
+        if let Err(err) = check_partition_key::<I, H>(&rb.name) {
+            self.errors.push(err);
+        }
         match M::register_function::<I, H, O::Data, E1>(&rb, &mut self.schema, true) {
             Ok(input_headers) => {
                 self.handlers

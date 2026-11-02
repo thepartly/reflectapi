@@ -1,0 +1,5 @@
+error: `partition_key` cannot be used on a flattened field
+ --> tests/errors/partition_key_on_flattened_field.rs:8:18
+  |
+8 |     #[reflectapi(partition_key)]
+  |                  ^^^^^^^^^^^^^

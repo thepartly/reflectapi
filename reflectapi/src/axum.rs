@@ -38,11 +38,12 @@ where
             readonly,
             input_headers,
             callback,
+            partition_key: _,
         } = handler;
         let axum_handler = {
             let state = app_state.clone();
             move |axum_headers: http::HeaderMap, body: axum::body::Bytes| async move {
-                invoke(&callback, &input_headers, state, &axum_headers, body)
+                invoke(&callback, &input_headers, state, &axum_headers, body, None)
                     .await
                     .into_response()
             }

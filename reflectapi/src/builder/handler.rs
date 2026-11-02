@@ -72,15 +72,33 @@ impl From<ContentType> for http::HeaderValue {
     }
 }
 
+/// A request's input and headers, parsed, its content type, and the
+/// response headers that follow from the request.
+type ParsedInput<I, H> = (I, H, ContentType, http::HeaderMap);
+
 pub(crate) type HandlerFuture = Pin<Box<dyn Future<Output = HandlerOutput> + Send + 'static>>;
 
 pub(crate) type HandlerStream =
     Pin<Box<dyn Stream<Item = Result<Event<String>, String>> + Send + 'static>>;
 
+/// A route's handler. Its third argument is the partition to check the
+/// request against before calling the handler: `None` not to check.
+#[allow(clippy::type_complexity)]
 pub(crate) enum HandlerCallback<S> {
-    Future(Arc<dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync>),
-    Stream(Arc<dyn Fn(S, HandlerInput) -> Result<HandlerStream, HandlerOutput> + Send + Sync>),
+    Future(Arc<dyn Fn(S, HandlerInput, Option<&[&str]>) -> HandlerFuture + Send + Sync>),
+    Stream(
+        Arc<
+            dyn Fn(S, HandlerInput, Option<&[&str]>) -> Result<HandlerStream, HandlerOutput>
+                + Send
+                + Sync,
+        >,
+    ),
 }
+
+/// Parses a request as a route's handler would and gives its partition key,
+/// or the reply the handler would give for input that does not parse.
+pub(crate) type PartitionKeyFn =
+    Arc<dyn Fn(HandlerInput) -> Result<Vec<String>, HandlerOutput> + Send + Sync>;
 
 impl<S> Clone for HandlerCallback<S>
 where
@@ -103,6 +121,8 @@ where
     pub readonly: bool,
     pub input_headers: Vec<HeaderName>,
     pub callback: HandlerCallback<S>,
+    /// For a route with a partition key.
+    pub partition_key: Option<PartitionKeyFn>,
 }
 
 impl<S> fmt::Debug for Handler<S>
@@ -115,6 +135,7 @@ where
             .field("path", &self.path)
             .field("readonly", &self.readonly)
             .field("input_headers", &self.input_headers)
+            .field("partition_key", &self.partition_key.is_some())
             .finish_non_exhaustive()
     }
 }
@@ -146,9 +167,15 @@ where
             path: rb.path,
             readonly: rb.readonly,
             input_headers,
-            callback: HandlerCallback::Future(Arc::new(move |state: S, input: HandlerInput| {
-                Box::pin(Self::handler_wrap(state, input, handler)) as _
-            })),
+            callback: HandlerCallback::Future(Arc::new(
+                move |state: S, input: HandlerInput, partition: Option<&[&str]>| {
+                    match Self::parse_input_in::<I, H>(input, partition) {
+                        Ok(parsed) => Box::pin(Self::handler_wrap(state, parsed, handler)) as _,
+                        Err(output) => Box::pin(std::future::ready(output)) as _,
+                    }
+                },
+            )),
+            partition_key: Self::partition_key_fn::<I, H>(),
         }
     }
 
@@ -175,17 +202,21 @@ where
             path: rb.path,
             readonly: rb.readonly,
             input_headers,
-            callback: HandlerCallback::Stream(Arc::new(move |state: S, input: HandlerInput| {
-                Self::stream_handler_wrap(state, input, handler)
-                    .map(|stream| Box::pin(stream) as HandlerStream)
-            })),
+            callback: HandlerCallback::Stream(Arc::new(
+                move |state: S, input: HandlerInput, partition: Option<&[&str]>| {
+                    let parsed = Self::parse_input_in::<I, H>(input, partition)?;
+                    Self::stream_handler_wrap(state, parsed, handler)
+                        .map(|stream| Box::pin(stream) as HandlerStream)
+                },
+            )),
+            partition_key: Self::partition_key_fn::<I, H>(),
         }
     }
 
     #[allow(clippy::result_large_err)]
     fn parse_input<I: serde::de::DeserializeOwned, H: serde::de::DeserializeOwned>(
         mut handler_input: HandlerInput,
-    ) -> Result<(I, H, ContentType, http::HeaderMap), HandlerOutput> {
+    ) -> Result<ParsedInput<I, H>, HandlerOutput> {
         let content_type = match ContentType::extract(&handler_input.headers) {
             Ok(t) => t,
             Err(err) => {
@@ -273,9 +304,50 @@ where
         Ok((input, input_headers, content_type, response_headers))
     }
 
+    /// For a route with a partition key, a function to give a request's.
+    fn partition_key_fn<I, H>() -> Option<PartitionKeyFn>
+    where
+        I: Input + serde::de::DeserializeOwned + 'static,
+        H: Input + serde::de::DeserializeOwned + 'static,
+    {
+        has_partition_key::<I, H>().then(|| {
+            Arc::new(|input: HandlerInput| {
+                Self::parse_input::<I, H>(input)
+                    .map(|(input, headers, ..)| partition_key(&input, &headers))
+            }) as PartitionKeyFn
+        })
+    }
+
+    /// Parses the input and the headers, and when given a partition, checks
+    /// that a route with a partition key has the request's key.
+    #[allow(clippy::result_large_err)]
+    fn parse_input_in<I, H>(
+        handler_input: HandlerInput,
+        partition: Option<&[&str]>,
+    ) -> Result<ParsedInput<I, H>, HandlerOutput>
+    where
+        I: Input + serde::de::DeserializeOwned,
+        H: Input + serde::de::DeserializeOwned,
+    {
+        let parsed = Self::parse_input::<I, H>(handler_input)?;
+        if let Some(partition) = partition.filter(|_| has_partition_key::<I, H>()) {
+            let key = partition_key(&parsed.0, &parsed.1);
+            if key.len() != partition.len() || key.iter().zip(partition).any(|(a, b)| a != b) {
+                return Err(HandlerOutput {
+                    code: http::StatusCode::BAD_REQUEST,
+                    body: bytes::Bytes::from_static(
+                        b"The request's partition key is not this server's partition",
+                    ),
+                    headers: Default::default(),
+                });
+            }
+        }
+        Ok(parsed)
+    }
+
     async fn handler_wrap<F, Fut, R, I, H, O, E>(
         state: S,
-        input: HandlerInput,
+        (input, input_headers, content_type, mut response_headers): ParsedInput<I, H>,
         handler: F,
     ) -> HandlerOutput
     where
@@ -287,11 +359,6 @@ where
         Fut: Future<Output = R> + Send + 'static,
         R: crate::IntoResult<O, E>,
     {
-        let (input, input_headers, content_type, mut response_headers) =
-            match Self::parse_input::<I, H>(input) {
-                Ok(r) => r,
-                Err(err) => return err,
-            };
         let output = handler(state, input, input_headers).await;
         let output = UntaggedResult::from(output.into_result());
 
@@ -347,7 +414,7 @@ where
     #[allow(clippy::result_large_err)]
     fn stream_handler_wrap<F, St, I, H, O, E1>(
         state: S,
-        input: HandlerInput,
+        (input, input_headers, content_type, mut response_headers): ParsedInput<I, H>,
         handler: F,
     ) -> Result<impl Stream<Item = Result<Event<String>, String>>, HandlerOutput>
     where
@@ -358,9 +425,6 @@ where
         F: Fn(S, I, H) -> Result<St, E1>,
         St: Stream<Item = O> + Send + 'static,
     {
-        let (input, input_headers, content_type, mut response_headers) =
-            Self::parse_input::<I, H>(input)?;
-
         // Verify request body is JSON
         if content_type != ContentType::Json {
             response_headers.insert(
@@ -430,4 +494,40 @@ impl<T, E> From<Result<T, E>> for UntaggedResult<T, E> {
             Err(err) => UntaggedResult::Err(err),
         }
     }
+}
+
+/// Whether a route taking `I` and `H` has a partition key.
+fn has_partition_key<I: Input, H: Input>() -> bool {
+    !I::REFLECTAPI_PARTITION_KEY.is_empty() || !H::REFLECTAPI_PARTITION_KEY.is_empty()
+}
+
+/// A request's partition key: the parts of its input and its headers, in
+/// position order.
+fn partition_key<I: Input, H: Input>(input: &I, headers: &H) -> Vec<String> {
+    let mut parts = input.reflectapi_partition_key();
+    parts.extend(headers.reflectapi_partition_key());
+    parts.sort_by_key(|(position, _)| *position);
+    parts.into_iter().map(|(_, part)| part).collect()
+}
+
+/// Checks that the partition key positions of a route taking `I` and `H` run
+/// from 1 with no gap or repeat.
+pub(crate) fn check_partition_key<I: Input, H: Input>(
+    route: &str,
+) -> Result<(), super::BuildError> {
+    let mut positions = [I::REFLECTAPI_PARTITION_KEY, H::REFLECTAPI_PARTITION_KEY].concat();
+    positions.sort_unstable();
+    if positions
+        .iter()
+        .zip(1..)
+        .all(|(&position, expected)| position == expected)
+    {
+        return Ok(());
+    }
+    Err(super::BuildError::Other(
+        format!(
+            "route `{route}`: the partition key positions of its input and headers types, {positions:?}, must run from 1 with no gap or repeat"
+        )
+        .into(),
+    ))
 }

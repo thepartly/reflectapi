@@ -21,3 +21,8 @@ impl crate::Output for uuid::Uuid {
         reflectapi_uuid(schema).into()
     }
 }
+impl crate::PartitionKeyPart for uuid::Uuid {
+    fn partition_key_part(&self) -> String {
+        self.to_string()
+    }
+}

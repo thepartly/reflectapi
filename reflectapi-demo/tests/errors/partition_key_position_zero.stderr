@@ -1,0 +1,5 @@
+error: `partition_key` is a position from 1 to 255
+ --> tests/errors/partition_key_position_zero.rs:3:34
+  |
+3 |     #[reflectapi(partition_key = 0)]
+  |                                  ^

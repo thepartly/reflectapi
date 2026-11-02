@@ -1210,6 +1210,14 @@ pub struct Field {
     #[serde(skip_serializing_if = "is_false", default)]
     pub deserialize_with: bool,
 
+    /// The field's position in the partition key of a request, from 1:
+    /// `#[reflectapi(partition_key = N)]`. A request's partition key is the
+    /// values of the marked fields of its input and its headers, in
+    /// position order. A server, a gateway or a client may route a request
+    /// by it. None if the field is not part of a partition key.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub partition_key: Option<u8>,
+
     #[serde(skip, default)]
     pub transform_callback: String,
     #[serde(skip, default)]
@@ -1233,6 +1241,7 @@ impl PartialEq for Field {
             hidden,
             serialize_with,
             deserialize_with,
+            partition_key,
             transform_callback,
             transform_callback_fn: _,
         }: &Self,
@@ -1250,6 +1259,7 @@ impl PartialEq for Field {
             && self.hidden == *hidden
             && self.serialize_with == *serialize_with
             && self.deserialize_with == *deserialize_with
+            && self.partition_key == *partition_key
             && self.transform_callback == *transform_callback
     }
 }
@@ -1269,6 +1279,7 @@ impl std::hash::Hash for Field {
         self.hidden.hash(state);
         self.serialize_with.hash(state);
         self.deserialize_with.hash(state);
+        self.partition_key.hash(state);
         self.transform_callback.hash(state);
     }
 }
@@ -1289,6 +1300,7 @@ impl Field {
             hidden: Default::default(),
             serialize_with: Default::default(),
             deserialize_with: Default::default(),
+            partition_key: Default::default(),
             transform_callback: Default::default(),
             transform_callback_fn: Default::default(),
         }
@@ -1338,6 +1350,11 @@ impl Field {
 
     pub fn hidden(&self) -> bool {
         self.hidden
+    }
+
+    /// The field's position in its request's partition key, if it is part of one.
+    pub fn partition_key(&self) -> Option<u8> {
+        self.partition_key
     }
 
     pub fn type_ref(&self) -> &TypeReference {

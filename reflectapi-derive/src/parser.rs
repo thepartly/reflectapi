@@ -145,6 +145,25 @@ pub(crate) struct ParsedFieldAttributes {
     pub input_skip: bool,
     pub output_skip: bool,
     pub hidden: bool,
+    pub partition_key: Option<ParsedPartitionKey>,
+}
+
+/// `#[reflectapi(partition_key)]` or `#[reflectapi(partition_key = N)]` on a field.
+#[derive(Debug, Clone)]
+pub(crate) struct ParsedPartitionKey {
+    /// The attribute, for errors to point at.
+    pub path: syn::Path,
+    /// `N`, from 1; `None` for a bare `partition_key`, which is 1.
+    pub position: Option<syn::LitInt>,
+}
+
+impl ParsedPartitionKey {
+    pub fn position(&self) -> u8 {
+        self.position
+            .as_ref()
+            .and_then(|lit| lit.base10_parse().ok())
+            .unwrap_or(1)
+    }
 }
 
 #[derive(Debug, Default)]
@@ -518,6 +537,24 @@ pub(crate) fn parse_field_attributes(
             } else if meta.path == HIDDEN {
                 // #[reflectapi(hidden)]
                 result.hidden = true;
+            } else if meta.path == PARTITION_KEY {
+                // #[reflectapi(partition_key)] or #[reflectapi(partition_key = N)]
+                let position = if meta.input.peek(syn::Token![=]) {
+                    let lit = meta.value()?.parse::<syn::LitInt>()?;
+                    if !matches!(lit.base10_parse::<u8>(), Ok(1..)) {
+                        cx.impl_error(&lit, "`partition_key` is a position from 1 to 255");
+                    }
+                    Some(lit)
+                } else {
+                    None
+                };
+                if result.partition_key.is_some() {
+                    cx.impl_error(&meta.path, "`partition_key` is given more than once");
+                }
+                result.partition_key = Some(ParsedPartitionKey {
+                    path: meta.path.clone(),
+                    position,
+                });
             } else if meta.path == DEPRECATED_SINCE {
                 // #[reflectapi(deprecated_since = "...")]
                 parse_date(cx, DEPRECATED_SINCE, &meta, &mut result.deprecation.since)?;

@@ -25,7 +25,74 @@
 pub trait Input {
     /// Recursively adds the type definition to the schema and returns a reference to it.
     fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference;
+
+    /// The positions in a request's partition key that this type's fields
+    /// marked `#[reflectapi(partition_key = N)]` take. Empty for a type
+    /// without such fields, the default.
+    const REFLECTAPI_PARTITION_KEY: &'static [u8] = &[];
+
+    /// This value's parts of a request's partition key: the value of each
+    /// marked field, with its position. Empty for a type without marked
+    /// fields, the default.
+    fn reflectapi_partition_key(&self) -> Vec<(u8, String)> {
+        Vec::new()
+    }
 }
+
+/// A type whose values can be part of a request's partition key: what a
+/// server, a gateway or a client may route a request by.
+///
+/// Mark the fields that make up the key in a route's input type, its request
+/// headers type, or both, with `#[reflectapi(partition_key = N)]`, `N` being
+/// the field's position in the key, from 1 (a bare `partition_key` is 1):
+///
+/// ```rust
+/// #[derive(serde::Deserialize, reflectapi::Input)]
+/// struct Headers {
+///     #[reflectapi(partition_key = 1)]
+///     #[serde(rename = "x-tenant")]
+///     tenant: String,
+/// }
+///
+/// #[derive(serde::Deserialize, reflectapi::Input)]
+/// struct PayRequest {
+///     #[reflectapi(partition_key = 2)]
+///     order: String,
+///     amount: u64,
+/// }
+/// ```
+///
+/// A route taking both has the key `[tenant, order]`. The schema records each
+/// marked field's position (`Field::partition_key`), and
+/// [`crate::dispatch::Dispatcher`] gives a request's key and checks it.
+///
+/// Implemented for strings, integers and, with the `uuid` feature, UUIDs.
+/// Implement it for a type of your own, such as a newtype over a string, to
+/// mark fields of that type.
+pub trait PartitionKeyPart {
+    /// The value as a part of a partition key: its value on the wire, for
+    /// the types reflectapi implements this for.
+    fn partition_key_part(&self) -> String;
+}
+
+impl PartitionKeyPart for String {
+    fn partition_key_part(&self) -> String {
+        self.clone()
+    }
+}
+
+macro_rules! impl_partition_key_part_integer {
+    ($($type:ty),*) => {
+        $(
+            impl PartitionKeyPart for $type {
+                fn partition_key_part(&self) -> String {
+                    self.to_string()
+                }
+            }
+        )*
+    };
+}
+impl_partition_key_part_integer!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize);
 
 /// A trait for types that can be used as an output in an API.
 ///

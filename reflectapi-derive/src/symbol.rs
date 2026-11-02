@@ -22,6 +22,8 @@ pub const OUTPUT_SKIP: Symbol = Symbol("output_skip");
 
 pub const HIDDEN: Symbol = Symbol("hidden");
 
+pub const PARTITION_KEY: Symbol = Symbol("partition_key");
+
 pub const DEPRECATED_SINCE: Symbol = Symbol("deprecated_since");
 pub const SUNSET: Symbol = Symbol("sunset");
 

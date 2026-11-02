@@ -2,14 +2,16 @@ use proc_macro::TokenStream;
 use quote::ToTokens;
 use reflectapi_schema::{Enum, Field, Fields, Struct, Type, TypeParameter, Variant};
 use serde_derive_internals::ast;
-use syn::parse_quote;
+use syn::{parse_quote, spanned::Spanned};
 
 use crate::{
-    context::{Context, ReflectType},
+    context::{Context, PartitionKeyField, ReflectType},
     parser::{
         naive_parse_as_type_reference, parse_doc_attributes, parse_field_attributes,
-        parse_type_attributes, parse_variant_attributes, ParsedVariantAttributes,
+        parse_type_attributes, parse_variant_attributes, ParsedPartitionKey,
+        ParsedVariantAttributes,
     },
+    symbol::{PARTITION_KEY, REFLECT},
 };
 
 pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -> TokenStream {
@@ -107,6 +109,46 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
         });
     }
 
+    // The partition key's items of the `Input` impl, and a bound on each
+    // marked field's type that names a type parameter. Other types are
+    // checked where the field is read, so an error points at the field.
+    let mut partition_key_code = quote::quote!();
+    let mut partition_key_where = type_generics_where.clone();
+    if !context_encounters.partition_key.is_empty() {
+        let positions = context_encounters
+            .partition_key
+            .iter()
+            .map(|field| field.position)
+            .collect::<Vec<_>>();
+        let parts = context_encounters.partition_key.iter().map(|field| {
+            let member = &field.member;
+            quote::quote_spanned! {field.ty.span()=>
+                reflectapi::PartitionKeyPart::partition_key_part(&self.#member)
+            }
+        });
+        partition_key_code = quote::quote! {
+            const REFLECTAPI_PARTITION_KEY: &'static [u8] = &[#(#positions),*];
+
+            fn reflectapi_partition_key(&self) -> Vec<(u8, String)> {
+                vec![#((#positions, #parts)),*]
+            }
+        };
+        let type_params = input
+            .generics
+            .type_params()
+            .map(|param| param.ident.clone())
+            .collect::<Vec<_>>();
+        for field in &context_encounters.partition_key {
+            let ty = &field.ty;
+            if names_any(ty.to_token_stream(), &type_params) {
+                partition_key_where
+                    .get_or_insert_with(|| parse_quote!(where))
+                    .predicates
+                    .push(parse_quote!(#ty: reflectapi::PartitionKeyPart));
+            }
+        }
+    }
+
     let rebind_method = match reflectapi_type {
         ReflectType::Input => quote::quote!(__internal_rebind_input_generic_parameters),
         ReflectType::Output => quote::quote!(__internal_rebind_generic_parameters),
@@ -114,7 +156,9 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
     let reflected_type_def = crate::tokenizable_schema::TokenizableType::new(&reflected_type_def);
     TokenStream::from(quote::quote! {
         #[allow(unused_doc_comments)]
-        impl #type_generics #trait_ident for #type_ident #type_generics_idents_code #type_generics_where {
+        impl #type_generics #trait_ident for #type_ident #type_generics_idents_code #partition_key_where {
+            #partition_key_code
+
             fn #fn_reflectapi_type_ident(schema: &mut reflectapi::Typespace) -> reflectapi::TypeReference {
                 let resolved_type_name = format!("{}::{}", std::module_path!(), #reflected_type_name);
                 let mut arguments = Vec::new();
@@ -136,7 +180,7 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
         }
 
         #[allow(unused_doc_comments)]
-        impl #type_generics #type_ident #type_generics_idents_code #type_generics_where {
+        impl #type_generics #type_ident #type_generics_idents_code #partition_key_where {
             fn #fn_reflectapi_ident() -> (reflectapi::TypeReference, reflectapi::Typespace) {
                 let mut schema = reflectapi::Typespace::new();
                 let resolved_type_ref = <Self as #trait_ident>::#fn_reflectapi_type_ident(&mut schema);
@@ -144,6 +188,15 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
                 (resolved_type_ref, schema)
             }
         }
+    })
+}
+
+/// Whether `tokens` name any of `idents`.
+fn names_any(tokens: proc_macro2::TokenStream, idents: &[syn::Ident]) -> bool {
+    tokens.into_iter().any(|token| match token {
+        proc_macro2::TokenTree::Ident(ident) => idents.contains(&ident),
+        proc_macro2::TokenTree::Group(group) => names_any(group.stream(), idents),
+        _ => false,
     })
 }
 
@@ -220,6 +273,18 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
             transparent: true,
             codegen_config,
         }
+    }
+
+    if cx.reflectapi_type() == ReflectType::Input
+        && (attrs.input_type.is_some()
+            || container.attrs.type_from().is_some()
+            || container.attrs.type_try_from().is_some())
+    {
+        reject_partition_key(
+            cx,
+            container,
+            "`partition_key` cannot be used in a type deserialized from another type",
+        );
     }
 
     match cx.reflectapi_type() {
@@ -344,10 +409,12 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                 let mut result = Struct::new(type_def_name);
                 result.codegen_config = codegen_config;
                 result.description = type_def_description;
+                let mut partition_key = Vec::new();
                 let fields = fields
                     .iter()
-                    .filter_map(|field| visit_field(cx, field))
+                    .filter_map(|field| visit_field(cx, field, Some(&mut partition_key)))
                     .collect::<Vec<_>>();
+                visit_partition_key(cx, partition_key);
 
                 result.fields = match style {
                     ast::Style::Struct => Fields::Named(fields),
@@ -411,7 +478,7 @@ fn visit_variant(
     let fields = variant
         .fields
         .iter()
-        .filter_map(|field| visit_field(cx, field))
+        .filter_map(|field| visit_field(cx, field, None))
         .collect::<Vec<_>>();
 
     let mut discriminant = None;
@@ -447,10 +514,40 @@ fn visit_variant(
     }
 }
 
-fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema::Field> {
+/// Visits a field of a struct, collecting it into `partition_key` if it is
+/// marked as part of one, or of an enum variant, `partition_key` being `None`.
+fn visit_field(
+    cx: &Context,
+    field: &ast::Field<'_>,
+    partition_key: Option<&mut Vec<(ParsedPartitionKey, PartitionKeyField)>>,
+) -> Option<reflectapi_schema::Field> {
     let (field_name, serde_name) =
         visit_name(cx, field.attrs.name(), field.original.ident.as_ref());
     let attrs = parse_field_attributes(cx, &field.original.attrs);
+    if let Some(parsed) = &attrs.partition_key {
+        match partition_key {
+            None => cx.impl_error(
+                &parsed.path,
+                "`partition_key` is not supported on enum variant fields",
+            ),
+            Some(_) if field.attrs.flatten() => cx.impl_error(
+                &parsed.path,
+                "`partition_key` cannot be used on a flattened field",
+            ),
+            Some(_) if field.attrs.skip_deserializing() || attrs.input_skip => cx.impl_error(
+                &parsed.path,
+                "`partition_key` cannot be used on a field that is not deserialized",
+            ),
+            Some(partition_key) => partition_key.push((
+                parsed.clone(),
+                PartitionKeyField {
+                    position: parsed.position(),
+                    member: field.member.clone(),
+                    ty: field.original.ty.clone(),
+                },
+            )),
+        }
+    }
     // If serde itself skips this field, exclude it from the schema entirely
     if match cx.reflectapi_type() {
         ReflectType::Input => field.attrs.skip_deserializing(),
@@ -501,12 +598,66 @@ fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema
     };
     field_def.flattened = field.attrs.flatten();
     field_def.hidden = attrs.hidden;
+    // Recorded in both directions, as the facts below, so a type that is an
+    // input and an output stays one type in the schema.
+    field_def.partition_key = attrs.partition_key.as_ref().map(|p| p.position());
     // Direction-independent facts, so the input and output reflections
     // record identical values (keeping type consolidation unaffected);
     // which side matters is decided at codegen time.
     field_def.serialize_with = field.attrs.serialize_with().is_some();
     field_def.deserialize_with = field.attrs.deserialize_with().is_some();
     Some(field_def)
+}
+
+/// Checks the partition key fields of a struct: positions are either all
+/// numbered or one bare `partition_key`, and none repeats. An `Input` impl
+/// reads them; an `Output` impl has no partition key.
+fn visit_partition_key(cx: &Context, fields: Vec<(ParsedPartitionKey, PartitionKeyField)>) {
+    let numbered = fields.iter().any(|(parsed, _)| parsed.position.is_some());
+    let mut taken = std::collections::BTreeSet::new();
+    for (parsed, field) in fields {
+        if numbered && parsed.position.is_none() {
+            cx.impl_error(
+                &parsed.path,
+                "a bare `partition_key` is position 1 and cannot be mixed with numbered ones; number every field of the key",
+            );
+        } else if !taken.insert(field.position) {
+            cx.impl_error(
+                &parsed.path,
+                format_args!(
+                    "partition key position {} is taken by another field",
+                    field.position
+                ),
+            );
+        } else if cx.reflectapi_type() == ReflectType::Input {
+            cx.encountered_partition_key(field);
+        }
+    }
+}
+
+/// Reports every `#[reflectapi(partition_key)]` on the fields of `container`,
+/// whose fields are not visited.
+fn reject_partition_key(cx: &Context, container: &ast::Container<'_>, problem: &str) {
+    let fields: Vec<&ast::Field<'_>> = match &container.data {
+        ast::Data::Struct(_, fields) => fields.iter().collect(),
+        ast::Data::Enum(variants) => variants.iter().flat_map(|v| &v.fields).collect(),
+    };
+    for attr in fields
+        .iter()
+        .flat_map(|field| &field.original.attrs)
+        .filter(|attr| attr.path() == REFLECT)
+    {
+        // Other attributes are checked where the field is visited.
+        let _ = attr.parse_nested_meta(|meta| {
+            if meta.path == PARTITION_KEY {
+                cx.impl_error(&meta.path, problem);
+            }
+            if meta.input.peek(syn::Token![=]) {
+                meta.value()?.parse::<syn::Expr>()?;
+            }
+            Ok(())
+        });
+    }
 }
 
 fn visit_field_type(cx: &Context, ty: &syn::Type) -> reflectapi_schema::TypeReference {

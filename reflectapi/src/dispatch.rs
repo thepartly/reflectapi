@@ -15,13 +15,18 @@
 //!     Some(Reply::Stream(events)) => respond_sse(events.map(|event| event.map(|e| sse_event(&e)))),
 //! }
 //! ```
+//!
+//! A server that partitions its requests by their partition key, the fields
+//! marked `#[reflectapi(partition_key = N)]`, finds a request's key with
+//! [`Dispatcher::partition_key`] and serves it with [`Dispatcher::dispatch_in`],
+//! which checks that the request is the partition's.
 
 use std::{collections::HashMap, fmt, pin::Pin};
 
 use futures_util::Stream;
 use http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
 
-use crate::builder::{HandlerInput, HandlerOutput};
+use crate::builder::{HandlerInput, HandlerOutput, PartitionKeyFn};
 use crate::{Event, Handler, HandlerCallback, Router};
 
 /// The outcome of dispatching one request.
@@ -89,33 +94,44 @@ pub fn sse_event(Event { id, data }: &Event<String>) -> String {
 }
 
 /// Calls a handler with the subset of `headers` it declared, as the axum
-/// adapter and the [`Dispatcher`] both do.
+/// adapter and the [`Dispatcher`] both do, checking the request against
+/// `partition` first if one is given.
 pub(crate) async fn invoke<S>(
     callback: &HandlerCallback<S>,
     input_headers: &[HeaderName],
     state: S,
     headers: &HeaderMap,
     body: bytes::Bytes,
+    partition: Option<&[&str]>,
 ) -> Reply
 where
     S: Send + 'static,
 {
+    let input = handler_input(input_headers, headers, body);
+    match callback {
+        HandlerCallback::Future(f) => f(state, input, partition).await.into(),
+        HandlerCallback::Stream(f) => match f(state, input, partition) {
+            Ok(stream) => Reply::Stream(stream),
+            Err(output) => output.into(),
+        },
+    }
+}
+
+/// A handler's input: the body, and the subset of `headers` it declared.
+fn handler_input(
+    input_headers: &[HeaderName],
+    headers: &HeaderMap,
+    body: bytes::Bytes,
+) -> HandlerInput {
     let mut forwarded = HeaderMap::new();
     for name in input_headers {
         if let Some(value) = headers.get(name) {
             forwarded.insert(name.clone(), value.clone());
         }
     }
-    let input = HandlerInput {
+    HandlerInput {
         body,
         headers: forwarded,
-    };
-    match callback {
-        HandlerCallback::Future(f) => f(state, input).await.into(),
-        HandlerCallback::Stream(f) => match f(state, input) {
-            Ok(stream) => Reply::Stream(stream),
-            Err(output) => output.into(),
-        },
     }
 }
 
@@ -126,6 +142,7 @@ where
     readonly: bool,
     input_headers: Vec<HeaderName>,
     callback: HandlerCallback<S>,
+    partition_key: Option<PartitionKeyFn>,
 }
 
 /// Routes requests to the handlers of built [`Router`]s, by path and method,
@@ -164,6 +181,7 @@ where
                 readonly,
                 input_headers,
                 callback,
+                partition_key,
             } in router.handlers
             {
                 routes.insert(
@@ -172,6 +190,7 @@ where
                         readonly,
                         input_headers,
                         callback,
+                        partition_key,
                     },
                 );
             }
@@ -195,6 +214,88 @@ where
         headers: &HeaderMap,
         body: bytes::Bytes,
     ) -> Option<Reply> {
+        let route = match self.route(method, path)? {
+            Ok(route) => route,
+            Err(reply) => return Some(reply),
+        };
+        Some(
+            invoke(
+                &route.callback,
+                &route.input_headers,
+                state,
+                headers,
+                body,
+                None,
+            )
+            .await,
+        )
+    }
+
+    /// Dispatches one request as [`Dispatcher::dispatch`] does, for the
+    /// server of one partition: after parsing the request and before calling
+    /// the handler, compares the request's partition key with `partition`,
+    /// and answers `400 Bad Request` without calling the handler when they
+    /// differ. A route without a partition key is dispatched as by
+    /// `dispatch`. The request is parsed once, for the check and the handler
+    /// both.
+    pub async fn dispatch_in(
+        &self,
+        partition: &[&str],
+        state: S,
+        method: &Method,
+        path: &str,
+        headers: &HeaderMap,
+        body: bytes::Bytes,
+    ) -> Option<Reply> {
+        let route = match self.route(method, path)? {
+            Ok(route) => route,
+            Err(reply) => return Some(reply),
+        };
+        Some(
+            invoke(
+                &route.callback,
+                &route.input_headers,
+                state,
+                headers,
+                body,
+                Some(partition),
+            )
+            .await,
+        )
+    }
+
+    /// The partition key of a request: the values of the fields marked
+    /// `#[reflectapi(partition_key = N)]` in its route's input and headers
+    /// types, in position order, parsed from the body and the headers as the
+    /// handler would get them. The handler is not called.
+    ///
+    /// - `Ok(None)` when the route has no partition key, and when
+    ///   [`Dispatcher::dispatch`] would answer without calling a handler: no
+    ///   route has the path, or the route does not accept the method;
+    /// - `Err` with the reply the handler would give when the request does
+    ///   not parse, such as a `400` for a body that is not the input.
+    #[allow(clippy::result_large_err)]
+    pub fn partition_key(
+        &self,
+        method: &Method,
+        path: &str,
+        headers: &HeaderMap,
+        body: bytes::Bytes,
+    ) -> Result<Option<Vec<String>>, Reply> {
+        let Some(Ok(route)) = self.route(method, path) else {
+            return Ok(None);
+        };
+        let Some(partition_key) = &route.partition_key else {
+            return Ok(None);
+        };
+        partition_key(handler_input(&route.input_headers, headers, body))
+            .map(Some)
+            .map_err(Reply::from)
+    }
+
+    /// The route at `path`: `None` if there is none, and the `405` reply if
+    /// it does not accept `method`.
+    fn route(&self, method: &Method, path: &str) -> Option<Result<&Route<S>, Reply>> {
         let route = self.routes.get(path)?;
         let accepted = *method == Method::POST || (route.readonly && *method == Method::GET);
         if !accepted {
@@ -203,13 +304,13 @@ where
                 http::header::ALLOW,
                 HeaderValue::from_static(if route.readonly { "GET,POST" } else { "POST" }),
             );
-            return Some(Reply::Complete {
+            return Some(Err(Reply::Complete {
                 status: StatusCode::METHOD_NOT_ALLOWED,
                 headers,
                 body: bytes::Bytes::new(),
-            });
+            }));
         }
-        Some(invoke(&route.callback, &route.input_headers, state, headers, body).await)
+        Some(Ok(route))
     }
 }
 

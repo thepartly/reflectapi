@@ -1,0 +1,5 @@
+error: `partition_key` cannot be used in a type deserialized from another type
+ --> tests/errors/partition_key_in_type_from_another.rs:9:18
+  |
+9 |     #[reflectapi(partition_key)]
+  |                  ^^^^^^^^^^^^^

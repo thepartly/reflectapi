@@ -99,6 +99,47 @@ server sets when it writes the body (axum does, and so do Worker runtimes).
 single-threaded runtime, wrap values that are not, as the
 [Worker integration](./workers.md#define-the-api) does.
 
+## Partitioned servers
+
+A server can be partitioned by a request's partition key, the fields marked
+`#[reflectapi(partition_key = N)]` (see
+[Attributes](../getting-started/attributes.md#partition-key)): each partition
+serves the requests whose key is its own, and a router in front sends each
+request to its partition. Two calls of the dispatcher serve this, in either
+build mode:
+
+```rust,ignore
+// The router: find the request's partition.
+match dispatcher.partition_key(&method, path, &headers, body.clone()) {
+    Ok(Some(parts)) => { /* send the request to the partition named by parts */ }
+    Ok(None) => { /* no key: serve it anywhere, with `dispatch` */ }
+    Err(reply) => { /* the input does not parse: send the reply */ }
+}
+
+// The partition: serve only its own requests.
+dispatcher.dispatch_in(&["acme", "o-42"], state, &method, path, &headers, body).await
+```
+
+- `partition_key` parses the body and the headers as the handler would, and
+  gives the key's parts in position order, without calling the handler. It
+  is `Ok(None)` for a route without a key, and wherever `dispatch` would not
+  call a handler: no route has the path, or the route does not accept the
+  method. It is `Err` with the reply the handler would give for input that
+  does not parse.
+- `dispatch_in` is `dispatch`, except that after parsing the request and
+  before calling the handler it compares the request's key with the
+  partition's, and answers `400` without calling the handler when they
+  differ. Routes without a key are dispatched as by `dispatch`. The request
+  is parsed once.
+
+The parts are strings, compared as they are. How they become one name, such
+as a host or a shard, is the server's: if it joins them, make the join
+unambiguous, so that two different keys never name one partition.
+
+A client that knows the key from the schema may pick the partition itself;
+`dispatch_in` is what keeps a partition's handlers to its own requests when
+a client picks the wrong one.
+
 ## Test the integration
 
 The responses must be identical to the axum adapter's. The reflectapi demo

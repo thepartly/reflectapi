@@ -1,0 +1,5 @@
+error: `partition_key` cannot be used on a field that is not deserialized
+ --> tests/errors/partition_key_on_skipped_field.rs:3:18
+  |
+3 |     #[reflectapi(partition_key)]
+  |                  ^^^^^^^^^^^^^

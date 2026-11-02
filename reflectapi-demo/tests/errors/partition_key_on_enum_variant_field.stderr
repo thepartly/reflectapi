@@ -1,0 +1,5 @@
+error: `partition_key` is not supported on enum variant fields
+ --> tests/errors/partition_key_on_enum_variant_field.rs:4:22
+  |
+4 |         #[reflectapi(partition_key)]
+  |                      ^^^^^^^^^^^^^

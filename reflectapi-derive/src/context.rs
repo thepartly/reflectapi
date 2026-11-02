@@ -13,6 +13,14 @@ pub(crate) enum ReflectType {
 pub(crate) struct ContextEncounters {
     pub fields: Vec<(reflectapi_schema::TypeReference, syn::Type)>,
     pub generics: Vec<(reflectapi_schema::TypeParameter, syn::Ident)>,
+    pub partition_key: Vec<PartitionKeyField>,
+}
+
+/// A field marked `#[reflectapi(partition_key)]`, for the `Input` impl to read.
+pub(crate) struct PartitionKeyField {
+    pub position: u8,
+    pub member: syn::Member,
+    pub ty: syn::Type,
 }
 
 /// A type to collect errors together and format them.
@@ -27,6 +35,7 @@ pub(crate) struct Context {
 
     encountered_type_fields: RefCell<Vec<(reflectapi_schema::TypeReference, syn::Type)>>,
     encountered_type_generics: RefCell<Vec<(reflectapi_schema::TypeParameter, syn::Ident)>>,
+    encountered_partition_key: RefCell<Vec<PartitionKeyField>>,
 
     // The contents will be set to `None` during checking. This is so that checking can be
     // enforced.
@@ -42,6 +51,7 @@ impl Context {
             reflectapi_type,
             encountered_type_fields: RefCell::new(Vec::new()),
             encountered_type_generics: RefCell::new(Vec::new()),
+            encountered_partition_key: RefCell::new(Vec::new()),
             errors: RefCell::new(Some(Vec::new())),
         }
     }
@@ -77,6 +87,7 @@ impl Context {
                 return Ok(ContextEncounters {
                     fields: self.encountered_type_fields.replace(Vec::new()),
                     generics: self.encountered_type_generics.replace(Vec::new()),
+                    partition_key: self.encountered_partition_key.replace(Vec::new()),
                 })
             }
         };
@@ -97,6 +108,11 @@ impl Context {
         self.encountered_type_fields
             .borrow_mut()
             .push((type_ref, ty));
+    }
+
+    /// Add a field of the type's partition key.
+    pub fn encountered_partition_key(&self, field: PartitionKeyField) {
+        self.encountered_partition_key.borrow_mut().push(field);
     }
 
     /// Add a type parameter to actual type definition.

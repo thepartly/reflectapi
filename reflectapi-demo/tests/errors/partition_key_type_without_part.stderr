@@ -1,0 +1,19 @@
+error[E0277]: the trait bound `Vec<std::string::String>: PartitionKeyPart` is not satisfied
+ --> tests/errors/partition_key_type_without_part.rs:4:5
+  |
+4 |     tenant: Vec<String>,
+  |     ^^^^^^^^---
+  |     |       |
+  |     |       required by a bound introduced by this call
+  |     the trait `PartitionKeyPart` is not implemented for `Vec<std::string::String>`
+  |
+  = help: the following other types implement trait `PartitionKeyPart`:
+            i128
+            i16
+            i32
+            i64
+            i8
+            isize
+            std::string::String
+            u128
+          and $N others
