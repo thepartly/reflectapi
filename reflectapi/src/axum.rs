@@ -14,22 +14,22 @@ use crate::{
 
 type Sleep = Arc<dyn Fn(Duration) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
 
-/// How [`into_router_with`] serves the routes. The default is what
-/// [`into_router`] does.
+/// How [`into_router`] serves the routes. `RouterSettings::default()` serves
+/// them with no SSE keep-alive.
 ///
 /// These are serving settings, not part of the API: the right keep-alive
 /// interval depends on the proxies in front of a deployment, and the same
 /// API definition builds the schema and may be served in several places.
-/// The server-wide default is set here; a stream route can override it with
-/// [`crate::RouteBuilder::sse_keep_alive`].
+/// The default for every stream route is set here; a stream route can
+/// override it with [`crate::RouteBuilder::sse_keep_alive`].
 #[derive(Clone, Default)]
 #[non_exhaustive]
-pub struct ServeOptions {
+pub struct RouterSettings {
     keep_alive: Option<Duration>,
     timer: Option<Sleep>,
 }
 
-impl ServeOptions {
+impl RouterSettings {
     /// Writes an SSE comment on a stream route that has sent nothing for
     /// `interval`, using `sleep` as the timer, such as `tokio::time::sleep`.
     /// A zero interval writes none. A route's own
@@ -37,7 +37,7 @@ impl ServeOptions {
     /// [`crate::dispatch::keep_alive`].
     ///
     /// ```rust,ignore
-    /// let options = ServeOptions::default()
+    /// let settings = RouterSettings::default()
     ///     .sse_keep_alive(Duration::from_secs(15), tokio::time::sleep);
     /// ```
     pub fn sse_keep_alive<F, Fut>(self, interval: Duration, sleep: F) -> Self
@@ -52,7 +52,7 @@ impl ServeOptions {
     }
 
     /// The timer for SSE keep-alive, such as `tokio::time::sleep`, without a
-    /// server-wide interval: only stream routes that set
+    /// default interval: only stream routes that set
     /// [`crate::RouteBuilder::sse_keep_alive`] write comments.
     pub fn sse_timer<F, Fut>(mut self, sleep: F) -> Self
     where
@@ -64,33 +64,31 @@ impl ServeOptions {
     }
 }
 
-impl fmt::Debug for ServeOptions {
+impl fmt::Debug for RouterSettings {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ServeOptions")
+        f.debug_struct("RouterSettings")
             .field("sse_keep_alive", &self.keep_alive)
             .field("sse_timer", &self.timer.is_some())
             .finish()
     }
 }
 
-pub fn into_router<S, F>(app_state: S, router: Vec<crate::Router<S>>, cb: F) -> Router
-where
-    S: Send + Clone + Sync + 'static,
-    F: Fn(String, Router) -> Router,
-{
-    into_router_with(app_state, router, ServeOptions::default(), cb)
-}
-
-/// [`into_router`], served as `options` says.
+/// Mounts the routes of `router` on an axum [`Router`], served as `settings`
+/// says. `cb` receives each reflectapi router's name and its axum router,
+/// and returns the router to merge, for example with middleware added.
+///
+/// ```rust,ignore
+/// let app = reflectapi::axum::into_router(state, routers, RouterSettings::default(), |_name, r| r);
+/// ```
 ///
 /// # Panics
 ///
 /// If a stream route sets a non-zero
-/// [`crate::RouteBuilder::sse_keep_alive`] and `options` has no timer.
-pub fn into_router_with<S, F>(
+/// [`crate::RouteBuilder::sse_keep_alive`] and `settings` has no timer.
+pub fn into_router<S, F>(
     app_state: S,
     router: Vec<crate::Router<S>>,
-    options: ServeOptions,
+    settings: RouterSettings,
     cb: F,
 ) -> Router
 where
@@ -99,7 +97,7 @@ where
 {
     let mut app = Router::new();
     for r in router {
-        let (name, router) = into_router_one(app_state.clone(), r, &options);
+        let (name, router) = into_router_one(app_state.clone(), r, &settings);
         let router = cb(name, router);
         app = app.merge(router);
     }
@@ -109,7 +107,7 @@ where
 fn into_router_one<S>(
     app_state: S,
     router: crate::Router<S>,
-    options: &ServeOptions,
+    settings: &RouterSettings,
 ) -> (String, Router)
 where
     S: Send + Clone + Sync + 'static,
@@ -126,12 +124,12 @@ where
             callback,
         } = handler;
         // The route's own interval wins over the server's; zero means none.
-        let keep_alive = match sse_keep_alive.or(options.keep_alive) {
+        let keep_alive = match sse_keep_alive.or(settings.keep_alive) {
             Some(interval) if !interval.is_zero() => {
-                let Some(sleep) = options.timer.clone() else {
+                let Some(sleep) = settings.timer.clone() else {
                     panic!(
                         "route `{path}/{name}` sets an SSE keep-alive interval, but the \
-                         ServeOptions have no timer: add one with `sse_timer` or `sse_keep_alive`"
+                         RouterSettings have no timer: add one with `sse_timer` or `sse_keep_alive`"
                     );
                 };
                 Some((interval, sleep))

@@ -555,7 +555,7 @@ impl RouteBuilder {
 
     /// For a stream route, writes an SSE comment whenever the stream has sent
     /// nothing for `interval`, overriding the server's default
-    /// (`reflectapi::axum::ServeOptions`, or the host's for a
+    /// (`reflectapi::axum::RouterSettings`, or the host's for a
     /// [`crate::dispatch::Dispatcher`]). `Duration::ZERO` turns it off for
     /// this route. It is a serving setting: the schema and generated clients
     /// don't change. Setting it on a route that isn't a stream route is a

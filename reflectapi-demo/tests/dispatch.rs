@@ -160,7 +160,12 @@ async fn event_ids_match_axum() -> TestResult {
     use tower::Service as _;
 
     let (_schema, routers) = events::api::<WithSchema>().build()?;
-    let mut app = reflectapi::axum::into_router((), routers, |_, r| r);
+    let mut app = reflectapi::axum::into_router(
+        (),
+        routers,
+        reflectapi::axum::RouterSettings::default(),
+        |_, r| r,
+    );
     let response = app
         .call(
             http::Request::builder()
@@ -219,20 +224,20 @@ async fn kept_alive_body(
     routers: Vec<reflectapi::Router<()>>,
     path: &str,
 ) -> Result<axum::body::BodyDataStream, Box<dyn std::error::Error>> {
-    let options = reflectapi::axum::ServeOptions::default()
+    let settings = reflectapi::axum::RouterSettings::default()
         .sse_keep_alive(std::time::Duration::from_secs(15), tokio::time::sleep);
-    served_body(routers, options, path).await
+    served_body(routers, settings, path).await
 }
 
-/// Posts to `path` on an axum app served with `options`.
+/// Posts to `path` on an axum app served with `settings`.
 async fn served_body(
     routers: Vec<reflectapi::Router<()>>,
-    options: reflectapi::axum::ServeOptions,
+    settings: reflectapi::axum::RouterSettings,
     path: &str,
 ) -> Result<axum::body::BodyDataStream, Box<dyn std::error::Error>> {
     use tower::Service as _;
 
-    let mut app = reflectapi::axum::into_router_with((), routers, options, |_, r| r);
+    let mut app = reflectapi::axum::into_router((), routers, settings, |_, r| r);
     let response = app
         .call(
             http::Request::builder()
@@ -290,8 +295,8 @@ async fn a_busy_axum_stream_carries_no_comments() -> TestResult {
 #[tokio::test(start_paused = true)]
 async fn a_route_sets_its_own_keep_alive_interval() -> TestResult {
     let (_schema, routers) = quiet::api_keeping_alive().build()?;
-    let options = reflectapi::axum::ServeOptions::default().sse_timer(tokio::time::sleep);
-    let mut frames = served_body(routers, options, "/quiet").await?;
+    let settings = reflectapi::axum::RouterSettings::default().sse_timer(tokio::time::sleep);
+    let mut frames = served_body(routers, settings, "/quiet").await?;
 
     let start = tokio::time::Instant::now();
     assert_eq!(next_frame(&mut frames).await?, "data: {\"seq\":1}\n\n");
@@ -326,13 +331,13 @@ async fn a_zero_route_interval_turns_keep_alive_off() -> TestResult {
 }
 
 #[test]
-#[should_panic(expected = "ServeOptions have no timer")]
+#[should_panic(expected = "RouterSettings have no timer")]
 fn a_route_interval_without_a_timer_panics_when_served() {
     let (_schema, routers) = quiet::api_keeping_alive().build().unwrap();
-    let _ = reflectapi::axum::into_router_with(
+    let _ = reflectapi::axum::into_router(
         (),
         routers,
-        reflectapi::axum::ServeOptions::default(),
+        reflectapi::axum::RouterSettings::default(),
         |_, r| r,
     );
 }
@@ -340,7 +345,12 @@ fn a_route_interval_without_a_timer_panics_when_served() {
 #[test]
 fn a_zero_route_interval_needs_no_timer() -> TestResult {
     let (_schema, routers) = quiet::api_never_keeping_alive().build()?;
-    let _ = reflectapi::axum::into_router((), routers, |_, r| r);
+    let _ = reflectapi::axum::into_router(
+        (),
+        routers,
+        reflectapi::axum::RouterSettings::default(),
+        |_, r| r,
+    );
     Ok(())
 }
 
@@ -477,7 +487,12 @@ async fn unknown_paths_and_methods_match_axum() -> TestResult {
     use tower::Service as _;
 
     let (_schema, routers) = reflectapi_demo::api::<WithSchema>().build()?;
-    let mut app = reflectapi::axum::into_router(Arc::<AppState>::default(), routers, |_, r| r);
+    let mut app = reflectapi::axum::into_router(
+        Arc::<AppState>::default(),
+        routers,
+        reflectapi::axum::RouterSettings::default(),
+        |_, r| r,
+    );
     let dispatcher = dispatcher()?;
 
     for (method, path) in [
