@@ -154,6 +154,13 @@ After regenerating, update affected field initializers that previously used
   namespace-prefixed name (`nomatches.NomatchesIfConflictOnUpdate`). This keeps
   one Python class per logical type so `model.<X>` resolves consistently.
 - Uses `reflectapi_runtime` for client base classes and runtime helpers.
+  Install the `reflectapi-runtime` release that matches the CLI that
+  generated the client: generated code can call helpers an older runtime
+  doesn't have.
+- Models describe the wire in their JSON schemas (`model_json_schema()`, and
+  FastAPI's OpenAPI), in both validation and serialization mode. Externally
+  tagged enums, structs with a flattened enum, and open enums show what serde
+  writes, not the Python fields that hold it.
 - Open response enum wrappers include a generated unknown model with `.tag`
   and `.raw`. Unknown values serialize to their original wire JSON. Known
   values still validate normally; `#[serde(other)]` without `open` maps to the
