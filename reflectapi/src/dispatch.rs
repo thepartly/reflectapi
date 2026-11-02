@@ -12,13 +12,18 @@
 //! match dispatcher.dispatch(state, &method, &path, &headers, body).await {
 //!     None => not_found(),
 //!     Some(Reply::Complete { status, headers, body }) => respond(status, headers, body),
-//!     Some(Reply::Stream(events)) => respond_sse(events.map(|event| event.map(|e| sse_event(&e)))),
+//!     Some(Reply::Stream(events)) => respond_sse(sse_frames(events)),
 //! }
 //! ```
+//!
+//! Proxies close a connection that sends nothing for a while, so a stream
+//! route that is quiet for long periods can wrap its frames in
+//! [`keep_alive`] with the host runtime's timer.
 
-use std::{collections::HashMap, fmt, pin::Pin};
+use std::{collections::HashMap, fmt, future::Future, pin::Pin, time::Duration};
 
-use futures_util::Stream;
+use futures_util::future::{self, Either};
+use futures_util::{Stream, StreamExt};
 use http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
 
 use crate::builder::{HandlerInput, HandlerOutput};
@@ -88,6 +93,74 @@ pub fn sse_event(Event { id, data }: &Event<String>) -> String {
     event
 }
 
+/// Frames each item of a [`Reply::Stream`] with [`sse_event`]: the body of a
+/// `text/event-stream` response, before any [`keep_alive`].
+pub fn sse_frames(events: ReplyStream) -> impl Stream<Item = Result<String, String>> + Send {
+    events.map(|item| item.map(|event| sse_event(&event)))
+}
+
+/// The comment [`keep_alive`] writes: a comment line, then a blank line.
+/// Clients that follow the SSE spec ignore it.
+const KEEP_ALIVE_COMMENT: &str = ":\n\n";
+
+/// Writes an SSE comment whenever `frames` has written nothing for
+/// `interval`, so that proxies and load balancers that close idle
+/// connections keep a quiet stream open.
+///
+/// The interval restarts after every event and every comment, so a busy
+/// stream carries no extra bytes. Nothing is written after the stream ends
+/// or fails. A zero interval writes no comments: a timer that is always due
+/// would otherwise flood the connection with them. `sleep` is the host runtime's timer, such as
+/// `tokio::time::sleep`; the result is `Send` exactly when `sleep` and its
+/// futures are, so a single-threaded runtime's timer works too.
+///
+/// ```rust,ignore
+/// let body = keep_alive(sse_frames(events), Duration::from_secs(15), tokio::time::sleep);
+/// ```
+pub fn keep_alive<S, E, F, Fut>(
+    frames: S,
+    interval: Duration,
+    sleep: F,
+) -> impl Stream<Item = Result<String, E>>
+where
+    S: Stream<Item = Result<String, E>> + Unpin,
+    F: FnMut(Duration) -> Fut,
+    Fut: Future<Output = ()>,
+{
+    enum Next<E> {
+        Frame(Result<String, E>),
+        Idle,
+        End,
+    }
+
+    futures_util::stream::unfold(Some((frames, sleep)), move |state| async move {
+        let (mut frames, mut sleep) = state?;
+        let next = if interval.is_zero() {
+            match frames.next().await {
+                Some(frame) => Next::Frame(frame),
+                None => Next::End,
+            }
+        } else {
+            let timer = sleep(interval);
+            futures_util::pin_mut!(timer);
+            // Dropping a pending `next()` loses nothing: a stream yields an
+            // item only from the poll that returns it.
+            match future::select(frames.next(), timer).await {
+                Either::Left((Some(frame), _)) => Next::Frame(frame),
+                Either::Left((None, _)) => Next::End,
+                Either::Right(((), _)) => Next::Idle,
+            }
+        };
+        match next {
+            Next::Frame(Ok(frame)) => Some((Ok(frame), Some((frames, sleep)))),
+            // The response ends with an error, so nothing follows it.
+            Next::Frame(Err(err)) => Some((Err(err), None)),
+            Next::Idle => Some((Ok(KEEP_ALIVE_COMMENT.to_owned()), Some((frames, sleep)))),
+            Next::End => None,
+        }
+    })
+}
+
 /// Calls a handler with the subset of `headers` it declared, as the axum
 /// adapter and the [`Dispatcher`] both do.
 pub(crate) async fn invoke<S>(
@@ -125,6 +198,7 @@ where
 {
     readonly: bool,
     input_headers: Vec<HeaderName>,
+    sse_keep_alive: Option<Duration>,
     callback: HandlerCallback<S>,
 }
 
@@ -163,6 +237,7 @@ where
                 path,
                 readonly,
                 input_headers,
+                sse_keep_alive,
                 callback,
             } in router.handlers
             {
@@ -171,12 +246,26 @@ where
                     Route {
                         readonly,
                         input_headers,
+                        sse_keep_alive,
                         callback,
                     },
                 );
             }
         }
         Self { routes }
+    }
+
+    /// The SSE keep-alive interval the route at `path` sets with
+    /// [`crate::RouteBuilder::sse_keep_alive`], or `None` if it doesn't, in
+    /// which case the host's own default applies. Pass the result to
+    /// [`keep_alive`]; a zero interval writes no comments.
+    ///
+    /// ```rust,ignore
+    /// let interval = dispatcher.sse_keep_alive(&path).unwrap_or(host_default);
+    /// let frames = keep_alive(sse_frames(items), interval, sleep);
+    /// ```
+    pub fn sse_keep_alive(&self, path: &str) -> Option<Duration> {
+        self.routes.get(path)?.sse_keep_alive
     }
 
     /// Dispatches one request, as axum serves the routes `into_router` mounts:
@@ -246,5 +335,121 @@ mod tests {
             "id: \ndata: {}\n\n"
         );
         Ok(())
+    }
+
+    mod keep_alive {
+        use std::{cell::RefCell, future::Future, rc::Rc, time::Duration};
+
+        use futures::channel::{mpsc, oneshot};
+        use futures::{FutureExt, Stream, StreamExt};
+
+        type Frames = mpsc::UnboundedSender<Result<String, String>>;
+
+        /// Timers the test fires by hand, newest last.
+        #[derive(Clone, Default)]
+        struct Timers(Rc<RefCell<Vec<oneshot::Sender<()>>>>);
+
+        impl Timers {
+            fn sleep(&self) -> impl FnMut(Duration) -> std::pin::Pin<Box<dyn Future<Output = ()>>> {
+                let timers = self.clone();
+                move |interval| {
+                    assert_eq!(interval, Duration::from_secs(15));
+                    let (fire, fired) = oneshot::channel();
+                    timers.0.borrow_mut().push(fire);
+                    Box::pin(fired.map(|_| ()))
+                }
+            }
+
+            fn started(&self) -> usize {
+                self.0.borrow().len()
+            }
+
+            fn fire(&self, index: usize) {
+                let fire = std::mem::replace(&mut self.0.borrow_mut()[index], oneshot::channel().0);
+                let _ = fire.send(());
+            }
+        }
+
+        fn kept_alive(
+            timers: &Timers,
+        ) -> (Frames, impl Stream<Item = Result<String, String>> + Unpin) {
+            let (frames, rx) = mpsc::unbounded();
+            let stream = Box::pin(super::super::keep_alive(
+                rx,
+                Duration::from_secs(15),
+                timers.sleep(),
+            ));
+            (frames, stream)
+        }
+
+        #[test]
+        fn a_zero_interval_writes_no_comments() {
+            let (frames, rx) = mpsc::unbounded::<Result<String, String>>();
+            // A timer that is always due, as `tokio::time::sleep(Duration::ZERO)` is.
+            let mut stream = Box::pin(super::super::keep_alive(rx, Duration::ZERO, |_| {
+                futures::future::ready(())
+            }));
+
+            assert_eq!(stream.next().now_or_never(), None);
+            frames.unbounded_send(Ok("a".into())).unwrap();
+            assert_eq!(stream.next().now_or_never(), Some(Some(Ok("a".into()))));
+            assert_eq!(stream.next().now_or_never(), None);
+        }
+
+        #[test]
+        fn an_idle_stream_writes_a_comment_each_interval() {
+            let timers = Timers::default();
+            let (_frames, mut stream) = kept_alive(&timers);
+
+            assert_eq!(stream.next().now_or_never(), None);
+            timers.fire(0);
+            assert_eq!(stream.next().now_or_never(), Some(Some(Ok(":\n\n".into()))));
+            assert_eq!(stream.next().now_or_never(), None);
+            assert_eq!(timers.started(), 2);
+            timers.fire(1);
+            assert_eq!(stream.next().now_or_never(), Some(Some(Ok(":\n\n".into()))));
+        }
+
+        #[test]
+        fn each_frame_restarts_the_interval() {
+            let timers = Timers::default();
+            let (frames, mut stream) = kept_alive(&timers);
+
+            assert_eq!(stream.next().now_or_never(), None);
+            frames.unbounded_send(Ok("a".into())).unwrap();
+            assert_eq!(stream.next().now_or_never(), Some(Some(Ok("a".into()))));
+            frames.unbounded_send(Ok("b".into())).unwrap();
+            assert_eq!(stream.next().now_or_never(), Some(Some(Ok("b".into()))));
+            assert_eq!(stream.next().now_or_never(), None);
+            // The timers started before "a" and "b" no longer count.
+            timers.fire(0);
+            timers.fire(1);
+            assert_eq!(stream.next().now_or_never(), None);
+            timers.fire(2);
+            assert_eq!(stream.next().now_or_never(), Some(Some(Ok(":\n\n".into()))));
+        }
+
+        #[test]
+        fn nothing_is_written_after_the_end() {
+            let timers = Timers::default();
+            let (frames, mut stream) = kept_alive(&timers);
+
+            assert_eq!(stream.next().now_or_never(), None);
+            drop(frames);
+            timers.fire(0);
+            assert_eq!(stream.next().now_or_never(), Some(None));
+        }
+
+        #[test]
+        fn nothing_is_written_after_an_error() {
+            let timers = Timers::default();
+            let (frames, mut stream) = kept_alive(&timers);
+
+            frames.unbounded_send(Err("boom".into())).unwrap();
+            frames.unbounded_send(Ok("after".into())).unwrap();
+            assert_eq!(stream.next().now_or_never(), Some(Some(Err("boom".into()))));
+            assert_eq!(stream.next().now_or_never(), Some(None));
+            assert_eq!(timers.started(), 1);
+        }
     }
 }

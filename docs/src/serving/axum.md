@@ -20,7 +20,8 @@ and `http1`, which `axum::serve` needs.
 ```rust,ignore
 let (schema, routers) = api().build()?;
 
-let app = reflectapi::axum::into_router(app_state, routers, |name, router| {
+let settings = reflectapi::axum::RouterSettings::default();
+let app = reflectapi::axum::into_router(app_state, routers, settings, |name, router| {
     // Called once per router: `name` is the name of the builder that defined it,
     // including builders merged with `Builder::extend` and `Builder::nest`.
     router.layer(tower_http::trace::TraceLayer::new_for_http())
@@ -41,6 +42,54 @@ axum::serve(listener, app).await?;
 - Stream routes respond with Server-Sent Events, one `data:` event per item,
   with an `id:` for items the route wraps in `reflectapi::Event`. An error
   returned before the stream opens is a normal HTTP error response.
+
+## Keep idle streams open
+
+Proxies and load balancers close a connection that sends nothing for a while,
+often after 60 to 120 seconds. A stream route that only emits on change is
+then reconnected over and over, and each reconnect repeats the handler's
+connect work. `into_router` can write an SSE comment (`:` and a blank
+line) whenever a stream has sent nothing for an interval:
+
+```rust,ignore
+use std::time::Duration;
+use reflectapi::axum::RouterSettings;
+
+let settings = RouterSettings::default()
+    .sse_keep_alive(Duration::from_secs(15), tokio::time::sleep);
+let app = reflectapi::axum::into_router(app_state, routers, settings, |_name, router| router);
+```
+
+- The interval restarts after every event and every comment, so a busy
+  stream carries no extra bytes.
+- Clients that follow the SSE spec ignore comments, and every generated
+  client does; the schema is unchanged.
+- It is off by default. 15 seconds is well inside common proxy timeouts.
+- reflectapi depends on no async runtime, so you pass the timer:
+  `tokio::time::sleep` on tokio.
+- The default is set where the server is assembled, because the interval
+  depends on the proxies in front of a deployment, and the same route
+  definitions may be served in several places. Leave it off when a proxy in
+  front already sends heartbeats.
+
+A stream route that needs a different interval, or none, sets its own in the
+`Builder`. It overrides the server's default, and `Duration::ZERO` turns
+keep-alive off for that route:
+
+```rust,ignore
+builder.stream_route(watch_jobs, |b| {
+    b.name("jobs.watch").sse_keep_alive(Duration::from_secs(5))
+})
+```
+
+- The route's interval changes only how it is served: the schema and the
+  generated clients are the same. Setting it on a route that isn't a stream
+  route is a build error.
+- Serving needs a timer for it. `RouterSettings::sse_keep_alive` provides one
+  along with the default; to keep alive only the routes that ask, pass just
+  the timer with `RouterSettings::default().sse_timer(tokio::time::sleep)`.
+  `into_router` panics if a route sets an interval and there is no
+  timer, and `RouterSettings::default()` has none.
 
 ## The schema
 

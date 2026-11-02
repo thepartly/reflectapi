@@ -560,4 +560,78 @@ mod tests {
             }
         );
     }
+
+    /// Serves `body` as a successful `text/event-stream` response, in chunks.
+    #[cfg(feature = "rt-sse")]
+    struct SseClient {
+        base_url: Url,
+        chunks: &'static [&'static str],
+    }
+
+    #[cfg(feature = "rt-sse")]
+    impl Client for SseClient {
+        type Error = std::convert::Infallible;
+
+        fn base_url(&self) -> &Url {
+            &self.base_url
+        }
+
+        async fn request(&self, _: Request) -> Result<Response<Self::Error>, Self::Error> {
+            Ok(Response {
+                status: http::StatusCode::OK,
+                headers: http::HeaderMap::new(),
+                body: Box::pin(stream::iter(
+                    self.chunks
+                        .iter()
+                        .map(|chunk| Ok(bytes::Bytes::from_static(chunk.as_bytes()))),
+                )),
+            })
+        }
+    }
+
+    #[cfg(feature = "rt-sse")]
+    #[test]
+    fn stream_items_skip_keep_alive_comments_between_events() {
+        use futures_util::StreamExt;
+
+        let client = SseClient {
+            base_url: Url::parse("https://example.com").unwrap(),
+            // Comments in their own chunks, as a server writes them while idle.
+            chunks: &[
+                "data: {\"name\":\"1\"}\n\n",
+                ":\n\n",
+                ":\n\n",
+                "data: {\"name\":\"2\"}\n\n",
+            ],
+        };
+        let items = futures::executor::block_on(async {
+            let Ok(stream) =
+                __stream_request_impl::<_, _, crate::Empty, ShapeResponse, ShapeError>(
+                    &client,
+                    "/stream.test",
+                    crate::Empty {},
+                    crate::Empty {},
+                )
+                .await
+            else {
+                panic!("the stream request failed");
+            };
+            stream
+                .map(|item| item.map_err(|err| format!("{err:?}")))
+                .collect::<Vec<_>>()
+                .await
+        });
+
+        assert_eq!(
+            items,
+            [
+                Ok(ShapeResponse {
+                    name: "1".to_string()
+                }),
+                Ok(ShapeResponse {
+                    name: "2".to_string()
+                }),
+            ]
+        );
+    }
 }

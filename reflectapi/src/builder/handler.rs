@@ -102,6 +102,8 @@ where
     pub path: String,
     pub readonly: bool,
     pub input_headers: Vec<HeaderName>,
+    /// The route's own SSE keep-alive interval, if it sets one.
+    pub sse_keep_alive: Option<std::time::Duration>,
     pub callback: HandlerCallback<S>,
 }
 
@@ -146,6 +148,7 @@ where
             path: rb.path,
             readonly: rb.readonly,
             input_headers,
+            sse_keep_alive: rb.sse_keep_alive,
             callback: HandlerCallback::Future(Arc::new(move |state: S, input: HandlerInput| {
                 Box::pin(Self::handler_wrap(state, input, handler)) as _
             })),
@@ -175,6 +178,7 @@ where
             path: rb.path,
             readonly: rb.readonly,
             input_headers,
+            sse_keep_alive: rb.sse_keep_alive,
             callback: HandlerCallback::Stream(Arc::new(move |state: S, input: HandlerInput| {
                 Self::stream_handler_wrap(state, input, handler)
                     .map(|stream| Box::pin(stream) as HandlerStream)

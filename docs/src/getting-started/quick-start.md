@@ -99,7 +99,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Start the HTTP server
     let app_state = (); // No state needed for this example
-    let axum_app = reflectapi::axum::into_router(app_state, routers, |_name, r| r);
+    let axum_app = reflectapi::axum::into_router(
+        app_state,
+        routers,
+        reflectapi::axum::RouterSettings::default(),
+        |_name, r| r,
+    );
     
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
     println!("🚀 Server running on http://0.0.0.0:3000");

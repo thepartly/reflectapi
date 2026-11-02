@@ -68,6 +68,13 @@ def test_parse_ignores_comments_and_unknown_fields() -> None:
     assert events == [SseEvent(data="kept")]
 
 
+def test_parse_skips_keep_alive_comments_between_events() -> None:
+    # A server keeps an idle stream open with `:` comment blocks.
+    payload = "data: 1\n\n:\n\n:\n\ndata: 2\n\n"
+    events = list(parse_sse(_lines(payload)))
+    assert events == [SseEvent(data="1"), SseEvent(data="2")]
+
+
 def test_parse_field_without_colon_treated_as_empty_value() -> None:
     events = list(parse_sse(_lines("data\n\n")))
     assert events == [SseEvent(data="")]

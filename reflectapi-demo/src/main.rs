@@ -17,12 +17,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // start the server based on axum web framework
     let app_state = Default::default();
-    let axum_app = reflectapi::axum::into_router(app_state, routers, |_name, r| {
-        // let's append some tracing middleware
-        // it can be different depending on the router name,
-        // (we have only 1 in the demo example)
-        r.layer(tower_http::trace::TraceLayer::new_for_http())
-    })
+    let axum_app = reflectapi::axum::into_router(
+        app_state,
+        routers,
+        reflectapi::axum::RouterSettings::default(),
+        |_name, r| {
+            // let's append some tracing middleware
+            // it can be different depending on the router name,
+            // (we have only 1 in the demo example)
+            r.layer(tower_http::trace::TraceLayer::new_for_http())
+        },
+    )
     .route(
         "/openapi.json",
         axum::routing::get(|| async { Json(openapi_spec) }),
