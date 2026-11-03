@@ -1121,6 +1121,8 @@ impl Converter<'_> {
         adt: &crate::Enum,
         variant: &crate::Variant,
     ) -> InlineOrRef<Schema> {
+        use schema_codegen::Shape;
+
         assert!(adt.parameters.is_empty(), "expect enum to be instantiated");
 
         fn mk_tag(tag: impl Into<String>) -> InlineOrRef<Schema> {
@@ -1133,7 +1135,7 @@ impl Converter<'_> {
         let type_ref =
             crate::TypeReference::new(variant.name().to_owned(), type_ref.arguments.clone());
 
-        let mut strukt = crate::Struct {
+        let strukt = crate::Struct {
             name: variant.name().to_owned(),
             serde_name: variant.serde_name.to_owned(),
             description: sanitize_description(variant.description()),
@@ -1148,65 +1150,45 @@ impl Converter<'_> {
             false => adt.representation(),
         };
 
+        let shape = Shape::of(&variant.fields);
         match repr {
             crate::Representation::External => {
-                if variant.fields.is_empty() {
-                    // ```rust
-                    // #[derive(Serialize)]
-                    // enum {
-                    //    A,            // "A"
-                    //    B {}          // { "B": {} }
-                    //    C()           // { "C": [] }
-                    // }
-                    // ```
-
-                    let ty = match variant.fields {
-                        reflectapi_schema::Fields::Named(_) => Type::Object {
-                            title: fmt_type_ref(&type_ref),
-                            required: Default::default(),
-                            properties: BTreeMap::from_iter([(
-                                variant.serde_name().to_owned(),
-                                Property {
-                                    description: sanitize_description(variant.description()),
-                                    deprecation: Default::default(),
-                                    schema: Inline(Schema::empty_object()),
-                                },
-                            )]),
-                        },
-                        reflectapi_schema::Fields::Unnamed(_) => Type::Object {
-                            title: fmt_type_ref(&type_ref),
-                            required: Default::default(),
-                            properties: BTreeMap::from_iter([(
-                                variant.serde_name().to_owned(),
-                                Property {
-                                    description: sanitize_description(variant.description()),
-                                    deprecation: Default::default(),
-                                    schema: Inline(Schema::empty_tuple()),
-                                },
-                            )]),
-                        },
-                        reflectapi_schema::Fields::None => {
-                            return Inline(Schema::Const {
-                                description: sanitize_description(variant.description()),
-                                value: variant.serde_name().to_owned(),
-                            })
-                        }
-                    };
-
-                    return Inline(
-                        FlatSchema {
+                // ```rust
+                // #[derive(Serialize)]
+                // enum {
+                //    A,            // "A"
+                //    B {}          // { "B": {} }
+                //    C()           // { "C": [] }
+                //    D(T)          // { "D": T }
+                // }
+                // ```
+                let (required, description, property_schema) = match shape {
+                    Shape::Unit => {
+                        return Inline(Schema::Const {
                             description: sanitize_description(variant.description()),
-                            ty,
-                        }
-                        .into(),
-                    );
-                }
-
-                let property_schema = if variant.fields.len() == 1 && !variant.fields[0].is_named()
-                {
-                    self.convert_type_ref(schema, kind, variant.fields[0].type_ref())
-                } else {
-                    self.struct_to_schema(schema, kind, &type_ref, &strukt)
+                            value: variant.serde_name().to_owned(),
+                        })
+                    }
+                    Shape::Struct([]) => (
+                        false,
+                        sanitize_description(variant.description()),
+                        Inline(Schema::empty_object()),
+                    ),
+                    Shape::Tuple([]) => (
+                        false,
+                        sanitize_description(variant.description()),
+                        Inline(Schema::empty_tuple()),
+                    ),
+                    Shape::Newtype(field) => (
+                        true,
+                        String::new(),
+                        self.convert_type_ref(schema, kind, field.type_ref()),
+                    ),
+                    Shape::Tuple(_) | Shape::Struct(_) => (
+                        true,
+                        String::new(),
+                        self.struct_to_schema(schema, kind, &type_ref, &strukt),
+                    ),
                 };
 
                 return Inline(
@@ -1214,12 +1196,16 @@ impl Converter<'_> {
                         description: sanitize_description(variant.description()),
                         ty: Type::Object {
                             title: fmt_type_ref(&type_ref),
-                            required: [variant.serde_name().to_owned()].into(),
+                            required: if required {
+                                [variant.serde_name().to_owned()].into()
+                            } else {
+                                Default::default()
+                            },
                             properties: BTreeMap::from([(
                                 variant.serde_name().to_owned(),
                                 Property {
+                                    description,
                                     deprecation: Default::default(),
-                                    description: String::new(),
                                     schema: property_schema,
                                 },
                             )]),
@@ -1229,10 +1215,9 @@ impl Converter<'_> {
                 );
             }
             crate::Representation::Adjacent { tag, content } => {
-                let data = if variant.fields.len() == 1 && !variant.fields[0].is_named() {
-                    self.convert_type_ref(schema, kind, variant.fields[0].type_ref())
-                } else {
-                    self.struct_to_schema(schema, kind, &type_ref, &strukt)
+                let data = match shape {
+                    Shape::Newtype(field) => self.convert_type_ref(schema, kind, field.type_ref()),
+                    _ => self.struct_to_schema(schema, kind, &type_ref, &strukt),
                 };
                 return Inline(
                     FlatSchema {
@@ -1264,11 +1249,9 @@ impl Converter<'_> {
                 );
             }
             crate::Representation::Internal { tag } => {
-                let s = match &mut strukt.fields {
-                    reflectapi_schema::Fields::Named(_) => {
-                        self.struct_to_schema(schema, kind, &type_ref, &strukt)
-                    }
-                    reflectapi_schema::Fields::None => Inline(Schema::Flat(FlatSchema {
+                let s = match shape {
+                    Shape::Struct(_) => self.struct_to_schema(schema, kind, &type_ref, &strukt),
+                    Shape::Unit => Inline(Schema::Flat(FlatSchema {
                         description: String::new(),
                         ty: Type::Object {
                             title: variant.serde_name().to_owned(),
@@ -1284,11 +1267,8 @@ impl Converter<'_> {
                             .into(),
                         },
                     })),
-                    reflectapi_schema::Fields::Unnamed(fields) if fields.len() == 1 => {
-                        let field = fields.pop().unwrap();
-                        self.convert_type_ref(schema, kind, &field.type_ref)
-                    }
-                    reflectapi_schema::Fields::Unnamed(_) => {
+                    Shape::Newtype(field) => self.convert_type_ref(schema, kind, &field.type_ref),
+                    Shape::Tuple(_) => {
                         panic!(
                             "internal repr with unnamed fields is not allowed by serde: {}",
                             adt.name()
@@ -1301,40 +1281,43 @@ impl Converter<'_> {
                     .unwrap_or_else(|err| panic!("{}: {err}", adt.name()));
             }
             crate::Representation::None => {
-                if variant.fields.len() == 1 && !variant.fields[0].is_named() {
-                    return self.convert_type_ref(schema, kind, variant.fields[0].type_ref());
-                }
-
-                if variant.fields.is_empty() {
-                    // ```rust
-                    // #[derive(Serialize)]
-                    // #[serde(untagged)]
-                    // enum {
-                    //    A,            // null
-                    //    B {}          // {}
-                    //    C()           // []
-                    // }
-                    // ```
-
-                    let ty = match variant.fields {
-                        reflectapi_schema::Fields::None => Type::Null,
-                        reflectapi_schema::Fields::Named(_) => Type::Object {
-                            title: fmt_type_ref(&type_ref),
-                            required: Default::default(),
-                            properties: BTreeMap::new(),
-                        },
-                        reflectapi_schema::Fields::Unnamed(_) => Type::Tuple {
-                            prefix_items: vec![],
-                        },
-                    };
-
-                    return Inline(
+                // ```rust
+                // #[derive(Serialize)]
+                // #[serde(untagged)]
+                // enum {
+                //    A,            // null
+                //    B {}          // {}
+                //    C()           // []
+                //    D(T)          // T
+                // }
+                // ```
+                let empty = |ty| {
+                    Inline(
                         FlatSchema {
                             description: sanitize_description(variant.description()),
                             ty,
                         }
                         .into(),
-                    );
+                    )
+                };
+                match shape {
+                    Shape::Newtype(field) => {
+                        return self.convert_type_ref(schema, kind, field.type_ref());
+                    }
+                    Shape::Unit => return empty(Type::Null),
+                    Shape::Struct([]) => {
+                        return empty(Type::Object {
+                            title: fmt_type_ref(&type_ref),
+                            required: Default::default(),
+                            properties: BTreeMap::new(),
+                        })
+                    }
+                    Shape::Tuple([]) => {
+                        return empty(Type::Tuple {
+                            prefix_items: vec![],
+                        })
+                    }
+                    Shape::Tuple(_) | Shape::Struct(_) => {}
                 }
             }
         }

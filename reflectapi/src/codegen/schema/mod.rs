@@ -11,6 +11,7 @@ mod layout;
 mod normalize;
 pub(crate) mod presence;
 mod semantic;
+mod shape;
 mod symbol;
 
 // Public-to-the-crate surface. Only what backends (currently just Python)
@@ -25,4 +26,5 @@ pub(crate) use self::semantic::{
     SemanticOutputType, SemanticPrimitive, SemanticSchema, SemanticStruct, SemanticType,
     SemanticTypeParameter, SemanticVariant, SymbolInfo, SymbolTable,
 };
+pub(crate) use self::shape::Shape;
 pub(crate) use self::symbol::{SymbolId, SymbolKind};

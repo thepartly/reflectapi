@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 use reflectapi_schema::{Enum, Field, Fields, Representation, Type, TypeReference};
 
 use super::presence::{resolve_field_wire_contract, FieldWireFacts, KeyPresence};
+use super::shape::Shape;
 
 /// Flattening deeper than this is treated as unknown. The outermost flattened
 /// field's type is at depth 0, as in Python's `collect_flattened_fields`.
@@ -115,12 +116,14 @@ impl<'a> Layout<'a> {
                     tag,
                     variants: enm
                         .variants()
-                        .map(|variant| match &variant.fields {
-                            Fields::Unnamed(fields) => match fields.as_slice() {
-                                [newtype] => Layout::of_type(&newtype.type_ref, lookup, depth + 1),
-                                _ => Layout::Unknown(Opaque::Unsupported),
-                            },
-                            fields => Layout::of_fields(fields, lookup, depth),
+                        .map(|variant| match Shape::of(&variant.fields) {
+                            Shape::Newtype(newtype) => {
+                                Layout::of_type(&newtype.type_ref, lookup, depth + 1)
+                            }
+                            Shape::Tuple(_) => Layout::Unknown(Opaque::Unsupported),
+                            Shape::Unit | Shape::Struct(_) => {
+                                Layout::of_fields(&variant.fields, lookup, depth)
+                            }
                         })
                         .collect(),
                 },
