@@ -728,6 +728,8 @@ fn render_struct_with_flatten(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
+    let unwrapped = unwrap_flattened_wrappers(struct_def, schema);
+    let struct_def = unwrapped.as_ref().unwrap_or(struct_def);
     // Materializing loses the group structure, so it's read beforehand.
     let flattened_groups = optional_flattened_groups(struct_def.fields.iter(), schema);
     let effective = materialize_nested_policy_flatten(struct_def, schema)?;
@@ -929,6 +931,48 @@ fn variant_flattened_groups<'a>(
 }
 
 /// Resolve the target type name for a flattened field, unwrapping `Option<T>`
+/// `struct_def` with each flattened field that names a newtype or transparent
+/// struct naming the type it wraps instead, or `None` if no field does.
+///
+/// Serde writes a flattened wrapper exactly as the type it wraps, so the
+/// renderers, which decide a flattened field's handling from the type it
+/// names, would otherwise miss an enum behind one.
+fn unwrap_flattened_wrappers(
+    struct_def: &reflectapi_schema::Struct,
+    schema: &Schema,
+) -> Option<reflectapi_schema::Struct> {
+    let mut unwrapped = struct_def.clone();
+    let mut changed = false;
+    for field in unwrapped.fields.iter_mut().filter(|f| f.flattened()) {
+        let is_option = (field.type_ref.name == "std::option::Option"
+            || field.type_ref.name == "reflectapi::Option")
+            && field.type_ref.arguments.len() == 1;
+        let target = if is_option {
+            &mut field.type_ref.arguments[0]
+        } else {
+            &mut field.type_ref
+        };
+        // Bounded, as a schema can describe a wrapper of itself.
+        for _ in 0..10 {
+            let Some(Type::Struct(wrapper)) = schema.get_type(&target.name) else {
+                break;
+            };
+            // A generic wrapper's field names its parameter, not a type.
+            if !wrapper.parameters.is_empty() {
+                break;
+            }
+            let inner = match schema_codegen::Shape::of(&wrapper.fields) {
+                schema_codegen::Shape::Newtype(inner) => inner,
+                _ if wrapper.transparent() && wrapper.fields.len() == 1 => &wrapper.fields[0],
+                _ => break,
+            };
+            *target = inner.type_ref.clone();
+            changed = true;
+        }
+    }
+    changed.then_some(unwrapped)
+}
+
 fn resolve_flattened_type_name(type_ref: &TypeReference) -> &str {
     if (type_ref.name == "std::option::Option" || type_ref.name == "reflectapi::Option")
         && !type_ref.arguments.is_empty()
@@ -9570,6 +9614,43 @@ mod tests {
                 ..Config::default()
             },
         )
+    }
+
+    /// A flattened newtype or transparent struct around an enum renders as
+    /// the enum does when flattened directly: serde writes it the same way.
+    #[test]
+    fn flattening_a_wrapper_of_an_enum_renders_the_enum() {
+        let event = serde_json::json!({"kind": "enum", "name": "Event",
+        "representation": {"internal": {"tag": "type"}},
+        "variants": [{"name": "Created", "fields": {"named": [
+            {"name": "id", "type": {"name": "u32"}, "required": true}
+        ]}}]});
+        let newtype = serde_json::json!({"kind": "struct", "name": "Newtype",
+            "fields": {"unnamed": [{"name": "0", "type": {"name": "Event"}, "required": true}]}});
+        let transparent = serde_json::json!({"kind": "struct", "name": "Transparent",
+            "transparent": true,
+            "fields": {"named": [{"name": "event", "type": {"name": "Event"}, "required": true}]}});
+        let outer = |py: &str| {
+            let start = py.find("class Outer").unwrap();
+            let end = py[start..]
+                .find("\n\n\n")
+                .map_or(py.len(), |end| start + end);
+            py[start..end].to_owned()
+        };
+        let direct = outer(
+            &generate_flattening(serde_json::json!({"name": "Event"}), vec![event.clone()])
+                .unwrap(),
+        );
+        assert!(direct.contains("class OuterCreated"), "{direct}");
+        for wrapper in [newtype, transparent] {
+            let name = wrapper["name"].as_str().unwrap().to_owned();
+            let py = generate_flattening(
+                serde_json::json!({"name": name}),
+                vec![event.clone(), wrapper],
+            )
+            .unwrap();
+            assert_eq!(outer(&py), direct, "{name}");
+        }
     }
 
     #[test]
