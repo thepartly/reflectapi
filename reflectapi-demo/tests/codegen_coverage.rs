@@ -574,6 +574,10 @@ mod wire {
         pub one_or_many: OneOrMany<u32>,
         #[serde(flatten)]
         pub trace: Trace,
+        #[serde(flatten)]
+        pub span: Span,
+        #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+        pub parent: Option<Parent>,
     }
 
     /// Flattened, it contributes the keys of the struct it wraps.
@@ -590,6 +594,32 @@ mod wire {
     )]
     pub struct TraceContext {
         pub trace_id: String,
+    }
+
+    /// A newtype struct: flattened, it also contributes the keys of the
+    /// struct it wraps.
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct Span(pub SpanContext);
+
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct SpanContext {
+        pub span_id: String,
+    }
+
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct Parent(pub ParentContext);
+
+    #[derive(
+        Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
+    pub struct ParentContext {
+        pub parent_id: String,
     }
 
     pub fn samples() -> Vec<serde_json::Value> {
@@ -623,6 +653,14 @@ mod wire {
                             trace_id: format!("trace-{i}"),
                         },
                     },
+                    span: Span(SpanContext {
+                        span_id: format!("span-{i}"),
+                    }),
+                    parent: (i % 2 == 1).then(|| {
+                        Parent(ParentContext {
+                            parent_id: format!("parent-{i}"),
+                        })
+                    }),
                 };
                 let json = serde_json::to_value(&request).unwrap();
                 // Each sample must also deserialize back to the variant it came from,

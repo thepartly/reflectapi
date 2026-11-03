@@ -56,8 +56,8 @@ pub(crate) enum Opaque<'a> {
     Unresolved(String),
     /// Nested deeper than `MAX_DEPTH` flattens.
     TooDeep,
-    /// A tuple struct, a transparent struct without exactly one field, or an
-    /// `Option` without an argument.
+    /// A tuple struct with more than one field, a transparent struct without
+    /// exactly one field, or an `Option` without an argument.
     Unsupported,
 }
 
@@ -109,7 +109,11 @@ impl<'a> Layout<'a> {
                     _ => Layout::Unknown(Opaque::Unsupported),
                 }
             }
-            Some(Type::Struct(strukt)) => Layout::of_fields(&strukt.fields, lookup, depth),
+            // Serde writes a newtype struct as the value it wraps, flattened or not.
+            Some(Type::Struct(strukt)) => match Shape::of(&strukt.fields) {
+                Shape::Newtype(inner) => Layout::of_type(&inner.type_ref, lookup, depth + 1),
+                _ => Layout::of_fields(&strukt.fields, lookup, depth),
+            },
             Some(Type::Enum(enm)) => match &enm.representation {
                 Representation::Internal { tag } => Layout::InternallyTagged {
                     enm,
@@ -401,7 +405,7 @@ mod tests {
         let mut external = Enum::new("External".into());
         external.representation = Representation::External;
         let mut tuple = Struct::new("Tuple");
-        tuple.fields = Fields::Unnamed(vec![field("0", "u32", true)]);
+        tuple.fields = Fields::Unnamed(vec![field("0", "u32", true), field("1", "u32", true)]);
         let types = [
             Type::Enum(external),
             Type::Struct(tuple),
@@ -454,6 +458,18 @@ mod tests {
         let mut wrapper = Struct::new("Wrapper");
         wrapper.transparent = true;
         wrapper.fields = Fields::Named(vec![field("inner", "Inner", true)]);
+        let types = [
+            Type::Struct(wrapper),
+            strukt("Inner", vec![field("a", "u32", true)]),
+        ];
+        let layout = Layout::of_type(&"Wrapper".into(), &lookup_in(&types), 0);
+        assert_eq!(layout.keys().unwrap(), BTreeSet::from(["a"]));
+    }
+
+    #[test]
+    fn a_newtype_struct_has_the_keys_of_the_type_it_wraps() {
+        let mut wrapper = Struct::new("Wrapper");
+        wrapper.fields = Fields::Unnamed(vec![field("0", "Inner", true)]);
         let types = [
             Type::Struct(wrapper),
             strukt("Inner", vec![field("a", "u32", true)]),

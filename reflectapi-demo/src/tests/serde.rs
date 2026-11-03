@@ -1832,3 +1832,32 @@ struct TestWrapperWithNestedTypevarArg<I> {
 fn test_generic_flatten_typevar_nested_in_generic_arg() {
     assert_snapshot!(TestWrapperWithNestedTypevarArg<TestFlattenInner>);
 }
+
+#[test]
+fn test_flatten_newtype_struct() {
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct Inner {
+        a: u32,
+        b: String,
+    }
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct Wrapper(Inner);
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct OptionalInner {
+        c: u32,
+    }
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct OptionalWrapper(OptionalInner);
+    // Serde writes a flattened newtype struct as the keys of the struct it
+    // wraps: `{"x": 1, "a": 2, "b": "s"}`, with `"c"` only when `o` is `Some`.
+    #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+    struct TestFlattenNewtypeStruct {
+        x: u32,
+        #[serde(flatten)]
+        w: Wrapper,
+        #[serde(flatten)]
+        o: Option<OptionalWrapper>,
+    }
+
+    assert_snapshot!(TestFlattenNewtypeStruct);
+}

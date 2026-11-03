@@ -1551,6 +1551,11 @@ impl Converter<'_> {
             assert_eq!(strukt.fields().len(), 1);
             return self.convert_type_ref(schema, kind, strukt.fields[0].type_ref());
         }
+        // Serde writes a newtype struct as the value it wraps, not as a
+        // one-element array.
+        if let schema_codegen::Shape::Newtype(inner) = schema_codegen::Shape::of(&strukt.fields) {
+            return self.convert_type_ref(schema, kind, inner.type_ref());
+        }
 
         let (flattened_fields, fields) = strukt.fields().partition::<Vec<_>, _>(|f| f.flattened);
 

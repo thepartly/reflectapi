@@ -9655,7 +9655,10 @@ mod tests {
         let err = generate_flattening(
             serde_json::json!({"name": "Tuple"}),
             vec![serde_json::json!({"kind": "struct", "name": "Tuple",
-                "fields": {"unnamed": [{"name": "0", "type": {"name": "u32"}, "required": true}]}})],
+            "fields": {"unnamed": [
+                {"name": "0", "type": {"name": "u32"}, "required": true},
+                {"name": "1", "type": {"name": "u32"}, "required": true}
+            ]}})],
         )
         .unwrap_err();
         assert!(
