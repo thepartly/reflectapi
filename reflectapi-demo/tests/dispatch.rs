@@ -160,7 +160,12 @@ async fn event_ids_match_axum() -> TestResult {
     use tower::Service as _;
 
     let (_schema, routers) = events::api::<WithSchema>().build()?;
-    let mut app = reflectapi::axum::into_router((), routers, |_, r| r);
+    let mut app = reflectapi::axum::into_router(
+        (),
+        routers,
+        reflectapi::axum::RouterSettings::default(),
+        |_, r| r,
+    );
     let response = app
         .call(
             http::Request::builder()
@@ -177,6 +182,207 @@ async fn event_ids_match_axum() -> TestResult {
     assert_eq!(
         sent,
         "id: 1\ndata: {\"seq\":1}\n\nid: 2\ndata: {\"seq\":2}\n\ndata: {\"seq\":3}\n\n"
+    );
+    Ok(())
+}
+
+mod quiet {
+    use futures_util::{Stream, StreamExt};
+
+    /// One tick, then nothing, without ending.
+    pub fn quiet(
+        _: (),
+        _: reflectapi::Empty,
+        _: reflectapi::Empty,
+    ) -> Result<impl Stream<Item = super::events::Tick>, reflectapi::Infallible> {
+        Ok(futures_util::stream::iter([super::events::Tick { seq: 1 }])
+            .chain(futures_util::stream::pending()))
+    }
+
+    pub fn api() -> reflectapi::Builder<()> {
+        reflectapi::Builder::new().stream_route(quiet, |b| b.name("quiet"))
+    }
+
+    /// `/quiet`, with its own keep-alive interval of 5s.
+    pub fn api_keeping_alive() -> reflectapi::Builder<()> {
+        reflectapi::Builder::new().stream_route(quiet, |b| {
+            b.name("quiet")
+                .sse_keep_alive(std::time::Duration::from_secs(5))
+        })
+    }
+
+    /// `/quiet`, with keep-alive turned off.
+    pub fn api_never_keeping_alive() -> reflectapi::Builder<()> {
+        reflectapi::Builder::new().stream_route(quiet, |b| {
+            b.name("quiet").sse_keep_alive(std::time::Duration::ZERO)
+        })
+    }
+}
+
+/// Posts to `path` on an axum app that keeps idle streams alive every 15s.
+async fn kept_alive_body(
+    routers: Vec<reflectapi::Router<()>>,
+    path: &str,
+) -> Result<axum::body::BodyDataStream, Box<dyn std::error::Error>> {
+    let settings = reflectapi::axum::RouterSettings::default()
+        .sse_keep_alive(std::time::Duration::from_secs(15), tokio::time::sleep);
+    served_body(routers, settings, path).await
+}
+
+/// Posts to `path` on an axum app served with `settings`.
+async fn served_body(
+    routers: Vec<reflectapi::Router<()>>,
+    settings: reflectapi::axum::RouterSettings,
+    path: &str,
+) -> Result<axum::body::BodyDataStream, Box<dyn std::error::Error>> {
+    use tower::Service as _;
+
+    let mut app = reflectapi::axum::into_router((), routers, settings, |_, r| r);
+    let response = app
+        .call(
+            http::Request::builder()
+                .method(http::Method::POST)
+                .uri(path)
+                .body(axum::body::Body::empty())?,
+        )
+        .await?;
+    assert_eq!(
+        response.headers()[http::header::CONTENT_TYPE],
+        "text/event-stream"
+    );
+    Ok(response.into_body().into_data_stream())
+}
+
+async fn next_frame(
+    frames: &mut axum::body::BodyDataStream,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let frame = frames.next().await.ok_or("the stream ended")??;
+    Ok(std::str::from_utf8(&frame)?.to_owned())
+}
+
+/// An idle stream gets a comment every interval, which SSE clients ignore.
+#[tokio::test(start_paused = true)]
+async fn an_idle_axum_stream_is_kept_alive() -> TestResult {
+    let (_schema, routers) = quiet::api().build()?;
+    let mut frames = kept_alive_body(routers, "/quiet").await?;
+
+    let start = tokio::time::Instant::now();
+    assert_eq!(next_frame(&mut frames).await?, "data: {\"seq\":1}\n\n");
+    assert_eq!(next_frame(&mut frames).await?, ":\n\n");
+    assert_eq!(start.elapsed(), std::time::Duration::from_secs(15));
+    assert_eq!(next_frame(&mut frames).await?, ":\n\n");
+    assert_eq!(start.elapsed(), std::time::Duration::from_secs(30));
+    Ok(())
+}
+
+/// A stream that is never idle for the interval carries no comments.
+#[tokio::test(start_paused = true)]
+async fn a_busy_axum_stream_carries_no_comments() -> TestResult {
+    let (_schema, routers) = events::api::<WithSchema>().build()?;
+    let mut frames = kept_alive_body(routers, "/ticks").await?;
+    let mut sent = String::new();
+    while let Some(frame) = frames.next().await {
+        sent.push_str(std::str::from_utf8(&frame?)?);
+    }
+    assert_eq!(
+        sent,
+        "id: 1\ndata: {\"seq\":1}\n\nid: 2\ndata: {\"seq\":2}\n\ndata: {\"seq\":3}\n\n"
+    );
+    Ok(())
+}
+
+/// A route's own interval needs only a timer from the server.
+#[tokio::test(start_paused = true)]
+async fn a_route_sets_its_own_keep_alive_interval() -> TestResult {
+    let (_schema, routers) = quiet::api_keeping_alive().build()?;
+    let settings = reflectapi::axum::RouterSettings::default().sse_timer(tokio::time::sleep);
+    let mut frames = served_body(routers, settings, "/quiet").await?;
+
+    let start = tokio::time::Instant::now();
+    assert_eq!(next_frame(&mut frames).await?, "data: {\"seq\":1}\n\n");
+    assert_eq!(next_frame(&mut frames).await?, ":\n\n");
+    assert_eq!(start.elapsed(), std::time::Duration::from_secs(5));
+    Ok(())
+}
+
+/// A route's interval wins over the server's, so it can be shorter.
+#[tokio::test(start_paused = true)]
+async fn a_route_interval_overrides_the_server_default() -> TestResult {
+    let (_schema, routers) = quiet::api_keeping_alive().build()?;
+    let mut frames = kept_alive_body(routers, "/quiet").await?;
+
+    let start = tokio::time::Instant::now();
+    assert_eq!(next_frame(&mut frames).await?, "data: {\"seq\":1}\n\n");
+    assert_eq!(next_frame(&mut frames).await?, ":\n\n");
+    assert_eq!(start.elapsed(), std::time::Duration::from_secs(5));
+    Ok(())
+}
+
+/// `Duration::ZERO` on a route turns off the server's keep-alive for it.
+#[tokio::test(start_paused = true)]
+async fn a_zero_route_interval_turns_keep_alive_off() -> TestResult {
+    let (_schema, routers) = quiet::api_never_keeping_alive().build()?;
+    let mut frames = kept_alive_body(routers, "/quiet").await?;
+
+    assert_eq!(next_frame(&mut frames).await?, "data: {\"seq\":1}\n\n");
+    let idle = tokio::time::timeout(std::time::Duration::from_secs(60), frames.next()).await;
+    assert!(idle.is_err(), "expected nothing, got {idle:?}");
+    Ok(())
+}
+
+#[test]
+#[should_panic(expected = "RouterSettings have no timer")]
+fn a_route_interval_without_a_timer_panics_when_served() {
+    let (_schema, routers) = quiet::api_keeping_alive().build().unwrap();
+    let _ = reflectapi::axum::into_router(
+        (),
+        routers,
+        reflectapi::axum::RouterSettings::default(),
+        |_, r| r,
+    );
+}
+
+#[test]
+fn a_zero_route_interval_needs_no_timer() -> TestResult {
+    let (_schema, routers) = quiet::api_never_keeping_alive().build()?;
+    let _ = reflectapi::axum::into_router(
+        (),
+        routers,
+        reflectapi::axum::RouterSettings::default(),
+        |_, r| r,
+    );
+    Ok(())
+}
+
+#[test]
+fn the_dispatcher_reports_a_route_interval() -> TestResult {
+    let dispatcher = Dispatcher::new(quiet::api_keeping_alive().build()?.1);
+    assert_eq!(
+        dispatcher.sse_keep_alive("/quiet"),
+        Some(std::time::Duration::from_secs(5))
+    );
+
+    let dispatcher = Dispatcher::new(quiet::api().build()?.1);
+    assert_eq!(dispatcher.sse_keep_alive("/quiet"), None);
+    assert_eq!(dispatcher.sse_keep_alive("/nowhere"), None);
+    Ok(())
+}
+
+#[test]
+fn keep_alive_on_a_route_that_is_not_a_stream_is_a_build_error() -> TestResult {
+    let result = reflectapi::Builder::<()>::new()
+        .route(invalid_headers::handler, |b| {
+            b.name("plain")
+                .sse_keep_alive(std::time::Duration::from_secs(5))
+        })
+        .build();
+    let Err(errors) = result else {
+        return Err("expected a build error".into());
+    };
+    let errors = errors.to_string();
+    assert!(
+        errors.contains("route `plain`: `sse_keep_alive` applies only to stream routes"),
+        "{errors}"
     );
     Ok(())
 }
@@ -281,7 +487,12 @@ async fn unknown_paths_and_methods_match_axum() -> TestResult {
     use tower::Service as _;
 
     let (_schema, routers) = reflectapi_demo::api::<WithSchema>().build()?;
-    let mut app = reflectapi::axum::into_router(Arc::<AppState>::default(), routers, |_, r| r);
+    let mut app = reflectapi::axum::into_router(
+        Arc::<AppState>::default(),
+        routers,
+        reflectapi::axum::RouterSettings::default(),
+        |_, r| r,
+    );
     let dispatcher = dispatcher()?;
 
     for (method, path) in [

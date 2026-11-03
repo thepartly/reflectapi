@@ -103,6 +103,20 @@ test("stream init errors carry status", async () => {
   assert.equal(err.status_code(), 429);
 });
 
+test("stream items skip keep-alive comments between events", async () => {
+  const result = await __stream_request<{}, {}, { seq: number }, unknown>(
+    respondWith(200, 'data: {"seq":1}\n\n:\n\n:\n\ndata: {"seq":2}\n\n', {
+      "content-type": "text/event-stream",
+    }),
+    "/x",
+    {},
+    {},
+  );
+  const items: { seq: number }[] = [];
+  for await (const item of result.unwrap_ok()) items.push(item);
+  assert.deepEqual(items, [{ seq: 1 }, { seq: 2 }]);
+});
+
 type ResponseHeaders = { "retry-after": string | null; "x-request-id": string | null };
 const declared = ["retry-after", "x-request-id"];
 

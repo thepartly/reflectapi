@@ -203,6 +203,16 @@ where
         E: Output + Serialize + StatusCode + Send + 'static,
     {
         let rb = builder(self.route_defaults());
+        if rb.sse_keep_alive.is_some() {
+            self.errors.push(BuildError::Other(
+                format!(
+                    "route `{}`: `sse_keep_alive` applies only to stream routes",
+                    rb.name
+                )
+                .into(),
+            ));
+            return self;
+        }
         match M::register_function::<I, H, O, E>(&rb, &mut self.schema, false) {
             Ok(input_headers) => {
                 self.handlers
@@ -477,6 +487,7 @@ pub struct RouteBuilder {
     deprecated_since: Option<String>,
     sunset: Option<String>,
     response_headers: Option<OutputTypeFn>,
+    sse_keep_alive: Option<std::time::Duration>,
 }
 
 impl RouteBuilder {
@@ -539,6 +550,18 @@ impl RouteBuilder {
     /// [`Self::deprecated_since`].
     pub fn sunset(mut self, date: impl Into<String>) -> Self {
         self.sunset = Some(date.into());
+        self
+    }
+
+    /// For a stream route, writes an SSE comment whenever the stream has sent
+    /// nothing for `interval`, overriding the server's default
+    /// (`reflectapi::axum::RouterSettings`, or the host's for a
+    /// [`crate::dispatch::Dispatcher`]). `Duration::ZERO` turns it off for
+    /// this route. It is a serving setting: the schema and generated clients
+    /// don't change. Setting it on a route that isn't a stream route is a
+    /// build error.
+    pub fn sse_keep_alive(mut self, interval: std::time::Duration) -> Self {
+        self.sse_keep_alive = Some(interval);
         self
     }
 

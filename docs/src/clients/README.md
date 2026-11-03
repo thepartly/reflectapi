@@ -154,6 +154,13 @@ After regenerating, update affected field initializers that previously used
   namespace-prefixed name (`nomatches.NomatchesIfConflictOnUpdate`). This keeps
   one Python class per logical type so `model.<X>` resolves consistently.
 - Uses `reflectapi_runtime` for client base classes and runtime helpers.
+  Install the `reflectapi-runtime` release that matches the CLI that
+  generated the client: generated code can call helpers an older runtime
+  doesn't have.
+- Models describe the wire in their JSON schemas (`model_json_schema()`, and
+  FastAPI's OpenAPI), in both validation and serialization mode. Externally
+  tagged enums, structs with a flattened enum, and open enums show what serde
+  writes, not the Python fields that hold it.
 - Open response enum wrappers include a generated unknown model with `.tag`
   and `.raw`. Unknown values serialize to their original wire JSON. Known
   values still validate normally; `#[serde(other)]` without `open` maps to the
@@ -254,9 +261,11 @@ representation restrictions and migration requirements.
 Endpoints registered with `Builder::stream_route` produce a stream of items
 rather than a single response. The wire format is Server-Sent Events: each
 item is sent as a `data: <json>\n\n` event. Errors raised before the stream
-opens are returned as a normal HTTP 4xx/5xx response, not as SSE events; the
-server does not emit heartbeats or end-of-stream markers, so streams end
-when the connection closes.
+opens are returned as a normal HTTP 4xx/5xx response, not as SSE events.
+There is no end-of-stream marker: a stream ends when the connection closes.
+A server can keep a quiet stream open through proxies with SSE comment
+lines (see [Serving with axum](../serving/axum.md#keep-idle-streams-open));
+every generated client ignores them.
 
 A stream can give its events ids, so that it can be resumed: the handler
 yields each item wrapped in `reflectapi::Event`, usually with an id the item

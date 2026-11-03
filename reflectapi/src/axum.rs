@@ -1,31 +1,114 @@
+use std::{fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
+
 use axum::{
     response::IntoResponse,
     routing::{get, post},
     Router,
 };
-use futures_util::StreamExt;
 
 use crate::{
     builder::HandlerOutput,
-    dispatch::{invoke, sse_event, Reply},
+    dispatch::{invoke, keep_alive, sse_frames, Reply},
     Handler,
 };
 
-pub fn into_router<S, F>(app_state: S, router: Vec<crate::Router<S>>, cb: F) -> Router
+type Sleep = Arc<dyn Fn(Duration) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
+
+/// How [`into_router`] serves the routes. `RouterSettings::default()` serves
+/// them with no SSE keep-alive.
+///
+/// These are serving settings, not part of the API: the right keep-alive
+/// interval depends on the proxies in front of a deployment, and the same
+/// API definition builds the schema and may be served in several places.
+/// The default for every stream route is set here; a stream route can
+/// override it with [`crate::RouteBuilder::sse_keep_alive`].
+#[derive(Clone, Default)]
+#[non_exhaustive]
+pub struct RouterSettings {
+    keep_alive: Option<Duration>,
+    timer: Option<Sleep>,
+}
+
+impl RouterSettings {
+    /// Writes an SSE comment on a stream route that has sent nothing for
+    /// `interval`, using `sleep` as the timer, such as `tokio::time::sleep`.
+    /// A zero interval writes none. A route's own
+    /// [`crate::RouteBuilder::sse_keep_alive`] takes precedence. See
+    /// [`crate::dispatch::keep_alive`].
+    ///
+    /// ```rust,ignore
+    /// let settings = RouterSettings::default()
+    ///     .sse_keep_alive(Duration::from_secs(15), tokio::time::sleep);
+    /// ```
+    pub fn sse_keep_alive<F, Fut>(self, interval: Duration, sleep: F) -> Self
+    where
+        F: Fn(Duration) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
+    {
+        Self {
+            keep_alive: Some(interval),
+            ..self.sse_timer(sleep)
+        }
+    }
+
+    /// The timer for SSE keep-alive, such as `tokio::time::sleep`, without a
+    /// default interval: only stream routes that set
+    /// [`crate::RouteBuilder::sse_keep_alive`] write comments.
+    pub fn sse_timer<F, Fut>(mut self, sleep: F) -> Self
+    where
+        F: Fn(Duration) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
+    {
+        self.timer = Some(Arc::new(move |interval| Box::pin(sleep(interval))));
+        self
+    }
+}
+
+impl fmt::Debug for RouterSettings {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RouterSettings")
+            .field("sse_keep_alive", &self.keep_alive)
+            .field("sse_timer", &self.timer.is_some())
+            .finish()
+    }
+}
+
+/// Mounts the routes of `router` on an axum [`Router`], served as `settings`
+/// says. `cb` receives each reflectapi router's name and its axum router,
+/// and returns the router to merge, for example with middleware added.
+///
+/// ```rust,ignore
+/// let app = reflectapi::axum::into_router(state, routers, RouterSettings::default(), |_name, r| r);
+/// ```
+///
+/// # Panics
+///
+/// If a stream route sets a non-zero
+/// [`crate::RouteBuilder::sse_keep_alive`] and `settings` has no timer.
+pub fn into_router<S, F>(
+    app_state: S,
+    router: Vec<crate::Router<S>>,
+    settings: RouterSettings,
+    cb: F,
+) -> Router
 where
     S: Send + Clone + Sync + 'static,
     F: Fn(String, Router) -> Router,
 {
     let mut app = Router::new();
     for r in router {
-        let (name, router) = into_router_one(app_state.clone(), r);
+        let (name, router) = into_router_one(app_state.clone(), r, &settings);
         let router = cb(name, router);
         app = app.merge(router);
     }
     app
 }
 
-fn into_router_one<S>(app_state: S, router: crate::Router<S>) -> (String, Router)
+fn into_router_one<S>(
+    app_state: S,
+    router: crate::Router<S>,
+    settings: &RouterSettings,
+) -> (String, Router)
 where
     S: Send + Clone + Sync + 'static,
 {
@@ -37,14 +120,28 @@ where
             path,
             readonly,
             input_headers,
+            sse_keep_alive,
             callback,
         } = handler;
+        // The route's own interval wins over the server's; zero means none.
+        let keep_alive = match sse_keep_alive.or(settings.keep_alive) {
+            Some(interval) if !interval.is_zero() => {
+                let Some(sleep) = settings.timer.clone() else {
+                    panic!(
+                        "route `{path}/{name}` sets an SSE keep-alive interval, but the \
+                         RouterSettings have no timer: add one with `sse_timer` or `sse_keep_alive`"
+                    );
+                };
+                Some((interval, sleep))
+            }
+            _ => None,
+        };
         let axum_handler = {
             let state = app_state.clone();
+            let keep_alive = keep_alive.clone();
             move |axum_headers: http::HeaderMap, body: axum::body::Bytes| async move {
-                invoke(&callback, &input_headers, state, &axum_headers, body)
-                    .await
-                    .into_response()
+                let reply = invoke(&callback, &input_headers, state, &axum_headers, body).await;
+                into_response(reply, keep_alive)
             }
         };
         let mount_path = format!("{path}/{name}");
@@ -59,27 +156,43 @@ where
 
 impl IntoResponse for Reply {
     fn into_response(self) -> axum::response::Response {
-        match self {
-            Reply::Complete {
-                status,
-                headers,
-                body,
-            } => {
-                let mut response = axum::response::Response::new(body.into());
-                *response.status_mut() = status;
-                *response.headers_mut() = headers;
-                response
-            }
-            Reply::Stream(stream) => (
+        into_response(self, None)
+    }
+}
+
+fn into_response(
+    reply: Reply,
+    keep_alive_after: Option<(Duration, Sleep)>,
+) -> axum::response::Response {
+    match reply {
+        Reply::Complete {
+            status,
+            headers,
+            body,
+        } => {
+            let mut response = axum::response::Response::new(body.into());
+            *response.status_mut() = status;
+            *response.headers_mut() = headers;
+            response
+        }
+        Reply::Stream(stream) => {
+            let frames = sse_frames(stream);
+            let body = match keep_alive_after {
+                Some((interval, sleep)) => {
+                    axum::body::Body::from_stream(keep_alive(frames, interval, move |interval| {
+                        sleep(interval)
+                    }))
+                }
+                None => axum::body::Body::from_stream(frames),
+            };
+            (
                 [
                     (http::header::CONTENT_TYPE, "text/event-stream"),
                     (http::header::CACHE_CONTROL, "no-cache"),
                 ],
-                axum::body::Body::from_stream(
-                    stream.map(|item| item.map(|event| sse_event(&event))),
-                ),
+                body,
             )
-                .into_response(),
+                .into_response()
         }
     }
 }

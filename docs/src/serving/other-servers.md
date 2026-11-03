@@ -37,7 +37,7 @@ affect serving, such as an invalid request header name, fail both builds.
 ## Dispatch a request
 
 ```rust,ignore
-use reflectapi::dispatch::{sse_event, Dispatcher, Reply};
+use reflectapi::dispatch::{sse_frames, Dispatcher, Reply};
 
 let dispatcher = Dispatcher::new(routers);
 
@@ -45,7 +45,7 @@ let dispatcher = Dispatcher::new(routers);
 match dispatcher.dispatch(state.clone(), &method, path, &headers, body).await {
     None => { /* no such route */ }
     Some(Reply::Complete { status, headers, body }) => { /* send as is */ }
-    Some(Reply::Stream(items)) => { /* send as Server-Sent Events */ }
+    Some(Reply::Stream(items)) => { /* send sse_frames(items) as Server-Sent Events */ }
 }
 ```
 
@@ -82,16 +82,29 @@ server sets when it writes the body (axum does, and so do Worker runtimes).
 
 - Respond `200` with `content-type: text/event-stream` and
   `cache-control: no-cache`.
-- Frame each `Ok` item with `sse_event`, and send it as soon as it arrives:
-  do not buffer the response. An item is an `Event<String>`: the serialized
-  value, and the event id if the route gave the item one by wrapping it in
-  `reflectapi::Event`; `sse_event` writes the id as the standard SSE `id:`
-  field.
+- Frame the items with `sse_frames`, and send each frame as soon as it
+  arrives: do not buffer the response. An item is an `Event<String>`: the
+  serialized value, and the event id if the route gave the item one by
+  wrapping it in `reflectapi::Event`; `sse_event`, which `sse_frames` applies
+  to each item, writes the id as the standard SSE `id:` field.
 - An `Err` item is a value that failed to serialize: log it and end the
   response.
-- reflectapi sends no heartbeats and no end-of-stream marker; the stream ends
-  when the response ends. Add SSE comment lines (`:\n\n`) as heartbeats if a
-  proxy or runtime closes quiet connections.
+- There is no end-of-stream marker; the stream ends when the response ends.
+- If a proxy closes quiet connections and nothing upstream keeps them open,
+  wrap the frames in `keep_alive` with the host runtime's timer. It writes an
+  SSE comment whenever the stream has sent nothing for the interval,
+  restarting the interval after every frame:
+  `keep_alive(sse_frames(items), Duration::from_secs(15), tokio::time::sleep)`.
+  The result is `Send` when the timer is, so a single-threaded runtime's
+  timer works too.
+- Leave `keep_alive` out when the host or a proxy in front of it already
+  sends heartbeats. A timer of the app's own then only keeps the instance
+  busy, and on serverless runtimes it stops the instance from hibernating or
+  being evicted.
+- A route can set its own interval with `RouteBuilder::sse_keep_alive`.
+  `dispatcher.sse_keep_alive(path)` returns it, or `None` when the route
+  leaves it to the host: `dispatcher.sse_keep_alive(path).unwrap_or(default)`.
+  A zero interval writes no comments.
 - An error that the handler returns before the stream opens arrives as a
   complete reply, not as a stream.
 
