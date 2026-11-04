@@ -18,6 +18,9 @@ pub(crate) struct FieldWireFacts<'a> {
     pub required: bool,
     pub named: bool,
     pub flattened: bool,
+    /// Whether serde reads the field's value from `null`, when the schema
+    /// settles it. `None` leaves it to the backend's own type mapping.
+    pub value_accepts_null: Option<bool>,
 }
 
 impl<'a> FieldWireFacts<'a> {
@@ -27,11 +30,19 @@ impl<'a> FieldWireFacts<'a> {
             required: field.required,
             named: field.is_named(),
             flattened: field.flattened,
+            value_accepts_null: None,
         }
     }
 
     pub fn with_required(self, required: bool) -> Self {
         Self { required, ..self }
+    }
+
+    pub fn with_value_accepts_null(self, value_accepts_null: Option<bool>) -> Self {
+        Self {
+            value_accepts_null,
+            ..self
+        }
     }
 }
 
@@ -97,6 +108,7 @@ mod tests {
             required,
             named: true,
             flattened: false,
+            value_accepts_null: None,
         }
     }
 

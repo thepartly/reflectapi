@@ -90,7 +90,11 @@ fn resolve_field_optionality(
         schema_codegen::KeyPresence::Optional
             | schema_codegen::KeyPresence::Flattened { optional: true }
     );
-    let reject_null = may_be_absent && rendered_type_is_nonnullable(&field_type);
+    let reject_null = may_be_absent
+        && match facts.value_accepts_null {
+            Some(accepts_null) => !accepts_null,
+            None => rendered_type_is_nonnullable(&field_type),
+        };
     match (may_be_absent, contract.declared_nullable) {
         (true, true) => (true, Some("None".to_string()), field_type, reject_null),
         // None remains the omission default; generated field validators reject
@@ -103,6 +107,22 @@ fn resolve_field_optionality(
         ),
         (false, _) => (false, None, field_type, false),
     }
+}
+
+/// Wire facts for a field, with the schema's answer to whether its value may
+/// be null. A custom serializer or deserializer may write or read null for
+/// any type, and a model may be used in either direction.
+fn field_wire_facts<'a>(
+    field: &'a reflectapi_schema::Field,
+    schema: &Schema,
+) -> schema_codegen::FieldWireFacts<'a> {
+    schema_codegen::FieldWireFacts::of(field).with_value_accepts_null(
+        if field.deserialize_with || field.serialize_with {
+            Some(true)
+        } else {
+            schema_codegen::defined_type_accepts_null(&field.type_ref, schema)
+        },
+    )
 }
 
 /// Whether a flattened field's group must be present. A flattened field has no
@@ -970,7 +990,7 @@ fn render_struct_with_flattened_tagged_enum(
             used_type_vars,
         )?;
         let (optional, default_value, final_type, reject_null) =
-            resolve_field_optionality(schema_codegen::FieldWireFacts::of(field), field_type);
+            resolve_field_optionality(field_wire_facts(field, schema), field_type);
         base_fields.push(templates::Field {
             name: python_name,
             type_annotation: final_type,
@@ -1020,10 +1040,8 @@ fn render_struct_with_flattened_tagged_enum(
                 )?;
                 let (python_name, alias) =
                     sanitize_field_name_with_alias(field.name(), field.serde_name());
-                let (optional, default_value, final_type, reject_null) = resolve_field_optionality(
-                    schema_codegen::FieldWireFacts::of(field),
-                    field_type,
-                );
+                let (optional, default_value, final_type, reject_null) =
+                    resolve_field_optionality(field_wire_facts(field, schema), field_type);
                 base_fields.push(templates::Field {
                     name: python_name,
                     type_annotation: final_type,
@@ -1084,7 +1102,7 @@ fn render_struct_with_flattened_tagged_enum(
         let (enum_field_name, _) =
             sanitize_field_name_with_alias(enum_field.name(), enum_field.name());
         let (enum_optional, enum_default, enum_type, enum_reject_null) =
-            resolve_field_optionality(schema_codegen::FieldWireFacts::of(enum_field), enum_type);
+            resolve_field_optionality(field_wire_facts(enum_field, schema), enum_type);
         let enum_class_check = if enum_type.starts_with(&enum_class) {
             enum_class
         } else {
@@ -1249,10 +1267,7 @@ fn render_struct_with_flattened_tagged_enum(
                         used_type_vars,
                     )?;
                     let (optional, default_value, final_type, reject_null) =
-                        resolve_field_optionality(
-                            schema_codegen::FieldWireFacts::of(vf),
-                            field_type,
-                        );
+                        resolve_field_optionality(field_wire_facts(vf, schema), field_type);
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(vf.name(), vf.serde_name());
                     fields.push(templates::Field {
@@ -1312,10 +1327,7 @@ fn render_struct_with_flattened_tagged_enum(
                         let (sanitized, alias) =
                             sanitize_field_name_with_alias(sf.name(), sf.serde_name());
                         let (optional, default_value, final_type, reject_null) =
-                            resolve_field_optionality(
-                                schema_codegen::FieldWireFacts::of(sf),
-                                field_type,
-                            );
+                            resolve_field_optionality(field_wire_facts(sf, schema), field_type);
                         fields.push(templates::Field {
                             name: sanitized,
                             type_annotation: final_type,
@@ -1408,7 +1420,7 @@ fn render_struct_with_flatten_standard(
         )?;
 
         let (optional, default_value, final_type, reject_null) =
-            resolve_field_optionality(schema_codegen::FieldWireFacts::of(field), field_type);
+            resolve_field_optionality(field_wire_facts(field, schema), field_type);
         all_fields.push(templates::Field {
             name: python_name,
             type_annotation: final_type,
@@ -4149,7 +4161,7 @@ fn make_flattened_field(
     )?;
 
     let (optional, default_value, final_field_type, reject_null) = resolve_field_optionality(
-        schema_codegen::FieldWireFacts::of(field).with_required(field.required && parent_required),
+        field_wire_facts(field, schema).with_required(field.required && parent_required),
         field_type,
     );
 
@@ -4223,6 +4235,7 @@ fn collect_flattened_enum_fields(
         schema_codegen::FieldWireFacts {
             type_name: &type_ref.name,
             required: parent_required,
+            value_accepts_null: None,
             named: true,
             flattened: false,
         },
@@ -4296,10 +4309,8 @@ fn render_struct(
                     &active_generics,
                     used_type_vars,
                 )?;
-                let (_, _, field_type, _) = resolve_field_optionality(
-                    schema_codegen::FieldWireFacts::of(field),
-                    base_field_type,
-                );
+                let (_, _, field_type, _) =
+                    resolve_field_optionality(field_wire_facts(field, schema), base_field_type);
                 Ok(field_type)
             })
             .collect::<Result<Vec<_>, anyhow::Error>>()?;
@@ -4333,10 +4344,8 @@ fn render_struct(
                 used_type_vars,
             )?;
 
-            let (optional, default_value, field_type, reject_null) = resolve_field_optionality(
-                schema_codegen::FieldWireFacts::of(field),
-                base_field_type,
-            );
+            let (optional, default_value, field_type, reject_null) =
+                resolve_field_optionality(field_wire_facts(field, schema), base_field_type);
 
             let (sanitized, alias) =
                 sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -4776,10 +4785,7 @@ fn render_adjacently_tagged_enum(
                         used_type_vars,
                     )?;
                     let (optional, default_value, final_field_type, reject_null) =
-                        resolve_field_optionality(
-                            schema_codegen::FieldWireFacts::of(field),
-                            field_type,
-                        );
+                        resolve_field_optionality(field_wire_facts(field, schema), field_type);
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
                     content_fields.push(templates::Field {
@@ -5057,10 +5063,7 @@ fn render_externally_tagged_enum(
                     )?;
 
                     let (optional, default_value, final_field_type, reject_null) =
-                        resolve_field_optionality(
-                            schema_codegen::FieldWireFacts::of(field),
-                            field_type,
-                        );
+                        resolve_field_optionality(field_wire_facts(field, schema), field_type);
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -5319,7 +5322,7 @@ fn render_internally_tagged_enum(
 
                             let (optional, default_value, final_field_type, reject_null) =
                                 resolve_field_optionality(
-                                    schema_codegen::FieldWireFacts::of(struct_field),
+                                    field_wire_facts(struct_field, schema),
                                     field_type,
                                 );
 
@@ -5384,7 +5387,7 @@ fn render_internally_tagged_enum(
 
                     let (optional, default_value, final_field_type, reject_null) =
                         resolve_field_optionality(
-                            schema_codegen::FieldWireFacts::of(field),
+                            field_wire_facts(field, schema),
                             field_type,
                         );
 
@@ -5556,10 +5559,7 @@ fn render_untagged_enum(
                         used_type_vars,
                     )?;
                     let (optional, default_value, final_field_type, reject_null) =
-                        resolve_field_optionality(
-                            schema_codegen::FieldWireFacts::of(field),
-                            field_type,
-                        );
+                        resolve_field_optionality(field_wire_facts(field, schema), field_type);
 
                     let (sanitized, alias) =
                         sanitize_field_name_with_alias(field.name(), field.serde_name());
@@ -9094,6 +9094,7 @@ mod tests {
             required: false,
             named: true,
             flattened: false,
+            value_accepts_null: None,
         };
         for nullable in [
             "int | None",

@@ -76,6 +76,72 @@ pub mod fixtures {
         pub count: u32,
     }
 
+    fn deserialize_memo<'de, D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Memo, D::Error> {
+        let text: Option<String> = serde::Deserialize::deserialize(deserializer)?;
+        Ok(Memo {
+            text: text.unwrap_or_default(),
+        })
+    }
+
+    #[derive(Default, serde::Serialize, serde::Deserialize, reflectapi::Input)]
+    pub struct Memo {
+        pub text: String,
+    }
+
+    #[derive(Default, serde::Serialize, serde::Deserialize, reflectapi::Input)]
+    pub struct Cursor {
+        pub after: Option<String>,
+    }
+
+    #[derive(Default, serde::Serialize, serde::Deserialize, reflectapi::Input)]
+    pub struct Target {
+        pub id: u32,
+    }
+
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input)]
+    #[serde(tag = "type")]
+    pub enum Context {
+        Scoped {
+            #[serde(default)]
+            value: Target,
+        },
+    }
+
+    #[derive(Default, serde::Serialize, serde::Deserialize, reflectapi::Input)]
+    #[serde(untagged)]
+    pub enum Either {
+        #[default]
+        Nothing,
+        Some(u32),
+    }
+
+    #[derive(Default, serde::Serialize, serde::Deserialize, reflectapi::Input)]
+    pub struct MaybeText(pub Option<String>);
+
+    // Omittable fields whose types serde reads from null or not. Every field
+    // has a server default, so each may be left out.
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input)]
+    pub struct Create {
+        #[serde(default)]
+        pub memo: Memo,
+        #[serde(default)]
+        pub page: Cursor,
+        #[serde(default)]
+        pub boxed_target: Box<Target>,
+        #[serde(default)]
+        pub either: Either,
+        #[serde(default)]
+        pub maybe: MaybeText,
+        #[serde(default)]
+        pub boxed: Box<Option<String>>,
+        #[serde(default)]
+        pub json: serde_json::Value,
+        #[serde(default, deserialize_with = "deserialize_memo")]
+        pub custom: Memo,
+    }
+
     // Both directions agree when the serializer also omits absent values.
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct Equal {
@@ -126,6 +192,51 @@ fn schema() -> reflectapi::Schema {
         .build()
         .unwrap()
         .0
+}
+
+// Omittable fields that serde may or may not read from null. Generated for
+// Python only: the Rust client needs `Default` on these types, which a
+// fixture with only serde derives doesn't provide.
+fn null_contract_schema() -> reflectapi::Schema {
+    reflectapi::Builder::<()>::new()
+        .name("Null contract")
+        .route(
+            |_: (), _: fixtures::Create, _: reflectapi::Empty| async {},
+            |b| b.name("fields.create"),
+        )
+        .route(
+            |_: (), _: fixtures::Context, _: reflectapi::Empty| async {},
+            |b| b.name("fields.context"),
+        )
+        .build()
+        .unwrap()
+        .0
+}
+
+#[test]
+fn write_null_contract_client() {
+    let python = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("target/field-presence/python/null_contract_client");
+    if python.exists() {
+        std::fs::remove_dir_all(&python).unwrap();
+    }
+    for (filename, source) in reflectapi::codegen::python::generate_files(
+        null_contract_schema(),
+        &reflectapi::codegen::python::Config {
+            package_name: "null_contract_client".into(),
+            generate_async: true,
+            generate_sync: true,
+            generate_testing: false,
+            format: false,
+            base_url: None,
+        },
+    )
+    .unwrap()
+    {
+        let path = python.join(filename);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, source).unwrap();
+    }
 }
 
 #[test]
