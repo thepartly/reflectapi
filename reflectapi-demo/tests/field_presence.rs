@@ -85,7 +85,9 @@ pub mod fixtures {
         })
     }
 
-    #[derive(Default, serde::Serialize, serde::Deserialize, reflectapi::Input)]
+    #[derive(
+        Default, serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output,
+    )]
     pub struct Memo {
         pub text: String,
     }
@@ -142,6 +144,17 @@ pub mod fixtures {
         pub custom: Memo,
     }
 
+    // The server's types implement `Default`; the generated client's don't.
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct Defaulted {
+        #[serde(default)]
+        pub memo: Memo,
+        #[serde(default)]
+        pub boxed: Box<Memo>,
+        #[serde(default)]
+        pub text: String,
+    }
+
     // Both directions agree when the serializer also omits absent values.
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct Equal {
@@ -188,6 +201,10 @@ fn schema() -> reflectapi::Schema {
         .route(
             |_: (), input: fixtures::Defaults, _: reflectapi::Empty| async { input },
             |b| b.name("fields.defaults"),
+        )
+        .route(
+            |_: (), input: fixtures::Defaulted, _: reflectapi::Empty| async { input },
+            |b| b.name("fields.defaulted"),
         )
         .build()
         .unwrap()

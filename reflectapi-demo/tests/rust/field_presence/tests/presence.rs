@@ -48,3 +48,13 @@ fn generated_struct_variants_and_nested_generic_requests_keep_null() {
         assert_eq!(serde_json::to_value(nested).unwrap(), wire);
     }
 }
+
+#[test]
+fn defaulted_fields_of_generated_types_compile_and_round_trip() {
+    // The generated `Memo` doesn't implement `Default`, so its fields can't be
+    // filled in when missing; `String` can.
+    let wire = json!({"memo": {"text": "a"}, "boxed": {"text": "b"}});
+    let defaulted: input::Defaulted = serde_json::from_value(wire.clone()).unwrap();
+    assert_eq!(serde_json::to_value(defaulted).unwrap(), wire);
+    assert!(serde_json::from_value::<input::Defaulted>(json!({})).is_err());
+}

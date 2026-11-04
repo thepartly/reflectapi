@@ -1014,6 +1014,9 @@ mod templates {
         pub description: String,
         pub type_: String,
         pub optional: bool,
+        /// The type implements `Default`, so an optional field can be read as
+        /// its default when the key is missing.
+        pub has_default: bool,
         pub flatten: bool,
         pub public: bool,
     }
@@ -1058,7 +1061,9 @@ mod templates {
             }
 
             if self.optional {
-                serde_attrs.push("default = \"Default::default\"".into());
+                if self.has_default {
+                    serde_attrs.push("default = \"Default::default\"".into());
+                }
 
                 if self.type_.starts_with("reflectapi::Option<") {
                     serde_attrs
@@ -1505,6 +1510,7 @@ fn __interface_types_from_function_group(
                 __struct_name_from_parent_name_and_name(&subgroup.parent, subgroup_name)
             ),
             optional: false,
+            has_default: false,
             flatten: false,
             public: true,
         });
@@ -1518,6 +1524,7 @@ fn __interface_types_from_function_group(
                 __struct_name_from_parent_name_and_name(&subgroup.parent, subgroup_name)
             ),
             optional: false,
+            has_default: false,
             flatten: false,
             public: true,
         });
@@ -1529,6 +1536,7 @@ fn __interface_types_from_function_group(
         description: "".into(),
         type_: "C".into(),
         optional: false,
+        has_default: false,
         flatten: false,
         public: false,
     });
@@ -1666,6 +1674,43 @@ fn __modules_from_rendered_types(
     root_module
 }
 
+/// Whether the Rust type implements `Default`. Generated structs and enums
+/// derive it only when configured to; anything else, including types mapped
+/// to an existing Rust type and generic parameters, is assumed to, as serde's
+/// `default` attribute then requires.
+fn type_implements_default(
+    type_ref: &crate::TypeReference,
+    schema: &crate::Schema,
+    implemented_types: &HashMap<String, String>,
+    base_derives: &BTreeSet<String>,
+) -> bool {
+    let mut type_ref = type_ref;
+    while matches!(
+        type_ref.name.as_str(),
+        "std::boxed::Box" | "std::rc::Rc" | "std::sync::Arc"
+    ) {
+        match type_ref.arguments.first() {
+            Some(inner) => type_ref = inner,
+            None => return true,
+        }
+    }
+    if implemented_types.contains_key(&type_ref.name) {
+        return true;
+    }
+    let derives = |config: &reflectapi_schema::LanguageSpecificTypeCodegenConfig| {
+        base_derives.contains("Default") || config.rust.additional_derives.contains("Default")
+    };
+    match schema
+        .input_types
+        .get_type(&type_ref.name)
+        .or_else(|| schema.output_types.get_type(&type_ref.name))
+    {
+        Some(crate::Type::Struct(s)) => derives(&s.codegen_config),
+        Some(crate::Type::Enum(e)) => derives(&e.codegen_config),
+        _ => true,
+    }
+}
+
 fn request_field_type_ref<'a>(
     field: &'a crate::Field,
     schema: &crate::Schema,
@@ -1754,6 +1799,12 @@ fn __render_type(
                                 Some(type_def),
                             ),
                             optional: !field.required,
+                            has_default: type_implements_default(
+                                &field.type_ref,
+                                schema,
+                                implemented_types,
+                                &config.base_derives,
+                            ),
                             flatten: field.flattened,
                             public: true,
                         })
@@ -1804,6 +1855,12 @@ fn __render_type(
                                     Some(type_def),
                                 ),
                                 optional: !field.required,
+                                has_default: type_implements_default(
+                                    &field.type_ref,
+                                    schema,
+                                    implemented_types,
+                                    &config.base_derives,
+                                ),
                                 flatten: field.flattened,
                                 public: false,
                             })
@@ -2101,4 +2158,54 @@ fn __deprecated_attribute(deprecation: Option<crate::Deprecation<'_>>) -> Option
     } else {
         format!("#[deprecated(note = {message:?})]")
     })
+}
+
+#[cfg(test)]
+mod tests {
+    fn generate(memo_derives: &[&str], base_derives: &[&str]) -> String {
+        let schema: crate::Schema = serde_json::from_value(serde_json::json!({
+            "name": "defaults",
+            "input_types": {"types": [
+                {"kind": "primitive", "name": "std::string::String"},
+                {"kind": "struct", "name": "Memo",
+                 "codegen_config": {"rust": {"additional_derives": memo_derives}},
+                 "fields": {"named": [{"name": "text", "required": true, "type": {"name": "std::string::String"}}]}},
+                {"kind": "struct", "name": "Request", "fields": {"named": [
+                    {"name": "memo", "type": {"name": "Memo"}},
+                    {"name": "text", "type": {"name": "std::string::String"}}
+                ]}}
+            ]}
+        }))
+        .unwrap();
+        let mut config = super::Config::default();
+        config.format(false).base_derives(
+            base_derives
+                .iter()
+                .map(|derive| derive.to_string())
+                .collect(),
+        );
+        super::generate(schema, &config).unwrap()
+    }
+
+    fn memo_field(code: &str) -> &str {
+        let start = code.find("pub struct Request").unwrap();
+        let end = start + code[start..].find("pub memo").unwrap();
+        &code[start..end]
+    }
+
+    #[test]
+    fn an_optional_field_defaults_only_when_its_type_implements_default() {
+        let code = generate(&[], &["Debug"]);
+        assert!(!memo_field(&code).contains("default"), "{code}");
+        assert!(code.contains("#[serde(default = \"Default::default\", skip_serializing_if = \"std::string::String::is_empty\")]"));
+        for code in [
+            generate(&["Default"], &["Debug"]),
+            generate(&[], &["Debug", "Default"]),
+        ] {
+            assert!(
+                memo_field(&code).contains("default = \"Default::default\""),
+                "{code}"
+            );
+        }
+    }
 }
