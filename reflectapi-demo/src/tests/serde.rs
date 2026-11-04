@@ -255,8 +255,8 @@ struct TestDefaultedInner {
     f: u8,
 }
 
-/// The generated Rust `TestDefaultedInner` doesn't derive `Default`, so only
-/// `text` keeps `#[serde(default)]` in the Rust client.
+/// The generated Rust `TestDefaultedInner` doesn't derive `Default`, so the
+/// Rust client types `inner` as an `Option` it leaves out when `None`.
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSerdeDefaultGeneratedType {
     #[serde(default)]

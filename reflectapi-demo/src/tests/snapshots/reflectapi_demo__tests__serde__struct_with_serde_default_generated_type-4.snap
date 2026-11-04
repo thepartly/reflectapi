@@ -54,7 +54,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         }
       },
       "reflectapi_demo.tests.serde.input.TestStructWithSerdeDefaultGeneratedType": {
-        "description": "The generated Rust `TestDefaultedInner` doesn't derive `Default`, so only\n`text` keeps `#[serde(default)]` in the Rust client.",
+        "description": "The generated Rust `TestDefaultedInner` doesn't derive `Default`, so the\nRust client types `inner` as an `Option` it leaves out when `None`.",
         "type": "object",
         "title": "reflectapi_demo.tests.serde.input.TestStructWithSerdeDefaultGeneratedType",
         "properties": {
@@ -67,7 +67,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         }
       },
       "reflectapi_demo.tests.serde.output.TestStructWithSerdeDefaultGeneratedType": {
-        "description": "The generated Rust `TestDefaultedInner` doesn't derive `Default`, so only\n`text` keeps `#[serde(default)]` in the Rust client.",
+        "description": "The generated Rust `TestDefaultedInner` doesn't derive `Default`, so the\nRust client types `inner` as an `Option` it leaves out when `None`.",
         "type": "object",
         "title": "reflectapi_demo.tests.serde.output.TestStructWithSerdeDefaultGeneratedType",
         "required": [

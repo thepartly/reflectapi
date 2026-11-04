@@ -36,8 +36,8 @@ class ReflectapiDemoTestsSerdeTestDefaultedInner(BaseModel):
 class ReflectapiDemoTestsSerdeInputTestStructWithSerdeDefaultGeneratedType(
     ReflectapiPartialModel
 ):
-    """The generated Rust `TestDefaultedInner` doesn't derive `Default`, so only
-    `text` keeps `#[serde(default)]` in the Rust client."""
+    """The generated Rust `TestDefaultedInner` doesn't derive `Default`, so the
+    Rust client types `inner` as an `Option` it leaves out when `None`."""
 
     model_config = ConfigDict(
         extra="ignore",
@@ -50,7 +50,7 @@ class ReflectapiDemoTestsSerdeInputTestStructWithSerdeDefaultGeneratedType(
     inner: reflectapi_demo.tests.serde.TestDefaultedInner | None = None
     text: str | None = None
 
-    @field_validator("text", mode="before")
+    @field_validator("inner", "text", mode="before")
     @classmethod
     def _reflectapi_reject_null(cls, value):
         if value is None:
@@ -59,8 +59,8 @@ class ReflectapiDemoTestsSerdeInputTestStructWithSerdeDefaultGeneratedType(
 
 
 class ReflectapiDemoTestsSerdeOutputTestStructWithSerdeDefaultGeneratedType(BaseModel):
-    """The generated Rust `TestDefaultedInner` doesn't derive `Default`, so only
-    `text` keeps `#[serde(default)]` in the Rust client."""
+    """The generated Rust `TestDefaultedInner` doesn't derive `Default`, so the
+    Rust client types `inner` as an `Option` it leaves out when `None`."""
 
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True

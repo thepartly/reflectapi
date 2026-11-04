@@ -58,19 +58,20 @@ pub mod types {
 
                 pub mod input {
 
-                    /// The generated Rust `TestDefaultedInner` doesn't derive `Default`, so only
-                    /// `text` keeps `#[serde(default)]` in the Rust client.
+                    /// The generated Rust `TestDefaultedInner` doesn't derive `Default`, so the
+                    /// Rust client types `inner` as an `Option` it leaves out when `None`.
                     #[derive(Debug, serde::Serialize)]
                     pub struct TestStructWithSerdeDefaultGeneratedType {
-    pub inner: super::super::super::super::reflectapi_demo::tests::serde::TestDefaultedInner,
+    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
+    pub inner: std::option::Option<super::super::super::super::reflectapi_demo::tests::serde::TestDefaultedInner>,
     #[serde(default = "Default::default", skip_serializing_if = "std::string::String::is_empty")]
     pub text: std::string::String,
 }
                 }
                 pub mod output {
 
-                    /// The generated Rust `TestDefaultedInner` doesn't derive `Default`, so only
-                    /// `text` keeps `#[serde(default)]` in the Rust client.
+                    /// The generated Rust `TestDefaultedInner` doesn't derive `Default`, so the
+                    /// Rust client types `inner` as an `Option` it leaves out when `None`.
                     #[derive(Debug, serde::Deserialize)]
                     pub struct TestStructWithSerdeDefaultGeneratedType {
     pub inner: super::super::super::super::reflectapi_demo::tests::serde::TestDefaultedInner,

@@ -1014,9 +1014,6 @@ mod templates {
         pub description: String,
         pub type_: String,
         pub optional: bool,
-        /// The type implements `Default`, so an optional field can be read as
-        /// its default when the key is missing.
-        pub has_default: bool,
         pub flatten: bool,
         pub public: bool,
     }
@@ -1061,9 +1058,7 @@ mod templates {
             }
 
             if self.optional {
-                if self.has_default {
-                    serde_attrs.push("default = \"Default::default\"".into());
-                }
+                serde_attrs.push("default = \"Default::default\"".into());
 
                 if self.type_.starts_with("reflectapi::Option<") {
                     serde_attrs
@@ -1510,7 +1505,6 @@ fn __interface_types_from_function_group(
                 __struct_name_from_parent_name_and_name(&subgroup.parent, subgroup_name)
             ),
             optional: false,
-            has_default: false,
             flatten: false,
             public: true,
         });
@@ -1524,7 +1518,6 @@ fn __interface_types_from_function_group(
                 __struct_name_from_parent_name_and_name(&subgroup.parent, subgroup_name)
             ),
             optional: false,
-            has_default: false,
             flatten: false,
             public: true,
         });
@@ -1536,7 +1529,6 @@ fn __interface_types_from_function_group(
         description: "".into(),
         type_: "C".into(),
         optional: false,
-        has_default: false,
         flatten: false,
         public: false,
     });
@@ -1711,6 +1703,26 @@ fn type_implements_default(
     }
 }
 
+/// A field the server fills with `Default` when its key is missing. When the
+/// client's own type can't do the same, it becomes `Option<T>`: `None` leaves
+/// the key out and lets the server apply its default.
+fn optional_field_type(
+    type_: String,
+    field: &crate::Field,
+    schema: &crate::Schema,
+    implemented_types: &HashMap<String, String>,
+    base_derives: &BTreeSet<String>,
+) -> String {
+    if field.required
+        || field.flattened
+        || type_implements_default(&field.type_ref, schema, implemented_types, base_derives)
+    {
+        type_
+    } else {
+        format!("std::option::Option<{type_}>")
+    }
+}
+
 fn request_field_type_ref<'a>(
     field: &'a crate::Field,
     schema: &crate::Schema,
@@ -1791,20 +1803,20 @@ fn __render_type(
                             serde_name: field.serde_name().into(),
                             description: __doc_to_ts_comments(&field.description, 4),
                             deprecated: __deprecated_attribute(field.deprecation()),
-                            type_: __type_ref_to_ts_ref(
-                                &request_field_type_ref(field, schema, is_input_type),
-                                schema,
-                                implemented_types,
-                                type_name_depth,
-                                Some(type_def),
-                            ),
-                            optional: !field.required,
-                            has_default: type_implements_default(
-                                &field.type_ref,
+                            type_: optional_field_type(
+                                __type_ref_to_ts_ref(
+                                    &request_field_type_ref(field, schema, is_input_type),
+                                    schema,
+                                    implemented_types,
+                                    type_name_depth,
+                                    Some(type_def),
+                                ),
+                                field,
                                 schema,
                                 implemented_types,
                                 &config.base_derives,
                             ),
+                            optional: !field.required,
                             flatten: field.flattened,
                             public: true,
                         })
@@ -1847,20 +1859,20 @@ fn __render_type(
                                 serde_name: field.serde_name().into(),
                                 description: __doc_to_ts_comments(&field.description, 12),
                                 deprecated: __deprecated_attribute(field.deprecation()),
-                                type_: __type_ref_to_ts_ref(
-                                    &request_field_type_ref(field, schema, is_input_type),
-                                    schema,
-                                    implemented_types,
-                                    type_name_depth,
-                                    Some(type_def),
-                                ),
-                                optional: !field.required,
-                                has_default: type_implements_default(
-                                    &field.type_ref,
+                                type_: optional_field_type(
+                                    __type_ref_to_ts_ref(
+                                        &request_field_type_ref(field, schema, is_input_type),
+                                        schema,
+                                        implemented_types,
+                                        type_name_depth,
+                                        Some(type_def),
+                                    ),
+                                    field,
                                     schema,
                                     implemented_types,
                                     &config.base_derives,
                                 ),
+                                optional: !field.required,
                                 flatten: field.flattened,
                                 public: false,
                             })
@@ -2189,23 +2201,30 @@ mod tests {
 
     fn memo_field(code: &str) -> &str {
         let start = code.find("pub struct Request").unwrap();
-        let end = start + code[start..].find("pub memo").unwrap();
+        let end = start + code[start..].find("pub text").unwrap();
         &code[start..end]
     }
 
     #[test]
-    fn an_optional_field_defaults_only_when_its_type_implements_default() {
+    fn an_optional_field_without_default_becomes_an_option() {
         let code = generate(&[], &["Debug"]);
-        assert!(!memo_field(&code).contains("default"), "{code}");
+        let memo = memo_field(&code);
+        assert!(
+            memo.contains("pub memo: std::option::Option<Memo>"),
+            "{code}"
+        );
+        assert!(
+            memo.contains("skip_serializing_if = \"std::option::Option::is_none\""),
+            "{code}"
+        );
         assert!(code.contains("#[serde(default = \"Default::default\", skip_serializing_if = \"std::string::String::is_empty\")]"));
         for code in [
             generate(&["Default"], &["Debug"]),
             generate(&[], &["Debug", "Default"]),
         ] {
-            assert!(
-                memo_field(&code).contains("default = \"Default::default\""),
-                "{code}"
-            );
+            let memo = memo_field(&code);
+            assert!(memo.contains("pub memo: Memo,"), "{code}");
+            assert!(memo.contains("default = \"Default::default\""), "{code}");
         }
     }
 }

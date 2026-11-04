@@ -62,12 +62,12 @@ pub mod types {
                     /// must not add another.
                     #[derive(Debug, serde::Serialize)]
                     pub struct TestStructWithSerdeDefaultNoneTypes {
-    #[serde(default = "Default::default")]
-    pub marker: super::super::super::super::reflectapi_demo::tests::serde::TestUnitMarker,
+    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
+    pub marker: std::option::Option<super::super::super::super::reflectapi_demo::tests::serde::TestUnitMarker>,
     #[serde(default = "Default::default")]
     pub nothing: (),
-    #[serde(default = "Default::default")]
-    pub optional_newtype: super::super::super::super::reflectapi_demo::tests::serde::TestOptionalNewtype,
+    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
+    pub optional_newtype: std::option::Option<super::super::super::super::reflectapi_demo::tests::serde::TestOptionalNewtype>,
 }
                 }
                 pub mod output {

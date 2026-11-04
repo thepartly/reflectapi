@@ -44,8 +44,8 @@ export namespace reflectapi_demo {
 
       export namespace input {
         /**
-         * The generated Rust `TestDefaultedInner` doesn't derive `Default`, so only
-         * `text` keeps `#[serde(default)]` in the Rust client.
+         * The generated Rust `TestDefaultedInner` doesn't derive `Default`, so the
+         * Rust client types `inner` as an `Option` it leaves out when `None`.
          */
         export interface TestStructWithSerdeDefaultGeneratedType {
           inner?: reflectapi_demo.tests.serde.TestDefaultedInner;
@@ -55,8 +55,8 @@ export namespace reflectapi_demo {
 
       export namespace output {
         /**
-         * The generated Rust `TestDefaultedInner` doesn't derive `Default`, so only
-         * `text` keeps `#[serde(default)]` in the Rust client.
+         * The generated Rust `TestDefaultedInner` doesn't derive `Default`, so the
+         * Rust client types `inner` as an `Option` it leaves out when `None`.
          */
         export interface TestStructWithSerdeDefaultGeneratedType {
           inner: reflectapi_demo.tests.serde.TestDefaultedInner;
