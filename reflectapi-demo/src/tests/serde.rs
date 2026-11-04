@@ -185,6 +185,36 @@ fn test_struct_with_serde_default() {
 }
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithOmittableCollectionsGroup {
+    tags: Vec<u8>,
+}
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithOmittableCollections {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    list: Vec<u8>,
+    #[serde(default, skip_serializing_if = "std::collections::HashMap::is_empty")]
+    map: std::collections::HashMap<String, u8>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeSet::is_empty")]
+    set: std::collections::BTreeSet<u8>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    group: Option<TestStructWithOmittableCollectionsGroup>,
+}
+#[test]
+fn test_struct_with_omittable_collections() {
+    assert_snapshot!(TestStructWithOmittableCollections);
+
+    // Serde reads an omitted collection as empty and omits an empty one, which the
+    // generated Python defaults mirror; it rejects null.
+    let parsed: TestStructWithOmittableCollections = serde_json::from_str("{}").unwrap();
+    assert!(parsed.list.is_empty() && parsed.map.is_empty() && parsed.set.is_empty());
+    assert!(parsed.group.is_none());
+    assert_eq!(serde_json::to_string(&parsed).unwrap(), "{}");
+    assert!(
+        serde_json::from_str::<TestStructWithOmittableCollections>(r#"{"list":null}"#).is_err()
+    );
+}
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSerdeSkip {
     #[serde(skip)]
     _f: u8,

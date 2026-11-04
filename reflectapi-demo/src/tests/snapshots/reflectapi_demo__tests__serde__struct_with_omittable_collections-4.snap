@@ -1,0 +1,114 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithOmittableCollections"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithOmittableCollections"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.TestStructWithOmittableCollections": {
+        "allOf": [
+          {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestStructWithOmittableCollectionsGroup"
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "tags"
+                  ],
+                  "properties": {}
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "title": "reflectapi_demo.tests.serde.TestStructWithOmittableCollections",
+            "properties": {
+              "list": {
+                "description": "Expandable array type",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/u8"
+                }
+              },
+              "map": {
+                "description": "Key-value map type",
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/u8"
+                }
+              },
+              "set": {
+                "description": "Value set type",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/u8"
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.TestStructWithOmittableCollectionsGroup": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestStructWithOmittableCollectionsGroup",
+        "required": [
+          "tags"
+        ],
+        "properties": {
+          "tags": {
+            "description": "Expandable array type",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/u8"
+            }
+          }
+        }
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}
