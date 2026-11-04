@@ -1,0 +1,366 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: schema
+---
+{
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::serde::input::TestStructWithSerdeDefaultNamedTypes"
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi_demo::tests::serde::output::TestStructWithSerdeDefaultNamedTypes"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestDefaultNullableNewtype",
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestDefaultStruct",
+        "fields": {
+          "named": [
+            {
+              "name": "f",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::TestDefaultTaggedEnum",
+        "representation": {
+          "internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "A",
+            "fields": "none"
+          },
+          {
+            "name": "B",
+            "fields": {
+              "named": [
+                {
+                  "name": "f",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::TestDefaultUntaggedEnum",
+        "representation": "none",
+        "variants": [
+          {
+            "name": "Empty",
+            "fields": "none"
+          },
+          {
+            "name": "Value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::input::TestStructWithSerdeDefaultNamedTypes",
+        "description": "Only the struct and the tagged enum refuse `null`, so only they get a\nnull validator.",
+        "fields": {
+          "named": [
+            {
+              "name": "structure",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestDefaultStruct"
+              }
+            },
+            {
+              "name": "tagged",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestDefaultTaggedEnum"
+              }
+            },
+            {
+              "name": "untagged",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestDefaultUntaggedEnum"
+              }
+            },
+            {
+              "name": "nullable_newtype",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestDefaultNullableNewtype"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestDefaultNullableNewtype",
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "u8"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::TestDefaultStruct",
+        "fields": {
+          "named": [
+            {
+              "name": "f",
+              "type": {
+                "name": "u8"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::TestDefaultTaggedEnum",
+        "representation": {
+          "internal": {
+            "tag": "type"
+          }
+        },
+        "variants": [
+          {
+            "name": "A",
+            "fields": "none"
+          },
+          {
+            "name": "B",
+            "fields": {
+              "named": [
+                {
+                  "name": "f",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi_demo::tests::serde::TestDefaultUntaggedEnum",
+        "representation": "none",
+        "variants": [
+          {
+            "name": "Empty",
+            "fields": "none"
+          },
+          {
+            "name": "Value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u8"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::serde::output::TestStructWithSerdeDefaultNamedTypes",
+        "description": "Only the struct and the tagged enum refuse `null`, so only they get a\nnull validator.",
+        "fields": {
+          "named": [
+            {
+              "name": "structure",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestDefaultStruct"
+              },
+              "required": true
+            },
+            {
+              "name": "tagged",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestDefaultTaggedEnum"
+              },
+              "required": true
+            },
+            {
+              "name": "untagged",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestDefaultUntaggedEnum"
+              },
+              "required": true
+            },
+            {
+              "name": "nullable_newtype",
+              "type": {
+                "name": "reflectapi_demo::tests::serde::TestDefaultNullableNewtype"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u8",
+        "description": "8-bit unsigned integer"
+      }
+    ]
+  }
+}

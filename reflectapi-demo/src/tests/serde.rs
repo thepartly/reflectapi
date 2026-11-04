@@ -184,6 +184,50 @@ fn test_struct_with_serde_default() {
     assert_snapshot!(TestStructWithSerdeDefault);
 }
 
+#[derive(Default, reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestDefaultStruct {
+    f: u8,
+}
+
+#[derive(Default, reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "type")]
+enum TestDefaultTaggedEnum {
+    #[default]
+    A,
+    B {
+        f: u8,
+    },
+}
+
+#[derive(Default, reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+#[serde(untagged)]
+enum TestDefaultUntaggedEnum {
+    #[default]
+    Empty,
+    Value(u8),
+}
+
+#[derive(Default, reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestDefaultNullableNewtype(Option<u8>);
+
+/// Only the struct and the tagged enum refuse `null`, so only they get a
+/// null validator.
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithSerdeDefaultNamedTypes {
+    #[serde(default)]
+    structure: TestDefaultStruct,
+    #[serde(default)]
+    tagged: TestDefaultTaggedEnum,
+    #[serde(default)]
+    untagged: TestDefaultUntaggedEnum,
+    #[serde(default)]
+    nullable_newtype: TestDefaultNullableNewtype,
+}
+#[test]
+fn test_struct_with_serde_default_named_types() {
+    assert_snapshot!(TestStructWithSerdeDefaultNamedTypes);
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSerdeSkip {
     #[serde(skip)]
