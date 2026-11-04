@@ -76,7 +76,7 @@ class MyapiModelInputPet(ReflectapiPartialModel):
         default=None, description="behaviors of the pet"
     )
 
-    @field_validator("behaviors", mode="before")
+    @field_validator("updated_at", "behaviors", mode="before")
     @classmethod
     def _reflectapi_reject_null(cls, value):
         if value is None:

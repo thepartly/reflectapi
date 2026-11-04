@@ -6,27 +6,16 @@
 
 use std::collections::BTreeSet;
 
-use reflectapi_schema::{Representation, Schema, Type, TypeReference};
+use reflectapi_schema::{Representation, Type, TypeReference};
 
+use super::layout::Lookup;
 use super::shape::Shape;
 
-/// `Some(false)` when the type is defined in the schema as a struct or enum
-/// that serde never reads from `null`, `Some(true)` when it may be, and
-/// `None` when the schema doesn't define it (a primitive, a generic parameter
-/// or an unknown name), which leaves the decision to the caller.
-pub(crate) fn defined_type_accepts_null(type_ref: &TypeReference, schema: &Schema) -> Option<bool> {
-    let type_ref = unwrap_pointers(type_ref);
-    match lookup(&type_ref.name, schema)? {
-        Type::Primitive(_) => None,
-        _ => Some(accepts_null(&type_ref, schema, &mut BTreeSet::new())),
-    }
-}
-
-fn lookup<'a>(name: &str, schema: &'a Schema) -> Option<&'a Type> {
-    schema
-        .input_types
-        .get_type(name)
-        .or_else(|| schema.output_types.get_type(name))
+/// Conservative: anything not known to reject `null`, such as a generic
+/// parameter or a type the typespace doesn't define, is assumed to accept it,
+/// so a client never refuses a value the server would read.
+pub(crate) fn accepts_null(type_ref: &TypeReference, lookup: Lookup<'_, '_>) -> bool {
+    reads_null(type_ref, lookup, &mut BTreeSet::new())
 }
 
 /// `Box<T>`, `Rc<T>` and `Arc<T>` are written as the `T` they point to.
@@ -75,14 +64,33 @@ fn primitive_rejects_null(name: &str) -> bool {
             | "indexmap::IndexMap"
             | "indexmap::IndexSet"
             | "uuid::Uuid"
-    )
+            | "url::Url"
+            | "rust_decimal::Decimal"
+            | "chrono::DateTime"
+            | "chrono::NaiveDateTime"
+            | "chrono::NaiveDate"
+            | "chrono_tz::Tz"
+            | "std::time::Duration"
+            | "std::path::PathBuf"
+            | "std::path::Path"
+            | "std::net::IpAddr"
+            | "std::net::Ipv4Addr"
+            | "std::net::Ipv6Addr"
+            | "std::result::Result"
+            | "std::num::NonZeroU8"
+            | "std::num::NonZeroU16"
+            | "std::num::NonZeroU32"
+            | "std::num::NonZeroU64"
+            | "std::num::NonZeroU128"
+    ) || name
+        .strip_prefix("std::tuple::Tuple")
+        .and_then(|arity| arity.parse::<u8>().ok())
+        .is_some_and(|arity| arity > 0)
 }
 
-/// Conservative: anything not known to reject `null` is assumed to accept it,
-/// so a client never refuses a value the server would read.
-fn accepts_null(
+fn reads_null(
     type_ref: &TypeReference,
-    schema: &Schema,
+    lookup: Lookup<'_, '_>,
     visiting: &mut BTreeSet<TypeReference>,
 ) -> bool {
     let type_ref = unwrap_pointers(type_ref);
@@ -97,7 +105,7 @@ fn accepts_null(
     if !visiting.insert(type_ref.clone()) {
         return true;
     }
-    let result = match lookup(&type_ref.name, schema) {
+    let result = match lookup(&type_ref.name) {
         None => true,
         // A primitive's fallback describes its representation, not what its
         // decoder accepts (`Weak<T>` falls back to `T` but reads null).
@@ -108,11 +116,11 @@ fn accepts_null(
                 s.fields
                     .iter()
                     .next()
-                    .is_none_or(|field| accepts_null(&bind(&field.type_ref), schema, visiting))
+                    .is_none_or(|field| reads_null(&bind(&field.type_ref), lookup, visiting))
             } else {
                 match Shape::of(&s.fields) {
                     Shape::Unit => true,
-                    Shape::Newtype(field) => accepts_null(&bind(&field.type_ref), schema, visiting),
+                    Shape::Newtype(field) => reads_null(&bind(&field.type_ref), lookup, visiting),
                     Shape::Tuple(_) | Shape::Struct(_) => false,
                 }
             }
@@ -126,9 +134,9 @@ fn accepts_null(
                 .filter(|variant| untagged || variant.untagged)
                 .any(|variant| match Shape::of(&variant.fields) {
                     Shape::Unit => true,
-                    Shape::Newtype(field) => accepts_null(
+                    Shape::Newtype(field) => reads_null(
                         &substitute(&field.type_ref, e.parameters(), &type_ref),
-                        schema,
+                        lookup,
                         visiting,
                     ),
                     Shape::Tuple(_) | Shape::Struct(_) => false,
@@ -163,7 +171,7 @@ fn substitute<'a>(
 mod tests {
     use super::*;
 
-    fn schema() -> Schema {
+    fn schema() -> reflectapi_schema::Schema {
         serde_json::from_value(serde_json::json!({
             "name": "nullability",
             "input_types": {"types": [
@@ -206,9 +214,10 @@ mod tests {
         .unwrap()
     }
 
-    fn accepts(type_ref: serde_json::Value) -> Option<bool> {
+    fn accepts(type_ref: serde_json::Value) -> bool {
         let type_ref: TypeReference = serde_json::from_value(type_ref).unwrap();
-        defined_type_accepts_null(&type_ref, &schema())
+        let schema = schema();
+        accepts_null(&type_ref, &|name| schema.input_types.get_type(name))
     }
 
     #[test]
@@ -223,11 +232,7 @@ mod tests {
             "UntaggedValue",
             "TaggedWithUntaggedValue",
         ] {
-            assert_eq!(
-                accepts(serde_json::json!({"name": name})),
-                Some(false),
-                "{name}"
-            );
+            assert!(!accepts(serde_json::json!({"name": name})), "{name}");
         }
     }
 
@@ -240,11 +245,7 @@ mod tests {
             "Loop",
             "TaggedWithUntaggedUnit",
         ] {
-            assert_eq!(
-                accepts(serde_json::json!({"name": name})),
-                Some(true),
-                "{name}"
-            );
+            assert!(accepts(serde_json::json!({"name": name})), "{name}");
         }
     }
 
@@ -253,20 +254,14 @@ mod tests {
         let wrap = |argument: serde_json::Value| {
             accepts(serde_json::json!({"name": "Wrap", "arguments": [argument]}))
         };
-        assert_eq!(wrap(serde_json::json!({"name": "u32"})), Some(false));
-        assert_eq!(
-            wrap(
-                serde_json::json!({"name": "std::option::Option", "arguments": [{"name": "u32"}]})
-            ),
-            Some(true)
-        );
-        assert_eq!(wrap(serde_json::json!({"name": "T"})), Some(true));
-        assert_eq!(
-            accepts(
-                serde_json::json!({"name": "std::boxed::Box", "arguments": [{"name": "Named"}]})
-            ),
-            Some(false)
-        );
+        assert!(!wrap(serde_json::json!({"name": "u32"})));
+        assert!(wrap(
+            serde_json::json!({"name": "std::option::Option", "arguments": [{"name": "u32"}]})
+        ));
+        assert!(wrap(serde_json::json!({"name": "T"})));
+        assert!(!accepts(
+            serde_json::json!({"name": "std::boxed::Box", "arguments": [{"name": "Named"}]})
+        ));
     }
 
     #[test]
@@ -274,37 +269,33 @@ mod tests {
         let new_of = |argument: serde_json::Value| {
             accepts(serde_json::json!({"name": "NewOf", "arguments": [argument]}))
         };
-        assert_eq!(new_of(serde_json::json!({"name": "Named"})), Some(false));
-        assert_eq!(new_of(serde_json::json!({"name": "u32"})), Some(false));
-        assert_eq!(
-            new_of(serde_json::json!({"name": "serde_json::Value"})),
-            Some(true)
-        );
-        assert_eq!(
-            new_of(serde_json::json!({"name": "std::tuple::Tuple0"})),
-            Some(true)
-        );
-        assert_eq!(
-            new_of(
-                serde_json::json!({"name": "std::sync::Weak", "arguments": [{"name": "Named"}]})
-            ),
-            Some(true)
-        );
+        assert!(!new_of(serde_json::json!({"name": "Named"})));
+        assert!(!new_of(serde_json::json!({"name": "u32"})));
+        assert!(new_of(serde_json::json!({"name": "serde_json::Value"})));
+        assert!(new_of(serde_json::json!({"name": "std::tuple::Tuple0"})));
+        assert!(new_of(
+            serde_json::json!({"name": "std::sync::Weak", "arguments": [{"name": "Named"}]})
+        ));
     }
 
     #[test]
-    fn response_only_types_are_found() {
-        let mut schema = schema();
-        let named = schema.input_types.remove_type("Named").unwrap();
-        schema.output_types.insert_type(named);
-        let type_ref = TypeReference::from("Named");
-        assert_eq!(defined_type_accepts_null(&type_ref, &schema), Some(false));
-    }
-
-    #[test]
-    fn primitives_and_unknown_names_are_left_to_the_backend() {
-        for name in ["u32", "std::option::Option", "T"] {
-            assert_eq!(accepts(serde_json::json!({"name": name})), None, "{name}");
+    fn primitives_answer_for_themselves() {
+        for name in [
+            "u32",
+            "std::string::String",
+            "chrono::DateTime",
+            "std::tuple::Tuple2",
+        ] {
+            assert!(!accepts(serde_json::json!({"name": name})), "{name}");
+        }
+        for name in [
+            "std::option::Option",
+            "std::tuple::Tuple0",
+            "serde_json::Value",
+            "T",
+            "unknown::Type",
+        ] {
+            assert!(accepts(serde_json::json!({"name": name})), "{name}");
         }
     }
 }

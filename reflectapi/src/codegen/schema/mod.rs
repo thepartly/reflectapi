@@ -21,7 +21,6 @@ mod symbol;
 pub(crate) use self::ids::{build_schema_ids, SchemaIds};
 pub(crate) use self::layout::{FlattenedGroup, Layout, Member, Opaque};
 pub(crate) use self::normalize::{Consolidation, Naming, Normalizer, PipelineBuilder};
-pub(crate) use self::nullability::defined_type_accepts_null;
 pub(crate) use self::presence::{resolve_field_wire_contract, FieldWireFacts, KeyPresence};
 pub(crate) use self::semantic::{
     FieldStyle, ResolvedTypeReference, SemanticEnum, SemanticField, SemanticFunction,

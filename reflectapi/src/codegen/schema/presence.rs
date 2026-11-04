@@ -1,4 +1,5 @@
-//! Rendering facts for field presence and declared nullability.
+//! A field's wire contract: whether its key may be absent, and whether its
+//! value may be null.
 //!
 //! Reflection resolves Serde's directional missing-key behavior into
 //! `Field.required` before input/output types are consolidated. Renderers must
@@ -9,40 +10,39 @@
 //! key-level attributes such as `default` and `skip_serializing_if` don't
 //! apply to it, and `required` doesn't describe it. Serde makes a flattened
 //! group optional only when its type is an `Option`.
+//!
+//! Whether the value may be null depends on the type's definition, so the
+//! contract is resolved with the typespace being rendered.
 
-use reflectapi_schema::Field;
+use reflectapi_schema::{Field, TypeReference};
+
+use super::layout::Lookup;
+use super::nullability::accepts_null;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct FieldWireFacts<'a> {
-    pub type_name: &'a str,
+    pub type_ref: &'a TypeReference,
     pub required: bool,
     pub named: bool,
     pub flattened: bool,
-    /// Whether serde reads the field's value from `null`, when the schema
-    /// settles it. `None` leaves it to the backend's own type mapping.
-    pub value_accepts_null: Option<bool>,
+    /// A custom serializer or deserializer, which may write or read null for
+    /// any type.
+    pub custom_codec: bool,
 }
 
 impl<'a> FieldWireFacts<'a> {
     pub fn of(field: &'a Field) -> Self {
         Self {
-            type_name: &field.type_ref.name,
+            type_ref: &field.type_ref,
             required: field.required,
             named: field.is_named(),
             flattened: field.flattened,
-            value_accepts_null: None,
+            custom_codec: field.serialize_with || field.deserialize_with,
         }
     }
 
     pub fn with_required(self, required: bool) -> Self {
         Self { required, ..self }
-    }
-
-    pub fn with_value_accepts_null(self, value_accepts_null: Option<bool>) -> Self {
-        Self {
-            value_accepts_null,
-            ..self
-        }
     }
 }
 
@@ -63,6 +63,10 @@ pub(crate) struct FieldWireContract {
     // The declared Rust type admits null. Custom codecs may change its wire
     // representation; use a reflected type override for such codecs.
     pub declared_nullable: bool,
+    /// Serde reads the value from `null`. Unlike `declared_nullable`, this
+    /// follows the type's definition: a unit struct or a newtype of an
+    /// `Option` reads null, and so does any field with a custom codec.
+    pub value_accepts_null: bool,
     named: bool,
 }
 
@@ -78,22 +82,34 @@ impl FieldWireContract {
     }
 }
 
-pub(crate) fn resolve_field_wire_contract(facts: FieldWireFacts<'_>) -> FieldWireContract {
-    let declared_nullable = matches!(
-        facts.type_name,
+fn is_option(type_ref: &TypeReference) -> bool {
+    matches!(
+        type_ref.name.as_str(),
         "std::option::Option" | "reflectapi::Option"
-    );
+    )
+}
+
+/// The key half of the contract, which needs no typespace.
+pub(crate) fn key_presence(facts: FieldWireFacts<'_>) -> KeyPresence {
+    if facts.flattened {
+        KeyPresence::Flattened {
+            optional: is_option(facts.type_ref),
+        }
+    } else if facts.required {
+        KeyPresence::Required
+    } else {
+        KeyPresence::Optional
+    }
+}
+
+pub(crate) fn resolve_field_wire_contract(
+    facts: FieldWireFacts<'_>,
+    lookup: Lookup<'_, '_>,
+) -> FieldWireContract {
     FieldWireContract {
-        key: if facts.flattened {
-            KeyPresence::Flattened {
-                optional: declared_nullable,
-            }
-        } else if facts.required {
-            KeyPresence::Required
-        } else {
-            KeyPresence::Optional
-        },
-        declared_nullable,
+        key: key_presence(facts),
+        declared_nullable: is_option(facts.type_ref),
+        value_accepts_null: facts.custom_codec || accepts_null(facts.type_ref, lookup),
         named: facts.named,
     }
 }
@@ -102,25 +118,46 @@ pub(crate) fn resolve_field_wire_contract(facts: FieldWireFacts<'_>) -> FieldWir
 mod tests {
     use super::*;
 
-    fn facts(type_name: &str, required: bool) -> FieldWireFacts<'_> {
+    fn no_types(_: &str) -> Option<&'static reflectapi_schema::Type> {
+        None
+    }
+
+    fn resolve(facts: FieldWireFacts<'_>) -> FieldWireContract {
+        resolve_field_wire_contract(facts, &no_types)
+    }
+
+    fn facts(type_ref: &TypeReference, required: bool) -> FieldWireFacts<'_> {
         FieldWireFacts {
-            type_name,
+            type_ref,
             required,
             named: true,
             flattened: false,
-            value_accepts_null: None,
+            custom_codec: false,
         }
     }
 
     #[test]
     fn required_is_authoritative_independently_of_declared_nullability() {
         for type_name in ["u8", "std::option::Option", "reflectapi::Option"] {
+            let type_ref = TypeReference::from(type_name);
             for required in [true, false] {
-                let contract = resolve_field_wire_contract(facts(type_name, required));
+                let contract = resolve(facts(&type_ref, required));
                 assert_eq!(contract.key == KeyPresence::Required, required);
                 assert_eq!(contract.declared_nullable, type_name != "u8");
+                assert_eq!(contract.value_accepts_null, type_name != "u8");
             }
         }
+    }
+
+    #[test]
+    fn a_custom_codec_may_read_null_for_any_type() {
+        let type_ref = TypeReference::from("u8");
+        let contract = resolve(FieldWireFacts {
+            custom_codec: true,
+            ..facts(&type_ref, false)
+        });
+        assert!(contract.value_accepts_null);
+        assert!(!contract.declared_nullable);
     }
 
     #[test]
@@ -128,17 +165,18 @@ mod tests {
         let mut field = Field::new("value".into(), "std::option::Option".into());
         field.required = true;
         assert_eq!(
-            resolve_field_wire_contract(FieldWireFacts::of(&field)).key,
+            resolve(FieldWireFacts::of(&field)).key,
             KeyPresence::Required
         );
     }
 
     #[test]
     fn only_an_optional_nullable_named_key_preserves_absence() {
-        let contract = |type_name, required, named| {
-            resolve_field_wire_contract(FieldWireFacts {
+        let contract = |type_name: &str, required, named| {
+            let type_ref = TypeReference::from(type_name);
+            resolve(FieldWireFacts {
                 named,
-                ..facts(type_name, required)
+                ..facts(&type_ref, required)
             })
         };
         assert!(contract("std::option::Option", false, true).preserves_absence());
@@ -150,11 +188,12 @@ mod tests {
     #[test]
     fn a_flattened_group_is_optional_only_when_its_type_is_an_option() {
         for type_name in ["std::option::Option", "reflectapi::Option", "Inner"] {
+            let type_ref = TypeReference::from(type_name);
             // `required` describes a key, which a flattened field doesn't have.
             for required in [true, false] {
-                let contract = resolve_field_wire_contract(FieldWireFacts {
+                let contract = resolve(FieldWireFacts {
                     flattened: true,
-                    ..facts(type_name, required)
+                    ..facts(&type_ref, required)
                 });
                 let optional = type_name != "Inner";
                 assert_eq!(contract.key, KeyPresence::Flattened { optional });

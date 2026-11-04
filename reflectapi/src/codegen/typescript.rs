@@ -1661,6 +1661,7 @@ fn field_to_ts_field(
     // consolidation and user transforms. Keep required authoritative.
     let contract = crate::codegen::schema::resolve_field_wire_contract(
         crate::codegen::schema::FieldWireFacts::of(field),
+        &|name| schema.get_type(name),
     );
     templates::Field {
         name: field.serde_name().into(),

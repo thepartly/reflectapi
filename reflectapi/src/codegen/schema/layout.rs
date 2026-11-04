@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 
 use reflectapi_schema::{Enum, Field, Fields, Representation, Type, TypeReference};
 
-use super::presence::{resolve_field_wire_contract, FieldWireFacts, KeyPresence};
+use super::presence::{key_presence, FieldWireFacts, KeyPresence};
 use super::shape::Shape;
 
 /// Flattening deeper than this is treated as unknown. The outermost flattened
@@ -79,8 +79,8 @@ impl<'a> FlattenedGroup<'a> {
     }
 
     fn at_depth(field: &'a Field, lookup: Lookup<'a, '_>, depth: usize) -> Self {
-        let contract = resolve_field_wire_contract(FieldWireFacts::of(field));
-        let optional = !contract.flattened_group_required();
+        let optional =
+            key_presence(FieldWireFacts::of(field)) != (KeyPresence::Flattened { optional: false });
         let type_ref = match (optional, field.type_ref.arguments.as_slice()) {
             (false, _) => Some(&field.type_ref),
             (true, [inner]) => Some(inner),
@@ -257,7 +257,7 @@ impl<'a> StructLayout<'a> {
 }
 
 fn is_required(field: &Field) -> bool {
-    resolve_field_wire_contract(FieldWireFacts::of(field)).key == KeyPresence::Required
+    key_presence(FieldWireFacts::of(field)) == KeyPresence::Required
 }
 
 #[cfg(test)]

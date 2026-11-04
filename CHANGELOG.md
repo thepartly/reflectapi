@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- A generated Python model rejects an explicit `None` for an omittable field whose named type serde can't read from `null`: a struct with named fields, a tuple struct, a tagged enum, or a newtype or `Box` of one. Since 0.21 the client sends an explicit `None` as `null`, which the server refuses, so `Model(page=None)` for a `#[serde(default)] page: Page` failed with a 400. It now raises a `ValidationError` where the model is built. Leaving the field out is unchanged. Whether a type accepts `null` is now decided from the schema, not from the rendered annotation, so unit structs, enums with an untagged variant that accepts `null`, newtypes of an `Option`, generic parameters and fields with a custom serializer or deserializer still accept `None`. Before, only primitives and containers were checked.
+- A generated Python model rejects an explicit `None` for an omittable field whose type serde can't read from `null`. Since 0.21 the client sends an explicit `None` as `null`, which the server refuses, so `Model(page=None)` for a `#[serde(default)] page: Page` failed with a 400. It now raises a `ValidationError` where the model is built. Leaving the field out is unchanged. Whether a value may be `null` is now part of the shared field contract and is decided from the schema, not from Python's rendered annotation. Before, only primitives and containers were checked. Now these reject `null` too: structs with fields, tuple structs, tagged enums, newtypes and `Box`es of those, and primitives such as `chrono::DateTime`, `uuid::Uuid` and `url::Url`. Unit structs, untagged enums with a variant that accepts `null`, newtypes of an `Option`, generic parameters and fields with a custom serializer or deserializer still accept `None`.
 
 ## 0.23.0
 
