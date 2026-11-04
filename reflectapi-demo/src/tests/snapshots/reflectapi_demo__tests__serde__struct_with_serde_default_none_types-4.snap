@@ -1,0 +1,115 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestStructWithSerdeDefaultNoneTypes"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestStructWithSerdeDefaultNoneTypes"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.TestOptionalNewtype": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/std.string.String"
+              }
+            ]
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.TestUnitMarker": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/std.tuple.Tuple0"
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.input.TestStructWithSerdeDefaultNoneTypes": {
+        "description": "Each type already renders with `None` in it, so the omission default\nmust not add another.",
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.input.TestStructWithSerdeDefaultNoneTypes",
+        "properties": {
+          "marker": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestUnitMarker"
+          },
+          "nothing": {
+            "$ref": "#/components/schemas/std.tuple.Tuple0"
+          },
+          "optional_newtype": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestOptionalNewtype"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.output.TestStructWithSerdeDefaultNoneTypes": {
+        "description": "Each type already renders with `None` in it, so the omission default\nmust not add another.",
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.output.TestStructWithSerdeDefaultNoneTypes",
+        "required": [
+          "marker",
+          "nothing",
+          "optional_newtype"
+        ],
+        "properties": {
+          "marker": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestUnitMarker"
+          },
+          "nothing": {
+            "$ref": "#/components/schemas/std.tuple.Tuple0"
+          },
+          "optional_newtype": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestOptionalNewtype"
+          }
+        }
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "std.tuple.Tuple0": {
+        "description": "Unit type",
+        "type": "null"
+      }
+    }
+  }
+}

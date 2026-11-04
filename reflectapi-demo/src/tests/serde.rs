@@ -228,6 +228,28 @@ fn test_struct_with_serde_default_named_types() {
     assert_snapshot!(TestStructWithSerdeDefaultNamedTypes);
 }
 
+#[derive(Default, reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestUnitMarker;
+
+#[derive(Default, reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestOptionalNewtype(Option<String>);
+
+/// Each type already renders with `None` in it, so the omission default
+/// must not add another.
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithSerdeDefaultNoneTypes {
+    #[serde(default)]
+    marker: TestUnitMarker,
+    #[serde(default)]
+    nothing: (),
+    #[serde(default)]
+    optional_newtype: TestOptionalNewtype,
+}
+#[test]
+fn test_struct_with_serde_default_none_types() {
+    assert_snapshot!(TestStructWithSerdeDefaultNoneTypes);
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSerdeSkip {
     #[serde(skip)]

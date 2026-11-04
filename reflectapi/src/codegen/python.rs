@@ -7106,7 +7106,8 @@ pub mod templates {
                 // Pydantic 2.12.0-2.12.2 on Python 3.14 rejects `x: None = None`
                 // under postponed annotations: it mistakes the evaluated
                 // annotation for the default and reports a name clash.
-                let none_annotation = field.type_annotation.trim() == "None";
+                let none_annotation = field.type_annotation.trim() == "None"
+                    && (field.optional || field.default_value.is_some());
                 if desc.is_some()
                     || field.alias.is_some()
                     || deprecated.is_some()
