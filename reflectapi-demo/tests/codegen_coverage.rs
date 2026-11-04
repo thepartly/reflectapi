@@ -75,6 +75,14 @@ async fn deprecated_shapes(
     Ok(request)
 }
 
+async fn omittable_units(
+    _: Arc<State>,
+    _request: coverage::OmittableUnits,
+    _headers: reflectapi::Empty,
+) -> Result<reflectapi::Empty, reflectapi::Infallible> {
+    Ok(reflectapi::Empty {})
+}
+
 fn builder() -> reflectapi::Builder<Arc<State>> {
     reflectapi::Builder::new()
         .name("Codegen coverage")
@@ -86,6 +94,10 @@ fn builder() -> reflectapi::Builder<Arc<State>> {
         .route(codegen_coverage, |b| {
             b.name("coverage.edges")
                 .description("Coverage fixtures for codegen edge cases")
+        })
+        .route(omittable_units, |b| {
+            b.name("coverage.omittable_units")
+                .description("Omittable fields whose type serializes as null")
         })
         .route(wire_echo, |b| {
             b.name("coverage.wire")
@@ -419,6 +431,18 @@ mod coverage {
     pub struct DefaultedField {
         #[serde(default = "default_count")]
         pub count: u32,
+    }
+
+    // ---- Omittable fields whose type serializes as null ----
+    #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize, reflectapi::Input)]
+    pub struct UnitMarker;
+
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, reflectapi::Input)]
+    pub struct OmittableUnits {
+        #[serde(default)]
+        pub marker: UnitMarker,
+        #[serde(default)]
+        pub nothing: (),
     }
 
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
