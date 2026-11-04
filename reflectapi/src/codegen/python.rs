@@ -7103,7 +7103,15 @@ pub mod templates {
                     }
                 });
 
-                if desc.is_some() || field.alias.is_some() || deprecated.is_some() {
+                // Pydantic 2.12.0-2.12.2 on Python 3.14 rejects `x: None = None`
+                // under postponed annotations: it mistakes the evaluated
+                // annotation for the default and reports a name clash.
+                let none_annotation = field.type_annotation.trim() == "None";
+                if desc.is_some()
+                    || field.alias.is_some()
+                    || deprecated.is_some()
+                    || none_annotation
+                {
                     // Need Field() with named arguments
                     write!(s, " = Field(").unwrap();
                     let mut args = Vec::new();
@@ -9107,7 +9115,10 @@ mod tests {
             },
         )
         .unwrap();
-        assert!(python.contains("nothing: None = None\n"), "{python}");
+        assert!(
+            python.contains("nothing: None = Field(default=None)\n"),
+            "{python}"
+        );
         assert!(!python.contains("None | None"), "{python}");
     }
 
