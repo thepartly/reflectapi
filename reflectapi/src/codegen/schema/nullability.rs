@@ -6,7 +6,7 @@
 
 use std::collections::BTreeSet;
 
-use reflectapi_schema::{Representation, Type, TypeReference};
+use reflectapi_schema::{Field, Representation, Type, TypeReference};
 
 use super::layout::Lookup;
 use super::shape::Shape;
@@ -18,13 +18,20 @@ pub(crate) fn accepts_null(type_ref: &TypeReference, lookup: Lookup<'_, '_>) -> 
     reads_null(type_ref, lookup, &mut BTreeSet::new())
 }
 
-/// `Box<T>`, `Rc<T>` and `Arc<T>` are written as the `T` they point to.
+/// Wrappers that serde reads and writes as the `T` they hold.
 fn unwrap_pointers(type_ref: &TypeReference) -> TypeReference {
     let mut current = type_ref.clone();
     let mut seen = BTreeSet::new();
     while matches!(
         current.name.as_str(),
-        "std::boxed::Box" | "std::rc::Rc" | "std::sync::Arc"
+        "std::boxed::Box"
+            | "std::rc::Rc"
+            | "std::sync::Arc"
+            | "std::borrow::Cow"
+            | "std::cell::Cell"
+            | "std::cell::RefCell"
+            | "std::sync::Mutex"
+            | "std::sync::RwLock"
     ) && seen.insert(current.clone())
     {
         match current.arguments.first() {
@@ -69,6 +76,7 @@ fn primitive_rejects_null(name: &str) -> bool {
             | "chrono::DateTime"
             | "chrono::NaiveDateTime"
             | "chrono::NaiveDate"
+            | "chrono::NaiveTime"
             | "chrono_tz::Tz"
             | "std::time::Duration"
             | "std::path::PathBuf"
@@ -82,10 +90,21 @@ fn primitive_rejects_null(name: &str) -> bool {
             | "std::num::NonZeroU32"
             | "std::num::NonZeroU64"
             | "std::num::NonZeroU128"
+            | "std::array::Array"
     ) || name
         .strip_prefix("std::tuple::Tuple")
         .and_then(|arity| arity.parse::<u8>().ok())
         .is_some_and(|arity| arity > 0)
+}
+
+/// A wrapped field with a custom codec may read null whatever its type.
+fn field_reads_null(
+    field: &Field,
+    type_ref: &TypeReference,
+    lookup: Lookup<'_, '_>,
+    visiting: &mut BTreeSet<TypeReference>,
+) -> bool {
+    field.serialize_with || field.deserialize_with || reads_null(type_ref, lookup, visiting)
 }
 
 fn reads_null(
@@ -113,14 +132,15 @@ fn reads_null(
         Some(Type::Struct(s)) => {
             let bind = |inner: &TypeReference| substitute(inner, s.parameters(), &type_ref);
             if s.transparent {
-                s.fields
-                    .iter()
-                    .next()
-                    .is_none_or(|field| reads_null(&bind(&field.type_ref), lookup, visiting))
+                s.fields.iter().next().is_none_or(|field| {
+                    field_reads_null(field, &bind(&field.type_ref), lookup, visiting)
+                })
             } else {
                 match Shape::of(&s.fields) {
                     Shape::Unit => true,
-                    Shape::Newtype(field) => reads_null(&bind(&field.type_ref), lookup, visiting),
+                    Shape::Newtype(field) => {
+                        field_reads_null(field, &bind(&field.type_ref), lookup, visiting)
+                    }
                     Shape::Tuple(_) | Shape::Struct(_) => false,
                 }
             }
@@ -134,7 +154,8 @@ fn reads_null(
                 .filter(|variant| untagged || variant.untagged)
                 .any(|variant| match Shape::of(&variant.fields) {
                     Shape::Unit => true,
-                    Shape::Newtype(field) => reads_null(
+                    Shape::Newtype(field) => field_reads_null(
+                        field,
                         &substitute(&field.type_ref, e.parameters(), &type_ref),
                         lookup,
                         visiting,
@@ -207,6 +228,9 @@ mod tests {
                     {"name": "A", "fields": "none"},
                     {"name": "Count", "fields": {"unnamed": [{"name": "0", "type": {"name": "u32"}}]}, "untagged": true}
                 ]},
+                {"kind": "struct", "name": "Lenient", "fields": {"unnamed": [
+                    {"name": "0", "type": {"name": "u32"}, "deserialize_with": true}
+                ]}},
                 {"kind": "enum", "name": "UntaggedValue", "representation": "none",
                  "variants": [{"name": "B", "fields": {"unnamed": [{"name": "0", "type": {"name": "u32"}}]}}]}
             ]}
@@ -241,6 +265,7 @@ mod tests {
         for name in [
             "Unit",
             "MaybeId",
+            "Lenient",
             "UntaggedUnit",
             "Loop",
             "TaggedWithUntaggedUnit",
@@ -259,9 +284,21 @@ mod tests {
             serde_json::json!({"name": "std::option::Option", "arguments": [{"name": "u32"}]})
         ));
         assert!(wrap(serde_json::json!({"name": "T"})));
-        assert!(!accepts(
-            serde_json::json!({"name": "std::boxed::Box", "arguments": [{"name": "Named"}]})
-        ));
+        for pointer in [
+            "std::boxed::Box",
+            "std::borrow::Cow",
+            "std::cell::RefCell",
+            "std::sync::Mutex",
+        ] {
+            assert!(
+                !accepts(serde_json::json!({"name": pointer, "arguments": [{"name": "Named"}]})),
+                "{pointer}"
+            );
+            assert!(
+                accepts(serde_json::json!({"name": pointer, "arguments": [{"name": "Unit"}]})),
+                "{pointer}"
+            );
+        }
     }
 
     #[test]
@@ -284,6 +321,8 @@ mod tests {
             "u32",
             "std::string::String",
             "chrono::DateTime",
+            "chrono::NaiveTime",
+            "std::array::Array",
             "std::tuple::Tuple2",
         ] {
             assert!(!accepts(serde_json::json!({"name": name})), "{name}");
