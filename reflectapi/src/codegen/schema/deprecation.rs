@@ -8,7 +8,8 @@ use reflectapi_schema::{Field, Representation, Schema, Type, TypeReference, Type
 /// generated before that must decode responses without it. Only types that
 /// appear in responses alone are relaxed: a request type keeps the field
 /// required, because the server may still require it until it is removed,
-/// and so does every type an untagged enum's variants reach.
+/// and so does every type a client decodes by trying it (see
+/// `types_matched_untagged`).
 /// Every generator runs this before consolidating the schema, so a type used
 /// in both directions is never split by it, and all of them agree on which
 /// keys a response may leave out.
@@ -43,23 +44,28 @@ pub(crate) fn relax_deprecated_response_fields(schema: &mut Schema) {
     }
 }
 
-/// Untagged enums and every type their variants reach. An untagged enum
-/// picks the first variant that matches, so an optional field anywhere
-/// inside a variant could make it match a payload that serde gives to a
-/// later variant.
+/// Types a client decodes by trying them in turn: untagged enums, enums with
+/// untagged variants, the type behind a flattened `Option`, and every type
+/// these reach. A first-match decoder takes the first variant that matches,
+/// and a flattened `Option` is `None` only when its type fails to decode, so
+/// an optional field anywhere inside could change what a payload decodes as.
 fn types_matched_untagged(types: &Typespace) -> HashSet<String> {
     let mut pending: Vec<&TypeReference> = Vec::new();
     let mut seen = HashSet::new();
     for ty in types.types() {
-        if let Type::Enum(e) = ty {
-            if e.representation == Representation::None {
-                seen.insert(e.name.clone());
-                pending.extend(
-                    e.variants
-                        .iter()
-                        .flat_map(|v| v.fields.iter().map(|f| &f.type_ref)),
-                );
+        match ty {
+            Type::Enum(e) => {
+                let untagged = e.representation == Representation::None;
+                for variant in &e.variants {
+                    if untagged || variant.untagged {
+                        seen.insert(e.name.clone());
+                        pending.extend(variant.fields.iter().map(|f| &f.type_ref));
+                    }
+                    pending.extend(flattened_options(variant.fields.iter()));
+                }
             }
+            Type::Struct(s) => pending.extend(flattened_options(s.fields.iter())),
+            Type::Primitive(_) => {}
         }
     }
     while let Some(type_ref) = pending.pop() {
@@ -78,6 +84,21 @@ fn types_matched_untagged(types: &Typespace) -> HashSet<String> {
         }
     }
     seen
+}
+
+/// The types behind flattened `Option` fields.
+fn flattened_options<'a>(
+    fields: impl Iterator<Item = &'a Field>,
+) -> impl Iterator<Item = &'a TypeReference> {
+    fields
+        .filter(|f| {
+            f.flattened
+                && matches!(
+                    f.type_ref.name.as_str(),
+                    "std::option::Option" | "reflectapi::Option"
+                )
+        })
+        .flat_map(|f| f.type_ref.arguments.iter())
 }
 
 #[cfg(test)]
@@ -115,7 +136,16 @@ mod tests {
                     field("old", true),
                     {"name": "nested", "required": true, "type": {"name": "Nested"}}
                 ]}},
-                {"kind": "struct", "name": "Nested", "fields": {"named": [field("old", true)]}}
+                {"kind": "struct", "name": "Nested", "fields": {"named": [field("old", true)]}},
+                {"kind": "enum", "name": "Fallback", "variants": [
+                    {"name": "Known", "fields": {"named": [field("old", true)]}},
+                    {"name": "Other", "untagged": true, "fields": {"unnamed": [{"name": "0", "type": {"name": "Unmatched"}}]}}
+                ]},
+                {"kind": "struct", "name": "Unmatched", "fields": {"named": [field("old", true)]}},
+                {"kind": "struct", "name": "Holder", "fields": {"named": [
+                    {"name": "group", "required": true, "flattened": true, "type": {"name": "std::option::Option", "arguments": [{"name": "Group"}]}}
+                ]}},
+                {"kind": "struct", "name": "Group", "fields": {"named": [field("old", true)]}}
             ]}
         }))
         .unwrap();
@@ -152,6 +182,15 @@ mod tests {
             required(&schema.output_types, "Nested"),
             [("old".into(), true)]
         );
+        // A tagged enum's untagged variants, and the type behind a flattened
+        // `Option`, are decoded by trying them too.
+        for name in ["Fallback", "Unmatched", "Group"] {
+            assert_eq!(
+                required(&schema.output_types, name),
+                [("old".into(), true)],
+                "{name}"
+            );
+        }
         assert_eq!(
             required(&schema.output_types, "Both"),
             [("old".into(), true)]

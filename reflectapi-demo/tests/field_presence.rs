@@ -171,6 +171,16 @@ pub mod fixtures {
         pub legacy_code: String,
         #[deprecated(note = "use id")]
         pub legacy_config: Config,
+        #[deprecated(note = "use id")]
+        pub legacy_rank: std::num::NonZeroU32,
+    }
+
+    // A deprecated field typed by a type parameter, which may lack `Default`.
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Output)]
+    pub struct Envelope<T> {
+        pub data: T,
+        #[deprecated(note = "use data")]
+        pub result: T,
     }
 
     // Used in both directions, so a deprecated field stays required.
@@ -190,6 +200,10 @@ pub mod fixtures {
 }
 
 async fn profile(_: (), _: reflectapi::Empty, _: reflectapi::Empty) -> fixtures::Profile {
+    unimplemented!("schema-only route")
+}
+
+async fn envelope(_: (), _: reflectapi::Empty, _: reflectapi::Empty) -> fixtures::Envelope<u32> {
     unimplemented!("schema-only route")
 }
 
@@ -237,6 +251,7 @@ fn schema() -> reflectapi::Schema {
             |b| b.name("fields.defaulted"),
         )
         .route(profile, |b| b.name("fields.profile"))
+        .route(envelope, |b| b.name("fields.envelope"))
         .route(
             |_: (), input: fixtures::Shared, _: reflectapi::Empty| async { input },
             |b| b.name("fields.shared"),

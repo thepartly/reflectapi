@@ -1704,20 +1704,90 @@ fn type_implements_default(
     }
 }
 
+/// Like `type_implements_default`, but assumes nothing: a type parameter, a
+/// mapped type or a primitive outside this list may lack `Default`.
+fn type_known_to_implement_default(
+    type_ref: &crate::TypeReference,
+    schema: &crate::Schema,
+    base_derives: &BTreeSet<String>,
+) -> bool {
+    let mut type_ref = type_ref;
+    while matches!(
+        type_ref.name.as_str(),
+        "std::boxed::Box" | "std::rc::Rc" | "std::sync::Arc"
+    ) {
+        match type_ref.arguments.first() {
+            Some(inner) => type_ref = inner,
+            None => return false,
+        }
+    }
+    if matches!(
+        type_ref.name.as_str(),
+        "u8" | "u16"
+            | "u32"
+            | "u64"
+            | "u128"
+            | "usize"
+            | "i8"
+            | "i16"
+            | "i32"
+            | "i64"
+            | "i128"
+            | "isize"
+            | "f32"
+            | "f64"
+            | "bool"
+            | "char"
+            | "std::string::String"
+            | "std::vec::Vec"
+            | "std::collections::HashMap"
+            | "std::collections::BTreeMap"
+            | "std::collections::HashSet"
+            | "std::collections::BTreeSet"
+            | "std::collections::VecDeque"
+            | "std::option::Option"
+            | "reflectapi::Option"
+            | "std::time::Duration"
+            | "std::tuple::Tuple0"
+            | "serde_json::Value"
+    ) {
+        return true;
+    }
+    let derives = |config: &reflectapi_schema::LanguageSpecificTypeCodegenConfig| {
+        base_derives.contains("Default") || config.rust.additional_derives.contains("Default")
+    };
+    match schema
+        .input_types
+        .get_type(&type_ref.name)
+        .or_else(|| schema.output_types.get_type(&type_ref.name))
+    {
+        Some(crate::Type::Struct(s)) => derives(&s.codegen_config),
+        Some(crate::Type::Enum(e)) => derives(&e.codegen_config),
+        _ => false,
+    }
+}
+
 /// A field the server fills with `Default` when its key is missing. When the
 /// client's own type can't do the same, it becomes `Option<T>`: `None` leaves
 /// the key out and lets the server apply its default.
+///
+/// A deprecated response field may be optional only because the client must
+/// survive its removal, so nothing on the server vouches for `Default`. It
+/// keeps its type only when the type is known to implement `Default`.
 fn optional_field_type(
     type_: String,
     field: &crate::Field,
+    is_input_type: bool,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     base_derives: &BTreeSet<String>,
 ) -> String {
-    if field.required
-        || field.flattened
-        || type_implements_default(&field.type_ref, schema, implemented_types, base_derives)
-    {
+    let has_default = if !is_input_type && field.deprecation().is_some() {
+        type_known_to_implement_default(&field.type_ref, schema, base_derives)
+    } else {
+        type_implements_default(&field.type_ref, schema, implemented_types, base_derives)
+    };
+    if field.required || field.flattened || has_default {
         type_
     } else {
         format!("std::option::Option<{type_}>")
@@ -1813,6 +1883,7 @@ fn __render_type(
                                     Some(type_def),
                                 ),
                                 field,
+                                is_input_type,
                                 schema,
                                 implemented_types,
                                 &config.base_derives,
@@ -1869,6 +1940,7 @@ fn __render_type(
                                         Some(type_def),
                                     ),
                                     field,
+                                    is_input_type,
                                     schema,
                                     implemented_types,
                                     &config.base_derives,

@@ -1,5 +1,5 @@
 use reflectapi_field_presence_rust::types::field_presence::fixtures::{
-    input, output, Profile, Shared, Tuple,
+    input, output, Envelope, Profile, Shared, Tuple,
 };
 use serde_json::json;
 
@@ -70,5 +70,8 @@ fn generated_responses_may_omit_deprecated_fields() {
     assert_eq!(profile.legacy_tags, None);
     assert_eq!(profile.legacy_code, "");
     assert!(profile.legacy_config.is_none());
+    assert!(profile.legacy_rank.is_none());
+    let envelope: Envelope<u32> = serde_json::from_value(json!({"data": 1})).unwrap();
+    assert_eq!(envelope.result, None);
     assert!(serde_json::from_value::<Shared>(json!({"id": 1})).is_err());
 }
