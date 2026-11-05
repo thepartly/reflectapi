@@ -1,4 +1,6 @@
-use reflectapi_field_presence_rust::types::field_presence::fixtures::{input, output, Profile, Shared, Tuple};
+use reflectapi_field_presence_rust::types::field_presence::fixtures::{
+    input, output, Profile, Shared, Tuple,
+};
 use serde_json::json;
 
 #[test]
