@@ -1662,6 +1662,8 @@ fn field_to_ts_field(
     let contract = crate::codegen::schema::resolve_field_wire_contract(
         crate::codegen::schema::FieldWireFacts::of(field),
         schema,
+        // Only the key is read here; the value's nullability isn't.
+        crate::codegen::schema::Direction::Both,
     );
     templates::Field {
         name: field.serde_name().into(),

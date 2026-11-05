@@ -9,13 +9,18 @@ use std::collections::BTreeSet;
 use reflectapi_schema::{Field, Representation, Type, TypeReference};
 
 use super::layout::Lookup;
+use super::presence::Direction;
 use super::shape::Shape;
 
 /// Conservative: anything not known to reject `null`, such as a generic
 /// parameter or a type the typespace doesn't define, is assumed to accept it,
 /// so a client never refuses a value the server would read.
-pub(crate) fn accepts_null(type_ref: &TypeReference, lookup: Lookup<'_, '_>) -> bool {
-    reads_null(type_ref, lookup, &mut BTreeSet::new())
+pub(crate) fn accepts_null(
+    type_ref: &TypeReference,
+    lookup: Lookup<'_, '_>,
+    direction: Direction,
+) -> bool {
+    Resolver { lookup, direction }.reads_null(type_ref, &mut BTreeSet::new())
 }
 
 /// Wrappers that serde reads and writes as the `T` they hold.
@@ -42,11 +47,17 @@ fn unwrap_pointers(type_ref: &TypeReference) -> TypeReference {
     current
 }
 
-/// Primitives whose serde representation never includes `null`.
+/// Types whose serde representation never includes `null`, known by name
+/// because their definition doesn't say so: the schema shows
+/// `reflectapi::Empty` (`struct Empty {}`) and `reflectapi::Infallible` (an
+/// enum without variants) as unit structs.
 fn primitive_rejects_null(name: &str) -> bool {
     matches!(
         name,
-        "i8" | "i16"
+        "reflectapi::Empty"
+            | "reflectapi::Infallible"
+            | "i8"
+            | "i16"
             | "i32"
             | "i64"
             | "i128"
@@ -97,75 +108,84 @@ fn primitive_rejects_null(name: &str) -> bool {
         .is_some_and(|arity| arity > 0)
 }
 
-/// A wrapped field with a custom codec may read null whatever its type.
-fn field_reads_null(
-    field: &Field,
-    type_ref: &TypeReference,
-    lookup: Lookup<'_, '_>,
-    visiting: &mut BTreeSet<TypeReference>,
-) -> bool {
-    field.serialize_with || field.deserialize_with || reads_null(type_ref, lookup, visiting)
+struct Resolver<'a, 'l> {
+    lookup: Lookup<'a, 'l>,
+    direction: Direction,
 }
 
-fn reads_null(
-    type_ref: &TypeReference,
-    lookup: Lookup<'_, '_>,
-    visiting: &mut BTreeSet<TypeReference>,
-) -> bool {
-    let type_ref = unwrap_pointers(type_ref);
-    match type_ref.name.as_str() {
-        "std::option::Option"
-        | "reflectapi::Option"
-        | "std::tuple::Tuple0"
-        | "serde_json::Value" => return true,
-        name if primitive_rejects_null(name) => return false,
-        _ => {}
+impl Resolver<'_, '_> {
+    /// A wrapped field with a custom codec on this side may read null
+    /// whatever its type.
+    fn field_reads_null(
+        &self,
+        field: &Field,
+        type_ref: &TypeReference,
+        visiting: &mut BTreeSet<TypeReference>,
+    ) -> bool {
+        self.direction
+            .custom_codec(field.serialize_with, field.deserialize_with)
+            || self.reads_null(type_ref, visiting)
     }
-    if !visiting.insert(type_ref.clone()) {
-        return true;
-    }
-    let result = match lookup(&type_ref.name) {
-        None => true,
-        // A primitive's fallback describes its representation, not what its
-        // decoder accepts (`Weak<T>` falls back to `T` but reads null).
-        Some(Type::Primitive(_)) => true,
-        Some(Type::Struct(s)) => {
-            let bind = |inner: &TypeReference| substitute(inner, s.parameters(), &type_ref);
-            if s.transparent {
-                s.fields.iter().next().is_none_or(|field| {
-                    field_reads_null(field, &bind(&field.type_ref), lookup, visiting)
-                })
-            } else {
-                match Shape::of(&s.fields) {
-                    Shape::Unit => true,
-                    Shape::Newtype(field) => {
-                        field_reads_null(field, &bind(&field.type_ref), lookup, visiting)
+
+    fn reads_null(&self, type_ref: &TypeReference, visiting: &mut BTreeSet<TypeReference>) -> bool {
+        let type_ref = unwrap_pointers(type_ref);
+        match type_ref.name.as_str() {
+            "std::option::Option"
+            | "reflectapi::Option"
+            | "std::tuple::Tuple0"
+            | "serde_json::Value" => return true,
+            name if primitive_rejects_null(name) => return false,
+            _ => {}
+        }
+        if !visiting.insert(type_ref.clone()) {
+            return true;
+        }
+        let result = match (self.lookup)(&type_ref.name) {
+            None => true,
+            // A primitive's fallback describes its representation, not what its
+            // decoder accepts (`Weak<T>` falls back to `T` but reads null).
+            Some(Type::Primitive(_)) => true,
+            Some(Type::Struct(s)) => {
+                let bind = |inner: &TypeReference| substitute(inner, s.parameters(), &type_ref);
+                if s.transparent {
+                    s.fields.iter().next().is_none_or(|field| {
+                        self.field_reads_null(field, &bind(&field.type_ref), visiting)
+                    })
+                } else {
+                    match Shape::of(&s.fields) {
+                        Shape::Unit => true,
+                        Shape::Newtype(field) => {
+                            self.field_reads_null(field, &bind(&field.type_ref), visiting)
+                        }
+                        // A backend that strips `PhantomData` fields leaves
+                        // `struct Marker<T>(PhantomData<T>)`, which reads null, as
+                        // an empty tuple struct.
+                        Shape::Tuple([]) => true,
+                        Shape::Tuple(_) | Shape::Struct(_) => false,
                     }
-                    Shape::Tuple(_) | Shape::Struct(_) => false,
                 }
             }
-        }
-        // An untagged enum, or a tagged one's `#[serde(untagged)]` fallback
-        // variants, read whatever a variant on its own reads.
-        Some(Type::Enum(e)) => {
-            let untagged = e.representation == Representation::None;
-            e.variants
-                .iter()
-                .filter(|variant| untagged || variant.untagged)
-                .any(|variant| match Shape::of(&variant.fields) {
-                    Shape::Unit => true,
-                    Shape::Newtype(field) => field_reads_null(
-                        field,
-                        &substitute(&field.type_ref, e.parameters(), &type_ref),
-                        lookup,
-                        visiting,
-                    ),
-                    Shape::Tuple(_) | Shape::Struct(_) => false,
-                })
-        }
-    };
-    visiting.remove(&type_ref);
-    result
+            // An untagged enum, or a tagged one's `#[serde(untagged)]` fallback
+            // variants, read whatever a variant on its own reads.
+            Some(Type::Enum(e)) => {
+                let untagged = e.representation == Representation::None;
+                e.variants
+                    .iter()
+                    .filter(|variant| untagged || variant.untagged)
+                    .any(|variant| match Shape::of(&variant.fields) {
+                        Shape::Unit | Shape::Tuple([]) => true,
+                        Shape::Newtype(field) => self.field_reads_null(
+                            field,
+                            &substitute(&field.type_ref, e.parameters(), &type_ref),
+                            visiting,
+                        ),
+                        Shape::Tuple(_) | Shape::Struct(_) => false,
+                    })
+            }
+        };
+        visiting.remove(&type_ref);
+        result
+    }
 }
 
 /// Replace a definition's own type parameter with the argument the reference
@@ -231,6 +251,11 @@ mod tests {
                 {"kind": "struct", "name": "Lenient", "fields": {"unnamed": [
                     {"name": "0", "type": {"name": "u32"}, "deserialize_with": true}
                 ]}},
+                {"kind": "struct", "name": "Sorted", "fields": {"unnamed": [
+                    {"name": "0", "type": {"name": "u32"}, "serialize_with": true}
+                ]}},
+                {"kind": "struct", "name": "StrippedMarker", "fields": {"unnamed": []}},
+                {"kind": "struct", "name": "reflectapi::Empty", "fields": "none"},
                 {"kind": "enum", "name": "UntaggedValue", "representation": "none",
                  "variants": [{"name": "B", "fields": {"unnamed": [{"name": "0", "type": {"name": "u32"}}]}}]}
             ]}
@@ -241,7 +266,11 @@ mod tests {
     fn accepts(type_ref: serde_json::Value) -> bool {
         let type_ref: TypeReference = serde_json::from_value(type_ref).unwrap();
         let schema = schema();
-        accepts_null(&type_ref, &|name| schema.input_types.get_type(name))
+        accepts_null(
+            &type_ref,
+            &|name| schema.input_types.get_type(name),
+            Direction::Both,
+        )
     }
 
     #[test]
@@ -255,6 +284,7 @@ mod tests {
             "Internal",
             "UntaggedValue",
             "TaggedWithUntaggedValue",
+            "reflectapi::Empty",
         ] {
             assert!(!accepts(serde_json::json!({"name": name})), "{name}");
         }
@@ -266,6 +296,7 @@ mod tests {
             "Unit",
             "MaybeId",
             "Lenient",
+            "StrippedMarker",
             "UntaggedUnit",
             "Loop",
             "TaggedWithUntaggedUnit",
@@ -336,5 +367,18 @@ mod tests {
         ] {
             assert!(accepts(serde_json::json!({"name": name})), "{name}");
         }
+    }
+
+    #[test]
+    fn a_wrapped_codec_counts_only_on_its_own_side() {
+        let schema = schema();
+        let lookup = |name: &str| schema.input_types.get_type(name);
+        let accepts =
+            |name: &str, direction| accepts_null(&TypeReference::from(name), &lookup, direction);
+        assert!(accepts("Lenient", Direction::Request));
+        assert!(!accepts("Lenient", Direction::Response));
+        assert!(accepts("Sorted", Direction::Response));
+        assert!(!accepts("Sorted", Direction::Request));
+        assert!(accepts("Sorted", Direction::Both));
     }
 }

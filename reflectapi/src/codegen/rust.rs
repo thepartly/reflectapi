@@ -1674,6 +1674,8 @@ fn request_field_type_ref<'a>(
     let contract = crate::codegen::schema::resolve_field_wire_contract(
         crate::codegen::schema::FieldWireFacts::of(field),
         schema,
+        // Only the key is read here; the value's nullability isn't.
+        crate::codegen::schema::Direction::Both,
     );
     if is_input_type && contract.preserves_absence() && field.type_ref.name == "std::option::Option"
     {

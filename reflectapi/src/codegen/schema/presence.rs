@@ -18,15 +18,49 @@ use reflectapi_schema::{Field, Schema, TypeReference};
 
 use super::nullability::accepts_null;
 
+/// Which way the type holding a field crosses the wire. A custom codec only
+/// matters on its own side: the server reads requests with
+/// `deserialize_with` and writes responses with `serialize_with`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Direction {
+    Request,
+    Response,
+    Both,
+}
+
+impl Direction {
+    /// The direction of a type in a consolidated schema. A name in neither
+    /// typespace, such as a class synthesized by a backend, is `Both`.
+    pub fn of(schema: &Schema, type_name: &str) -> Self {
+        match (
+            schema.is_input_type(type_name),
+            schema.is_output_type(type_name),
+        ) {
+            (true, false) => Direction::Request,
+            (false, true) => Direction::Response,
+            _ => Direction::Both,
+        }
+    }
+
+    /// Whether the field has a custom codec that may read or write `null` for
+    /// any type in this direction.
+    pub(crate) fn custom_codec(self, serialize_with: bool, deserialize_with: bool) -> bool {
+        match self {
+            Direction::Request => deserialize_with,
+            Direction::Response => serialize_with,
+            Direction::Both => serialize_with || deserialize_with,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct FieldWireFacts<'a> {
     pub type_ref: &'a TypeReference,
     pub required: bool,
     pub named: bool,
     pub flattened: bool,
-    /// A custom serializer or deserializer, which may write or read null for
-    /// any type.
-    pub custom_codec: bool,
+    pub serialize_with: bool,
+    pub deserialize_with: bool,
 }
 
 impl<'a> FieldWireFacts<'a> {
@@ -36,7 +70,8 @@ impl<'a> FieldWireFacts<'a> {
             required: field.required,
             named: field.is_named(),
             flattened: field.flattened,
-            custom_codec: field.serialize_with || field.deserialize_with,
+            serialize_with: field.serialize_with,
+            deserialize_with: field.deserialize_with,
         }
     }
 
@@ -62,9 +97,10 @@ pub(crate) struct FieldWireContract {
     // The declared Rust type admits null. Custom codecs may change its wire
     // representation; use a reflected type override for such codecs.
     pub declared_nullable: bool,
-    /// Serde reads the value from `null`. Unlike `declared_nullable`, this
-    /// follows the type's definition: a unit struct or a newtype of an
-    /// `Option` reads null, and so does any field with a custom codec.
+    /// `null` is a valid value in the field's direction. Unlike
+    /// `declared_nullable`, this follows the type's definition: a unit struct
+    /// or a newtype of an `Option` reads null, and so does a field with a
+    /// custom codec on that side.
     pub value_accepts_null: bool,
     named: bool,
 }
@@ -108,12 +144,13 @@ pub(crate) fn key_presence(facts: FieldWireFacts<'_>) -> KeyPresence {
 pub(crate) fn resolve_field_wire_contract(
     facts: FieldWireFacts<'_>,
     schema: &Schema,
+    direction: Direction,
 ) -> FieldWireContract {
     FieldWireContract {
         key: key_presence(facts),
         declared_nullable: is_option(facts.type_ref),
-        value_accepts_null: facts.custom_codec
-            || accepts_null(facts.type_ref, &|name| schema.get_type(name)),
+        value_accepts_null: direction.custom_codec(facts.serialize_with, facts.deserialize_with)
+            || accepts_null(facts.type_ref, &|name| schema.get_type(name), direction),
         named: facts.named,
     }
 }
@@ -123,7 +160,7 @@ mod tests {
     use super::*;
 
     fn resolve(facts: FieldWireFacts<'_>) -> FieldWireContract {
-        resolve_field_wire_contract(facts, &Schema::new())
+        resolve_field_wire_contract(facts, &Schema::new(), Direction::Both)
     }
 
     fn facts(type_ref: &TypeReference, required: bool) -> FieldWireFacts<'_> {
@@ -132,7 +169,8 @@ mod tests {
             required,
             named: true,
             flattened: false,
-            custom_codec: false,
+            serialize_with: false,
+            deserialize_with: false,
         }
     }
 
@@ -150,14 +188,26 @@ mod tests {
     }
 
     #[test]
-    fn a_custom_codec_may_read_null_for_any_type() {
+    fn a_custom_codec_may_read_or_write_null_on_its_own_side() {
         let type_ref = TypeReference::from("u8");
-        let contract = resolve(FieldWireFacts {
-            custom_codec: true,
-            ..facts(&type_ref, false)
-        });
-        assert!(contract.value_accepts_null);
-        assert!(!contract.declared_nullable);
+        let accepts_null = |serialize_with, deserialize_with, direction| {
+            resolve_field_wire_contract(
+                FieldWireFacts {
+                    serialize_with,
+                    deserialize_with,
+                    ..facts(&type_ref, false)
+                },
+                &Schema::new(),
+                direction,
+            )
+            .value_accepts_null
+        };
+        assert!(accepts_null(false, true, Direction::Request));
+        assert!(!accepts_null(true, false, Direction::Request));
+        assert!(accepts_null(true, false, Direction::Response));
+        assert!(!accepts_null(false, true, Direction::Response));
+        assert!(accepts_null(true, false, Direction::Both));
+        assert!(accepts_null(false, true, Direction::Both));
     }
 
     #[test]
@@ -228,7 +278,8 @@ mod tests {
         let payload_accepts_null = |owner: &str| {
             let owner = schema.get_type(owner).unwrap().as_struct().unwrap();
             let field = owner.fields.iter().next().unwrap();
-            resolve_field_wire_contract(FieldWireFacts::of(field), &schema).value_accepts_null
+            resolve_field_wire_contract(FieldWireFacts::of(field), &schema, Direction::Both)
+                .value_accepts_null
         };
         // The request's unit struct reads null; the response's struct doesn't.
         assert!(payload_accepts_null("Request"));
