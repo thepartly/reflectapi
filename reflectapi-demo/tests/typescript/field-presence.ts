@@ -46,3 +46,9 @@ const nullDefault: field_presence.fixtures.input.Defaults = { count: null };
 // @ts-expect-error a default on deserialization does not omit its output key.
 const missingDefault: field_presence.fixtures.output.Defaults = {};
 void [defaults, nullDefault, missingDefault];
+
+// A response may leave out a deprecated field once the server removes it.
+const profile: field_presence.fixtures.Profile = { id: 1 };
+// @ts-expect-error a deprecated field of a type also sent as a request stays required.
+const missingOld: field_presence.fixtures.Shared = { id: 1 };
+void [profile, missingOld];

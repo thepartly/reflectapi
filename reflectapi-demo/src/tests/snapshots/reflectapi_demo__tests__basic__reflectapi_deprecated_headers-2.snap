@@ -52,7 +52,7 @@ export namespace reflectapi_demo {
          * @deprecated Deprecated since 2026-10-01; removal after 2026-11-01. Read `x-request-id` instead.
          * The old request id
          */
-        "x-legacy-request-id": string | null;
+        "x-legacy-request-id"?: string | null;
         "x-request-id": string | null;
       }
     }

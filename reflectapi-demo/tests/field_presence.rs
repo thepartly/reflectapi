@@ -1,5 +1,6 @@
 //! Directional field-presence fixtures shared by the generated SDK tests.
 
+#[allow(deprecated)]
 pub mod fixtures {
     fn deserialize_nullable<'de, D: serde::Deserializer<'de>>(
         deserializer: D,
@@ -155,12 +156,41 @@ pub mod fixtures {
         pub text: String,
     }
 
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Output)]
+    pub struct Config {
+        pub level: u32,
+    }
+
+    // Response-only: a newer server may have removed the deprecated fields.
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Output)]
+    pub struct Profile {
+        pub id: u32,
+        #[deprecated(note = "use id")]
+        pub legacy_tags: Option<std::collections::BTreeMap<String, u32>>,
+        #[deprecated(note = "use id")]
+        pub legacy_code: String,
+        #[deprecated(note = "use id")]
+        pub legacy_config: Config,
+    }
+
+    // Used in both directions, so a deprecated field stays required.
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    pub struct Shared {
+        pub id: u32,
+        #[deprecated(note = "use id")]
+        pub old: String,
+    }
+
     // Both directions agree when the serializer also omits absent values.
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct Equal {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub value: Option<String>,
     }
+}
+
+async fn profile(_: (), _: reflectapi::Empty, _: reflectapi::Empty) -> fixtures::Profile {
+    unimplemented!("schema-only route")
 }
 
 fn schema() -> reflectapi::Schema {
@@ -205,6 +235,11 @@ fn schema() -> reflectapi::Schema {
         .route(
             |_: (), input: fixtures::Defaulted, _: reflectapi::Empty| async { input },
             |b| b.name("fields.defaulted"),
+        )
+        .route(profile, |b| b.name("fields.profile"))
+        .route(
+            |_: (), input: fixtures::Shared, _: reflectapi::Empty| async { input },
+            |b| b.name("fields.shared"),
         )
         .build()
         .unwrap()
@@ -412,4 +447,21 @@ fn openapi_uses_the_same_directional_required_keys() {
         .all(|name| keys.contains(&serde_json::json!(name)))
             && !keys.contains(&serde_json::json!("skipped"))
     }));
+}
+
+#[test]
+fn openapi_lets_responses_omit_deprecated_fields() {
+    let spec = reflectapi::codegen::openapi::generate(&schema(), &Default::default()).unwrap();
+    let spec: serde_json::Value = serde_json::from_str(&spec).unwrap();
+    let required = |suffix: &str| {
+        let (_, definition) = spec["components"]["schemas"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(name, _)| name.ends_with(suffix))
+            .unwrap();
+        definition["required"].as_array().unwrap().clone()
+    };
+    assert_eq!(required(".Profile"), vec![serde_json::json!("id")]);
+    assert!(required(".Shared").contains(&serde_json::json!("old")));
 }

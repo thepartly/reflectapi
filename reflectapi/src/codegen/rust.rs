@@ -140,6 +140,7 @@ fn types_referenced_by(
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     super::validate_response_enums(&schema)?;
     schema.strip_hidden_fields();
+    super::schema::relax_deprecated_response_fields(&mut schema);
     let mut implemented_types = __build_implemented_types();
     for type_def in schema
         .input_types()

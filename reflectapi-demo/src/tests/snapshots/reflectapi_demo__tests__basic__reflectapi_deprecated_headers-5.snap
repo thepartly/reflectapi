@@ -45,12 +45,17 @@ class ReflectapiDemoTestsBasicRequestHeaders(ReflectapiPartialModel):
     )
 
 
-class ReflectapiDemoTestsBasicResponseHeaders(BaseModel):
+class ReflectapiDemoTestsBasicResponseHeaders(ReflectapiPartialModel):
     model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
     )
 
     x_legacy_request_id: str | None = Field(
+        default=None,
         serialization_alias="x-legacy-request-id",
         validation_alias="x-legacy-request-id",
         description="The old request id",

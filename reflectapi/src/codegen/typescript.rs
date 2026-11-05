@@ -48,6 +48,7 @@ pub fn generate(
     config: &Config,
 ) -> anyhow::Result<BTreeMap<String, String>> {
     schema.strip_hidden_fields();
+    super::schema::relax_deprecated_response_fields(&mut schema);
     super::validate_response_enums(&schema)?;
     let implemented_types = build_implemented_types();
 

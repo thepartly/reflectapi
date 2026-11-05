@@ -6,6 +6,7 @@
 // short term.
 #![allow(dead_code)]
 
+mod deprecation;
 mod ids;
 mod layout;
 mod normalize;
@@ -18,6 +19,7 @@ mod symbol;
 // Public-to-the-crate surface. Only what backends (currently just Python)
 // actually consume is re-exported; everything else stays accessible as
 // `self::ids::*`, `self::normalize::*`, etc. for the module's own tests.
+pub(crate) use self::deprecation::relax_deprecated_response_fields;
 pub(crate) use self::ids::{build_schema_ids, SchemaIds};
 pub(crate) use self::layout::{FlattenedGroup, Layout, Member, Opaque};
 pub(crate) use self::normalize::{Consolidation, Naming, Normalizer, PipelineBuilder};
