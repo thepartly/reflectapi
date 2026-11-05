@@ -68,7 +68,7 @@ fn defaulted_fields_of_generated_types_may_be_omitted() {
 fn generated_responses_may_omit_deprecated_fields() {
     let profile: Profile = serde_json::from_value(json!({"id": 1})).unwrap();
     assert_eq!(profile.legacy_tags, None);
-    assert_eq!(profile.legacy_code, "");
+    assert_eq!(profile.legacy_code, None);
     assert!(profile.legacy_config.is_none());
     assert!(profile.legacy_rank.is_none());
     let envelope: Envelope<u32> = serde_json::from_value(json!({"data": 1})).unwrap();

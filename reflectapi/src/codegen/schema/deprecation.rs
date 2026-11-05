@@ -4,24 +4,35 @@ use std::collections::HashSet;
 
 use reflectapi_schema::{Field, Representation, Schema, Type, TypeReference, Typespace};
 
+/// A field the transform made optional: its type, its variant if the type
+/// is an enum, and its name.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct RelaxedField {
+    pub type_name: String,
+    pub variant: Option<String>,
+    pub field: String,
+}
+
 /// A server removes a deprecated field once its sunset passes, so a client
 /// generated before that must decode responses without it. Only types that
 /// appear in responses alone are relaxed: a request type keeps the field
 /// required, because the server may still require it until it is removed,
 /// and so does every type a client decodes by trying it (see
-/// `types_matched_untagged`).
-/// Every generator runs this before consolidating the schema, so a type used
-/// in both directions is never split by it, and all of them agree on which
-/// keys a response may leave out.
-pub(crate) fn relax_deprecated_response_fields(schema: &mut Schema) {
-    let matched_untagged = types_matched_untagged(&schema.output_types);
-    let relaxed: Vec<String> = schema
+/// `types_decoded_by_trying`). Every generator runs this before
+/// consolidating the schema, so a type used in both directions is never
+/// split by it, and all of them agree on which keys a response may leave
+/// out. A relaxed type keeps its name through consolidation, so the returned
+/// fields can be looked up in the consolidated schema.
+pub(crate) fn relax_deprecated_response_fields(schema: &mut Schema) -> HashSet<RelaxedField> {
+    let tried = types_decoded_by_trying(&schema.output_types);
+    let candidates: Vec<String> = schema
         .output_types
         .types()
         .map(|t| t.name().to_string())
-        .filter(|name| !schema.input_types.has_type(name) && !matched_untagged.contains(name))
+        .filter(|name| !schema.input_types.has_type(name) && !tried.contains(name))
         .collect();
-    let relax = |field: &mut Field| {
+    let mut relaxed = HashSet::new();
+    let mut relax = |type_name: &str, variant: Option<&str>, field: &mut Field| {
         if field.deprecation().is_some()
             && field.required
             && field.is_named()
@@ -29,61 +40,117 @@ pub(crate) fn relax_deprecated_response_fields(schema: &mut Schema) {
             && !field.deserialize_with
         {
             field.required = false;
+            relaxed.insert(RelaxedField {
+                type_name: type_name.to_owned(),
+                variant: variant.map(str::to_owned),
+                field: field.name.clone(),
+            });
         }
     };
-    for name in relaxed {
+    for name in candidates {
         match schema.output_types.get_type_mut(&name) {
-            Some(Type::Struct(s)) => s.fields.iter_mut().for_each(relax),
+            Some(Type::Struct(s)) => s.fields.iter_mut().for_each(|f| relax(&name, None, f)),
             Some(Type::Enum(e)) => {
                 for variant in &mut e.variants {
-                    variant.fields.iter_mut().for_each(relax);
+                    let variant_name = variant.name.clone();
+                    variant
+                        .fields
+                        .iter_mut()
+                        .for_each(|f| relax(&name, Some(&variant_name), f));
                 }
             }
             _ => {}
         }
     }
+    relaxed
 }
 
-/// Types a client decodes by trying them in turn: untagged enums, enums with
-/// untagged variants, the type behind a flattened `Option`, and every type
-/// these reach. A first-match decoder takes the first variant that matches,
-/// and a flattened `Option` is `None` only when its type fails to decode, so
-/// an optional field anywhere inside could change what a payload decodes as.
-fn types_matched_untagged(types: &Typespace) -> HashSet<String> {
-    let mut pending: Vec<&TypeReference> = Vec::new();
+/// Types a client decodes by trying them in turn, and every type these
+/// reach. A first-match decoder takes the first variant that matches, and a
+/// flattened `Option` is `None` only when its type fails to decode, so an
+/// optional field anywhere inside could change what a payload decodes as.
+/// The seeds are untagged enums, enums with an untagged variant (a tagged
+/// variant that fails falls back to it), and the type behind a flattened
+/// `Option`. A generic type that is reached, or that flattens an `Option` of
+/// its own parameter, reaches the type arguments of every use of it.
+fn types_decoded_by_trying(types: &Typespace) -> HashSet<String> {
     let mut seen = HashSet::new();
+    let mut pending: Vec<&TypeReference> = Vec::new();
     for ty in types.types() {
-        match ty {
-            Type::Enum(e) => {
-                let untagged = e.representation == Representation::None;
-                for variant in &e.variants {
-                    if untagged || variant.untagged {
-                        seen.insert(e.name.clone());
-                        pending.extend(variant.fields.iter().map(|f| &f.type_ref));
-                    }
-                    pending.extend(flattened_options(variant.fields.iter()));
+        let parameters: HashSet<&str> = ty.parameters().map(|p| p.name.as_str()).collect();
+        let seed_flattened = |fields: &'_ reflectapi_schema::Fields, seen: &mut HashSet<String>| {
+            for inner in flattened_options(fields.iter()) {
+                if parameters.contains(inner.name.as_str()) {
+                    seen.insert(ty.name().to_owned());
                 }
             }
-            Type::Struct(s) => pending.extend(flattened_options(s.fields.iter())),
+        };
+        match ty {
+            Type::Enum(e) => {
+                if e.representation == Representation::None || e.variants.iter().any(|v| v.untagged)
+                {
+                    seen.insert(e.name.clone());
+                    pending.extend(
+                        e.variants
+                            .iter()
+                            .flat_map(|v| v.fields.iter().map(|f| &f.type_ref)),
+                    );
+                }
+                for variant in &e.variants {
+                    pending.extend(flattened_options(variant.fields.iter()));
+                    seed_flattened(&variant.fields, &mut seen);
+                }
+            }
+            Type::Struct(s) => {
+                pending.extend(flattened_options(s.fields.iter()));
+                seed_flattened(&s.fields, &mut seen);
+            }
             Type::Primitive(_) => {}
         }
     }
-    while let Some(type_ref) = pending.pop() {
-        pending.extend(type_ref.arguments.iter());
-        if !seen.insert(type_ref.name.clone()) {
-            continue;
+    let uses: Vec<&TypeReference> = types
+        .types()
+        .flat_map(|ty| match ty {
+            Type::Struct(s) => s.fields.iter().collect::<Vec<_>>(),
+            Type::Enum(e) => e.variants.iter().flat_map(|v| v.fields.iter()).collect(),
+            Type::Primitive(_) => Vec::new(),
+        })
+        .map(|f| &f.type_ref)
+        .collect();
+    loop {
+        while let Some(type_ref) = pending.pop() {
+            pending.extend(type_ref.arguments.iter());
+            if !seen.insert(type_ref.name.clone()) {
+                continue;
+            }
+            match types.get_type(&type_ref.name) {
+                Some(Type::Struct(s)) => pending.extend(s.fields.iter().map(|f| &f.type_ref)),
+                Some(Type::Enum(e)) => pending.extend(
+                    e.variants
+                        .iter()
+                        .flat_map(|v| v.fields.iter().map(|f| &f.type_ref)),
+                ),
+                _ => {}
+            }
         }
-        match types.get_type(&type_ref.name) {
-            Some(Type::Struct(s)) => pending.extend(s.fields.iter().map(|f| &f.type_ref)),
-            Some(Type::Enum(e)) => pending.extend(
-                e.variants
-                    .iter()
-                    .flat_map(|v| v.fields.iter().map(|f| &f.type_ref)),
-            ),
-            _ => {}
+        // A use of a reached generic type, possibly nested in another
+        // type's arguments, reaches its arguments.
+        let mut stack = uses.clone();
+        while let Some(type_ref) = stack.pop() {
+            if seen.contains(&type_ref.name) {
+                pending.extend(
+                    type_ref
+                        .arguments
+                        .iter()
+                        .filter(|argument| !seen.contains(&argument.name)),
+                );
+            }
+            stack.extend(type_ref.arguments.iter());
+        }
+        if pending.is_empty() {
+            return seen;
         }
     }
-    seen
 }
 
 /// The types behind flattened `Option` fields.
@@ -145,11 +212,38 @@ mod tests {
                 {"kind": "struct", "name": "Holder", "fields": {"named": [
                     {"name": "group", "required": true, "flattened": true, "type": {"name": "std::option::Option", "arguments": [{"name": "Group"}]}}
                 ]}},
-                {"kind": "struct", "name": "Group", "fields": {"named": [field("old", true)]}}
+                {"kind": "struct", "name": "Group", "fields": {"named": [field("old", true)]}},
+                {"kind": "enum", "name": "WithFallback", "variants": [
+                    {"name": "Tagged", "fields": {"unnamed": [{"name": "0", "type": {"name": "TaggedPayload"}}]}},
+                    {"name": "Rest", "untagged": true, "fields": {"unnamed": [{"name": "0", "type": {"name": "u32"}}]}}
+                ]},
+                {"kind": "struct", "name": "TaggedPayload", "fields": {"named": [field("old", true)]}},
+                {"kind": "enum", "name": "Either", "representation": "none",
+                    "parameters": [{"name": "L"}, {"name": "R"}],
+                    "variants": [
+                        {"name": "Left", "fields": {"unnamed": [{"name": "0", "type": {"name": "L"}}]}},
+                        {"name": "Right", "fields": {"unnamed": [{"name": "0", "type": {"name": "R"}}]}}
+                    ]},
+                {"kind": "struct", "name": "Lefty", "fields": {"named": [field("old", true)]}},
+                {"kind": "struct", "name": "Holds", "parameters": [{"name": "T"}], "fields": {"named": [
+                    {"name": "group", "required": true, "flattened": true, "type": {"name": "std::option::Option", "arguments": [{"name": "T"}]}}
+                ]}},
+                {"kind": "struct", "name": "Held", "fields": {"named": [field("old", true)]}},
+                {"kind": "struct", "name": "User", "fields": {"named": [
+                    {"name": "either", "required": true, "type": {"name": "std::vec::Vec", "arguments": [
+                        {"name": "Either", "arguments": [{"name": "Lefty"}, {"name": "u32"}]}
+                    ]}},
+                    {"name": "holds", "required": true, "type": {"name": "Holds", "arguments": [{"name": "Held"}]}}
+                ]}}
             ]}
         }))
         .unwrap();
-        super::relax_deprecated_response_fields(&mut schema);
+        let relaxed = super::relax_deprecated_response_fields(&mut schema);
+        assert!(relaxed.contains(&RelaxedField {
+            type_name: "Event".into(),
+            variant: Some("Changed".into()),
+            field: "old".into(),
+        }));
         let required = |ts: &reflectapi_schema::Typespace, ty: &str| -> Vec<(String, bool)> {
             let fields = match ts.get_type(ty).unwrap() {
                 Type::Struct(s) => s.fields.iter().collect::<Vec<_>>(),
@@ -184,7 +278,17 @@ mod tests {
         );
         // A tagged enum's untagged variants, and the type behind a flattened
         // `Option`, are decoded by trying them too.
-        for name in ["Fallback", "Unmatched", "Group"] {
+        // So are a tagged variant of an enum with an untagged fallback, and
+        // the arguments of a generic untagged enum or of a generic type
+        // flattening an `Option` of its parameter, wherever it is used.
+        for name in [
+            "Fallback",
+            "Unmatched",
+            "Group",
+            "TaggedPayload",
+            "Lefty",
+            "Held",
+        ] {
             assert_eq!(
                 required(&schema.output_types, name),
                 [("old".into(), true)],

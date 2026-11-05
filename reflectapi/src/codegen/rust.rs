@@ -140,7 +140,7 @@ fn types_referenced_by(
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     super::validate_response_enums(&schema)?;
     schema.strip_hidden_fields();
-    super::schema::relax_deprecated_response_fields(&mut schema);
+    let relaxed_fields = super::schema::relax_deprecated_response_fields(&mut schema);
     let mut implemented_types = __build_implemented_types();
     for type_def in schema
         .input_types()
@@ -201,6 +201,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
                     || extra_serializable_types.contains(&original_type_name),
                 schema.is_output_type(&original_type_name),
                 error_types.contains(&original_type_name),
+                &relaxed_fields,
             )?,
         );
     }
@@ -1704,90 +1705,32 @@ fn type_implements_default(
     }
 }
 
-/// Like `type_implements_default`, but assumes nothing: a type parameter, a
-/// mapped type or a primitive outside this list may lack `Default`.
-fn type_known_to_implement_default(
-    type_ref: &crate::TypeReference,
-    schema: &crate::Schema,
-    base_derives: &BTreeSet<String>,
-) -> bool {
-    let mut type_ref = type_ref;
-    while matches!(
-        type_ref.name.as_str(),
-        "std::boxed::Box" | "std::rc::Rc" | "std::sync::Arc"
-    ) {
-        match type_ref.arguments.first() {
-            Some(inner) => type_ref = inner,
-            None => return false,
-        }
-    }
-    if matches!(
-        type_ref.name.as_str(),
-        "u8" | "u16"
-            | "u32"
-            | "u64"
-            | "u128"
-            | "usize"
-            | "i8"
-            | "i16"
-            | "i32"
-            | "i64"
-            | "i128"
-            | "isize"
-            | "f32"
-            | "f64"
-            | "bool"
-            | "char"
-            | "std::string::String"
-            | "std::vec::Vec"
-            | "std::collections::HashMap"
-            | "std::collections::BTreeMap"
-            | "std::collections::HashSet"
-            | "std::collections::BTreeSet"
-            | "std::collections::VecDeque"
-            | "std::option::Option"
-            | "reflectapi::Option"
-            | "std::time::Duration"
-            | "std::tuple::Tuple0"
-            | "serde_json::Value"
-    ) {
-        return true;
-    }
-    let derives = |config: &reflectapi_schema::LanguageSpecificTypeCodegenConfig| {
-        base_derives.contains("Default") || config.rust.additional_derives.contains("Default")
-    };
-    match schema
-        .input_types
-        .get_type(&type_ref.name)
-        .or_else(|| schema.output_types.get_type(&type_ref.name))
-    {
-        Some(crate::Type::Struct(s)) => derives(&s.codegen_config),
-        Some(crate::Type::Enum(e)) => derives(&e.codegen_config),
-        _ => false,
-    }
-}
-
 /// A field the server fills with `Default` when its key is missing. When the
 /// client's own type can't do the same, it becomes `Option<T>`: `None` leaves
 /// the key out and lets the server apply its default.
 ///
-/// A deprecated response field may be optional only because the client must
-/// survive its removal, so nothing on the server vouches for `Default`. It
-/// keeps its type only when the type is known to implement `Default`.
+/// A deprecated response field that was relaxed so the client survives its
+/// removal has no server default behind it, so it becomes `Option<T>` unless
+/// it already is one: `Option<T>` implements `Default` whatever `T` is.
 fn optional_field_type(
     type_: String,
     field: &crate::Field,
-    is_input_type: bool,
+    relaxed: bool,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     base_derives: &BTreeSet<String>,
 ) -> String {
-    let has_default = if !is_input_type && field.deprecation().is_some() {
-        type_known_to_implement_default(&field.type_ref, schema, base_derives)
+    let keeps_type = if relaxed {
+        matches!(
+            field.type_ref.name.as_str(),
+            "std::option::Option" | "reflectapi::Option"
+        )
     } else {
-        type_implements_default(&field.type_ref, schema, implemented_types, base_derives)
+        field.required
+            || field.flattened
+            || type_implements_default(&field.type_ref, schema, implemented_types, base_derives)
     };
-    if field.required || field.flattened || has_default {
+    if keeps_type {
         type_
     } else {
         format!("std::option::Option<{type_}>")
@@ -1817,6 +1760,7 @@ fn request_field_type_ref<'a>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn __render_type(
     config: &Config,
     type_def: &crate::Type,
@@ -1825,8 +1769,16 @@ fn __render_type(
     is_input_type: bool,
     is_output_type: bool,
     is_error_type: bool,
+    relaxed_fields: &HashSet<crate::codegen::schema::RelaxedField>,
 ) -> Result<String, anyhow::Error> {
     let type_name = __type_to_ts_name(type_def);
+    let relaxed = |variant: Option<&str>, field: &crate::Field| {
+        relaxed_fields.contains(&crate::codegen::schema::RelaxedField {
+            type_name: type_def.name().to_owned(),
+            variant: variant.map(str::to_owned),
+            field: field.name.clone(),
+        })
+    };
     let type_name_depth = type_def.name().split("::").count() - 1;
 
     Ok(match type_def {
@@ -1883,7 +1835,7 @@ fn __render_type(
                                     Some(type_def),
                                 ),
                                 field,
-                                is_input_type,
+                                relaxed(None, field),
                                 schema,
                                 implemented_types,
                                 &config.base_derives,
@@ -1940,7 +1892,7 @@ fn __render_type(
                                         Some(type_def),
                                     ),
                                     field,
-                                    is_input_type,
+                                    relaxed(Some(variant.name()), field),
                                     schema,
                                     implemented_types,
                                     &config.base_derives,

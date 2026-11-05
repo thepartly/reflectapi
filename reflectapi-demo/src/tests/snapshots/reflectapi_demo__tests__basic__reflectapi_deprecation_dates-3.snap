@@ -100,26 +100,26 @@ pub mod types {
 
                     #[derive(Debug, serde::Deserialize)]
                     pub struct StructWithDeprecationDates {
-    #[serde(default = "Default::default")]
+    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
     #[deprecated(note = "Deprecated since 2026-10-01; removal after 2026-11-01. Use `current` instead.")]
-    pub _since_and_sunset: u8,
-    #[serde(default = "Default::default")]
+    pub _since_and_sunset: std::option::Option<u8>,
+    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
     #[deprecated(note = "Deprecated since 2026-10-01.")]
-    pub _since_only: u8,
+    pub _since_only: std::option::Option<u8>,
     #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
     #[deprecated(note = "Removal after 2026-11-01.")]
     pub _sunset_only: std::option::Option<u8>,
     /// rustc's `since` is the release, kept verbatim.
-    #[serde(default = "Default::default")]
+    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
     #[deprecated(note = "Deprecated in 1.2.0. Versioned.")]
-    pub _release_only: u8,
+    pub _release_only: std::option::Option<u8>,
     /// It is never read as a date, even when it looks like one.
-    #[serde(default = "Default::default")]
+    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
     #[deprecated(note = "Deprecated in 2026-10-01.")]
-    pub _release_like_a_date: u8,
-    #[serde(default = "Default::default")]
+    pub _release_like_a_date: std::option::Option<u8>,
+    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
     #[deprecated(note = "Deprecated in 2.3.0, since 2026-10-01; removal after 2026-11-01. Use `current` instead.")]
-    pub _release_and_dates: u8,
+    pub _release_and_dates: std::option::Option<u8>,
     pub _current: super::super::super::super::reflectapi_demo::tests::basic::EnumWithDeprecatedVariants,
 }
                 }
