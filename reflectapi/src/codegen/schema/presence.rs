@@ -12,11 +12,10 @@
 //! group optional only when its type is an `Option`.
 //!
 //! Whether the value may be null depends on the type's definition, so the
-//! contract is resolved with the typespace being rendered.
+//! contract is resolved against the schema being rendered.
 
-use reflectapi_schema::{Field, TypeReference};
+use reflectapi_schema::{Field, Schema, TypeReference};
 
-use super::layout::Lookup;
 use super::nullability::accepts_null;
 
 #[derive(Debug, Clone, Copy)]
@@ -102,14 +101,19 @@ pub(crate) fn key_presence(facts: FieldWireFacts<'_>) -> KeyPresence {
     }
 }
 
+/// `schema` must be consolidated (`Schema::consolidate_types`), as every
+/// generator does before rendering. Then a type name has one definition: a
+/// request and a response type that share a name but differ are renamed to
+/// `input::` and `output::` names, and so are the references to them.
 pub(crate) fn resolve_field_wire_contract(
     facts: FieldWireFacts<'_>,
-    lookup: Lookup<'_, '_>,
+    schema: &Schema,
 ) -> FieldWireContract {
     FieldWireContract {
         key: key_presence(facts),
         declared_nullable: is_option(facts.type_ref),
-        value_accepts_null: facts.custom_codec || accepts_null(facts.type_ref, lookup),
+        value_accepts_null: facts.custom_codec
+            || accepts_null(facts.type_ref, &|name| schema.get_type(name)),
         named: facts.named,
     }
 }
@@ -118,12 +122,8 @@ pub(crate) fn resolve_field_wire_contract(
 mod tests {
     use super::*;
 
-    fn no_types(_: &str) -> Option<&'static reflectapi_schema::Type> {
-        None
-    }
-
     fn resolve(facts: FieldWireFacts<'_>) -> FieldWireContract {
-        resolve_field_wire_contract(facts, &no_types)
+        resolve_field_wire_contract(facts, &Schema::new())
     }
 
     fn facts(type_ref: &TypeReference, required: bool) -> FieldWireFacts<'_> {
@@ -201,5 +201,37 @@ mod tests {
                 assert!(!contract.preserves_absence());
             }
         }
+    }
+
+    #[test]
+    fn a_request_and_a_response_type_sharing_a_name_resolve_separately() {
+        let mut schema: Schema = serde_json::from_value(serde_json::json!({
+            "name": "directions",
+            "input_types": {"types": [
+                {"kind": "struct", "name": "Payload", "fields": "none"},
+                {"kind": "struct", "name": "Request", "fields": {"named": [
+                    {"name": "payload", "type": {"name": "Payload"}}
+                ]}}
+            ]},
+            "output_types": {"types": [
+                {"kind": "primitive", "name": "u32"},
+                {"kind": "struct", "name": "Payload", "fields": {"named": [
+                    {"name": "a", "type": {"name": "u32"}, "required": true}
+                ]}},
+                {"kind": "struct", "name": "Response", "fields": {"named": [
+                    {"name": "payload", "type": {"name": "Payload"}}
+                ]}}
+            ]}
+        }))
+        .unwrap();
+        schema.consolidate_types();
+        let payload_accepts_null = |owner: &str| {
+            let owner = schema.get_type(owner).unwrap().as_struct().unwrap();
+            let field = owner.fields.iter().next().unwrap();
+            resolve_field_wire_contract(FieldWireFacts::of(field), &schema).value_accepts_null
+        };
+        // The request's unit struct reads null; the response's struct doesn't.
+        assert!(payload_accepts_null("Request"));
+        assert!(!payload_accepts_null("Response"));
     }
 }

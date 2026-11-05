@@ -1673,7 +1673,7 @@ fn request_field_type_ref<'a>(
 ) -> std::borrow::Cow<'a, crate::TypeReference> {
     let contract = crate::codegen::schema::resolve_field_wire_contract(
         crate::codegen::schema::FieldWireFacts::of(field),
-        &|name| schema.get_type(name),
+        schema,
     );
     if is_input_type && contract.preserves_absence() && field.type_ref.name == "std::option::Option"
     {

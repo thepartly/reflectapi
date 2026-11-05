@@ -83,8 +83,7 @@ fn resolve_field_optionality(
     schema: &Schema,
     field_type: String,
 ) -> (bool, Option<String>, String, bool) {
-    let contract =
-        schema_codegen::resolve_field_wire_contract(facts, &|name| schema.get_type(name));
+    let contract = schema_codegen::resolve_field_wire_contract(facts, schema);
     // A flattened field rendered as an ordinary field is present exactly when
     // its group is.
     let may_be_absent = matches!(
@@ -111,11 +110,8 @@ fn resolve_field_optionality(
 /// key, so its `required` flag doesn't apply; only an `Option` type makes the
 /// group optional.
 fn flattened_group_required(field: &reflectapi_schema::Field, schema: &Schema) -> bool {
-    schema_codegen::resolve_field_wire_contract(
-        schema_codegen::FieldWireFacts::of(field),
-        &|name| schema.get_type(name),
-    )
-    .flattened_group_required()
+    schema_codegen::resolve_field_wire_contract(schema_codegen::FieldWireFacts::of(field), schema)
+        .flattened_group_required()
 }
 
 /// Preserve omission separately from explicit null for omittable reflectapi
