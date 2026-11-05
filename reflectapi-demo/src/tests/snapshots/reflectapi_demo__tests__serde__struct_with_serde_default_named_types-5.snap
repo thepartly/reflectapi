@@ -100,7 +100,7 @@ class ReflectapiDemoTestsSerdeInputTestStructWithSerdeDefaultNamedTypes(
     structure: reflectapi_demo.tests.serde.TestDefaultStruct | None = None
     tagged: reflectapi_demo.tests.serde.TestDefaultTaggedEnum | None = None
     untagged: reflectapi_demo.tests.serde.TestDefaultUntaggedEnum | None = None
-    nullable_newtype: int | None | None = None
+    nullable_newtype: int | None = None
 
     @field_validator("structure", "tagged", mode="before")
     @classmethod

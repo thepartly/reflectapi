@@ -100,7 +100,12 @@ fn resolve_field_optionality(
         (true, false) => (
             true,
             Some("None".to_string()),
-            format!("{field_type} | None"),
+            if top_level_alternatives(&field_type).contains(&"None") {
+                // `None | None` doesn't evaluate: a unit type already is None.
+                field_type
+            } else {
+                format!("{field_type} | None")
+            },
             reject_null,
         ),
         (false, _) => (false, None, field_type, false),
@@ -124,6 +129,27 @@ fn flattened_group_required(field: &reflectapi_schema::Field, schema: &Schema) -
 /// without `serde(default)`, Serde decodes a missing reflectapi option as None.
 fn is_partial_field(field: &reflectapi_schema::Field) -> bool {
     !field.required && field.type_ref.name == "reflectapi::Option"
+}
+
+/// The `|`-separated members of an annotation, outside any brackets.
+fn top_level_alternatives(annotation: &str) -> Vec<&str> {
+    let annotation = annotation.trim();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    let mut alternatives = Vec::new();
+    for (index, character) in annotation.char_indices() {
+        match character {
+            '[' | '(' => depth += 1,
+            ']' | ')' => depth = depth.saturating_sub(1),
+            '|' if depth == 0 => {
+                alternatives.push(annotation[start..index].trim());
+                start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    alternatives.push(annotation[start..].trim());
+    alternatives
 }
 
 struct PythonTypeMapping {
@@ -7077,7 +7103,16 @@ pub mod templates {
                     }
                 });
 
-                if desc.is_some() || field.alias.is_some() || deprecated.is_some() {
+                // Pydantic 2.12.0-2.12.2 on Python 3.14 rejects `x: None = None`
+                // under postponed annotations: it mistakes the evaluated
+                // annotation for the default and reports a name clash.
+                let none_annotation = field.type_annotation.trim() == "None"
+                    && (field.optional || field.default_value.is_some());
+                if desc.is_some()
+                    || field.alias.is_some()
+                    || deprecated.is_some()
+                    || none_annotation
+                {
                     // Need Field() with named arguments
                     write!(s, " = Field(").unwrap();
                     let mut args = Vec::new();
@@ -9058,6 +9093,35 @@ mod tests {
         sanitize_for_docstring, Config,
     };
     use crate::TypeReference;
+
+    #[test]
+    fn omittable_field_of_a_unit_type_is_none_once() {
+        let schema: crate::Schema = serde_json::from_value(serde_json::json!({
+            "name": "units",
+            "input_types": {"types": [
+                {"kind": "primitive", "name": "std::tuple::Tuple0"},
+                {"kind": "struct", "name": "Marker", "fields": "none"},
+                {"kind": "struct", "name": "Request", "fields": {"named": [
+                    {"name": "nothing", "type": {"name": "std::tuple::Tuple0"}},
+                    {"name": "marker", "type": {"name": "Marker"}}
+                ]}}
+            ]}
+        }))
+        .unwrap();
+        let python = super::generate(
+            schema,
+            &Config {
+                format: false,
+                ..Config::default()
+            },
+        )
+        .unwrap();
+        assert!(
+            python.contains("nothing: None = Field(default=None)\n"),
+            "{python}"
+        );
+        assert!(!python.contains("None | None"), "{python}");
+    }
 
     #[test]
     fn optional_nonnullable_fields_reject_explicit_null_without_validating_defaults() {
