@@ -80,9 +80,11 @@ struct PythonMetadataUsage {
 /// controls whether it must be appended for fields that may be absent.
 fn resolve_field_optionality(
     facts: schema_codegen::FieldWireFacts<'_>,
+    schema: &Schema,
+    direction: schema_codegen::Direction,
     field_type: String,
 ) -> (bool, Option<String>, String, bool) {
-    let contract = schema_codegen::resolve_field_wire_contract(facts);
+    let contract = schema_codegen::resolve_field_wire_contract(facts, schema, direction);
     // A flattened field rendered as an ordinary field is present exactly when
     // its group is.
     let may_be_absent = matches!(
@@ -90,7 +92,7 @@ fn resolve_field_optionality(
         schema_codegen::KeyPresence::Optional
             | schema_codegen::KeyPresence::Flattened { optional: true }
     );
-    let reject_null = may_be_absent && rendered_type_is_nonnullable(&field_type);
+    let reject_null = may_be_absent && !contract.value_accepts_null;
     match (may_be_absent, contract.declared_nullable) {
         (true, true) => (true, Some("None".to_string()), field_type, reject_null),
         // None remains the omission default; generated field validators reject
@@ -108,9 +110,13 @@ fn resolve_field_optionality(
 /// Whether a flattened field's group must be present. A flattened field has no
 /// key, so its `required` flag doesn't apply; only an `Option` type makes the
 /// group optional.
-fn flattened_group_required(field: &reflectapi_schema::Field) -> bool {
-    schema_codegen::resolve_field_wire_contract(schema_codegen::FieldWireFacts::of(field))
-        .flattened_group_required()
+fn flattened_group_required(field: &reflectapi_schema::Field, schema: &Schema) -> bool {
+    schema_codegen::resolve_field_wire_contract(
+        schema_codegen::FieldWireFacts::of(field),
+        schema,
+        schema_codegen::Direction::Both,
+    )
+    .flattened_group_required()
 }
 
 /// Preserve omission separately from explicit null for omittable reflectapi
@@ -118,37 +124,6 @@ fn flattened_group_required(field: &reflectapi_schema::Field) -> bool {
 /// without `serde(default)`, Serde decodes a missing reflectapi option as None.
 fn is_partial_field(field: &reflectapi_schema::Field) -> bool {
     !field.required && field.type_ref.name == "reflectapi::Option"
-}
-
-/// Reject null only when the rendered value type is provably nonnullable.
-/// Named models and aliases may hide nullable RootModels or enum variants;
-/// generic arguments and custom codecs cannot establish a stronger contract.
-fn rendered_type_is_nonnullable(annotation: &str) -> bool {
-    let annotation = annotation.trim();
-    let mut depth = 0usize;
-    let mut start = 0usize;
-    let mut alternatives = Vec::new();
-    for (index, character) in annotation.char_indices() {
-        match character {
-            '[' | '(' => depth += 1,
-            ']' | ')' => depth = depth.saturating_sub(1),
-            '|' if depth == 0 => {
-                alternatives.push(&annotation[start..index]);
-                start = index + 1;
-            }
-            _ => {}
-        }
-    }
-    if !alternatives.is_empty() {
-        alternatives.push(&annotation[start..]);
-        return alternatives.into_iter().all(rendered_type_is_nonnullable);
-    }
-    matches!(annotation, "int" | "str" | "float" | "bool" | "bytes")
-        || annotation.strip_suffix(']').is_some_and(|body| {
-            ["list[", "dict[", "tuple[", "set[", "frozenset["]
-                .iter()
-                .any(|prefix| body.starts_with(prefix))
-        })
 }
 
 struct PythonTypeMapping {
@@ -825,7 +800,7 @@ fn materialize_nested_policy_flatten(
                         &inner.fields,
                         schema,
                         depth + 1,
-                        required && flattened_group_required(field),
+                        required && flattened_group_required(field, schema),
                         policy_count,
                         nested_policy,
                     ));
@@ -954,6 +929,7 @@ fn render_struct_with_flattened_tagged_enum(
     flattened_groups: &[templates::FlattenedGroup],
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
+    let direction = schema_codegen::Direction::of(schema, &struct_def.name);
     let mut output = String::new();
     let mut union_variant_names: Vec<String> = Vec::new();
 
@@ -969,8 +945,12 @@ fn render_struct_with_flattened_tagged_enum(
             active_generics,
             used_type_vars,
         )?;
-        let (optional, default_value, final_type, reject_null) =
-            resolve_field_optionality(schema_codegen::FieldWireFacts::of(field), field_type);
+        let (optional, default_value, final_type, reject_null) = resolve_field_optionality(
+            schema_codegen::FieldWireFacts::of(field),
+            schema,
+            direction,
+            field_type,
+        );
         base_fields.push(templates::Field {
             name: python_name,
             type_annotation: final_type,
@@ -993,6 +973,7 @@ fn render_struct_with_flattened_tagged_enum(
             let flattened = collect_flattened_fields(
                 field,
                 schema,
+                direction,
                 implemented_types,
                 class_names,
                 active_generics,
@@ -1022,6 +1003,8 @@ fn render_struct_with_flattened_tagged_enum(
                     sanitize_field_name_with_alias(field.name(), field.serde_name());
                 let (optional, default_value, final_type, reject_null) = resolve_field_optionality(
                     schema_codegen::FieldWireFacts::of(field),
+                    schema,
+                    direction,
                     field_type,
                 );
                 base_fields.push(templates::Field {
@@ -1083,8 +1066,12 @@ fn render_struct_with_flattened_tagged_enum(
         }
         let (enum_field_name, _) =
             sanitize_field_name_with_alias(enum_field.name(), enum_field.name());
-        let (enum_optional, enum_default, enum_type, enum_reject_null) =
-            resolve_field_optionality(schema_codegen::FieldWireFacts::of(enum_field), enum_type);
+        let (enum_optional, enum_default, enum_type, enum_reject_null) = resolve_field_optionality(
+            schema_codegen::FieldWireFacts::of(enum_field),
+            schema,
+            direction,
+            enum_type,
+        );
         let enum_class_check = if enum_type.starts_with(&enum_class) {
             enum_class
         } else {
@@ -1251,6 +1238,8 @@ fn render_struct_with_flattened_tagged_enum(
                     let (optional, default_value, final_type, reject_null) =
                         resolve_field_optionality(
                             schema_codegen::FieldWireFacts::of(vf),
+                            schema,
+                            direction,
                             field_type,
                         );
                     let (sanitized, alias) =
@@ -1293,6 +1282,7 @@ fn render_struct_with_flattened_tagged_enum(
                             let nested = collect_flattened_fields(
                                 sf,
                                 schema,
+                                direction,
                                 implemented_types,
                                 class_names,
                                 active_generics,
@@ -1314,6 +1304,8 @@ fn render_struct_with_flattened_tagged_enum(
                         let (optional, default_value, final_type, reject_null) =
                             resolve_field_optionality(
                                 schema_codegen::FieldWireFacts::of(sf),
+                                schema,
+                                direction,
                                 field_type,
                             );
                         fields.push(templates::Field {
@@ -1393,6 +1385,7 @@ fn render_struct_with_flatten_standard(
     flattened_groups: Vec<templates::FlattenedGroup>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
+    let direction = schema_codegen::Direction::of(schema, &struct_def.name);
     let mut all_fields = Vec::new();
 
     // Add regular fields
@@ -1407,8 +1400,12 @@ fn render_struct_with_flatten_standard(
             used_type_vars,
         )?;
 
-        let (optional, default_value, final_type, reject_null) =
-            resolve_field_optionality(schema_codegen::FieldWireFacts::of(field), field_type);
+        let (optional, default_value, final_type, reject_null) = resolve_field_optionality(
+            schema_codegen::FieldWireFacts::of(field),
+            schema,
+            direction,
+            field_type,
+        );
         all_fields.push(templates::Field {
             name: python_name,
             type_annotation: final_type,
@@ -1429,6 +1426,7 @@ fn render_struct_with_flatten_standard(
         let flattened_fields = collect_flattened_fields(
             field,
             schema,
+            direction,
             implemented_types,
             class_names,
             active_generics,
@@ -4010,6 +4008,7 @@ fn render_type(
 fn collect_flattened_fields(
     field: &reflectapi_schema::Field,
     schema: &Schema,
+    direction: schema_codegen::Direction,
     implemented_types: &BTreeMap<String, String>,
     class_names: &BTreeMap<String, String>,
     active_generics: &[String],
@@ -4023,6 +4022,7 @@ fn collect_flattened_fields(
         !group.optional,
         0,
         schema,
+        direction,
         implemented_types,
         class_names,
         active_generics,
@@ -4040,6 +4040,7 @@ fn collect_group_fields(
     parent_required: bool,
     depth: usize,
     schema: &Schema,
+    direction: schema_codegen::Direction,
     implemented_types: &BTreeMap<String, String>,
     class_names: &BTreeMap<String, String>,
     active_generics: &[String],
@@ -4055,6 +4056,7 @@ fn collect_group_fields(
                     Member::Key(field) => collected_fields.push(make_flattened_field(
                         field,
                         schema,
+                        direction,
                         implemented_types,
                         class_names,
                         active_generics,
@@ -4067,6 +4069,7 @@ fn collect_group_fields(
                         parent_required && !nested.optional,
                         depth + 1,
                         schema,
+                        direction,
                         implemented_types,
                         class_names,
                         active_generics,
@@ -4083,6 +4086,7 @@ fn collect_group_fields(
             enm,
             type_ref,
             schema,
+            direction,
             implemented_types,
             class_names,
             active_generics,
@@ -4132,6 +4136,7 @@ fn collect_group_fields(
 fn make_flattened_field(
     field: &reflectapi_schema::Field,
     schema: &Schema,
+    direction: schema_codegen::Direction,
     implemented_types: &BTreeMap<String, String>,
     class_names: &BTreeMap<String, String>,
     active_generics: &[String],
@@ -4150,6 +4155,8 @@ fn make_flattened_field(
 
     let (optional, default_value, final_field_type, reject_null) = resolve_field_optionality(
         schema_codegen::FieldWireFacts::of(field).with_required(field.required && parent_required),
+        schema,
+        direction,
         field_type,
     );
 
@@ -4188,6 +4195,7 @@ fn collect_flattened_enum_fields(
     enum_def: &reflectapi_schema::Enum,
     type_ref: &TypeReference,
     schema: &Schema,
+    direction: schema_codegen::Direction,
     implemented_types: &BTreeMap<String, String>,
     class_names: &BTreeMap<String, String>,
     active_generics: &[String],
@@ -4221,11 +4229,15 @@ fn collect_flattened_enum_fields(
     // A synthesized flattened enum field inherits the parent's presence.
     let (optional, default_value, final_type, reject_null) = resolve_field_optionality(
         schema_codegen::FieldWireFacts {
-            type_name: &type_ref.name,
+            type_ref,
             required: parent_required,
             named: true,
             flattened: false,
+            serialize_with: false,
+            deserialize_with: false,
         },
+        schema,
+        direction,
         enum_python_type,
     );
 
@@ -4253,6 +4265,7 @@ fn render_struct(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
+    let direction = schema_codegen::Direction::of(schema, &struct_def.name);
     // Check if this struct has any flattened fields
     let has_flattened = struct_def.fields.iter().any(|field| field.flattened());
 
@@ -4298,6 +4311,8 @@ fn render_struct(
                 )?;
                 let (_, _, field_type, _) = resolve_field_optionality(
                     schema_codegen::FieldWireFacts::of(field),
+                    schema,
+                    direction,
                     base_field_type,
                 );
                 Ok(field_type)
@@ -4335,6 +4350,8 @@ fn render_struct(
 
             let (optional, default_value, field_type, reject_null) = resolve_field_optionality(
                 schema_codegen::FieldWireFacts::of(field),
+                schema,
+                direction,
                 base_field_type,
             );
 
@@ -4663,6 +4680,7 @@ fn render_adjacently_tagged_enum(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<(String, Vec<String>)> {
+    let direction = schema_codegen::Direction::of(schema, &enum_def.name);
     let enum_name = python_class_name(&enum_def.name, class_names);
 
     let mut variant_class_definitions: Vec<String> = Vec::new();
@@ -4778,6 +4796,8 @@ fn render_adjacently_tagged_enum(
                     let (optional, default_value, final_field_type, reject_null) =
                         resolve_field_optionality(
                             schema_codegen::FieldWireFacts::of(field),
+                            schema,
+                            direction,
                             field_type,
                         );
                     let (sanitized, alias) =
@@ -4906,6 +4926,7 @@ fn render_externally_tagged_enum(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
+    let direction = schema_codegen::Direction::of(schema, &enum_def.name);
     use schema_codegen::Shape;
 
     let enum_name = python_class_name(&enum_def.name, class_names);
@@ -5059,6 +5080,8 @@ fn render_externally_tagged_enum(
                     let (optional, default_value, final_field_type, reject_null) =
                         resolve_field_optionality(
                             schema_codegen::FieldWireFacts::of(field),
+                            schema,
+                            direction,
                             field_type,
                         );
 
@@ -5200,6 +5223,7 @@ fn render_internally_tagged_enum(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<(String, Vec<String>)> {
+    let direction = schema_codegen::Direction::of(schema, &enum_def.name);
     use reflectapi_schema::Type;
 
     let enum_name = python_class_name(&enum_def.name, class_names);
@@ -5300,6 +5324,7 @@ fn render_internally_tagged_enum(
                                 let nested = collect_flattened_fields(
                                     struct_field,
                                     schema,
+                                    direction,
                                     implemented_types,
                                     class_names,
                                     &generic_params,
@@ -5320,6 +5345,8 @@ fn render_internally_tagged_enum(
                             let (optional, default_value, final_field_type, reject_null) =
                                 resolve_field_optionality(
                                     schema_codegen::FieldWireFacts::of(struct_field),
+                                    schema,
+                                    direction,
                                     field_type,
                                 );
 
@@ -5385,6 +5412,8 @@ fn render_internally_tagged_enum(
                     let (optional, default_value, final_field_type, reject_null) =
                         resolve_field_optionality(
                             schema_codegen::FieldWireFacts::of(field),
+                            schema,
+                            direction,
                             field_type,
                         );
 
@@ -5518,6 +5547,7 @@ fn render_untagged_enum(
     class_names: &BTreeMap<String, String>,
     used_type_vars: &mut BTreeSet<String>,
 ) -> anyhow::Result<String> {
+    let direction = schema_codegen::Direction::of(schema, &enum_def.name);
     let enum_name = python_class_name(&enum_def.name, class_names);
     let mut variant_classes = Vec::new();
     let mut union_variants = Vec::new();
@@ -5558,6 +5588,8 @@ fn render_untagged_enum(
                     let (optional, default_value, final_field_type, reject_null) =
                         resolve_field_optionality(
                             schema_codegen::FieldWireFacts::of(field),
+                            schema,
+                            direction,
                             field_type,
                         );
 
@@ -9084,43 +9116,6 @@ mod tests {
         )
         .unwrap();
         assert!(!python.contains("@field_validator("));
-    }
-
-    #[test]
-    fn explicit_null_rejection_uses_original_rendered_top_level_type() {
-        use super::schema_codegen::FieldWireFacts;
-        let facts = FieldWireFacts {
-            type_name: "Wrapper",
-            required: false,
-            named: true,
-            flattened: false,
-        };
-        for nullable in [
-            "int | None",
-            "Any",
-            "None",
-            "NullableEnum",
-            "NullableRootModel",
-            "T",
-        ] {
-            assert!(
-                !super::resolve_field_optionality(facts, nullable.into()).3,
-                "{nullable}"
-            );
-        }
-        for nonnullable in [
-            "int",
-            "str",
-            "list[int | None]",
-            "dict[str, Any]",
-            "tuple[int, None]",
-            "int | str",
-        ] {
-            assert!(
-                super::resolve_field_optionality(facts, nonnullable.into()).3,
-                "{nonnullable}"
-            );
-        }
     }
 
     #[test]

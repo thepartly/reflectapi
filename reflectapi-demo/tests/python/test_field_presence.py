@@ -15,7 +15,13 @@ FIXTURE_ROOT = pathlib.Path(__file__).resolve().parents[2] / "target/field-prese
 sys.path.insert(0, str(FIXTURE_ROOT / "python"))
 
 from presence_client import AsyncClient, Client  # noqa: E402
-from presence_client.field_presence.fixtures import Equal, Tuple, input, output  # noqa: E402
+from null_contract_client.field_presence.fixtures import Context, Create  # noqa: E402
+from presence_client.field_presence.fixtures import (  # noqa: E402
+    Equal,
+    Tuple,
+    input,
+    output,
+)
 
 OUTPUT = {
     "plain": None,
@@ -220,3 +226,35 @@ def test_direct_model_dumps_preserve_omission_and_explicit_null() -> None:
     assert input.Defaults.model_validate_json(defaulted.model_dump_json()).count is None
     assert input.Wrapper[str]().model_dump() == {}
     assert input.Wrapper[str](value=None).model_dump() == {"value": None}
+
+
+@pytest.mark.parametrize("field", ["memo", "page", "boxed_target"])
+def test_omittable_named_field_rejects_null(field: str) -> None:
+    # serde reads none of these types from null: the field may be left out,
+    # but an explicit None would reach the server as a null it refuses.
+    with pytest.raises(ValidationError):
+        Create.model_validate({field: None})
+    with pytest.raises(ValidationError):
+        Create(**{field: None})
+
+
+def test_omittable_variant_field_rejects_null() -> None:
+    adapter = TypeAdapter(Context)
+    with pytest.raises(ValidationError):
+        adapter.validate_python({"type": "Scoped", "value": None})
+    scoped = adapter.validate_python({"type": "Scoped"})
+    assert scoped.model_dump(by_alias=True, exclude_unset=True) == {"type": "Scoped"}
+
+
+def test_omitted_named_fields_stay_off_the_wire() -> None:
+    assert Create().model_dump(by_alias=True, exclude_unset=True) == {}
+
+
+@pytest.mark.parametrize(
+    "field", ["either", "maybe", "boxed", "json", "custom"]
+)
+def test_omittable_field_of_a_nullable_type_accepts_null(field: str) -> None:
+    # Untagged enums with a unit variant, newtypes and boxes of
+    # an Option, JSON values and custom deserializers may all read null.
+    create = Create.model_validate({field: None})
+    assert create.model_dump(by_alias=True, exclude_unset=True) == {field: None}

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- A generated Python model rejects an explicit `None` for an omittable field whose type serde can't read from `null`. Since 0.21 the client sends an explicit `None` as `null`, which the server refuses, so `Model(page=None)` for a `#[serde(default)] page: Page` failed with a 400. It now raises a `ValidationError` where the model is built. Leaving the field out is unchanged. Whether a value may be `null` is now part of the shared field contract and is decided from the schema, not from Python's rendered annotation. Before, only primitives and containers were checked. Now these reject `null` too: structs with fields, tuple structs, tagged enums, newtypes and wrappers such as `Box` of those, and primitives such as `chrono::DateTime`, `uuid::Uuid` and `url::Url`. Unit structs, untagged enums with a variant that accepts `null`, newtypes of an `Option`, generic parameters and fields with a custom codec on their side (`deserialize_with` in a request, `serialize_with` in a response), including a newtype's inner field, still accept `None`.
+
 ## 0.23.0
 
 Keep idle stream routes open through proxies and load balancers: a server can now write a Server-Sent Events comment whenever a stream has sent nothing for an interval, set for the whole server or per route. See [Keep idle streams open](https://thepartly.github.io/reflectapi/serving/axum.html#keep-idle-streams-open). Generated Python models also describe their wire shape in their JSON schemas. `reflectapi::axum::into_router` takes a new settings argument, and Python clients need the matching runtime; see Breaking.
@@ -117,6 +123,10 @@ Flattened optional fields in generated Rust SDKs are `std::option::Option<T>` ag
 ## 0.21.0
 
 Field presence now follows Serde in each direction, so a type used in both directions may generate separate input and output models, and Rust SDK optional nullable request fields become `reflectapi::Option<T>`. Generated Python packages are also typed for checkers. Regenerate SDKs and upgrade the Python runtime to 0.21.0 alongside them.
+
+### Breaking
+
+- **Python requests send an explicit `None` as `null`.** Requests used to drop every `None` (`exclude_none`); they now drop only unset fields (`exclude_unset`). Code that passed `None` to mean "leave this out" now sends `null`, which the server refuses for a field that isn't an `Option`. Leave such fields unset instead. This entry was listed under Fixed when 0.21.0 was released. A later release makes generated models reject that `None` when they're built.
 
 ### Fixed
 

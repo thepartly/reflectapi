@@ -1,0 +1,164 @@
+---
+source: reflectapi-demo/src/tests/serde.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/inout_test": {
+      "description": "",
+      "post": {
+        "operationId": "inout_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/reflectapi_demo.tests.serde.input.TestStructWithSerdeDefaultNamedTypes"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reflectapi_demo.tests.serde.output.TestStructWithSerdeDefaultNamedTypes"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi_demo.tests.serde.TestDefaultNullableNewtype": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "oneOf": [
+              {
+                "description": "Null",
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/u8"
+              }
+            ]
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.TestDefaultStruct": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.TestDefaultStruct",
+        "required": [
+          "f"
+        ],
+        "properties": {
+          "f": {
+            "$ref": "#/components/schemas/u8"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.TestDefaultTaggedEnum": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "A",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "A"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "B",
+            "required": [
+              "f",
+              "type"
+            ],
+            "properties": {
+              "f": {
+                "$ref": "#/components/schemas/u8"
+              },
+              "type": {
+                "const": "B"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.TestDefaultUntaggedEnum": {
+        "oneOf": [
+          {
+            "type": "null"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
+          }
+        ]
+      },
+      "reflectapi_demo.tests.serde.input.TestStructWithSerdeDefaultNamedTypes": {
+        "description": "Only the struct and the tagged enum refuse `null`, so only they get a\nnull validator.",
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.input.TestStructWithSerdeDefaultNamedTypes",
+        "properties": {
+          "nullable_newtype": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestDefaultNullableNewtype"
+          },
+          "structure": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestDefaultStruct"
+          },
+          "tagged": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestDefaultTaggedEnum"
+          },
+          "untagged": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestDefaultUntaggedEnum"
+          }
+        }
+      },
+      "reflectapi_demo.tests.serde.output.TestStructWithSerdeDefaultNamedTypes": {
+        "description": "Only the struct and the tagged enum refuse `null`, so only they get a\nnull validator.",
+        "type": "object",
+        "title": "reflectapi_demo.tests.serde.output.TestStructWithSerdeDefaultNamedTypes",
+        "required": [
+          "nullable_newtype",
+          "structure",
+          "tagged",
+          "untagged"
+        ],
+        "properties": {
+          "nullable_newtype": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestDefaultNullableNewtype"
+          },
+          "structure": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestDefaultStruct"
+          },
+          "tagged": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestDefaultTaggedEnum"
+          },
+          "untagged": {
+            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestDefaultUntaggedEnum"
+          }
+        }
+      },
+      "u8": {
+        "description": "8-bit unsigned integer",
+        "type": "integer"
+      }
+    }
+  }
+}

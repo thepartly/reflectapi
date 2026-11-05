@@ -1666,12 +1666,16 @@ fn __modules_from_rendered_types(
     root_module
 }
 
-fn request_field_type_ref(
-    field: &crate::Field,
+fn request_field_type_ref<'a>(
+    field: &'a crate::Field,
+    schema: &crate::Schema,
     is_input_type: bool,
-) -> std::borrow::Cow<'_, crate::TypeReference> {
+) -> std::borrow::Cow<'a, crate::TypeReference> {
     let contract = crate::codegen::schema::resolve_field_wire_contract(
         crate::codegen::schema::FieldWireFacts::of(field),
+        schema,
+        // Only the key is read here; the value's nullability isn't.
+        crate::codegen::schema::Direction::Both,
     );
     if is_input_type && contract.preserves_absence() && field.type_ref.name == "std::option::Option"
     {
@@ -1743,7 +1747,7 @@ fn __render_type(
                             description: __doc_to_ts_comments(&field.description, 4),
                             deprecated: __deprecated_attribute(field.deprecation()),
                             type_: __type_ref_to_ts_ref(
-                                &request_field_type_ref(field, is_input_type),
+                                &request_field_type_ref(field, schema, is_input_type),
                                 schema,
                                 implemented_types,
                                 type_name_depth,
@@ -1793,7 +1797,7 @@ fn __render_type(
                                 description: __doc_to_ts_comments(&field.description, 12),
                                 deprecated: __deprecated_attribute(field.deprecation()),
                                 type_: __type_ref_to_ts_ref(
-                                    &request_field_type_ref(field, is_input_type),
+                                    &request_field_type_ref(field, schema, is_input_type),
                                     schema,
                                     implemented_types,
                                     type_name_depth,
