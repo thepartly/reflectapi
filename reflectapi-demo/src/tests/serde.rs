@@ -250,6 +250,25 @@ fn test_struct_with_serde_default_none_types() {
     assert_snapshot!(TestStructWithSerdeDefaultNoneTypes);
 }
 
+#[derive(Default, reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestDefaultedInner {
+    f: u8,
+}
+
+/// The generated Rust `TestDefaultedInner` doesn't derive `Default`, so the
+/// Rust client types `inner` as an `Option` it leaves out when `None`.
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithSerdeDefaultGeneratedType {
+    #[serde(default)]
+    inner: TestDefaultedInner,
+    #[serde(default)]
+    text: String,
+}
+#[test]
+fn test_struct_with_serde_default_generated_type() {
+    assert_snapshot!(TestStructWithSerdeDefaultGeneratedType);
+}
+
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithSerdeSkip {
     #[serde(skip)]

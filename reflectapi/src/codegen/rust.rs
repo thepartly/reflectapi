@@ -1666,6 +1666,63 @@ fn __modules_from_rendered_types(
     root_module
 }
 
+/// Whether the Rust type implements `Default`. Generated structs and enums
+/// derive it only when configured to; anything else, including types mapped
+/// to an existing Rust type and generic parameters, is assumed to, as serde's
+/// `default` attribute then requires.
+fn type_implements_default(
+    type_ref: &crate::TypeReference,
+    schema: &crate::Schema,
+    implemented_types: &HashMap<String, String>,
+    base_derives: &BTreeSet<String>,
+) -> bool {
+    let mut type_ref = type_ref;
+    while matches!(
+        type_ref.name.as_str(),
+        "std::boxed::Box" | "std::rc::Rc" | "std::sync::Arc"
+    ) {
+        match type_ref.arguments.first() {
+            Some(inner) => type_ref = inner,
+            None => return true,
+        }
+    }
+    if implemented_types.contains_key(&type_ref.name) {
+        return true;
+    }
+    let derives = |config: &reflectapi_schema::LanguageSpecificTypeCodegenConfig| {
+        base_derives.contains("Default") || config.rust.additional_derives.contains("Default")
+    };
+    match schema
+        .input_types
+        .get_type(&type_ref.name)
+        .or_else(|| schema.output_types.get_type(&type_ref.name))
+    {
+        Some(crate::Type::Struct(s)) => derives(&s.codegen_config),
+        Some(crate::Type::Enum(e)) => derives(&e.codegen_config),
+        _ => true,
+    }
+}
+
+/// A field the server fills with `Default` when its key is missing. When the
+/// client's own type can't do the same, it becomes `Option<T>`: `None` leaves
+/// the key out and lets the server apply its default.
+fn optional_field_type(
+    type_: String,
+    field: &crate::Field,
+    schema: &crate::Schema,
+    implemented_types: &HashMap<String, String>,
+    base_derives: &BTreeSet<String>,
+) -> String {
+    if field.required
+        || field.flattened
+        || type_implements_default(&field.type_ref, schema, implemented_types, base_derives)
+    {
+        type_
+    } else {
+        format!("std::option::Option<{type_}>")
+    }
+}
+
 fn request_field_type_ref<'a>(
     field: &'a crate::Field,
     schema: &crate::Schema,
@@ -1746,12 +1803,18 @@ fn __render_type(
                             serde_name: field.serde_name().into(),
                             description: __doc_to_ts_comments(&field.description, 4),
                             deprecated: __deprecated_attribute(field.deprecation()),
-                            type_: __type_ref_to_ts_ref(
-                                &request_field_type_ref(field, schema, is_input_type),
+                            type_: optional_field_type(
+                                __type_ref_to_ts_ref(
+                                    &request_field_type_ref(field, schema, is_input_type),
+                                    schema,
+                                    implemented_types,
+                                    type_name_depth,
+                                    Some(type_def),
+                                ),
+                                field,
                                 schema,
                                 implemented_types,
-                                type_name_depth,
-                                Some(type_def),
+                                &config.base_derives,
                             ),
                             optional: !field.required,
                             flatten: field.flattened,
@@ -1796,12 +1859,18 @@ fn __render_type(
                                 serde_name: field.serde_name().into(),
                                 description: __doc_to_ts_comments(&field.description, 12),
                                 deprecated: __deprecated_attribute(field.deprecation()),
-                                type_: __type_ref_to_ts_ref(
-                                    &request_field_type_ref(field, schema, is_input_type),
+                                type_: optional_field_type(
+                                    __type_ref_to_ts_ref(
+                                        &request_field_type_ref(field, schema, is_input_type),
+                                        schema,
+                                        implemented_types,
+                                        type_name_depth,
+                                        Some(type_def),
+                                    ),
+                                    field,
                                     schema,
                                     implemented_types,
-                                    type_name_depth,
-                                    Some(type_def),
+                                    &config.base_derives,
                                 ),
                                 optional: !field.required,
                                 flatten: field.flattened,
@@ -2101,4 +2170,61 @@ fn __deprecated_attribute(deprecation: Option<crate::Deprecation<'_>>) -> Option
     } else {
         format!("#[deprecated(note = {message:?})]")
     })
+}
+
+#[cfg(test)]
+mod tests {
+    fn generate(memo_derives: &[&str], base_derives: &[&str]) -> String {
+        let schema: crate::Schema = serde_json::from_value(serde_json::json!({
+            "name": "defaults",
+            "input_types": {"types": [
+                {"kind": "primitive", "name": "std::string::String"},
+                {"kind": "struct", "name": "Memo",
+                 "codegen_config": {"rust": {"additional_derives": memo_derives}},
+                 "fields": {"named": [{"name": "text", "required": true, "type": {"name": "std::string::String"}}]}},
+                {"kind": "struct", "name": "Request", "fields": {"named": [
+                    {"name": "memo", "type": {"name": "Memo"}},
+                    {"name": "text", "type": {"name": "std::string::String"}}
+                ]}}
+            ]}
+        }))
+        .unwrap();
+        let mut config = super::Config::default();
+        config.format(false).base_derives(
+            base_derives
+                .iter()
+                .map(|derive| derive.to_string())
+                .collect(),
+        );
+        super::generate(schema, &config).unwrap()
+    }
+
+    fn memo_field(code: &str) -> &str {
+        let start = code.find("pub struct Request").unwrap();
+        let end = start + code[start..].find("pub text").unwrap();
+        &code[start..end]
+    }
+
+    #[test]
+    fn an_optional_field_without_default_becomes_an_option() {
+        let code = generate(&[], &["Debug"]);
+        let memo = memo_field(&code);
+        assert!(
+            memo.contains("pub memo: std::option::Option<Memo>"),
+            "{code}"
+        );
+        assert!(
+            memo.contains("skip_serializing_if = \"std::option::Option::is_none\""),
+            "{code}"
+        );
+        assert!(code.contains("#[serde(default = \"Default::default\", skip_serializing_if = \"std::string::String::is_empty\")]"));
+        for code in [
+            generate(&["Default"], &["Debug"]),
+            generate(&[], &["Debug", "Default"]),
+        ] {
+            let memo = memo_field(&code);
+            assert!(memo.contains("pub memo: Memo,"), "{code}");
+            assert!(memo.contains("default = \"Default::default\""), "{code}");
+        }
+    }
 }
