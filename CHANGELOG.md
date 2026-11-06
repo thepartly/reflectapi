@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.24.0-alpha.3
 
 ### Fixed
 
-- Generated clients keep a deprecated field required in the response copy of a type split by direction. When a type's request and response shapes differ, consolidation splits it into `input::X` and `output::X`, and 0.24.0-alpha.1 relaxed `output::X` as a response-only type. Code that sends back a value it read, such as an `output::X` passed where `input::X` is expected, then failed to type-check in TypeScript, because the field was optional in one and required in the other. Such a type is also used in requests, so it now keeps deprecated fields required, like any other type used in both directions.
+- Generated clients keep a deprecated field required in the response copy of a type split by direction. When a type's request and response shapes differ, consolidation splits it into `input::X` and `output::X`, and 0.24.0-alpha.1 relaxed `output::X` as a response-only type. Code that sends back a value it read, such as an `output::X` passed where `input::X` is expected, then failed to type-check in TypeScript, because the field was optional in one and required in the other. Such a type is also used in requests, so it now keeps deprecated fields required, like any other type used in both directions. ([#225](https://github.com/thepartly/reflectapi/pull/225))
 
 ## 0.24.0-alpha.2
 
