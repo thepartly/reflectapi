@@ -2,7 +2,9 @@
 
 use std::collections::HashSet;
 
-use reflectapi_schema::{Field, Representation, Schema, Type, TypeReference, Typespace};
+use reflectapi_schema::{
+    Field, Instantiate, Representation, Schema, Type, TypeReference, Typespace,
+};
 
 /// A field the transform made optional: its type, its variant if the type
 /// is an enum, and its name.
@@ -24,7 +26,7 @@ pub(crate) struct RelaxedField {
 /// out. A relaxed type keeps its name through consolidation, so the returned
 /// fields can be looked up in the consolidated schema.
 pub(crate) fn relax_deprecated_response_fields(schema: &mut Schema) -> HashSet<RelaxedField> {
-    let tried = types_decoded_by_trying(&schema.output_types);
+    let tried = types_decoded_by_trying(schema);
     let candidates: Vec<String> = schema
         .output_types
         .types()
@@ -71,86 +73,110 @@ pub(crate) fn relax_deprecated_response_fields(schema: &mut Schema) -> HashSet<R
 /// optional field anywhere inside could change what a payload decodes as.
 /// The seeds are untagged enums, enums with an untagged variant (a tagged
 /// variant that fails falls back to it), and the type behind a flattened
-/// `Option`. A generic type that is reached, or that flattens an `Option` of
-/// its own parameter, reaches the type arguments of every use of it.
-fn types_decoded_by_trying(types: &Typespace) -> HashSet<String> {
-    let mut seen = HashSet::new();
-    let mut pending: Vec<&TypeReference> = Vec::new();
-    for ty in types.types() {
-        let parameters: HashSet<&str> = ty.parameters().map(|p| p.name.as_str()).collect();
-        let seed_flattened = |fields: &'_ reflectapi_schema::Fields, seen: &mut HashSet<String>| {
-            for inner in flattened_options(fields.iter()) {
-                if parameters.contains(inner.name.as_str()) {
-                    seen.insert(ty.name().to_owned());
-                }
-            }
-        };
-        match ty {
-            Type::Enum(e) => {
-                if e.representation == Representation::None || e.variants.iter().any(|v| v.untagged)
-                {
-                    seen.insert(e.name.clone());
-                    pending.extend(
-                        e.variants
-                            .iter()
-                            .flat_map(|v| v.fields.iter().map(|f| &f.type_ref)),
-                    );
-                }
-                for variant in &e.variants {
-                    pending.extend(flattened_options(variant.fields.iter()));
-                    seed_flattened(&variant.fields, &mut seen);
-                }
-            }
-            Type::Struct(s) => {
-                pending.extend(flattened_options(s.fields.iter()));
-                seed_flattened(&s.fields, &mut seen);
-            }
-            Type::Primitive(_) => {}
-        }
-    }
-    let uses: Vec<&TypeReference> = types
+/// `Option`. `Option` itself reads null or its argument, so it is no seed.
+///
+/// Generic types are walked as instances, with the arguments of each use
+/// substituted into their fields, so `Either<Old, New>` reaches `Old` and a
+/// generic struct flattening `Option<T>` reaches the `T` of each use.
+fn types_decoded_by_trying(schema: &Schema) -> HashSet<String> {
+    let types = &schema.output_types;
+    let mut pending: Vec<TypeReference> = types
         .types()
-        .flat_map(|ty| match ty {
-            Type::Struct(s) => s.fields.iter().collect::<Vec<_>>(),
-            Type::Enum(e) => e.variants.iter().flat_map(|v| v.fields.iter()).collect(),
-            Type::Primitive(_) => Vec::new(),
-        })
-        .map(|f| &f.type_ref)
+        .filter(|ty| ty.parameters().next().is_none())
+        .map(|ty| TypeReference::new(ty.name(), vec![]))
         .collect();
-    loop {
-        while let Some(type_ref) = pending.pop() {
-            pending.extend(type_ref.arguments.iter());
-            if !seen.insert(type_ref.name.clone()) {
-                continue;
-            }
-            match types.get_type(&type_ref.name) {
-                Some(Type::Struct(s)) => pending.extend(s.fields.iter().map(|f| &f.type_ref)),
-                Some(Type::Enum(e)) => pending.extend(
-                    e.variants
-                        .iter()
-                        .flat_map(|v| v.fields.iter().map(|f| &f.type_ref)),
-                ),
-                _ => {}
-            }
+    for function in schema.functions() {
+        pending.extend(function.output_type.type_refs().into_iter().cloned());
+        pending.extend(function.error_type.iter().cloned());
+    }
+
+    // Every instance a response may contain, and the seeds among them.
+    let mut instances = HashSet::new();
+    let mut seeds = Vec::new();
+    while let Some(type_ref) = pending.pop() {
+        if !within_depth(&type_ref) || !instances.insert(type_ref.clone()) {
+            continue;
         }
-        // A use of a reached generic type, possibly nested in another
-        // type's arguments, reaches its arguments.
-        let mut stack = uses.clone();
-        while let Some(type_ref) = stack.pop() {
-            if seen.contains(&type_ref.name) {
-                pending.extend(
-                    type_ref
-                        .arguments
-                        .iter()
-                        .filter(|argument| !seen.contains(&argument.name)),
-                );
-            }
-            stack.extend(type_ref.arguments.iter());
+        pending.extend(type_ref.arguments.iter().cloned());
+        let Some(instance) = Instance::of(types, &type_ref) else {
+            continue;
+        };
+        if instance.tried_in_turn {
+            seeds.push(type_ref.clone());
         }
-        if pending.is_empty() {
-            return seen;
+        seeds.extend(flattened_options(instance.fields.iter()).cloned());
+        pending.extend(instance.fields.into_iter().map(|f| f.type_ref));
+    }
+
+    let mut tried = HashSet::new();
+    let mut visited = HashSet::new();
+    let mut pending = seeds;
+    while let Some(type_ref) = pending.pop() {
+        if !within_depth(&type_ref) || !visited.insert(type_ref.clone()) {
+            continue;
+        }
+        tried.insert(type_ref.name.clone());
+        pending.extend(type_ref.arguments.iter().cloned());
+        if let Some(instance) = Instance::of(types, &type_ref) {
+            pending.extend(instance.fields.into_iter().map(|f| f.type_ref));
         }
     }
+    tried
+}
+
+/// A type whose arguments nest its own name deeper on each step, such as
+/// `struct Tree<T> { children: Vec<Tree<Vec<T>>> }`, has no finite set of
+/// instances; the walk stops at this depth.
+fn within_depth(type_ref: &TypeReference) -> bool {
+    fn depth(type_ref: &TypeReference) -> usize {
+        1 + type_ref.arguments.iter().map(depth).max().unwrap_or(0)
+    }
+    depth(type_ref) <= 16
+}
+
+/// The fields of a struct or enum with a use's arguments substituted in.
+struct Instance {
+    tried_in_turn: bool,
+    fields: Vec<Field>,
+}
+
+impl Instance {
+    fn of(types: &Typespace, type_ref: &TypeReference) -> Option<Self> {
+        let ty = types.get_type(&type_ref.name)?;
+        if ty.parameters().len() != type_ref.arguments.len() {
+            return None;
+        }
+        match ty.clone() {
+            Type::Struct(s) => Some(Instance {
+                tried_in_turn: false,
+                fields: s
+                    .instantiate(&type_ref.arguments)
+                    .fields
+                    .iter()
+                    .cloned()
+                    .collect(),
+            }),
+            Type::Enum(e) => {
+                let tried_in_turn = !is_option(&e.name)
+                    && (e.representation == Representation::None
+                        || e.variants.iter().any(|v| v.untagged));
+                let e = e.instantiate(&type_ref.arguments);
+                Some(Instance {
+                    tried_in_turn,
+                    fields: e
+                        .variants
+                        .iter()
+                        .flat_map(|v| v.fields.iter().cloned())
+                        .collect(),
+                })
+            }
+            Type::Primitive(_) => None,
+        }
+    }
+}
+
+fn is_option(name: &str) -> bool {
+    matches!(name, "std::option::Option" | "reflectapi::Option")
 }
 
 /// The types behind flattened `Option` fields.
@@ -158,13 +184,7 @@ fn flattened_options<'a>(
     fields: impl Iterator<Item = &'a Field>,
 ) -> impl Iterator<Item = &'a TypeReference> {
     fields
-        .filter(|f| {
-            f.flattened
-                && matches!(
-                    f.type_ref.name.as_str(),
-                    "std::option::Option" | "reflectapi::Option"
-                )
-        })
+        .filter(|f| f.flattened && is_option(&f.type_ref.name))
         .flat_map(|f| f.type_ref.arguments.iter())
 }
 
@@ -233,9 +253,27 @@ mod tests {
                     {"name": "either", "required": true, "type": {"name": "std::vec::Vec", "arguments": [
                         {"name": "Either", "arguments": [{"name": "Lefty"}, {"name": "u32"}]}
                     ]}},
-                    {"name": "holds", "required": true, "type": {"name": "Holds", "arguments": [{"name": "Held"}]}}
-                ]}}
-            ]}
+                    {"name": "holds", "required": true, "type": {"name": "Holds", "arguments": [{"name": "Held"}]}},
+                    {"name": "config", "required": true, "type": {"name": "std::option::Option", "arguments": [{"name": "Configured"}]}}
+                ]}},
+                {"kind": "enum", "name": "std::option::Option", "representation": "none",
+                    "parameters": [{"name": "T"}],
+                    "variants": [
+                        {"name": "None", "fields": "none"},
+                        {"name": "Some", "fields": {"unnamed": [{"name": "0", "type": {"name": "T"}}]}}
+                    ]},
+                {"kind": "struct", "name": "Configured", "fields": {"named": [field("old", true)]}},
+                {"kind": "struct", "name": "FnLeft", "fields": {"named": [field("old", true)]}},
+                {"kind": "struct", "name": "Forward", "parameters": [{"name": "T"}], "fields": {"named": [
+                    {"name": "either", "required": true, "type": {"name": "Either", "arguments": [{"name": "T"}, {"name": "u32"}]}}
+                ]}},
+                {"kind": "struct", "name": "Forwarded", "fields": {"named": [field("old", true)]}}
+            ]},
+            "functions": [
+                {"name": "direct", "path": "", "output_kind": "complete",
+                    "output_type": {"name": "Either", "arguments": [{"name": "FnLeft"}, {"name": "u32"}]},
+                    "error_type": {"name": "Forward", "arguments": [{"name": "Forwarded"}]}}
+            ]
         }))
         .unwrap();
         let relaxed = super::relax_deprecated_response_fields(&mut schema);
@@ -259,6 +297,11 @@ mod tests {
             required(&schema.output_types, "Reply"),
             [("old".into(), false), ("kept".into(), true)]
         );
+        // `Option` reads null or its argument, not by trying.
+        assert_eq!(
+            required(&schema.output_types, "Configured"),
+            [("old".into(), false)]
+        );
         assert_eq!(
             required(&schema.output_types, "Event"),
             [("old".into(), false), ("kept".into(), true)]
@@ -280,8 +323,12 @@ mod tests {
         // `Option`, are decoded by trying them too.
         // So are a tagged variant of an enum with an untagged fallback, and
         // the arguments of a generic untagged enum or of a generic type
-        // flattening an `Option` of its parameter, wherever it is used.
+        // flattening an `Option` of its parameter, wherever it is used,
+        // including a function's response and error types and a generic
+        // type forwarding its parameter into one.
         for name in [
+            "FnLeft",
+            "Forwarded",
             "Fallback",
             "Unmatched",
             "Group",
