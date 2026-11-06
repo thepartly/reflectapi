@@ -59,7 +59,7 @@ expression: s
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/myapi.proto.UnauthorizedError"
+                  "$ref": "#/components/schemas/std.tuple.Tuple0"
                 }
               }
             }
@@ -87,7 +87,7 @@ expression: s
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/myapi.proto.PetsCreateRequest"
+                "$ref": "#/components/schemas/myapi.model.input.Pet"
               }
             }
           },
@@ -296,7 +296,7 @@ expression: s
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/myapi.proto.UnauthorizedError"
+                  "$ref": "#/components/schemas/std.tuple.Tuple0"
                 }
               }
             }
@@ -820,14 +820,6 @@ expression: s
           }
         ]
       },
-      "myapi.proto.PetsCreateRequest": {
-        "type": "array",
-        "prefixItems": [
-          {
-            "$ref": "#/components/schemas/myapi.model.input.Pet"
-          }
-        ]
-      },
       "myapi.proto.PetsListError": {
         "oneOf": [
           {
@@ -1001,14 +993,6 @@ expression: s
             "$ref": "#/components/schemas/std.string.String"
           }
         }
-      },
-      "myapi.proto.UnauthorizedError": {
-        "type": "array",
-        "prefixItems": [
-          {
-            "$ref": "#/components/schemas/std.tuple.Tuple0"
-          }
-        ]
       },
       "myapi.proto.ValidationA": {
         "type": "object",

@@ -6,7 +6,7 @@
 //! as an object). How a variant appears on the wire follows from its shape
 //! and its enum's representation, so backends read the shape from here.
 
-use reflectapi_schema::{Field, Fields};
+use reflectapi_schema::{Field, Fields, Struct};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Shape<'a> {
@@ -42,12 +42,50 @@ impl<'a> Shape<'a> {
     }
 }
 
+/// The field a struct is written as when it wraps one: a newtype, or a
+/// `#[serde(transparent)]` struct with one field. Serde writes either as that
+/// field's value, flattened or not.
+pub(crate) fn wrapped_field(strukt: &Struct) -> Option<&Field> {
+    if strukt.transparent() {
+        return match strukt.fields.iter().as_slice() {
+            [field] => Some(field),
+            _ => None,
+        };
+    }
+    match Shape::of(&strukt.fields) {
+        Shape::Newtype(field) => Some(field),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn field(name: &str) -> Field {
         Field::new(name.into(), "u32".into())
+    }
+
+    #[test]
+    fn a_newtype_or_a_one_field_transparent_struct_wraps_its_field() {
+        let mut newtype = Struct::new("Newtype");
+        newtype.fields = Fields::Unnamed(vec![field("0")]);
+        assert_eq!(wrapped_field(&newtype).map(|f| f.name.as_str()), Some("0"));
+
+        let mut transparent = Struct::new("Transparent");
+        transparent.transparent = true;
+        transparent.fields = Fields::Named(vec![field("inner")]);
+        assert_eq!(
+            wrapped_field(&transparent).map(|f| f.name.as_str()),
+            Some("inner")
+        );
+
+        let mut named = Struct::new("Named");
+        named.fields = Fields::Named(vec![field("inner")]);
+        assert!(wrapped_field(&named).is_none());
+        let mut pair = Struct::new("Pair");
+        pair.fields = Fields::Unnamed(vec![field("0"), field("1")]);
+        assert!(wrapped_field(&pair).is_none());
     }
 
     #[test]

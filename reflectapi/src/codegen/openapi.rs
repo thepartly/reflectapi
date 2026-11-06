@@ -1547,10 +1547,15 @@ impl Converter<'_> {
             "expect generic struct to be instantiated"
         );
 
-        if strukt.transparent() {
-            assert_eq!(strukt.fields().len(), 1);
-            return self.convert_type_ref(schema, kind, strukt.fields[0].type_ref());
+        // Serde writes a newtype or transparent struct as the value it wraps,
+        // not as a one-element array.
+        if let Some(inner) = schema_codegen::wrapped_field(strukt) {
+            return self.convert_type_ref(schema, kind, inner.type_ref());
         }
+        assert!(
+            !strukt.transparent(),
+            "a transparent struct has exactly one field"
+        );
 
         let (flattened_fields, fields) = strukt.fields().partition::<Vec<_>, _>(|f| f.flattened);
 

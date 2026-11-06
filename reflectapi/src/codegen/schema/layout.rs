@@ -10,7 +10,7 @@ use std::collections::BTreeSet;
 use reflectapi_schema::{Enum, Field, Fields, Representation, Type, TypeReference};
 
 use super::presence::{key_presence, FieldWireFacts, KeyPresence};
-use super::shape::Shape;
+use super::shape::{wrapped_field, Shape};
 
 /// Flattening deeper than this is treated as unknown. The outermost flattened
 /// field's type is at depth 0, as in Python's `collect_flattened_fields`.
@@ -56,8 +56,8 @@ pub(crate) enum Opaque<'a> {
     Unresolved(String),
     /// Nested deeper than `MAX_DEPTH` flattens.
     TooDeep,
-    /// A tuple struct, a transparent struct without exactly one field, or an
-    /// `Option` without an argument.
+    /// A tuple struct with more than one field, a transparent struct without
+    /// exactly one field, or an `Option` without an argument.
     Unsupported,
 }
 
@@ -102,14 +102,11 @@ impl<'a> Layout<'a> {
             return Layout::Unknown(Opaque::TooDeep);
         }
         match lookup(&type_ref.name) {
-            Some(Type::Struct(strukt)) if strukt.transparent() => {
-                let mut fields = strukt.fields();
-                match (fields.next(), fields.next()) {
-                    (Some(inner), None) => Layout::of_type(&inner.type_ref, lookup, depth + 1),
-                    _ => Layout::Unknown(Opaque::Unsupported),
-                }
-            }
-            Some(Type::Struct(strukt)) => Layout::of_fields(&strukt.fields, lookup, depth),
+            Some(Type::Struct(strukt)) => match wrapped_field(strukt) {
+                Some(inner) => Layout::of_type(&inner.type_ref, lookup, depth + 1),
+                None if strukt.transparent() => Layout::Unknown(Opaque::Unsupported),
+                None => Layout::of_fields(&strukt.fields, lookup, depth),
+            },
             Some(Type::Enum(enm)) => match &enm.representation {
                 Representation::Internal { tag } => Layout::InternallyTagged {
                     enm,
@@ -401,7 +398,7 @@ mod tests {
         let mut external = Enum::new("External".into());
         external.representation = Representation::External;
         let mut tuple = Struct::new("Tuple");
-        tuple.fields = Fields::Unnamed(vec![field("0", "u32", true)]);
+        tuple.fields = Fields::Unnamed(vec![field("0", "u32", true), field("1", "u32", true)]);
         let types = [
             Type::Enum(external),
             Type::Struct(tuple),
@@ -454,6 +451,18 @@ mod tests {
         let mut wrapper = Struct::new("Wrapper");
         wrapper.transparent = true;
         wrapper.fields = Fields::Named(vec![field("inner", "Inner", true)]);
+        let types = [
+            Type::Struct(wrapper),
+            strukt("Inner", vec![field("a", "u32", true)]),
+        ];
+        let layout = Layout::of_type(&"Wrapper".into(), &lookup_in(&types), 0);
+        assert_eq!(layout.keys().unwrap(), BTreeSet::from(["a"]));
+    }
+
+    #[test]
+    fn a_newtype_struct_has_the_keys_of_the_type_it_wraps() {
+        let mut wrapper = Struct::new("Wrapper");
+        wrapper.fields = Fields::Unnamed(vec![field("0", "Inner", true)]);
         let types = [
             Type::Struct(wrapper),
             strukt("Inner", vec![field("a", "u32", true)]),

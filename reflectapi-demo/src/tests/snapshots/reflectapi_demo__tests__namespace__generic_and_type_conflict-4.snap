@@ -26,12 +26,7 @@ snapshot_kind: text
                 ],
                 "properties": {
                   "t": {
-                    "type": "array",
-                    "prefixItems": [
-                      {
-                        "$ref": "#/components/schemas/std.tuple.Tuple0"
-                      }
-                    ]
+                    "$ref": "#/components/schemas/std.tuple.Tuple0"
                   }
                 }
               }
@@ -52,12 +47,7 @@ snapshot_kind: text
                   ],
                   "properties": {
                     "t": {
-                      "type": "array",
-                      "prefixItems": [
-                        {
-                          "$ref": "#/components/schemas/std.tuple.Tuple0"
-                        }
-                      ]
+                      "$ref": "#/components/schemas/std.tuple.Tuple0"
                     }
                   }
                 }

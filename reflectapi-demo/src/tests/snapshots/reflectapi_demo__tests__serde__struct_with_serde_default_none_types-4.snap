@@ -42,26 +42,13 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
   "components": {
     "schemas": {
       "reflectapi_demo.tests.serde.TestOptionalNewtype": {
-        "type": "array",
-        "prefixItems": [
+        "oneOf": [
           {
-            "oneOf": [
-              {
-                "description": "Null",
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/std.string.String"
-              }
-            ]
-          }
-        ]
-      },
-      "reflectapi_demo.tests.serde.TestUnitMarker": {
-        "type": "array",
-        "prefixItems": [
+            "description": "Null",
+            "type": "null"
+          },
           {
-            "$ref": "#/components/schemas/std.tuple.Tuple0"
+            "$ref": "#/components/schemas/std.string.String"
           }
         ]
       },
@@ -71,7 +58,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         "title": "reflectapi_demo.tests.serde.input.TestStructWithSerdeDefaultNoneTypes",
         "properties": {
           "marker": {
-            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestUnitMarker"
+            "$ref": "#/components/schemas/std.tuple.Tuple0"
           },
           "nothing": {
             "$ref": "#/components/schemas/std.tuple.Tuple0"
@@ -92,7 +79,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         ],
         "properties": {
           "marker": {
-            "$ref": "#/components/schemas/reflectapi_demo.tests.serde.TestUnitMarker"
+            "$ref": "#/components/schemas/std.tuple.Tuple0"
           },
           "nothing": {
             "$ref": "#/components/schemas/std.tuple.Tuple0"
