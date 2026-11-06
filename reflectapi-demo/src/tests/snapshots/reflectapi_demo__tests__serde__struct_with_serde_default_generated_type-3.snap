@@ -62,8 +62,8 @@ pub mod types {
                     /// Rust client types `inner` as an `Option` it leaves out when `None`.
                     #[derive(Debug, serde::Serialize)]
                     pub struct TestStructWithSerdeDefaultGeneratedType {
-    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
-    pub inner: std::option::Option<super::super::super::super::reflectapi_demo::tests::serde::TestDefaultedInner>,
+    #[serde(default = "Default::default")]
+    pub inner: super::super::super::super::reflectapi_demo::tests::serde::TestDefaultedInner,
     #[serde(default = "Default::default", skip_serializing_if = "std::string::String::is_empty")]
     pub text: std::string::String,
 }

@@ -1716,6 +1716,7 @@ fn optional_field_type(
     type_: String,
     field: &crate::Field,
     relaxed: bool,
+    deserialized: bool,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     base_derives: &BTreeSet<String>,
@@ -1726,8 +1727,11 @@ fn optional_field_type(
             "std::option::Option" | "reflectapi::Option"
         )
     } else {
+        // `#[serde(default)]` needs `Default` only where the client
+        // deserializes the type; a request-only type derives `Serialize` alone.
         field.required
             || field.flattened
+            || !deserialized
             || type_implements_default(&field.type_ref, schema, implemented_types, base_derives)
     };
     if keeps_type {
@@ -1780,6 +1784,19 @@ fn __render_type(
         })
     };
     let type_name_depth = type_def.name().split("::").count() - 1;
+    // Whether the client derives `Deserialize` for this type, as the
+    // templates decide it.
+    let codegen_config = match type_def {
+        crate::Type::Struct(s) => &s.codegen_config,
+        crate::Type::Enum(e) => &e.codegen_config,
+        crate::Type::Primitive(_) => &Default::default(),
+    };
+    let deserialized = is_output_type
+        || config
+            .base_derives
+            .iter()
+            .chain(&codegen_config.rust.additional_derives)
+            .any(|derive| derive.rsplit("::").next() == Some("Deserialize"));
 
     Ok(match type_def {
         crate::Type::Struct(struct_def) => {
@@ -1836,6 +1853,7 @@ fn __render_type(
                                 ),
                                 field,
                                 relaxed(None, field),
+                                deserialized,
                                 schema,
                                 implemented_types,
                                 &config.base_derives,
@@ -1893,6 +1911,7 @@ fn __render_type(
                                     ),
                                     field,
                                     relaxed(Some(variant.name()), field),
+                                    deserialized,
                                     schema,
                                     implemented_types,
                                     &config.base_derives,
@@ -2200,20 +2219,23 @@ fn __deprecated_attribute(deprecation: Option<crate::Deprecation<'_>>) -> Option
 #[cfg(test)]
 mod tests {
     fn generate(memo_derives: &[&str], base_derives: &[&str]) -> String {
-        let schema: crate::Schema = serde_json::from_value(serde_json::json!({
-            "name": "defaults",
-            "input_types": {"types": [
-                {"kind": "primitive", "name": "std::string::String"},
-                {"kind": "struct", "name": "Memo",
-                 "codegen_config": {"rust": {"additional_derives": memo_derives}},
-                 "fields": {"named": [{"name": "text", "required": true, "type": {"name": "std::string::String"}}]}},
-                {"kind": "struct", "name": "Request", "fields": {"named": [
-                    {"name": "memo", "type": {"name": "Memo"}},
-                    {"name": "text", "type": {"name": "std::string::String"}}
-                ]}}
-            ]}
-        }))
-        .unwrap();
+        generate_in("output_types", memo_derives, base_derives)
+    }
+
+    fn generate_in(typespace: &str, memo_derives: &[&str], base_derives: &[&str]) -> String {
+        let types = serde_json::json!({"types": [
+            {"kind": "primitive", "name": "std::string::String"},
+            {"kind": "struct", "name": "Memo",
+             "codegen_config": {"rust": {"additional_derives": memo_derives}},
+             "fields": {"named": [{"name": "text", "required": true, "type": {"name": "std::string::String"}}]}},
+            {"kind": "struct", "name": "Request", "fields": {"named": [
+                {"name": "memo", "type": {"name": "Memo"}},
+                {"name": "text", "type": {"name": "std::string::String"}}
+            ]}}
+        ]});
+        let mut schema = serde_json::json!({"name": "defaults"});
+        schema[typespace] = types;
+        let schema: crate::Schema = serde_json::from_value(schema).unwrap();
         let mut config = super::Config::default();
         config.format(false).base_derives(
             base_derives
@@ -2251,5 +2273,18 @@ mod tests {
             assert!(memo.contains("pub memo: Memo,"), "{code}");
             assert!(memo.contains("default = \"Default::default\""), "{code}");
         }
+    }
+
+    #[test]
+    fn a_request_only_field_keeps_its_type_without_default() {
+        // The client only serializes a request type, which needs no `Default`.
+        let code = generate_in("input_types", &[], &["Debug"]);
+        assert!(memo_field(&code).contains("pub memo: Memo,"), "{code}");
+        // Unless the configured derives deserialize it anyway.
+        let code = generate_in("input_types", &[], &["Debug", "serde::Deserialize"]);
+        assert!(
+            memo_field(&code).contains("pub memo: std::option::Option<Memo>"),
+            "{code}"
+        );
     }
 }

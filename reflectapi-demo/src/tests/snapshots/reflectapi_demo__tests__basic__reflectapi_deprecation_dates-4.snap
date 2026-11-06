@@ -159,7 +159,13 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         "type": "object",
         "title": "reflectapi_demo.tests.basic.output.StructWithDeprecationDates",
         "required": [
-          "_current"
+          "_current",
+          "_release_and_dates",
+          "_release_like_a_date",
+          "_release_only",
+          "_since_and_sunset",
+          "_since_only",
+          "_sunset_only"
         ],
         "properties": {
           "_current": {
