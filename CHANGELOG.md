@@ -1,30 +1,18 @@
 # Changelog
 
-## 0.24.0-alpha.3
-
-### Fixed
-
-- Generated clients keep a deprecated field required in the response copy of a type split by direction. When a type's request and response shapes differ, consolidation splits it into `input::X` and `output::X`, and 0.24.0-alpha.1 relaxed `output::X` as a response-only type. Code that sends back a value it read, such as an `output::X` passed where `input::X` is expected, then failed to type-check in TypeScript, because the field was optional in one and required in the other. Such a type is also used in requests, so it now keeps deprecated fields required, like any other type used in both directions. ([#225](https://github.com/thepartly/reflectapi/pull/225))
-
-## 0.24.0-alpha.2
-
-### Fixed
-
-- A generated Rust client keeps the declared type of an optional field in a request-only type. 0.24.0-alpha.1 made such a field `Option<T>` when its generated type has no `Default`, which broke code that sets it. The client only serializes request types, so the field's `#[serde(default)]` needs no `Default`. Fields of types the client deserializes, because they appear in responses or because the configured derives include `Deserialize`, still become `Option<T>`. ([#223](https://github.com/thepartly/reflectapi/pull/223))
-
-## 0.24.0-alpha.1
+## 0.24.0
 
 Generated clients keep decoding responses after the server removes a deprecated field, and Python clients reject a `None` the server can't read before sending it. TypeScript and Rust code that reads a deprecated response field must now handle its absence; see Breaking.
 
 ### Breaking
 
-- **Deprecated fields of response-only types are optional in generated clients.** Generated clients decode responses after the server removes a deprecated field. Every generator now treats a deprecated field of a response-only type as optional: Python reads it as `None` and types a non-`Option` field `T | None`, TypeScript marks it `?:`, the Rust client types it `Option<T>`, unless it already is one, and OpenAPI leaves it out of `required`. Before, a client generated while the field was deprecated failed to decode every response once the server dropped it, although the client never read it. TypeScript and Rust code that reads such a field must now handle its absence. Types also used in requests keep deprecated fields required, because the server may still require them until it removes them, and so do types the client decodes by trying them in turn: untagged enums and untagged variants, the type behind a flattened `Option`, and every type these reach. There, an optional field could change what a payload decodes as. ([#218](https://github.com/thepartly/reflectapi/pull/218))
+- **Deprecated fields of response-only types are optional in generated clients.** Generated clients decode responses after the server removes a deprecated field. Every generator now treats a deprecated field of a response-only type as optional: Python reads it as `None` and types a non-`Option` field `T | None`, TypeScript marks it `?:`, the Rust client types it `Option<T>`, unless it already is one, and OpenAPI leaves it out of `required`. Before, a client generated while the field was deprecated failed to decode every response once the server dropped it, although the client never read it. TypeScript and Rust code that reads such a field must now handle its absence. Types also used in requests keep deprecated fields required, because the server may still require them until it removes them. That includes the response copy `output::X` of a type split by direction, because clients send back what they read. So do types the client decodes by trying them in turn: untagged enums and untagged variants, the type behind a flattened `Option`, and every type these reach. There, an optional field could change what a payload decodes as. ([#218](https://github.com/thepartly/reflectapi/pull/218), [#225](https://github.com/thepartly/reflectapi/pull/225))
 
 ### Fixed
 
 - A generated Python model rejects an explicit `None` for an omittable field whose type serde can't read from `null`. Since 0.21 the client sends an explicit `None` as `null`, which the server refuses, so `Model(page=None)` for a `#[serde(default)] page: Page` failed with a 400. It now raises a `ValidationError` where the model is built. Leaving the field out is unchanged. Whether a value may be `null` is now part of the shared field contract and is decided from the schema, not from Python's rendered annotation. Before, only primitives and containers were checked. Now these reject `null` too: structs with fields, tuple structs, tagged enums, newtypes and wrappers such as `Box` of those, and primitives such as `chrono::DateTime`, `uuid::Uuid` and `url::Url`. Unit structs, untagged enums with a variant that accepts `null`, newtypes of an `Option`, generic parameters and fields with a custom codec on their side (`deserialize_with` in a request, `serialize_with` in a response), including a newtype's inner field, still accept `None`. ([#219](https://github.com/thepartly/reflectapi/pull/219))
 - A generated Python module with an omittable field of a unit type, `()` or a unit struct, imports again. The field was annotated `None | None`, which Python can't evaluate, so importing the module raised `TypeError`. It is now `None`. ([#220](https://github.com/thepartly/reflectapi/pull/220))
-- A generated Rust client compiles when an optional field's type is a generated struct or enum without `Default`, such as a `#[serde(default)] memo: Memo` whose `Memo` implements `Default` only on the server. The field got `#[serde(default)]`, which needs `Default` on the generated type, and generated types derive it only when configured to. Such a field is now `Option<Memo>`: `None` leaves the key out and the server applies its default. Fields whose generated type derives `Default`, through `base_derives` or the type's `additional_derives`, are unchanged. ([#221](https://github.com/thepartly/reflectapi/pull/221))
+- A generated Rust client compiles when a type it deserializes has an optional field whose generated type lacks `Default`, such as a `#[serde(default)] memo: Memo` whose `Memo` implements `Default` only on the server. The field got `#[serde(default)]`, which needs `Default` on the generated type, and generated types derive it only when configured to. Such a field is now `Option<Memo>`: `None` leaves the key out and the server applies its default. Fields whose generated type derives `Default`, through `base_derives` or the type's `additional_derives`, are unchanged, and so are fields of request-only types, which the client only serializes. ([#221](https://github.com/thepartly/reflectapi/pull/221), [#223](https://github.com/thepartly/reflectapi/pull/223))
 
 ## 0.23.0
 
