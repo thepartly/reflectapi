@@ -78,14 +78,14 @@ pub mod types {
                     /// null validator.
                     #[derive(Debug, serde::Serialize)]
                     pub struct TestStructWithSerdeDefaultNamedTypes {
-    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
-    pub structure: std::option::Option<super::super::super::super::reflectapi_demo::tests::serde::TestDefaultStruct>,
-    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
-    pub tagged: std::option::Option<super::super::super::super::reflectapi_demo::tests::serde::TestDefaultTaggedEnum>,
-    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
-    pub untagged: std::option::Option<super::super::super::super::reflectapi_demo::tests::serde::TestDefaultUntaggedEnum>,
-    #[serde(default = "Default::default", skip_serializing_if = "std::option::Option::is_none")]
-    pub nullable_newtype: std::option::Option<super::super::super::super::reflectapi_demo::tests::serde::TestDefaultNullableNewtype>,
+    #[serde(default = "Default::default")]
+    pub structure: super::super::super::super::reflectapi_demo::tests::serde::TestDefaultStruct,
+    #[serde(default = "Default::default")]
+    pub tagged: super::super::super::super::reflectapi_demo::tests::serde::TestDefaultTaggedEnum,
+    #[serde(default = "Default::default")]
+    pub untagged: super::super::super::super::reflectapi_demo::tests::serde::TestDefaultUntaggedEnum,
+    #[serde(default = "Default::default")]
+    pub nullable_newtype: super::super::super::super::reflectapi_demo::tests::serde::TestDefaultNullableNewtype,
 }
                 }
                 pub mod output {

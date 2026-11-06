@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- A generated Rust client keeps the declared type of an optional field in a request-only type. 0.24.0-alpha.1 made such a field `Option<T>` when its generated type has no `Default`, which broke code that sets it. The client only serializes request types, so the field's `#[serde(default)]` needs no `Default`. Fields of types the client deserializes, because they appear in responses or because the configured derives include `Deserialize`, still become `Option<T>`.
+
 ## 0.24.0-alpha.1
 
 Generated clients keep decoding responses after the server removes a deprecated field, and Python clients reject a `None` the server can't read before sending it. TypeScript and Rust code that reads a deprecated response field must now handle its absence; see Breaking.
