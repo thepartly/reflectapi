@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.24.0-alpha.2
 
 ### Fixed
 
-- A generated Rust client keeps the declared type of an optional field in a request-only type. 0.24.0-alpha.1 made such a field `Option<T>` when its generated type has no `Default`, which broke code that sets it. The client only serializes request types, so the field's `#[serde(default)]` needs no `Default`. Fields of types the client deserializes, because they appear in responses or because the configured derives include `Deserialize`, still become `Option<T>`.
+- A generated Rust client keeps the declared type of an optional field in a request-only type. 0.24.0-alpha.1 made such a field `Option<T>` when its generated type has no `Default`, which broke code that sets it. The client only serializes request types, so the field's `#[serde(default)]` needs no `Default`. Fields of types the client deserializes, because they appear in responses or because the configured derives include `Deserialize`, still become `Option<T>`. ([#223](https://github.com/thepartly/reflectapi/pull/223))
 
 ## 0.24.0-alpha.1
 
