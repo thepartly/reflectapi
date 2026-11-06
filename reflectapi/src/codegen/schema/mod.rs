@@ -31,5 +31,5 @@ pub(crate) use self::semantic::{
     SemanticOutputType, SemanticPrimitive, SemanticSchema, SemanticStruct, SemanticType,
     SemanticTypeParameter, SemanticVariant, SymbolInfo, SymbolTable,
 };
-pub(crate) use self::shape::Shape;
+pub(crate) use self::shape::{wrapped_field, Shape};
 pub(crate) use self::symbol::{SymbolId, SymbolKind};

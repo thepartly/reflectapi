@@ -10,7 +10,7 @@ use std::collections::BTreeSet;
 use reflectapi_schema::{Enum, Field, Fields, Representation, Type, TypeReference};
 
 use super::presence::{key_presence, FieldWireFacts, KeyPresence};
-use super::shape::Shape;
+use super::shape::{wrapped_field, Shape};
 
 /// Flattening deeper than this is treated as unknown. The outermost flattened
 /// field's type is at depth 0, as in Python's `collect_flattened_fields`.
@@ -102,17 +102,10 @@ impl<'a> Layout<'a> {
             return Layout::Unknown(Opaque::TooDeep);
         }
         match lookup(&type_ref.name) {
-            Some(Type::Struct(strukt)) if strukt.transparent() => {
-                let mut fields = strukt.fields();
-                match (fields.next(), fields.next()) {
-                    (Some(inner), None) => Layout::of_type(&inner.type_ref, lookup, depth + 1),
-                    _ => Layout::Unknown(Opaque::Unsupported),
-                }
-            }
-            // Serde writes a newtype struct as the value it wraps, flattened or not.
-            Some(Type::Struct(strukt)) => match Shape::of(&strukt.fields) {
-                Shape::Newtype(inner) => Layout::of_type(&inner.type_ref, lookup, depth + 1),
-                _ => Layout::of_fields(&strukt.fields, lookup, depth),
+            Some(Type::Struct(strukt)) => match wrapped_field(strukt) {
+                Some(inner) => Layout::of_type(&inner.type_ref, lookup, depth + 1),
+                None if strukt.transparent() => Layout::Unknown(Opaque::Unsupported),
+                None => Layout::of_fields(&strukt.fields, lookup, depth),
             },
             Some(Type::Enum(enm)) => match &enm.representation {
                 Representation::Internal { tag } => Layout::InternallyTagged {

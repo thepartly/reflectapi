@@ -961,10 +961,8 @@ fn unwrap_flattened_wrappers(
             if !wrapper.parameters.is_empty() {
                 break;
             }
-            let inner = match schema_codegen::Shape::of(&wrapper.fields) {
-                schema_codegen::Shape::Newtype(inner) => inner,
-                _ if wrapper.transparent() && wrapper.fields.len() == 1 => &wrapper.fields[0],
-                _ => break,
+            let Some(inner) = schema_codegen::wrapped_field(wrapper) else {
+                break;
             };
             *target = inner.type_ref.clone();
             changed = true;
