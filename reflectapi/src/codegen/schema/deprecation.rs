@@ -31,7 +31,11 @@ pub(crate) fn relax_deprecated_response_fields(schema: &mut Schema) -> HashSet<R
         .output_types
         .types()
         .map(|t| t.name().to_string())
-        .filter(|name| !schema.input_types.has_type(name) && !tried.contains(name))
+        .filter(|name| {
+            !schema.input_types.has_type(name)
+                && !has_input_twin(schema, name)
+                && !tried.contains(name)
+        })
         .collect();
     let mut relaxed = HashSet::new();
     let mut relax = |type_name: &str, variant: Option<&str>, field: &mut Field| {
@@ -65,6 +69,22 @@ pub(crate) fn relax_deprecated_response_fields(schema: &mut Schema) -> HashSet<R
         }
     }
     relaxed
+}
+
+/// Whether `name` is the response copy of a type that consolidation split
+/// because its request and response shapes differ (`Schema::consolidate_types`
+/// renames them `a::input::X` and `a::output::X`). Such a type is also sent
+/// in requests, and clients often send back what they read, so it keeps its
+/// deprecated fields required like any other type used in both directions.
+fn has_input_twin(schema: &Schema, name: &str) -> bool {
+    let mut parts: Vec<&str> = name.split("::").collect();
+    match parts.len().checked_sub(2) {
+        Some(module) if parts[module] == "output" => {
+            parts[module] = "input";
+            schema.input_types.has_type(&parts.join("::"))
+        }
+        _ => false,
+    }
 }
 
 /// Types a client decodes by trying them in turn, and every type these
@@ -349,6 +369,31 @@ mod tests {
         assert_eq!(
             required(&schema.input_types, "Both"),
             [("old".into(), true)]
+        );
+    }
+
+    #[test]
+    fn the_response_copy_of_a_split_type_keeps_deprecated_fields() {
+        let old = serde_json::json!({"name": "old", "required": true, "type": {"name": "u32"}, "deprecation_note": "gone soon"});
+        let mut schema: Schema = serde_json::from_value(serde_json::json!({
+            "name": "split",
+            "input_types": {"types": [
+                {"kind": "primitive", "name": "u32"},
+                {"kind": "struct", "name": "rules::input::Split", "fields": {"named": [old.clone()]}}
+            ]},
+            "output_types": {"types": [
+                {"kind": "primitive", "name": "u32"},
+                {"kind": "struct", "name": "rules::output::Split", "fields": {"named": [old.clone()]}},
+                {"kind": "struct", "name": "replies::output::Lone", "fields": {"named": [old]}}
+            ]}
+        }))
+        .unwrap();
+        let relaxed = super::relax_deprecated_response_fields(&mut schema);
+        // A client may send back the `output` copy it read as the `input`
+        // twin; an `output` module without a twin is an ordinary response.
+        assert_eq!(
+            relaxed.into_iter().map(|f| f.type_name).collect::<Vec<_>>(),
+            ["replies::output::Lone"]
         );
     }
 }
