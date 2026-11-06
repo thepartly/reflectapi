@@ -1994,6 +1994,7 @@ fn build_python_generation(
     // Python model doesn't reference a non-existent
     // `std.marker.PhantomData`.
     strip_phantom_data_fields(&mut schema);
+    schema_codegen::relax_deprecated_response_fields(&mut schema);
 
     // Consolidate input/output types FIRST so both the SemanticSchema and
     // the raw Schema share the same unified type names.

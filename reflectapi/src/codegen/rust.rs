@@ -140,6 +140,7 @@ fn types_referenced_by(
 pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<String> {
     super::validate_response_enums(&schema)?;
     schema.strip_hidden_fields();
+    let relaxed_fields = super::schema::relax_deprecated_response_fields(&mut schema);
     let mut implemented_types = __build_implemented_types();
     for type_def in schema
         .input_types()
@@ -200,6 +201,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
                     || extra_serializable_types.contains(&original_type_name),
                 schema.is_output_type(&original_type_name),
                 error_types.contains(&original_type_name),
+                &relaxed_fields,
             )?,
         );
     }
@@ -1706,17 +1708,29 @@ fn type_implements_default(
 /// A field the server fills with `Default` when its key is missing. When the
 /// client's own type can't do the same, it becomes `Option<T>`: `None` leaves
 /// the key out and lets the server apply its default.
+///
+/// A deprecated response field that was relaxed so the client survives its
+/// removal has no server default behind it, so it becomes `Option<T>` unless
+/// it already is one: `Option<T>` implements `Default` whatever `T` is.
 fn optional_field_type(
     type_: String,
     field: &crate::Field,
+    relaxed: bool,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
     base_derives: &BTreeSet<String>,
 ) -> String {
-    if field.required
-        || field.flattened
-        || type_implements_default(&field.type_ref, schema, implemented_types, base_derives)
-    {
+    let keeps_type = if relaxed {
+        matches!(
+            field.type_ref.name.as_str(),
+            "std::option::Option" | "reflectapi::Option"
+        )
+    } else {
+        field.required
+            || field.flattened
+            || type_implements_default(&field.type_ref, schema, implemented_types, base_derives)
+    };
+    if keeps_type {
         type_
     } else {
         format!("std::option::Option<{type_}>")
@@ -1746,6 +1760,7 @@ fn request_field_type_ref<'a>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn __render_type(
     config: &Config,
     type_def: &crate::Type,
@@ -1754,8 +1769,16 @@ fn __render_type(
     is_input_type: bool,
     is_output_type: bool,
     is_error_type: bool,
+    relaxed_fields: &HashSet<crate::codegen::schema::RelaxedField>,
 ) -> Result<String, anyhow::Error> {
     let type_name = __type_to_ts_name(type_def);
+    let relaxed = |variant: Option<&str>, field: &crate::Field| {
+        relaxed_fields.contains(&crate::codegen::schema::RelaxedField {
+            type_name: type_def.name().to_owned(),
+            variant: variant.map(str::to_owned),
+            field: field.name.clone(),
+        })
+    };
     let type_name_depth = type_def.name().split("::").count() - 1;
 
     Ok(match type_def {
@@ -1812,6 +1835,7 @@ fn __render_type(
                                     Some(type_def),
                                 ),
                                 field,
+                                relaxed(None, field),
                                 schema,
                                 implemented_types,
                                 &config.base_derives,
@@ -1868,6 +1892,7 @@ fn __render_type(
                                         Some(type_def),
                                     ),
                                     field,
+                                    relaxed(Some(variant.name()), field),
                                     schema,
                                     implemented_types,
                                     &config.base_derives,

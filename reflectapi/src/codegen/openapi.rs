@@ -56,12 +56,15 @@ pub fn generate(schema: &crate::Schema, config: &Config) -> anyhow::Result<Strin
 pub fn generate_spec(schema: &crate::Schema, config: &Config) -> Spec {
     let mut schema = schema.clone();
     schema.strip_hidden_fields();
+    super::schema::relax_deprecated_response_fields(&mut schema);
     Converter::new(config).convert(&schema)
 }
 
 impl From<&crate::Schema> for Spec {
     fn from(schema: &crate::Schema) -> Self {
-        Converter::new(&Config::default()).convert(schema)
+        let mut schema = schema.clone();
+        super::schema::relax_deprecated_response_fields(&mut schema);
+        Converter::new(&Config::default()).convert(&schema)
     }
 }
 

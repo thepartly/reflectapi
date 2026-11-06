@@ -91,7 +91,11 @@ pub mod types {
                 #[derive(Debug, serde::Deserialize)]
                 pub struct ResponseHeaders {
                     /// The old request id
-                    #[serde(rename = "x-legacy-request-id")]
+                    #[serde(
+                        rename = "x-legacy-request-id",
+                        default = "Default::default",
+                        skip_serializing_if = "std::option::Option::is_none"
+                    )]
                     #[deprecated(
                         note = "Deprecated since 2026-10-01; removal after 2026-11-01. Read `x-request-id` instead."
                     )]

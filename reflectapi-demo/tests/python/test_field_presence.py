@@ -18,6 +18,8 @@ from presence_client import AsyncClient, Client  # noqa: E402
 from null_contract_client.field_presence.fixtures import Context, Create  # noqa: E402
 from presence_client.field_presence.fixtures import (  # noqa: E402
     Equal,
+    Profile,
+    Shared,
     Tuple,
     input,
     output,
@@ -258,3 +260,39 @@ def test_omittable_field_of_a_nullable_type_accepts_null(field: str) -> None:
     # an Option, JSON values and custom deserializers may all read null.
     create = Create.model_validate({field: None})
     assert create.model_dump(by_alias=True, exclude_unset=True) == {field: None}
+
+
+def test_response_may_omit_deprecated_fields() -> None:
+    # A server that removed its deprecated fields still decodes in a client
+    # generated before the removal.
+    profile = Profile.model_validate({"id": 1})
+    with pytest.warns(DeprecationWarning):
+        assert profile.legacy_tags is None
+    with pytest.warns(DeprecationWarning):
+        assert profile.legacy_code is None
+    with pytest.warns(DeprecationWarning):
+        assert profile.legacy_config is None
+    # Re-serializing keeps the server's shape: what it omitted stays omitted.
+    assert profile.model_dump(by_alias=True) == {"id": 1}
+    full = Profile.model_validate(
+        {
+            "id": 1,
+            "legacy_tags": {"a": 1},
+            "legacy_code": "x",
+            "legacy_config": {"level": 2},
+        }
+    )
+    assert full.model_dump(by_alias=True) == {
+        "id": 1,
+        "legacy_tags": {"a": 1},
+        "legacy_code": "x",
+        "legacy_config": {"level": 2},
+    }
+
+
+def test_request_still_requires_deprecated_fields() -> None:
+    # The server may still require the field, so a model sent as a request
+    # keeps it required.
+    with pytest.raises(ValidationError):
+        Shared.model_validate({"id": 1})
+    Shared.model_validate({"id": 1, "old": "x"})
