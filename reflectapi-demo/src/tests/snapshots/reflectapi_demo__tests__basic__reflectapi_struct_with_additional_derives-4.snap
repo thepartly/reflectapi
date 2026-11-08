@@ -55,7 +55,7 @@ snapshot_kind: text
             "description": "Value set type",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/reflectapi_demo.tests.basic.U"
+              "$ref": "#/components/schemas/std.tuple.Tuple0"
             },
             "uniqueItems": true
           },
@@ -76,14 +76,6 @@ snapshot_kind: text
             "uniqueItems": true
           }
         }
-      },
-      "reflectapi_demo.tests.basic.U": {
-        "type": "array",
-        "prefixItems": [
-          {
-            "$ref": "#/components/schemas/std.tuple.Tuple0"
-          }
-        ]
       },
       "reflectapi_demo.tests.basic.X": {
         "type": "object",

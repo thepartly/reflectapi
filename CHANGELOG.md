@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **OpenAPI describes a newtype struct as the value it wraps**, as serde writes it. `struct UserId(Uuid)` was a one-element array (`"prefixItems": [...]`), so a client generated from the spec sent `["..."]` where the server expects `"..."`; the demo's `pets.create` request body, `PetsCreateRequest(Pet)`, was `[Pet]` instead of `Pet`. Unit structs, which the schema describes as a newtype of `()`, are now `null` instead of `[null]`. Generated Rust, TypeScript and Python clients already treated newtypes this way and are unchanged.
+- **Flattening a newtype struct** works in Python and OpenAPI. Serde writes `#[serde(flatten)] w: Wrapper`, where `struct Wrapper(Inner)`, as `Inner`'s keys next to the parent's, and `Option<Wrapper>` as all of them or none. Python codegen failed with "cannot flatten 'Wrapper' into a model", and OpenAPI described the group with the one-element array above, which no object matches.
+- **Flattening a newtype or `#[serde(transparent)]` struct that wraps an enum** generates the same Python model as flattening the enum: its tag and fields sit on the parent, as serde writes them. Python decided by the wrapper's own type, so it generated a nested field the wire never has. Schemas built with `fold_transparent_types()` weren't affected for transparent wrappers.
+- A single-field tuple variant whose field has a serde rename, such as `A(#[serde(rename = "foo")] u32)`, is a newtype in OpenAPI variants and Python models, as serde writes it; it was described as an object with a `foo` key. This shipped in 0.24.0 without an entry. ([#212](https://github.com/thepartly/reflectapi/pull/212))
+
 ## 0.24.0
 
 Generated clients keep decoding responses after the server removes a deprecated field, and Python clients reject a `None` the server can't read before sending it. TypeScript and Rust code that reads a deprecated response field must now handle its absence; see Breaking.

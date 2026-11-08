@@ -42,18 +42,13 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
   "components": {
     "schemas": {
       "reflectapi_demo.tests.serde.TestDefaultNullableNewtype": {
-        "type": "array",
-        "prefixItems": [
+        "oneOf": [
           {
-            "oneOf": [
-              {
-                "description": "Null",
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/u8"
-              }
-            ]
+            "description": "Null",
+            "type": "null"
+          },
+          {
+            "$ref": "#/components/schemas/u8"
           }
         ]
       },
