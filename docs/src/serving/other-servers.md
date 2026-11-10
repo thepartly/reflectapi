@@ -70,10 +70,9 @@ the same way:
 **Requests.**
 
 - Pass all request headers; the dispatcher forwards to each handler only the
-  headers it declares, plus `content-type` and `traceparent`. A
-  `#[serde(flatten)]` field of its headers type declares its type's, at any
-  depth, so `RoutingHeaders<AuthorizationHeaders>`, with
-  `#[serde(flatten)] headers: T`, declares `authorization` too.
+  headers it declares, flattened ones included
+  ([Request Headers](../clients/README.md#request-headers)), plus
+  `content-type` and `traceparent`.
 - Pass the complete body. Enforce a body size limit before dispatching.
 - The state is cloned into every call: make it cheap to clone (`Arc`, handles).
 

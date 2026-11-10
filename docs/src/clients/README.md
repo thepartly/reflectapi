@@ -304,6 +304,74 @@ read the ids but do not yet send `Last-Event-ID` when they reconnect.
 | Python | Method returns `AsyncApiStream[Item]` on the async client and `ApiStream[Item]` on the sync client: iterators that also expose the response's `metadata` and declared `headers` once iteration starts. Init 4xx/5xx raise `ApplicationError` (with the typed `error_model` if declared); per-event problems raise `NetworkError` / `TimeoutError` / `ValidationError` and terminate the iterator without a leaked socket. |
 | OpenAPI | Operation is described with `text/event-stream` response content. |
 
+## Request Headers
+
+A route reads request headers through its third argument, a struct whose
+fields' serde names are the header names. Its handler is given only those
+headers. A `#[serde(flatten)]` field gives its type's fields as headers too,
+at any depth, so headers that several routes read can be declared once and
+flattened into each route's own:
+
+```rust,ignore
+/// Headers every route of the API reads.
+#[derive(serde::Deserialize, reflectapi::Input)]
+struct CommonHeaders {
+    #[serde(rename = "x-request-id")]
+    request_id: Option<String>,
+}
+
+/// `pets.update`'s headers: its own, and the common ones.
+#[derive(serde::Deserialize, reflectapi::Input)]
+struct PetsUpdateHeaders {
+    authorization: String,
+    #[serde(flatten)]
+    common: CommonHeaders,
+}
+
+async fn pets_update(
+    state: AppState,
+    request: PetsUpdateRequest,
+    headers: PetsUpdateHeaders, // given `authorization` and `x-request-id`
+) -> Result<Pet, PetsUpdateError> { … }
+```
+
+The flattened field's type can be a type parameter, so one headers type can
+wrap each route's own, and a route with none of its own takes it alone:
+
+```rust,ignore
+/// The common headers, and the route's own flattened in.
+#[derive(serde::Deserialize, reflectapi::Input)]
+struct WithCommon<T = reflectapi::Empty> {
+    #[serde(rename = "x-request-id")]
+    request_id: Option<String>,
+    #[serde(flatten)]
+    route: T,
+}
+
+#[derive(serde::Deserialize, reflectapi::Input)]
+struct PetsUpdateHeaders {
+    authorization: String,
+}
+
+async fn pets_update(
+    state: AppState,
+    request: PetsUpdateRequest,
+    headers: WithCommon<PetsUpdateHeaders>, // given `x-request-id` and `authorization`
+) -> Result<Pet, PetsUpdateError> {
+    let token = &headers.route.authorization;
+    …
+}
+
+async fn pets_list(
+    state: AppState,
+    request: PetsListRequest,
+    headers: WithCommon, // given `x-request-id` alone
+) -> Result<Vec<Pet>, PetsListError> { … }
+```
+
+Generated clients send the flattened headers as the route's own: a call to
+`pets.update` takes `x-request-id` and `authorization` side by side.
+
 ## Response Headers
 
 Some response headers matter to callers: a request ID to quote in a support

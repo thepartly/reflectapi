@@ -150,8 +150,9 @@ impl BuildMode for DispatchOnly {
 /// The header names a request-headers type reads: the serde names of its
 /// fields, and, for a `#[serde(flatten)]` field, those of its type, at any
 /// depth, a generic type's arguments filled in. So
-/// `struct Routing<T> { cell: Option<String>, #[serde(flatten)] own: T }`, as
-/// `Routing<Authorization>`, reads `cell` and `Authorization`'s headers.
+/// `struct WithCommon<T> { request_id: Option<String>, #[serde(flatten)] route: T }`,
+/// as `WithCommon<PetsUpdateHeaders>`, reads `request_id` and
+/// `PetsUpdateHeaders`' headers.
 fn header_names(
     typespace: &Typespace,
     headers_type: &TypeReference,
