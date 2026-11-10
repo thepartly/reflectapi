@@ -249,3 +249,71 @@ The release in Rust's `#[deprecated(since = "..")]` is kept as well. See [Deprec
 | `#[reflectapi(output_skip)]` | Exclude the variant from the output schema only. |
 | `#[reflectapi(deprecated_since = "YYYY-MM-DD")]` | Date the variant was deprecated. Requires `#[deprecated]`. |
 | `#[reflectapi(sunset = "YYYY-MM-DD")]` | Date after which the variant may be removed. Requires `#[deprecated]`. |
+| `#[reflectapi(status = 404)]` | With `#[derive(reflectapi::StatusCode)]`: the status a route's error is answered with when it is this variant. See [A route's error](#a-routes-error). |
+| `#[reflectapi(transparent)]` | With `#[derive(reflectapi::StatusCode)]`: the variant has one field, whose status and headers it is answered with. |
+
+### A route's error
+
+A route's error implements `reflectapi::StatusCode`: the status its response
+has, and, with `response_headers`, the headers the response adds, none by
+default. For an enum, derive it, giving each variant its status, or taking the
+status and headers of its one field:
+
+```rust,ignore
+#[derive(serde::Serialize, reflectapi::Output, reflectapi::StatusCode)]
+enum PetsInsertError {
+    /// The owner doesn't exist: change the request.
+    #[reflectapi(status = 404)]
+    OwnerNotFound,
+    /// A pet of that name exists.
+    #[reflectapi(status = 409)]
+    Conflict { name: String },
+    /// The payment provider asked us to wait: try again after `after_secs`.
+    #[reflectapi(transparent)]
+    TryAgain(RetryAfter),
+    /// A failure the client can't act on.
+    #[reflectapi(output_skip, status = 500)]
+    InternalError,
+}
+```
+
+The derive refuses, as it compiles, a status a route's error must not give:
+
+- `1xx`, `2xx` and `3xx`, which a client takes for an answer, or acts on
+  (follows a redirect, caches a `301`);
+- `400`, `405` and `415`, which reflectapi answers itself, for a body or
+  headers it can't decode, a method a route doesn't take, or a content type it
+  doesn't speak;
+- `408`, `413`, `414` and `431`, the transport's or the server's, for a
+  request a route never sees;
+- every `5xx` but `500`, a gateway's or the server's own; and `500` on any
+  variant but one named `InternalError`, which must be `output_skip`: a client
+  takes any `5xx` as the server's failure, not the route's error, so it has no
+  place in the schema.
+
+A `transparent` variant's status is its field's, known as it runs, and isn't
+checked.
+
+A type of the app's own that implements `StatusCode` gives a variant its
+status and headers through `transparent`: `RetryAfter` above is an app's own
+"try again after", `429` with the wait in `retry-after`, and in its body for a
+typed client:
+
+```rust,ignore
+#[derive(serde::Serialize, reflectapi::Output)]
+struct RetryAfter {
+    after_secs: u64,
+}
+
+impl reflectapi::StatusCode for RetryAfter {
+    fn status_code(&self) -> http::StatusCode {
+        http::StatusCode::TOO_MANY_REQUESTS
+    }
+
+    fn response_headers(&self) -> http::HeaderMap {
+        let mut headers = http::HeaderMap::new();
+        headers.insert(http::header::RETRY_AFTER, self.after_secs.into());
+        headers
+    }
+}
+```

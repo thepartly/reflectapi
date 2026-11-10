@@ -388,7 +388,7 @@ fn schema() -> reflectapi::Schema {
             |b| b.name("enums.error"),
         )
         .stream_route(
-            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| {
+            |_: (), _: reflectapi::Empty, _: reflectapi::Empty| async {
                 Ok::<_, reflectapi::Infallible>(futures_util::stream::iter([
                     fixtures::OpenInternal::Bird,
                 ]))

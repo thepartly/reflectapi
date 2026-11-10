@@ -1,0 +1,5 @@
+error: `InternalError` must be `#[reflectapi(output_skip)]`: a client takes any 5xx as the server's failure, not the route's error, so it has no place in the schema
+ --> tests/errors/status_code_internal_error_in_schema.rs:4:5
+  |
+4 |     InternalError,
+  |     ^^^^^^^^^^^^^

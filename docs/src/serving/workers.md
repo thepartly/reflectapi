@@ -56,7 +56,7 @@ in the `SendStream` from the adapter below.
 ```rust,ignore
 pub type Ctx = worker::send::SendWrapper<std::rc::Rc<SessionState>>;
 
-fn prompt(
+async fn prompt(
     ctx: Ctx,
     request: PromptRequest,
     headers: SessionHeaders,

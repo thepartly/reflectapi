@@ -185,7 +185,7 @@ where
     };
     match callback {
         HandlerCallback::Future(f) => f(state, input).await.into(),
-        HandlerCallback::Stream(f) => match f(state, input) {
+        HandlerCallback::Stream(f) => match f(state, input).await {
             Ok(stream) => Reply::Stream(stream),
             Err(output) => output.into(),
         },

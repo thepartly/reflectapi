@@ -90,7 +90,7 @@ mod events {
     }
 
     /// Ticks 1 and 2 with their `seq` as the event id, then one without an id.
-    pub fn ticks(
+    pub async fn ticks(
         _: (),
         _: reflectapi::Empty,
         _: reflectapi::Empty,
@@ -190,7 +190,7 @@ mod quiet {
     use futures_util::{Stream, StreamExt};
 
     /// One tick, then nothing, without ending.
-    pub fn quiet(
+    pub async fn quiet(
         _: (),
         _: reflectapi::Empty,
         _: reflectapi::Empty,
@@ -569,5 +569,236 @@ async fn readonly_routes_reject_other_methods_including_head() -> TestResult {
         );
         assert!(body.is_empty(), "{method}");
     }
+    Ok(())
+}
+
+mod waiting {
+    use futures_util::Stream;
+
+    #[derive(serde::Deserialize, reflectapi::Input)]
+    pub struct Ask {
+        pub refuse: bool,
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
+    pub struct Refused {
+        pub reason: String,
+    }
+
+    impl reflectapi::StatusCode for Refused {
+        fn status_code(&self) -> http::StatusCode {
+            http::StatusCode::CONFLICT
+        }
+    }
+
+    /// Waits before it decides, then refuses, or streams one tick.
+    pub async fn ticks(
+        _: (),
+        ask: Ask,
+        _: reflectapi::Empty,
+    ) -> Result<impl Stream<Item = super::events::Tick>, Refused> {
+        tokio::task::yield_now().await;
+        if ask.refuse {
+            return Err(Refused {
+                reason: "asked to".into(),
+            });
+        }
+        Ok(futures_util::stream::iter([super::events::Tick { seq: 1 }]))
+    }
+
+    pub fn api<M: reflectapi::BuildMode>() -> reflectapi::Builder<(), M> {
+        reflectapi::Builder::default().stream_route(ticks, |b| b.name("ticks"))
+    }
+}
+
+#[tokio::test]
+async fn a_stream_route_waits_before_it_streams_or_refuses() -> TestResult {
+    let dispatcher = Dispatcher::new(waiting::api::<DispatchOnly>().build()?);
+    let headers = json_headers();
+    let ask = |refuse: &'static [u8]| {
+        dispatcher.dispatch(
+            (),
+            &http::Method::POST,
+            "/ticks",
+            &headers,
+            bytes::Bytes::from_static(refuse),
+        )
+    };
+
+    let streamed = ask(br#"{"refuse":false}"#).await.ok_or("no route")?;
+    let Reply::Stream(events) = streamed else {
+        return Err(format!("expected a stream, got {streamed:?}").into());
+    };
+    let data = events
+        .map(|event| event.map(|event| event.data))
+        .collect::<Vec<_>>()
+        .await;
+    assert_eq!(data, [Ok(r#"{"seq":1}"#.to_string())]);
+
+    let refused = ask(br#"{"refuse":true}"#).await.ok_or("no route")?;
+    let Reply::Complete { status, body, .. } = refused else {
+        return Err(format!("expected a refusal, got {refused:?}").into());
+    };
+    assert_eq!(status, http::StatusCode::CONFLICT);
+    assert_eq!(body, r#"{"reason":"asked to"}"#);
+    Ok(())
+}
+
+#[tokio::test]
+async fn a_stream_route_waits_before_it_refuses_through_axum() -> TestResult {
+    use tower::Service as _;
+
+    let (_schema, routers) = waiting::api::<WithSchema>().build()?;
+    let mut app = reflectapi::axum::into_router(
+        (),
+        routers,
+        reflectapi::axum::RouterSettings::default(),
+        |_, r| r,
+    );
+    let response = app
+        .call(
+            http::Request::builder()
+                .method(http::Method::POST)
+                .uri("/ticks")
+                .header("content-type", "application/json")
+                .body(axum::body::Body::from(r#"{"refuse":true}"#))?,
+        )
+        .await?;
+    assert_eq!(response.status(), http::StatusCode::CONFLICT);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await?;
+    assert_eq!(body, r#"{"reason":"asked to"}"#);
+    Ok(())
+}
+
+mod flattened_headers {
+    /// A route's headers, its own flattened in: the shape a framework built
+    /// on reflectapi gives its routes.
+    #[derive(serde::Deserialize, reflectapi::Input)]
+    pub struct RoutingHeaders<T = reflectapi::Empty> {
+        #[serde(rename = "x-cell")]
+        pub cell: Option<String>,
+        #[serde(flatten)]
+        pub headers: T,
+    }
+
+    #[derive(serde::Deserialize, reflectapi::Input)]
+    pub struct AuthorizationHeaders {
+        pub authorization: String,
+    }
+
+    #[derive(serde::Serialize, reflectapi::Output)]
+    pub struct Seen {
+        pub cell: Option<String>,
+        pub authorization: Option<String>,
+    }
+
+    pub async fn with_authorization(
+        _: (),
+        _: reflectapi::Empty,
+        headers: RoutingHeaders<AuthorizationHeaders>,
+    ) -> Seen {
+        Seen {
+            cell: headers.cell,
+            authorization: Some(headers.headers.authorization),
+        }
+    }
+
+    pub async fn without(_: (), _: reflectapi::Empty, headers: RoutingHeaders) -> Seen {
+        Seen {
+            cell: headers.cell,
+            authorization: None,
+        }
+    }
+
+    pub fn api<M: reflectapi::BuildMode>() -> reflectapi::Builder<(), M> {
+        reflectapi::Builder::default()
+            .route(with_authorization, |b| b.name("with-authorization"))
+            .route(without, |b| b.name("without"))
+    }
+
+    pub fn headers() -> http::HeaderMap {
+        let mut headers = super::json_headers();
+        headers.insert("x-cell", http::HeaderValue::from_static("acme"));
+        headers.insert("authorization", http::HeaderValue::from_static("secret"));
+        headers
+    }
+}
+
+#[tokio::test]
+async fn a_flattened_headers_field_passes_its_own_headers() -> TestResult {
+    let dispatcher = Dispatcher::new(flattened_headers::api::<DispatchOnly>().build()?);
+    let headers = flattened_headers::headers();
+    let seen = |path: &'static str| {
+        dispatcher.dispatch((), &http::Method::POST, path, &headers, bytes::Bytes::new())
+    };
+
+    let reply = seen("/with-authorization").await.ok_or("no route")?;
+    let Reply::Complete { status, body, .. } = reply else {
+        return Err(format!("expected a response, got {reply:?}").into());
+    };
+    assert_eq!(status, http::StatusCode::OK, "{body:?}");
+    assert_eq!(body, r#"{"cell":"acme","authorization":"secret"}"#);
+
+    let reply = seen("/without").await.ok_or("no route")?;
+    let Reply::Complete { status, body, .. } = reply else {
+        return Err(format!("expected a response, got {reply:?}").into());
+    };
+    assert_eq!(status, http::StatusCode::OK, "{body:?}");
+    assert_eq!(body, r#"{"cell":"acme","authorization":null}"#);
+    Ok(())
+}
+
+#[tokio::test]
+async fn a_flattened_headers_field_passes_its_own_headers_through_axum() -> TestResult {
+    use tower::Service as _;
+
+    let (_schema, routers) = flattened_headers::api::<WithSchema>().build()?;
+    let mut app = reflectapi::axum::into_router(
+        (),
+        routers,
+        reflectapi::axum::RouterSettings::default(),
+        |_, r| r,
+    );
+    let mut request = http::Request::builder()
+        .method(http::Method::POST)
+        .uri("/with-authorization")
+        .body(axum::body::Body::empty())?;
+    *request.headers_mut() = flattened_headers::headers();
+    let response = app.call(request).await?;
+    assert_eq!(response.status(), http::StatusCode::OK);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await?;
+    assert_eq!(body, r#"{"cell":"acme","authorization":"secret"}"#);
+    Ok(())
+}
+
+#[test]
+fn clients_send_a_flattened_headers_field() -> TestResult {
+    let (schema, _) = flattened_headers::api::<WithSchema>().build()?;
+
+    let rust = reflectapi::codegen::rust::generate(
+        schema.clone(),
+        &reflectapi::codegen::rust::Config::default(),
+    )?;
+    assert!(rust.contains("authorization"), "{rust}");
+
+    let typescript = reflectapi::codegen::typescript::generate(
+        schema.clone(),
+        &reflectapi::codegen::typescript::Config::default(),
+    )?;
+    assert!(
+        typescript
+            .values()
+            .any(|file| file.contains("authorization")),
+        "{typescript:?}"
+    );
+
+    let python = reflectapi::codegen::python::generate_files(
+        schema,
+        &reflectapi::codegen::python::Config::default(),
+    )?;
+    assert!(
+        python.values().any(|file| file.contains("authorization")),
+        "{python:?}"
+    );
     Ok(())
 }

@@ -294,7 +294,7 @@ async fn pets_get_first(
     Ok(random_pet)
 }
 
-fn pets_cdc_events(
+async fn pets_cdc_events(
     state: Arc<AppState>,
     _: reflectapi::Empty,
     headers: proto::Headers,

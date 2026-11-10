@@ -282,7 +282,7 @@ struct Headers {
     last_event_id: Option<String>,
 }
 
-fn pets_events(
+async fn pets_events(
     state: AppState,
     _: reflectapi::Empty,
     headers: Headers,
@@ -333,8 +333,11 @@ let builder = reflectapi::Builder::new()
 
 The headers apply to successful and failed responses alike. Declaring a header
 doesn't mean the server sends it: it may be added by infrastructure in front of
-the server, and clients read it from whatever response arrived. Handlers can't
-set response headers yet, so today these come from that infrastructure.
+the server, and clients read it from whatever response arrived. A route's error
+can set headers, such as a `retry-after`, through
+`StatusCode::response_headers` (see
+[A route's error](../getting-started/attributes.md#a-routes-error)); a
+successful response's come from that infrastructure.
 
 A builder's declaration applies to every route of the builder that doesn't
 declare its own, whether added before or after the call, including the routes

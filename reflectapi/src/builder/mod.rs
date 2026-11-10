@@ -227,15 +227,17 @@ where
     ///
     /// This method takes a stream handler function and a closure that configures the
     /// route's metadata (like its name, path, and description) using a [`RouteBuilder`].
-    /// The stream yields its items as they are, or each in an [`Event`] to send
-    /// it with an event id.
-    pub fn stream_route<F, St, I, O, E1, H>(
+    /// The handler is async, as a route's is: it may wait before it returns its
+    /// error or its stream. The stream yields its items as they are, or each in an
+    /// [`Event`] to send it with an event id.
+    pub fn stream_route<F, Fut, St, I, O, E1, H>(
         mut self,
         handler: F,
         builder: fn(RouteBuilder) -> RouteBuilder,
     ) -> Self
     where
-        F: Fn(S, I, H) -> Result<St, E1> + Send + Sync + Copy + 'static,
+        F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
+        Fut: std::future::Future<Output = Result<St, E1>> + Send + 'static,
         St: Stream<Item = O> + Send + 'static,
         I: Input + DeserializeOwned + Send + 'static,
         H: Input + DeserializeOwned + Send + 'static,

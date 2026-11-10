@@ -1,0 +1,5 @@
+error: `#[derive(reflectapi::StatusCode)]` is for an error enum; give a struct its status with `impl reflectapi::StatusCode`
+ --> tests/errors/status_code_on_struct.rs:2:8
+  |
+2 | struct MyError {
+  |        ^^^^^^^

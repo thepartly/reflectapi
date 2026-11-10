@@ -77,9 +77,14 @@ pub(crate) type HandlerFuture = Pin<Box<dyn Future<Output = HandlerOutput> + Sen
 pub(crate) type HandlerStream =
     Pin<Box<dyn Stream<Item = Result<Event<String>, String>> + Send + 'static>>;
 
+/// A stream route's answer, once its handler has returned: its stream, or the
+/// response it answers in its place.
+pub(crate) type HandlerStreamFuture =
+    Pin<Box<dyn Future<Output = Result<HandlerStream, HandlerOutput>> + Send + 'static>>;
+
 pub(crate) enum HandlerCallback<S> {
     Future(Arc<dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync>),
-    Stream(Arc<dyn Fn(S, HandlerInput) -> Result<HandlerStream, HandlerOutput> + Send + Sync>),
+    Stream(Arc<dyn Fn(S, HandlerInput) -> HandlerStreamFuture + Send + Sync>),
 }
 
 impl<S> Clone for HandlerCallback<S>
@@ -155,13 +160,14 @@ where
         }
     }
 
-    pub(crate) fn new_stream<F, St, I, O, E1, H>(
+    pub(crate) fn new_stream<F, Fut, St, I, O, E1, H>(
         rb: RouteBuilder,
         handler: F,
         mut input_headers: Vec<HeaderName>,
     ) -> Handler<S>
     where
-        F: Fn(S, I, H) -> Result<St, E1> + Send + Sync + Copy + 'static,
+        F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
+        Fut: Future<Output = Result<St, E1>> + Send + 'static,
         St: Stream<Item = O> + Send + 'static,
         I: Input + serde::de::DeserializeOwned + Send + 'static,
         H: Input + serde::de::DeserializeOwned + Send + 'static,
@@ -180,8 +186,11 @@ where
             input_headers,
             sse_keep_alive: rb.sse_keep_alive,
             callback: HandlerCallback::Stream(Arc::new(move |state: S, input: HandlerInput| {
-                Self::stream_handler_wrap(state, input, handler)
-                    .map(|stream| Box::pin(stream) as HandlerStream)
+                Box::pin(async move {
+                    Self::stream_handler_wrap(state, input, handler)
+                        .await
+                        .map(|stream| Box::pin(stream) as HandlerStream)
+                }) as HandlerStreamFuture
             })),
         }
     }
@@ -327,6 +336,7 @@ where
         let code = match output {
             UntaggedResult::Ok(_) => http::StatusCode::OK,
             UntaggedResult::Err(err) => {
+                add_headers(&mut response_headers, err.response_headers());
                 let custom_error = err.status_code();
                 if custom_error == http::StatusCode::OK {
                     // It means a user has implemented ToStatusCode trait for their
@@ -348,8 +358,7 @@ where
         }
     }
 
-    #[allow(clippy::result_large_err)]
-    fn stream_handler_wrap<F, St, I, H, O, E1>(
+    async fn stream_handler_wrap<F, Fut, St, I, H, O, E1>(
         state: S,
         input: HandlerInput,
         handler: F,
@@ -359,7 +368,8 @@ where
         H: Input + serde::de::DeserializeOwned,
         O: StreamItem,
         E1: Output + serde::ser::Serialize + crate::StatusCode,
-        F: Fn(S, I, H) -> Result<St, E1>,
+        F: Fn(S, I, H) -> Fut,
+        Fut: Future<Output = Result<St, E1>>,
         St: Stream<Item = O> + Send + 'static,
     {
         let (input, input_headers, content_type, mut response_headers) =
@@ -387,27 +397,31 @@ where
         );
 
         let st =
-            handler(state, input, input_headers).map_err(|err| match serde_json::to_vec(&err) {
-                Ok(body) => {
-                    response_headers.insert(
-                        http::header::CONTENT_TYPE,
-                        http::HeaderValue::from_static("application/json"),
-                    );
-                    HandlerOutput {
-                        code: err.status_code(),
-                        body: body.into(),
-                        headers: response_headers,
+            handler(state, input, input_headers).await.map_err(|err| {
+                match serde_json::to_vec(&err) {
+                    Ok(body) => {
+                        response_headers.insert(
+                            http::header::CONTENT_TYPE,
+                            http::HeaderValue::from_static("application/json"),
+                        );
+                        add_headers(&mut response_headers, err.response_headers());
+                        HandlerOutput {
+                            code: err.status_code(),
+                            body: body.into(),
+                            headers: response_headers,
+                        }
                     }
-                }
-                Err(serialization) => {
-                    response_headers.insert(
-                        http::header::CONTENT_TYPE,
-                        http::HeaderValue::from_static("text/plain"),
-                    );
-                    HandlerOutput {
-                        code: http::StatusCode::INTERNAL_SERVER_ERROR,
-                        body: format!("Failed to serialize error response: {serialization}").into(),
-                        headers: response_headers,
+                    Err(serialization) => {
+                        response_headers.insert(
+                            http::header::CONTENT_TYPE,
+                            http::HeaderValue::from_static("text/plain"),
+                        );
+                        HandlerOutput {
+                            code: http::StatusCode::INTERNAL_SERVER_ERROR,
+                            body: format!("Failed to serialize error response: {serialization}")
+                                .into(),
+                            headers: response_headers,
+                        }
                     }
                 }
             })?;
@@ -417,6 +431,22 @@ where
             let data = serde_json::to_string(&data).map_err(|err| err.to_string())?;
             Ok(Event { id, data })
         }))
+    }
+}
+
+/// Adds an error's own headers to its response, each of its values. A header
+/// reflectapi has set on the response already, `content-type` or
+/// `traceparent`, keeps reflectapi's value.
+fn add_headers(response_headers: &mut http::HeaderMap, headers: http::HeaderMap) {
+    let mut name = None;
+    for (next, value) in headers {
+        // `into_iter` names a header once, followed by its remaining values.
+        if let Some(next) = next {
+            name = (!response_headers.contains_key(&next)).then_some(next);
+        }
+        if let Some(name) = &name {
+            response_headers.append(name.clone(), value);
+        }
     }
 }
 
