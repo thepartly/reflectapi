@@ -1,0 +1,5 @@
+error: variant `Conflict` gives no status: add `#[reflectapi(status = 404)]`, or `#[reflectapi(transparent)]` to take its field's
+ --> tests/errors/status_code_without_status.rs:5:5
+  |
+5 |     Conflict,
+  |     ^^^^^^^^

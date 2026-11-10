@@ -1,0 +1,5 @@
+error: variant `NotFound` gives its status twice: give one of `status = …` and `transparent`
+  --> tests/errors/status_code_given_twice.rs:12:32
+   |
+12 |     #[reflectapi(status = 404, transparent)]
+   |                                ^^^^^^^^^^^

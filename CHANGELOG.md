@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Breaking
+
+- **A stream route's handler is async**, as a route's is: `stream_route` takes `Fn(S, I, H) -> impl Future<Output = Result<St, E>>`. A handler can now wait, to authorize a request or set something up, before it returns its error or its stream; before, it had to return one at once. Make each stream handler an `async fn`, or return `std::future::ready(…)`.
+
+### Added
+
+- **A route's error can set headers on its response.** `StatusCode` gains `response_headers`, none by default, which the response carries beside the error's status, through the dispatcher and axum: a `retry-after`, a `www-authenticate`. A header reflectapi sets itself, `content-type` or `traceparent`, keeps reflectapi's value.
+- **`#[derive(reflectapi::StatusCode)]`** for an error enum: each variant gives its status, `#[reflectapi(status = 404)]`, or takes the status and headers of its one field, `#[reflectapi(transparent)]`. It refuses, as it compiles, a status a route's error must not give: `1xx` to `3xx`; `400`, `405` and `415`, reflectapi's own; `408`, `413`, `414` and `431`, the transport's; and every `5xx` but `500`, on a variant named `InternalError` alone, which must be `output_skip`. See [A route's error](https://thepartly.github.io/reflectapi/getting-started/attributes.html#a-routes-error).
+- **A `#[serde(flatten)]` field of a request-headers type declares its type's headers**, at any depth, a generic type's arguments filled in, so the handler is given them. Headers several routes read can be one type, flattened into each route's own: `PetsUpdateHeaders { authorization: String, #[serde(flatten)] common: CommonHeaders }` now reads `CommonHeaders`' `x-request-id` too. Before, only the type's own fields were forwarded, and a flattened field was taken for one header named after it. See [Request Headers](https://thepartly.github.io/reflectapi/clients/index.html#request-headers).
+
 ### Fixed
 
 - **OpenAPI describes a newtype struct as the value it wraps**, as serde writes it. `struct UserId(Uuid)` was a one-element array (`"prefixItems": [...]`), so a client generated from the spec sent `["..."]` where the server expects `"..."`; the demo's `pets.create` request body, `PetsCreateRequest(Pet)`, was `[Pet]` instead of `Pet`. Unit structs, which the schema describes as a newtype of `()`, are now `null` instead of `[null]`. Generated Rust, TypeScript and Python clients already treated newtypes this way and are unchanged.

@@ -1,6 +1,8 @@
 use http::HeaderName;
 
-use crate::{Function, Input, Output, OutputType, Schema, Struct, TypeReference, Typespace};
+use crate::{
+    Function, Input, Instantiate, Output, OutputType, Schema, Struct, TypeReference, Typespace,
+};
 
 use super::{BuildError, OutputTypeFn, RouteBuilder};
 
@@ -145,33 +147,70 @@ impl BuildMode for DispatchOnly {
     }
 }
 
-/// The header names a request-headers type reads: the serde names of its fields.
+/// The header names a request-headers type reads: the serde names of its
+/// fields, and, for a `#[serde(flatten)]` field, those of its type, at any
+/// depth, a generic type's arguments filled in. So
+/// `struct WithCommon<T> { request_id: Option<String>, #[serde(flatten)] route: T }`,
+/// as `WithCommon<PetsUpdateHeaders>`, reads `request_id` and
+/// `PetsUpdateHeaders`' headers.
 fn header_names(
     typespace: &Typespace,
     headers_type: &TypeReference,
 ) -> Result<Vec<HeaderName>, BuildError> {
-    let Some(crate::Type::Struct(Struct { fields, .. })) =
-        typespace.get_type(headers_type.name.as_str())
-    else {
-        return Ok(Vec::new());
+    let mut names = Vec::new();
+    collect_header_names(typespace, headers_type, headers_type, 0, &mut names)?;
+    Ok(names)
+}
+
+/// How deep flattened fields of a request-headers type may nest.
+const MAX_FLATTENED_DEPTH: usize = 16;
+
+fn collect_header_names(
+    typespace: &Typespace,
+    headers_type: &TypeReference,
+    type_ref: &TypeReference,
+    depth: usize,
+    names: &mut Vec<HeaderName>,
+) -> Result<(), BuildError> {
+    let invalid = |reason: String| {
+        BuildError::Other(format!("request headers type `{}`: {reason}", headers_type.name).into())
     };
-    fields
-        .iter()
-        .map(|field| {
-            let header_name = if field.serde_name.is_empty() {
-                field.name.as_str()
-            } else {
-                field.serde_name.as_str()
-            };
-            HeaderName::from_bytes(header_name.as_bytes()).map_err(|_| {
-                BuildError::Other(
-                    format!(
-                        "request headers type `{}`: `{header_name}` is not a valid header name",
-                        headers_type.name
-                    )
-                    .into(),
-                )
-            })
-        })
-        .collect()
+    if depth > MAX_FLATTENED_DEPTH {
+        return Err(invalid(format!(
+            "its flattened fields nest deeper than {MAX_FLATTENED_DEPTH}"
+        )));
+    }
+    // A flattened `Option<T>`, `Box<T>` or the like reads `T`'s headers.
+    let mut type_ref = type_ref.clone();
+    loop {
+        type_ref.fallback_recursively(typespace);
+        match (type_ref.name.as_str(), type_ref.arguments.as_slice()) {
+            ("std::option::Option", [inner]) => type_ref = inner.clone(),
+            _ => break,
+        }
+    }
+    let Some(crate::Type::Struct(strukt)) = typespace.get_type(type_ref.name.as_str()) else {
+        return Ok(());
+    };
+    if strukt.parameters.len() != type_ref.arguments.len() {
+        return Err(invalid(format!(
+            "`{}` takes {} type arguments, given {}",
+            type_ref.name,
+            strukt.parameters.len(),
+            type_ref.arguments.len()
+        )));
+    }
+    let strukt: Struct = strukt.clone().instantiate(&type_ref.arguments);
+    for field in strukt.fields.iter() {
+        if field.flattened {
+            collect_header_names(typespace, headers_type, &field.type_ref, depth + 1, names)?;
+            continue;
+        }
+        let header_name = field.serde_name();
+        names.push(
+            HeaderName::from_bytes(header_name.as_bytes())
+                .map_err(|_| invalid(format!("`{header_name}` is not a valid header name")))?,
+        );
+    }
+    Ok(())
 }

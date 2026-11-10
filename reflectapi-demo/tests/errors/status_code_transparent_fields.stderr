@@ -1,0 +1,17 @@
+error: a `transparent` variant takes its one field's status and headers: `Nothing` must have exactly one field
+  --> tests/errors/status_code_transparent_fields.rs:12:18
+   |
+12 |     #[reflectapi(transparent)]
+   |                  ^^^^^^^^^^^
+
+error: a `transparent` variant takes its one field's status and headers: `Two` must have exactly one field
+  --> tests/errors/status_code_transparent_fields.rs:14:18
+   |
+14 |     #[reflectapi(transparent)]
+   |                  ^^^^^^^^^^^
+
+error: `InternalError` answers 500: give it `status = 500`, not `transparent`
+  --> tests/errors/status_code_transparent_fields.rs:16:31
+   |
+16 |     #[reflectapi(output_skip, transparent)]
+   |                               ^^^^^^^^^^^

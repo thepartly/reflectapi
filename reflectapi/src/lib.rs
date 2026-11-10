@@ -165,6 +165,8 @@ use self::builder::{Handler, HandlerCallback};
 pub use empty::*;
 pub use infallible::*;
 pub use option::*;
+#[cfg(feature = "builder")]
+pub use reflectapi_derive::StatusCode;
 pub use reflectapi_derive::{Input, Output};
 pub use traits::*;
 pub use validation::*;
@@ -174,3 +176,10 @@ pub use validation::*;
 // pub use builder::*;
 #[doc(hidden)]
 pub use reflectapi_schema::*;
+
+/// What derived code names, not to be used directly.
+#[doc(hidden)]
+#[cfg(feature = "builder")]
+pub mod __private {
+    pub use http;
+}

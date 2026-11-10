@@ -1,0 +1,71 @@
+error: status 200: a client takes a 1xx, 2xx or 3xx for an answer, or acts on it (follows a redirect, caches a 301); a route's error gives a 4xx, or 500
+ --> tests/errors/status_code_refused.rs:3:27
+  |
+3 |     #[reflectapi(status = 200)]
+  |                           ^^^
+
+error: status 302: a client takes a 1xx, 2xx or 3xx for an answer, or acts on it (follows a redirect, caches a 301); a route's error gives a 4xx, or 500
+ --> tests/errors/status_code_refused.rs:5:27
+  |
+5 |     #[reflectapi(status = 302)]
+  |                           ^^^
+
+error: status 400: reflectapi answers it itself, for a body or headers it can't decode, a method a route doesn't take, or a content type it doesn't speak; a route's error gives another 4xx, such as 422
+ --> tests/errors/status_code_refused.rs:7:27
+  |
+7 |     #[reflectapi(status = 400)]
+  |                           ^^^
+
+error: status 405: reflectapi answers it itself, for a body or headers it can't decode, a method a route doesn't take, or a content type it doesn't speak; a route's error gives another 4xx, such as 422
+ --> tests/errors/status_code_refused.rs:9:27
+  |
+9 |     #[reflectapi(status = 405)]
+  |                           ^^^
+
+error: status 415: reflectapi answers it itself, for a body or headers it can't decode, a method a route doesn't take, or a content type it doesn't speak; a route's error gives another 4xx, such as 422
+  --> tests/errors/status_code_refused.rs:11:27
+   |
+11 |     #[reflectapi(status = 415)]
+   |                           ^^^
+
+error: status 408: the transport's or the server's, for a request a route never sees
+  --> tests/errors/status_code_refused.rs:13:27
+   |
+13 |     #[reflectapi(status = 408)]
+   |                           ^^^
+
+error: status 413: the transport's or the server's, for a request a route never sees
+  --> tests/errors/status_code_refused.rs:15:27
+   |
+15 |     #[reflectapi(status = 413)]
+   |                           ^^^
+
+error: status 414: the transport's or the server's, for a request a route never sees
+  --> tests/errors/status_code_refused.rs:17:27
+   |
+17 |     #[reflectapi(status = 414)]
+   |                           ^^^
+
+error: status 431: the transport's or the server's, for a request a route never sees
+  --> tests/errors/status_code_refused.rs:19:27
+   |
+19 |     #[reflectapi(status = 431)]
+   |                           ^^^
+
+error: status 503: a gateway's or the server's own, for a request it can't take or finish; a route's error gives a 4xx, or 500 on `InternalError`
+  --> tests/errors/status_code_refused.rs:21:27
+   |
+21 |     #[reflectapi(status = 503)]
+   |                           ^^^
+
+error: status 600: not an HTTP status a response can give: one from 100 to 599
+  --> tests/errors/status_code_refused.rs:23:27
+   |
+23 |     #[reflectapi(status = 600)]
+   |                           ^^^
+
+error: a status is a number from 100 to 599
+  --> tests/errors/status_code_refused.rs:25:27
+   |
+25 |     #[reflectapi(status = 70000)]
+   |                           ^^^^^
