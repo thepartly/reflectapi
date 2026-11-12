@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **OpenAPI describes a request-headers type with a `#[serde(flatten)]` field**, such as the docs' `PetsUpdateHeaders`: each header it reads, its own and the flattened type's, is a header parameter, required when every request has it. OpenAPI generation panicked with "header type is a struct" for any route whose headers flattened a field. The builder, which forwards the headers to the handler, and OpenAPI now find them the same way.
+- **A flattened request-headers field that holds something other than a struct is a build error** in both build modes, naming the field. Before, an enum or a type missing from the schema gave no headers, so the handler never had them. A struct, possibly in an `Option` or a `Box`, and `()` are accepted as before.
+- **Python models flatten a `Box<T>` as the `T` it holds**, as serde writes it, and a generic type's arguments are filled in when its fields are flattened. Python codegen failed with "cannot flatten primitive type 'std::boxed::Box'".
+
 ## 0.25.0
 
 A route's error can set its response's status and headers through `#[derive(reflectapi::StatusCode)]`, stream handlers can wait before they answer, and OpenAPI describes newtype structs as serde writes them. Stream handlers must now be async; see Breaking.
