@@ -772,6 +772,85 @@ async fn a_flattened_headers_field_passes_its_own_headers_through_axum() -> Test
 }
 
 #[test]
+fn openapi_describes_a_flattened_headers_field_as_header_parameters() -> TestResult {
+    let (schema, _) = flattened_headers::api::<WithSchema>().build()?;
+    let spec = serde_json::to_value(reflectapi::codegen::openapi::generate_spec(
+        &schema,
+        &reflectapi::codegen::openapi::Config::default(),
+    ))?;
+    let parameters = |path: &str| {
+        spec["paths"][path]["post"]["parameters"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|parameter| {
+                assert_eq!(parameter["in"], "header", "{parameter}");
+                (
+                    parameter["name"].as_str().unwrap_or_default().to_owned(),
+                    parameter["required"].as_bool().unwrap_or_default(),
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        parameters("/with-authorization"),
+        [
+            ("authorization".to_owned(), true),
+            ("x-cell".to_owned(), false)
+        ]
+    );
+    assert_eq!(parameters("/without"), [("x-cell".to_owned(), false)]);
+    Ok(())
+}
+
+mod flattened_enum_headers {
+    #[derive(serde::Deserialize, reflectapi::Input)]
+    #[serde(tag = "kind")]
+    pub enum Auth {
+        Bearer { token: String },
+    }
+
+    #[derive(serde::Deserialize, reflectapi::Input)]
+    pub struct Headers {
+        #[serde(flatten)]
+        pub auth: Auth,
+    }
+
+    pub async fn handler(
+        _: (),
+        _: reflectapi::Empty,
+        headers: Headers,
+    ) -> Result<String, reflectapi::Infallible> {
+        let Auth::Bearer { token } = headers.auth;
+        Ok(token)
+    }
+}
+
+#[test]
+fn a_flattened_headers_field_that_is_not_a_struct_is_a_build_error_in_both_modes() -> TestResult {
+    let with_schema = reflectapi::Builder::<(), WithSchema>::default()
+        .route(flattened_enum_headers::handler, |b| b.name("enum"))
+        .build();
+    let dispatch_only = reflectapi::Builder::<(), DispatchOnly>::default()
+        .route(flattened_enum_headers::handler, |b| b.name("enum"))
+        .build();
+
+    for result in [with_schema.map(|_| ()), dispatch_only.map(|_| ())] {
+        let Err(errors) = result else {
+            return Err("expected a build error".into());
+        };
+        let errors = errors.to_string();
+        assert!(
+            errors.contains(
+                "flattened field `auth` holds a type other than a struct with named fields"
+            ),
+            "{errors}"
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn clients_send_a_flattened_headers_field() -> TestResult {
     let (schema, _) = flattened_headers::api::<WithSchema>().build()?;
 

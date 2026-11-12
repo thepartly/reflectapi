@@ -8,12 +8,10 @@
 
 mod deprecation;
 mod ids;
-mod layout;
 mod normalize;
 mod nullability;
 pub(crate) mod presence;
 mod semantic;
-mod shape;
 mod symbol;
 
 // Public-to-the-crate surface. Only what backends (currently just Python)
@@ -21,7 +19,6 @@ mod symbol;
 // `self::ids::*`, `self::normalize::*`, etc. for the module's own tests.
 pub(crate) use self::deprecation::{relax_deprecated_response_fields, RelaxedField};
 pub(crate) use self::ids::{build_schema_ids, SchemaIds};
-pub(crate) use self::layout::{FlattenedGroup, Layout, Member, Opaque};
 pub(crate) use self::normalize::{Consolidation, Naming, Normalizer, PipelineBuilder};
 pub(crate) use self::presence::{
     resolve_field_wire_contract, Direction, FieldWireFacts, KeyPresence,
@@ -31,5 +28,6 @@ pub(crate) use self::semantic::{
     SemanticOutputType, SemanticPrimitive, SemanticSchema, SemanticStruct, SemanticType,
     SemanticTypeParameter, SemanticVariant, SymbolInfo, SymbolTable,
 };
-pub(crate) use self::shape::{wrapped_field, Shape};
 pub(crate) use self::symbol::{SymbolId, SymbolKind};
+pub(crate) use crate::wire::layout::{FlattenedGroup, Layout, Member, Opaque};
+pub(crate) use crate::wire::shape::{wrapped_field, Shape};

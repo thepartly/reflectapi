@@ -1,20 +1,14 @@
 //! A field's wire contract: whether its key may be absent, and whether its
 //! value may be null.
 //!
-//! Reflection resolves Serde's directional missing-key behavior into
-//! `Field.required` before input/output types are consolidated. Renderers must
-//! preserve that decision, including overrides made by schema transforms and
-//! required nullable fields in manually constructed or older schemas.
-//!
-//! A `#[serde(flatten)]` field is the exception: it has no key of its own, so
-//! key-level attributes such as `default` and `skip_serializing_if` don't
-//! apply to it, and `required` doesn't describe it. Serde makes a flattened
-//! group optional only when its type is an `Option`.
-//!
-//! Whether the value may be null depends on the type's definition, so the
-//! contract is resolved against the schema being rendered.
+//! The key half, which needs no typespace, is [`crate::wire::key`]. Whether
+//! the value may be null depends on the type's definition, so the contract is
+//! resolved against the schema being rendered.
 
-use reflectapi_schema::{Field, Schema, TypeReference};
+use reflectapi_schema::Schema;
+
+use crate::wire::key::is_option;
+pub(crate) use crate::wire::key::{key_presence, FieldWireFacts, KeyPresence};
 
 use super::nullability::accepts_null;
 
@@ -53,44 +47,6 @@ impl Direction {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct FieldWireFacts<'a> {
-    pub type_ref: &'a TypeReference,
-    pub required: bool,
-    pub named: bool,
-    pub flattened: bool,
-    pub serialize_with: bool,
-    pub deserialize_with: bool,
-}
-
-impl<'a> FieldWireFacts<'a> {
-    pub fn of(field: &'a Field) -> Self {
-        Self {
-            type_ref: &field.type_ref,
-            required: field.required,
-            named: field.is_named(),
-            flattened: field.flattened,
-            serialize_with: field.serialize_with,
-            deserialize_with: field.deserialize_with,
-        }
-    }
-
-    pub fn with_required(self, required: bool) -> Self {
-        Self { required, ..self }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum KeyPresence {
-    Required,
-    Optional,
-    /// No key of its own: the field's type contributes its keys to the parent.
-    /// `optional` is whether the whole group may be absent.
-    Flattened {
-        optional: bool,
-    },
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct FieldWireContract {
     pub key: KeyPresence,
@@ -117,26 +73,6 @@ impl FieldWireContract {
     }
 }
 
-fn is_option(type_ref: &TypeReference) -> bool {
-    matches!(
-        type_ref.name.as_str(),
-        "std::option::Option" | "reflectapi::Option"
-    )
-}
-
-/// The key half of the contract, which needs no typespace.
-pub(crate) fn key_presence(facts: FieldWireFacts<'_>) -> KeyPresence {
-    if facts.flattened {
-        KeyPresence::Flattened {
-            optional: is_option(facts.type_ref),
-        }
-    } else if facts.required {
-        KeyPresence::Required
-    } else {
-        KeyPresence::Optional
-    }
-}
-
 /// `schema` must be consolidated (`Schema::consolidate_types`), as every
 /// generator does before rendering. Then a type name has one definition: a
 /// request and a response type that share a name but differ are renamed to
@@ -158,6 +94,7 @@ pub(crate) fn resolve_field_wire_contract(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use reflectapi_schema::{Field, TypeReference};
 
     fn resolve(facts: FieldWireFacts<'_>) -> FieldWireContract {
         resolve_field_wire_contract(facts, &Schema::new(), Direction::Both)

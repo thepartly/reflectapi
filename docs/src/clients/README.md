@@ -310,7 +310,9 @@ A route reads request headers through its third argument, a struct whose
 fields' serde names are the header names. Its handler is given only those
 headers. A `#[serde(flatten)]` field gives its type's fields as headers too,
 at any depth, so headers that several routes read can be declared once and
-flattened into each route's own:
+flattened into each route's own. The flattened type must be a struct with
+named fields, possibly in an `Option` or a `Box`; the builder refuses any
+other, whose keys can't be headers:
 
 ```rust,ignore
 /// Headers every route of the API reads.
@@ -370,7 +372,8 @@ async fn pets_list(
 ```
 
 Generated clients send the flattened headers as the route's own: a call to
-`pets.update` takes `x-request-id` and `authorization` side by side.
+`pets.update` takes `x-request-id` and `authorization` side by side, and
+OpenAPI lists both as its header parameters.
 
 ## Response Headers
 
