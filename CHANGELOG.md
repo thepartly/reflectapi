@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.25.1
+
+### Fixed
+
+- **A generated Rust client compiles without warnings** in a crate that has no `reqwest` feature, or that doesn't use every item `reflectapi::rt` re-exports. The generated file now allows `unexpected_cfgs` and `unused_imports`.
+
 ## 0.25.0
 
 A route's error can set its response's status and headers through `#[derive(reflectapi::StatusCode)]`, stream handlers can wait before they answer, and OpenAPI describes newtype structs as serde writes them. Stream handlers must now be async; see Breaking.
