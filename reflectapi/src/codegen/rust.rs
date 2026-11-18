@@ -368,6 +368,11 @@ mod templates {
                  \n\
                  #![allow(non_camel_case_types)]\n\
                  #![allow(dead_code)]\n\
+                 // The file may be included as a module of a crate that has\n\
+                 // no `reqwest` feature, and that does not name every item\n\
+                 // `reflectapi::rt` re-exports.\n\
+                 #![allow(unexpected_cfgs)]\n\
+                 #![allow(unused_imports)]\n\
                  \n\
                  pub use reflectapi::rt::*;\n\
                  pub use interface::Interface;",

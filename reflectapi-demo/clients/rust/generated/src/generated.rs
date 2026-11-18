@@ -6,6 +6,11 @@
 
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
+// The file may be included as a module of a crate that has
+// no `reqwest` feature, and that does not name every item
+// `reflectapi::rt` re-exports.
+#![allow(unexpected_cfgs)]
+#![allow(unused_imports)]
 
 pub use interface::Interface;
 pub use reflectapi::rt::*;
