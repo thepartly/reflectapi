@@ -178,7 +178,8 @@ was. See [Client Libraries](../clients/index.md#typescript) for the rest of
 
 ### Rust
 
-A generated method returns `Result<O, reflectapi::rt::Error<E, C::Error>>`,
+A generated method returns `Result<O, reflectapi::rt::Error<E, C::Error>>`
+([`rt::Error`](https://docs.rs/reflectapi/latest/reflectapi/rt/enum.Error.html)),
 where `E` is the generated error type and `C::Error` is the transport's error,
 `reqwest::Error` for the built-in transport:
 

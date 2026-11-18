@@ -71,7 +71,6 @@ mod option;
 mod traits;
 mod validation;
 
-#[doc(hidden)]
 #[cfg(feature = "rt")]
 pub mod rt;
 
