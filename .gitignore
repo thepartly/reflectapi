@@ -1,7 +1,7 @@
 /target
 reflectapi-demo/target/
 docs/book
-docs/doctest_cache
+docs/doctests/target
 .vscode/settings.json
 *.pyc
 __pycache__/

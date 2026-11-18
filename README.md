@@ -110,8 +110,11 @@ cargo test
 ### Building Documentation
 
 ```bash
-# Install required tools (one-time setup)
-cargo install mdbook mdbook-keeper
+# Install mdBook (one-time setup)
+cargo install mdbook --locked
+
+# Test the book's Rust examples: each page's `rust` blocks run as doctests
+cargo test --manifest-path docs/doctests/Cargo.toml --doc
 
 # Build documentation
 cd docs
@@ -119,9 +122,6 @@ mdbook build
 
 # Serve documentation locally
 mdbook serve  # Opens at http://localhost:3000
-
-# Note: mdbook-keeper automatically runs doctests during build
-# The build command both generates HTML and tests code examples
 
 # Add sitemap.xml, llms.txt and llms-full.txt to the built site (CI does this)
 python3 build-extras.py
