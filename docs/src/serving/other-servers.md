@@ -71,7 +71,7 @@ the same way:
 
 - Pass all request headers; the dispatcher forwards to each handler only the
   headers it declares, flattened ones included
-  ([Request Headers](../clients/README.md#request-headers)), plus
+  ([Request Headers](../clients/index.md#request-headers)), plus
   `content-type` and `traceparent`.
 - Pass the complete body. Enforce a body size limit before dispatching.
 - The state is cloned into every call: make it cheap to clone (`Arc`, handles).

@@ -12,7 +12,7 @@ for the request and response types, and an async client (optionally a sync
 one too) built on `httpx`.
 
 Python output is stable, like the TypeScript and Rust clients; see
-[Supported Outputs](../clients/README.md#supported-outputs).
+[Supported Outputs](../clients/index.md#supported-outputs).
 
 ## 1. Define the API in Rust
 
@@ -86,7 +86,7 @@ The output directory is a Python package named `api_client`. It contains the
 clients (`AsyncClient` always, `Client` with `--python-sync`) and a module for
 each Rust namespace of the reflected types. For a crate named `my-api`, the
 models above are in `api_client.my_api`. See
-[Client Libraries](../clients/README.md#python) for the full layout.
+[Generated Clients](../clients/index.md#python) for the full layout.
 
 ## 3. Install the runtime
 
@@ -146,9 +146,11 @@ typed error when it declares one. Transport failures raise `NetworkError` or
 ## Details worth knowing
 
 - Requests omit fields you did not set and send an explicit `None` as `null`;
-  see [Missing fields and explicit null](../clients/README.md#missing-fields-and-explicit-null).
+  see [Missing fields and explicit null](../clients/index.md#missing-fields-and-explicit-null).
 - Streaming routes return iterators; see
-  [Streaming Endpoints](../clients/README.md#streaming-endpoints).
+  [Streaming Endpoints](../clients/index.md#streaming-endpoints).
 - Regenerate the client when the API changes. Committing the generated
   package and having CI check it is up to date keeps the two in step; see
   [Generate the schema and clients at build time](../serving/workers.md#generate-the-schema-and-clients-at-build-time).
+- To test code that calls the API without a server, pass a fake transport;
+  see [Testing](../concepts/testing.md#python).
