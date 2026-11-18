@@ -1,4 +1,7 @@
 error: conflicting deprecation dates `2026-10-01` and `2026-10-02`
+
+         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+
  --> tests/errors/invalid_deprecation_since_conflict.rs:5:37
   |
 5 |     #[reflectapi(deprecated_since = "2026-10-02")]

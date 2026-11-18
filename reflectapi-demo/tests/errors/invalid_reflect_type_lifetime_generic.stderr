@@ -1,4 +1,7 @@
 error: reflectapi::Input/reflectapi::Output does not support generic lifetime parameters
+
+         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+
  --> tests/errors/invalid_reflect_type_lifetime_generic.rs:2:17
   |
 2 | struct MyStruct<'a> {
