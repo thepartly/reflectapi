@@ -6,11 +6,11 @@ edition = "2021"
 license = "Apache-2.0"
 description = "Derive macros for reflectapi"
 repository = "https://github.com/thepartly/reflectapi"
-homepage = "https://github.com/thepartly/reflectapi"
+homepage = "https://thepartly.github.io/reflectapi/"
 documentation = "https://docs.rs/reflectapi-derive"
 readme = "README.md"
 
-keywords = ["derive", "macro", "reflectapi", "reflection"]
+keywords = ["derive", "macro", "reflection", "codegen", "api"]
 categories = ["web-programming", "development-tools", "api-bindings"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
