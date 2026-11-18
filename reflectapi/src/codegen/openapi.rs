@@ -523,10 +523,6 @@ struct Converter<'a> {
     /// name of every type in the schema, so a generic instantiation never
     /// takes a name another type uses.
     taken_component_names: std::collections::HashSet<String>,
-    /// Components registered while converting request headers. Headers
-    /// are inlined as parameters, so these are dropped at the end unless
-    /// something refers to them.
-    header_components: BTreeSet<String>,
 }
 
 impl<'a> Converter<'a> {
@@ -537,7 +533,6 @@ impl<'a> Converter<'a> {
             in_progress: Default::default(),
             generic_component_names: Default::default(),
             taken_component_names: Default::default(),
-            header_components: Default::default(),
         }
     }
 }
@@ -572,7 +567,6 @@ impl Converter<'_> {
                 )
             })
             .collect();
-        self.drop_unreferenced_header_components(&paths);
         Spec {
             openapi: "3.1.0".into(),
             tags: self.config.tags.clone(),
@@ -583,44 +577,6 @@ impl Converter<'_> {
             },
             paths,
             components: self.components,
-        }
-    }
-
-    fn drop_unreferenced_header_components(&mut self, paths: &BTreeMap<String, PathItem>) {
-        if self.header_components.is_empty() {
-            return;
-        }
-        fn collect_refs(value: &serde_json::Value, refs: &mut BTreeSet<String>) {
-            match value {
-                serde_json::Value::Object(object) => {
-                    if let Some(name) = object
-                        .get("$ref")
-                        .and_then(serde_json::Value::as_str)
-                        .and_then(|r| r.strip_prefix("#/components/schemas/"))
-                    {
-                        refs.insert(name.to_owned());
-                    }
-                    object.values().for_each(|v| collect_refs(v, refs));
-                }
-                serde_json::Value::Array(items) => items.iter().for_each(|v| collect_refs(v, refs)),
-                _ => {}
-            }
-        }
-        let mut refs = BTreeSet::new();
-        // Serializing these plain data types to a `Value` can't fail.
-        if let (Ok(paths), Ok(components)) = (
-            serde_json::to_value(paths),
-            serde_json::to_value(&self.components),
-        ) {
-            collect_refs(&paths, &mut refs);
-            collect_refs(&components, &mut refs);
-        } else {
-            return;
-        }
-        for name in std::mem::take(&mut self.header_components) {
-            if !refs.contains(&name) {
-                self.components.schemas.remove(&name);
-            }
         }
     }
 
@@ -766,42 +722,31 @@ impl Converter<'_> {
             .collect()
     }
 
+    /// Header parameters for a request headers type, as
+    /// [`crate::wire::headers::request_headers`] finds them, by name. The
+    /// builder refuses a type whose headers it can't find, so only a schema
+    /// written otherwise has one; its headers are left undescribed.
     fn convert_headers(
         &mut self,
         schema: &crate::Schema,
         type_ref: &crate::TypeReference,
     ) -> Vec<Parameter> {
-        let schema = match self.convert_type_ref(schema, Kind::Input, type_ref) {
-            InlineOrRef::Inline(schema) => schema,
-            InlineOrRef::Ref(r) => {
-                let name = r.ref_path.strip_prefix("#/components/schemas/").unwrap();
-                self.header_components.insert(name.to_owned());
-                self.components.schemas[name].clone()
-            }
-        };
-
-        match schema {
-            Schema::Flat(FlatSchema {
-                ty:
-                    Type::Object {
-                        title: _,
-                        properties,
-                        required,
-                    },
-                ..
-            }) => properties
-                .into_iter()
-                .map(|(name, property)| Parameter {
-                    location: In::Header,
-                    required: required.contains(&name),
-                    name,
-                    schema: property.schema,
-                    description: property.description,
-                    deprecation: property.deprecation,
-                })
-                .collect(),
-            _ => unreachable!("header type is a struct"),
-        }
+        let mut headers = crate::wire::headers::request_headers(type_ref, &|name| {
+            schema.input_types.get_type(name)
+        })
+        .unwrap_or_default();
+        headers.sort_by(|a, b| a.field.serde_name().cmp(b.field.serde_name()));
+        headers
+            .into_iter()
+            .map(|header| Parameter {
+                location: In::Header,
+                required: header.required,
+                name: header.field.serde_name().to_owned(),
+                schema: self.convert_type_ref(schema, Kind::Input, header.field.type_ref()),
+                description: sanitize_description(header.field.description()),
+                deprecation: header.field.deprecation().into(),
+            })
+            .collect()
     }
 
     fn convert_field(
@@ -1632,22 +1577,11 @@ fn primitive_fallback_type_ref(
         return None;
     };
 
-    let fallback = primitive.fallback()?.clone();
-    // Only unwrap transparent pointer-shaped primitives whose fallback is just
-    // one of their generic parameters (Box<T>, Rc<T>, Arc<T>, Cow<T>, ...).
-    // Primitives with their own OpenAPI representation (usize, chrono::DateTime,
+    // Only unwrap pointers (Box<T>, Rc<T>, Arc<T>, Cow<T>, ...). Primitives
+    // with their own OpenAPI representation (usize, chrono::DateTime,
     // HashSet<T> -> Vec<T>, ...) must keep their richer schema instead of being
     // collapsed to the wire fallback.
-    if !primitive
-        .parameters
-        .iter()
-        .any(|param| param.name() == fallback.name)
-    {
-        return None;
-    }
-
-    let subst = reflectapi_schema::mk_subst(&primitive.parameters, &ty_ref.arguments);
-    Some(fallback.subst(&subst))
+    crate::wire::layout::pointee(primitive, ty_ref)
 }
 
 fn sanitize_description(description: &str) -> String {

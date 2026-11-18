@@ -4105,7 +4105,7 @@ fn collect_flattened_fields(
 /// whenever the group is.
 #[allow(clippy::too_many_arguments)]
 fn collect_group_fields(
-    group: &schema_codegen::FlattenedGroup<'_>,
+    group: &schema_codegen::FlattenedGroup,
     parent_required: bool,
     depth: usize,
     schema: &Schema,
@@ -4178,7 +4178,7 @@ fn collect_group_fields(
             reject_null: false,
         }),
         // A unit type such as `()` flattens to no keys.
-        Layout::Unknown(Opaque::Primitive("std::tuple::Tuple0")) => {}
+        Layout::Unknown(Opaque::Primitive(name)) if name == crate::wire::layout::UNIT => {}
         Layout::Unknown(Opaque::Primitive(name)) => anyhow::bail!(
             "python codegen: cannot flatten primitive type '{name}' \
              (only structs, internally-tagged enums, and unit types \
@@ -9691,6 +9691,55 @@ mod tests {
         let outer = &outer[..outer.find("\nclass ").unwrap_or(outer.len())];
         assert!(outer.contains("    o: int\n"));
         assert!(!outer.contains("inner"));
+    }
+
+    /// `Outer<T>` flattens `Inner<T>`: `Inner`'s field of its own parameter
+    /// `U` is a `T` in `Outer`.
+    #[test]
+    fn a_flattened_generic_type_has_its_arguments_filled_in() {
+        let schema: crate::Schema = serde_json::from_value(serde_json::json!({
+            "name": "g",
+            "functions": [{"name": "f", "path": "", "input_type": {"name": "Outer", "arguments": [{"name": "u32"}]}, "output_kind": "complete", "serialization": ["json"]}],
+            "input_types": {"types": [
+                {"kind": "primitive", "name": "u32"},
+                {"kind": "struct", "name": "Outer", "parameters": [{"name": "T"}], "fields": {"named": [
+                    {"name": "o", "type": {"name": "u32"}, "required": true},
+                    {"name": "inner", "type": {"name": "Inner", "arguments": [{"name": "T"}]}, "required": true, "flattened": true}
+                ]}},
+                {"kind": "struct", "name": "Inner", "parameters": [{"name": "U"}], "fields": {"named": [
+                    {"name": "x", "type": {"name": "U"}, "required": true}
+                ]}}
+            ]}
+        })).unwrap();
+        let py = super::generate(
+            schema,
+            &Config {
+                format: false,
+                ..Config::default()
+            },
+        )
+        .unwrap();
+        let outer = &py[py.find("class Outer").unwrap()..];
+        let outer = &outer[..outer.find("\nclass ").unwrap_or(outer.len())];
+        assert!(outer.contains("    x: T\n"), "{outer}");
+    }
+
+    /// Serde writes a `Box<T>` as the `T` it holds, flattened or not.
+    #[test]
+    fn a_flattened_box_contributes_the_keys_it_holds() {
+        let py = generate_flattening(
+            serde_json::json!({"name": "std::boxed::Box", "arguments": [{"name": "Inner"}]}),
+            vec![
+                serde_json::json!({"kind": "primitive", "name": "std::boxed::Box",
+                    "parameters": [{"name": "T"}], "fallback": {"name": "T"}}),
+                serde_json::json!({"kind": "struct", "name": "Inner",
+                    "fields": {"named": [{"name": "a", "type": {"name": "u32"}, "required": true}]}}),
+            ],
+        )
+        .unwrap();
+        let outer = &py[py.find("class Outer(").unwrap()..];
+        let outer = &outer[..outer.find("\nclass ").unwrap_or(outer.len())];
+        assert!(outer.contains("    a: int\n"), "{outer}");
     }
 
     #[test]

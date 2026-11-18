@@ -8,9 +8,9 @@ use std::collections::BTreeSet;
 
 use reflectapi_schema::{Field, Representation, Type, TypeReference};
 
-use super::layout::Lookup;
 use super::presence::Direction;
-use super::shape::Shape;
+use crate::wire::layout::Lookup;
+use crate::wire::shape::Shape;
 
 /// Conservative: anything not known to reject `null`, such as a generic
 /// parameter or a type the typespace doesn't define, is assumed to accept it,
