@@ -60,9 +60,8 @@ The constraints:
 - **Its own handler signature.** Handlers are not axum handlers and do not use
   axum extractors. Middleware is added as tower layers when
   [mounting the routes](../serving/axum.md#mount-the-routes).
-- **Three client languages.** TypeScript and Rust are stable, Python is
-  experimental. For other languages, feed the OpenAPI output to an OpenAPI
-  generator. That output is an approximation of the schema: for example,
+- **Three client languages:** TypeScript, Rust and Python. For other
+  languages, feed the OpenAPI output to an OpenAPI generator. That output is an approximation of the schema: for example,
   generic types are expanded per use, and the unknown case that generated
   clients add for open enums is not in it.
 

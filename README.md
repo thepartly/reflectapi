@@ -25,7 +25,7 @@
 - **Multi-language client generation**:
   - TypeScript - stable
   - Rust - stable
-  - Python - experimental
+  - Python - stable
 - **Documentation rendering** using Redoc tool
 - **Web framework agnostic** with plugable Axum support included, other frameworks are possible
 - **Full support for all serde attributes**
@@ -83,7 +83,7 @@ cargo run --all-features
 To generate client in Python for demo server:
 
 ```
-cargo run --bin reflectapi -- codegen --language python --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/python
+cargo run --bin reflectapi -- codegen --language python --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/python/api_client --python-package-name api_client --python-sync
 ```
 
 ### Updating Snapshots

@@ -260,4 +260,7 @@ fn generate_clients() -> Result<(), Box<dyn std::error::Error>> {
 Commit the output, and have CI regenerate it and fail on a difference, so an
 API change cannot merge without its regenerated clients. The default codegen
 configurations run no formatter, so the output is the same on every machine;
-enabling formatting makes it depend on the formatter version installed.
+enabling formatting makes it depend on the formatter version installed. The
+`reflectapi codegen` CLI formats by default, with rustfmt, biome or prettier,
+or ruff when it finds them; pass `--format=false` for the same output
+everywhere.
