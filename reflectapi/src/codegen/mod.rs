@@ -17,6 +17,9 @@ use std::{
 
 use self::format::format_with;
 
+/// The guide's page on generated clients, named in every generated file's header.
+pub(crate) const CLIENTS_GUIDE: &str = "https://thepartly.github.io/reflectapi/clients/";
+
 /// Validate client enum policies, including schemas loaded directly from JSON.
 pub(super) fn validate_response_enums(schema: &crate::Schema) -> anyhow::Result<()> {
     for ty in schema.input_types.types() {
