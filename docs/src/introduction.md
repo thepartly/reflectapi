@@ -31,8 +31,9 @@ shows up as a compile error in a TypeScript or Rust client. An OpenAPI
 document can still be written from the schema, for documentation and tools
 that need one.
 
-The full story, with a live demo, is in the
-[RustForge talk on reflectapi](https://www.youtube.com/watch?v=6Scgq9fBZQM&t=21675s).
+The full story, with a live demo, is in the talk
+[Reflect your Rust API into the world](https://www.youtube.com/watch?v=6Scgq9fBZQM&t=21675s)
+at Rust Forge 2025 in Wellington, New Zealand.
 
 ## Core Philosophy
 
