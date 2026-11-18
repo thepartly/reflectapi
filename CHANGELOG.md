@@ -351,7 +351,7 @@ except ApplicationError as e:
 
 **OpenAPI** documents the headers as optional headers on the `200` and `default` responses. **Rust** generates the headers type but doesn't populate it yet, and generated signatures for routes with declared headers will change when it does.
 
-See [Response Headers](https://reflectapi-docs.partly.workers.dev/clients/#response-headers) in the client docs, which include a `retryDelay` example that honours `retry-after`.
+See [Response Headers](https://thepartly.github.io/reflectapi/clients/#response-headers) in the client docs, which include a `retryDelay` example that honours `retry-after`.
 
 ### Upgrade notes
 
