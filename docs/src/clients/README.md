@@ -8,9 +8,22 @@
 |--------|--------|-------|
 | TypeScript | Stable | Two generated files: API surface + transport contract |
 | Rust | Stable | Single generated file |
-| Python | Experimental | Package-style output with real namespace submodules |
+| Python | Stable | Package-style output with real namespace submodules |
 
-OpenAPI generation is also supported by the CLI, but it is documented separately as an API description format rather than a client library.
+The same schema also produces an OpenAPI 3.1 document, which describes the
+API rather than calling it:
+
+```bash
+reflectapi codegen --language openapi --schema reflectapi.json --output openapi/
+```
+
+`reflectapi doc open reflectapi.json` serves that document with Redoc at
+`http://localhost:8080`, and a server can build and serve it itself; see
+[The schema](../serving/axum.md#the-schema). The document describes the
+currently declared wire shapes, so it does not include the unknown case that
+generated clients add for [open enums](#handling-unfamiliar-enum-variants).
+Use the generated clients where one exists for your language, and the OpenAPI
+document for other languages, documentation and tools that read OpenAPI.
 
 ## Workflow
 

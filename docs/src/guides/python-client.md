@@ -11,7 +11,7 @@ and the `reflectapi` CLI generates a Python package from it: Pydantic models
 for the request and response types, and an async client (optionally a sync
 one too) built on `httpx`.
 
-Python output is **experimental**. TypeScript and Rust clients are stable; see
+Python output is stable, like the TypeScript and Rust clients; see
 [Supported Outputs](../clients/README.md#supported-outputs).
 
 ## 1. Define the API in Rust
