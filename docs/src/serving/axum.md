@@ -34,9 +34,11 @@ axum::serve(listener, app).await?;
 - Every route is mounted at `POST {path}/{name}`, and readonly routes at
   `GET {path}/{name}` as well (axum also answers `HEAD` for them, without a
   body). Another method gets `405 Method Not Allowed` with an `allow` header
-  (`POST`, or `GET,HEAD,POST`); an unknown path gets `404`.
+  (`POST`, or `GET,HEAD,POST`); an unknown path gets `404`. See
+  [On the Wire](../concepts/wire.md) for bodies, headers and statuses.
 - The callback receives each router with its name, so middleware can differ per
-  API module: authentication for one, a different timeout for another.
+  API module: authentication for one, a different timeout for another. See
+  [A builder per module](../concepts/organising.md#a-builder-per-module).
 - `app_state` is cloned into every handler call. Use cheap clones, such as an
   `Arc`.
 - Stream routes respond with Server-Sent Events, one `data:` event per item,

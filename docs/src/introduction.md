@@ -41,6 +41,15 @@ at Rust Forge 2025 in Wellington, New Zealand.
 2. Full respect for all serde attributes
 3. Extensible at many places
 
-## Ready to Start?
+## Where to go next
 
-Head over to [Quick Start](./getting-started/quick-start.md) to build your first API with `reflectapi`!
+- **New to reflectapi:** the [Quick Start](./getting-started/quick-start.md)
+  builds an API and calls it from TypeScript in a few minutes. Then read
+  [How It Works](./concepts/how-it-works.md).
+- **Choosing a tool:** the [comparison with utoipa, aide and OpenAPI
+  generators](./guides/comparison.md).
+- **Building a real API:** the Concepts section covers errors, types,
+  organising and evolving an API, and testing. The Reference section lists
+  every attribute and how each client language behaves.
+- **API reference:** every type and function is on
+  [docs.rs](https://docs.rs/reflectapi).

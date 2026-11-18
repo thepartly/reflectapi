@@ -58,6 +58,12 @@ A marker doesn't always produce an editor or type-checker warning:
 
 The Python decorator uses `category=None`, so it only informs type checkers: pyright (with `reportDeprecated`) and mypy (with `--enable-error-code deprecated`) report call sites, and the method body emits the runtime warning.
 
+A deprecated named field of a type that appears only in responses is also
+optional in clients generated while it is deprecated (`?:` in TypeScript,
+`Option` in Rust, a `None` default in Python), so those clients keep working
+once the field is removed. A type that is also read by the server keeps the
+field required. See [Removing and renaming fields](../concepts/evolving.md#removing-and-renaming-fields).
+
 `x-sunset` follows the convention oasdiff uses for a deprecated item's earliest removal date.
 
 ## What a sunset means

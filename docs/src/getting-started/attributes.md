@@ -9,6 +9,9 @@ ReflectAPI provides `#[reflectapi(...)]` attributes that control how Rust types 
 | `#[reflectapi(derive(...))]` | Forward additional derive traits to the generated Rust client type. |
 | `#[reflectapi(open)]` | Make a tagged enum open in generated responses: retain unfamiliar tags and raw JSON in an explicit unknown case. Request types stay closed. |
 | `#[reflectapi(distinct)]` | Keep a newtype, or a one-field `#[serde(transparent)]` struct, a type of its own in generated clients, so one ID can't be passed where another is expected. The wire is unchanged. |
+| `#[reflectapi(discriminant)]` | Reflect a fieldless enum serialized as its numbers (for example with `serde_repr`) by its discriminants, so clients use `1 \| 2` instead of variant names. |
+| `#[reflectapi(type = "T")]` | Reflect the type as `T`, under its own name, in both directions: for a type whose serde implementation is written by hand. A generic `T` needs the turbofish: `"Vec::<String>"`. |
+| `#[reflectapi(input_type = "T")]`, `#[reflectapi(output_type = "T")]` | The same, for one direction only. |
 
 ### Distinct types
 
@@ -67,7 +70,7 @@ already taken). Python clients get an unknown model with `.tag` and `.raw`.
 TypeScript clients get a branded `UnknownEnum`, detected with `isUnknownEnum`;
 its tag and raw value are available under the exported `unknownEnum` symbol.
 The same policy applies to nested models, application errors, and SSE items.
-See [handling unfamiliar enum variants](../clients/README.md#handling-unfamiliar-enum-variants)
+See [handling unfamiliar enum variants](../clients/index.md#handling-unfamiliar-enum-variants)
 for client-side examples.
 Rust retains Serde's surrounding container rules: an optional flattened enum
 can become `None` when its contents fail validation. Use a required flattened
@@ -117,6 +120,8 @@ policy widens generated request types.
 | `#[reflectapi(type = "T")]` | Override the reflected type for both input and output schemas. |
 | `#[reflectapi(input_type = "T")]` | Override the reflected type for the input schema only. |
 | `#[reflectapi(output_type = "T")]` | Override the reflected type for the output schema only. |
+
+A generic type in an override needs the turbofish: `type = "Vec::<String>"`, not `"Vec<String>"`.
 
 ### Missing fields and null
 
@@ -229,7 +234,7 @@ Both attributes remove a field from generated clients. The key difference:
 
 Neither `skip` nor `hidden` affects serde serialization. For output types, serde will still serialize a hidden field onto the wire — `hidden` only controls what generated code and documentation show. If a field must never appear in responses, use `#[serde(skip_serializing)]` instead.
 
-Please not that neither `skip` nor `hidden` prevent a malicious client from sending the fields in a request. A middleware may overwrite it or reject or validate as needed. It is up to the specific implementation of your server.
+Please note that neither `skip` nor `hidden` prevent a malicious client from sending the fields in a request. A middleware may overwrite it or reject or validate as needed. It is up to the specific implementation of your server.
 
 **Example: hidden header field**
 

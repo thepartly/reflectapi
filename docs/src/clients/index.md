@@ -24,6 +24,8 @@ currently declared wire shapes, so it does not include the unknown case that
 generated clients add for [open enums](#handling-unfamiliar-enum-variants).
 Use the generated clients where one exists for your language, and the OpenAPI
 document for other languages, documentation and tools that read OpenAPI.
+`--include-tags` and `--exclude-tags` currently filter the OpenAPI output
+only; see [Tags and partial clients](../concepts/organising.md#tags-and-partial-clients).
 
 ## Workflow
 
@@ -166,6 +168,11 @@ After regenerating, update affected field initializers that previously used
   the imported top-level type and exposes its own type under a disambiguated,
   namespace-prefixed name (`nomatches.NomatchesIfConflictOnUpdate`). This keeps
   one Python class per logical type so `model.<X>` resolves consistently.
+- Raises `ApplicationError` for a route's error; see
+  [Errors](../concepts/errors.md#python).
+- Groups routes by the first segment of their name only: `orders.items.list`
+  is `client.orders.items_list`, where TypeScript and Rust nest every segment
+  (`client.orders.items.list`).
 - Uses `reflectapi_runtime` for client base classes and runtime helpers.
   Install the `reflectapi-runtime` release that matches the CLI that
   generated the client: generated code can call helpers an older runtime

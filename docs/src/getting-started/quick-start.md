@@ -84,8 +84,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   all four.
 - A handler takes the application state, the request input and the request
   headers. `reflectapi::Empty` means the route reads no headers.
-- Doc comments on types, fields and handlers are carried into the generated
-  clients.
+- Doc comments on types and fields, and each route's `description`, are
+  carried into the generated clients.
 
 [How it works](../concepts/how-it-works.md) explains these pieces.
 
@@ -101,6 +101,8 @@ The server writes `reflectapi.json` and listens on port 3000. Each route is a
 ```bash
 curl -X POST localhost:3000/users.get -H 'content-type: application/json' -d '1'
 ```
+
+[On the Wire](../concepts/wire.md) describes requests and responses in full.
 
 ## Generate a TypeScript client
 
@@ -129,6 +131,6 @@ and the TypeScript compiler points at every call that needs updating.
 ## Next
 
 - [Generate a Python client](../guides/python-client.md), or see
-  [Generated clients](../clients/README.md) for all three languages.
+  [Generated clients](../clients/index.md) for all three languages.
 - [Errors](../concepts/errors.md): give a route a typed error.
 - [Serving with axum](../serving/axum.md): state, middleware and streaming.

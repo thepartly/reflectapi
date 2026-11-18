@@ -26,8 +26,9 @@ book = docs / "book"
 def page_url(md_path: str) -> str:
     """The published URL of a source page, as mdBook names it."""
     path = md_path.removeprefix("./")
-    if path == "README.md" or path.endswith("/README.md"):
-        path = path.removesuffix("README.md")
+    name = path.rsplit("/", 1)[-1]
+    if name in ("README.md", "index.md"):
+        path = path.removesuffix(name)
     else:
         path = path.removesuffix(".md") + ".html"
     return SITE + path

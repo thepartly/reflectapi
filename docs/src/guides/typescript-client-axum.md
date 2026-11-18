@@ -72,7 +72,7 @@ async fn get_user(_state: (), id: u32, _headers: reflectapi::Empty) -> Option<Us
 - A handler takes the application state, the request body, and a struct of
   request headers. `reflectapi::Empty` means the route reads no headers.
 - A handler can return `Result<T, E>` to give the route a typed error; see
-  [A route's error](../getting-started/attributes.md#a-routes-error).
+  [Errors](../concepts/errors.md).
 - Serde attributes (`rename`, `tag`, `flatten`, `default` and so on) are
   reflected, so the generated types match what goes over the wire.
 
@@ -157,7 +157,7 @@ console.log(user?.name);
 
 A call returns a result instead of throwing: `is_ok()`, `unwrap_ok()`, and an
 `Err` that separates the route's typed error from network and server
-failures. See [Client Libraries](../clients/README.md#typescript) for errors,
+failures. See [Generated Clients](../clients/index.md#typescript) for errors,
 response headers, streaming and custom transports.
 
 ## Keep the client in sync
@@ -170,4 +170,4 @@ for doing this from a test, and [build modes](../serving/other-servers.md#build-
 for building only the routes in the server binary.
 
 The same schema also produces a [Python client](./python-client.md), a Rust
-client and an OpenAPI document; see [Client Libraries](../clients/README.md).
+client and an OpenAPI document; see [Generated Clients](../clients/index.md).
