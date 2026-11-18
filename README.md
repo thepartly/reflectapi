@@ -35,9 +35,9 @@
 
 - [Crates.io](https://crates.io/crates/reflectapi) - Package information and versions
 - [API Documentation](https://docs.rs/reflectapi) - Complete API reference
-- [User Guide](docs/src/SUMMARY.md) - Tutorials and examples (build locally with `mdbook serve` in `docs/`)
-- [Architecture](docs/src/architecture.md) - System design and internals
-- [Enum evolution](docs/src/getting-started/attributes.md#enum-evolution) - Declared fallbacks and open response enums
+- [User Guide](https://thepartly.github.io/reflectapi/) - Tutorials and examples
+- [Architecture](https://thepartly.github.io/reflectapi/architecture.html) - System design and internals
+- [Enum evolution](https://thepartly.github.io/reflectapi/getting-started/attributes.html#enum-evolution) - Declared fallbacks and open response enums
 
 ## Development notes
 
