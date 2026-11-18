@@ -28,7 +28,8 @@ The cost is two translations, Rust to OpenAPI and OpenAPI to the client
 language, each done by a different tool with its own type mapping. How serde
 features such as tagged enums, `flatten` and generics come out depends on the
 tools chosen, and it is worth checking that the generated client reads what
-the server actually sends.
+the server actually sends. [Why `reflectapi`?](../introduction.md#why-reflectapi)
+explains why `reflectapi` does not build on OpenAPI.
 
 ## The reflectapi pipeline
 

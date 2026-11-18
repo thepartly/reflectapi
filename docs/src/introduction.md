@@ -4,7 +4,35 @@
 
 ## Why `reflectapi`?
 
-[https://rustforgeconf.com/talks](https://rustforgeconf.com/talks)
+`reflectapi` was built at Partly, where Rust services are called by
+TypeScript web apps and by other services. With new endpoints and type
+changes every day, hand-written clients kept drifting from the server.
+Generating them through OpenAPI did not fix it: across several generators,
+the clients were too often incompatible with what the server actually sent,
+and the workarounds (patching generated code, mixing generators, going back
+to hand-written clients for some routes) cost more than they saved.
+
+The problem is the route through OpenAPI, not any one generator:
+
+- **Type information is lost.** Generics, enums with data, structured errors
+  and module namespaces have no exact OpenAPI equivalent, so they are
+  flattened or renamed on the way out.
+- **Generators must handle all of HTTP**, though an API call needs only a
+  name, an input type and an output type, its errors included.
+- **OpenAPI types are constraints, not definitions.** A generator has to
+  guess which type a set of validators describes, and that guess cannot be
+  made reliably in general.
+
+`reflectapi` skips that step. Its derive macros read the Rust types and their
+serde attributes into its own schema with nothing lost, and the clients are
+generated from that schema. A generated client function has the same name,
+input and output as the Rust handler it calls, and a change on the server
+shows up as a compile error in a TypeScript or Rust client. An OpenAPI
+document can still be written from the schema, for documentation and tools
+that need one.
+
+The full story, with a live demo, is in the
+[RustForge talk on reflectapi](https://www.youtube.com/watch?v=6Scgq9fBZQM&t=21675s).
 
 ## Core Philosophy
 

@@ -36,6 +36,7 @@
 - [Crates.io](https://crates.io/crates/reflectapi) - Package information and versions
 - [API Documentation](https://docs.rs/reflectapi) - Complete API reference
 - [User Guide](https://thepartly.github.io/reflectapi/) - Tutorials and examples
+- [RustForge talk](https://www.youtube.com/watch?v=6Scgq9fBZQM&t=21675s) - Why reflectapi exists, with a live demo
 - [Architecture](https://thepartly.github.io/reflectapi/architecture.html) - System design and internals
 - [Enum evolution](https://thepartly.github.io/reflectapi/getting-started/attributes.html#enum-evolution) - Declared fallbacks and open response enums
 
