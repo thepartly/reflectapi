@@ -50,7 +50,7 @@ struct CreateUserRequest {
 }
 
 // Handler functions need specific signatures for reflectapi
-async fn create_user(_state: (), req: CreateUserRequest, _headers: ()) -> User {
+async fn create_user(_state: (), req: CreateUserRequest, _headers: reflectapi::Empty) -> User {
     // In a real app, you'd save to a database
     User { 
         id: 1, 
@@ -59,7 +59,7 @@ async fn create_user(_state: (), req: CreateUserRequest, _headers: ()) -> User {
     }
 }
 
-async fn get_user(_state: (), id: u32, _headers: ()) -> Option<User> {
+async fn get_user(_state: (), id: u32, _headers: reflectapi::Empty) -> Option<User> {
     // In a real app, you'd query a database
     if id == 1 {
         Some(User {

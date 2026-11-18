@@ -11,6 +11,12 @@
 - [Deprecations](./getting-started/deprecations.md)
 - [Client Libraries](./clients/README.md)
 
+# Guides
+
+- [TypeScript Client from a Rust API with axum](./guides/typescript-client-axum.md)
+- [Python Client from a Rust API](./guides/python-client.md)
+- [reflectapi vs utoipa, aide and OpenAPI Generators](./guides/comparison.md)
+
 # Serving
 
 - [Serving with axum](./serving/axum.md)
