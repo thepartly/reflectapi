@@ -1,4 +1,7 @@
 error: #[reflectapi(open)] cannot be combined with #[serde(other)]; choose either a declared fallback or a rich unknown response
+
+         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+
  --> tests/errors/open_with_other.rs:4:6
   |
 4 | enum Value {

@@ -1,5 +1,19 @@
-//! # `reflectapi` - is a library and a toolkit for writing web API services in Rust and generating compatible clients,
-//! delivering great development experience and efficiency.
+//! # `reflectapi`
+//!
+//! Define your web API in Rust, generate typed TypeScript, Python and Rust clients.
+//! Serve it with Axum, Cloudflare Workers or any HTTP server.
+//!
+//! The [user guide](https://thepartly.github.io/reflectapi/) covers what this reference does not:
+//! - [Quick start](https://thepartly.github.io/reflectapi/getting-started/quick-start.html)
+//! - [Attributes](https://thepartly.github.io/reflectapi/getting-started/attributes.html) of
+//!   [`Input`], [`Output`] and `StatusCode`
+//! - [Generated clients](https://thepartly.github.io/reflectapi/clients/) and how to call them
+//! - Serving with [axum](https://thepartly.github.io/reflectapi/serving/axum.html),
+//!   [Workers](https://thepartly.github.io/reflectapi/serving/workers.html) or
+//!   [another server](https://thepartly.github.io/reflectapi/serving/other-servers.html)
+//!
+//! A machine-readable copy of the whole guide, for coding agents, is at
+//! <https://thepartly.github.io/reflectapi/llms-full.txt>.
 //!
 //! ## Quick start
 //!
