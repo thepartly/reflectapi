@@ -5,12 +5,12 @@ edition = "2021"
 
 license = "Apache-2.0"
 description = "Define your web API in Rust, generate typed TypeScript, Python and Rust clients. Serve it with Axum, Cloudflare Workers or any HTTP server."
-homepage = "https://github.com/thepartly/reflectapi"
+homepage = "https://thepartly.github.io/reflectapi/"
 documentation = "https://docs.rs/reflectapi"
 repository = "https://github.com/thepartly/reflectapi"
 readme = "README.md"
 
-keywords = ["reflectapi", "codegen", "reflection", "restapi", "openapi"]
+keywords = ["typescript", "python", "axum", "codegen", "openapi"]
 categories = ["web-programming", "development-tools", "api-bindings"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
