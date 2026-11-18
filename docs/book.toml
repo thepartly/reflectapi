@@ -2,8 +2,8 @@
 authors = ["ReflectAPI Contributors"]
 language = "en"
 src = "src"
-title = "ReflectAPI Documentation"
-description = "Code-first Rust web service API declaration and client generation"
+title = "reflectapi: Rust web APIs with typed clients"
+description = "Define your web API in Rust, generate typed TypeScript, Python and Rust clients. Serve it with Axum, Cloudflare Workers or any HTTP server."
 
 [preprocessor.links]
 
