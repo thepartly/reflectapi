@@ -25,6 +25,7 @@ jobs:
             ~/.cargo/git
             ~/.cargo/bin
             target
+            docs/doctests/target
           key: ${{ runner.os }}-cargo-docs-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Test documentation examples
@@ -35,20 +36,17 @@ jobs:
           # Test that documentation compiles without warnings
           cargo doc --no-deps --all-features --document-private-items
 
-      - name: Install mdBook and mdbook-keeper
+      - name: Test the book's Rust examples
+        run: cargo test --manifest-path docs/doctests/Cargo.toml --doc
+
+      - name: Install mdBook
         run: |
-          # Pin to mdbook 0.4.x (0.5.x changed preprocessor JSON format,
-          # breaking mdbook-keeper compatibility)
           if ! command -v mdbook &> /dev/null; then
-            cargo install mdbook --version "~0.4"
-          fi
-          if ! command -v mdbook-keeper &> /dev/null; then
-            cargo install mdbook-keeper --version "~0.5"
+            cargo install mdbook --version "~0.4" --locked
           fi
 
       - name: Build mdBook documentation
         run: |
-          # mdbook-keeper runs the book's doctests during the build
           cd docs
           mdbook build
 
