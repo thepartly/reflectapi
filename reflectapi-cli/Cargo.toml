@@ -1,6 +1,6 @@
 [package]
 name = "reflectapi-cli"
-version = "0.25.1"
+version = "0.25.2"
 edition = "2021"
 default-run = "reflectapi"
 
@@ -14,6 +14,13 @@ readme = "README.md"
 keywords = ["reflectapi", "reflection", "cli", "codegen", "restapi-client"]
 categories = ["web-programming", "development-tools", "api-bindings"]
 
+# `cargo binstall reflectapi-cli` downloads the archive the release workflow
+# attaches to the GitHub Release (.github/workflows/release.yml).
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }-v{ version }{ archive-suffix }"
+pkg-fmt = "tgz"
+bin-dir = "{ bin }{ binary-ext }"
+
 [[bin]]
 name = "reflectapi"
 path = "src/main.rs"
@@ -23,7 +30,7 @@ doc = false
 workspace = true
 
 [dependencies]
-reflectapi = { path = "../reflectapi", version = "0.25.1", features = ["codegen"] }
+reflectapi = { path = "../reflectapi", version = "0.25.2", features = ["codegen"] }
 rouille = "3"
 
 clap = { version = "4.5.3", features = ["derive"] }

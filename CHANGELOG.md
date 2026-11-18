@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.25.2
+
+### Added
+
+- **`cargo binstall reflectapi-cli`** downloads a prebuilt `reflectapi` instead of building it. Each GitHub Release carries one for Linux (x86_64 and arm64, static), macOS (Apple silicon and Intel) and Windows (x86_64).
+
 ## 0.25.1
 
 ### Fixed
