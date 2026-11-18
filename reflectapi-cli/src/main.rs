@@ -190,14 +190,13 @@ fn main() -> anyhow::Result<()> {
                     files
                 }
                 Language::Python => {
-                    let config = reflectapi::codegen::python::Config {
-                        package_name: python_package_name,
-                        generate_async: python_async,
-                        generate_sync: python_sync,
-                        generate_testing: python_testing,
-                        format,
-                        base_url: None,
-                    };
+                    let mut config = reflectapi::codegen::python::Config::default();
+                    config
+                        .package_name(python_package_name)
+                        .generate_async(python_async)
+                        .generate_sync(python_sync)
+                        .generate_testing(python_testing)
+                        .format(format);
                     reflectapi::codegen::python::generate_files(schema, &config)?
                 }
                 Language::Openapi => {

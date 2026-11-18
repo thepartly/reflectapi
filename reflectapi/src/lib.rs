@@ -83,7 +83,6 @@ pub mod axum;
 #[cfg(feature = "builder")]
 pub mod dispatch;
 
-#[doc(hidden)]
 #[cfg(feature = "codegen")]
 pub mod codegen;
 
