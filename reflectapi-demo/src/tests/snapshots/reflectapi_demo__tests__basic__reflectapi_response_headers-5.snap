@@ -14,7 +14,6 @@ from __future__ import annotations
 
 # Standard library imports
 import warnings
-from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
@@ -24,6 +23,7 @@ import typing_extensions
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
+from reflectapi_runtime import ReflectapiDateTime
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import ReflectapiPartialModel
@@ -42,7 +42,7 @@ class ReflectapiDemoTestsBasicResponseHeaders(BaseModel):
     x_request_id: str | None = Field(
         serialization_alias="x-request-id", validation_alias="x-request-id"
     )
-    x_expires_at: datetime | None = Field(
+    x_expires_at: ReflectapiDateTime | None = Field(
         serialization_alias="x-expires-at", validation_alias="x-expires-at"
     )
     x_cache: reflectapi_demo.tests.basic.CacheStatus | None = Field(

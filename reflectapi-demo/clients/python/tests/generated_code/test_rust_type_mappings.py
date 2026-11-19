@@ -41,8 +41,8 @@ class TestTypeAnnotations:
         # Check for required imports in the generated code
         # Note: Some imports may only be present if the types are actually used
 
-        # datetime should be imported (used for chrono::DateTime)
-        assert "from datetime import datetime" in content
+        # chrono::DateTime is ReflectapiDateTime, which keeps its wire text.
+        assert "from reflectapi_runtime import ReflectapiDateTime" in content
 
         # typing imports should include Any, Union, etc.
         assert "Any" in content
@@ -177,10 +177,9 @@ class TestCodeGenerationStructure:
         """Test that type mappings are consistent throughout generated code."""
         content = generated_package_content()
 
-        # Check that datetime is used consistently
-        if "datetime" in content:
-            # If datetime is used, it should be properly imported
-            assert "from datetime import datetime" in content
+        # Timestamps are ReflectapiDateTime, imported from the runtime.
+        if "ReflectapiDateTime" in content:
+            assert "from reflectapi_runtime import ReflectapiDateTime" in content
 
         # Check that Union types are properly formed
         union_count = content.count("Union[")

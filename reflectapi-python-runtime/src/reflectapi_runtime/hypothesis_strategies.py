@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Any, Union, get_args, get_origin
+from typing import Annotated, Any, Union, get_args, get_origin
 
 try:
     import hypothesis
@@ -55,6 +55,10 @@ if HAS_HYPOTHESIS:
         # Handle generic types
         origin = get_origin(type_hint)
         args = get_args(type_hint)
+
+        if origin is Annotated:
+            # ReflectapiDateTime, ReflectapiDuration: the base type's values.
+            return strategy_for_type(args[0])
 
         if origin is Union:
             # Handle Optional[T] (Union[T, None]) and other unions
