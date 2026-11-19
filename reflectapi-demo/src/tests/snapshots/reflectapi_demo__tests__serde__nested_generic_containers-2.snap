@@ -37,7 +37,7 @@ export namespace reflectapi_demo {
     export namespace serde {
       export interface Complex {
         matrix: Array<Array<number /* u32 */>>;
-        lookup: Record<string, Array<number /* i32 */ | null>>;
+        lookup: { [key in string]: Array<number /* i32 */ | null> };
       }
     }
   }

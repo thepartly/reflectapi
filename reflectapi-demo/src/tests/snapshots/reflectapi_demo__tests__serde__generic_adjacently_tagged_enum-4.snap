@@ -39,15 +39,9 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                     "type": "object",
                     "title": "Nothing<u32>",
                     "required": [
-                      "c",
                       "t"
                     ],
                     "properties": {
-                      "c": {
-                        "type": "object",
-                        "title": "Nothing<u32>",
-                        "properties": {}
-                      },
                       "t": {
                         "const": "Nothing"
                       }
@@ -86,15 +80,9 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                       "type": "object",
                       "title": "Nothing<u32>",
                       "required": [
-                        "c",
                         "t"
                       ],
                       "properties": {
-                        "c": {
-                          "type": "object",
-                          "title": "Nothing<u32>",
-                          "properties": {}
-                        },
                         "t": {
                           "const": "Nothing"
                         }

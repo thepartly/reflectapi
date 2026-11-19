@@ -158,4 +158,14 @@ decode newer wire values through those generated clients. The suite also
 checks consumer-facing TS and Python types, closed request enums, nested and
 flattened models, errors, headers where supported, and streaming items.
 
+`reflectapi-demo/tests/conformance.rs` is the cross-generator wire check. Each
+case is an echo route with serde-produced samples of its type. For every
+sample, the Rust, Python and TypeScript clients must send it unchanged as a
+request and re-encode it unchanged as a response, TypeScript's types must
+admit it, and it must validate against the OpenAPI request and response
+schemas. A disagreement with serde we accept for now is listed in
+`DIVERGENCES`, and fails its harness once it starts passing, so the list stays
+current. Add a case there when a generator change touches how a type is
+written on the wire.
+
 This architecture chapter is intended to describe the code paths that exist in the repository, not an aspirational future design.
