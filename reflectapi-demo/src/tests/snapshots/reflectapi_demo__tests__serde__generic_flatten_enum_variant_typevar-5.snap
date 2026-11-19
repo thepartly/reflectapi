@@ -15,7 +15,7 @@ from __future__ import annotations
 
 # Standard library imports
 from enum import Enum
-from typing import Annotated, Any, Generic, Optional, TypeVar, Union
+from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
 # Third-party imports
 from pydantic import (

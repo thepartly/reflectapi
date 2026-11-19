@@ -2170,6 +2170,12 @@ fn build_python_generation(
                             });
                             if has_complex_variants {
                                 has_externally_tagged_enums = true;
+                                // Its unit variants render as `Literal["Name"]`.
+                                if sem_enum.variants.values().any(|v| {
+                                    matches!(v.field_style, schema_codegen::FieldStyle::Unit)
+                                }) {
+                                    has_literal = true;
+                                }
                             }
                         }
                         reflectapi_schema::Representation::None => {
