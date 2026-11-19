@@ -260,6 +260,8 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
 }
 
 fn typecheck(src: &str) -> anyhow::Result<()> {
+    super::ensure_typecheck_can_run()?;
+
     // To avoid pulling and compiling expensive dependencies, there are stubs with the relevant type definitions.
     // These are compiled into `rlib` files are used as dependencies for the typechecking process.
 
@@ -1277,7 +1279,7 @@ mod templates {
                 out,
                 "        {}{}pub async fn {}(&self, input: {}, headers: {})\n\
                      -> reflectapi::rt::StreamResponse<{}, {}, C::Error>\n\
-                     where C::Error: Send + 'static {{\n\
+                     where C::Error: reflectapi::rt::MaybeSend + 'static {{\n\
                          reflectapi::rt::__stream_request_impl(&self.client, \"{}\", input, headers).await\n\
                      }}",
                 self.description,

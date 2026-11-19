@@ -324,6 +324,18 @@ pub struct Config {
     pub shared_modules: Vec<String>,
 }
 
+/// Type-checking writes the generated code to a temporary directory and runs
+/// `tsc` or `make` there. A wasm build can't do either, and `temp_dir()`
+/// panics on `wasm32-unknown-unknown`, so it fails here instead.
+fn ensure_typecheck_can_run() -> anyhow::Result<()> {
+    anyhow::ensure!(
+        !cfg!(target_family = "wasm"),
+        "typecheck can't run on wasm, which has no processes or temporary directory; \
+         generate without it and type-check the files in the host"
+    );
+    Ok(())
+}
+
 fn tmp_path(src: &str) -> PathBuf {
     let mut hasher = DefaultHasher::new();
     hasher.write(src.as_bytes());
