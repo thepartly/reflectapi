@@ -20,6 +20,36 @@ export namespace __definition {
     ) => AsyncResult<reflectapi_demo.tests.serde.TestStruct, {}>;
   }
 }
+export namespace chrono {
+  /**
+   * DateTime at a given timezone (RFC3339 format)
+   *
+   * A string, format `date-time`.
+   */
+  export type DateTime = string;
+
+  /**
+   * Date without timezone (%Y-%m-%d)
+   *
+   * A string, format `date`.
+   */
+  export type NaiveDate = string;
+
+  /**
+   * Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)
+   *
+   * A string, format `date-time`.
+   */
+  export type NaiveDateTime = string;
+
+  /**
+   * Time without timezone (%H:%M:%S%.f)
+   *
+   * A string, format `time`.
+   */
+  export type NaiveTime = string;
+}
+
 export namespace reflectapi {
   /**
    * Struct object with no fields
@@ -37,12 +67,12 @@ export namespace reflectapi_demo {
     export namespace serde {
       export interface TestStruct {
         duration: std.time.Duration;
-        naive_time: string;
-        naive_date: string;
-        naive_datetime: string;
-        date_time_fixed_offset: string;
-        date_time_utc: string;
-        date_time_local: string;
+        naive_time: chrono.NaiveTime;
+        naive_date: chrono.NaiveDate;
+        naive_datetime: chrono.NaiveDateTime;
+        date_time_fixed_offset: chrono.DateTime;
+        date_time_utc: chrono.DateTime;
+        date_time_local: chrono.DateTime;
       }
     }
   }

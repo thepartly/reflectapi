@@ -366,6 +366,7 @@ impl ToTokens for TokenizablePrimitive<'_> {
             .fallback
             .as_ref()
             .map(TokenizableTypeReference::new);
+        let format = tokenize_option_string(&self.inner.format);
         let codegen_config =
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
@@ -374,6 +375,7 @@ impl ToTokens for TokenizablePrimitive<'_> {
                 description: #description.into(),
                 parameters: vec![#(#parameters),*],
                 fallback: #fallback,
+                format: #format,
                 codegen_config: #codegen_config,
             }
         });

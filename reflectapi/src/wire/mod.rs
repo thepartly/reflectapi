@@ -7,6 +7,7 @@
 // The builder reads only the headers; the rest is for the code generators.
 #![cfg_attr(not(feature = "codegen"), allow(dead_code))]
 
+pub(crate) mod format;
 pub(crate) mod headers;
 pub(crate) mod key;
 pub(crate) mod layout;

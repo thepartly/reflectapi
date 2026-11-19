@@ -206,7 +206,8 @@
         ],
         "fallback": {
           "name": "std::string::String"
-        }
+        },
+        "format": "date-time"
       },
       {
         "kind": "primitive",
@@ -620,7 +621,8 @@
         ],
         "fallback": {
           "name": "std::string::String"
-        }
+        },
+        "format": "date-time"
       },
       {
         "kind": "primitive",

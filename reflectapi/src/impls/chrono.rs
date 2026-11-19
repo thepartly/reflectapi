@@ -6,7 +6,8 @@ fn reflectapi_date_time(schema: &mut crate::Typespace) -> String {
             "DateTime at a given timezone (RFC3339 format)".into(),
             vec!["Tz".into()],
             Some("std::string::String".into()),
-        );
+        )
+        .with_format("date-time");
         schema.insert_type(type_def.into());
     }
     type_name.into()
@@ -56,7 +57,8 @@ fn reflectapi_naive_datetime(schema: &mut crate::Typespace) -> String {
             "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)".into(),
             vec![],
             Some("std::string::String".into()),
-        );
+        )
+        .with_format("date-time");
         schema.insert_type(type_def.into());
     }
     type_name.into()
@@ -81,7 +83,8 @@ fn reflectapi_naive_date(schema: &mut crate::Typespace) -> String {
             "Date without timezone (%Y-%m-%d)".into(),
             vec![],
             Some("std::string::String".into()),
-        );
+        )
+        .with_format("date");
         schema.insert_type(type_def.into());
     }
     type_name.into()
@@ -107,7 +110,8 @@ fn reflectapi_naive_time(schema: &mut crate::Typespace) -> String {
             "Time without timezone (%H:%M:%S%.f)".into(),
             vec![],
             Some("std::string::String".into()),
-        );
+        )
+        .with_format("time");
         schema.insert_type(type_def.into());
     }
     type_name.into()

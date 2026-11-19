@@ -6,7 +6,8 @@ fn reflectapi_url(schema: &mut crate::Typespace) -> String {
             "URL value type".to_string(),
             vec![],
             Some("std::string::String".into()),
-        );
+        )
+        .with_format("uri");
         schema.insert_type(type_def.into());
     }
     type_name.into()

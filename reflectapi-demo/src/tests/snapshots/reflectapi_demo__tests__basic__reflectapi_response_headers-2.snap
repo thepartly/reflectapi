@@ -55,6 +55,15 @@ export namespace __definition {
     >;
   }
 }
+export namespace chrono {
+  /**
+   * DateTime at a given timezone (RFC3339 format)
+   *
+   * A string, format `date-time`.
+   */
+  export type DateTime = string;
+}
+
 export namespace reflectapi {
   /**
    * Struct object with no fields
@@ -78,7 +87,7 @@ export namespace reflectapi_demo {
          */
         "retry-after": string | null;
         "x-request-id": string | null;
-        "x-expires-at": string | null;
+        "x-expires-at": chrono.DateTime | null;
         "x-cache": reflectapi_demo.tests.basic.CacheStatus | null;
       }
 

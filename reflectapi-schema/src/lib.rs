@@ -831,6 +831,13 @@ pub struct Primitive {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub fallback: Option<TypeReference>,
 
+    /// What a value is on the wire, beyond its JSON type: a JSON Schema
+    /// `format` such as `uuid`, `date-time`, `date` or `uri`, or another name
+    /// a type chooses, such as `decimal`. Clients keep the meaning it gives
+    /// (OpenAPI's `format`, a named type) without each knowing the Rust type.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub format: Option<String>,
+
     #[serde(
         skip_serializing_if = "LanguageSpecificTypeCodegenConfig::is_serialization_default",
         default
@@ -850,8 +857,21 @@ impl Primitive {
             description,
             parameters,
             fallback,
+            format: None,
             codegen_config: Default::default(),
         }
+    }
+
+    /// Sets what a value is on the wire, as a JSON Schema `format` such as
+    /// `uuid` or `date-time`; see [`Primitive::format`].
+    pub fn with_format(mut self, format: impl Into<String>) -> Self {
+        self.format = Some(format.into());
+        self
+    }
+
+    /// What a value is on the wire beyond its JSON type, if the type says.
+    pub fn format(&self) -> Option<&str> {
+        self.format.as_deref()
     }
 
     pub fn name(&self) -> &str {
@@ -1606,6 +1626,7 @@ mod tests {
             description: String::new(),
             parameters: vec![],
             fallback: None,
+            format: None,
             codegen_config: LanguageSpecificTypeCodegenConfig::default(),
         })
     }

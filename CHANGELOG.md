@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- **A schema primitive says what its string is**: `Primitive::format`, a JSON Schema `format` such as `uuid`, `date-time`, `date`, `time` or `uri`, or a type's own, such as `decimal`. reflectapi's `uuid`, `chrono`, `url` and `rust_decimal` types set it, and your own primitive can, with `Primitive::with_format`. Generators read it in one place, falling back to the built-in types' formats for a schema written before it existed. ([#240](https://github.com/thepartly/reflectapi/issues/240))
+
+### Changed
+
+- **TypeScript names the type of a string with a format**: a `uuid::Uuid` is `uuid.Uuid`, a `chrono::DateTime` `chrono.DateTime` and a `url::Url` `url.Url`, each an exported alias of `string` documented with its format, where all were `string`. The types are the same, so no code changes. ([#240](https://github.com/thepartly/reflectapi/issues/240))
+- **OpenAPI gives `url::Url`, `chrono::NaiveTime`, `rust_decimal::Decimal` and your own formatted primitives their `format`** (`uri`, `time`, `decimal`), as it did for UUIDs and dates; they were plain strings. ([#240](https://github.com/thepartly/reflectapi/issues/240))
+
 ### Fixed
 
 - **Python writes a `#[serde(transparent)]` struct with a named field as the value it wraps**, as serde does. `#[serde(transparent)] struct Name { inner: String }` was a model expecting `{"inner": "..."}`, so a response holding `"..."` failed validation and a request sent the object. A newtype struct was already written this way, but a generic one, such as `Newtype<Point>`, was typed `Any`; it is now `Point`.

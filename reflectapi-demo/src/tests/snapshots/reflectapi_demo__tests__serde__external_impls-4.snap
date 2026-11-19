@@ -71,7 +71,7 @@ snapshot_kind: text
             "$ref": "#/components/schemas/serde_json.Value"
           },
           "url": {
-            "$ref": "#/components/schemas/std.string.String"
+            "$ref": "#/components/schemas/url.Url"
           }
         }
       },
@@ -88,6 +88,11 @@ snapshot_kind: text
       "u32": {
         "description": "32-bit unsigned integer",
         "type": "integer"
+      },
+      "url.Url": {
+        "description": "URL value type",
+        "type": "string",
+        "format": "uri"
       }
     }
   }

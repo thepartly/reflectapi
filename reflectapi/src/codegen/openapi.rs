@@ -226,6 +226,20 @@ pub enum StringFormat {
     /// date-time notation as defined by RFC 3339, section 5.6, for example, 2017-07-21T17:32:28Z
     DateTime,
     Uuid,
+    /// Any other format a type gives, such as `time`, `uri` or `decimal`.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl StringFormat {
+    fn of(format: &str) -> Self {
+        match format {
+            "date" => Self::Date,
+            "date-time" => Self::DateTime,
+            "uuid" => Self::Uuid,
+            other => Self::Other(other.to_owned()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -859,6 +873,7 @@ impl Converter<'_> {
                         description: "UTF-8 encoded string".into(),
                         parameters: vec![],
                         fallback: None,
+                        format: None,
                         codegen_config: Default::default(),
                     })
                 });
@@ -928,7 +943,11 @@ impl Converter<'_> {
                     prim.parameters.len(),
                     ty_ref.arguments.len()
                 );
+                let string_format = schema_codegen::string_format(prim);
                 let ty = match prim.name() {
+                    _ if string_format.is_some() => Type::String {
+                        format: string_format.map(StringFormat::of),
+                    },
                     "f32" | "f64" => Type::Number,
                     "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32"
                     | "u64" | "u128" | "usize" => Type::Integer,
@@ -938,15 +957,6 @@ impl Converter<'_> {
                         title: "serde_json::Value".to_owned(),
                         required: Default::default(),
                         properties: Default::default(),
-                    },
-                    "uuid::Uuid" => Type::String {
-                        format: Some(StringFormat::Uuid),
-                    },
-                    "chrono::NaiveDate" => Type::String {
-                        format: Some(StringFormat::Date),
-                    },
-                    "chrono::NaiveDateTime" | "chrono::DateTime" => Type::String {
-                        format: Some(StringFormat::DateTime),
                     },
                     "char" | "std::string::String" => Type::String { format: None },
                     "std::marker::PhantomData" | "std::tuple::Tuple0" => Type::Null,
