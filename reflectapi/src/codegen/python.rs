@@ -295,14 +295,10 @@ fn python_type_mappings() -> &'static HashMap<&'static str, PythonTypeMapping> {
         m.insert(
             "std::time::Duration",
             PythonTypeMapping {
-                // serde renders Duration as `{"secs": <u64>, "nanos": <u32>}`.
-                // Pydantic's bare `timedelta` validator rejects that
-                // dict shape (it expects ISO-8601 / int / float).
-                // `ReflectapiDuration` is `Annotated[timedelta,
-                // BeforeValidator(...), PlainSerializer(...)]` —
-                // accepts both the serde wire shape and python
-                // timedelta values, emits the serde shape on the way
-                // out.
+                // serde writes a Duration as `{"secs": <u64>, "nanos": <u32>}`,
+                // which pydantic's `timedelta` doesn't read. The runtime's
+                // `ReflectapiDuration` is a `timedelta` that reads that
+                // shape and writes back the nanoseconds it was read with.
                 type_hint: "ReflectapiDuration",
                 imports: &[],
                 runtime_imports: &["ReflectapiDuration"],

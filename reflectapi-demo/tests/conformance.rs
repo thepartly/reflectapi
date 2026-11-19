@@ -214,6 +214,7 @@ pub mod cases {
         pub day: chrono::NaiveDate,
         pub time: chrono::NaiveTime,
         pub id: uuid::Uuid,
+        pub elapsed: std::time::Duration,
     }
 }
 
@@ -363,15 +364,25 @@ conformance_cases! {
             day: "2026-11-19".parse().unwrap(),
             time: "10:20:30".parse().unwrap(),
             id: "67e55044-10b1-426f-9247-bb680e5fe0c8".parse().unwrap(),
+            elapsed: std::time::Duration::from_secs(30),
         },
         // `Utc::now()` has nanoseconds on most platforms, and serde writes them.
-        // Python's `time` field is a `str`, so only its datetimes lose them.
         Stamped {
             at: "2026-11-19T10:20:30.123456789Z".parse().unwrap(),
             local: "2026-11-19T10:20:30.123456789".parse().unwrap(),
             day: "2026-11-19".parse().unwrap(),
             time: "10:20:30.123456789".parse().unwrap(),
             id: "67e55044-10b1-426f-9247-bb680e5fe0c8".parse().unwrap(),
+            elapsed: std::time::Duration::new(1, 123_456_789),
+        },
+        // `Duration::MAX` is a common "no limit", beyond Python's `timedelta`.
+        Stamped {
+            at: "2026-11-19T10:20:30Z".parse().unwrap(),
+            local: "2026-11-19T10:20:30".parse().unwrap(),
+            day: "2026-11-19".parse().unwrap(),
+            time: "10:20:30".parse().unwrap(),
+            id: "67e55044-10b1-426f-9247-bb680e5fe0c8".parse().unwrap(),
+            elapsed: std::time::Duration::MAX,
         },
     ];
 }
@@ -403,6 +414,20 @@ const DIVERGENCES: &[Divergence] = &[
         target: "typescript",
         check: "response",
         reason: "64-bit integers are typed `number`, which rounds beyond 2^53",
+    },
+    Divergence {
+        case: "stamped",
+        sample: Some(2),
+        target: "typescript",
+        check: "request",
+        reason: "`Duration::MAX`'s `secs` is a `u64` beyond 2^53, typed `number`",
+    },
+    Divergence {
+        case: "stamped",
+        sample: Some(2),
+        target: "typescript",
+        check: "response",
+        reason: "`Duration::MAX`'s `secs` is a `u64` beyond 2^53, typed `number`",
     },
 ];
 

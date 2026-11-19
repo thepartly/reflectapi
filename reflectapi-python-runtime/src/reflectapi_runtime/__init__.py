@@ -20,7 +20,7 @@ from .auth import (
 )
 from .batch import BatchClient
 from .client import AsyncClientBase, ClientBase
-from .duration import ReflectapiDuration
+from .duration import ReflectapiDuration, WireDuration
 from .wire_datetime import ReflectapiDateTime, WireDateTime
 from .transport import AsyncClient, Client, Request, Response
 from .exceptions import (
@@ -102,6 +102,7 @@ __all__ = [
     "ReflectapiInfallible",
     "ReflectapiPartialModel",
     "WireDateTime",
+    "WireDuration",
     "externally_tagged_json_schema",
     "flattened_enum_json_schema",
     "known_variants_json_schema",

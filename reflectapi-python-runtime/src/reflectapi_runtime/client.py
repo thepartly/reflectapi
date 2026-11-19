@@ -16,6 +16,7 @@ from pydantic import BaseModel, TypeAdapter
 from pydantic import ValidationError as PydanticValidationError
 
 from .auth import AuthHandler
+from .duration import _to_wire as _duration_to_wire
 from .exceptions import ApplicationError, NetworkError, TimeoutError, ValidationError
 from .middleware import (
     AsyncMiddleware,
@@ -47,6 +48,10 @@ def _json_serializer(obj: Any) -> Any:
         return getattr(obj, "wire", None) or obj.isoformat()
     elif isinstance(obj, datetime.date):
         return obj.isoformat()
+    elif isinstance(obj, datetime.timedelta):
+        # serde's `Duration` shape; a ReflectapiDuration read from the wire is
+        # written back unchanged.
+        return _duration_to_wire(obj)
     elif hasattr(obj, "model_dump"):
         return obj.model_dump(mode="json", by_alias=True, exclude_unset=True)
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
