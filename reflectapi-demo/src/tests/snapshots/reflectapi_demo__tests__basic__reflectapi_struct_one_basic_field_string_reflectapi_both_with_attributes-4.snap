@@ -44,7 +44,10 @@ snapshot_kind: text
     "schemas": {
       "i32": {
         "description": "32-bit signed integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "int32",
+        "minimum": -2147483648,
+        "maximum": 2147483647
       },
       "reflectapi_demo.tests.basic.input.TestStructOneBasicFieldStringReflectBothDifferently": {
         "type": "object",
@@ -72,7 +75,10 @@ snapshot_kind: text
       },
       "u32": {
         "description": "32-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint32",
+        "minimum": 0,
+        "maximum": 4294967295
       }
     }
   }

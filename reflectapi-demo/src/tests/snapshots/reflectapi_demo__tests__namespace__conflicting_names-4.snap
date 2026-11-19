@@ -49,7 +49,8 @@ snapshot_kind: text
       },
       "usize": {
         "description": "Machine-specific-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "minimum": 0
       }
     }
   }

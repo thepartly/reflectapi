@@ -125,7 +125,9 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
       },
       "u64": {
         "description": "64-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
       }
     }
   }

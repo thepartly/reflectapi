@@ -152,11 +152,16 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
       },
       "u16": {
         "description": "16-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint16",
+        "minimum": 0,
+        "maximum": 65535
       },
       "u64": {
         "description": "64-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
       }
     }
   }

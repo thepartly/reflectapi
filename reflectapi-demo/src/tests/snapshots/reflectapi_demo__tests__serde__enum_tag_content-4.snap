@@ -89,7 +89,10 @@ snapshot_kind: text
       },
       "u8": {
         "description": "8-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint8",
+        "minimum": 0,
+        "maximum": 255
       }
     }
   }

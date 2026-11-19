@@ -118,11 +118,16 @@ snapshot_kind: text
       },
       "u32": {
         "description": "32-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint32",
+        "minimum": 0,
+        "maximum": 4294967295
       },
       "u64": {
         "description": "64-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
       }
     }
   }

@@ -63,19 +63,29 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
       },
       "i16": {
         "description": "16-bit signed integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "int16",
+        "minimum": -32768,
+        "maximum": 32767
       },
       "i32": {
         "description": "32-bit signed integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "int32",
+        "minimum": -2147483648,
+        "maximum": 2147483647
       },
       "i64": {
         "description": "64-bit signed integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "int64"
       },
       "i8": {
         "description": "8-bit signed integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "int8",
+        "minimum": -128,
+        "maximum": 127
       },
       "isize": {
         "description": "Machine-specific-bit signed integer",
@@ -1040,23 +1050,35 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
       },
       "u16": {
         "description": "16-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint16",
+        "minimum": 0,
+        "maximum": 65535
       },
       "u32": {
         "description": "32-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint32",
+        "minimum": 0,
+        "maximum": 4294967295
       },
       "u64": {
         "description": "64-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
       },
       "u8": {
         "description": "8-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint8",
+        "minimum": 0,
+        "maximum": 255
       },
       "usize": {
         "description": "Machine-specific-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "minimum": 0
       }
     }
   }
