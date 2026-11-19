@@ -14,7 +14,7 @@ from __future__ import annotations
 
 # Standard library imports
 import warnings
-from typing import Annotated, Any, Generic, Optional, TypeVar, Union
+from typing import Annotated, Any, Generic, NewType, Optional, TypeVar, Union
 
 # Third-party imports
 from pydantic import BaseModel, ConfigDict, Field
@@ -26,14 +26,23 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
+ReflectapiDemoTestsBasicTestDistinctId = NewType(
+    "ReflectapiDemoTestsBasicTestDistinctId", int
+)
+
+ReflectapiDemoTestsBasicTestDistinctName = NewType(
+    "ReflectapiDemoTestsBasicTestDistinctName", str
+)
+
+
 class ReflectapiDemoTestsBasicTestStructWithDistinct(BaseModel):
     model_config = ConfigDict(
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    id: int
-    name: str
-    ids: list[int]
+    id: reflectapi_demo.tests.basic.TestDistinctId
+    name: reflectapi_demo.tests.basic.TestDistinctName
+    ids: list[reflectapi_demo.tests.basic.TestDistinctId]
 
 
 # Namespace classes for dotted access to types
@@ -46,6 +55,8 @@ class reflectapi_demo:
         class basic:
             """Namespace for basic types."""
 
+            TestDistinctId = ReflectapiDemoTestsBasicTestDistinctId
+            TestDistinctName = ReflectapiDemoTestsBasicTestDistinctName
             TestStructWithDistinct = ReflectapiDemoTestsBasicTestStructWithDistinct
 
 

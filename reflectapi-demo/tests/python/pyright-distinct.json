@@ -1,0 +1,16 @@
+{
+  "include": ["test_distinct_types.py"],
+  "typeCheckingMode": "strict",
+  "reportUnnecessaryTypeIgnoreComment": "error",
+  "venvPath": "../../clients/python",
+  "venv": ".venv",
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "../../target/conformance/python",
+        "../../../reflectapi-python-runtime/src"
+      ]
+    }
+  ]
+}

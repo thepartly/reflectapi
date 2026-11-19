@@ -247,3 +247,8 @@ jobs:
       - name: Check serde conformance samples against the Python client and OpenAPI
         working-directory: reflectapi-demo/clients/python
         run: uv run --locked $UV_RUN_ARGS pytest ../../tests/python/test_conformance.py -q -p no:cacheprovider
+      - name: Type-check and test distinct types in the generated Python client
+        working-directory: reflectapi-demo/clients/python
+        run: |
+          uv run --locked $UV_RUN_ARGS pyright --project ../../tests/python/pyright-distinct.json
+          uv run --locked $UV_RUN_ARGS pytest ../../tests/python/test_distinct_types.py -q -p no:cacheprovider

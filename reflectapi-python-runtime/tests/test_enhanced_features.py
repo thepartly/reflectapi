@@ -394,6 +394,16 @@ class TestHypothesisStrategies:
         assert strategy_for_type(float) is not None
         assert strategy_for_type(bool) is not None
 
+    def test_strategy_for_new_type_draws_its_base(self):
+        """A distinct ID's NewType draws values of the type it wraps."""
+        from typing import NewType
+        from uuid import UUID
+
+        from hypothesis import find
+
+        UserId = NewType("UserId", UUID)
+        assert isinstance(find(strategy_for_type(UserId), lambda _: True), UUID)
+
     def test_strategy_for_pydantic_model(self):
         """Test strategy generation for Pydantic models."""
         strategy = strategy_for_pydantic_model(TestModel)
