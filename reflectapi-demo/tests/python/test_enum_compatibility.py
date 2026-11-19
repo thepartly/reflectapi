@@ -200,7 +200,7 @@ def test_direct_flattened_open_enum_retains_parent_and_unknown_value() -> None:
     client = Client(
         "http://test", client=httpx.Client(transport=httpx.MockTransport(handle))
     )
-    assert dumped(client.enums_flatten.enum().data) == wire
+    assert dumped(client.enums.flatten_enum().data) == wire
     client.close()
 
 
@@ -276,7 +276,7 @@ def test_optional_direct_flattened_enum_response_path() -> None:
     client = Client(
         "http://test", client=httpx.Client(transport=httpx.MockTransport(handle))
     )
-    response = client.enums_optional.flatten_enum()
+    response = client.enums.optional_flatten_enum()
     assert isinstance(response.data.value.root, output.OpenInternalUnknown)
     assert dumped(response.data) == wire
     client.close()
@@ -374,8 +374,8 @@ def test_direct_flattened_adjacent_open_enum_and_optional_field() -> None:
     client = Client(
         "http://test", client=httpx.Client(transport=httpx.MockTransport(handle))
     )
-    assert dumped(client.enums_flatten.adjacent().data) == wire
-    assert dumped(client.enums_optional.flatten_adjacent().data) == wire
+    assert dumped(client.enums.flatten_adjacent().data) == wire
+    assert dumped(client.enums.optional_flatten_adjacent().data) == wire
     client.close()
 
 

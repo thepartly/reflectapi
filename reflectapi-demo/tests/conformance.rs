@@ -219,8 +219,7 @@ pub mod cases {
 }
 
 /// Generates the echo routes and the serde samples from one list, so a case
-/// can't have a route without samples or the reverse. Case names have no
-/// underscores: the Python client reads `a.b_c` as group `a_b`, method `c`.
+/// can't have a route without samples or the reverse.
 macro_rules! conformance_cases {
     ($($case:ident: $ty:ty = [$($sample:expr),+ $(,)?];)+) => {
         fn schema() -> reflectapi::Schema {
