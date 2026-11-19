@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Write the files search engines and coding agents look for into the built book.
+"""Finish the built book: the landing page, and the files search engines and
+coding agents look for.
 
-Run after `mdbook build`, from anywhere: `python3 docs/build-extras.py`.
+Run after `mdbook build`, from anywhere: `python3 docs/build-extras.py`, or
+`python3 docs/build-extras.py DIR` for a book built with `mdbook build -d DIR`.
 
+- `index.html`: the landing page from `docs/landing/`, in place of mdBook's
+  copy of the first chapter, which stays at `introduction.html`.
 - `sitemap.xml`: every page, for search engines.
 - `llms.txt`: the guide's table of contents with links (https://llmstxt.org).
 - `llms-full.txt`: the whole guide as one Markdown file, in reading order,
@@ -10,6 +14,7 @@ Run after `mdbook build`, from anywhere: `python3 docs/build-extras.py`.
 """
 
 import re
+import shutil
 import sys
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -20,7 +25,8 @@ SECTION_LINE = re.compile(r"^# (?P<title>.+)$")
 
 docs = Path(__file__).resolve().parent
 src = docs / "src"
-book = docs / "book"
+book = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else docs / "book"
+landing = docs / "landing"
 
 
 def page_url(md_path: str) -> str:
@@ -49,6 +55,9 @@ def main() -> int:
     if not book.is_dir():
         print(f"{book} does not exist: run `mdbook build` first", file=sys.stderr)
         return 1
+
+    for file in landing.iterdir():
+        shutil.copy(file, book / file.name)
 
     pages = list(chapters())
     description = re.search(r'^description = "(.*)"$', (docs / "book.toml").read_text(), re.M)
@@ -83,7 +92,7 @@ def main() -> int:
         full.append(f"\n<!-- {page_url(path)} -->\n\n{(src / path).read_text().strip()}\n")
     (book / "llms-full.txt").write_text("".join(full))
 
-    print(f"wrote sitemap.xml ({len(dict.fromkeys(urls))} URLs), llms.txt, llms-full.txt")
+    print(f"wrote the landing page, sitemap.xml ({len(dict.fromkeys(urls))} URLs), llms.txt, llms-full.txt")
     return 0
 
 
