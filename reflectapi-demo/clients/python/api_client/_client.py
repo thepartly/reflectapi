@@ -11,7 +11,6 @@ from __future__ import annotations
 
 # Standard library imports
 import warnings
-from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
@@ -31,6 +30,7 @@ import typing_extensions
 from reflectapi_runtime import ApiStream
 from reflectapi_runtime import AsyncApiStream
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
+from reflectapi_runtime import ReflectapiDateTime
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
@@ -56,7 +56,7 @@ _rebuild_models()
 class AsyncHealthClient:
     """Async client for health operations."""
 
-    def __init__(self, client: AsyncClientBase) -> None:
+    def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
     async def check(
@@ -82,7 +82,7 @@ class AsyncHealthClient:
 class AsyncPetsClient:
     """Async client for pets operations."""
 
-    def __init__(self, client: AsyncClientBase) -> None:
+    def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
     def cdc_events(
@@ -293,7 +293,7 @@ class AsyncClient(AsyncClientBase):
 class HealthClient:
     """Synchronous client for health operations."""
 
-    def __init__(self, client: ClientBase) -> None:
+    def __init__(self, client: Client) -> None:
         self._client = client
 
     def check(
@@ -319,7 +319,7 @@ class HealthClient:
 class PetsClient:
     """Synchronous client for pets operations."""
 
-    def __init__(self, client: ClientBase) -> None:
+    def __init__(self, client: Client) -> None:
         self._client = client
 
     def cdc_events(

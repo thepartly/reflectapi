@@ -10,7 +10,6 @@ from __future__ import annotations
 
 
 # Standard library imports
-from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Generic, Literal, Optional, TypeVar, Union
 
@@ -29,6 +28,7 @@ from pydantic import (
 from reflectapi_runtime import ApiStream
 from reflectapi_runtime import AsyncApiStream
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
+from reflectapi_runtime import ReflectapiDateTime
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
@@ -71,7 +71,7 @@ class MyapiModelOutputPet(ReflectapiPartialModel):
     age: int | None = Field(
         default=None, description="age of the pet", deprecated="test deprecation"
     )
-    updated_at: datetime
+    updated_at: ReflectapiDateTime
     behaviors: list[myapi.model.Behavior] | None = Field(
         default=None, description="behaviors of the pet"
     )

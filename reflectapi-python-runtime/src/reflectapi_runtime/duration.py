@@ -1,73 +1,133 @@
 """Wire-format adapter for Rust's ``std::time::Duration``.
 
-serde serialises ``Duration`` as ``{"secs": <u64>, "nanos": <u32>}``.
-Pydantic v2's built-in ``timedelta`` validator accepts ISO-8601 strings,
-ints, and floats — it does **not** accept the ``{secs, nanos}`` dict
-that the server actually sends. The bare ``timedelta`` annotation
-emitted by older codegen therefore failed validation on every response
-that carried a ``Duration`` field.
+serde writes a ``Duration`` as ``{"secs": <u64>, "nanos": <u32>}``, which
+pydantic's ``timedelta`` doesn't read, and with nanoseconds, which a
+``timedelta`` can't hold.
 
-``ReflectapiDuration`` is the type the generated client uses instead. It
-preserves the ergonomic Python ``timedelta`` API (``td.total_seconds()``,
-arithmetic, comparisons) and round-trips the serde shape:
+``ReflectapiDuration``, the annotation generated clients use for
+``Duration``, is a ``timedelta``, so any ``timedelta`` can be assigned to
+such a field:
 
-- **Validating** (server → client): a ``{"secs": …, "nanos": …}`` dict
-  is converted to a ``timedelta``; ints/floats and existing
-  ``timedelta`` instances pass through unchanged so users can construct
-  models from Python values directly.
-- **Serialising** (client → server): the ``timedelta`` is written back
-  as ``{"secs": <int>, "nanos": <int>}`` so the wire payload round-trips
-  cleanly through ``serde::Deserialize`` on the server.
+- **Reading** (server → client): ``{"secs", "nanos"}`` becomes a
+  ``WireDuration``: a ``timedelta``, truncated to the microsecond, that keeps
+  the ``secs`` and ``nanos`` it was read from. A ``timedelta``, or anything
+  else pydantic reads as one, is read as pydantic reads it.
+- **Writing** (client → server): a ``WireDuration`` is written as the exact
+  ``secs`` and ``nanos`` it was read from. Any other ``timedelta``, including
+  the result of arithmetic, is written as its whole microseconds.
 
-Precision caveat: ``timedelta`` stores microseconds, so the bottom three
-decimal digits of ``nanos`` are truncated on round-trip. If a server
-ever sends a ``nanos`` value not divisible by 1 000 (sub-microsecond),
-the recovered ``nanos`` will be the closest microsecond-aligned value.
-For the durations reflectapi APIs typically carry (timeouts, retry
-hints, rate-limit windows) this is well below the noise floor.
+Two values that differ only below a microsecond compare equal, as their
+``timedelta`` parts are equal; ``WireDuration.wire`` tells them apart.
+A ``Duration`` longer than ``timedelta.max`` (about 2.7 million years), such
+as ``Duration::MAX``, reads as ``timedelta.max`` and is still written back
+exactly. ``Duration`` is unsigned, so a server rejects a negative ``timedelta``.
 """
 
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
-from pydantic import BeforeValidator, PlainSerializer
+from pydantic_core import core_schema
 
-_NS_PER_SECOND = 1_000_000_000
-
-
-def _validate(value: Any) -> Any:
-    """Accept serde's ``{secs, nanos}`` dict; pass other forms through."""
-    if isinstance(value, dict):
-        secs = value.get("secs", 0)
-        nanos = value.get("nanos", 0)
-        if not isinstance(secs, (int, float)) or not isinstance(nanos, (int, float)):
-            return value  # let Pydantic raise its own validation error
-        return timedelta(seconds=secs, microseconds=nanos / 1_000)
-    return value
+if TYPE_CHECKING:
+    from pydantic import GetCoreSchemaHandler
 
 
-def _serialise(value: timedelta) -> dict[str, int]:
-    """Emit the wire shape Rust's ``serde::Deserialize<Duration>`` expects."""
-    if not isinstance(value, timedelta):
-        # Pydantic already coerced; if anything else slips through, surface
-        # the failure rather than papering over it.
-        raise TypeError(
-            f"ReflectapiDuration serialiser expected a timedelta, got {type(value).__name__}"
-        )
-    # Pull total nanoseconds out of the timedelta in two integer pieces
-    # so we never round-trip through float and lose precision below the
-    # microsecond level.
+class WireDuration(timedelta):
+    """A ``timedelta`` read from the wire, written back exactly as it was read."""
+
+    __slots__ = ("_wire",)
+    _wire: tuple[int, int] | None
+
+    @classmethod
+    def _read(cls, secs: int, nanos: int) -> WireDuration:
+        try:
+            out = cls(seconds=secs, microseconds=nanos // 1_000)
+        except OverflowError:
+            limit = timedelta.max if secs > 0 else timedelta.min
+            out = cls(limit.days, limit.seconds, limit.microseconds)
+        out._wire = (secs, nanos)
+        return out
+
+    @property
+    def wire(self) -> tuple[int, int] | None:
+        """The ``(secs, nanos)`` this was read from, or ``None`` for a new value."""
+        return getattr(self, "_wire", None)
+
+    def __reduce_ex__(self, protocol: Any) -> Any:
+        # copy, deepcopy, pickle and `model_copy(deep=True)` keep the wire value.
+        return (_restore, (super().__reduce_ex__(protocol), self.wire))
+
+
+def _restore(reduced: Any, wire: tuple[int, int] | None) -> WireDuration:
+    constructor, args = reduced[0], reduced[1]
+    out: WireDuration = constructor(*args)
+    if wire is not None:
+        out._wire = wire
+    return out
+
+
+def _is_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _to_wire(value: timedelta) -> dict[str, int]:
+    wire = getattr(value, "_wire", None)
+    if wire is not None:
+        secs, nanos = wire
+        return {"secs": secs, "nanos": nanos}
+    # Integer arithmetic: a float would lose digits on long durations.
     total_us = (value.days * 86_400 + value.seconds) * 1_000_000 + value.microseconds
     secs, micros = divmod(total_us, 1_000_000)
-    nanos = micros * 1_000
-    return {"secs": secs, "nanos": nanos}
+    return {"secs": secs, "nanos": micros * 1_000}
 
 
-ReflectapiDuration = Annotated[
-    timedelta,
-    BeforeValidator(_validate),
-    PlainSerializer(_serialise, when_used="json"),
-]
-"""Pydantic field type for ``std::time::Duration`` — see module docstring."""
+class _KeepWireValue:
+    """Pydantic schema: read serde's shape into a ``WireDuration``, write it back."""
+
+    def __get_pydantic_core_schema__(
+        self, source: Any, handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        def validate(
+            value: Any, parse: core_schema.ValidatorFunctionWrapHandler
+        ) -> timedelta:
+            if isinstance(value, WireDuration):
+                return value
+            if isinstance(value, dict):
+                secs, nanos = value.get("secs", 0), value.get("nanos", 0)
+                if _is_int(secs) and _is_int(nanos):
+                    return WireDuration._read(secs, nanos)
+                if isinstance(secs, (int, float)) and isinstance(nanos, (int, float)):
+                    return timedelta(seconds=secs, microseconds=nanos / 1_000)
+            parsed: timedelta = parse(value)
+            return parsed
+
+        def serialize(
+            value: timedelta,
+            write: core_schema.SerializerFunctionWrapHandler,
+            info: core_schema.SerializationInfo,
+        ) -> Any:
+            if info.mode_is_json():
+                return _to_wire(value)
+            return write(value)
+
+        return core_schema.no_info_wrap_validator_function(
+            validate,
+            core_schema.timedelta_schema(),
+            serialization=core_schema.wrap_serializer_function_ser_schema(
+                serialize,
+                info_arg=True,
+                schema=core_schema.timedelta_schema(),
+                return_schema=core_schema.typed_dict_schema(
+                    {
+                        "secs": core_schema.typed_dict_field(core_schema.int_schema()),
+                        "nanos": core_schema.typed_dict_field(core_schema.int_schema()),
+                    }
+                ),
+            ),
+        )
+
+
+ReflectapiDuration = Annotated[timedelta, _KeepWireValue()]
+"""A ``timedelta`` in serde's ``{secs, nanos}`` shape, written back exactly as read."""

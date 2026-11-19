@@ -13,10 +13,12 @@ from __future__ import annotations
 
 
 # Standard library imports
+import warnings
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
 from pydantic import BaseModel, ConfigDict, Field
+import typing_extensions
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -24,13 +26,13 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
-class AsyncXClient:
-    """Async client for x operations."""
+class AsyncXFooClient:
+    """Async client for x.foo operations."""
 
-    def __init__(self, client: AsyncClientBase) -> None:
+    def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
-    async def foo_get(
+    async def get(
         self,
     ) -> ApiResponse[Any]:
         """
@@ -48,13 +50,31 @@ class AsyncXClient:
         )
 
 
-class AsyncYClient:
-    """Async client for y operations."""
+class AsyncXClient:
+    """Async client for x operations."""
 
-    def __init__(self, client: AsyncClientBase) -> None:
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+        self.foo: AsyncXFooClient = AsyncXFooClient(client)
+
+    @property
+    @typing_extensions.deprecated(
+        "x.foo_get is deprecated: use x.foo.get", category=None
+    )
+    def foo_get(self):
+        warnings.warn(
+            "x.foo_get is deprecated: use x.foo.get", DeprecationWarning, stacklevel=2
+        )
+        return self._client.x.foo.get
+
+
+class AsyncYFooClient:
+    """Async client for y.foo operations."""
+
+    def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
-    async def foo_get(
+    async def get(
         self,
     ) -> ApiResponse[None]:
         """
@@ -70,6 +90,24 @@ class AsyncYClient:
             params=params if params else None,
             response_model=None,
         )
+
+
+class AsyncYClient:
+    """Async client for y operations."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+        self.foo: AsyncYFooClient = AsyncYFooClient(client)
+
+    @property
+    @typing_extensions.deprecated(
+        "y.foo_get is deprecated: use y.foo.get", category=None
+    )
+    def foo_get(self):
+        warnings.warn(
+            "y.foo_get is deprecated: use y.foo.get", DeprecationWarning, stacklevel=2
+        )
+        return self._client.y.foo.get
 
 
 class AsyncClient(AsyncClientBase):
@@ -87,13 +125,13 @@ class AsyncClient(AsyncClientBase):
         self.y: AsyncYClient = AsyncYClient(self)
 
 
-class XClient:
-    """Synchronous client for x operations."""
+class XFooClient:
+    """Synchronous client for x.foo operations."""
 
-    def __init__(self, client: ClientBase) -> None:
+    def __init__(self, client: Client) -> None:
         self._client = client
 
-    def foo_get(
+    def get(
         self,
     ) -> ApiResponse[Any]:
         """
@@ -111,13 +149,31 @@ class XClient:
         )
 
 
-class YClient:
-    """Synchronous client for y operations."""
+class XClient:
+    """Synchronous client for x operations."""
 
-    def __init__(self, client: ClientBase) -> None:
+    def __init__(self, client: Client) -> None:
+        self._client = client
+        self.foo: XFooClient = XFooClient(client)
+
+    @property
+    @typing_extensions.deprecated(
+        "x.foo_get is deprecated: use x.foo.get", category=None
+    )
+    def foo_get(self):
+        warnings.warn(
+            "x.foo_get is deprecated: use x.foo.get", DeprecationWarning, stacklevel=2
+        )
+        return self._client.x.foo.get
+
+
+class YFooClient:
+    """Synchronous client for y.foo operations."""
+
+    def __init__(self, client: Client) -> None:
         self._client = client
 
-    def foo_get(
+    def get(
         self,
     ) -> ApiResponse[None]:
         """
@@ -133,6 +189,24 @@ class YClient:
             params=params if params else None,
             response_model=None,
         )
+
+
+class YClient:
+    """Synchronous client for y operations."""
+
+    def __init__(self, client: Client) -> None:
+        self._client = client
+        self.foo: YFooClient = YFooClient(client)
+
+    @property
+    @typing_extensions.deprecated(
+        "y.foo_get is deprecated: use y.foo.get", category=None
+    )
+    def foo_get(self):
+        warnings.warn(
+            "y.foo_get is deprecated: use y.foo.get", DeprecationWarning, stacklevel=2
+        )
+        return self._client.y.foo.get
 
 
 class Client(ClientBase):
