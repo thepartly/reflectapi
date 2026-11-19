@@ -89,8 +89,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
       },
       "isize": {
         "description": "Machine-specific-bit signed integer",
-        "type": "integer",
-        "format": "int64"
+        "type": "integer"
       },
       "reflectapi.Infallible": {
         "description": "Error object which is expected to be never returned",
@@ -1079,7 +1078,6 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
       "usize": {
         "description": "Machine-specific-bit unsigned integer",
         "type": "integer",
-        "format": "uint64",
         "minimum": 0
       }
     }

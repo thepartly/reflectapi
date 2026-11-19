@@ -50,7 +50,6 @@ snapshot_kind: text
       "usize": {
         "description": "Machine-specific-bit unsigned integer",
         "type": "integer",
-        "format": "uint64",
         "minimum": 0
       }
     }

@@ -961,7 +961,7 @@ impl Converter<'_> {
                     | "u64" | "u128" | "usize" => {
                         let width = schema_codegen::integer_width(prim.name());
                         Type::Integer {
-                            format: width.map(|w| w.format.to_owned()),
+                            format: width.and_then(|w| w.format).map(str::to_owned),
                             minimum: width.and_then(|w| w.minimum),
                             maximum: width.and_then(|w| w.maximum),
                         }

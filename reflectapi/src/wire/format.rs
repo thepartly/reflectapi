@@ -44,23 +44,27 @@ pub(crate) fn string_format(primitive: &Primitive) -> Option<&str> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct IntegerWidth {
     /// The OpenAPI format registry's name: `int8` … `int64`, `uint8` … `uint64`.
-    pub format: &'static str,
+    /// `None` for `isize` and `usize`, whose width is the server's.
+    pub format: Option<&'static str>,
     pub minimum: Option<i64>,
     pub maximum: Option<i64>,
 }
 
 /// The width of a primitive integer type, by name. `i128` and `u128` have no
-/// registered format, and `isize`/`usize` are written as their 64-bit types.
+/// registered format. `isize` and `usize` are as wide as the server's
+/// pointers, 32 bits on wasm32, which the schema doesn't record, so they get
+/// no format and `usize` only its minimum.
 pub(crate) fn integer_width(name: &str) -> Option<IntegerWidth> {
     let (format, minimum, maximum) = match name {
-        "i8" => ("int8", Some(i8::MIN.into()), Some(i8::MAX.into())),
-        "i16" => ("int16", Some(i16::MIN.into()), Some(i16::MAX.into())),
-        "i32" => ("int32", Some(i32::MIN.into()), Some(i32::MAX.into())),
-        "i64" | "isize" => ("int64", None, None),
-        "u8" => ("uint8", Some(0), Some(u8::MAX.into())),
-        "u16" => ("uint16", Some(0), Some(u16::MAX.into())),
-        "u32" => ("uint32", Some(0), Some(u32::MAX.into())),
-        "u64" | "usize" => ("uint64", Some(0), None),
+        "i8" => (Some("int8"), Some(i8::MIN.into()), Some(i8::MAX.into())),
+        "i16" => (Some("int16"), Some(i16::MIN.into()), Some(i16::MAX.into())),
+        "i32" => (Some("int32"), Some(i32::MIN.into()), Some(i32::MAX.into())),
+        "i64" => (Some("int64"), None, None),
+        "u8" => (Some("uint8"), Some(0), Some(u8::MAX.into())),
+        "u16" => (Some("uint16"), Some(0), Some(u16::MAX.into())),
+        "u32" => (Some("uint32"), Some(0), Some(u32::MAX.into())),
+        "u64" => (Some("uint64"), Some(0), None),
+        "usize" => (None, Some(0), None),
         _ => return None,
     };
     Some(IntegerWidth {
@@ -105,13 +109,16 @@ mod tests {
         let u8 = integer_width("u8").unwrap();
         assert_eq!(
             (u8.format, u8.minimum, u8.maximum),
-            ("uint8", Some(0), Some(255))
+            (Some("uint8"), Some(0), Some(255))
         );
         let u64 = integer_width("u64").unwrap();
         assert_eq!(
             (u64.format, u64.minimum, u64.maximum),
-            ("uint64", Some(0), None)
+            (Some("uint64"), Some(0), None)
         );
+        let usize = integer_width("usize").unwrap();
+        assert_eq!((usize.format, usize.minimum), (None, Some(0)));
+        assert_eq!(integer_width("isize"), None);
         assert_eq!(integer_width("i64").unwrap().minimum, None);
         assert_eq!(integer_width("u128"), None);
     }
