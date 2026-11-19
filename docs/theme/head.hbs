@@ -10,3 +10,28 @@
   Bing Webmaster Tools can import the site from Search Console instead.
 --}}
 <link rel="sitemap" type="application/xml" href="{{ path_to_root }}sitemap.xml">
+{{!--
+  Renders ```mermaid code blocks as diagrams, in the light or dark mermaid
+  theme to match the book's theme. A module script runs after the page is
+  parsed, so the code blocks exist by then.
+--}}
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+  const dark = ["coal", "navy", "ayu"].some((theme) =>
+    document.documentElement.classList.contains(theme),
+  );
+  mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "default" });
+
+  const diagrams = [];
+  for (const code of document.querySelectorAll("pre > code.language-mermaid")) {
+    const diagram = document.createElement("pre");
+    diagram.className = "mermaid";
+    diagram.textContent = code.textContent;
+    code.parentElement.replaceWith(diagram);
+    diagrams.push(diagram);
+  }
+  if (diagrams.length > 0) {
+    await mermaid.run({ nodes: diagrams });
+  }
+</script>
