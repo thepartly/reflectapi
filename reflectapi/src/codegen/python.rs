@@ -257,15 +257,17 @@ fn python_type_mappings() -> &'static HashMap<&'static str, PythonTypeMapping> {
             },
         );
 
-        // Date/time types
+        // Date/time types. chrono writes nanoseconds, which Python's
+        // `datetime` can't hold; `ReflectapiDateTime` is a `datetime` that
+        // writes back the exact text it was read from (#243).
         for name in ["chrono::DateTime", "chrono::NaiveDateTime"] {
             m.insert(
                 name,
                 PythonTypeMapping {
-                    type_hint: "datetime",
-                    imports: &["from datetime import datetime"],
-                    runtime_imports: &[],
-                    provided_by_runtime: false,
+                    type_hint: "ReflectapiDateTime",
+                    imports: &[],
+                    runtime_imports: &["ReflectapiDateTime"],
+                    provided_by_runtime: true,
                     ignore_type_arguments: true,
                 },
             );

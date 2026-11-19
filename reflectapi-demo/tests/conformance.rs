@@ -391,20 +391,6 @@ struct Divergence {
 
 const DIVERGENCES: &[Divergence] = &[
     Divergence {
-        case: "stamped",
-        sample: Some(1),
-        target: "python",
-        check: "request",
-        reason: "`datetime` holds microseconds, so `DateTime` and `NaiveDateTime` drop nanoseconds (#243)",
-    },
-    Divergence {
-        case: "stamped",
-        sample: Some(1),
-        target: "python",
-        check: "response",
-        reason: "`datetime` holds microseconds, so `DateTime` and `NaiveDateTime` drop nanoseconds (#243)",
-    },
-    Divergence {
         case: "numbers",
         sample: Some(1),
         target: "typescript",

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 
 # Standard library imports
-from datetime import datetime, date
+from datetime import date
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
+from reflectapi_runtime import ReflectapiDateTime
 from reflectapi_runtime import ReflectapiDuration
 from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
@@ -34,10 +35,10 @@ class ReflectapiDemoTestsSerdeTestStruct(BaseModel):
     duration: ReflectapiDuration
     naive_time: str
     naive_date: date
-    naive_datetime: datetime
-    date_time_fixed_offset: datetime
-    date_time_utc: datetime
-    date_time_local: datetime
+    naive_datetime: ReflectapiDateTime
+    date_time_fixed_offset: ReflectapiDateTime
+    date_time_utc: ReflectapiDateTime
+    date_time_local: ReflectapiDateTime
 
 
 # Namespace classes for dotted access to types

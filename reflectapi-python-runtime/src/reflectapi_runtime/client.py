@@ -43,7 +43,8 @@ T = TypeVar("T", bound=BaseModel)
 def _json_serializer(obj: Any) -> Any:
     """JSON serializer function for datetime and Pydantic objects."""
     if isinstance(obj, datetime.datetime):
-        return obj.isoformat()
+        # A ReflectapiDateTime read from the wire is written back unchanged.
+        return getattr(obj, "wire", None) or obj.isoformat()
     elif isinstance(obj, datetime.date):
         return obj.isoformat()
     elif hasattr(obj, "model_dump"):

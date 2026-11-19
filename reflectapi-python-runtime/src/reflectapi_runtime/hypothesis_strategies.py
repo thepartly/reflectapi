@@ -45,7 +45,8 @@ if HAS_HYPOTHESIS:
             return st.booleans()
         elif type_hint is bytes:
             return st.binary()
-        elif type_hint is datetime.datetime:
+        elif isinstance(type_hint, type) and issubclass(type_hint, datetime.datetime):
+            # Includes ReflectapiDateTime, which accepts any datetime.
             return st.datetimes()
         elif type_hint is datetime.date:
             return st.dates()
